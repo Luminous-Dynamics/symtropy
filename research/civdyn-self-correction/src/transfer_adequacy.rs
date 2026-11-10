@@ -752,22 +752,40 @@ mod tests {
     const MODEL: &str = "sha256-frozen-transfer-model";
     const CALIBRATION: &str = "sha256-frozen-calibration";
 
-    fn domain(
-        domain_id: &str,
+    struct DomainFixture<'a> {
+        domain_id: &'a str,
         axis: TransferAxis,
         role: SplitRole,
         independent_unit: crate::model_adequacy::IndependentUnitKind,
-        population: &str,
-        context: &str,
-        source_family: &str,
-        source_digest: &str,
-        unit_id: &str,
+        population: &'a str,
+        context: &'a str,
+        source_family: &'a str,
+        source_digest: &'a str,
+        unit_id: &'a str,
         observed_value: f64,
-        model_digest: &str,
-        calibration_digest: &str,
+        model_digest: &'a str,
+        calibration_digest: &'a str,
         predictive_kind: PredictiveKind,
-        draw_values: &[f64],
-    ) -> TransferDomainEvidence {
+        draw_values: &'a [f64],
+    }
+
+    fn domain(fixture: DomainFixture<'_>) -> TransferDomainEvidence {
+        let DomainFixture {
+            domain_id,
+            axis,
+            role,
+            independent_unit,
+            population,
+            context,
+            source_family,
+            source_digest,
+            unit_id,
+            observed_value,
+            model_digest,
+            calibration_digest,
+            predictive_kind,
+            draw_values,
+        } = fixture;
         let registry = StatisticRegistry {
             version: "transfer-registry-v1".to_string(),
             statistics: vec![StatisticSpec {
@@ -865,54 +883,54 @@ mod tests {
 
     fn standard_domains() -> Vec<TransferDomainEvidence> {
         vec![
-            domain(
-                "source-region",
-                TransferAxis::Region,
-                SplitRole::Validation,
-                IndependentUnitKind::Region,
-                "source-households",
-                "source-period",
-                "survey-source",
-                "sha256-source-region",
-                "region-a",
-                0.5,
-                MODEL,
-                CALIBRATION,
-                PredictiveKind::Split,
-                &[0.45, 0.48, 0.50, 0.52, 0.55],
-            ),
-            domain(
-                "target-site",
-                TransferAxis::Institution,
-                SplitRole::Challenge,
-                IndependentUnitKind::Site,
-                "target-households",
-                "target-institution-period",
-                "administrative-source",
-                "sha256-target-site",
-                "site-b",
-                0.9,
-                MODEL,
-                CALIBRATION,
-                PredictiveKind::Split,
-                &[0.45, 0.48, 0.50, 0.52, 0.55],
-            ),
-            domain(
-                "target-time",
-                TransferAxis::TimePeriod,
-                SplitRole::Challenge,
-                IndependentUnitKind::TimeBlock,
-                "source-households",
-                "future-period",
-                "survey-source",
-                "sha256-target-time",
-                "time-block-c",
-                0.5,
-                MODEL,
-                CALIBRATION,
-                PredictiveKind::Split,
-                &[0.45, 0.48, 0.50, 0.52, 0.55],
-            ),
+            domain(DomainFixture {
+                domain_id: "source-region",
+                axis: TransferAxis::Region,
+                role: SplitRole::Validation,
+                independent_unit: IndependentUnitKind::Region,
+                population: "source-households",
+                context: "source-period",
+                source_family: "survey-source",
+                source_digest: "sha256-source-region",
+                unit_id: "region-a",
+                observed_value: 0.5,
+                model_digest: MODEL,
+                calibration_digest: CALIBRATION,
+                predictive_kind: PredictiveKind::Split,
+                draw_values: &[0.45, 0.48, 0.50, 0.52, 0.55],
+            }),
+            domain(DomainFixture {
+                domain_id: "target-site",
+                axis: TransferAxis::Institution,
+                role: SplitRole::Challenge,
+                independent_unit: IndependentUnitKind::Site,
+                population: "target-households",
+                context: "target-institution-period",
+                source_family: "administrative-source",
+                source_digest: "sha256-target-site",
+                unit_id: "site-b",
+                observed_value: 0.9,
+                model_digest: MODEL,
+                calibration_digest: CALIBRATION,
+                predictive_kind: PredictiveKind::Split,
+                draw_values: &[0.45, 0.48, 0.50, 0.52, 0.55],
+            }),
+            domain(DomainFixture {
+                domain_id: "target-time",
+                axis: TransferAxis::TimePeriod,
+                role: SplitRole::Challenge,
+                independent_unit: IndependentUnitKind::TimeBlock,
+                population: "source-households",
+                context: "future-period",
+                source_family: "survey-source",
+                source_digest: "sha256-target-time",
+                unit_id: "time-block-c",
+                observed_value: 0.5,
+                model_digest: MODEL,
+                calibration_digest: CALIBRATION,
+                predictive_kind: PredictiveKind::Split,
+                draw_values: &[0.45, 0.48, 0.50, 0.52, 0.55],
+            }),
         ]
     }
 
@@ -956,22 +974,22 @@ mod tests {
     #[test]
     fn model_identity_change_is_rejected_as_target_adaptation() {
         let mut domains = standard_domains();
-        domains[1] = domain(
-            "target-site",
-            TransferAxis::Institution,
-            SplitRole::Challenge,
-            IndependentUnitKind::Site,
-            "target-households",
-            "target-institution-period",
-            "administrative-source",
-            "sha256-target-site",
-            "site-b",
-            0.9,
-            "sha256-adapted-model",
-            CALIBRATION,
-            PredictiveKind::Split,
-            &[0.45, 0.48, 0.50, 0.52, 0.55],
-        );
+        domains[1] = domain(DomainFixture {
+            domain_id: "target-site",
+            axis: TransferAxis::Institution,
+            role: SplitRole::Challenge,
+            independent_unit: IndependentUnitKind::Site,
+            population: "target-households",
+            context: "target-institution-period",
+            source_family: "administrative-source",
+            source_digest: "sha256-target-site",
+            unit_id: "site-b",
+            observed_value: 0.9,
+            model_digest: "sha256-adapted-model",
+            calibration_digest: CALIBRATION,
+            predictive_kind: PredictiveKind::Split,
+            draw_values: &[0.45, 0.48, 0.50, 0.52, 0.55],
+        });
         assert!(matches!(
             assess_zero_shot_transfer(&domains),
             Err(TransferAdequacyError::ModelIdentityMismatchAcrossDomains { .. })
@@ -991,22 +1009,22 @@ mod tests {
     #[test]
     fn prior_predictive_assessment_cannot_qualify_transfer() {
         let mut domains = standard_domains();
-        domains[1] = domain(
-            "target-site",
-            TransferAxis::Institution,
-            SplitRole::Challenge,
-            IndependentUnitKind::Site,
-            "target-households",
-            "target-institution-period",
-            "administrative-source",
-            "sha256-target-site",
-            "site-b",
-            0.9,
-            MODEL,
-            CALIBRATION,
-            PredictiveKind::Prior,
-            &[0.45, 0.48, 0.50, 0.52, 0.55],
-        );
+        domains[1] = domain(DomainFixture {
+            domain_id: "target-site",
+            axis: TransferAxis::Institution,
+            role: SplitRole::Challenge,
+            independent_unit: IndependentUnitKind::Site,
+            population: "target-households",
+            context: "target-institution-period",
+            source_family: "administrative-source",
+            source_digest: "sha256-target-site",
+            unit_id: "site-b",
+            observed_value: 0.9,
+            model_digest: MODEL,
+            calibration_digest: CALIBRATION,
+            predictive_kind: PredictiveKind::Prior,
+            draw_values: &[0.45, 0.48, 0.50, 0.52, 0.55],
+        });
         assert!(matches!(
             assess_zero_shot_transfer(&domains),
             Err(TransferAdequacyError::InvalidPredictiveKind { .. })
@@ -1056,22 +1074,22 @@ mod tests {
         no_source[0].assessment.role = SplitRole::Challenge;
         assert!(assess_zero_shot_transfer(&no_source).is_err());
 
-        let no_target = vec![domain(
-            "only-source",
-            TransferAxis::Region,
-            SplitRole::Validation,
-            IndependentUnitKind::Region,
-            "source-households",
-            "source-period",
-            "survey-source",
-            "sha256-source-region",
-            "region-a",
-            0.5,
-            MODEL,
-            CALIBRATION,
-            PredictiveKind::Split,
-            &[0.45, 0.48, 0.50, 0.52, 0.55],
-        )];
+        let no_target = vec![domain(DomainFixture {
+            domain_id: "only-source",
+            axis: TransferAxis::Region,
+            role: SplitRole::Validation,
+            independent_unit: IndependentUnitKind::Region,
+            population: "source-households",
+            context: "source-period",
+            source_family: "survey-source",
+            source_digest: "sha256-source-region",
+            unit_id: "region-a",
+            observed_value: 0.5,
+            model_digest: MODEL,
+            calibration_digest: CALIBRATION,
+            predictive_kind: PredictiveKind::Split,
+            draw_values: &[0.45, 0.48, 0.50, 0.52, 0.55],
+        })];
         assert!(matches!(
             assess_zero_shot_transfer(&no_target),
             Err(TransferAdequacyError::MissingHeldOutChallengeDomain)
@@ -1121,22 +1139,22 @@ mod tests {
     #[test]
     fn source_validation_failure_prevents_a_transfer_claim() {
         let mut domains = standard_domains();
-        domains[0] = domain(
-            "source-region",
-            TransferAxis::Region,
-            SplitRole::Validation,
-            IndependentUnitKind::Region,
-            "source-households",
-            "source-period",
-            "survey-source",
-            "sha256-source-region",
-            "region-a",
-            0.9,
-            MODEL,
-            CALIBRATION,
-            PredictiveKind::Split,
-            &[0.45, 0.48, 0.50, 0.52, 0.55],
-        );
+        domains[0] = domain(DomainFixture {
+            domain_id: "source-region",
+            axis: TransferAxis::Region,
+            role: SplitRole::Validation,
+            independent_unit: IndependentUnitKind::Region,
+            population: "source-households",
+            context: "source-period",
+            source_family: "survey-source",
+            source_digest: "sha256-source-region",
+            unit_id: "region-a",
+            observed_value: 0.9,
+            model_digest: MODEL,
+            calibration_digest: CALIBRATION,
+            predictive_kind: PredictiveKind::Split,
+            draw_values: &[0.45, 0.48, 0.50, 0.52, 0.55],
+        });
 
         let report = assess_zero_shot_transfer(&domains).expect("source discrepancy report");
         assert_eq!(
