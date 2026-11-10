@@ -1025,6 +1025,42 @@ mod tests {
     }
 
     #[test]
+    fn feature_source_mismatch_is_rejected() {
+        let mut input = problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
+        let mut item = observation(0, 10);
+        item.values[0].source_id = "different-encoder".to_owned();
+        input.observation = Some(item);
+        assert_eq!(
+            audit_diagnosability(&input),
+            Err(DiagnosabilityError::ObservationSourceMismatch)
+        );
+    }
+
+    #[test]
+    fn stale_feature_and_excessive_cross_channel_skew_are_rejected() {
+        let mut stale = problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
+        let mut stale_observation = observation(0, 10);
+        stale_observation.values[0].observed_at_ns = 300;
+        stale.observation = Some(stale_observation);
+        assert_eq!(
+            audit_diagnosability(&stale),
+            Err(DiagnosabilityError::StaleObservationFeature)
+        );
+
+        let mut skewed = problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
+        skewed.now_ns = 470;
+        let mut skewed_observation = observation(0, 10);
+        skewed_observation.observed_at_ns = 450;
+        skewed_observation.values[0].observed_at_ns = 400;
+        skewed_observation.values[1].observed_at_ns = 445;
+        skewed.observation = Some(skewed_observation);
+        assert_eq!(
+            audit_diagnosability(&skewed),
+            Err(DiagnosabilityError::ObservationSkewExceeded)
+        );
+    }
+
+    #[test]
     fn feature_id_and_unit_schema_must_match_exactly() {
         let mut input = problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
         input.envelopes[0].features[0].unit_id = "degrees_per_s".to_owned();
