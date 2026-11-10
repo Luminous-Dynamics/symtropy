@@ -552,7 +552,7 @@ mod tests {
             .unwrap();
         assert_eq!(result.branch, ImpactBranch::FreeFlight);
         assert_eq!(result.derivative_class, ImpactDerivativeClass::SmoothFreeFlight);
-        close(result.state.gap_m, 10.0 - 0.5 * 9.81 * 0.01, ImpactTolerances::default());
+        close(result.state.gap_m, 10.0 - 0.5 * 9.81 * 0.01, 1.0e-12);
         close(result.state.velocity_m_s, -0.981, 1.0e-12);
         assert_eq!(
             result.step_jacobian,
@@ -747,7 +747,10 @@ mod tests {
                     velocity_m_s: 0.0,
                 },
                 1.0,
-                1.0e-9,
+                ImpactTolerances {
+                    event_time_s: 1.0e-9,
+                    ..ImpactTolerances::default()
+                },
             )
             .unwrap();
         assert_eq!(result.derivative_class, ImpactDerivativeClass::EventBoundary);
