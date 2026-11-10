@@ -59,6 +59,46 @@ Newton's differentiable workflows and MuJoCo's model-based optimization demonstr
 
 Symtropy should investigate differentiable mechanics only where derivatives are meaningful and validated. Required tests include finite-difference/adjoint agreement, gradient stability near contact transitions, nonsmoothness disclosure, and optimization outcomes checked against forward simulation. Do not treat a gradient as trustworthy simply because an automatic differentiation system returns one.
 
+### 3.2.1 Differentiable contact frontier — separate the forward law from the gradient contract
+
+The 2026 frontier is no longer one category called “differentiable physics”. It includes methods with materially different forward models and derivative meanings. Symtropy should benchmark them as separate lanes rather than combine their headline throughput or policy scores.
+
+| Method | Forward model / derivative | What it demonstrates | Required caveat |
+|---|---|---|---|
+| **Ostrich** (2026 preprint) | Backward-Euler, hard NCP contact and Coulomb friction solved by non-smooth Newton; implicit-function derivative of the converged residual, reusing the forward Schur complement | Hard-contact optimization at larger steps and GPU-batched worlds; authors report h≈0.1 s, 50× timestep vs MJX on one pallet task, 211× warm-iteration speed vs MJX, and 29× checkpointed-MJX optimization throughput at 8,192 worlds on a 24 GB GPU | Author-reported task/hardware results, not independent reproduction. O(1) gradient memory **per timestep** does not mean O(1) total horizon storage; total stored states remain O(T) unless checkpointed. |
+| **NablaEngine / ∇Mimic** (2026 preprint) | GPU fused MuJoCo contact dynamics plus hand-derived adjoint; optimality conditions differentiated with contact set, collision branch, active constraints and actuator clamps held fixed | Authors report median VJP errors vs float64 central differences of 3.6e-5 / 1.0e-5 / 1.9e-6 for position / velocity / action on their held-out state groups, and an 11.5× adjoint speedup vs the compared MuJoCo Warp implementation | These are conditional, within-regime derivatives. The paper identifies unbounded/ill-conditioned derivatives near vanishing-distance self-contact and nearly parallel capsules; its training default freezes some geometry derivatives and clips gradients. Measure exact mode and surrogate/clipped mode separately. |
+| **DiffMJX + Contacts From Distance (CFD)** (ICLR 2026) | Adaptive integration for penalty-contact gradient accuracy; additional pre-contact signal only in the backward pass via straight-through estimation | Addresses vanishing gradients before contact while retaining the chosen forward penalty simulation | The backward CFD signal is a surrogate, not the exact derivative of the unchanged forward model. Report its bias and downstream optimization utility separately. |
+| **CQDC-Warp** (2026 preprint) | GPU-batched quasi-dynamic convex contact planning with implicit contact-solve gradients and surrogate geometry gradients | Authors report 79.8% success on 17,408 Allegro 17-object in-hand-rotation trials and 2.06e5 / 2.25e5 forward/backward world-steps per second on an RTX 4090 with 2,048 worlds | Quasi-dynamic, contact-guided planning is not a full dynamic hard-contact solver. Its throughput and task success are not directly comparable with hard-dynamics solver accuracy. |
+
+Primary sources:
+- Ostrich, arXiv:2609.08800 — https://arxiv.org/abs/2609.08800
+- NablaEngine / ∇Mimic, arXiv:2610.41654 — https://arxiv.org/abs/2610.41654
+- DiffMJX / CFD, ICLR 2026 — https://proceedings.iclr.cc/paper_files/paper/2026/hash/44039e59aaf6a41b16f1fc5b27bcd409-Abstract-Conference.html
+- CQDC-Warp, arXiv:2610.21349 — https://arxiv.org/abs/2610.21349
+
+**The Symtropy opportunity:** differentiate on trustworthy derivative *semantics*, not simply the availability of an adjoint. Provide exact within-branch derivatives where regularity conditions hold; detect contact/active-set/collision-branch transitions; return a typed abstention or a set-/interval-valued directional sensitivity when a unique finite derivative is not justified. Preserve the unmodified forward physical model separately from any backward-only surrogate or gradient clipping policy.
+
+#### Matched benchmark protocol
+
+Use one frozen hard-contact scenario and one immutable forward solver/profile for each paired estimator comparison. Keep a distinct model lane when the forward law is quasi-dynamic, penalty/compliant, speculative or otherwise different.
+
+1. **Smooth stratum:** compare analytic/implicit gradients with central finite-difference step ladders and high-precision references; report directional-derivative bias, observed finite-difference convergence, VJP error, and gradient variance across seeds.
+2. **Fixed-mode contact stratum:** test separating, sticking, sliding, clamping and active joint-limit cases with the mode/active set explicitly frozen and recorded.
+3. **Nonsmooth transition stratum:** contact creation/separation, impact, grazing, friction-cone edge, collision-feature switch, nearly parallel capsules, vanishing-distance self-contact and actuator clamp changes. Score detection and honest abstention/set-valued output; do not reward a method for returning a finite but unjustified single gradient.
+4. **Surrogate-gradient stratum:** compare DiffMJX/CFD, contact-geometry surrogate, gradient clipping and smoothing methods by bias vs the hard-forward reference, pre-contact utility, gradient variance and final hard-forward task performance. Label every surrogate and smoothing parameter.
+5. **Optimization stratum:** equalize task, initial states, compute/time budget, policy/controller capacity and evaluation seeds. Evaluate the final policy through a common independently checked hard-forward model and held-out physical trials where possible.
+
+Required reporting:
+- forward trajectory/model discrepancy and contact complementarity/friction residuals;
+- derivative bias, variance, MSE and non-finite/overflow frequency;
+- percentage of cases classified smooth, transition, unbounded or unsupported;
+- false-confidence rate: a claimed single derivative where the reference/branch test shows no unique finite derivative;
+- branch recall and transition detection;
+- wall-clock, GPU/CPU time, peak memory and worlds per second;
+- optimization success, sample efficiency and hard-forward held-out performance.
+
+A derivative benchmark must never infer forward-model correctness from a useful optimizer update. Conversely, a physically accurate forward trajectory does not prove that its backward derivative is valid at mode transitions.
+
 ### 3.3 Richer physical interactions
 
 The frontier includes articulated rigid bodies, contacts, tendons, cables, cloth, deformables, particles and coupled solvers. This is not a reason to immediately implement all of them. It is a reason to define extension boundaries and choose domain-specific solvers based on validated use cases.
