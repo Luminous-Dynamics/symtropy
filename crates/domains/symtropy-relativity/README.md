@@ -128,3 +128,15 @@ This is deliberately separate from `kerr_ray_bundle_v1.json`:
 - this manifest owns Airy fold / Pearcey cusp controls, finite-source/coherence cases, the ray-derived diffraction bridge and full-wave Kerr scattering comparisons.
 
 The artifact is `planned_replication_manifest` with execution status `not_run`; no wave-amplification result or caustic diffraction result is claimed. Research owner: Symtropy [#4526](https://github.com/Luminous-Dynamics/symtropy/issues/4526).
+
+
+## Canonical fold/cusp known-answer fixtures
+
+`benchmarks/canonical_caustic_reference_cases_v1.json` contains analytic Airy fold and Pearcey cusp origin oracles with high-precision reference values.
+
+- Fold: integral = `2*pi*Ai(u)`, with five signed/positive u reference points.
+- Cusp origin: integral = `Gamma(1/4)/sqrt(2) * exp(i*pi/8)`.
+- Complex amplitude, phase and imaginary residual are checked separately.
+- The expressions are the primary references; decimal strings are high-precision fixtures, not claims about a Kerr lens.
+
+These are canonical local controls for Symtropy #4526; they do not validate a Kerr arrival-time surface or an astrophysical scattering factor.
