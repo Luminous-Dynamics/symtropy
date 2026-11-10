@@ -93,13 +93,17 @@ fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String,
     let context = signal(field(case,"context",at)?,&format!("{at}.context"),false)?;
     let response = signal(field(case,"response",at)?,&format!("{at}.response"),true)?;
     if command.role != "CONTROL_INTENT" || context.role != "DISTURBANCE_CONTEXT" || response.role != "PHYSICAL_RESPONSE" {
-        return Err(format!("{id}: signal-role promotion or mismatch"));
+        return Ok((id,result("INVALID_CONTRACT",&["SIGNAL_ROLE_MISMATCH"],"NOT_ASSESSED")));
     }
     let feedback = field(case,"actuator_feedback",at)?;
     let feedback_state = if feedback.is_null() { "FEEDBACK_UNAVAILABLE" } else {
         let fb = signal(feedback,&format!("{at}.actuator_feedback"),false)?;
-        if fb.role != "ACTUATOR_FEEDBACK" { return Err(format!("{id}: actuator feedback role mismatch")); }
-        if fb.observed_at_ms > response.observed_at_ms { return Err(format!("{id}: future actuator feedback")); }
+        if fb.role != "ACTUATOR_FEEDBACK" {
+            return Ok((id,result("INVALID_CONTRACT",&["ACTUATOR_FEEDBACK_ROLE_MISMATCH"],"FEEDBACK_ROLE_INVALID")));
+        }
+        if fb.observed_at_ms > response.observed_at_ms {
+            return Ok((id,result("INVALID_CONTRACT",&["FUTURE_ACTUATOR_FEEDBACK"],"FEEDBACK_TIMESTAMP_INVALID")));
+        }
         if fb.quality == "CURRENT" { "FEEDBACK_PRESENT_NOT_DELIVERY_PROOF" } else { "FEEDBACK_NOT_CURRENT" }
     };
     let envelope = field(case,"response_envelope",at)?;
@@ -114,15 +118,21 @@ fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String,
     let mean = number(envelope,"mean",at)?;
     let upper = number(envelope,"upper",at)?;
     let envelope_unit = string(envelope,"unit",at)?;
-    if lower > mean || mean > upper { return Err(format!("{id}: invalid response interval ordering")); }
-    if issued > prediction || trained > prediction { return Err(format!("{id}: future-issued or future-trained response model")); }
+    if lower > mean || mean > upper {
+        return Ok((id,result("INVALID_CONTRACT",&["INVALID_RESPONSE_INTERVAL"],feedback_state)));
+    }
+    if issued > prediction || trained > prediction {
+        return Ok((id,result("INVALID_CONTRACT",&["FUTURE_MODEL_INFORMATION"],feedback_state)));
+    }
     if command.observed_at_ms > prediction || context.observed_at_ms > prediction {
-        return Err(format!("{id}: future command/context leakage"));
+        return Ok((id,result("INVALID_CONTRACT",&["FUTURE_COMMAND_OR_CONTEXT_LEAKAGE"],feedback_state)));
     }
     if response.observed_at_ms < prediction || response.observed_at_ms - prediction > max_horizon {
-        return Err(format!("{id}: response observation outside prediction horizon"));
+        return Ok((id,result("INVALID_CONTRACT",&["RESPONSE_OUTSIDE_PREDICTION_HORIZON"],feedback_state)));
     }
-    if response.unit != envelope_unit { return Err(format!("{id}: response/envelope unit mismatch")); }
+    if response.unit != envelope_unit {
+        return Ok((id,result("INVALID_CONTRACT",&["RESPONSE_ENVELOPE_UNIT_MISMATCH"],feedback_state)));
+    }
     if field(case,"expected_disposition",at)?.as_str().is_none() { return Err(format!("{id}: expected disposition must be a string")); }
     if prediction.saturating_sub(command.observed_at_ms) > max_age || prediction.saturating_sub(context.observed_at_ms) > max_age {
         return Ok((id,result("NOT_EVALUATED",&["INPUT_TOO_OLD"],feedback_state)));
@@ -276,14 +286,14 @@ mod tests {
     #[test]
     fn future_trained_model_and_command_fail_closed() {
         let mut c=corpus(); c["cases"][0]["response_envelope"]["trained_through_ms"]=json!(2000);
-        assert!(evaluate_case(&c["cases"][0],2000,5000).is_err());
+        assert_eq!(evaluate_case(&c["cases"][0],2000,5000).unwrap().1["disposition"],"INVALID_CONTRACT");
         c=corpus(); c["cases"][0]["command"]["observed_at_ms"]=json!(2000);
-        assert!(evaluate_case(&c["cases"][0],2000,5000).is_err());
+        assert_eq!(evaluate_case(&c["cases"][0],2000,5000).unwrap().1["disposition"],"INVALID_CONTRACT");
     }
     #[test]
     fn role_promotion_fails_closed() {
         let mut c=corpus(); c["cases"][0]["response"]["role"]=json!("CONTROL_INTENT");
-        assert!(evaluate_case(&c["cases"][0],2000,5000).is_err());
+        assert_eq!(evaluate_case(&c["cases"][0],2000,5000).unwrap().1["disposition"],"INVALID_CONTRACT");
     }
     #[test]
     fn derived_response_is_not_independent() {
