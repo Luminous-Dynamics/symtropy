@@ -177,3 +177,33 @@ Physical validation requires synchronized and permissioned controller intent, ac
 ---
 
 A passing contract/schema check establishes only signal-role consistency for the declared case. It does not establish control-system correctness, engine diagnostics, real-engine transfer, shipboard effectiveness, seaworthiness, class approval, maintenance authority or permission to operate.
+
+## Executable P0 — command-conditioned response contract
+
+The protocol is paired with a deterministic Rust reference evaluator and a frozen synthetic corpus. P0 qualifies whether a declared command/context/response record may be compared under time, configuration, regime, quality and dependency constraints. It does not train the control-aware neural model.
+
+### P0 dispositions
+
+- RESPONSE_CONSISTENT: the independently measured response falls within the qualified, command/context-conditioned response interval.
+- RESPONSE_MISMATCH_UNISOLATED: the physical response falls outside that interval. This is a mismatch requiring investigation, not an actuator diagnosis.
+- NOT_EVALUATED: the evidence is stale, missing, derived from the command, outside a qualified configuration/regime, or shares a declared common-cause dependency.
+- INVALID_CONTRACT: a role promotion, future input, future-trained model, impossible prediction horizon or malformed record is present.
+
+Every result states fault_isolation=NOT_ATTEMPTED and actuator_delivery_confirmation=NOT_ESTABLISHED. Actuator-position feedback is not proof of fuel delivery, torque production or successful engine response.
+
+### Frozen synthetic corpus
+
+The corpus at benchmarks/maritime-control-response/control-response-corpus-v0.1.json contains 16 synthetic cases and two counterfactual pairs:
+
+1. Same command, different load context: expected response means and measured responses must differ.
+2. Different commands, same physical response: context-conditioned expected means and measured responses must remain equivalent within declared tolerances.
+
+Negative controls cover an out-of-envelope response, stale response, future command leakage, configuration mismatch, unsupported regime, shared gateway dependency, derived response, future-trained model, role promotion, response outside horizon and unqualified model.
+
+These are known-truth software fixtures, not engine recordings or empirical model outputs. No diagnostic accuracy, physical response accuracy or actuator-fault isolation is measured.
+
+### Reproduction and claim ceiling
+
+The standalone workspace package uses the existing serde_json dependency and introduces no new external crate. The focused workflow pins Rust 1.96.0, runs tests and strict Clippy, executes the frozen corpus, binds the receipt to exact source-commit and corpus digests, and uploads the JSON receipt.
+
+P0 validates only software handling of this synthetic contract. It does not validate a trained response model, physical engine dynamics, controller/actuator behaviour, engine diagnosis, shipboard safety, class/statutory compliance, MASS Code compliance, maintenance authority or permission to operate.

@@ -1,0 +1,934 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "MARITIME-CONTROL-RESPONSE-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "max_input_age_ms": 2000,
+  "max_response_horizon_ms": 5000,
+  "cases": [
+    {
+      "case_id": "nominal_response_consistent",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ]
+      },
+      "expected_disposition": "RESPONSE_CONSISTENT"
+    },
+    {
+      "case_id": "same_command_low_load",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 30,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 550,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 545,
+        "mean": 550,
+        "upper": 555,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "RESPONSE_CONSISTENT"
+    },
+    {
+      "case_id": "same_command_high_load",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 80,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 650,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 645,
+        "mean": 650,
+        "upper": 655,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "RESPONSE_CONSISTENT"
+    },
+    {
+      "case_id": "different_command_same_response_a",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 20,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 30,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "RESPONSE_CONSISTENT"
+    },
+    {
+      "case_id": "different_command_same_response_b",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 80,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 80,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600.5,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600.5,
+        "upper": 606,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "RESPONSE_CONSISTENT"
+    },
+    {
+      "case_id": "physical_response_outside_envelope",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 640,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "RESPONSE_MISMATCH_UNISOLATED"
+    },
+    {
+      "case_id": "stale_physical_response",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "STALE",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "future_command_leakage",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 1100,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "INVALID_CONTRACT"
+    },
+    {
+      "case_id": "configuration_mismatch",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-previous",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "unsupported_maneuvering_regime",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "rapid-load-change",
+      "regime_qualified": false,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "common_gateway_dependency",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "shared-gateway"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "shared-gateway"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "response_derived_from_command",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [
+          "fuel_index_command"
+        ]
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "future_trained_response_model",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 1200,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "INVALID_CONTRACT"
+    },
+    {
+      "case_id": "setpoint_promoted_to_physical_response",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "CONTROL_INTENT",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "INVALID_CONTRACT"
+    },
+    {
+      "case_id": "response_outside_prediction_horizon",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 7000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "INVALID_CONTRACT"
+    },
+    {
+      "case_id": "unqualified_response_model",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ]
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ]
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": []
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": false,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm"
+      },
+      "actuator_feedback": null,
+      "expected_disposition": "NOT_EVALUATED"
+    }
+  ],
+  "counterfactual_pairs": [
+    {
+      "pair_id": "same-command-different-context",
+      "kind": "SAME_COMMAND_DIFFERENT_CONTEXT",
+      "case_ids": [
+        "same_command_low_load",
+        "same_command_high_load"
+      ],
+      "minimum_context_delta": 40,
+      "minimum_expected_response_delta": 80,
+      "minimum_observed_response_delta": 80
+    },
+    {
+      "pair_id": "different-command-same-response",
+      "kind": "DIFFERENT_COMMAND_SAME_RESPONSE",
+      "case_ids": [
+        "different_command_same_response_a",
+        "different_command_same_response_b"
+      ],
+      "minimum_command_delta": 40,
+      "maximum_expected_response_delta": 2,
+      "maximum_observed_response_delta": 2
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "controller_write": false,
+    "actuation": false,
+    "maintenance_authorization": false,
+    "mode_transition": false,
+    "restriction_clearance": false
+  },
+  "claim_ceiling": "Synthetic contract evaluation only. It does not validate a learned response model, physical engine behaviour, actuator delivery, engine diagnosis, shipboard safety, class approval, maintenance authority or permission to operate."
+}

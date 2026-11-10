@@ -1,0 +1,50 @@
+
+name: Maritime control-response evaluator
+on:
+  push:
+    branches: ["research/maritime-control-response-v0-1"]
+    paths: ["tools/maritime-control-response-evaluator/**", "benchmarks/maritime-control-response/**", "docs/tech/MARITIME_CONTROL_AWARE_DIAGNOSIS_BENCHMARK_V0_1.md", "Cargo.toml", "Cargo.lock", ".github/workflows/maritime-control-response-evaluator.yml"]
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths: ["tools/maritime-control-response-evaluator/**", "benchmarks/maritime-control-response/**", "docs/tech/MARITIME_CONTROL_AWARE_DIAGNOSIS_BENCHMARK_V0_1.md", "Cargo.toml", "Cargo.lock", ".github/workflows/maritime-control-response-evaluator.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: maritime-control-response-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy
+      - name: Run evaluator tests
+        run: cargo test --locked -p maritime-control-response-evaluator
+      - name: Run strict Clippy
+        run: cargo clippy --locked -p maritime-control-response-evaluator --all-targets -- -D warnings
+      - name: Execute corpus and verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          corpus="benchmarks/maritime-control-response/control-response-corpus-v0.1.json"
+          corpus_sha256="$(sha256sum "$corpus" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-control-response-evaluator -- "$corpus" --source-commit "$source_commit" --corpus-sha256 "$corpus_sha256" > maritime-control-response-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$corpus_sha256" '.result == "pass" and .source_commit == $source and .corpus_sha256 == $digest and .scenario_count == 16 and .counterfactual_pair_count == 2 and (.cases | length == 16) and (.cases | all(.result.fault_isolation == "NOT_ATTEMPTED")) and (.cases | all(.result.actuator_delivery_confirmation == "NOT_ESTABLISHED")) and (.counterfactual_pairs | all(.status == "PASS"))' maritime-control-response-receipt.json
+      - name: Upload deterministic receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-control-response-receipt
+          path: maritime-control-response-receipt.json
+          if-no-files-found: error
+          retention-days: 90
