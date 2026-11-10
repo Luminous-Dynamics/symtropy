@@ -39,6 +39,7 @@ Existing work:
 - [#1172 — deterministic engineering scenario and replay substrate](https://github.com/Luminous-Dynamics/symtropy/issues/1172)
 - [#1472 — exact engine capability/model-path census](https://github.com/Luminous-Dynamics/symtropy/issues/1472)
 - [#460 — engine-wide physics qualification corpus](https://github.com/Luminous-Dynamics/symtropy/issues/460)
+- [#3749 — analytic physics oracles, scenario V&V and solver-level benchmarks](https://github.com/Luminous-Dynamics/symtropy/issues/3749)
 - [#443 — Rapier differential reference runner](https://github.com/Luminous-Dynamics/symtropy/issues/443)
 - [#4366 — cross-simulator semantic equivalence](https://github.com/Luminous-Dynamics/symtropy/issues/4366)
 
@@ -46,6 +47,7 @@ Deliverables:
 - exact engine/profile capability declarations;
 - scenario and run identity with immutable input/output digests;
 - analytical, metamorphic and negative-control physics cases;
+- numerical conditioning, sparse-constraint and solver-stability challenges under #3749;
 - independent reference lanes with explicit semantic mapping;
 - uncertainty, applicability and evidence-class metadata;
 - stale-evidence detection when a relevant configuration changes.
@@ -160,6 +162,18 @@ Report conventional performance and lifecycle performance separately.
 | Engineering evidence | Exact configuration, source digests, solver profile, assumptions, uncertainty, test traceability and evidence freshness |
 
 Targets such as runtime, availability, ingress protection, accuracy and repair time must be set only after the product requirements, duty cycle, measurement method and baseline are frozen. A 100-hour demonstration is a screening milestone, not an industrial MTBF claim.
+
+## External humanoid task benchmark alignment
+
+NIST's Humanoid Robot Baseline Performance Benchmark is currently a proposal being developed with industry and research partners, not a finalized certification or universal ranking. Its proposed task families cover basic mobility and manipulation/dexterity, coordinated loco-manipulation, confined-space whole-body awareness/control, and minimal task/scene reasoning. Track it as an **application-level task benchmark**, and update the task manifest when NIST publishes consensus revisions.
+
+Keep two linked scorecards:
+- **Model and solver evidence:** semantic equivalence, analytical/oracle error, convergence, numerical stability, uncertainty and physical correlation.
+- **Robot task outcomes:** task success/failure, time, payload, environment, energy, recovery, intervention and exact robot/controller configuration.
+
+Task success cannot validate simulator fidelity: a controller may compensate for model error. Conversely, a numerically accurate simulator does not prove perception, controller or robot-system performance.
+
+Reference: [NIST Humanoid Robot Baseline Performance Benchmark proposal](https://www.nist.gov/el/intelligent-systems-division-73500/humanoid-robot-baseline-performance-benchmark).
 
 ## Explicit non-goals
 
