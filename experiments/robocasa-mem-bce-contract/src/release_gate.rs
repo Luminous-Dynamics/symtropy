@@ -211,7 +211,6 @@ pub fn qualify_release(
         evidence.evaluation_input_lock_sha256.as_str(),
         evidence.simulator_source_lock_sha256.as_str(),
         evidence.dataset_manifest_sha256.as_str(),
-        evidence.policy_family_manifest_sha256.as_str(),
         evidence.asset_manifest_sha256.as_str(),
         evidence.asset_archive_sha256.as_str(),
         evidence.installed_wheel.candidate_wheel_sha256.as_str(),
@@ -232,6 +231,12 @@ pub fn qualify_release(
     }
 
     let mut blockers = BTreeSet::new();
+
+    if evidence.policy_family_manifest_sha256.trim().is_empty() {
+        blockers.insert(ReleaseGateBlocker::PolicyFamilyManifestMissing);
+    } else if !is_sha256_hex(&evidence.policy_family_manifest_sha256) {
+        return Err(ReleaseGateBlocker::InvalidArtifactDigest);
+    }
 
     for (digest, missing_blocker) in [
         (
