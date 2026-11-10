@@ -52,7 +52,7 @@ The action receipt SHA-256 in the input snapshot is validated for format and bou
 - `schemas/evaluator-observation-audit-v1.schema.json` — separate evaluator-only snapshot and actor/road audit.
 - `schemas/missing-observation-event-v1.schema.json` — explicit missing-frame stream event.
 
-All public boundary records are Serde serializable. The JSON schemas document field bounds and cross-field invariants that JSON Schema cannot express natively. SHA-256 commitments are unkeyed integrity digests, not signatures or authentication.
+Typed input, timing, policy-receipt, evaluator-audit and missing-event metadata records are Serde serializable. The raw RGB pixel buffer intentionally remains a binary artifact addressed by its SHA-256 digest; it is not expanded into a JSON array of byte values. The JSON schemas document field bounds and cross-field invariants that JSON Schema cannot express natively. SHA-256 commitments are unkeyed integrity digests, not signatures or authentication.
 
 ## Run
 
