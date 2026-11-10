@@ -84,7 +84,7 @@ impl GrayScottParameters {
                 value: self.kill,
             });
         }
-        if self.dt <= 0.0 {
+        if self.dt <= 0.0 || self.dt > 1.0 {
             return Err(GrayScottError::InvalidParameter {
                 name: "dt",
                 value: self.dt,
@@ -549,6 +549,14 @@ mod tests {
         assert!(metrics.variance_v > 0.0);
         assert!(metrics.gradient_energy_v > 0.0);
         assert!(metrics.high_v_fraction > 0.0);
+    }
+
+    #[test]
+    fn rejects_grid_size_overflow_before_allocation() {
+        assert!(matches!(
+            GrayScottField::new(usize::MAX, 3, GrayScottParameters::default()),
+            Err(GrayScottError::GridSizeOverflow { .. })
+        ));
     }
 
     #[test]
