@@ -16,8 +16,10 @@
 //! still determines orientation, that orientation is preserved and reported
 //! as `So3LogBranch::NearPi`.
 //!
-//! This is an SO(3)-only P0. It does not claim a complete SO(D) logarithm,
-//! left/right Jacobians, tangent transport, or SE(D) adjoint/coadjoint APIs.
+//! This is an SO(3)-only P0. It provides branch-aware logarithms, local
+//! plus/minus, geodesic interpolation, and left/right exponential Jacobians.
+//! It does not claim a complete SO(D) logarithm, tangent transport, or SE(D)
+//! adjoint/coadjoint APIs.
 
 use crate::{Bivector, Rotor};
 use nalgebra::{SMatrix, SVector};
@@ -94,6 +96,8 @@ pub enum So3LogError {
         determinant: f64,
     },
     DegeneratePiAxis,
+    SingularExponentialJacobian { angle: f64 },
+    IllConditionedExponentialJacobian { angle: f64, condition_estimate: f64 },
     NonFiniteResult,
 }
 
@@ -112,6 +116,8 @@ impl fmt::Display for So3LogError {
                 "matrix is not in SO(3): orthogonality error {orthogonality_error:e}, determinant {determinant:e}"
             ),
             Self::DegeneratePiAxis => write!(f, "could not recover a stable axis at the pi branch"),
+            Self::SingularExponentialJacobian { angle } => write!(f, "SO(3) exponential Jacobian is singular at angle {angle:e}"),
+            Self::IllConditionedExponentialJacobian { angle, condition_estimate } => write!(f, "SO(3) exponential Jacobian inverse is ill-conditioned at angle {angle:e} (condition estimate {condition_estimate:e})"),
             Self::NonFiniteResult => write!(f, "SO(3) logarithm produced a non-finite result"),
         }
     }
@@ -403,6 +409,179 @@ pub fn so3_interpolate(
     so3_interpolate_with_config(start, end, t, So3LogConfig::default())
 }
 
+
+/// A left- or right-trivialized differential of the SO(3) exponential map.
+///
+/// Matrix rows and columns use Symtropy's lexicographic bivector coordinate
+/// order [e01, e02, e12]. LeftSpatial maps additive generator perturbations to
+/// spatial/left perturbations; RightBody maps them to body/right perturbations.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct So3Jacobian {
+    pub matrix: SMatrix<f64, 3, 3>,
+    pub trivialization: So3Trivialization,
+    pub inverse: bool,
+    pub angle: f64,
+}
+
+impl So3Jacobian {
+    /// Apply this tangent map to a bivector in [e01, e02, e12] order.
+    pub fn apply(&self, tangent: &Bivector<3>) -> Result<Bivector<3>, So3LogError> {
+        if !tangent.is_finite() {
+            return Err(So3LogError::NonFiniteTangent);
+        }
+        let coordinates = SVector::<f64, 3>::new(
+            tangent.get(0, 1),
+            tangent.get(0, 2),
+            tangent.get(1, 2),
+        );
+        let mapped = self.matrix * coordinates;
+        if !mapped.iter().all(|value| value.is_finite()) {
+            return Err(So3LogError::NonFiniteResult);
+        }
+        let mut result = Bivector::<3>::zero();
+        result.set(0, 1, mapped[0]);
+        result.set(0, 2, mapped[1]);
+        result.set(1, 2, mapped[2]);
+        Ok(result)
+    }
+}
+
+/// Convert [e01, e02, e12] to the conventional SO(3) rotation vector [x,y,z].
+fn so3_rotation_vector(generator: &Bivector<3>) -> SVector<f64, 3> {
+    SVector::new(
+        generator.get(1, 2),
+        -generator.get(0, 2),
+        generator.get(0, 1),
+    )
+}
+
+fn so3_bivector_coordinate_map() -> SMatrix<f64, 3, 3> {
+    // phi = C * [b01, b02, b12], with C orthogonal.
+    let mut c = SMatrix::<f64, 3, 3>::zeros();
+    c[(0, 2)] = 1.0;
+    c[(1, 1)] = -1.0;
+    c[(2, 0)] = 1.0;
+    c
+}
+
+fn so3_jacobian_coefficients(theta: f64) -> (f64, f64) {
+    let theta2 = theta * theta;
+    if theta < 1.0e-4 {
+        let theta4 = theta2 * theta2;
+        let theta6 = theta4 * theta2;
+        (
+            0.5 - theta2 / 24.0 + theta4 / 720.0 - theta6 / 40_320.0,
+            1.0 / 6.0 - theta2 / 120.0 + theta4 / 5_040.0
+                - theta6 / 362_880.0,
+        )
+    } else {
+        (
+            (1.0 - theta.cos()) / theta2,
+            (theta - theta.sin()) / (theta2 * theta),
+        )
+    }
+}
+
+/// Compute the local differential of Exp for the selected trivialization.
+///
+/// LeftSpatial: Exp(phi + dphi) ~= Exp(J_l(phi) dphi) Exp(phi).
+/// RightBody: Exp(phi + dphi) ~= Exp(phi) Exp(J_r(phi) dphi).
+///
+/// The input and output coordinates use Symtropy's bivector basis. This is a
+/// local derivative; it does not differentiate across a logarithm branch.
+pub fn so3_exp_jacobian(
+    generator: &Bivector<3>,
+    trivialization: So3Trivialization,
+) -> Result<So3Jacobian, So3LogError> {
+    if !generator.is_finite() {
+        return Err(So3LogError::NonFiniteTangent);
+    }
+    let phi = so3_rotation_vector(generator);
+    let theta = phi.norm();
+    if !theta.is_finite() {
+        return Err(So3LogError::NonFiniteResult);
+    }
+    let (a, b) = so3_jacobian_coefficients(theta);
+    let k = skew_from_axis(&phi);
+    let identity = SMatrix::<f64, 3, 3>::identity();
+    let ad_matrix = match trivialization {
+        So3Trivialization::LeftSpatial => identity + k * a + (k * k) * b,
+        So3Trivialization::RightBody => identity - k * a + (k * k) * b,
+    };
+    let coordinate_map = so3_bivector_coordinate_map();
+    let matrix = coordinate_map.transpose() * ad_matrix * coordinate_map;
+    if !matrix.iter().all(|value| value.is_finite()) {
+        return Err(So3LogError::NonFiniteResult);
+    }
+    Ok(So3Jacobian {
+        matrix,
+        trivialization,
+        inverse: false,
+        angle: theta,
+    })
+}
+
+/// Compute the inverse differential of Exp for the selected trivialization.
+///
+/// The inverse is singular at nonzero integer multiples of 2π. It fails closed
+/// near those singularities instead of returning huge, misleading derivatives.
+/// The conservative condition-estimate ceiling is 1e8; this is an API safety
+/// threshold, not a universal numerical-analysis constant.
+pub fn so3_exp_jacobian_inverse(
+    generator: &Bivector<3>,
+    trivialization: So3Trivialization,
+) -> Result<So3Jacobian, So3LogError> {
+    if !generator.is_finite() {
+        return Err(So3LogError::NonFiniteTangent);
+    }
+    let phi = so3_rotation_vector(generator);
+    let theta = phi.norm();
+    if !theta.is_finite() {
+        return Err(So3LogError::NonFiniteResult);
+    }
+
+    let c = if theta < 1.0e-4 {
+        let theta2 = theta * theta;
+        let theta4 = theta2 * theta2;
+        let theta6 = theta4 * theta2;
+        1.0 / 12.0 + theta2 / 720.0 + theta4 / 30_240.0
+            + theta6 / 1_209_600.0
+    } else {
+        let half_sine = (0.5 * theta).sin().abs();
+        let transverse_gain = 2.0 * half_sine / theta;
+        let condition_estimate = 1.0 / transverse_gain;
+        if !condition_estimate.is_finite() || transverse_gain <= 128.0 * f64::EPSILON {
+            return Err(So3LogError::SingularExponentialJacobian { angle: theta });
+        }
+        if condition_estimate > 1.0e8 {
+            return Err(So3LogError::IllConditionedExponentialJacobian {
+                angle: theta,
+                condition_estimate,
+            });
+        }
+        1.0 / (theta * theta)
+            - (0.5 * theta).cos() / (2.0 * theta * (0.5 * theta).sin())
+    };
+
+    let k = skew_from_axis(&phi);
+    let identity = SMatrix::<f64, 3, 3>::identity();
+    let ad_matrix = match trivialization {
+        So3Trivialization::LeftSpatial => identity - k * 0.5 + (k * k) * c,
+        So3Trivialization::RightBody => identity + k * 0.5 + (k * k) * c,
+    };
+    let coordinate_map = so3_bivector_coordinate_map();
+    let matrix = coordinate_map.transpose() * ad_matrix * coordinate_map;
+    if !matrix.iter().all(|value| value.is_finite()) {
+        return Err(So3LogError::NonFiniteResult);
+    }
+    Ok(So3Jacobian {
+        matrix,
+        trivialization,
+        inverse: true,
+        angle: theta,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -553,3 +732,140 @@ mod tests {
         );
     }
 }
+
+
+#[cfg(test)]
+mod jacobian_tests {
+    use super::*;
+    use std::f64::consts::{PI, TAU};
+
+    fn max_identity_error(matrix: &SMatrix<f64, 3, 3>) -> f64 {
+        let identity = SMatrix::<f64, 3, 3>::identity();
+        matrix.iter().zip(identity.iter())
+            .map(|(a, b)| (a - b).abs())
+            .fold(0.0_f64, f64::max)
+    }
+
+    fn central_difference(
+        generator: &Bivector<3>,
+        direction: &Bivector<3>,
+        trivialization: So3Trivialization,
+        step: f64,
+    ) -> Bivector<3> {
+        let plus = generator.add(&direction.scale(step));
+        let minus = generator.add(&direction.scale(-step));
+        let base_rotation = Rotor::<3>::from_bivector(generator);
+        let plus_rotation = Rotor::<3>::from_bivector(&plus);
+        let minus_rotation = Rotor::<3>::from_bivector(&minus);
+
+        let plus_relative = match trivialization {
+            So3Trivialization::LeftSpatial => plus_rotation.compose(&base_rotation.reverse()),
+            So3Trivialization::RightBody => base_rotation.reverse().compose(&plus_rotation),
+        };
+        let minus_relative = match trivialization {
+            So3Trivialization::LeftSpatial => minus_rotation.compose(&base_rotation.reverse()),
+            So3Trivialization::RightBody => base_rotation.reverse().compose(&minus_rotation),
+        };
+        let plus_log = so3_log(&plus_relative).expect("positive perturbation is local");
+        let minus_log = so3_log(&minus_relative).expect("negative perturbation is local");
+        plus_log.generator.add(&minus_log.generator.scale(-1.0)).scale(0.5 / step)
+    }
+
+    #[test]
+    fn jacobians_are_identity_at_zero_and_stable_for_small_angles() {
+        let zero = Bivector::<3>::zero();
+        for trivialization in [
+            So3Trivialization::LeftSpatial,
+            So3Trivialization::RightBody,
+        ] {
+            let forward = so3_exp_jacobian(&zero, trivialization).unwrap();
+            let inverse = so3_exp_jacobian_inverse(&zero, trivialization).unwrap();
+            assert!(max_identity_error(&forward.matrix) < 1.0e-15);
+            assert!(max_identity_error(&inverse.matrix) < 1.0e-15);
+
+            let tiny = Bivector::<3>::unit_plane(0, 2).scale(1.0e-8);
+            let tiny_forward = so3_exp_jacobian(&tiny, trivialization).unwrap();
+            let tiny_inverse = so3_exp_jacobian_inverse(&tiny, trivialization).unwrap();
+            assert!(tiny_forward.matrix.iter().all(|v| v.is_finite()));
+            assert!(tiny_inverse.matrix.iter().all(|v| v.is_finite()));
+            assert!(max_identity_error(&(tiny_inverse.matrix * tiny_forward.matrix)) < 1.0e-8);
+        }
+    }
+
+    #[test]
+    fn left_and_right_jacobians_match_independent_central_differences() {
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.41);
+        generator.set(0, 2, -0.27);
+        generator.set(1, 2, 0.73);
+
+        let mut direction = Bivector::<3>::zero();
+        direction.set(0, 1, -0.32);
+        direction.set(0, 2, 0.61);
+        direction.set(1, 2, 0.19);
+
+        for trivialization in [
+            So3Trivialization::LeftSpatial,
+            So3Trivialization::RightBody,
+        ] {
+            let jacobian = so3_exp_jacobian(&generator, trivialization).unwrap();
+            let predicted = jacobian.apply(&direction).unwrap();
+            let measured = central_difference(&generator, &direction, trivialization, 1.0e-6);
+            assert!(
+                predicted.add(&measured.scale(-1.0)).norm() < 2.0e-8,
+                "finite-difference mismatch for {trivialization:?}: predicted={predicted:?}, measured={measured:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn inverse_jacobians_invert_forward_jacobians() {
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.9);
+        generator.set(0, 2, -0.4);
+        generator.set(1, 2, 1.1);
+
+        for trivialization in [
+            So3Trivialization::LeftSpatial,
+            So3Trivialization::RightBody,
+        ] {
+            let forward = so3_exp_jacobian(&generator, trivialization).unwrap();
+            let inverse = so3_exp_jacobian_inverse(&generator, trivialization).unwrap();
+            assert!(max_identity_error(&(inverse.matrix * forward.matrix)) < 2.0e-12);
+            assert!(max_identity_error(&(forward.matrix * inverse.matrix)) < 2.0e-12);
+        }
+    }
+
+    #[test]
+    fn inverse_jacobian_reports_singular_and_ill_conditioned_angles() {
+        let singular = Bivector::<3>::unit_plane(0, 1).scale(TAU);
+        assert!(matches!(
+            so3_exp_jacobian_inverse(&singular, So3Trivialization::LeftSpatial),
+            Err(So3LogError::SingularExponentialJacobian { .. })
+        ));
+
+        let ill_conditioned = Bivector::<3>::unit_plane(0, 1).scale(TAU - 1.0e-9);
+        assert!(matches!(
+            so3_exp_jacobian_inverse(&ill_conditioned, So3Trivialization::RightBody),
+            Err(So3LogError::IllConditionedExponentialJacobian { .. })
+        ));
+
+        let cut_locus = Bivector::<3>::unit_plane(0, 1).scale(PI);
+        assert!(so3_exp_jacobian_inverse(&cut_locus, So3Trivialization::LeftSpatial).is_ok());
+    }
+
+    #[test]
+    fn jacobians_reject_non_finite_tangents() {
+        let mut invalid = Bivector::<3>::zero();
+        invalid.set(0, 1, f64::NAN);
+        assert!(matches!(
+            so3_exp_jacobian(&invalid, So3Trivialization::LeftSpatial),
+            Err(So3LogError::NonFiniteTangent)
+        ));
+        assert!(matches!(
+            so3_exp_jacobian_inverse(&invalid, So3Trivialization::RightBody),
+            Err(So3LogError::NonFiniteTangent)
+        ));
+    }
+}
+
