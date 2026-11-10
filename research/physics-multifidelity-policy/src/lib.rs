@@ -184,6 +184,9 @@ pub struct RunObservation {
     pub model_passport_sha256: String,
     /// Digest of the observation record produced by the measurement/replay owner.
     pub observation_receipt_sha256: String,
+    /// Candidate model IDs whose validity envelopes contain this exact observed state,
+    /// as attested by the observation receipt. This list gates residual/uncertainty escalation.
+    pub eligible_peer_model_ids: Vec<String>,
     pub observed_residual: f64,
     pub observed_uncertainty: f64,
     pub validity_inside_envelope: bool,
@@ -201,6 +204,7 @@ pub enum MonitoringDecision {
         from_model_id: String,
         to_model_id: String,
         next_input_sha256: String,
+        trigger: MonitorTrigger,
         observation_receipt_sha256: String,
     },
     Abstain {
@@ -259,6 +263,8 @@ impl std::fmt::Display for PolicyError {
                 write!(f, "observation model does not match the selected model")
             }
             Self::ObservationPassportMismatch => write!(f, "observation model passport does not match the selected candidate"),
+            Self::ObservationPeerNotInCandidateSet(id) => write!(f, "observation names a non-candidate peer model: {id}"),
+            Self::DuplicateObservationPeer(id) => write!(f, "observation peer eligibility contains a duplicate model: {id}"),
             Self::SelectedModelMissing => write!(f, "selected model is absent from the input"),
             Self::InvalidSelectedModel => write!(f, "receipt does not select an admissible model"),
             Self::Serialization(message) => write!(f, "serialization failure: {message}"),
@@ -381,6 +387,17 @@ pub fn monitor(
         return Err(PolicyError::ObservationPassportMismatch);
     }
 
+    let mut eligible_peers = BTreeSet::new();
+    for peer_id in &observation.eligible_peer_model_ids {
+        validate_nonempty(peer_id, "observation.eligible_peer_model_ids[]")?;
+        if peer_id == selected_id || !input.candidates.iter().any(|candidate| &candidate.model_id == peer_id) {
+            return Err(PolicyError::ObservationPeerNotInCandidateSet(peer_id.clone()));
+        }
+        if !eligible_peers.insert(peer_id.clone()) {
+            return Err(PolicyError::DuplicateObservationPeer(peer_id.clone()));
+        }
+    }
+
     validate_nonnegative_finite(observation.observed_residual, "observed_residual")?;
     validate_nonnegative_finite(observation.observed_uncertainty, "observed_uncertainty")?;
 
@@ -434,9 +451,10 @@ pub fn monitor(
     };
 
     let mut remaining = input.clone();
-    remaining
-        .candidates
-        .retain(|candidate| candidate.model_id != *selected_id);
+    remaining.candidates.retain(|candidate| {
+        candidate.model_id != *selected_id
+            && eligible_peers.contains(&candidate.model_id)
+    });
     let next = evaluate(&remaining)?;
 
     match next.decision {
@@ -444,6 +462,7 @@ pub fn monitor(
             from_model_id: selected_id.clone(),
             to_model_id: model_id,
             next_input_sha256: next.input_sha256,
+            trigger,
             observation_receipt_sha256: observation.observation_receipt_sha256.clone(),
         }),
         PolicyDecision::Abstain { reason } => Ok(MonitoringDecision::Abstain {
@@ -876,6 +895,7 @@ mod tests {
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
             observed_residual: 0.005,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -899,6 +919,7 @@ mod tests {
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec!["slow-qualified".to_owned()],
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -921,6 +942,62 @@ mod tests {
     }
 
     #[test]
+    fn residual_escalation_requires_peer_validity_in_the_current_observation() {
+        let data = input();
+        let receipt = evaluate(&data).expect("input");
+        let observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
+            observed_residual: 0.5,
+            observed_uncertainty: 0.05,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).expect("monitor"),
+            MonitoringDecision::Abstain {
+                from_model_id: "fast-qualified".to_owned(),
+                reason: AbstentionReason::NoCandidates,
+                trigger: MonitorTrigger::ResidualExceeded,
+                observation_receipt_sha256: H3.to_owned(),
+            }
+        );
+    }
+
+    #[test]
+    fn observation_cannot_assert_an_unknown_peer_or_duplicate_peer() {
+        let data = input();
+        let receipt = evaluate(&data).expect("input");
+        let mut observation = RunObservation {
+            input_sha256: receipt.input_sha256.clone(),
+            model_id: "fast-qualified".to_owned(),
+            model_passport_sha256: H1.to_owned(),
+            observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec!["not-in-input".to_owned()],
+            observed_residual: 0.5,
+            observed_uncertainty: 0.05,
+            validity_inside_envelope: true,
+            hard_constraints: HardConstraintDisposition::WithinBounds,
+        };
+        assert_eq!(
+            monitor(&data, &receipt, &observation).unwrap_err(),
+            PolicyError::ObservationPeerNotInCandidateSet("not-in-input".to_owned())
+        );
+
+        observation.eligible_peer_model_ids = vec![
+            "slow-qualified".to_owned(),
+            "slow-qualified".to_owned(),
+        ];
+        assert_eq!(
+            monitor(&data, &receipt, &observation).unwrap_err(),
+            PolicyError::DuplicateObservationPeer("slow-qualified".to_owned())
+        );
+    }
+
+    #[test]
     fn escalation_abstains_if_no_next_candidate_is_admissible() {
         let mut data = input();
         data.candidates.truncate(1);
@@ -930,6 +1007,7 @@ mod tests {
             model_id: "slow-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
             observed_residual: 0.5,
             observed_uncertainty: 0.05,
             validity_inside_envelope: true,
@@ -955,6 +1033,7 @@ mod tests {
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
             observed_residual: 0.01,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -980,6 +1059,7 @@ mod tests {
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
             observed_residual: 0.01,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1005,6 +1085,7 @@ mod tests {
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
             observed_residual: 0.01,
             observed_uncertainty: 0.01,
             validity_inside_envelope: false,
@@ -1030,6 +1111,7 @@ mod tests {
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec!["slow-qualified".to_owned()],
             observed_residual: 0.05,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1062,6 +1144,7 @@ mod tests {
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
             observed_residual: 0.005,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1094,6 +1177,7 @@ mod tests {
             model_id: "slow-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
             observed_residual: 0.005,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
@@ -1134,6 +1218,7 @@ mod tests {
             model_id: "fast-qualified".to_owned(),
             model_passport_sha256: H1.to_owned(),
             observation_receipt_sha256: H3.to_owned(),
+            eligible_peer_model_ids: vec![],
             observed_residual: f64::NAN,
             observed_uncertainty: 0.01,
             validity_inside_envelope: true,
