@@ -329,7 +329,7 @@ pub struct JoinAlignmentPlan {
     pub target_geography: GeographySupport,
     pub target_measurement_unit: String,
     pub target_analytical_unit: IndependentUnitKind,
-    pub minimum_spatial_coverage: f64,
+    pub minimum_transform_coverage: f64,
     pub transforms: Vec<TransformReceipt>,
 }
 
@@ -590,17 +590,20 @@ pub fn assess_observation_compatibility(
     if left.variable_id != right.variable_id || left.construct != right.construct {
         reasons.push(CompatibilityReason::DifferentVariableOrConstruct);
     }
-    if left.measurement_unit != right.measurement_unit
-        || left.measurement_unit != plan.target_measurement_unit
-        || right.measurement_unit != plan.target_measurement_unit
-    {
-        for (_observation, source) in [(left, left_source), (right, right_source)] {
-            let valid = transform_for(plan, source.artifact_digest.as_deref().unwrap_or(""), TransformKind::UnitConversion)
-                .is_some_and(|receipt| {
-                    receipt.target_measurement_unit.as_deref()
-                        == Some(plan.target_measurement_unit.as_str())
-                });
-            if !valid {
+    for (observation, source) in [(left, left_source), (right, right_source)] {
+        if observation.measurement_unit != plan.target_measurement_unit {
+            let receipt = transform_for(
+                plan,
+                source.artifact_digest.as_deref().unwrap_or(""),
+                TransformKind::UnitConversion,
+            );
+            if let Some(receipt) = receipt.filter(|receipt| {
+                receipt.target_measurement_unit.as_deref()
+                    == Some(plan.target_measurement_unit.as_str())
+            }) {
+                used_transform_digests.push(receipt.receipt_digest.clone());
+                reasons.push(CompatibilityReason::ExplicitTransformUsed);
+            } else {
                 reasons.push(CompatibilityReason::DifferentMeasurementUnit);
             }
         }
@@ -615,12 +618,15 @@ pub fn assess_observation_compatibility(
                 TransformKind::TemporalAggregation,
             ) {
                 if receipt.target_period.as_ref() == Some(&plan.target_period)
-                    && validate_transform_coverage(receipt, plan.minimum_spatial_coverage)
+                    && validate_transform_coverage(receipt, plan.minimum_transform_coverage)
                 {
                     used_transform_digests.push(receipt.receipt_digest.clone());
                     reasons.push(CompatibilityReason::ExplicitTransformUsed);
                 } else {
                     reasons.push(CompatibilityReason::TemporalSupportMismatch);
+                    if !validate_transform_coverage(receipt, plan.minimum_transform_coverage) {
+                        reasons.push(CompatibilityReason::TransformCoverageBelowThreshold);
+                    }
                 }
             } else {
                 reasons.push(CompatibilityReason::TemporalSupportMismatch);
@@ -636,14 +642,14 @@ pub fn assess_observation_compatibility(
                 TransformKind::SpatialCrosswalk,
             ) {
                 if receipt.target_geography.as_ref() == Some(&plan.target_geography)
-                    && validate_transform_coverage(receipt, plan.minimum_spatial_coverage)
+                    && validate_transform_coverage(receipt, plan.minimum_transform_coverage)
                 {
                     used_transform_digests.push(receipt.receipt_digest.clone());
                     reasons.push(CompatibilityReason::ExplicitTransformUsed);
                 } else {
                     reasons.push(CompatibilityReason::GeographyMismatch);
                     if receipt.coverage_fraction.is_some_and(|value| {
-                        !value.is_finite() || value < plan.minimum_spatial_coverage
+                        !value.is_finite() || value < plan.minimum_transform_coverage
                     }) {
                         reasons.push(CompatibilityReason::TransformCoverageBelowThreshold);
                     }
@@ -662,12 +668,15 @@ pub fn assess_observation_compatibility(
                 TransformKind::AnalyticalUnitAggregation,
             ) {
                 if receipt.target_analytical_unit == Some(plan.target_analytical_unit)
-                    && validate_transform_coverage(receipt, plan.minimum_spatial_coverage)
+                    && validate_transform_coverage(receipt, plan.minimum_transform_coverage)
                 {
                     used_transform_digests.push(receipt.receipt_digest.clone());
                     reasons.push(CompatibilityReason::ExplicitTransformUsed);
                 } else {
                     reasons.push(CompatibilityReason::AnalyticalUnitMismatch);
+                    if !validate_transform_coverage(receipt, plan.minimum_transform_coverage) {
+                        reasons.push(CompatibilityReason::TransformCoverageBelowThreshold);
+                    }
                 }
             } else {
                 reasons.push(CompatibilityReason::AnalyticalUnitMismatch);
@@ -692,8 +701,8 @@ pub fn assess_observation_compatibility(
         }
     }
 
-    if !plan.minimum_spatial_coverage.is_finite()
-        || !(0.0..=1.0).contains(&plan.minimum_spatial_coverage)
+    if !plan.minimum_transform_coverage.is_finite()
+        || !(0.0..=1.0).contains(&plan.minimum_transform_coverage)
         || plan.target_measurement_unit.trim().is_empty()
         || plan.target_period.validate().is_err()
         || plan.target_geography.validate().is_err()
@@ -737,6 +746,8 @@ pub fn assess_observation_compatibility(
                     | CompatibilityReason::ObservationOriginUnknown
                     | CompatibilityReason::SurveyDesignOrWeightsMissing
                     | CompatibilityReason::DerivedLineageMissing
+                    | CompatibilityReason::ObservationSourceMismatch
+                    | CompatibilityReason::TransformReceiptMissingOrInvalid
             )
         })
     {
@@ -854,7 +865,7 @@ mod tests {
             target_geography: geography("province-a", "boundary-v1"),
             target_measurement_unit: "percent".to_string(),
             target_analytical_unit: IndependentUnitKind::Region,
-            minimum_spatial_coverage: 0.95,
+            minimum_transform_coverage: 0.95,
             transforms: Vec::new(),
         }
     }
@@ -1071,6 +1082,79 @@ mod tests {
         );
         assert_eq!(report.status, CompatibilityStatus::NotAssessed);
         assert!(report.reasons.contains(&CompatibilityReason::SurveyDesignOrWeightsMissing));
+    }
+
+    #[test]
+    fn unit_conversion_requires_source_bound_receipt_and_is_reported() {
+        let left_source = passport("left", "sha256-left", RightsStatus::Permitted, AcquisitionStatus::Acquired);
+        let right_source = passport("right", "sha256-right", RightsStatus::Permitted, AcquisitionStatus::Acquired);
+        let left = observation("left", "left", "sha256-left", ObservationOrigin::AdministrativeSubmission);
+        let right = observation("right", "right", "sha256-right", ObservationOrigin::AdministrativeSubmission);
+        let mut alignment = plan();
+        alignment.target_measurement_unit = "fraction".to_string();
+        alignment.transforms.push(TransformReceipt {
+            transform_id: "percent-to-fraction".to_string(),
+            transform_kind: TransformKind::UnitConversion,
+            input_artifact_digest: "sha256-left".to_string(),
+            method_id: "registered-scale-and-offset".to_string(),
+            receipt_digest: "sha256-unit-conversion".to_string(),
+            target_period: None,
+            target_geography: None,
+            target_measurement_unit: Some("fraction".to_string()),
+            target_analytical_unit: None,
+            coverage_fraction: None,
+        });
+        let report = assess_observation_compatibility(
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &alignment,
+        );
+        assert_eq!(report.status, CompatibilityStatus::NotComparable);
+        assert!(report.reasons.contains(&CompatibilityReason::DifferentMeasurementUnit));
+        alignment.transforms.push(TransformReceipt {
+            transform_id: "percent-to-fraction-right".to_string(),
+            transform_kind: TransformKind::UnitConversion,
+            input_artifact_digest: "sha256-right".to_string(),
+            method_id: "registered-scale-and-offset".to_string(),
+            receipt_digest: "sha256-unit-conversion-right".to_string(),
+            target_period: None,
+            target_geography: None,
+            target_measurement_unit: Some("fraction".to_string()),
+            target_analytical_unit: None,
+            coverage_fraction: None,
+        });
+        let report = assess_observation_compatibility(
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &alignment,
+        );
+        assert_eq!(report.status, CompatibilityStatus::CompatibleWithExplicitTransform);
+        assert_eq!(report.explicit_transform_digests.len(), 2);
+    }
+
+    #[test]
+    fn source_sample_unit_mismatch_is_not_reported_as_compatible() {
+        let left_source = passport("left", "sha256-left", RightsStatus::Permitted, AcquisitionStatus::Acquired);
+        let right_source = passport("right", "sha256-right", RightsStatus::Permitted, AcquisitionStatus::Acquired);
+        let mut left = observation("left", "left", "sha256-left", ObservationOrigin::AdministrativeSubmission);
+        left.sampling_unit = IndependentUnitKind::Region;
+        let right = observation("right", "right", "sha256-right", ObservationOrigin::AdministrativeSubmission);
+        let report = assess_observation_compatibility(
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &plan(),
+        );
+        assert_eq!(report.status, CompatibilityStatus::NotAssessed);
+        assert!(report.reasons.contains(&CompatibilityReason::ObservationSourceMismatch));
     }
 
     #[test]
