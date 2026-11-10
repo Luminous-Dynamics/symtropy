@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: discrete-step-map-\${{ github.ref }}
+  group: discrete-step-map-validation
   cancel-in-progress: true
 
 jobs:
