@@ -169,3 +169,10 @@ A v0 manifest PASS establishes only source/contract/split integrity. A physical 
 Added a ninth source candidate: Perić et al. (2022), *Numerical Simulation and Experimental Measurement of Residual Stresses in a Thick-Walled Buried-Arc Welded Pipe Structure*, Metals 12(7), 1102, DOI https://doi.org/10.3390/met12071102. The article is CC BY 4.0. It describes two S355J2+N Ø168 × 12 mm pipes, a single-pass buried-arc weld, six XRD residual-stress measurement locations and a detailed FE/cooling setup. Its Data Availability Statement is “Not applicable”; measured stress values are plotted rather than released as a raw file. Therefore it remains METADATA_ONLY / non-scoring pending reproducible digitization and uncertainty review.
 
 The article also states that the model's predicted 3929 °C local weld-pool peak is unrealistic because solid/liquid coupling is omitted, even though post-weld residual-stress profiles are compared with XRD measurements. This is a useful falsification case: residual-stress agreement cannot validate the local molten-pool temperature field. The new WPHYS-027 case freezes that output-scope non-promotion rule. This source is a single-pass buried-arc comparator, not a multipass GMAW-equivalent case.
+
+
+## Additional manufacturing digital-twin VVUQ alignment — 2026-11-10
+
+**ISO/AWI 23247-8** (approved work item; under development) addresses manufacturing digital-twin verification, validation and uncertainty quantification across requirements, development, commissioning, operation, maintenance and decommissioning. ISO records that it was approved and registered in the TC/SC work programme on **23 October 2026**. It is not a published International Standard and this benchmark must not claim conformance. We should align our reporting structure to its lifecycle scope while preserving our own explicit separation of code verification, solution verification, physical validation, uncertainty, context-of-use and decision/authority claims.
+
+Official ISO record: https://committee.iso.org/standard/94858.html
