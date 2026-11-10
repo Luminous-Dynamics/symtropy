@@ -127,7 +127,8 @@
                   "relation_id": "REL-MESH-WALL-OPENING-001",
                   "relation_type": "IfcRelVoidsElement",
                   "subject_entity_id": "WALL-SURFACE-001",
-                  "object_entity_id": "OPENING-SURFACE-001"
+                  "object_entity_id": "OPENING-SURFACE-001",
+                  "relation_kind": "host_opening"
                 }
               ],
               "reason": null
