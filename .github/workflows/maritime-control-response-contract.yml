@@ -61,6 +61,18 @@ jobs:
             and (.operational_metric_definitions.false_unique_root_cause_rate | contains("multiple components"))
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
+      - name: Validate benchmark run-manifest schema contract
+        run: |
+          set -euo pipefail
+          jq -e '
+            .\$schema == "https://json-schema.org/draft/2020-12/schema" and
+            .schema_version == null and
+            (.required | length == 12) and
+            (.properties.run_status.enum | length == 6) and
+            (.properties.dataset.properties.archive_sha256.oneOf | length == 2) and
+            (.properties.claims.properties.physical_transfer_claim_allowed.const == false)
+          ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
+
       - name: Validate formatting
         run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all -- --check
 
