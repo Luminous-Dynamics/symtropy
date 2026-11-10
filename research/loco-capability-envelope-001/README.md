@@ -61,6 +61,28 @@ Freeze levels before training. Bind train, validation, difficulty-ranking and fi
 - Preserve the training seed as the top-level cluster. Episodes, control timesteps and repeated rollouts of one trained policy are not independent training seeds.
 - Report seed-level values and uncertainty intervals. Pooled episode count does not replace independent training runs.
 
+## Standardized complete-machine locomotion profile
+
+In addition to the multidimensional UED/capability evaluation, add a separate **ISO 18646-5:2026** profile for reproducible machine-performance comparisons. The standard (published July 2026) covers legged-robot locomotion performance and is intended for complete-machine tests; its scope does not verify or validate safety requirements.
+
+Map the standard's applicable test procedures into source-pinned trial manifests for:
+- speed and stopping distance;
+- climbing and stair traversal;
+- slope traversal;
+- obstacle crossing and clearance.
+
+For every test preserve the full standard edition/profile, robot configuration, surface/obstacle geometry, payload, speed/command, environmental conditions, sensor/controller versions, exposure, repeated trials and raw outcomes. Do not reproduce ISO procedures from memory: the exact controlled conditions and acceptance methods must be taken from the purchased/authorized standard text and version-pinned in the run manifest.
+
+ISO performance results are reported separately from:
+- robust viability/recovery proofs (#4308);
+- calibrated risk and state-dependent action admission (#4119/#4231);
+- multi-outcome adverse-event vector (#4326);
+- held-out capability envelopes and CVaR (this issue).
+
+A robot can pass a performance test while lacking a validated safety case. A higher ISO locomotion score does not override a false-safe result or an adverse-event regression.
+
+Reference: https://www.iso.org/standard/86850.html
+
 ## Capability envelope
 
 For a feature axis (j), a declared fixed slice of all other dimensions, and success criterion (q), estimate the largest tested severity level at which the empirical success rate remains at least 50%. Report:
@@ -106,6 +128,9 @@ All formal comparisons use the same robot/morphology, task/action alphabet, trai
 - PSC predictive safety curriculum;
 - CPG/rule-based and heuristic foothold baselines;
 - nominal MPC, CBF/MPC and impact-aware robust MPC;
+- SafeMind probabilistic CBF / differentiable-QP baseline (IEEE Access 2026): 200 Hz Unitree A1 and ANYmal C deployment; paper-reported results are protocol-specific and must be remeasured under matched strata;
+- STEP-CBF+ reduced-order foothold/barrier screening (Scientific Reports 2026): 13.5 kg quadruped simulation, 49 foothold candidates, 13.6 ms mean selection; not hardware or whole-body invariance evidence;
+- impact-aware robust convex MPC (IEEE RA-L 2026): include the Go2 hardware uncertain-impact tests separately from simulation;
 - ARER-MetaRL-style short-context fault adaptation for locked-joint strata;
 - reference-free sampling-based MPC with no handcrafted gait/contact schedule;
 - Symtropy full stack and ablations (no probing, no context adaptation, no robust viability gate, no recovery objective, no safety-vector audit, no actuator-model transfer).
