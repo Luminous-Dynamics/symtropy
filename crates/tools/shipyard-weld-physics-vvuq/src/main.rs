@@ -225,15 +225,15 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
         }
     }
 
-    if sources.len() != 8 {
-        errors.push(format!("expected 8 v0.1 sources, found {}", sources.len()));
+    if sources.len() != 9 {
+        errors.push(format!("expected 9 v0.1 sources, found {}", sources.len()));
     }
-    if cases.len() != 26 {
-        errors.push(format!("v0.1 frozen corpus must contain 26 cases, found {}", cases.len()));
+    if cases.len() != 27 {
+        errors.push(format!("v0.1 frozen corpus must contain 27 cases, found {}", cases.len()));
     }
-    if positive_count != 1 || negative_count != 25 {
+    if positive_count != 1 || negative_count != 26 {
         errors.push(format!(
-            "expected 1 positive and 25 negative controls; got {positive_count}/{negative_count}"
+            "expected 1 positive and 26 negative controls; got {positive_count}/{negative_count}"
         ));
     }
 
@@ -315,10 +315,10 @@ mod tests {
         assert_eq!(
             summary,
             Summary {
-                source_count: 8,
-                case_count: 26,
+                source_count: 9,
+                case_count: 27,
                 positive_count: 1,
-                negative_count: 25,
+                negative_count: 26,
             }
         );
     }
