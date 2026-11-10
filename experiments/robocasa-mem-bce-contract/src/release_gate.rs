@@ -14,6 +14,13 @@ pub enum EvaluationRights {
     Unknown,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrainingOverlapDisclosure {
+    NoKnownOverlap,
+    KnownOverlapDisclosed,
+    Unknown,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstalledWheelAcceptance {
     /// Digest of the wheel being proposed for the current run.
@@ -92,6 +99,7 @@ pub struct RoboCasaMemReleaseEvidence {
 
     pub dataset_rights: EvaluationRights,
     pub asset_rights: EvaluationRights,
+    pub training_overlap: TrainingOverlapDisclosure,
 
     /// Exact expected policy families represented by the official suite matrix.
     pub expected_model_families: Vec<String>,
@@ -117,6 +125,7 @@ pub enum ReleaseGateBlocker {
     DatasetRightsUnknown,
     DatasetRightsRestricted,
     DatasetRightsManifestMissing,
+    TrainingOverlapUnknown,
     AssetRightsUnknown,
     AssetRightsRestricted,
     AssetRightsManifestMissing,
@@ -276,6 +285,9 @@ pub fn qualify_release(
         ReleaseGateBlocker::DatasetRightsUnknown,
         ReleaseGateBlocker::DatasetRightsRestricted,
     );
+    if evidence.training_overlap == TrainingOverlapDisclosure::Unknown {
+        blockers.insert(ReleaseGateBlocker::TrainingOverlapUnknown);
+    }
     add_rights_blockers(
         &mut blockers,
         evidence.asset_rights,
@@ -406,6 +418,7 @@ pub fn qualify_release(
         matches!(
             blocker,
             ReleaseGateBlocker::SourceManifestUnverified
+                | ReleaseGateBlocker::TaskCountMismatch
                 | ReleaseGateBlocker::SuiteBytesNotPreserved
                 | ReleaseGateBlocker::SuiteCountMismatch
                 | ReleaseGateBlocker::EvaluationInputCountMismatch
@@ -426,6 +439,7 @@ pub fn qualify_release(
                 | ReleaseGateBlocker::AssetRightsRestricted
                 | ReleaseGateBlocker::DatasetRightsUnknown
                 | ReleaseGateBlocker::DatasetRightsRestricted
+                | ReleaseGateBlocker::TrainingOverlapUnknown
         )
     });
     let current_wheel_accepted = !blockers.iter().any(|blocker| {
@@ -553,6 +567,7 @@ mod tests {
             clean_candidate_installation_verified: true,
             dataset_rights: EvaluationRights::Authorized,
             asset_rights: EvaluationRights::Authorized,
+            training_overlap: TrainingOverlapDisclosure::NoKnownOverlap,
             expected_model_families: vec!["act".to_owned(), "diffusion".to_owned(), "pi05".to_owned()],
             expected_checkpoints: ["act", "diffusion", "pi05"]
                 .into_iter()
@@ -761,6 +776,16 @@ mod tests {
         let report = qualify_release(&duplicate).unwrap();
         assert!(report.has_blocker(ReleaseGateBlocker::DuplicateModelFamilySmoke));
         assert!(report.has_blocker(ReleaseGateBlocker::ModelFamilySetMismatch));
+    }
+
+    #[test]
+    fn unknown_training_overlap_blocks_sota_comparability() {
+        let mut candidate = evidence();
+        candidate.training_overlap = TrainingOverlapDisclosure::Unknown;
+
+        let report = qualify_release(&candidate).unwrap();
+        assert!(report.has_blocker(ReleaseGateBlocker::TrainingOverlapUnknown));
+        assert!(!report.native_evaluation_ready);
     }
 
     #[test]
