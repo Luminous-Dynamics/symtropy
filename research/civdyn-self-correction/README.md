@@ -246,3 +246,32 @@ The current scorer is a finite-draw, sample-size-matched reference. It does not:
 The energy/variogram values are comparable only under the declared ordered component vocabulary, normalization references, exponent and pair weights. Do not compare raw scores from different statistic definitions as if they were a common leaderboard metric.
 
 Run the joint-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The CIVDYN workflow checks the two known-answer candidates and their native identities. This is synthetic scorer evidence only.
+
+
+## Scenario L: stratified heterogeneity and variance-collapse adequacy
+
+The first stratified heterogeneity fingerprint is in src/heterogeneity_adequacy.rs, with the deterministic heterogeneity-adequacy-sweep binary. It advances [CIVDYN-HETEROGENEITY-001 #4495](https://github.com/Luminous-Dynamics/symtropy/issues/4495).
+
+It reports global mean, global population variance, Type-7 p10/median/p90, within-stratum variance, between-stratum variance and per-stratum sample share, mean, population variance and quantiles. The variance decomposition uses equal observation weights and the finite-sample population denominator n:
+
+Var(Y) = E[Var(Y | G)] + Var(E[Y | G]).
+
+The global summary is descriptive of the observed finite sample. It is not an unbiased sample-variance estimator and does not provide sampling uncertainty. A declared stratum below its minimum count remains NotAssessed; a complete ordered joint vector cannot be scored while any declared stratum is under-supported.
+
+### Known-answer counterexample
+
+Reference:
+- Group A: [0, 2], mean 1, population variance 1.
+- Group B: [8, 10], mean 9, population variance 1.
+- Global mean 5, global population variance 17, within-stratum contribution 1, between-stratum contribution 16.
+
+Pooled-moment-matched collapse:
+- Both groups: [5 - sqrt(17), 5 + sqrt(17)].
+- Global mean 5 and global population variance 17 are unchanged.
+- Within-stratum contribution becomes 17 and between-stratum contribution becomes 0.
+
+The complete 19-component fingerprint is scored through the existing multivariate energy and variogram evaluator. The reference has zero scores; the pooled-moment-matched collapse must receive positive scores even though its global mean and variance match exactly.
+
+### Claim ceiling
+
+This is a synthetic variance-allocation counterexample, not human-validity evidence. It does not measure psychological realism, categorical diversity, within-person longitudinal variability or between-run Monte Carlo uncertainty. Agents nested within a simulation run must not be treated as independent runs; run-level variation remains a follow-on benchmark. No single heterogeneity or human-likeness score is produced.
