@@ -21,9 +21,15 @@
 //! asymptotic observer with the declared inclination convention.
 //!
 //! This module evaluates the separated equations and their local Mino-time
-//! derivatives. It is not yet a stepper, a turning-point event detector, a
-//! Jacobi-field solver, or a wave-optics implementation. Direction signs are
-//! explicit inputs so an integrator cannot silently cross a turning point.
+//! derivatives, supplies a turning-point-regular second-order system, and
+//! integrates exterior rays with adaptive RK4 step-doubling. A separate
+//! canonical Hamiltonian vector-field evaluator provides an independent
+//! formulation and supports the horizon-regular ingoing Kerr chart.
+//!
+//! The module is not yet a ray-bundle/Jacobi solver, does not provide finite-radius
+//! observer tetrads or caustic detection, and does not integrate the canonical
+//! Hamiltonian vector field. The adaptive Mino integrator uses Boyer-Lindquist
+//! coordinates and deliberately stops at the horizon/chart boundary.
 
 use core::fmt;
 
@@ -1103,7 +1109,7 @@ pub struct KerrMinoTrajectory {
     pub points: Vec<KerrMinoTrajectoryPoint>,
     pub accepted_steps: usize,
     pub rejected_steps: usize,
-    pub final_step: f64,
+    pub suggested_next_step: f64,
     pub maximum_normalized_radial_constraint_residual: f64,
     pub maximum_normalized_polar_constraint_residual: f64,
     pub requested_final_parameter: f64,
@@ -1289,7 +1295,7 @@ impl KerrSeparatedNullGeodesic {
                 points,
                 accepted_steps: 0,
                 rejected_steps: 0,
-                final_step: 0.0,
+                suggested_next_step: 0.0,
                 maximum_normalized_radial_constraint_residual: initial_radial_relative,
                 maximum_normalized_polar_constraint_residual: initial_polar_relative,
                 requested_final_parameter: final_parameter,
@@ -1400,7 +1406,7 @@ impl KerrSeparatedNullGeodesic {
             points,
             accepted_steps,
             rejected_steps,
-            final_step: step,
+            suggested_next_step: step,
             maximum_normalized_radial_constraint_residual: max_radial_residual,
             maximum_normalized_polar_constraint_residual: max_polar_residual,
             requested_final_parameter: final_parameter,
