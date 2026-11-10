@@ -30,6 +30,11 @@
             "artifact_id": "TRANSFORM-001",
             "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
             "role": "transform"
+          },
+          {
+            "artifact_id": "RELATION-INVENTORY-ROOM-A-001",
+            "sha256": "1212121212121212121212121212121212121212121212121212121212121212",
+            "role": "relation_inventory"
           }
         ],
         "output_artifacts": [
@@ -55,6 +60,17 @@
               "WALL-SURFACE-001"
             ],
             "identity_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          },
+          {
+            "event_id": "CORR-OPENING-001",
+            "kind": "one_to_one",
+            "source_entity_ids": [
+              "OPENING-RAW-001"
+            ],
+            "target_entity_ids": [
+              "OPENING-SURFACE-001"
+            ],
+            "identity_receipt_sha256": "1313131313131313131313131313131313131313131313131313131313131313"
           }
         ],
         "claims": [
@@ -93,6 +109,30 @@
           "conditioning_evidence": [],
           "estimator_id": null,
           "calibration_profile_id": null
+        },
+        "relation_audit": {
+          "inventory_artifact_id": "RELATION-INVENTORY-ROOM-A-001",
+          "completeness": "complete",
+          "relations": [
+            {
+              "source_relation_id": "REL-RAW-WALL-OPENING-001",
+              "relation_kind": "host_opening",
+              "source_relation_type": "RawRoomGraph.hosts_opening",
+              "source_subject_entity_id": "WALL-RAW-001",
+              "source_object_entity_id": "OPENING-RAW-001",
+              "directed": true,
+              "disposition": "preserved",
+              "target_relations": [
+                {
+                  "relation_id": "REL-MESH-WALL-OPENING-001",
+                  "relation_type": "IfcRelVoidsElement",
+                  "subject_entity_id": "WALL-SURFACE-001",
+                  "object_entity_id": "OPENING-SURFACE-001"
+                }
+              ],
+              "reason": null
+            }
+          ]
         }
       }
     ]
