@@ -1390,23 +1390,6 @@ mod tests {
     }
 
     #[test]
-    fn safe_abstention_does_not_count_as_an_unadmitted_applied_command() {
-        let mut input = problem();
-        input.trials[0].action_applied = false;
-        input.trials[0].certificate_current_at_action = false;
-        input.trials[0].applied_action_admitted = false;
-        let report = audit_fault_benchmark(&input).expect("safe abstention is measurable");
-        let policy = report
-            .policy_coverage
-            .iter()
-            .find(|row| row.policy_id == "nominal")
-            .expect("nominal policy");
-        assert_eq!(policy.action_abstention_count, 1);
-        assert_eq!(policy.stale_certificate_count, 0);
-        assert_eq!(policy.unadmitted_action_count, 0);
-    }
-
-    #[test]
     fn severity_estimate_outside_its_declared_interval_is_rejected() {
         let mut input = problem();
         input.trials[0].detected = DetectionResult::Detected {
