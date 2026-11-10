@@ -5,7 +5,7 @@ use bevy::shader::Shader;
 const WESL_ASSETS: &[&str] = &[
     "nd_slicing.wesl",
     "holographic.wesl",
-    "telemetry_deform.wesl",
+    "telemetry_visualization.wesl",
     "crt_consciousness.wesl",
 ];
 
