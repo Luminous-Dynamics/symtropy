@@ -55,7 +55,10 @@ pub use hyperplane::Hyperplane;
 pub use point::Point;
 pub use rotor::Rotor;
 pub use shape::Shape;
-pub use so4::{so4_interpolate, so4_interpolate_with_config, so4_log, so4_log_with_config, So4Log, So4LogBranch, So4LogConfig, So4LogError};
+pub use so4::{
+    so4_interpolate, so4_interpolate_with_config, so4_log, so4_log_with_config,
+    So4Log, So4LogBranch, So4LogConfig, So4LogError,
+};
 pub use spatial::{
     BodyTwist3, BodyWrench3, SpatialAlgebraError, SpatialTwist3, SpatialWrench3,
 };
