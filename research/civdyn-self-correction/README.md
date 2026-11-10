@@ -200,8 +200,46 @@ This slice does not yet implement:
 2. Prospective sample-size/power planning and dependence-aware uncertainty beyond the current Wilson coverage summary.
 3. Explicit treatment of measurement-error distributions rather than retaining the supplied measurement SE.
 4. Multiple source-family, site, cohort and temporal transfer tests.
-5. A diagnosis/repair lineage with fresh challenge sets and leakage receipts.
+5. Real-world diagnostic/repair lineage and independent external challenge data (a synthetic paired-repair qualification reference is now implemented below).
 6. Policy-rank, feasibility and native-resource sensitivity under alternative discrepancy models.
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario L: paired fresh-challenge model-repair qualification
+
+The repair qualification module is in src/repair_qualification.rs with the repair-qualification-sweep binary. It advances [CIVDYN-REPAIR-001 #4436](https://github.com/Luminous-Dynamics/symtropy/issues/4436).
+
+The evaluator requires three linked evidence packets:
+1. A split-predictive Validation assessment for the original model, containing an actual primary discrepancy that motivates repair.
+2. The original model assessed on fresh Challenge observations.
+3. The repaired model assessed on the exact same fresh Challenge observations.
+
+The original and repaired models must have distinct model digests. Both challenge evaluations must use the same statistic IDs, constructs, units, independent units, observations, source digests, sample sizes, measurement uncertainty and central interval mass. Their split manifests are distinct because the model calibration/repair-training lineage differs, but their held-out challenge unit sets are identical.
+
+The repair record pins the repair action, protocol, initial calibration data, repair-training data and repair-training source/observation digests. Diagnostic observations must be represented in the declared repair-training lineage. Challenge sources and observations must be absent from the repair-training manifests.
+
+Per-statistic outcomes remain separate:
+- maintained;
+- corrected on fresh challenge;
+- residual discrepancy;
+- regression;
+- interval-width budget exceeded;
+- not assessed.
+
+The width budget is independently checked. A repaired interval that covers the observation only by becoming wider than the registered maximum ratio is not counted as a correction.
+
+### Known-answer fixtures
+
+The deterministic sweep covers four cases:
+1. Corrected: the original model fails the fresh challenge; the repaired model passes without interval widening.
+2. Residual: the repaired model still fails.
+3. Width exceeded: the observation falls inside the repaired interval, but only because the interval has widened beyond the budget.
+4. Regression: the original model passes the fresh challenge and the repaired model fails.
+
+No pooled repair score is produced. A repair-restored claim is emitted only when at least one primary discrepancy is corrected on the fresh challenge, all required evidence is complete, and no primary residual, regression or width-budget failure remains.
+
+### Claim ceiling
+
+This synthetic reference qualifies the repair-evaluation protocol, not a real-world repair. It does not automatically select or apply repairs, prove that a repair caused a real-world improvement, or establish that assumption-evidence digests are true. Real-world use still requires independently held-out challenge data, rights/provenance controls and independent domain review.
