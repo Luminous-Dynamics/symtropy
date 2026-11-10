@@ -41,6 +41,7 @@ pub struct SensorRefreshOption {
     pub checkpoint_digest: String,
     pub model_digest: String,
     pub sensor_value_evidence_digest: String,
+    pub sam_evidence_digest: String,
     pub latency_bound_digest: String,
     pub resource_cost_digest: String,
     pub resource_unit_id: String,
@@ -432,6 +433,7 @@ fn make_sensor_grant(valid: ValidatedSensorOption) -> SensorGrant {
         sensor_profile_digest: valid.option.sensor_profile_digest,
         source_observation_digest: valid.option.source_observation_digest,
         sensor_value_evidence_digest: valid.option.sensor_value_evidence_digest,
+        sam_evidence_digest: valid.option.sam.evidence_digest,
         latency_bound_digest: valid.option.latency_bound_digest,
         resource_cost_digest: valid.option.resource_cost_digest,
         expected_regret_reduction_microunits: valid.option.expected_regret_reduction_microunits,
@@ -701,7 +703,9 @@ mod tests {
         let result = schedule(&budget(), &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())).unwrap();
         assert_eq!(result.action, DecisionAction::RequestObservation);
         assert_eq!(result.reason, DecisionReason::SensorValuePerResourceUnitHigher);
-        assert_eq!(result.sensor_grant.unwrap().resource_cost_units, 15);
+        let grant = result.sensor_grant.unwrap();
+        assert_eq!(grant.resource_cost_units, 15);
+        assert_eq!(grant.sam_evidence_digest, sensor().sam.evidence_digest);
         assert_eq!(result.resource_units_remaining, 85);
     }
 
@@ -963,6 +967,8 @@ mod tests {
         assert_eq!(schema["properties"]["schema_version"]["const"], 1);
         let required = schema["required"].as_array().unwrap();
         assert!(required.iter().any(|field| field == "resource_unit_id"));
+        assert!(required.iter().any(|field| field == "decision_value_unit_id"));
+        assert!(required.iter().any(|field| field == "clock_id"));
         assert!(required.iter().any(|field| field == "fallback_policy_id"));
         assert!(schema["properties"].get("world_snapshot_sha256").is_none());
     }
