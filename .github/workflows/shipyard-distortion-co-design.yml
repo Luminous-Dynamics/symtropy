@@ -7,6 +7,7 @@ on:
       - "crates/tools/shipyard-distortion-co-design/**"
       - "benchmarks/shipyard/distortion-co-design/**"
       - "docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_V0_1*"
+      - "docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_ENUMERABLE_ORACLE_V0_1.schema.json"
       - "Cargo.toml"
       - "Cargo.lock"
       - "rust-toolchain.toml"
