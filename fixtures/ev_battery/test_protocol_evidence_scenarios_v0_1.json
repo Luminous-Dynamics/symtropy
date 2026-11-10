@@ -471,7 +471,7 @@
           "reviewed_at": "2026-11-02T00:00:00Z",
           "signature_or_attestation_digest": "0000000000000000000000000000000000000000000000000000000000000014"
         },
-        "qualification_disposition": "within_declared_criteria"
+        "qualification_disposition": "not_assessed"
       }
     },
     {
