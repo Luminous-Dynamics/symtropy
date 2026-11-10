@@ -898,27 +898,63 @@ mod tests {
     }
 
     #[test]
-    fn known_upstream_candidate_state_does_not_qualify_historical_wheel_evidence() {
+    fn pinned_upstream_candidate_state_does_not_qualify_release() {
         let mut candidate = evidence();
-        candidate.candidate_source_commit = "1".repeat(40);
-        candidate.manifest_source_commit = "2".repeat(40);
+        candidate.candidate_source_commit =
+            "2c7d498e589d1a5a62b5b30c9d786513fa86bfa2".to_owned();
+        candidate.manifest_source_commit =
+            "b891bdf35fbe7b8390ea6cc663a870fb9ea7820c".to_owned();
+        candidate.source_file_manifest_verified = false;
         candidate.suite_bytes_preserved = false;
         candidate.release_ready_attested = false;
         candidate.clean_candidate_installation_verified = false;
+
+        // The release-candidate receipt claims coverage, but the referenced
+        // asset manifest itself still marks nine-task coverage unverified.
+        candidate.asset_manifest_task_coverage_verified = false;
+        candidate.asset_receipt_task_coverage_verified = true;
+        candidate.asset_verified_task_count = 9;
+
+        // The historical 450-case pass predates the current runtime; there is
+        // no candidate wheel or per-suite checkpoint smoke yet.
         candidate.installed_wheel.candidate_wheel_sha256.clear();
         candidate.installed_wheel.tested_runtime_sha256 = "0".repeat(64);
+        candidate.dataset_rights = EvaluationRights::Unknown;
+        candidate.asset_rights = EvaluationRights::Unknown;
+        candidate.dataset_rights_manifest_sha256.clear();
+        candidate.asset_rights_manifest_sha256.clear();
+        candidate.training_overlap = TrainingOverlapDisclosure::Unknown;
+        candidate.policy_family_manifest_sha256.clear();
+        candidate.expected_policy_runs.clear();
+        candidate.model_smokes.clear();
 
         let report = qualify_release(&candidate).unwrap();
         assert!(!report.native_evaluation_ready);
         assert!(report.has_blocker(ReleaseGateBlocker::SourceRevisionMismatch));
+        assert!(report.has_blocker(ReleaseGateBlocker::SourceManifestUnverified));
         assert!(report.has_blocker(ReleaseGateBlocker::SuiteBytesNotPreserved));
         assert!(report.has_blocker(ReleaseGateBlocker::ReleaseNotMarkedReady));
+        assert!(report.has_blocker(ReleaseGateBlocker::AssetManifestCoverageUnverified));
         assert!(report.has_blocker(ReleaseGateBlocker::CleanCandidateInstallationUnverified));
+        assert!(report.has_blocker(ReleaseGateBlocker::CandidateWheelArtifactMissing));
         assert!(report.has_blocker(ReleaseGateBlocker::InstalledWheelWasNotReaccepted));
-        // Asset coverage can be complete while the release remains blocked.
-        assert!(report
+        assert!(report.has_blocker(ReleaseGateBlocker::DatasetRightsUnknown));
+        assert!(report.has_blocker(ReleaseGateBlocker::AssetRightsUnknown));
+        assert!(report.has_blocker(ReleaseGateBlocker::TrainingOverlapUnknown));
+        assert!(report.has_blocker(ReleaseGateBlocker::PolicyFamilyManifestMissing));
+        assert!(report.has_blocker(ReleaseGateBlocker::ModelSmokeMissing));
+        assert!(!report
+            .stages
+            .contains(&ReleaseQualificationStage::DatasetProvenanceQualified));
+        assert!(!report
             .stages
             .contains(&ReleaseQualificationStage::AssetClosureQualified));
+        assert!(!report
+            .stages
+            .contains(&ReleaseQualificationStage::CurrentWheelAccepted));
+        assert!(!report
+            .stages
+            .contains(&ReleaseQualificationStage::ModelInferenceSmokeQualified));
     }
 
     #[test]
