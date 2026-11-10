@@ -468,6 +468,28 @@ mod tests {
     }
 
     #[test]
+    fn external_driver_rate_is_included_in_phase_resolution_guard() {
+        let mut config = PhaseOscillatorConfig::reference_population();
+        config.minimum_natural_frequency = 0.0;
+        config.maximum_natural_frequency = 0.0;
+        config.forcing_frequency = 4.0;
+        config.dt = 0.1;
+        assert!(matches!(
+            config.validate(),
+            Err(OscillatorError::PhaseResolutionViolation { .. })
+        ));
+    }
+
+    #[test]
+    fn negative_coupling_is_rejected() {
+        let config = PhaseOscillatorConfig::reference_population().with_coupling(-0.1);
+        assert!(matches!(
+            config.validate(),
+            Err(OscillatorError::NegativeParameter("coupling_strength"))
+        ));
+    }
+
+    #[test]
     fn synchrony_without_coupling_is_not_labelled_communication() {
         let mut system = reference_system(0.0, 1.5);
         system.run(STEPS).expect("common-input run should succeed");
