@@ -133,6 +133,9 @@ pub struct ComparisonEvidence {
     pub window_id: String,
     pub left_method_id: String,
     pub right_method_id: String,
+    /// Exact method response artifacts consumed by this comparison.
+    pub left_response_sha256: String,
+    pub right_response_sha256: String,
     /// Digest of the versioned alignment procedure and its configuration.
     pub alignment_definition_sha256: String,
     /// Digest of the versioned norm/metric definition and its configuration.
@@ -397,6 +400,12 @@ impl ResponseManifest {
             if !non_empty(&comparison.norm_id) {
                 e.push(format!("comparison '{}' norm is missing", comparison.comparison_id));
             }
+            if !hex(&comparison.left_response_sha256, &[64]) {
+                e.push(format!("comparison '{}' left-response digest invalid", comparison.comparison_id));
+            }
+            if !hex(&comparison.right_response_sha256, &[64]) {
+                e.push(format!("comparison '{}' right-response digest invalid", comparison.comparison_id));
+            }
             if !hex(&comparison.alignment_definition_sha256, &[64]) {
                 e.push(format!("comparison '{}' alignment-definition digest invalid", comparison.comparison_id));
             }
@@ -428,6 +437,12 @@ impl ResponseManifest {
                     }
                     if left.input_set_sha256 != right.input_set_sha256 {
                         e.push(format!("comparison '{}' methods did not consume the same canonical input set", comparison.comparison_id));
+                    }
+                    if left.response_sha256 != comparison.left_response_sha256 {
+                        e.push(format!("comparison '{}' left response digest is stale for method '{}'", comparison.comparison_id, left.method_id));
+                    }
+                    if right.response_sha256 != comparison.right_response_sha256 {
+                        e.push(format!("comparison '{}' right response digest is stale for method '{}'", comparison.comparison_id, right.method_id));
                     }
                 }
                 _ => e.push(format!("comparison '{}' references an unknown method", comparison.comparison_id)),
@@ -723,12 +738,14 @@ mod tests {
         }
     }
 
-    fn pair_comparison(window_id: &str, left: &str, right: &str, error: f64, limit: f64) -> ComparisonEvidence {
+    fn pair_comparison(window_id: &str, left: &str, right: &str, left_response: char, right_response: char, error: f64, limit: f64) -> ComparisonEvidence {
         ComparisonEvidence {
             comparison_id: format!("cmp-{window_id}"),
             window_id: window_id.into(),
             left_method_id: left.into(),
             right_method_id: right.into(),
+            left_response_sha256: d(left_response),
+            right_response_sha256: d(right_response),
             alignment_definition_sha256: d('b'),
             metric_definition_sha256: d('d'),
             aligned_samples_sha256: d('a'),
@@ -798,7 +815,7 @@ mod tests {
             observed_error: 1e-9,
             acceptance_limit: 1e-8,
         });
-        m.comparisons.push(pair_comparison("late", "fd", "freq", 1e-9, 1e-8));
+        m.comparisons.push(pair_comparison("late", "fd", "freq", '1', '2', 1e-9, 1e-8));
         m.convergence.push(ConvergenceSeries {
             quantity_id: "late-error".into(),
             norm_id: "complex-l2-relative".into(),
@@ -888,7 +905,7 @@ mod tests {
             observed_error: 1e-9,
             acceptance_limit: 1e-8,
         });
-        m.comparisons.push(pair_comparison("late", "fd", "freq", 1e-9, 1e-8));
+        m.comparisons.push(pair_comparison("late", "fd", "freq", '1', '2', 1e-9, 1e-8));
         assert!(m.validate().unwrap_err().iter().any(|e| e.contains("same canonical input set")));
     }
 
@@ -910,7 +927,7 @@ mod tests {
             observed_error: 1e-9,
             acceptance_limit: 1e-8,
         });
-        let mut comparison = pair_comparison("late", "fd", "freq", 1e-9, 1e-8);
+        let mut comparison = pair_comparison("late", "fd", "freq", '1', '2', 1e-9, 1e-8);
         comparison.alignment_definition_sha256 = "bad".into();
         comparison.metric_definition_sha256 = "bad".into();
         comparison.aligned_samples_sha256 = "bad".into();
@@ -947,8 +964,8 @@ mod tests {
                 acceptance_limit: 1e-8,
             });
         }
-        m.comparisons.push(pair_comparison("fd-freq", "fd", "freq", 1e-9, 1e-8));
-        m.comparisons.push(pair_comparison("green-a-green-b", "green-a", "green-b", 1e-9, 1e-8));
+        m.comparisons.push(pair_comparison("fd-freq", "fd", "freq", '1', '2', 1e-9, 1e-8));
+        m.comparisons.push(pair_comparison("green-a-green-b", "green-a", "green-b", '4', '6', 1e-9, 1e-8));
         assert!(m.validate().unwrap_err().iter().any(|e| e.contains("comparison graph is disconnected")));
 
         m.response_windows.push(ResponseWindow {
@@ -958,7 +975,7 @@ mod tests {
             observed_error: 1e-9,
             acceptance_limit: 1e-8,
         });
-        m.comparisons.push(pair_comparison("bridge", "freq", "green-a", 1e-9, 1e-8));
+        m.comparisons.push(pair_comparison("bridge", "freq", "green-a", '2', '4', 1e-9, 1e-8));
         assert!(m.validate().is_ok());
     }
 
@@ -981,7 +998,7 @@ mod tests {
             observed_error: 1e-9,
             acceptance_limit: 1e-8,
         });
-        m.comparisons.push(pair_comparison("late", "fd", "freq", 1e-9, 1e-8));
+        m.comparisons.push(pair_comparison("late", "fd", "freq", '1', '2', 1e-9, 1e-8));
         assert!(m.validate().unwrap_err().iter().any(|e| e.contains("does not participate")));
     }
 
@@ -1003,6 +1020,33 @@ mod tests {
     }
 
     #[test]
+    fn paired_comparison_rejects_stale_method_response_digests() {
+        let mut m = base();
+        m.qualification = Qualification::IndependentlyCrossChecked;
+        oracle(&mut m);
+        m.provenance.input_digests.push(NamedDigest {
+            name: "initial-data".into(),
+            sha256: d('e'),
+        });
+        m.methods.push(method("fd", 'f', '1'));
+        m.methods.push(method("freq", '0', '2'));
+        m.response_windows.push(ResponseWindow {
+            window_id: "late".into(),
+            causal_region: "late-time".into(),
+            norm_id: "complex-l2-relative".into(),
+            observed_error: 1e-9,
+            acceptance_limit: 1e-8,
+        });
+        let mut comparison = pair_comparison("late", "fd", "freq", '1', '2', 1e-9, 1e-8);
+        comparison.left_response_sha256 = d('9');
+        comparison.right_response_sha256 = d('8');
+        m.comparisons.push(comparison);
+        let errors = m.validate().unwrap_err();
+        assert!(errors.iter().any(|e| e.contains("left response digest is stale")));
+        assert!(errors.iter().any(|e| e.contains("right response digest is stale")));
+    }
+
+    #[test]
     fn paired_comparison_rejects_unaccepted_error() {
         let mut m = base();
         m.qualification = Qualification::IndependentlyCrossChecked;
@@ -1020,7 +1064,7 @@ mod tests {
             observed_error: 1e-3,
             acceptance_limit: 1e-8,
         });
-        m.comparisons.push(pair_comparison("late", "fd", "freq", 1e-3, 1e-8));
+        m.comparisons.push(pair_comparison("late", "fd", "freq", '1', '2', 1e-3, 1e-8));
         let errors = m.validate().unwrap_err();
         assert!(errors.iter().any(|e| e.contains("outside its declared limit")));
     }
