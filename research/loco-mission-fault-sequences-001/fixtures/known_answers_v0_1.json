@@ -25,7 +25,8 @@
           "thermal_cost_mj": 220,
           "authority_loss_ppm": 300000,
           "qualified": true,
-          "minimum_authority_required_ppm": 600000
+          "minimum_authority_required_ppm": 600000,
+          "recovery_budget_cost_mwh": 120
         },
         {
           "event_id": "low_friction_recovery",
@@ -33,7 +34,8 @@
           "thermal_cost_mj": 180,
           "authority_loss_ppm": 0,
           "qualified": true,
-          "minimum_authority_required_ppm": 600000
+          "minimum_authority_required_ppm": 600000,
+          "recovery_budget_cost_mwh": 210
         }
       ],
       "operation_between_events": null,
@@ -62,7 +64,8 @@
             "thermal_cost_mj": 350,
             "authority_loss_ppm": 0,
             "qualified": true,
-            "minimum_authority_required_ppm": 900000
+            "minimum_authority_required_ppm": 900000,
+            "recovery_budget_cost_mwh": 0
           },
           {
             "event_id": "torque_derate",
@@ -70,7 +73,8 @@
             "thermal_cost_mj": 180,
             "authority_loss_ppm": 250000,
             "qualified": true,
-            "minimum_authority_required_ppm": 600000
+            "minimum_authority_required_ppm": 600000,
+            "recovery_budget_cost_mwh": 0
           }
         ],
         [
@@ -80,7 +84,8 @@
             "thermal_cost_mj": 180,
             "authority_loss_ppm": 250000,
             "qualified": true,
-            "minimum_authority_required_ppm": 600000
+            "minimum_authority_required_ppm": 600000,
+            "recovery_budget_cost_mwh": 0
           },
           {
             "event_id": "high_load_turn",
@@ -88,7 +93,8 @@
             "thermal_cost_mj": 350,
             "authority_loss_ppm": 0,
             "qualified": true,
-            "minimum_authority_required_ppm": 900000
+            "minimum_authority_required_ppm": 900000,
+            "recovery_budget_cost_mwh": 0
           }
         ]
       ],
@@ -122,7 +128,8 @@
           "thermal_cost_mj": 220,
           "authority_loss_ppm": 250000,
           "qualified": true,
-          "minimum_authority_required_ppm": 0
+          "minimum_authority_required_ppm": 0,
+          "recovery_budget_cost_mwh": 0
         },
         {
           "event_id": "second_fault_before_cooldown",
@@ -130,7 +137,8 @@
           "thermal_cost_mj": 100,
           "authority_loss_ppm": 200000,
           "qualified": false,
-          "minimum_authority_required_ppm": 0
+          "minimum_authority_required_ppm": 0,
+          "recovery_budget_cost_mwh": 0
         }
       ],
       "operation_between_events": {
@@ -161,7 +169,8 @@
           "thermal_cost_mj": 30,
           "authority_loss_ppm": 0,
           "qualified": true,
-          "minimum_authority_required_ppm": 0
+          "minimum_authority_required_ppm": 0,
+          "recovery_budget_cost_mwh": 70
         },
         {
           "event_id": "diagnostic_probe_2",
@@ -169,7 +178,8 @@
           "thermal_cost_mj": 40,
           "authority_loss_ppm": 0,
           "qualified": true,
-          "minimum_authority_required_ppm": 0
+          "minimum_authority_required_ppm": 0,
+          "recovery_budget_cost_mwh": 80
         },
         {
           "event_id": "fault_recovery",
@@ -177,7 +187,8 @@
           "thermal_cost_mj": 80,
           "authority_loss_ppm": 0,
           "qualified": true,
-          "minimum_authority_required_ppm": 0
+          "minimum_authority_required_ppm": 0,
+          "recovery_budget_cost_mwh": 150
         }
       ],
       "expected": {
@@ -203,7 +214,8 @@
           "thermal_cost_mj": 0,
           "authority_loss_ppm": 0,
           "qualified": false,
-          "minimum_authority_required_ppm": 0
+          "minimum_authority_required_ppm": 0,
+          "recovery_budget_cost_mwh": 0
         }
       ],
       "operation_between_events": {
@@ -237,7 +249,8 @@
           "thermal_cost_mj": 120,
           "authority_loss_ppm": 0,
           "qualified": true,
-          "minimum_authority_required_ppm": 0
+          "minimum_authority_required_ppm": 0,
+          "recovery_budget_cost_mwh": 0
         }
       ],
       "expected": {
