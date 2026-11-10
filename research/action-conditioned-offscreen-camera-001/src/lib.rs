@@ -199,13 +199,13 @@ impl std::fmt::Display for RenderError {
 
 impl std::error::Error for RenderError {}
 
-#[derive(Debug, Clone, PartialEq, Eq)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum PixelFormat {
     Rgb8Srgb,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PolicyObservationReceipt {
     pub schema_version: u32,
     pub observation_id: String,
