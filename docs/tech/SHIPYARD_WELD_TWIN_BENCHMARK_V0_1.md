@@ -171,3 +171,14 @@ The authoritative frozen-corpus count is **54 unique cases: 2 valid synthetic co
 - `legacy_rev2_wpqr_preserved_for_rev3_ship_when_class_accepted`: a previously qualified Rev.2 record is not rejected solely because the ship is governed by Rev.3; explicit Class Society acceptance and matching range are required.
 
 The Rust test uses the strict duplicate-key parser for both the raw process traces and the top-level frozen corpus. The CLI report includes the SHA-256 of the exact corpus bytes. Earlier 41-/46-/51-case counts and 1-positive/50-negative interim notes are historical snapshots, superseded by this 54-case v0.1 baseline.
+
+
+## Multipass sequence generalization — 2026-11-10
+
+The executable verifier now accepts **one root pass, one-or-more ordered fill passes, and one cap pass**. Pass indices must be contiguous. Each pass must have a canonical UTC source time no later than the evaluation cutoff; pass times must be monotonic through the sequence. Every pass retains exact raw-trace SHA-256 and subject binding.
+
+The frozen corpus now contains **56 unique cases: 3 synthetic-valid cases and 53 negative controls**. New cases:
+- a four-pass root/fill/fill/cap trace, expected to remain `WELD_TRACE_VALID_SYNTHETIC_ONLY`;
+- a time-reordered pass, rejected as `PASS_TIME_ORDER_INVALID`.
+
+The additional fill pass has its own exact-byte trace fixture and digest. This remains a synthetic contract test, not a welding procedure qualification or physical process result.
