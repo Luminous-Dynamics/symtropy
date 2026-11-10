@@ -46,7 +46,9 @@
         "thermal_headroom_mj",
         "actuator_authority_ppm",
         "recovery_energy_mwh",
-        "topology_independent_routes"
+        "topology_independent_routes",
+        "recovery_energy_mwh",
+        "terminal_safe_stop_required_energy_mwh"
       ],
       "additionalProperties": false,
       "properties": {
@@ -62,9 +64,14 @@
           "maximum": 1000000
         },
         "recovery_energy_mwh": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0
         },
         "topology_independent_routes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "terminal_safe_stop_required_energy_mwh": {
           "type": "integer",
           "minimum": 0
         }
@@ -77,7 +84,8 @@
         "energy_cost_mwh",
         "thermal_cost_mj",
         "authority_loss_ppm",
-        "qualified"
+        "qualified",
+        "minimum_authority_required_ppm"
       ],
       "additionalProperties": false,
       "properties": {
@@ -98,6 +106,11 @@
         },
         "qualified": {
           "type": "boolean"
+        },
+        "minimum_authority_required_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
         }
       }
     },
