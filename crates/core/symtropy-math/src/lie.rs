@@ -417,13 +417,33 @@ pub fn so3_interpolate(
 /// spatial/left perturbations; RightBody maps them to body/right perturbations.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct So3Jacobian {
-    pub matrix: SMatrix<f64, 3, 3>,
-    pub trivialization: So3Trivialization,
-    pub inverse: bool,
-    pub angle: f64,
+    matrix: SMatrix<f64, 3, 3>,
+    trivialization: So3Trivialization,
+    inverse: bool,
+    angle: f64,
 }
 
 impl So3Jacobian {
+    /// Read the immutable matrix in [e01, e02, e12] row/column order.
+    pub fn matrix(&self) -> &SMatrix<f64, 3, 3> {
+        &self.matrix
+    }
+
+    /// Read the tangent trivialization represented by this map.
+    pub fn trivialization(&self) -> So3Trivialization {
+        self.trivialization
+    }
+
+    /// Return whether this object is the inverse exponential Jacobian.
+    pub fn is_inverse(&self) -> bool {
+        self.inverse
+    }
+
+    /// Read the norm of the exponential-coordinate generator in radians.
+    pub fn angle_rad(&self) -> f64 {
+        self.angle
+    }
+
     /// Apply this tangent map to a bivector in [e01, e02, e12] order.
     pub fn apply(&self, tangent: &Bivector<3>) -> Result<Bivector<3>, So3LogError> {
         if !tangent.is_finite() {
