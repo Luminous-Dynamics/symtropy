@@ -76,7 +76,9 @@
         "joint_type",
         "weld_position",
         "effectivity_start_utc",
-        "effectivity_end_utc"
+        "effectivity_end_utc",
+        "material_record_lot",
+        "required_procedure_scope"
       ],
       "properties": {
         "asset_id": {
@@ -138,6 +140,14 @@
         },
         "effectivity_end_utc": {
           "$ref": "#/$defs/nullableDate"
+        },
+        "material_record_lot": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_procedure_scope": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -427,7 +437,8 @@
         "process_trace_sha256",
         "evidence_class",
         "observed_envelope_status",
-        "source_time_utc"
+        "source_time_utc",
+        "serial_id"
       ],
       "properties": {
         "pass_id": {
@@ -496,6 +507,10 @@
         "source_time_utc": {
           "type": "string",
           "format": "date-time"
+        },
+        "serial_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
