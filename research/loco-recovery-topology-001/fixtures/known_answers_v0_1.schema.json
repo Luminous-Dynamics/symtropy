@@ -114,7 +114,9 @@
         "all_physical_branches_covered",
         "intermediate_viability_complete",
         "worst_case_steps",
-        "worst_case_energy_mj"
+        "worst_case_energy_mj",
+        "successor_evidence",
+        "intermediate_states"
       ],
       "additionalProperties": false,
       "properties": {
@@ -194,6 +196,79 @@
         },
         "missing_failure_domain_for": {
           "$ref": "#/$defs/stringSet"
+        },
+        "successor_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edge_index",
+              "edge_id",
+              "state_id",
+              "physically_possible",
+              "disposition"
+            ],
+            "properties": {
+              "edge_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "edge_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "state_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "physically_possible": {
+                "type": "boolean"
+              },
+              "disposition": {
+                "enum": [
+                  "Viable",
+                  "Nonviable",
+                  "Unknown"
+                ]
+              },
+              "probability_ppm": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 1000000
+              }
+            }
+          }
+        },
+        "intermediate_states": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edge_index",
+              "state_id",
+              "disposition"
+            ],
+            "properties": {
+              "edge_index": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "state_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "disposition": {
+                "enum": [
+                  "Viable",
+                  "Nonviable",
+                  "Unknown"
+                ]
+              }
+            }
+          }
         }
       }
     },
