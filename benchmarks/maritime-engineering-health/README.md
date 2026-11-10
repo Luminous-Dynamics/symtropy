@@ -85,3 +85,11 @@ the controlled extraction record separately. It does not
 mean that the archive is an operationally representative fleet dataset, that
 the published labels are physically adjudicated, or that an independent marine
 engineer has accepted the interpretation.
+
+## Programme roadmap and additional tracks
+
+- Unified architecture and benchmark gates: `docs/tech/MARITIME_ENGINEERING_INTELLIGENCE_ROADMAP_V0_1.md`.
+- Transfer and continual learning: Symtropy issue #4510.
+- Data trust and evidence-preserving reconstruction: Symtropy issue #4535.
+- RUL and maintenance decision utility: `docs/tech/MARITIME_PROGNOSTICS_BENCHMARK_V0_1.md`, forecast contract schema `docs/tech/MARITIME_RUL_FORECAST_V0_1.schema.json`, issue #4545.
+- Narrative causal risk from incident/maintenance records: issue #4548.
