@@ -1,0 +1,252 @@
+{
+  "schema_version": "sam.road-option-analytic-fixture.v0.1",
+  "fixture_id": "sam.road-option.crossing.three-arm.analytic.v0.1",
+  "status": "synthetic_analytic_conformance_only",
+  "claim_ceiling": "This fixture defines a finite analytic decision problem only. It does not model human pedestrian behavior, physical vehicle dynamics, sensor accuracy, collision probability, road safety, roadworthiness or deployment capability. Receipt IDs are symbolic fixture identifiers, not cryptographic attestations.",
+  "decision_context": {
+    "scenario_id": "crossing-ambiguous-actor-v0-1",
+    "tick_rate_hz": 10,
+    "initial_decision_tick": 0,
+    "next_decision_tick": 2,
+    "next_action_deadline_tick": 2,
+    "initial_observation_class": "initial-shared-view",
+    "initial_observation_receipt_id": "fixture-observation-initial-shared-v1",
+    "controller_view": "The ego policy receives one identical timestamped observation under hidden hypotheses A and B. Hidden hypothesis IDs and evaluator descriptions are never policy-visible."
+  },
+  "action_domains": {
+    "first_action_domain_id": "crossing-first-actions-v1",
+    "continuation_action_domain_id": "crossing-continuations-v1",
+    "first_actions": [
+      {
+        "action_id": "commit",
+        "immediately_feasible": true,
+        "myopic_immediate_score": 10
+      },
+      {
+        "action_id": "early_yield",
+        "immediately_feasible": true,
+        "myopic_immediate_score": 6
+      }
+    ],
+    "continuation_actions": ["brake", "accelerate", "hold"]
+  },
+  "hidden_hypotheses": [
+    {
+      "hypothesis_id": "A",
+      "evaluator_only_description": "The actor trajectory requires braking after the commit action; after early_yield, braking and holding are feasible.",
+      "initial_observation_class": "initial-shared-view"
+    },
+    {
+      "hypothesis_id": "B",
+      "evaluator_only_description": "The actor trajectory requires accelerating after the commit action; after early_yield, accelerating and holding are feasible.",
+      "initial_observation_class": "initial-shared-view"
+    }
+  ],
+  "continuation_cases": [
+    {
+      "case_id": "commit-A-same-observation",
+      "first_action_id": "commit",
+      "observation_class_id": "commit-shared-view",
+      "observation_receipt_id": "fixture-observation-commit-shared-v1",
+      "hypothesis_id": "A",
+      "delivery_tick": 2,
+      "outcomes": [
+        {"action_id": "brake", "disposition": "feasible", "witness_id": "analytic-A-brake", "terminal_utility_units": 8},
+        {"action_id": "accelerate", "disposition": "infeasible", "witness_id": "analytic-A-no-accelerate", "terminal_utility_units": 0},
+        {"action_id": "hold", "disposition": "infeasible", "witness_id": "analytic-A-no-hold", "terminal_utility_units": 0}
+      ]
+    },
+    {
+      "case_id": "commit-B-same-observation",
+      "first_action_id": "commit",
+      "observation_class_id": "commit-shared-view",
+      "observation_receipt_id": "fixture-observation-commit-shared-v1",
+      "hypothesis_id": "B",
+      "delivery_tick": 2,
+      "outcomes": [
+        {"action_id": "brake", "disposition": "infeasible", "witness_id": "analytic-B-no-brake", "terminal_utility_units": 0},
+        {"action_id": "accelerate", "disposition": "feasible", "witness_id": "analytic-B-accelerate", "terminal_utility_units": 8},
+        {"action_id": "hold", "disposition": "infeasible", "witness_id": "analytic-B-no-hold", "terminal_utility_units": 0}
+      ]
+    },
+    {
+      "case_id": "early-yield-A-no-query",
+      "first_action_id": "early_yield",
+      "observation_class_id": "yield-shared-view",
+      "observation_receipt_id": "fixture-observation-yield-shared-v1",
+      "hypothesis_id": "A",
+      "delivery_tick": 2,
+      "outcomes": [
+        {"action_id": "brake", "disposition": "feasible", "witness_id": "analytic-yield-A-brake", "terminal_utility_units": 8},
+        {"action_id": "accelerate", "disposition": "infeasible", "witness_id": "analytic-yield-A-no-accelerate", "terminal_utility_units": 0},
+        {"action_id": "hold", "disposition": "feasible", "witness_id": "analytic-yield-A-hold", "terminal_utility_units": 4}
+      ]
+    },
+    {
+      "case_id": "early-yield-B-no-query",
+      "first_action_id": "early_yield",
+      "observation_class_id": "yield-shared-view",
+      "observation_receipt_id": "fixture-observation-yield-shared-v1",
+      "hypothesis_id": "B",
+      "delivery_tick": 2,
+      "outcomes": [
+        {"action_id": "brake", "disposition": "infeasible", "witness_id": "analytic-yield-B-no-brake", "terminal_utility_units": 0},
+        {"action_id": "accelerate", "disposition": "feasible", "witness_id": "analytic-yield-B-accelerate", "terminal_utility_units": 8},
+        {"action_id": "hold", "disposition": "feasible", "witness_id": "analytic-yield-B-hold", "terminal_utility_units": 4}
+      ]
+    },
+    {
+      "case_id": "early-yield-A-timely-query",
+      "first_action_id": "early_yield",
+      "observation_class_id": "query-result-A",
+      "observation_receipt_id": "fixture-observation-query-A-v1",
+      "hypothesis_id": "A",
+      "delivery_tick": 2,
+      "outcomes": [
+        {"action_id": "brake", "disposition": "feasible", "witness_id": "analytic-query-A-brake", "terminal_utility_units": 8},
+        {"action_id": "accelerate", "disposition": "infeasible", "witness_id": "analytic-query-A-no-accelerate", "terminal_utility_units": 0},
+        {"action_id": "hold", "disposition": "feasible", "witness_id": "analytic-query-A-hold", "terminal_utility_units": 4}
+      ]
+    },
+    {
+      "case_id": "early-yield-B-timely-query",
+      "first_action_id": "early_yield",
+      "observation_class_id": "query-result-B",
+      "observation_receipt_id": "fixture-observation-query-B-v1",
+      "hypothesis_id": "B",
+      "delivery_tick": 2,
+      "outcomes": [
+        {"action_id": "brake", "disposition": "infeasible", "witness_id": "analytic-query-B-no-brake", "terminal_utility_units": 0},
+        {"action_id": "accelerate", "disposition": "feasible", "witness_id": "analytic-query-B-accelerate", "terminal_utility_units": 8},
+        {"action_id": "hold", "disposition": "feasible", "witness_id": "analytic-query-B-hold", "terminal_utility_units": 4}
+      ]
+    }
+  ],
+  "measurement": {
+    "query_id": "actor-clearance-measurement-v1",
+    "request_after_first_action": "early_yield",
+    "expected_latency_ticks": 1,
+    "resource_cost_units": 1,
+    "timely_delivery_tick": 2,
+    "late_delivery_tick": 3,
+    "outcomes": [
+      {"hypothesis_id": "A", "delivery_status": "timely", "delivered_observation_class": "query-result-A", "delivered_observation_receipt_id": "fixture-observation-query-A-v1"},
+      {"hypothesis_id": "B", "delivery_status": "timely", "delivered_observation_class": "query-result-B", "delivered_observation_receipt_id": "fixture-observation-query-B-v1"}
+    ]
+  },
+  "arms": [
+    {
+      "arm_id": "A_myopic",
+      "policy": "Choose the immediately feasible first action with the highest myopic_immediate_score; do not consider successor option sets and do not request the measurement.",
+      "query_enabled": false,
+      "expected_first_action": "commit",
+      "expected_next_decision": "No common feasible continuation under commit; report a declared finite-envelope dead end, not a successful route.",
+      "measurement_cost_charged": false
+    },
+    {
+      "arm_id": "B_option_preserving",
+      "policy": "Choose an immediately feasible first action only when every expected observation class has a non-empty robust lower continuation set; choose the action with the best separately declared progress/utility tie-break among such actions.",
+      "query_enabled": false,
+      "expected_first_action": "early_yield",
+      "expected_next_decision": "Choose hold; it is the only common feasible continuation under the shared yield observation.",
+      "measurement_cost_charged": false
+    },
+    {
+      "arm_id": "C_option_preserving_with_sensing",
+      "policy": "Choose early_yield, request actor-clearance measurement, and branch only if a distinct observation is delivered by the next_action_deadline_tick. If missing, stale, dropped, unsupported or late, keep the shared observation class and choose the common hold fallback.",
+      "query_enabled": true,
+      "expected_first_action": "early_yield",
+      "expected_next_decision": "With timely query, brake under A and accelerate under B; with any unavailable or late query, hold. The query cost is charged to the arm.",
+      "measurement_cost_charged": true
+    }
+  ],
+  "expected_findings": [
+    {
+      "finding_id": "commit-clairvoyance-trap",
+      "parent_action_id": "commit",
+      "observation_class_id": "commit-shared-view",
+      "expected_robust_option_set": [],
+      "expected_possible_option_set": [],
+      "expected_clairvoyant_union": ["brake", "accelerate"],
+      "expected_clairvoyance_gap": 2,
+      "interpretation": "Each hidden cell has one feasible action, but the controller cannot choose different actions because both cells share one delivered observation."
+    },
+    {
+      "finding_id": "yield-no-query",
+      "parent_action_id": "early_yield",
+      "observation_class_id": "yield-shared-view",
+      "expected_robust_option_set": ["hold"],
+      "expected_possible_option_set": ["hold"],
+      "expected_clairvoyant_union": ["brake", "accelerate", "hold"],
+      "expected_clairvoyance_gap": 2,
+      "interpretation": "The shared observation supports hold in both cells; brake and accelerate are state-specific and unavailable to the non-clairvoyant policy."
+    },
+    {
+      "finding_id": "yield-timely-query-A",
+      "parent_action_id": "early_yield",
+      "observation_class_id": "query-result-A",
+      "expected_robust_option_set": ["brake", "hold"],
+      "expected_possible_option_set": ["brake", "hold"],
+      "expected_clairvoyant_union": ["brake", "hold"],
+      "expected_clairvoyance_gap": 0,
+      "interpretation": "The delivered query result supports a distinct controller-visible class for A."
+    },
+    {
+      "finding_id": "yield-timely-query-B",
+      "parent_action_id": "early_yield",
+      "observation_class_id": "query-result-B",
+      "expected_robust_option_set": ["accelerate", "hold"],
+      "expected_possible_option_set": ["accelerate", "hold"],
+      "expected_clairvoyant_union": ["accelerate", "hold"],
+      "expected_clairvoyance_gap": 0,
+      "interpretation": "The delivered query result supports a distinct controller-visible class for B."
+    }
+  ],
+  "negative_controls": [
+    {
+      "control_id": "late-query",
+      "intervention": "Move query delivery to tick 3 while the next action must be committed at tick 2.",
+      "expected_invariant": "The tick-2 decision remains in yield-shared-view and selects hold; the tick-3 observation cannot retroactively alter the committed action."
+    },
+    {
+      "control_id": "dropped-query",
+      "intervention": "Drop the actor-clearance query response.",
+      "expected_invariant": "No new observation class is admitted; the policy selects hold from the shared yield observation."
+    },
+    {
+      "control_id": "stale-query",
+      "intervention": "Deliver an old measurement with an acquisition time outside the admitted freshness bound.",
+      "expected_invariant": "The measurement does not split the policy observation class; hold remains the common continuation."
+    },
+    {
+      "control_id": "hidden-label-mutation",
+      "intervention": "Change A/B hidden hypothesis identifiers and evaluator descriptions without changing delivered observation bytes.",
+      "expected_invariant": "Policy input and observation-equivalence class remain identical; hidden labels cannot create a policy branch."
+    },
+    {
+      "control_id": "irrelevant-query",
+      "intervention": "Deliver a timely measurement whose payload differs between A/B but does not change the action feasibility or preference relation.",
+      "expected_invariant": "The query receives no decision-value credit; it may refine a receipt-backed observation class but must not improve the measured feasibility or selected-action objective."
+    },
+    {
+      "control_id": "same-payload-different-class",
+      "intervention": "Assign two class IDs to identical delivered observation payload and availability for the same policy history.",
+      "expected_invariant": "Reject the duplicate partition; class identity must derive from controller-visible observation equivalence."
+    },
+    {
+      "control_id": "future-command-mutation",
+      "intervention": "Mutate a future command after the current command has been latched.",
+      "expected_invariant": "Earlier policy decisions and their receipts remain byte-identical."
+    },
+    {
+      "control_id": "missing-successor-cell",
+      "intervention": "Omit one expected hidden-state successor cell.",
+      "expected_invariant": "Report incomplete; do not classify the missing cell as feasible or infeasible."
+    },
+    {
+      "control_id": "duplicate-execution-receipt",
+      "intervention": "Reuse one execution receipt for two different successor-cell executions.",
+      "expected_invariant": "Reject duplicate execution receipt identity."
+    }
+  ]
+}
