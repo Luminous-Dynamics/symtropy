@@ -205,3 +205,31 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+## Scenario L: statistic-held-out repair qualification
+
+The repair qualification reference is in src/repair_qualification.rs and the repair-qualification-sweep binary. It advances [CIVDYN-REPAIR-AUDIT-001 #4453](https://github.com/Luminous-Dynamics/symtropy/issues/4453).
+
+This module does not generate repairs. It tests whether the result of a repair deserves an adequacy claim on a fresh challenge.
+
+The baseline and repaired models must be evaluated against the exact same challenge:
+- same challenge registry, statistic semantics, source data and independent units;
+- same split manifest, calibration data identity and central predictive interval mass;
+- same observed value, sample size, observation digest and measurement-error record;
+- distinct baseline/repaired model digests and their own predictive draw-set identities.
+
+A repair diagnostic must use a separate manifest and declare every statistic ID and observation digest exposed to diagnosis/repair. Any overlap with the held-out challenge statistic vocabulary or observation receipts is rejected.
+
+The report preserves every statistic/unit transition: improved, regressed, persistent discrepancy, unchanged within-reference or not assessed. A regression remains the overall result even if another statistic improves. RestoredOnFreshChallenge requires complete evidence, at least one baseline primary discrepancy, and no remaining repaired primary discrepancies. An incomplete repaired assessment cannot qualify restoration.
+
+The diagnostic statistic IDs and observation digests are caller-declared provenance in this slice. A future Mycelix-backed access/escrow layer should authenticate challenge-set access and prevent undeclared copies; digest equality alone cannot prove that a repair process never saw underlying information.
+
+### Synthetic known-answer sweep
+
+1. improved_not_restored: one held-out network improves, a second remains discrepant.
+2. restored_on_fresh_challenge: both challenge networks move within reference.
+3. regression_detected: a previously adequate held-out network becomes discrepant after the repair.
+
+The benchmark's diagnostic statistic IDs and observation digests are distinct from all held-out challenge receipts. These are protocol known answers, not evidence that an actual repair improved a real simulator.
+
+Run repair-qualification-sweep using the locked workspace manifest. CI checks the named CSV schema, per-network transition, report claim, exact challenge identities, and byte-identical replay.
