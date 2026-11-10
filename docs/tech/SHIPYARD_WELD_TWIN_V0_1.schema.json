@@ -80,7 +80,8 @@
         "material_record_lot",
         "required_procedure_scope",
         "required_process_scope",
-        "required_operator_scope"
+        "required_operator_scope",
+        "required_procedure_scope_ref"
       ],
       "properties": {
         "asset_id": {
@@ -158,6 +159,10 @@
         "required_operator_scope": {
           "type": "string",
           "minLength": 1
+        },
+        "required_procedure_scope_ref": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -175,7 +180,8 @@
         "valid_from_utc",
         "valid_until_utc",
         "parameter_envelope_ref",
-        "procedure_owner"
+        "procedure_owner",
+        "qualified_material_heat_lots"
       ],
       "properties": {
         "wps_ref": {
@@ -225,6 +231,14 @@
         "procedure_owner": {
           "type": "string",
           "minLength": 1
+        },
+        "qualified_material_heat_lots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     },
@@ -449,7 +463,9 @@
         "observed_envelope_status",
         "source_time_utc",
         "serial_id",
-        "workpiece_serial_id"
+        "workpiece_serial_id",
+        "workpiece_serial_id",
+        "material_heat_lot"
       ],
       "properties": {
         "pass_id": {
@@ -524,6 +540,10 @@
           "minLength": 1
         },
         "workpiece_serial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_heat_lot": {
           "type": "string",
           "minLength": 1
         }
