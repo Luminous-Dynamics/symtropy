@@ -62,6 +62,15 @@ pub enum So3LogBranch {
     PiCanonical,
 }
 
+/// Which tangent-space trivialization is used for a local SO(3) update.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum So3Trivialization {
+    /// Spatial/left update: R_plus = Exp(delta) R.
+    LeftSpatial,
+    /// Body/right update: R_plus = R Exp(delta).
+    RightBody,
+}
+
 /// A checked SO(3) logarithm and its branch metadata.
 ///
 /// `generator` is the bivector whose exponential reconstructs the input
@@ -79,6 +88,7 @@ pub enum So3LogError {
     InvalidConfig,
     NonFiniteMatrix,
     NonFiniteParameter,
+    NonFiniteTangent,
     InvalidRotation {
         orthogonality_error: f64,
         determinant: f64,
@@ -93,6 +103,7 @@ impl fmt::Display for So3LogError {
             Self::InvalidConfig => write!(f, "invalid SO(3) logarithm configuration"),
             Self::NonFiniteMatrix => write!(f, "rotation matrix contains non-finite values"),
             Self::NonFiniteParameter => write!(f, "interpolation parameter must be finite"),
+            Self::NonFiniteTangent => write!(f, "SO(3) tangent perturbation must be finite"),
             Self::InvalidRotation {
                 orthogonality_error,
                 determinant,
@@ -273,6 +284,72 @@ pub fn so3_log(rotation: &Rotor<3>) -> Result<So3Log, So3LogError> {
     so3_log_with_config(rotation, So3LogConfig::default())
 }
 
+
+/// Apply a tangent perturbation using an explicit left/spatial or right/body
+/// trivialization. The supplied bivector is an intrinsic so(3) coordinate,
+/// not an ambient perturbation of the 3x3 rotation matrix.
+pub fn so3_plus_with_config(
+    base: &Rotor<3>,
+    delta: &Bivector<3>,
+    trivialization: So3Trivialization,
+    config: So3LogConfig,
+) -> Result<Rotor<3>, So3LogError> {
+    if !config_is_valid(config) {
+        return Err(So3LogError::InvalidConfig);
+    }
+    validate_rotation(base, config.rotation_tolerance)?;
+    if !delta.is_finite() {
+        return Err(So3LogError::NonFiniteTangent);
+    }
+
+    let increment = Rotor::<3>::from_bivector(delta);
+    let result = match trivialization {
+        So3Trivialization::LeftSpatial => increment.compose(base),
+        So3Trivialization::RightBody => base.compose(&increment),
+    };
+    validate_rotation(&result, config.rotation_tolerance)?;
+    Ok(result)
+}
+
+/// Apply a tangent perturbation using the default numerical policy.
+pub fn so3_plus(
+    base: &Rotor<3>,
+    delta: &Bivector<3>,
+    trivialization: So3Trivialization,
+) -> Result<Rotor<3>, So3LogError> {
+    so3_plus_with_config(base, delta, trivialization, So3LogConfig::default())
+}
+
+/// Compute the tangent difference that moves `from` to `to`.
+///
+/// The result is branch-qualified. With left/spatial trivialization it is
+/// Log(to * from^-1); with right/body trivialization it is
+/// Log(from^-1 * to). It is inverse to the matching `so3_plus` operation
+/// within the declared principal-log injectivity region.
+pub fn so3_minus_with_config(
+    from: &Rotor<3>,
+    to: &Rotor<3>,
+    trivialization: So3Trivialization,
+    config: So3LogConfig,
+) -> Result<So3Log, So3LogError> {
+    validate_rotation(from, config.rotation_tolerance)?;
+    validate_rotation(to, config.rotation_tolerance)?;
+    let relative = match trivialization {
+        So3Trivialization::LeftSpatial => to.compose(&from.reverse()),
+        So3Trivialization::RightBody => from.reverse().compose(to),
+    };
+    so3_log_with_config(&relative, config)
+}
+
+/// Compute the tangent difference using the default numerical policy.
+pub fn so3_minus(
+    from: &Rotor<3>,
+    to: &Rotor<3>,
+    trivialization: So3Trivialization,
+) -> Result<So3Log, So3LogError> {
+    so3_minus_with_config(from, to, trivialization, So3LogConfig::default())
+}
+
 /// Interpolate on SO(3) along the principal geodesic from `start` to `end`.
 ///
 /// `t = 0` and `t = 1` return the original endpoints exactly. Finite values
@@ -380,6 +457,27 @@ mod tests {
         assert_eq!(recovered.branch, So3LogBranch::NearPi);
         let reconstructed = Rotor::from_bivector(&recovered.generator);
         assert!(matrix_error(&rotation, &reconstructed) < 2.0e-10);
+    }
+
+    #[test]
+
+    #[test]
+    fn plus_minus_are_inverse_in_both_trivializations() {
+        let base = Rotor::<3>::from_bivector(&Bivector::unit_plane(0, 2).scale(0.37));
+        let mut delta = Bivector::<3>::unit_plane(0, 1).scale(0.08);
+        delta = delta.add(&Bivector::<3>::unit_plane(1, 2).scale(-0.035));
+
+        for trivialization in [
+            So3Trivialization::LeftSpatial,
+            So3Trivialization::RightBody,
+        ] {
+            let moved = so3_plus(&base, &delta, trivialization).expect("valid tangent update");
+            let recovered = so3_minus(&base, &moved, trivialization)
+                .expect("valid tangent difference");
+            let expected = Rotor::<3>::from_bivector(&delta);
+            let actual = Rotor::<3>::from_bivector(&recovered.generator);
+            assert!(matrix_error(&expected, &actual) < 2.0e-10);
+        }
     }
 
     #[test]
