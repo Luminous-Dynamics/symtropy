@@ -732,8 +732,9 @@ fn main() -> ExitCode {
             Ok(summary) => {
                 println!(
                     concat!(
-                        "PASS: exhaustively enumerated {cases} toy cases, {feasible} feasible plans ",
-                        "and {pareto} Pareto plans; symbolic objectives only"
+                        "PASS: exhaustively enumerated {cases} toy cases, ",
+                        "{feasible} feasible plans and {pareto} Pareto plans; ",
+                        "symbolic objectives only"
                     ),
                     cases = summary.cases,
                     feasible = summary.feasible_plans,
