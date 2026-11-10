@@ -80,12 +80,27 @@ pub enum BceError {
     MissingObservedEventRef,
     DuplicateInteractionId(String),
     DuplicateSequence(u64),
-    NonMonotonicSequence { previous: u64, received: u64 },
-    MixedEpisode { expected: String, received: String },
+    NonMonotonicSequence {
+        previous: u64,
+        received: u64,
+    },
+    MixedEpisode {
+        expected: String,
+        received: String,
+    },
     NoPriorInteraction(InteractionKind),
-    TargetEpisodeMismatch { expected: String, received: String },
-    TargetKindMismatch { expected: InteractionKind, received: InteractionKind },
-    TargetNotLater { source_sequence: u64, target_sequence: u64 },
+    TargetEpisodeMismatch {
+        expected: String,
+        received: String,
+    },
+    TargetKindMismatch {
+        expected: InteractionKind,
+        received: InteractionKind,
+    },
+    TargetNotLater {
+        source_sequence: u64,
+        target_sequence: u64,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -226,15 +241,13 @@ pub fn evaluate_follow_up(
                 entity_id: target.entity_id.clone(),
             })
         }
-        ConsistencyPredicate::SameEntityAsPriorInteraction => {
-            Ok(BceOutcome::Inconsistent {
-                episode_id: constraint.episode_id.clone(),
-                source_interaction_id: constraint.source_interaction_id.clone(),
-                target_interaction_id: target.interaction_id.clone(),
-                expected_entity_id: constraint.expected_entity_id.clone(),
-                actual_entity_id: target.entity_id.clone(),
-            })
-        }
+        ConsistencyPredicate::SameEntityAsPriorInteraction => Ok(BceOutcome::Inconsistent {
+            episode_id: constraint.episode_id.clone(),
+            source_interaction_id: constraint.source_interaction_id.clone(),
+            target_interaction_id: target.interaction_id.clone(),
+            expected_entity_id: constraint.expected_entity_id.clone(),
+            actual_entity_id: target.entity_id.clone(),
+        }),
     }
 }
 
@@ -307,7 +320,12 @@ mod tests {
         )
         .unwrap();
         let right = derive_constraint(
-            &[event("prior-right", 1, InteractionKind::PriorChoice, "right")],
+            &[event(
+                "prior-right",
+                1,
+                InteractionKind::PriorChoice,
+                "right",
+            )],
             &rule(),
         )
         .unwrap();
@@ -326,12 +344,7 @@ mod tests {
             &rule(),
         )
         .unwrap();
-        let follow_up = event(
-            "follow-up",
-            8,
-            InteractionKind::FollowUpChoice,
-            "cup-a",
-        );
+        let follow_up = event("follow-up", 8, InteractionKind::FollowUpChoice, "cup-a");
 
         assert!(matches!(
             evaluate_follow_up(&constraint, &follow_up),
@@ -346,12 +359,7 @@ mod tests {
             &rule(),
         )
         .unwrap();
-        let follow_up = event(
-            "follow-up",
-            8,
-            InteractionKind::FollowUpChoice,
-            "cup-b",
-        );
+        let follow_up = event("follow-up", 8, InteractionKind::FollowUpChoice, "cup-b");
 
         assert_eq!(
             evaluate_follow_up(&constraint, &follow_up),
@@ -367,12 +375,7 @@ mod tests {
 
     #[test]
     fn irrelevant_history_does_not_change_the_derived_choice() {
-        let original = vec![event(
-            "prior",
-            2,
-            InteractionKind::PriorChoice,
-            "cup-a",
-        )];
+        let original = vec![event("prior", 2, InteractionKind::PriorChoice, "cup-a")];
         let with_unrelated = vec![
             event("prior", 2, InteractionKind::PriorChoice, "cup-a"),
             event("unrelated", 5, InteractionKind::Unrelated, "drawer-3"),
@@ -399,18 +402,11 @@ mod tests {
 
     #[test]
     fn rejects_missing_prior_choice_instead_of_falling_back_to_fixed_target() {
-        let history = vec![event(
-            "noise",
-            1,
-            InteractionKind::Unrelated,
-            "drawer-1",
-        )];
+        let history = vec![event("noise", 1, InteractionKind::Unrelated, "drawer-1")];
 
         assert_eq!(
             derive_constraint(&history, &rule()),
-            Err(BceError::NoPriorInteraction(
-                InteractionKind::PriorChoice
-            ))
+            Err(BceError::NoPriorInteraction(InteractionKind::PriorChoice))
         );
     }
 
@@ -479,8 +475,7 @@ mod tests {
         )
         .unwrap();
 
-        let mut wrong_episode =
-            event("follow-up", 8, InteractionKind::FollowUpChoice, "cup-a");
+        let mut wrong_episode = event("follow-up", 8, InteractionKind::FollowUpChoice, "cup-a");
         wrong_episode.episode_id = "episode-2".into();
         assert!(matches!(
             evaluate_follow_up(&constraint, &wrong_episode),
@@ -493,12 +488,7 @@ mod tests {
             Err(BceError::TargetKindMismatch { .. })
         ));
 
-        let earlier = event(
-            "follow-up",
-            1,
-            InteractionKind::FollowUpChoice,
-            "cup-a",
-        );
+        let earlier = event("follow-up", 1, InteractionKind::FollowUpChoice, "cup-a");
         assert_eq!(
             evaluate_follow_up(&constraint, &earlier),
             Err(BceError::TargetNotLater {
