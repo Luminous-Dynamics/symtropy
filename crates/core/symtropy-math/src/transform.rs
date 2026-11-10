@@ -220,4 +220,48 @@ mod tests {
         ));
     }
 
+    #[test]
+    fn checked_so4_interpolation_preserves_unequal_double_rotation() {
+        let start = Transform::<4>::identity();
+        let mut generator = Bivector::<4>::zero();
+        generator.set(0, 1, std::f64::consts::FRAC_PI_2);
+        generator.set(2, 3, -0.8);
+        let end = Transform {
+            translation: Point::new([1.0, 2.0, 3.0, 4.0]),
+            rotation: Rotor::from_bivector(&generator),
+        };
+
+        let midpoint = start.try_interpolate(&end, 0.5).expect("valid SO(4) interpolation");
+        assert!((midpoint.translation.coord(0) - 0.5).abs() < 1.0e-12);
+        assert!(midpoint.rotation.is_proper_rotation(1.0e-10));
+
+        let x = SVector::from([1.0, 0.0, 0.0, 0.0]);
+        let rotated = midpoint.transform_vector(&x);
+        assert!((rotated[0] - std::f64::consts::FRAC_PI_4.cos()).abs() < 1.0e-10);
+        assert!((rotated[1] - std::f64::consts::FRAC_PI_4.sin()).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn checked_so4_interpolation_handles_exact_pi_and_rejects_invalid_pose() {
+        let start = Transform::<4>::identity();
+        let mut half_turn = Bivector::<4>::zero();
+        half_turn.set(0, 1, std::f64::consts::PI);
+        let end = Transform::from_rotation(Rotor::from_bivector(&half_turn));
+
+        let midpoint = start.try_interpolate(&end, 0.5).expect("valid SO(4) half-turn");
+        assert!(midpoint.rotation.is_proper_rotation(1.0e-10));
+        let rotated = midpoint.transform_vector(&SVector::from([1.0, 0.0, 0.0, 0.0]));
+        assert!(rotated[0].abs() < 1.0e-10);
+        assert!((rotated[1] - 1.0).abs() < 1.0e-10);
+
+        let invalid = Transform {
+            translation: Point::origin(),
+            rotation: Rotor::from_matrix(nalgebra::SMatrix::<f64, 4, 4>::identity() * 2.0),
+        };
+        assert!(matches!(
+            start.try_interpolate(&invalid, 0.5),
+            Err(crate::so4::So4LogError::InvalidRotation { .. })
+        ));
+    }
+
 }
