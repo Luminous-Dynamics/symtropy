@@ -494,13 +494,6 @@ fn is_sha256_hex(value: &str) -> bool {
 mod tests {
     use super::*;
 
-    const H: &str = "a3".repeat(32);
-    const B: &str = "b4".repeat(32);
-    const C: &str = "c5".repeat(32);
-    const D: &str = "d6".repeat(32);
-    const E: &str = "e7".repeat(32);
-    const F: &str = "f8".repeat(32);
-
     fn digest(value: &str) -> String {
         value.repeat(64)
     }
