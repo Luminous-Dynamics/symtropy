@@ -326,7 +326,7 @@ struct OperationAccumulator {
     compression_bytes_after: u128,
     latency_measurement_count: usize,
     latency_sum_ms: u128,
-    independent_units: BTreeSet<String>,
+    independent_units: BTreeSet<(String, String)>,
 }
 
 impl OperationAccumulator {
@@ -349,7 +349,7 @@ impl OperationAccumulator {
                 self.unresolved_count += 1;
             }
         }
-        self.independent_units.insert(result.independence_unit_id.clone());
+        self.independent_units.insert((result.task_id.clone(), result.independence_unit_id.clone()));
 
         if result.operation == MemoryOperationKind::Compression {
             if let (Some(before), Some(after)) =
@@ -607,6 +607,16 @@ pub fn compare_memory_operation_arms(
         || baseline.unit_summaries.len() != candidate.unit_summaries.len()
     {
         return Err(MemoryOperationError::ComparisonUnitRosterMismatch);
+    }
+
+    let baseline_task_ids = baseline.unit_summaries.iter()
+        .map(|unit| unit.task_id.as_str())
+        .collect::<BTreeSet<_>>();
+    let candidate_task_ids = candidate.unit_summaries.iter()
+        .map(|unit| unit.task_id.as_str())
+        .collect::<BTreeSet<_>>();
+    if baseline_task_ids != candidate_task_ids {
+        return Err(MemoryOperationError::ComparisonTaskRosterMismatch);
     }
 
     let mut baseline_units = BTreeMap::new();
