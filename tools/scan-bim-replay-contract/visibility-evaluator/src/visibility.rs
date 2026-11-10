@@ -188,7 +188,7 @@ pub struct VisibilityProbeResult {
 pub struct VisibilitySurfaceArea {
     pub surface_id: String,
     pub observable_area_m2: f64,
-    pub backface_area_m2: f64,
+    pub grazing_area_m2: f64,
     pub self_occluded_area_m2: f64,
     pub externally_occluded_area_m2: f64,
     pub outside_sensor_coverage_area_m2: f64,
@@ -211,7 +211,7 @@ pub struct VisibilityReceipt {
     pub view_count: usize,
     pub ray_test_count: usize,
     pub observable_area_m2: f64,
-    pub backface_area_m2: f64,
+    pub grazing_area_m2: f64,
     pub self_occluded_area_m2: f64,
     pub externally_occluded_area_m2: f64,
     pub outside_sensor_coverage_area_m2: f64,
@@ -1095,7 +1095,7 @@ pub fn derive_surface_visibility(
         surfaces.push(VisibilitySurfaceArea {
             surface_id,
             observable_area_m2: areas[0],
-            backface_area_m2: areas[1],
+            grazing_area_m2: areas[1],
             self_occluded_area_m2: areas[2],
             externally_occluded_area_m2: areas[3],
             outside_sensor_coverage_area_m2: areas[4],
@@ -1107,7 +1107,7 @@ pub fn derive_surface_visibility(
 
     let totals = surfaces.iter().fold([0.0f64; 8], |mut acc, surface| {
         acc[0] += surface.observable_area_m2;
-        acc[1] += surface.backface_area_m2;
+        acc[1] += surface.grazing_area_m2;
         acc[2] += surface.self_occluded_area_m2;
         acc[3] += surface.externally_occluded_area_m2;
         acc[4] += surface.outside_sensor_coverage_area_m2;
@@ -1140,7 +1140,7 @@ pub fn derive_surface_visibility(
         view_count: owned_views.len(),
         ray_test_count,
         observable_area_m2: totals[0],
-        backface_area_m2: totals[1],
+        grazing_area_m2: totals[1],
         self_occluded_area_m2: totals[2],
         externally_occluded_area_m2: totals[3],
         outside_sensor_coverage_area_m2: totals[4],
@@ -1375,15 +1375,47 @@ mod tests {
     }
 
     #[test]
-    fn back_facing_reference_surface_is_not_credited_as_observable() {
-        let mut back_view = view("BACK-VIEW", [10.0, 0.0, 0.0]);
-        back_view.forward = Point3::new(-1.0, 0.0, 0.0);
-        back_view.right = Point3::new(0.0, -1.0, 0.0);
-        let receipt = evaluate(&[probe([5.0, 0.0, 0.0])], &[back_view], &[])
-            .expect("back face classification");
+    fn source_winding_sign_does_not_change_front_facing_visibility() {
+        let mut reversed = target_triangle();
+        std::mem::swap(&mut reversed.b, &mut reversed.c);
+        let mut reversed_probe = probe([5.0, 0.0, 0.0]);
+        reversed_probe.normal = Point3::new(1.0, 0.0, 0.0);
+        reversed_probe.barycentric = [0.25, 0.25, 0.5];
+        let receipt = derive_surface_visibility(VisibilityEvaluation {
+            scene_id: "SCENE-1",
+            frame_id: "BUILDING-LOCAL",
+            reference_model_sha256: &"1".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &["TARGET".to_owned()],
+            occluder_manifest_sha256: &"2".repeat(64),
+            occluder_coverage: OccluderCoverage::Complete,
+            probes: &[reversed_probe],
+            views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            occluders: &[reversed],
+            profile: VisibilityProfile {
+                max_ray_tests: 100,
+                min_incidence_cosine: 0.0,
+            },
+        })
+        .expect("reversed source winding");
+        assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Observable);
+        assert_eq!(receipt.grazing_area_m2, 0.0);
+    }
+
+    #[test]
+    fn grazing_incidence_is_separate_from_occlusion() {
+        let mut grazing_view = view("GRAZING", [5.0, 10.0, 0.0]);
+        grazing_view.forward = Point3::new(0.0, -1.0, 0.0);
+        grazing_view.right = Point3::new(1.0, 0.0, 0.0);
+        let receipt = evaluate(
+            &[probe([5.0, 0.0, 0.0])],
+            &[grazing_view],
+            &[],
+        )
+        .expect("grazing incidence is a valid low-quality view");
         assert_eq!(receipt.probes[0].visibility, SurfaceVisibility::Grazing);
-        assert_eq!(receipt.backface_area_m2, 2.0);
-        assert_eq!(receipt.observable_area_m2, 0.0);
+        assert_eq!(receipt.grazing_area_m2, 2.0);
+        assert_eq!(receipt.self_occluded_area_m2, 0.0);
     }
 
     #[test]
@@ -1451,7 +1483,7 @@ mod tests {
         .expect("self occlusion");
         let surface = &receipt.surfaces[0];
         let accounted = surface.observable_area_m2
-            + surface.backface_area_m2
+            + surface.grazing_area_m2
             + surface.self_occluded_area_m2
             + surface.externally_occluded_area_m2
             + surface.outside_sensor_coverage_area_m2
