@@ -225,7 +225,7 @@ impl ImpactModel1D {
             let boundary = event_time <= event_tolerance_s
                 || remaining <= event_tolerance_s;
             let (state, branch, support_impulse, jacobian) =
-                if self.acceleration_m_s2 < 0.0 {
+                if self.acceleration_m_s2 <= 0.0 {
                     (
                         ImpactState1D {
                             gap_m: 0.0,
