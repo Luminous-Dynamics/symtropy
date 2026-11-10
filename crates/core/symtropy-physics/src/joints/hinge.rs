@@ -32,9 +32,19 @@ pub struct HingeJoint<const D: usize> {
     pub plane_axis_b: usize,
     /// Constraint stiffness [0, 1]. 1.0 = rigid.
     pub stiffness: f64,
-    /// Optional angle limits (min, max) in radians. `None` = unlimited.
+    /// Requested angle limits (min, max) in radians.
+    ///
+    /// **Not enforced by the 0.2.1 hinge solver.** This field is stored by
+    /// `with_limits`, but the current solver does not apply a limit constraint.
+    /// Do not rely on it to bound joint travel. See PHYS-HINGE-MOTOR-001:
+    /// https://github.com/Luminous-Dynamics/symtropy/issues/4516.
     pub angle_limits: Option<(f64, f64)>,
-    /// Optional motor drive for actuated hinge joints.
+    /// Optional hinge motor configuration.
+    ///
+    /// In 0.2.1, the hinge solver uses `target_vel` only; `target_pos` is not
+    /// consumed because no running relative hinge angle is tracked. See
+    /// PHYS-HINGE-MOTOR-001:
+    /// https://github.com/Luminous-Dynamics/symtropy/issues/4516.
     pub motor: Option<super::MotorDrive>,
 }
 
