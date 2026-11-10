@@ -22,6 +22,7 @@ cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --ora
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --outcome-check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --decision-impact-check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --adaptive-policy-check --json
+cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --bin scan_bim_decision_capture -- --check --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --validate path/to/manifest.json path/to/schema.json --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --oracle-validate path/to/timeline-corpus.json path/to/timeline-schema.json --json
 cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml -- --outcome-validate path/to/outcome-corpus.json path/to/outcome-schema.json --json
@@ -40,6 +41,33 @@ The decision-impact corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_D
 The Rust differential test also generates 100 deterministic finite decision worlds with 100 candidates each and checks the robust-feasible/Pareto outputs against a separate brute-force reference across full and reduced state sets (at least 10,000 candidate-state evaluations; the current generator covers 35,000). This is correctness stress coverage, not a runtime-performance claim.
 
 The adaptive-policy corpus at `docs/research/spatial-design/SPATIAL_RESILIENCE_ADAPTIVE_POLICIES_V0_1.json` contains bounded policy trees. It checks conditional follow-up actions, child outcome partitions restricted to the states that survive the parent branch, stopping only when the robust/Pareto decision is stable and no critical blocker remains, explicit escalation/reopen leaves, per-path cumulative cost/duration and worst-case budgets. Its known answers compare a two-step adaptive survey (worst-case cost 5 synthetic units, duration 3 ticks) with a universal scan (cost 10, duration 4) under the same terminal obligations; it also rejects a child branch for an outcome made unreachable by its parent. These are toy-oracle mechanics, not real cost-savings evidence.
+
+## Scan-to-BIM decision-sufficient capture adapter (#4207)
+
+The crate now exposes a thin Scan-to-BIM adapter over the existing finite-state decision-impact evaluator. It is not a second VOI engine, next-best-view planner, survey solver or geometry reconstruction pipeline.
+
+Run the embedded synthetic door-clearance case:
+
+```sh
+cargo run --manifest-path tools/spatial-resilience-qualifier/Cargo.toml --locked \
+  --bin scan_bim_decision_capture -- --check --json
+```
+
+The adapter requires:
+- an exact building/scene/model revision, frame and requirement revision;
+- finite geometry/property hypotheses with explicit satisfaction of the task requirement;
+- per-candidate hard feasibility/objectives across every declared possible state;
+- scan action references to sensor profile, qualified pose evidence, visibility profile and evaluator visibility receipt;
+- per-target theoretical observable area and an explicit task-specific minimum visible fraction;
+- action cost/time bases, the unknowns each action can resolve and mutually exclusive/exhaustive outcome partitions.
+
+An action is marked evidence-valid only when the declared frame/revision and digest syntax are valid and each required target has sufficient evaluator-declared observability. Stale revisions, blocked/unknown views, insufficient visible area and missing target coverage are rejected before decision evaluation. The shared decision-impact engine then recomputes robust-feasible and Pareto sets across each outcome; it does not assign probabilities.
+
+The first frozen fixture is a 0.90 m door-clear-width decision with two possible physical states. A targeted oblique scan and a full-room TLS sweep can distinguish them; a dense frontal scan leaves the decision unchanged; a backside scan is self-occluded and is rejected. The expected ordering favours the targeted scan because it meets the same finite-state decision obligation at lower synthetic cost/time.
+
+This establishes adapter semantics only. The SHA strings and target visibility summaries are declarations in the fixture, not authenticated file contents or proof of sensor calibration. Costs are synthetic. No field NBV, route planner, probability, physical survey accuracy, regulatory acceptance or measured savings are claimed.
+
+The adapter includes 11 positive/negative tests, including stale revisions, hidden/underexposed views, incomplete visibility target coverage, unsupported probability fields, contradictory hypothesis labels, residual unrelated critical unknowns and input-order invariance.
 
 ## Negative controls in the authored test suite
 
