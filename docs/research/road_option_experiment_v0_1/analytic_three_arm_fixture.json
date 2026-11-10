@@ -228,64 +228,75 @@
         "hypothesis_id": "A",
         "delivery_status": "timely",
         "delivered_observation_class": "query-result-A",
-        "delivered_observation_receipt_id": "fixture-observation-query-A-v1"
+        "delivered_observation_receipt_id": "fixture-observation-query-A-v1",
+        "delivery_tick": 2
       },
       {
         "hypothesis_id": "B",
         "delivery_status": "timely",
         "delivered_observation_class": "query-result-B",
-        "delivered_observation_receipt_id": "fixture-observation-query-B-v1"
+        "delivered_observation_receipt_id": "fixture-observation-query-B-v1",
+        "delivery_tick": 2
       },
       {
         "hypothesis_id": "A",
         "delivery_status": "late",
         "delivered_observation_class": null,
-        "delivered_observation_receipt_id": null
+        "delivered_observation_receipt_id": null,
+        "delivery_tick": 3
       },
       {
         "hypothesis_id": "A",
         "delivery_status": "dropped",
         "delivered_observation_class": null,
-        "delivered_observation_receipt_id": null
+        "delivered_observation_receipt_id": null,
+        "delivery_tick": null
       },
       {
         "hypothesis_id": "A",
         "delivery_status": "stale",
         "delivered_observation_class": null,
-        "delivered_observation_receipt_id": null
+        "delivered_observation_receipt_id": null,
+        "delivery_tick": 2
       },
       {
         "hypothesis_id": "A",
         "delivery_status": "unsupported",
         "delivered_observation_class": null,
-        "delivered_observation_receipt_id": null
+        "delivered_observation_receipt_id": null,
+        "delivery_tick": null
       },
       {
         "hypothesis_id": "B",
         "delivery_status": "late",
         "delivered_observation_class": null,
-        "delivered_observation_receipt_id": null
+        "delivered_observation_receipt_id": null,
+        "delivery_tick": 3
       },
       {
         "hypothesis_id": "B",
         "delivery_status": "dropped",
         "delivered_observation_class": null,
-        "delivered_observation_receipt_id": null
+        "delivered_observation_receipt_id": null,
+        "delivery_tick": null
       },
       {
         "hypothesis_id": "B",
         "delivery_status": "stale",
         "delivered_observation_class": null,
-        "delivered_observation_receipt_id": null
+        "delivered_observation_receipt_id": null,
+        "delivery_tick": 2
       },
       {
         "hypothesis_id": "B",
         "delivery_status": "unsupported",
         "delivered_observation_class": null,
-        "delivered_observation_receipt_id": null
+        "delivered_observation_receipt_id": null,
+        "delivery_tick": null
       }
     ],
-    "quality_assumption": "The analytic oracle assumes a deterministic, perfectly discriminative actor-clearance measurement when timely. This is a deliberately idealized information-value fixture, not a sensor-performance assumption."
+    "quality_assumption": "The analytic oracle assumes a deterministic, perfectly discriminative actor-clearance measurement when timely. This is a deliberately idealized information-value fixture, not a sensor-performance assumption.",
+    "request_tick": 1
   },
   "arms": [
     {
