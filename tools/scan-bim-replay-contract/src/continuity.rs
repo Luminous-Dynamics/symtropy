@@ -283,7 +283,7 @@ pub fn audit_representation_continuity(
                     ));
                 }
             }
-            produced_artifacts.insert(
+            let _ = produced_artifacts.insert(
                 output.artifact_id.as_str(),
                 (output.sha256.as_str(), output.role),
             );
@@ -811,7 +811,8 @@ mod tests {
         }]);
         value["transitions"][0]["uncertainty"]["estimator_id"] = json!("update-v1");
         value["transitions"][0]["uncertainty"]["calibration_profile_id"] = json!("cal-v1");
-        let error = audit(&value).expect_err("source evidence cannot be reused as new independent evidence");
+        let error = audit(&value)
+            .expect_err("source evidence cannot be reused as new independent evidence");
         assert!(error.contains("must be additional to the source representation"));
     }
 
@@ -945,7 +946,8 @@ mod tests {
         assert_eq!(report.transition_count, 2);
 
         value["transitions"][1]["source_artifacts"][0]["sha256"] = json!("9".repeat(64));
-        let error = audit(&value).expect_err("the same artifact ID cannot silently point at new bytes");
+        let error = audit(&value)
+            .expect_err("the same artifact ID cannot silently point at new bytes");
         assert!(error.contains("does not match its prior output binding"));
     }
 
