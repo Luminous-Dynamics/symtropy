@@ -71,7 +71,8 @@
             "abuse",
             "electrical_functionality",
             "life_cycle",
-            "other"
+            "other",
+            "safety_conformity"
           ]
         },
         "test_method_ref": {
