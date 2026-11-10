@@ -169,7 +169,7 @@ pub struct CampaignReport {
     pub abstained_cases: u64,
     pub not_run_cases: u64,
     pub qualified_cases: u64,
-    pub raw_completed_simulated_ticks: u64,
+    pub raw_simulated_ticks: u64,
     pub qualified_simulated_ticks: u64,
     pub case_coverage: f64,
     pub horizon_coverage: f64,
@@ -214,6 +214,7 @@ pub enum EvaluationError {
     MissingCaseResult(String),
     UnexpectedCaseResult(String),
     HardwareProfileMismatch(String),
+    SimulatedTicksExceedCaseHorizon(String),
     EnergySamplingPolicyMissing(String),
     EnergySampleGapExceeded(String),
     InvalidLatencyOrder(String),
@@ -237,6 +238,9 @@ impl std::fmt::Display for EvaluationError {
             Self::UnexpectedCaseResult(id) => write!(f, "campaign contains an unknown case: {id}"),
             Self::HardwareProfileMismatch(id) => {
                 write!(f, "campaign uses a different comparison hardware profile: {id}")
+            }
+            Self::SimulatedTicksExceedCaseHorizon(id) => {
+                write!(f, "campaign reports more simulated ticks than requested for case: {id}")
             }
             Self::EnergySamplingPolicyMissing(id) => {
                 write!(f, "energy receipt has no preregistered sample-gap policy: {id}")
@@ -379,7 +383,7 @@ fn evaluate_campaign(
         abstained_cases,
         not_run_cases,
         qualified_cases,
-        raw_completed_simulated_ticks: raw_ticks,
+        raw_simulated_ticks: raw_ticks,
         qualified_simulated_ticks: qualified_ticks,
         case_coverage,
         horizon_coverage,
@@ -519,6 +523,16 @@ fn validate_campaign_cases(
         if !seen.insert(result.case_id.as_str()) {
             return Err(EvaluationError::DuplicateResult(result.case_id.clone()));
         }
+        let case_requirement = input
+            .cases
+            .iter()
+            .find(|case| case.case_id == result.case_id)
+            .expect("required case validated above");
+        if result.completed_simulated_ticks > case_requirement.required_simulated_ticks {
+            return Err(EvaluationError::SimulatedTicksExceedCaseHorizon(
+                result.case_id.clone(),
+            ));
+        }
         if let Some(error) = result.error_upper_bound {
             validate_nonnegative_finite(error, "result.error_upper_bound")?;
         }
@@ -631,12 +645,20 @@ fn dominates(a: &CampaignReport, b: &CampaignReport, include_energy: bool) -> bo
         && a.step_latency_p95_us <= b.step_latency_p95_us
         && a.step_latency_p99_us <= b.step_latency_p99_us
         && a.peak_memory_bytes <= b.peak_memory_bytes;
+    if let (Some(a_error), Some(b_error)) =
+        (a.max_qualified_error_ratio, b.max_qualified_error_ratio)
+    {
+        no_worse &= a_error <= b_error;
+    } else {
+        return false;
+    }
     let mut strictly_better = a.qualified_simulated_ticks_per_second
         > b.qualified_simulated_ticks_per_second
         || a.case_coverage > b.case_coverage
         || a.step_latency_p95_us < b.step_latency_p95_us
         || a.step_latency_p99_us < b.step_latency_p99_us
-        || a.peak_memory_bytes < b.peak_memory_bytes;
+        || a.peak_memory_bytes < b.peak_memory_bytes
+        || a.max_qualified_error_ratio < b.max_qualified_error_ratio;
 
     if include_energy {
         match (
@@ -790,6 +812,8 @@ mod tests {
         let qualified = report.campaigns.iter().find(|c| c.engine_id == "engine-slower-qualified").expect("qualified");
         assert!(fast.raw_simulated_ticks_per_second > qualified.raw_simulated_ticks_per_second);
         assert!(fast.qualified_simulated_ticks_per_second > qualified.qualified_simulated_ticks_per_second);
+        assert!(fast.max_qualified_error_ratio.unwrap() == 0.5);
+        assert!(qualified.max_qualified_error_ratio.unwrap() == 0.5);
         assert!(fast.case_coverage < qualified.case_coverage);
         assert_eq!(fast.qualified_simulated_ticks, 100);
         assert_eq!(qualified.qualified_simulated_ticks, 200);
@@ -823,7 +847,7 @@ mod tests {
         data.campaigns[0].results[0].completed_simulated_ticks = 50;
         let report = evaluate(&data).expect("partial result");
         let campaign = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").expect("fast");
-        assert_eq!(campaign.raw_completed_simulated_ticks, 50);
+        assert_eq!(campaign.raw_simulated_ticks, 50);
         assert_eq!(campaign.qualified_simulated_ticks, 0);
         assert_eq!(
             campaign.evaluations.iter().find(|e| e.case_id == "case-a").expect("case").rejection_reasons,
@@ -886,7 +910,6 @@ mod tests {
         assert_eq!(a.input_sha256, b.input_sha256);
         assert_eq!(a.pareto_frontier_engine_ids, b.pareto_frontier_engine_ids);
         assert_eq!(a.campaigns, b.campaigns);
-        forward.cases.clear();
     }
 
     #[test]
@@ -936,6 +959,70 @@ mod tests {
         assert_eq!(
             evaluate(&data).unwrap_err(),
             EvaluationError::DuplicateResult("case-a".to_owned())
+        );
+    }
+
+    #[test]
+    fn failed_abstained_and_not_run_cases_remain_distinct() {
+        let mut data = input();
+        let results = &mut data.campaigns[0].results;
+        results[0].outcome = CaseOutcome::Failed;
+        results[1].outcome = CaseOutcome::Abstained;
+        let mut third = result("case-c");
+        third.outcome = CaseOutcome::NotRun;
+        data.cases.push(case("case-c"));
+        for campaign in &mut data.campaigns {
+            if campaign.engine_id == "engine-fast-low-coverage" {
+                campaign.results.push(third.clone());
+            } else {
+                campaign.results.push(result("case-c"));
+            }
+        }
+        let report = evaluate(&data).expect("all statuses have explicit outcomes");
+        let fast = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").unwrap();
+        assert_eq!(fast.failed_cases, 1);
+        assert_eq!(fast.abstained_cases, 1);
+        assert_eq!(fast.not_run_cases, 1);
+        assert_eq!(fast.requested_cases, 3);
+    }
+
+    #[test]
+    fn hard_constraint_violation_is_not_qualified() {
+        let mut data = input();
+        data.campaigns[0].results[0].hard_constraint_violations = Some(1);
+        let report = evaluate(&data).expect("reported invariant violation");
+        let item = report.campaigns.iter().find(|c| c.engine_id == "engine-fast-low-coverage").unwrap()
+            .evaluations.iter().find(|e| e.case_id == "case-a").unwrap();
+        assert!(item.rejection_reasons.contains(&RejectionReason::HardConstraintExceeded));
+    }
+
+    #[test]
+    fn completed_run_cannot_claim_more_ticks_than_case_horizon() {
+        let mut data = input();
+        data.campaigns[0].results[0].completed_simulated_ticks = 101;
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            EvaluationError::SimulatedTicksExceedCaseHorizon("case-a".to_owned())
+        );
+    }
+
+    #[test]
+    fn invalid_energy_gap_does_not_enter_comparison() {
+        let mut data = input();
+        data.max_energy_sample_gap_us = Some(100);
+        data.campaigns[0].energy_measurement = Some(EnergyMeasurement {
+            scope: EnergyScope::GpuBoard,
+            source: EnergySource::NvmlPowerSamples,
+            source_api_version: "nvml".to_owned(),
+            sample_series_sha256: H3.to_owned(),
+            integrated_energy_uj: 10_000.0,
+            measurement_window_us: 10_000,
+            sample_count: 4,
+            max_sample_gap_us: 500,
+        });
+        assert_eq!(
+            evaluate(&data).unwrap_err(),
+            EvaluationError::EnergySampleGapExceeded("engine-fast-low-coverage".to_owned())
         );
     }
 
