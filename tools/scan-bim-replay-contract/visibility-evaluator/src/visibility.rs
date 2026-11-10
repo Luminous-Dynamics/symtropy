@@ -11,7 +11,8 @@
 
 use scan_bim_replay_contract::metrics::Point3;
 use scan_bim_replay_contract::sampling::{
-    SurfaceSample, SurfaceSamplingReceipt, SurfaceVisibility, verify_complete_reference_sampling_receipt,
+    verify_complete_reference_sampling_receipt, SurfaceSample, SurfaceSamplingReceipt,
+    SurfaceVisibility,
 };
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -1182,8 +1183,7 @@ pub fn derive_surface_visibility(
             || Vec3::from_point(probe.normal).norm() <= VECTOR_EPSILON
         {
             return Err(
-                "probe coordinate/normal and represented area must be finite; area and normal must be positive"
-                    .to_owned(),
+                "probe coordinates/normal and area must be finite and positive".to_owned(),
             );
         }
     }
