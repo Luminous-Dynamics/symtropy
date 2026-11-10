@@ -1,0 +1,130 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark": "POMDAR",
+  "benchmark_version": "1.1",
+  "paper": {
+    "title": "A Benchmark of Dexterity for Anthropomorphic Robotic Hands",
+    "doi": "10.1109/LRA.2026.3735899",
+    "url": "https://doi.org/10.1109/LRA.2026.3735899"
+  },
+  "upstream": {
+    "repository": "https://github.com/srl-ethz/pomdar_benchmark",
+    "inspected_ref": "main",
+    "inspected_commit": "6eb4131b78e7ccf478f3bfb2a2cb3e25babeedbb",
+    "project_page": "https://srl-ethz.github.io/POMDAR/",
+    "cad_revision": "v1.1",
+    "cad_revision_date": "2026-07-08",
+    "license_status": "unverified",
+    "license_observation": "No GitHub repository license metadata or LICENSE/COPYING/NOTICE path was present in the inspected upstream main tree. Do not redistribute or vendor upstream material without rights clarification."
+  },
+  "scope": {
+    "task_id_count": 18,
+    "task_fragment_count": 17,
+    "categories": [
+      "vertical_manipulation",
+      "horizontal_manipulation",
+      "continuous_rotation",
+      "pure_grasping"
+    ],
+    "scoring_reference": {
+      "description": "Published throughput combines task correctness and execution speed normalized against a human baseline.",
+      "correctness_weight": 0.8,
+      "speed_weight": 0.2,
+      "implementation_status": "reference_only_not_implemented",
+      "exact_formula_status": "must_be_verified_against_paper_and_authorized_reference_before_score_reproduction"
+    }
+  },
+  "claim_ceiling": "Source inventory only. No POMDAR assets imported, no score reproduced, no Symtropy parity, no physical hand result, and no wearer benefit established.",
+  "tasks": [
+    {
+      "id": "V1_Wheel",
+      "category": "vertical_manipulation",
+      "source_fragment": "sim/tasks/V1_Wheel.xml"
+    },
+    {
+      "id": "V2_Stick",
+      "category": "vertical_manipulation",
+      "source_fragment": "sim/tasks/V2_Stick.xml"
+    },
+    {
+      "id": "V3_Sphere",
+      "category": "vertical_manipulation",
+      "source_fragment": "sim/tasks/V3_Sphere.xml"
+    },
+    {
+      "id": "H1_Scissors",
+      "category": "horizontal_manipulation",
+      "source_fragment": "sim/tasks/H1_Scissors.xml"
+    },
+    {
+      "id": "H2_Chopsticks",
+      "category": "horizontal_manipulation",
+      "source_fragment": "sim/tasks/H2_Chopsticks.xml"
+    },
+    {
+      "id": "H3_Squeeze",
+      "category": "horizontal_manipulation",
+      "source_fragment": "sim/tasks/H3_Squeeze.xml"
+    },
+    {
+      "id": "H4_Palmar",
+      "category": "horizontal_manipulation",
+      "source_fragment": "sim/tasks/H4_Palmar_H5_Pinch.xml"
+    },
+    {
+      "id": "H5_Pinch",
+      "category": "horizontal_manipulation",
+      "source_fragment": "sim/tasks/H4_Palmar_H5_Pinch.xml"
+    },
+    {
+      "id": "C1_Thread",
+      "category": "continuous_rotation",
+      "source_fragment": "sim/tasks/C1_Thread.xml"
+    },
+    {
+      "id": "C2_Stick",
+      "category": "continuous_rotation",
+      "source_fragment": "sim/tasks/C2_Stick.xml"
+    },
+    {
+      "id": "C3_Wheel",
+      "category": "continuous_rotation",
+      "source_fragment": "sim/tasks/C3_Wheel.xml"
+    },
+    {
+      "id": "C4_Fidget",
+      "category": "continuous_rotation",
+      "source_fragment": "sim/tasks/C4_Fidget.xml"
+    },
+    {
+      "id": "G1_Wheel",
+      "category": "pure_grasping",
+      "source_fragment": "sim/tasks/G1_Wheel.xml"
+    },
+    {
+      "id": "G2_Sphere",
+      "category": "pure_grasping",
+      "source_fragment": "sim/tasks/G2_Sphere.xml"
+    },
+    {
+      "id": "G3_Disk",
+      "category": "pure_grasping",
+      "source_fragment": "sim/tasks/G3_Disk.xml"
+    },
+    {
+      "id": "G4_Cylinder_Small",
+      "category": "pure_grasping",
+      "source_fragment": "sim/tasks/G4_Cylinder_Small.xml"
+    },
+    {
+      "id": "G5_Cylinder",
+      "category": "pure_grasping",
+      "source_fragment": "sim/tasks/G5_Cylinder.xml"
+    },
+    {
+      "id": "G6_Cylinder_Large",
+      "category": "pure_grasping",
+      "source_fragment": "sim/tasks/G6_Cylinder_Large.xml"
+    }
+  ]
+}
