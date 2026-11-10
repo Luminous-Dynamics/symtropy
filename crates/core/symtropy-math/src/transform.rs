@@ -88,8 +88,16 @@ impl Transform<3> {
         other: &Self,
         t: f64,
     ) -> Result<Self, crate::lie::So3LogError> {
+        if !self.translation.0.iter().all(|value| value.is_finite())
+            || !other.translation.0.iter().all(|value| value.is_finite())
+        {
+            return Err(crate::lie::So3LogError::NonFiniteTranslation);
+        }
         let rotation = crate::lie::so3_interpolate(&self.rotation, &other.rotation, t)?;
         let translation = self.translation.lerp(&other.translation, t);
+        if !translation.0.iter().all(|value| value.is_finite()) {
+            return Err(crate::lie::So3LogError::NonFiniteTranslation);
+        }
         Ok(Self {
             translation,
             rotation,
@@ -106,8 +114,16 @@ impl Transform<4> {
         other: &Self,
         t: f64,
     ) -> Result<Self, crate::so4::So4LogError> {
+        if !self.translation.0.iter().all(|value| value.is_finite())
+            || !other.translation.0.iter().all(|value| value.is_finite())
+        {
+            return Err(crate::so4::So4LogError::NonFiniteTranslation);
+        }
         let rotation = crate::so4::so4_interpolate(&self.rotation, &other.rotation, t)?;
         let translation = self.translation.lerp(&other.translation, t);
+        if !translation.0.iter().all(|value| value.is_finite()) {
+            return Err(crate::so4::So4LogError::NonFiniteTranslation);
+        }
         Ok(Self { translation, rotation })
     }
 }
@@ -204,6 +220,28 @@ mod tests {
     }
 
     #[test]
+    fn checked_so3_interpolation_rejects_non_finite_translation_input_and_result() {
+        let identity = Transform::<3>::identity();
+        let invalid = Transform {
+            translation: Point::new([f64::NAN, 0.0, 0.0]),
+            rotation: Rotor::<3>::identity(),
+        };
+        assert!(matches!(
+            invalid.try_interpolate(&identity, 0.5),
+            Err(crate::lie::So3LogError::NonFiniteTranslation)
+        ));
+
+        let huge = Transform {
+            translation: Point::new([1.0e308, 0.0, 0.0]),
+            rotation: Rotor::<3>::identity(),
+        };
+        assert!(matches!(
+            identity.try_interpolate(&huge, 2.0),
+            Err(crate::lie::So3LogError::NonFiniteTranslation)
+        ));
+    }
+
+    #[test]
     fn checked_so3_interpolation_rejects_invalid_endpoint_rotation() {
         let start = Transform::<3>::identity();
         let invalid_rotation = Rotor::from_matrix(
@@ -239,6 +277,28 @@ mod tests {
         let rotated = midpoint.transform_vector(&x);
         assert!((rotated[0] - std::f64::consts::FRAC_PI_4.cos()).abs() < 1.0e-10);
         assert!((rotated[1] - std::f64::consts::FRAC_PI_4.sin()).abs() < 1.0e-10);
+    }
+
+    #[test]
+    fn checked_so4_interpolation_rejects_non_finite_translation_input_and_result() {
+        let identity = Transform::<4>::identity();
+        let invalid = Transform {
+            translation: Point::new([0.0, f64::INFINITY, 0.0, 0.0]),
+            rotation: Rotor::<4>::identity(),
+        };
+        assert!(matches!(
+            invalid.try_interpolate(&identity, 0.5),
+            Err(crate::so4::So4LogError::NonFiniteTranslation)
+        ));
+
+        let huge = Transform {
+            translation: Point::new([1.0e308, 0.0, 0.0, 0.0]),
+            rotation: Rotor::<4>::identity(),
+        };
+        assert!(matches!(
+            identity.try_interpolate(&huge, 2.0),
+            Err(crate::so4::So4LogError::NonFiniteTranslation)
+        ));
     }
 
     #[test]
