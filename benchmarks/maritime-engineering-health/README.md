@@ -36,3 +36,47 @@ contract outcomes. It does not establish machine diagnosis accuracy, machinery
 health, safety, physical behavior, restoration authorization, class/statutory
 compliance, MASS Code compliance or permission to operate a vessel. The crate has
 no network, OT, controller, protection-system, actuator or equipment effects.
+
+## Aalto marine-engine dataset audit
+
+A separate Rust CLI inventories and audits an already-extracted copy of the public
+Aalto Marine Engine Fault Dataset. It is intentionally not an online downloader
+and does not extract untrusted ZIP paths.
+
+First verify/extract the licensed archive in a controlled temporary directory,
+then run:
+
+~~~sh
+cargo run --locked \
+  --manifest-path benchmarks/maritime-engineering-health/Cargo.toml \
+  --bin marine-engine-dataset-audit -- \
+  /path/to/extracted-dataset-root \
+  benchmarks/maritime/marine-engine-fault-dataset-v1.manifest.json \
+  --archive /path/to/Marine_Engine_Fault_Data_v1.zip \
+  --output /path/to/marine-engine-dataset-audit-v0.1.json
+~~~
+
+The dataset root may be the extracted parent directory or the
+Marine_Engine_Fault_Data directory itself. The CLI:
+- rejects path traversal and caps each input member at 128 MiB;
+- computes SHA-256 for every inventoried file and for the archive when supplied;
+- attempts publisher-MD5 verification using md5sum, md5 or OpenSSL when available;
+- parses scenario/baseline CSV files with a strict UTF-8 RFC-4180-style reader;
+- validates the three header rows and 73-column scenario / 70-column baseline layouts;
+- records row counts, binary anomaly labels, 0-to-1 onset transitions, anomaly-only
+  nozzle behavior, relative-time backsteps/duplicates and per-channel missing cells;
+- hashes and UTF-8 checks the metadata files, and generically parses metadata CSVs;
+- emits a file-level split-manifest template with **no assignments**.
+
+The tool does not infer root-cause labels from the binary anomaly-state column,
+impute missing measurements, silently reorder time-series, or assign train/test
+partitions. The dataset-index and variable-dictionary semantics still require
+human reconciliation after payload inspection. An incomplete audit exits non-zero.
+The report schema is
+`docs/tech/MARITIME_ENGINE_DATASET_AUDIT_REPORT_V0_1.schema.json`.
+
+The tool's `content_audited_pending_independent_review` state means all declared
+members were present and the specified structural checks completed. It does not
+mean that the archive is an operationally representative fleet dataset, that
+the published labels are physically adjudicated, or that an independent marine
+engineer has accepted the interpretation.
