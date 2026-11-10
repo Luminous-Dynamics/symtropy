@@ -69,7 +69,7 @@ A route that is terminally viable but passes through a nonviable intermediate st
 
 Different action IDs, policy labels, gait names or receipt IDs do not establish different physical routes.
 
-The canonical path identity must be derived from the ordered, time-indexed physical transition identities and declared terminal/recovery-region identity. Alias actions that generate the same physical path are one route class. Equivalent paths with only record-order or identifier changes must produce the same canonical result.
+The canonical path identity must bind the exact starting-state identity, edge-namespace digest, transition-abstraction digest, ordered time-indexed physical transition identities and declared terminal/recovery-region identity. Equal edge labels from different abstraction namespaces or starting states must never merge. Alias actions that generate the same physical path in the same exact context are one route class. Equivalent paths with only record-order or action-label changes must produce the same canonical result. The branch-successor inventory and time-expanded latency-prefix inventory must each have a non-empty, exact manifest digest; a boolean completeness assertion without a manifest identity is insufficient.
 
 Where the upstream abstraction cannot establish physical equivalence, return Unknown rather than assume independence.
 
