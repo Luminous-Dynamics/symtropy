@@ -194,5 +194,30 @@
     "actuator delivery confirmation from requested command signals",
     "physical root cause from a residual threshold alone",
     "superiority to a vendor product without a matched public protocol and baseline"
-  ]
+  ],
+  "inverse_identifiability_protocol": {
+    "scope": "Applicable only to a calibrated physical inverse/digital-twin comparator with explicit fault/degradation parameters and a validated parameter-to-signal map.",
+    "local_sensitivity": "Compute a dimensionless, uncertainty-whitened sensitivity Jacobian over the declared engine configuration and supported operating regime: J = Sigma^(-1/2) * d(h(theta))/d(theta) * D_theta, where D_theta scales parameters to preregistered dimensionless ranges.",
+    "required_reports": [
+      "singular_values",
+      "numerical_rank",
+      "rank_tolerance",
+      "condition_number",
+      "null_space_dimension",
+      "admissible_hypothesis_set_size",
+      "connected_ambiguity_components"
+    ],
+    "global_ambiguity": "Explore declared parameter bounds with multi-start/profile or interval methods; accept hypotheses only when residual statistics are within an independently calibrated model-plus-measurement uncertainty region. Freeze the acceptance rule before confirmatory evaluation.",
+    "disposition_rules": {
+      "UNIQUE_WITHIN_DECLARED_MODEL": "Exactly one connected admissible hypothesis component and full, sufficiently conditioned local sensitivity rank under the preregistered tolerance.",
+      "AMBIGUOUS_EQUIVALENCE_CLASS": "Multiple admissible hypothesis components, rank deficiency, or condition number beyond the preregistered limit.",
+      "NOT_EVALUATED": "Missing model calibration, parameter map, uncertainty region, configuration identity or supported operating regime."
+    },
+    "caution": "Full local Jacobian rank is not proof of global uniqueness. Never convert the optimizer's lowest-residual parameter vector into a unique physical cause without admissible-set and ambiguity checks."
+  },
+  "operational_metric_definitions": {
+    "inverse_solution_set_cardinality": "Number of disconnected admissible fault/degradation parameter-hypothesis components under the frozen calibration acceptance rule.",
+    "false_unique_root_cause_rate": "Cases where a system emits one unique physical cause although the reference admissible set contains multiple components or fails the preregistered identifiability condition.",
+    "parameter_identifiability_rank_or_condition": "Numerical rank, singular spectrum and condition number of the dimensionless uncertainty-whitened response-sensitivity Jacobian, with tolerance and parameter scaling disclosed."
+  }
 }
