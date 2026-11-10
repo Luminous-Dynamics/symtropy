@@ -19,6 +19,8 @@
     "context_digest",
     "resource_unit_id",
     "resource_budget_units",
+    "decision_value_unit_id",
+    "clock_id",
     "resource_units_committed",
     "resource_units_remaining",
     "completion_bound_tick",
@@ -55,6 +57,8 @@
     "context_digest": { "$ref": "#/$defs/sha256" },
     "resource_unit_id": { "type": "string", "minLength": 1, "maxLength": 256 },
     "resource_budget_units": { "type": "integer", "minimum": 0 },
+    "decision_value_unit_id": { "type": "string", "minLength": 1, "maxLength": 256 },
+    "clock_id": { "type": "string", "minLength": 1, "maxLength": 256 },
     "resource_units_committed": { "type": "integer", "minimum": 0 },
     "resource_units_remaining": { "type": "integer", "minimum": 0 },
     "completion_bound_tick": { "type": "integer", "minimum": 0 },
@@ -72,6 +76,8 @@
           "sam_evidence_not_admitted",
           "sam_context_mismatch",
           "resource_unit_mismatch",
+          "decision_value_unit_mismatch",
+          "clock_domain_mismatch",
           "zero_decision_value",
           "zero_resource_cost",
           "zero_latency_bound",
@@ -120,7 +126,7 @@
         "latency_bound_digest", "compute_cost_digest", "sam_evidence_digest",
         "initial_rollout_count", "additional_rollout_count", "final_rollout_count",
         "expected_regret_reduction_microunits", "resource_cost_units",
-        "completion_bound_tick", "stop_reason"
+        "completion_bound_tick"
       ],
       "properties": {
         "opportunity_id": { "type": "string", "minLength": 1, "maxLength": 256 },
@@ -137,22 +143,15 @@
         "final_rollout_count": { "type": "integer", "minimum": 1 },
         "expected_regret_reduction_microunits": { "type": "integer", "minimum": 1 },
         "resource_cost_units": { "type": "integer", "minimum": 1 },
-        "completion_bound_tick": { "type": "integer", "minimum": 0 },
-        "stop_reason": {
-          "enum": [
-            "max_rollouts_reached",
-            "marginal_schedule_exhausted",
-            "no_positive_marginal_value",
-            "deadline_reserve_preserved",
-            "shared_compute_budget_exhausted"
-          ]
-        }
+        "completion_bound_tick": { "type": "integer", "minimum": 0 }
       }
     }
   },
   "x-invariants": [
     "resource_units_committed plus resource_units_remaining equals resource_budget_units.",
     "resource_cost_units in either optional grant is expressed in resource_unit_id.",
+    "Both sensor and inference expected-regret reductions are expressed in decision_value_unit_id.",
+    "Sensor acquisition and inference latency bounds are expressed in clock_id.",
     "At most one of sensor_grant and inference_grant is non-null.",
     "For request_observation, sensor_grant is non-null and its completion_bound_tick plus actuation_recovery_reserve_ticks does not exceed decision_deadline_tick.",
     "For allocate_inference, inference_grant is non-null and its completion_bound_tick plus actuation_recovery_reserve_ticks does not exceed decision_deadline_tick.",
