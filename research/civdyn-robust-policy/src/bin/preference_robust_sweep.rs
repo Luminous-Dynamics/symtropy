@@ -8,8 +8,8 @@ use std::collections::BTreeMap;
 
 use civdyn_resilience_uq::OutcomeMetric;
 use civdyn_robust_policy::preference_robust::{
-    ObjectiveDirection, PreferenceContract, PreferenceCriterion, PreferenceProfile,
-    PreferenceSetKind, PreferenceVertex, analyze_preference_robustness,
+    ObjectiveDirection, PreferenceContract, PreferenceCriterion, PreferenceSetKind,
+    PreferenceVertex, analyze_preference_robustness,
 };
 use civdyn_robust_policy::{
     DEFAULT_LHS_POINTS, PolicyRun, ServiceConstraints, execute_policy_design,
