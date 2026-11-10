@@ -15,7 +15,7 @@ const INITIAL_TRAINING: &str = "sha256-repair-sweep-initial-training";
 const REPAIR_TRAINING: &str = "sha256-repair-sweep-repair-training";
 const SOURCE_DIGEST: &str = "sha256-repair-sweep-challenge-source";
 const OBSERVATION_DIGEST: &str = "sha256-repair-sweep-challenge-observation";
-const CSV_COLUMNS: usize = 27;
+const CSV_COLUMNS: usize = 28;
 const DRAWS: [f64; 5] = [0.45, 0.48, 0.50, 0.52, 0.55];
 
 fn csv_field(value: &str) -> String {
@@ -213,6 +213,7 @@ fn emit_report(scenario: &str, report: &RepairQualificationReport) {
             format!("{:.6}", report.maximum_interval_width_ratio),
             result.statistic_id.clone(),
             result.independent_unit_id.clone(),
+            result.diagnostic_primary_discrepancy.to_string(),
             result.baseline_status.name().to_string(),
             result.repaired_status.name().to_string(),
             result
@@ -234,7 +235,7 @@ fn emit_report(scenario: &str, report: &RepairQualificationReport) {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
-        "scenario,claim_ceiling,diagnostic_primary_discrepancies,corrected_primary_statistics,residual_primary_discrepancies,regressed_primary_statistics,width_budget_failures,required_evidence_complete,initial_model_digest,repaired_model_digest,initial_calibration_data_digest,repair_training_data_digest,diagnostic_split_manifest_digest,baseline_challenge_manifest_digest,repaired_challenge_manifest_digest,repair_action_digest,protocol_digest,central_mass,maximum_interval_width_ratio,statistic_id,independent_unit_id,baseline_status,repaired_status,baseline_interval_width,repaired_interval_width,interval_width_ratio,row_outcome"
+        "scenario,claim_ceiling,diagnostic_primary_discrepancies,corrected_primary_statistics,residual_primary_discrepancies,regressed_primary_statistics,width_budget_failures,required_evidence_complete,initial_model_digest,repaired_model_digest,initial_calibration_data_digest,repair_training_data_digest,diagnostic_split_manifest_digest,baseline_challenge_manifest_digest,repaired_challenge_manifest_digest,repair_action_digest,protocol_digest,central_mass,maximum_interval_width_ratio,statistic_id,independent_unit_id,diagnostic_primary_discrepancy,baseline_status,repaired_status,baseline_interval_width,repaired_interval_width,interval_width_ratio,row_outcome"
     );
 
     let corrected = run_scenario("corrected", &DRAWS, &[0.85, 0.88, 0.90, 0.92, 0.95], 0.9)?;
