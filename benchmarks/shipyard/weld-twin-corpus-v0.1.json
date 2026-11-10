@@ -99,8 +99,8 @@
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
           "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/root-pass.json",
-          "process_trace_sha256": "a316e2fe095eb364989fb6a3b30ac23b4256d5e1b68c7b0dd953d23e9053651d",
-          "evidence_class": "measured_synthetic",
+          "process_trace_sha256": "7c71e5c673d4689c2e6e50d224aed4bef9016f3e7d6bf46191ab815b29268757",
+          "evidence_class": "synthetic_fixture",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:00:00Z",
           "serial_id": "SYNTH-SERIAL-017"
@@ -116,8 +116,8 @@
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
           "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/fill-pass.json",
-          "process_trace_sha256": "b198e740401d0369cbc1d679521f319e826424228359badf1d84a42f987d4e09",
-          "evidence_class": "measured_synthetic",
+          "process_trace_sha256": "2cde43207c36d45a4c41665ea5cd1c5a886e53b64e77a128851ca274f928c449",
+          "evidence_class": "synthetic_fixture",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:10:00Z",
           "serial_id": "SYNTH-SERIAL-017"
@@ -133,8 +133,8 @@
           "program_revision": "PROGRAM-REV-07",
           "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
           "process_trace_ref": "benchmarks/shipyard/weld-twin-traces/cap-pass.json",
-          "process_trace_sha256": "9cd731fb95df8097aaed752c855cdffa99aa46acc237e961f92f06a013e80f96",
-          "evidence_class": "measured_synthetic",
+          "process_trace_sha256": "faedff2b3ba982c9a8695126272d92bc8fb343fa4753ff1b3206f3d58389334b",
+          "evidence_class": "synthetic_fixture",
           "observed_envelope_status": "within_declared_envelope",
           "source_time_utc": "2026-11-10T03:20:00Z",
           "serial_id": "SYNTH-SERIAL-017"
