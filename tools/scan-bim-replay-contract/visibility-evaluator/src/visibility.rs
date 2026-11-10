@@ -1116,11 +1116,15 @@ pub fn derive_surface_visibility(
 mod tests {
     use super::{
         OccluderCoverage, OccluderKind, OccluderTriangle, VisibilityEvaluation,
-        VisibilityProbe, VisibilityProfile, VisibilityView, ViewVisibilityStatus,
-        derive_surface_visibility,
+        VisibilityProbe, VisibilityProfile, VisibilityRequest, VisibilityView,
+        ViewVisibilityStatus, derive_surface_visibility,
+        probes_from_reference_sampling,
     };
     use scan_bim_replay_contract::metrics::Point3;
-    use scan_bim_replay_contract::sampling::{SurfaceSample, SurfaceSamplingReceipt, SurfaceVisibility};
+    use scan_bim_replay_contract::sampling::{
+        AreaWeightedSamplingProfile, SurfaceTriangleInput, SurfaceVisibility,
+        sample_reference_surfaces_for_visibility,
+    };
 
     fn view(id: &str, origin: [f64; 3]) -> VisibilityView {
         VisibilityView {
@@ -1144,8 +1148,31 @@ mod tests {
             surface_id: "TARGET".to_owned(),
             triangle_id: "TARGET-TRI-1".to_owned(),
             point: Point3::new(point[0], point[1], point[2]),
+            barycentric: [0.25, 0.5, 0.25],
             normal: Point3::new(-1.0, 0.0, 0.0),
             represented_area_m2: 2.0,
+        }
+    }
+
+    fn target_triangle() -> OccluderTriangle {
+        OccluderTriangle {
+            surface_id: "TARGET".to_owned(),
+            triangle_id: "TARGET-TRI-1".to_owned(),
+            a: Point3::new(5.0, -1.0, -1.0),
+            b: Point3::new(5.0, 0.0, 1.0),
+            c: Point3::new(5.0, 1.0, -1.0),
+            kind: OccluderKind::SameBuilding,
+        }
+    }
+
+    fn external_blocker_for_second_view() -> OccluderTriangle {
+        OccluderTriangle {
+            surface_id: "EXTERNAL-BLOCKER".to_owned(),
+            triangle_id: "EXTERNAL-TRI-1".to_owned(),
+            a: Point3::new(1.5, -5.0, -1.0),
+            b: Point3::new(3.5, -5.0, -1.0),
+            c: Point3::new(2.5, -5.0, 1.0),
+            kind: OccluderKind::External,
         }
     }
 
@@ -1179,6 +1206,8 @@ mod tests {
         occluders: &[OccluderTriangle],
         occluder_coverage: OccluderCoverage,
     ) -> Result<super::VisibilityReceipt, String> {
+        let mut full_reference_and_occluders = vec![target_triangle()];
+        full_reference_and_occluders.extend_from_slice(occluders);
         derive_surface_visibility(VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
@@ -1188,7 +1217,7 @@ mod tests {
             occluder_coverage,
             probes,
             views,
-            occluders,
+            occluders: &full_reference_and_occluders,
             profile: VisibilityProfile {
                 max_ray_tests: 10_000,
                 min_incidence_cosine: 0.0,
@@ -1319,7 +1348,7 @@ mod tests {
             occluder_coverage: OccluderCoverage::Complete,
             probes: &[probe([5.0, 0.0, 0.0])],
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
-            occluders: &[blocker(OccluderKind::SameBuilding)],
+            occluders: &[target_triangle(), blocker(OccluderKind::SameBuilding)],
             profile: VisibilityProfile {
                 max_ray_tests: 0,
                 min_incidence_cosine: 0.0,
@@ -1331,15 +1360,18 @@ mod tests {
 
     #[test]
     fn input_permutation_preserves_visibility_receipt() {
-        let mut second_probe = probe([5.0, 1.0, 0.0]);
+        let mut second_probe = probe([5.0, 0.5, -0.25]);
         second_probe.probe_id = "P-2".to_owned();
-        second_probe.triangle_id = "TARGET-TRI-2".to_owned();
+        second_probe.barycentric = [0.0625, 0.375, 0.5625];
+        second_probe.represented_area_m2 = 1.0;
+        let mut first_probe = probe([5.0, 0.0, 0.0]);
+        first_probe.represented_area_m2 = 1.0;
         let mut second_blocker = blocker(OccluderKind::SameBuilding);
         second_blocker.surface_id = "BLOCKER-2".to_owned();
         second_blocker.triangle_id = "BLOCKER-TRI-2".to_owned();
 
         let left = evaluate(
-            &[probe([5.0, 0.0, 0.0]), second_probe.clone()],
+            &[first_probe.clone(), second_probe.clone()],
             &[
                 view("VIEW-1", [0.0, 0.0, 0.0]),
                 view("VIEW-2", [0.0, 0.0, 0.0]),
@@ -1351,7 +1383,7 @@ mod tests {
         )
         .expect("canonical ordering");
         let right = evaluate(
-            &[second_probe, probe([5.0, 0.0, 0.0])],
+            &[second_probe, first_probe],
             &[
                 view("VIEW-2", [0.0, 0.0, 0.0]),
                 view("VIEW-1", [0.0, 0.0, 0.0]),
@@ -1379,7 +1411,7 @@ mod tests {
             occluder_coverage: OccluderCoverage::Complete,
             probes: &[probe([5.0, 0.0, 0.0])],
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
-            occluders: &[],
+            occluders: &[target_triangle()],
             profile: VisibilityProfile {
                 max_ray_tests: 100,
                 min_incidence_cosine: 0.0,
