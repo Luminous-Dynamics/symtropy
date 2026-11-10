@@ -154,6 +154,7 @@ pub enum Finding {
     SharedRandomKeyNotInvariantExogenous,
     BranchOutcomeBeforeDecision,
     SharedRandomValueChanged,
+    RandomKeyEventIdentityChanged,
     DuplicatePolicyField,
     PolicyFieldNotVisible,
     PolicyFieldFromFuture,
@@ -296,6 +297,11 @@ fn validate_branch_pair(branch: &BranchRecord, parent: &BranchRecord, findings: 
         .iter()
         .map(|event| (event.event_id.as_str(), event))
         .collect();
+    let parent_keys: BTreeSet<&str> = parent
+        .random_events
+        .iter()
+        .map(|event| event.key_digest.as_str())
+        .collect();
     for event in &branch.random_events {
         if let Some(previous) = parent_events.get(event.event_id.as_str()) {
             let same_key = event.key_digest == previous.key_digest;
@@ -317,6 +323,13 @@ fn validate_branch_pair(branch: &BranchRecord, parent: &BranchRecord, findings: 
                 if event.sampled_value_digest != previous.sampled_value_digest {
                     findings.push(Finding::SharedRandomValueChanged);
                 }
+            }
+        } else {
+            if event.shared_with_parent {
+                findings.push(Finding::DeclaredSharedKeyMismatch);
+            }
+            if parent_keys.contains(event.key_digest.as_str()) {
+                findings.push(Finding::RandomKeyEventIdentityChanged);
             }
         }
     }
@@ -863,6 +876,23 @@ mod tests {
     }
 
     #[test]
+    fn rejects_reused_key_under_a_different_event_identity() {
+        let mut campaign = valid_campaign();
+        campaign.branches[1].random_events[0].event_id = "renamed-event".to_string();
+        campaign.branches[1].random_events[0].shared_with_parent = false;
+        let report = validate_campaign(&campaign);
+        assert!(has(&report, Finding::RandomKeyEventIdentityChanged));
+    }
+
+    #[test]
+    fn rejects_root_event_claiming_parent_key_sharing() {
+        let mut campaign = valid_campaign();
+        campaign.branches[0].random_events[0].shared_with_parent = true;
+        let report = validate_campaign(&campaign);
+        assert!(has(&report, Finding::DeclaredSharedKeyMismatch));
+    }
+
+    #[test]
     fn rejects_evaluator_only_and_future_policy_fields() {
         let mut campaign = valid_campaign();
         campaign.branches[0].policy_input_fields.push(InformationField {
@@ -897,6 +927,24 @@ mod tests {
         let report = validate_campaign(&campaign);
         assert!(has(&report, Finding::QueryAnswerNotAfterIssue));
         assert!(has(&report, Finding::QueryInputNotPolicyVisible));
+    }
+
+    #[test]
+    fn rejects_query_using_future_observation() {
+        let mut campaign = valid_campaign();
+        campaign.branches[1].query = Some(QueryRecord {
+            query_id: "query-future".to_string(),
+            issued_tick: 10,
+            answer_available_tick: 12,
+            outcome_available_tick: 22,
+            inputs: vec![InformationField {
+                field_id: "future-frame".to_string(),
+                source_role: InformationSourceRole::PolicyVisible,
+                available_tick: 11,
+            }],
+        });
+        let report = validate_campaign(&campaign);
+        assert!(has(&report, Finding::QueryInputFromFuture));
     }
 
     #[test]
