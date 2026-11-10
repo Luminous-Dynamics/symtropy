@@ -1624,32 +1624,64 @@ mod tests {
     }
 
     #[test]
-    fn insufficient_ray_budget_fails_closed() {
+    fn insufficient_ray_budget_fails_closed_during_traversal() {
+        let mut second_blocker = blocker(OccluderKind::External);
+        second_blocker.surface_id = "BLOCKER-SECOND".to_owned();
+        second_blocker.triangle_id = "BLOCKER-SECOND-TRI-1".to_owned();
+        let occluders = vec![
+            target_triangle(),
+            blocker(OccluderKind::SameBuilding),
+            second_blocker,
+        ];
+        let manifest = canonical_occluder_manifest_sha256(&occluders);
         let error = derive_surface_visibility(VisibilityEvaluation {
             scene_id: "SCENE-1",
             frame_id: "BUILDING-LOCAL",
             reference_model_sha256: &"1".repeat(64),
             probe_set_sha256: &"3".repeat(64),
             reference_surface_ids: &["TARGET".to_owned()],
-            occluder_manifest_sha256: &canonical_occluder_manifest_sha256(&[
-                target_triangle(),
-                blocker(OccluderKind::SameBuilding),
-            ]),
+            occluder_manifest_sha256: &manifest,
             occluder_coverage: OccluderCoverage::Complete,
             probes: &[probe([5.0, 0.0, 0.0])],
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
-            occluders: &[target_triangle(), blocker(OccluderKind::SameBuilding)],
+            occluders: &occluders,
             profile: VisibilityProfile {
                 max_probe_count: 1_000,
                 max_view_count: 32,
                 max_occluder_triangles: 10_000,
                 max_probe_view_evaluations: 10_000,
-                max_ray_tests: 0,
+                max_ray_tests: 1,
                 min_incidence_cosine: 0.0,
             },
         })
-        .expect_err("zero budget must fail");
-        assert!(error.contains("max_ray_tests"));
+        .expect_err("the second ray test must exceed the one-test budget");
+        assert!(error.contains("budget exceeded during ray traversal"));
+    }
+
+    #[test]
+    fn resource_profile_cannot_raise_compiled_hard_ceiling() {
+        let error = derive_surface_visibility(VisibilityEvaluation {
+            scene_id: "SCENE-1",
+            frame_id: "BUILDING-LOCAL",
+            reference_model_sha256: &"1".repeat(64),
+            probe_set_sha256: &"3".repeat(64),
+            reference_surface_ids: &["TARGET".to_owned()],
+            occluder_manifest_sha256: &canonical_occluder_manifest_sha256(&[target_triangle()]),
+            occluder_coverage: OccluderCoverage::Complete,
+            probes: &[probe([5.0, 0.0, 0.0])],
+            views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
+            occluders: &[target_triangle()],
+            profile: VisibilityProfile {
+                max_probe_count: 250_001,
+                max_view_count: 32,
+                max_occluder_triangles: 10_000,
+                max_probe_view_evaluations: 10_000,
+                max_ray_tests: 100,
+                min_incidence_cosine: 0.0,
+            },
+        })
+        .expect_err("the request cannot raise the compiled probe ceiling");
+        assert!(error.contains("compiled hard ceiling"));
     }
 
     #[test]
