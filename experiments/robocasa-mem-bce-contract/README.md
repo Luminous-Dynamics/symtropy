@@ -63,3 +63,45 @@ Assistance disclosure is not a cosmetic label: a PolicyOnly record cannot contai
 The paired-control check requires identical protocol, task/scene/seed/split/stage roster, embodiment, action executor, environment, resource budget, evidence class and policy-visible observation manifest. Only the declared policy variant/checkpoint/assistance may differ. This is an identity check, not a statistical significance test. The per-arm episode IDs may differ: pairing is by the frozen task instance, scene identity, seed, split, expected stage roster and shared control manifests—not by reusing the same run ID.
 
 This module is a typed Rust validation contract only. It does not yet parse the upstream RoboCasa-Mem HDF5/Python export, run policies, compute the official macro aggregation, authenticate evidence digests, or verify that the upstream task/evaluator/dataset release has been pinned. See [VIS-MEM-029 #4414](https://github.com/Luminous-Dynamics/symtropy/issues/4414).
+
+
+## Current release qualification gate
+
+The Rust module `release_gate.rs` adds a separate preflight contract for native RoboCasa-Mem evaluation. It does not run the upstream simulator or policy. It prevents evidence from one source/wheel/runtime from being silently reused to qualify a different candidate.
+
+The gate requires:
+
+- exact equality between the checked-out source revision and the release manifest's declared revision;
+- an independently verified source-file manifest, pinned release/suite/input-lock/simulator-source manifests, and preserved suite bytes;
+- exact task, suite and resolved official input counts;
+- separate dataset and asset rights statuses, plus digest-addressed rights manifests;
+- asset archive identity, asset-manifest task coverage, an independent task-coverage verification receipt, exact task count, and a clean candidate installation;
+- installed-wheel acceptance for the **current wheel digest and current runtime digest**, with every expected official input passed in a clean environment;
+- a pinned expected policy-family manifest and a checkpoint-loaded/inference smoke for every expected family (ACT, Diffusion Policy, Pi0.5 in the current nine-task release); each smoke must use the exact candidate runtime, produce inference requests, report no runtime errors and preserve its episode artifacts.
+
+A historical wheel pass does not qualify a changed wheel or runtime. A smoke of one policy family does not unlock another family. A model inference smoke is not required to complete the benchmark task; task success and benchmark performance are measured later by the native evaluator. These stages remain distinct.
+
+The current upstream candidate inspected at source revision `2c7d498e589d1a5a62b5b30c9d786513fa86bfa2` still declares `release_ready=false` and `suite_bytes_preserved=false`. The 450-case installed-wheel evidence refers to an earlier wheel/runtime; its metadata says `runtime_files_match_accepted_wheel=false`. Nine-task asset coverage is marked verified for the official inputs, but clean candidate installation is unverified. Thus asset coverage being complete does not qualify the current release. The gate includes a synthetic regression fixture for this combination.
+
+Use the typed API from an adapter which has already verified and hashed the evidence artifacts:
+
+~~~rust
+use symtropy_robocasa_mem_bce_contract::release_gate::{
+    qualify_release, RoboCasaMemReleaseEvidence,
+};
+
+let report = qualify_release(&release_evidence)?;
+if !report.native_evaluation_ready {
+    // Preserve and report every blocker; do not launch native benchmark runs.
+}
+~~~
+
+The crate validates digest shape and exact equality; it does not hash or authenticate files, establish the truth of an external receipt, adjudicate licensing, or verify the runtime itself. Those responsibilities belong to the acquisition/verification adapter and independent review. The synthetic release-gate tests establish only blocker logic, not that the upstream candidate is qualified.
+
+Run the complete nested contract suite:
+
+~~~sh
+cargo fmt --manifest-path experiments/robocasa-mem-bce-contract/Cargo.toml -- --check
+cargo test --locked --manifest-path experiments/robocasa-mem-bce-contract/Cargo.toml
+cargo clippy --locked --manifest-path experiments/robocasa-mem-bce-contract/Cargo.toml --all-targets -- -D warnings
+~~~
