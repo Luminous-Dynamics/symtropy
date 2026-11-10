@@ -318,6 +318,33 @@
               }
             }
           }
+        },
+        "record_statistics": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "reported_data_volume",
+            "displayed_context",
+            "interpretation",
+            "note"
+          ],
+          "properties": {
+            "reported_data_volume": {
+              "type": "string",
+              "const": "37.7 GB"
+            },
+            "displayed_context": {
+              "type": "string",
+              "minLength": 10
+            },
+            "interpretation": {
+              "const": "not_assumed_to_be_archive_payload_size"
+            },
+            "note": {
+              "type": "string",
+              "minLength": 80
+            }
+          }
         }
       }
     },
