@@ -254,7 +254,17 @@ pub fn audit_representation_continuity(
                 transition.transition_id
             ));
         }
-        validate_uncertainty(&transition.uncertainty)?;
+        let source_artifacts: BTreeMap<&str, (&str, EvidenceRole)> = transition
+            .source_artifacts
+            .iter()
+            .map(|artifact| {
+                (
+                    artifact.artifact_id.as_str(),
+                    (artifact.sha256.as_str(), artifact.role),
+                )
+            })
+            .collect();
+        validate_uncertainty(&transition.uncertainty, &source_artifacts)?;
 
         let mut source_entity_ids = BTreeSet::new();
         let mut target_entity_ids = BTreeSet::new();
@@ -315,16 +325,6 @@ pub fn audit_representation_continuity(
             ));
         }
 
-        let source_artifacts: BTreeMap<&str, (&str, EvidenceRole)> = transition
-            .source_artifacts
-            .iter()
-            .map(|artifact| {
-                (
-                    artifact.artifact_id.as_str(),
-                    (artifact.sha256.as_str(), artifact.role),
-                )
-            })
-            .collect();
         let mut claim_ids = BTreeSet::new();
         for claim in &transition.claims {
             claim_count += 1;
@@ -496,6 +496,7 @@ fn validate_claim(
         }
         ClaimOrigin::Inferred => {
             if claim.derivation_method.as_deref().is_none_or(str::is_empty)
+                || claim.source_evidence.is_empty()
                 || claim.value_sha256.is_none()
             {
                 return Err(format!(
@@ -537,7 +538,10 @@ fn validate_claim(
     Ok(())
 }
 
-fn validate_uncertainty(transition: &UncertaintyTransition) -> Result<(), String> {
+fn validate_uncertainty(
+    transition: &UncertaintyTransition,
+    source_artifacts: &BTreeMap<&str, (&str, EvidenceRole)>,
+) -> Result<(), String> {
     if !transition.approximation_error_bound_m.is_finite()
         || transition.approximation_error_bound_m < 0.0
     {
@@ -617,6 +621,16 @@ fn validate_uncertainty(transition: &UncertaintyTransition) -> Result<(), String
                     );
                 }
                 validate_sha256("conditioning_evidence.sha256", &evidence.sha256)?;
+                if source_artifacts.contains_key(evidence.artifact_id.as_str())
+                    || source_artifacts
+                        .values()
+                        .any(|(source_sha256, _)| *source_sha256 == evidence.sha256)
+                {
+                    return Err(
+                        "conditioning evidence must be additional to the source representation artifacts"
+                            .to_owned(),
+                    );
+                }
             }
         }
     }
