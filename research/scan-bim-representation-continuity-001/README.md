@@ -120,6 +120,16 @@ These are research targets, not achieved results.
 
 No weighted composite can override an orphaned measured claim, unjustified uncertainty reduction, identity collision or unresolved hard requirement.
 
+## Model readiness and validation maturity
+
+The programme now has a separate scorecard derived from the October 2026 Scan-to-Engineering review's EMRL/VM framing: [SCAN_BIM_MODEL_READINESS_AND_VALIDATION_MATURITY_V0_1.md](SCAN_BIM_MODEL_READINESS_AND_VALIDATION_MATURITY_V0_1.md).
+
+We report two axes, never one composite:
+- **EMRL-1…4:** geometry-ready, information-ready, analysis-ready, decision-ready (task-conditional model capability).
+- **LVM-0…5:** a Luminous-defined validation ladder from unvalidated/pipeline-only through synthetic contracts, published benchmark replay, independent metrology, independent interoperability/replication and longitudinal operational validation.
+
+The LVM names are our proposed operationalization; we do not claim they reproduce the paper's exact VM-0…5 criteria without reviewing its full text. A rich model with weak evidence must not be presented as decision-ready. Every level is bound to an exact task, requirement profile, model revision, data population and evidence window.
+
 ## P1 evaluation
 
 1. Compose the audit with #4271's exact IFC/IDS and controlled edit/round-trip outputs.
