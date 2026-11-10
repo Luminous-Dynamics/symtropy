@@ -1,21 +1,18 @@
-import bevy_pbr::render::pbr_fragment::pbr_input_from_standard_material;
-import bevy_pbr::render::pbr_functions::alpha_discard;
+import bevy_pbr::render::{
+    pbr_fragment::pbr_input_from_standard_material,
+    pbr_functions::alpha_discard,
+};
 
-@if(!PREPASS_PIPELINE) {
-    import bevy_pbr::render::pbr_functions::{
-        apply_pbr_lighting,
-        main_pass_post_lighting_processing,
-    };
-}
-
-@if(PREPASS_PIPELINE) {
-    import bevy_pbr::prepass::io::{VertexOutput, FragmentOutput};
-    import bevy_pbr::deferred::functions::deferred_output;
-}
-@else {
-    import bevy_pbr::render::forward_io::{VertexOutput, FragmentOutput};
-    import bevy_pbr::render::mesh_view_bindings::view;
-}
+@if(PREPASS_PIPELINE)
+import bevy_pbr::{
+    prepass::io::{VertexOutput, FragmentOutput},
+    deferred::functions::deferred_output,
+};
+@else
+import bevy_pbr::render::{
+    forward_io::{VertexOutput, FragmentOutput},
+    pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing},
+};
 
 struct NdSlicingSettings {
     w_pos: f32,
