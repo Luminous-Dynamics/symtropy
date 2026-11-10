@@ -171,6 +171,7 @@ pub enum DiagnosabilityError {
     DuplicateEnvelopeFeature,
     EnvelopeFeatureOutsideSchema,
     EnvelopeUnitMismatch,
+    InvalidFeatureMaxAge,
     InvertedInterval,
     ObservationSchemaMismatch,
     DuplicateObservationFeature,
@@ -180,6 +181,7 @@ pub enum DiagnosabilityError {
     ObservationTimeInFuture,
     StaleObservationFeature,
     ObservationSkewExceeded,
+    ObservationFeatureOutsideReceiptWindow,
     StaleReceipt,
     InvalidReceiptInterval,
     ReceiptContextMismatch,
@@ -301,7 +303,7 @@ fn canonicalize_and_validate(
             return Err(DiagnosabilityError::EmptyIdentifier);
         }
         if feature.max_age_ns == 0 {
-            return Err(DiagnosabilityError::EmptyIdentifier);
+            return Err(DiagnosabilityError::InvalidFeatureMaxAge);
         }
         if !schema_ids.insert(feature.feature_id.as_str()) {
             return Err(DiagnosabilityError::DuplicateFeatureId);
@@ -552,6 +554,11 @@ fn evaluate_observation(
             || value.observed_at_ns > observation.observed_at_ns
         {
             return Err(DiagnosabilityError::ObservationTimeInFuture);
+        }
+        if value.observed_at_ns < problem.receipt.valid_from_ns
+            || value.observed_at_ns > problem.receipt.valid_until_ns
+        {
+            return Err(DiagnosabilityError::ObservationFeatureOutsideReceiptWindow);
         }
         earliest_feature_time = earliest_feature_time.min(value.observed_at_ns);
         latest_feature_time = latest_feature_time.max(value.observed_at_ns);
@@ -1021,6 +1028,19 @@ mod tests {
         assert_eq!(
             audit_diagnosability(&input),
             Err(DiagnosabilityError::ObservationOutsideReceiptWindow)
+        );
+    }
+
+    #[test]
+    fn feature_timestamp_outside_diagnostic_receipt_window_is_rejected() {
+        let mut input = problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
+        let mut item = observation(0, 10);
+        item.values[0].observed_at_ns = 99;
+        item.values[1].observed_at_ns = 445;
+        input.observation = Some(item);
+        assert_eq!(
+            audit_diagnosability(&input),
+            Err(DiagnosabilityError::ObservationFeatureOutsideReceiptWindow)
         );
     }
 
