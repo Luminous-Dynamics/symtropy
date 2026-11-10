@@ -140,3 +140,13 @@ A connected graph establishes a chain of pairwise comparisons, not all-pairs agr
 
 Every comparison also records `left_response_sha256` and `right_response_sha256`. The validator requires these values to equal the response digests on the referenced method records. This makes a comparison stale when either method output changes, even if the human-readable method ID is reused. Recompute the pair comparison artifact whenever either response digest changes.
 
+### Canonical input-set hashing
+
+The manifest pins `canonical_input_set_format = utf8_bytewise_name_tab_lowercase_sha256_lf_v1`. For each named input, sort entries by UTF-8 bytewise `name`, then append exactly:
+
+`name<TAB>lowercase_sha256<LF>`
+
+The SHA-256 of the concatenated bytes is `canonical_input_set_sha256`. Names must be unique and may not contain TAB, CR, LF or NUL. Uppercase hex input digests are normalized to lowercase before encoding. If there are no named inputs, the canonical digest must be null; otherwise it is mandatory and the validator recomputes it from `input_digests`.
+
+Each method's `input_set_sha256` must equal this recomputed provenance digest. This turns the shared-input identity into a deterministic, cross-language rule instead of a caller-supplied label. The canonicalization test includes ordering and hex-case invariance; the complete v0.2 fixture exercises the byte encoding end-to-end.
+
