@@ -80,6 +80,8 @@ impl std::error::Error for RapierStepError {}
 #[derive(Debug, Clone, PartialEq)]
 pub struct RapierBodyState {
     pub handle: RigidBodyHandle,
+    /// Explicit cross-engine identity, when the caller supplied a binding.
+    pub symtropy_body: Option<BodyHandle>,
     pub translation: [Real; 3],
     pub rotation_wxyz: [Real; 4],
     pub linear_velocity: [Real; 3],
@@ -373,6 +375,10 @@ impl<C: PhysicsCallback<3>> RapierPhysicsBridge<C> {
             let angular_velocity = body.angvel();
             self.last_body_states.push(RapierBodyState {
                 handle,
+                symtropy_body: self
+                    .callback_body_map
+                    .get(&handle.into_raw_parts())
+                    .copied(),
                 translation: [translation.x, translation.y, translation.z],
                 rotation_wxyz: [rotation.w, rotation.i, rotation.j, rotation.k],
                 linear_velocity: [linear_velocity.x, linear_velocity.y, linear_velocity.z],
@@ -963,6 +969,57 @@ mod tests {
         assert_eq!(
             bridge.callback.0.lock().expect("recorder").as_slice(),
             &[BodyHandle(41)]
+        );
+    }
+
+    #[test]
+    fn post_step_snapshot_carries_only_explicit_semantic_body_identity() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let mut world = TestWorld::new();
+        let mapped = world.bodies.insert(
+            RigidBodyBuilder::dynamic().additional_mass(1.0).build(),
+        );
+        let unmapped = world.bodies.insert(
+            RigidBodyBuilder::dynamic()
+                .translation(vector![2.0, 0.0, 0.0])
+                .additional_mass(1.0)
+                .build(),
+        );
+        bridge
+            .bind_callback_body(mapped, BodyHandle(101))
+            .expect("explicit semantic mapping");
+        world.step(&mut bridge, 1.0 / 60.0).expect("valid step");
+
+        let snapshot = bridge.last_body_states();
+        let mapped_state = snapshot
+            .iter()
+            .find(|state| state.handle == mapped)
+            .expect("mapped body readback");
+        let unmapped_state = snapshot
+            .iter()
+            .find(|state| state.handle == unmapped)
+            .expect("unmapped body readback");
+        assert_eq!(mapped_state.symtropy_body, Some(BodyHandle(101)));
+        assert_eq!(unmapped_state.symtropy_body, None);
+    }
+
+    #[test]
+    fn rejected_step_invalidates_previous_readback() {
+        let mut bridge = RapierPhysicsBridge::new(NoOpCallback);
+        let mut world = TestWorld::new();
+        world.bodies.insert(
+            RigidBodyBuilder::dynamic().additional_mass(1.0).build(),
+        );
+        world.step(&mut bridge, 1.0 / 60.0).expect("first valid step");
+        assert_eq!(bridge.last_body_states().len(), 1);
+
+        assert_eq!(
+            world.step(&mut bridge, f32::NAN),
+            Err(RapierStepError::InvalidDelta)
+        );
+        assert!(
+            bridge.last_body_states().is_empty(),
+            "a rejected step must not leave a stale snapshot"
         );
     }
 
