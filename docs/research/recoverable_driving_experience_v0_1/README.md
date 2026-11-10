@@ -337,7 +337,8 @@ This benchmark PR remains a research protocol, machine-readable manifest and JSO
 ### Executable input and environment increments
 
 - [Symthaea #11476 / draft PR #11480 — camera-conditioned driving input](https://github.com/Luminous-Dynamics/symthaea/pull/11480) composes the existing Vision Manifold and vehicle proprioceptive HDC encoder. It freezes Vision Manifold parameter learning, derives elapsed time from monotonic camera timestamps, fuses the 16,384D visual/proprioceptive states and emits a receipt chaining prior visual and vehicle-state digests. It does **not** call a vehicle controller or establish a trained camera-conditioned policy. Exact-head Rust verification was not confirmed when this benchmark snapshot was authored.
-- [Symtropy #4595 — action-conditioned offscreen camera renderer](https://github.com/Luminous-Dynamics/symtropy/issues/4595) now has a standalone implementation branch named research/action-conditioned-offscreen-camera-v0-1. The reference backend renders deterministic RGB frames from immutable action-linked world snapshots using fixed-point camera transforms, integer projection/rasterization, a z-buffer and near/far segment clipping. It includes straight/curved road polylines, two actor fixtures, separate capture/render/delivery clocks, sequenced missing-frame records, and independent policy/evaluator receipt APIs. Three JSON Schemas define the policy receipt, evaluator audit and missing-frame event. Forty known-answer/adversarial tests are authored. This is a bounded software camera/test backend—not a photorealistic renderer, CARLA replacement, validated sensor model or traffic simulator. No local Rust compiler is available in this authoring environment; exact-head CI remains the first compilation authority.
+- [Symtropy #4595 / draft PR #4616 — action-conditioned offscreen camera renderer](https://github.com/Luminous-Dynamics/symtropy/pull/4616) adds a standalone Rust 1.96 reference backend. It renders deterministic RGB frames from immutable action-linked world snapshots using fixed-point camera transforms, integer projection/rasterization, a z-buffer and near/far segment clipping. It includes straight/curved road polylines, a lead vehicle and pedestrian fixture, separate capture/render/delivery clocks, sequenced missing-frame records, and separate policy/evaluator receipt APIs. Three JSON Schemas define the policy receipt, evaluator audit and missing-frame event. Forty known-answer/adversarial tests are authored. The PR's exact-head Rust checks were queued when inspected; queued is not pass. This is a bounded software camera/test backend—not a photorealistic renderer, CARLA replacement, validated sensor model or traffic simulator. No local Rust compiler is available in this authoring environment; CI is the first compilation authority.
+- [Symtropy #4618 — fresh-process driving observation replay](https://github.com/Luminous-Dynamics/symtropy/issues/4618) is the next integration task. It links rendered frames, applied-action receipts, vehicle-state records and the Symthaea fused-input receipt chain, then verifies all digests after replay in a new process. Its first fixture is deliberately non-learning: it proves causal/replay plumbing before any camera-conditioned policy-performance claim.
 - Symtropy [#4556 — recoverable driving branch evidence auditor](https://github.com/Luminous-Dynamics/symtropy/pull/4556) validates finite branch records, actor-response provenance, explicit exogenous-randomness pairing, privilege and denominator accounting. It cannot prove upstream causal declarations are physically true.
 - Symtropy [#4575 — deadline-aware decision-value experience selector](https://github.com/Luminous-Dynamics/symtropy/pull/4575) compares seven sampling strategies and rejects unqualified, low-value or late SAM-guided queries.
 - Symtropy [#4581 — deadline-aware anytime imagination allocator](https://github.com/Luminous-Dynamics/symtropy/pull/4581) addresses adaptive inference-time compute. Its queued/pending checks are not pass evidence.
@@ -346,16 +347,16 @@ These increments are deliberately separate owners. Symtropy owns snapshot execut
 
 ### Next executable gate
 
-The next vertical slice is a **fresh-process camera-to-control episode** using the #4536 action/observation/transition contract:
+Execute [#4618 — fresh-process driving observation replay](https://github.com/Luminous-Dynamics/symtropy/issues/4618) using the #4536 action/observation/transition contract:
 
-1. drive one ego vehicle through the existing named dynamics backend;
-2. render the post-action immutable world snapshot using #4595;
-3. pass only pixels plus the policy receipt and matched vehicle-state record into the Symthaea bridge;
-4. record candidate policy output and the actually applied action separately;
-5. replay the episode in a fresh process and verify frame, observation, action, transition and branch digests;
-6. run the matched HDC/LTC, GRU/LSTM, compact transformer and teacher-student ablations on sealed scenario/fault families.
+1. render the post-action immutable world snapshot through PR #4616;
+2. pass only pixels plus the policy receipt and matched vehicle-state record into the Symthaea #11480 bridge;
+3. preserve candidate policy output separately from the action actually applied;
+4. serialize the exact episode manifest and all expected inputs;
+5. replay in a fresh process and verify frame, observation, fused-input, action, transition and branch digests;
+6. run matched HDC/LTC, GRU/LSTM, compact transformer and teacher-student ablations only after the integration replay passes.
 
-Only after that slice is deterministic and the policy is trained on the fused input should we report any camera-conditioned closed-loop result.
+The first fixture is non-learning and validates causality/replay, not driving performance. Only after a policy has been trained on the fused input and evaluated against matched baselines should we report camera-conditioned closed-loop results.
 
 ## References
 
