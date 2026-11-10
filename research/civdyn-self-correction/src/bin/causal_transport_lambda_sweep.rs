@@ -10,7 +10,7 @@ use civdyn_self_correction::causal_transport::{
 const SOURCE_DIGEST: &str = "sha256-causal-transport-source-rct";
 const TARGET_DIGEST: &str = "sha256-causal-transport-target-population";
 const PROTOCOL_DIGEST: &str = "sha256-causal-transport-protocol-v0.1";
-const CSV_COLUMNS: usize = 32;
+const CSV_COLUMNS: usize = 33;
 
 fn csv_field(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
@@ -179,6 +179,7 @@ fn emit_scenario(
             format!("{:.8}", result.supported_target_mass),
             format!("{:.8}", result.unsupported_target_mass),
             result.status.name().to_string(),
+            result.interval_collapsed.to_string(),
             result.source_internal_validity.name().to_string(),
             result.selection_exchangeability.name().to_string(),
             result.no_interference.name().to_string(),
@@ -193,7 +194,7 @@ fn emit_scenario(
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
-        "scenario,lambda,sensitivity_scenario_digest,modifier_id,source_support,target_population_count,target_population_share,source_control_risk,target_control_lower,target_control_upper,source_treatment_risk,target_treatment_lower,target_treatment_upper,stratum_risk_difference_lower,stratum_risk_difference_upper,source_ate,target_ate_lower,target_ate_upper,source_population_total,target_population_total,supported_target_population_count,unsupported_target_population_count,supported_target_mass,unsupported_target_mass,status,source_internal_validity,selection_exchangeability,no_interference,treatment_version_invariance,source_data_digest,target_population_digest,protocol_digest"
+        "scenario,lambda,sensitivity_scenario_digest,modifier_id,source_support,target_population_count,target_population_share,source_control_risk,target_control_lower,target_control_upper,source_treatment_risk,target_treatment_lower,target_treatment_upper,stratum_risk_difference_lower,stratum_risk_difference_upper,source_ate,target_ate_lower,target_ate_upper,source_population_total,target_population_total,supported_target_population_count,unsupported_target_population_count,supported_target_mass,unsupported_target_mass,status,interval_collapsed,source_internal_validity,selection_exchangeability,no_interference,treatment_version_invariance,source_data_digest,target_population_digest,protocol_digest"
     );
 
     for lambda in [1.0, 2.0, 4.0] {
