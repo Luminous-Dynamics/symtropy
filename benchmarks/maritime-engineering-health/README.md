@@ -20,6 +20,11 @@ Evidence admission computes age from case decision_time_ms minus source
 observed_at_ms, rejects future-dated observations, compares the computed age
 with max_age_ms, and requires a monotonic-and-UTC-bound clock. A source cannot
 be admitted merely because it carries a quality label of "current".
+
+`decision_time_ms` and `observed_at_ms` are milliseconds on the declared
+vessel UTC-mapped clock domain. `after_ms` is the ordered scenario-tape offset;
+it is not subtracted from the UTC timestamp. UTC-only, conflicted or unknown
+clock quality is not sufficient for current decision evidence.
 The projection is read-only: it cannot authorize a transition or clear a restriction.
 "No restriction indicated" applies only to the tested engineering-health evidence;
 it is not a vessel-wide ODD pass. The CLI exits non-zero for any mismatch.
