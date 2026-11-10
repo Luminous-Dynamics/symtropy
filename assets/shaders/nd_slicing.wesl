@@ -12,7 +12,6 @@ import bevy_pbr::{
 import bevy_pbr::render::{
     forward_io::{VertexOutput, FragmentOutput},
     pbr_functions::{apply_pbr_lighting, main_pass_post_lighting_processing},
-    mesh_view_bindings::view,
 };
 
 struct NdSlicingSettings {
