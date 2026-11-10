@@ -176,6 +176,8 @@ pub enum ManifestError {
     DuplicateSpecimenId,
     DuplicatePreparationBatch,
     DuplicateIndependenceCluster,
+    ObservationChannelNotRequired,
+    UnexpectedChannelCoverage,
     SplitLeakage,
     UnknownSpecimen,
     DuplicateSequenceId,
@@ -277,35 +279,37 @@ fn validate_specimens(
         {
             return Err(ManifestError::DuplicateSpecimenId);
         }
-        if let Some(previous) = batches.insert(
-            assignment.preparation_batch_id.as_str(),
-            assignment.split,
-        ) {
-            if previous != assignment.split {
+        if let Some(previous) = batches.get(assignment.preparation_batch_id.as_str()) {
+            if *previous != assignment.split {
                 return Err(ManifestError::SplitLeakage);
             }
-            return Err(ManifestError::DuplicatePreparationBatch);
+        } else {
+            batches.insert(
+                assignment.preparation_batch_id.as_str(),
+                assignment.split,
+            );
         }
-        if let Some(previous) = clusters.insert(
-            assignment.independence_cluster_id.as_str(),
-            assignment.split,
-        ) {
-            if previous != assignment.split {
+        if let Some(previous) = clusters.get(assignment.independence_cluster_id.as_str()) {
+            if *previous != assignment.split {
                 return Err(ManifestError::SplitLeakage);
             }
-            return Err(ManifestError::DuplicateIndependenceCluster);
+        } else {
+            clusters.insert(
+                assignment.independence_cluster_id.as_str(),
+                assignment.split,
+            );
         }
     }
     Ok(specimens)
 }
 
-fn validate_sources<'a>(
+fn validate_sources<'a, 'b>(
     sources: &'a [SensorSource],
-    mappings: &[ClockMappingReceipt],
+    mappings: &'b [ClockMappingReceipt],
 ) -> Result<
     (
         BTreeMap<&'a str, &'a SensorSource>,
-        BTreeMap<&'a str, &'a ClockMappingReceipt>,
+        BTreeMap<&'b str, &'b ClockMappingReceipt>,
     ),
     ManifestError,
 > {
@@ -392,7 +396,7 @@ fn validate_coverage(
         }
     }
     if coverage.len() != required_channels.len() {
-        return Err(ManifestError::DuplicateChannelCoverage);
+        return Err(ManifestError::UnexpectedChannelCoverage);
     }
     Ok(missing_count)
 }
@@ -519,6 +523,9 @@ fn validate_observations(
         let source = sources
             .get(observation.source_id.as_str())
             .ok_or(ManifestError::UnknownSensorSource)?;
+        if !required_channels.contains(&source.channel) {
+            return Err(ManifestError::ObservationChannelNotRequired);
+        }
         let mapping = mappings
             .get(source.timebase_id.as_str())
             .ok_or(ManifestError::MissingClockMapping)?;
@@ -858,7 +865,7 @@ mod tests {
                 200,
                 7,
                 GroundDisposition::Settled {
-                    settlement_receipt_id: "terrain-settlement-1".to_owned(),
+                    settlement_receipt_id: format!("terrain-settlement-{specimen_id}"),
                     resulting_revision: 8,
                 },
             ),
@@ -946,11 +953,14 @@ mod tests {
         assert_eq!(report.calibration.observations, 6);
         assert_eq!(report.no_effect_contacts, 3);
         assert_eq!(report.settled_contacts, 3);
-        assert_eq!(report.settlement_receipt_ids, vec![
-            "terrain-settlement-1".to_owned(),
-            "terrain-settlement-1".to_owned(),
-            "terrain-settlement-1".to_owned()
-        ]);
+        assert_eq!(
+            report.settlement_receipt_ids,
+            vec![
+                "terrain-settlement-specimen-cal".to_owned(),
+                "terrain-settlement-specimen-test".to_owned(),
+                "terrain-settlement-specimen-val".to_owned()
+            ]
+        );
     }
 
     #[test]
@@ -961,6 +971,21 @@ mod tests {
             validate_experiment_manifest(&manifest),
             Err(ManifestError::SplitLeakage)
         );
+    }
+
+    #[test]
+    fn multiple_specimens_in_one_batch_are_allowed_within_a_split() {
+        let mut manifest = valid_manifest();
+        manifest.specimen_assignments.push(specimen(
+            "specimen-cal-2",
+            "batch-cal",
+            "cluster-cal",
+            DataSplit::Calibration,
+        ));
+        manifest
+            .sequences
+            .push(sequence("specimen-cal-2"));
+        assert!(validate_experiment_manifest(&manifest).is_ok());
     }
 
     #[test]
@@ -1084,6 +1109,34 @@ mod tests {
         assert_eq!(
             validate_experiment_manifest(&manifest),
             Err(ManifestError::ChannelMarkedMissingWithObservation)
+        );
+    }
+
+    #[test]
+    fn observations_from_channels_outside_the_declared_set_are_rejected() {
+        let mut manifest = valid_manifest();
+        manifest.required_channels = vec![SensorChannel::D1Interface];
+        for event in &mut manifest.sequences[0].events {
+            event.channel_coverage = vec![ChannelCoverage {
+                channel: SensorChannel::D1Interface,
+                status: ChannelStatus::Present,
+            }];
+        }
+        manifest.sequences[0].observations.retain(|item| item.source_id == "d1");
+        manifest.sequences[0].observations.push(observation(
+            "extra-d2",
+            "event-1",
+            "d2",
+            "cal-d2",
+            "map-d2",
+            "newton",
+            94,
+            103,
+            130,
+        ));
+        assert_eq!(
+            validate_experiment_manifest(&manifest),
+            Err(ManifestError::ObservationChannelNotRequired)
         );
     }
 
