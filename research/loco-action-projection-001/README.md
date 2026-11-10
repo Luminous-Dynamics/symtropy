@@ -119,7 +119,7 @@ Residual tolerance and physical margin have different semantics:
 
 ### Command realization is a second, post-execution decision
 
-Projection authorization and actuator realization are distinct. After application, #4206 supplies a source-qualified realization receipt bound to the exact authorized command digest, state/model/domain and actuator identity. A matched delivery permits the next command; mismatch, Unknown or Invalid delivery blocks the next state-changing command until reconciliation. This reference checks the receipt contract; it does not compute actuator physics or assert that a motor delivered torque from the command alone.
+Projection authorization and actuator realization are distinct. After application, #4206 supplies a source-qualified realization receipt bound to the exact authorized command digest, pre-action state, model/domain and actuator identity, plus measured response and resulting-state evidence where available. A matched receipt closes the current execution transaction and supplies a new post-action state; it does **not** authorize the next motor command. The next action must be a new proposal with fresh state, viability, assurance and application-time evidence. A delivery mismatch is retained as a known deviation and must not be silently folded into the nominal state transition. Unknown/Invalid delivery supplies no trusted post-state, so the loop abstains pending reconciliation. This reference checks the receipt contract; it does not compute actuator physics or assert that a motor delivered torque from the command alone.
 
 ## Matched baselines
 
