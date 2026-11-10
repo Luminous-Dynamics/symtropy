@@ -1,0 +1,9 @@
+[package]
+name = "physics-differential-fuzz"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.86"
+license = "Apache-2.0 OR MIT"
+description = "Deterministic candidate generation and analytic point-impact oracle for Symtropy physics differential testing."
+
+[workspace]
