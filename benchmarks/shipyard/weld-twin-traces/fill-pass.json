@@ -12,5 +12,6 @@
   "evidence_class": "synthetic_fixture",
   "parameter_envelope_ref": "SYNTH-ENVELOPE-017",
   "observed_envelope_status": "within_declared_envelope",
-  "source_time_utc": "2026-11-10T03:10:00Z"
+  "source_time_utc": "2026-11-10T03:10:00Z",
+  "material_heat_lot": "SYNTH-HEAT-017"
 }
