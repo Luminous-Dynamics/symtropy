@@ -33,6 +33,8 @@ The small 26-recording training corpus cannot substantiate 99% calibration per f
 
 ## Required benchmark tournament
 
+The machine-readable protocol is frozen in [`tournament-v0.1.json`](tournament-v0.1.json). It enumerates the seven comparators, split protocols, metric definitions, non-compensatory evidence gates and research targets. It is marked `protocol_only_not_executed`; the targets are aspirations, not measured performance.
+
 Evaluate on common frozen recordings/splits, same channel availability, equivalent model capacity and disclosed compute:
 
 1. Official Fault Diagnosis Toolbox analytical/structural model, where its public configuration and outputs can be reproduced.
