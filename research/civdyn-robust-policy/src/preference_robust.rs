@@ -55,6 +55,24 @@ pub struct PreferenceCriterion {
     pub scale_evidence_digest: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreferenceSetKind {
+    /// Contract issuer attests that the supplied vectors are every extreme
+    /// point of the declared convex preference polytope.
+    CompletePolytopeVertices,
+    /// The vectors are a finite stakeholder panel; no convex-hull guarantee.
+    FinitePanel,
+}
+
+impl PreferenceSetKind {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::CompletePolytopeVertices => "complete_polytope_vertices",
+            Self::FinitePanel => "finite_panel",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PreferenceVertex {
     pub profile_id: String,
@@ -69,6 +87,7 @@ pub struct PreferenceContract {
     pub contract_id: String,
     pub version: String,
     pub contract_digest: String,
+    pub preference_set_kind: PreferenceSetKind,
     pub criteria: Vec<PreferenceCriterion>,
     /// Declared extreme points of the finite preference polytope.
     pub vertices: Vec<PreferenceVertex>,
@@ -153,9 +172,12 @@ pub struct PolicyPreferenceSummary {
     pub finite_design_robust_feasible: Option<bool>,
     pub preference_vertices_best_count: usize,
     pub preference_vertices_considered: usize,
-    /// Worst regret is only reported for a policy feasible on the entire
-    /// finite design and only when every policy comparison is complete.
-    pub worst_case_regret_across_preference_vertices: Option<f64>,
+    /// Worst observed regret over the finite declared profile set when the
+    /// policy is feasible on the full design and all comparisons are complete.
+    pub worst_regret_across_declared_profiles: Option<f64>,
+    /// Present only when the contract attests a complete set of polytope
+    /// vertices; this is a worst-case guarantee for that declared polytope.
+    pub worst_case_regret_over_preference_polytope: Option<f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -180,11 +202,32 @@ pub struct PreferenceScenarioConsensus {
     pub unanimous_single_winner: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreferenceClaimCeiling {
+    RobustAcrossDeclaredPreferencePolytope,
+    FinitePanelSensitivityOnly,
+    NoRobustFeasiblePolicy,
+    IncompleteDecisionEvidence,
+}
+
+impl PreferenceClaimCeiling {
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::RobustAcrossDeclaredPreferencePolytope => "robust_across_declared_preference_polytope",
+            Self::FinitePanelSensitivityOnly => "finite_panel_sensitivity_only",
+            Self::NoRobustFeasiblePolicy => "no_robust_feasible_policy",
+            Self::IncompleteDecisionEvidence => "incomplete_decision_evidence",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct PreferenceRobustReport {
     pub contract_id: String,
     pub contract_version: String,
     pub contract_digest: String,
+    pub preference_set_kind: PreferenceSetKind,
+    pub claim_ceiling: PreferenceClaimCeiling,
     pub criterion_count: usize,
     pub preference_vertex_count: usize,
     pub design_point_count: usize,
@@ -735,7 +778,16 @@ pub fn analyze_preference_robustness(
             finite_design_robust_feasible: robust_feasible,
             preference_vertices_best_count: best_count,
             preference_vertices_considered: profiles_considered,
-            worst_case_regret_across_preference_vertices: if robust_feasible == Some(true)
+            worst_regret_across_declared_profiles: if robust_feasible == Some(true)
+                && all_comparisons_complete
+            {
+                worst_regrets.last().copied()
+            } else {
+                None
+            },
+            worst_case_regret_over_preference_polytope: if contract.preference_set_kind
+                == PreferenceSetKind::CompletePolytopeVertices
+                && robust_feasible == Some(true)
                 && all_comparisons_complete
             {
                 worst_regrets.last().copied()
@@ -777,10 +829,24 @@ pub fn analyze_preference_robustness(
         (&left.design_point_id, &left.shock_kind).cmp(&(&right.design_point_id, &right.shock_kind))
     });
 
+    let claim_ceiling = if incomplete_scenario_profile_count > 0 {
+        PreferenceClaimCeiling::IncompleteDecisionEvidence
+    } else if robust_feasible_policy_count == 0 {
+        PreferenceClaimCeiling::NoRobustFeasiblePolicy
+    } else {
+        match contract.preference_set_kind {
+            PreferenceSetKind::CompletePolytopeVertices => {
+                PreferenceClaimCeiling::RobustAcrossDeclaredPreferencePolytope
+            }
+            PreferenceSetKind::FinitePanel => PreferenceClaimCeiling::FinitePanelSensitivityOnly,
+        }
+    };
     Ok(PreferenceRobustReport {
         contract_id: contract.contract_id.clone(),
         contract_version: contract.version.clone(),
         contract_digest: contract.contract_digest.clone(),
+        preference_set_kind: contract.preference_set_kind,
+        claim_ceiling,
         criterion_count: contract.criteria.len(),
         preference_vertex_count: contract.vertices.len(),
         design_point_count: design_ids.len(),
@@ -814,6 +880,7 @@ mod tests {
             contract_id: "municipal-service-preferences".to_string(),
             version: "v0.1".to_string(),
             contract_digest: "sha256-preference-contract".to_string(),
+            preference_set_kind: PreferenceSetKind::CompletePolytopeVertices,
             criteria: CRITERIA
                 .iter()
                 .map(|metric| PreferenceCriterion {
@@ -1009,6 +1076,24 @@ mod tests {
             scaled_report.results.iter().map(|row| (row.profile_id.clone(), row.policy.clone(), row.normalized_utility))
                 .collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn finite_panel_does_not_claim_complete_polytope_robustness() {
+        let mut finite_panel = contract(two_preference_vertices());
+        finite_panel.preference_set_kind = PreferenceSetKind::FinitePanel;
+        let report = analyze_preference_robustness(&finite_panel, &tradeoff_fixture()).unwrap();
+        assert_eq!(
+            report.claim_ceiling,
+            PreferenceClaimCeiling::FinitePanelSensitivityOnly
+        );
+        assert!(report.policy_summaries.iter().all(|summary| {
+            summary.worst_case_regret_over_preference_polytope.is_none()
+        }));
+        assert!(report.policy_summaries.iter().all(|summary| {
+            summary.worst_regret_across_declared_profiles.is_some()
+                || summary.finite_design_robust_feasible != Some(true)
+        }));
     }
 
     #[test]
