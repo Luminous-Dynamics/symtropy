@@ -134,6 +134,7 @@ pub enum MemoryOperationError {
     ComparisonTaskRosterMismatch,
     ComparisonApplicabilityMismatch,
     ComparisonUnitRosterMismatch,
+    BootstrapInvalidConfig,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -238,6 +239,64 @@ pub struct MemoryOperationPairedComparison {
     pub paired_unit_count: usize,
     pub unit_deltas: Vec<MemoryOperationPairedUnitDelta>,
     pub summaries: Vec<MemoryOperationPairedSummary>,
+}
+
+/// Deterministic task-stratified cluster-bootstrap configuration.
+/// Each task is weighted equally; independent scene/seed units are resampled
+/// with replacement within each task. Checkpoints are never resampled alone.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct ClusterBootstrapConfig {
+    pub replicates: usize,
+    pub seed: u64,
+    pub confidence_level: f64,
+    pub minimum_independent_units_per_task: usize,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ClusterBootstrapStatus {
+    SufficientIndependentUnits,
+    Underpowered,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ClusterBootstrapOperationSummary {
+    pub operation: MemoryOperationKind,
+    pub status: ClusterBootstrapStatus,
+    pub contributing_task_count: usize,
+    pub independent_unit_count: usize,
+    pub estimate_task_macro_mean_delta: Option<f64>,
+    pub lower_percentile_bound: Option<f64>,
+    pub upper_percentile_bound: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct MemoryOperationBootstrapReport {
+    pub seed: u64,
+    pub replicates: usize,
+    pub confidence_level: f64,
+    pub minimum_independent_units_per_task: usize,
+    pub summaries: Vec<ClusterBootstrapOperationSummary>,
+}
+
+/// Small fixed PRNG keeps the bootstrap deterministic without adding a crate
+/// dependency or coupling results to a third-party RNG implementation.
+#[derive(Debug, Clone, Copy)]
+struct SplitMix64 {
+    state: u64,
+}
+
+impl SplitMix64 {
+    fn new(seed: u64) -> Self {
+        Self { state: seed }
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+        let mut value = self.state;
+        value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+        value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+        value ^ (value >> 31)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -732,6 +791,128 @@ pub fn compare_memory_operation_arms(
         unit_deltas,
         summaries,
     })
+}
+
+/// Produce percentile intervals from paired deltas using a task-stratified
+/// cluster bootstrap. Tasks are equally weighted; within each task, independent
+/// scene/seed units are sampled with replacement. This is descriptive inferential
+/// support, not a safety guarantee. The caller must preregister the confidence
+/// level, seed, replicate count and minimum unit rule before opening held-out data.
+pub fn bootstrap_memory_operation_comparison(
+    comparison: &MemoryOperationPairedComparison,
+    config: ClusterBootstrapConfig,
+) -> Result<MemoryOperationBootstrapReport, MemoryOperationError> {
+    if config.replicates == 0
+        || config.replicates > 1_000_000
+        || !config.confidence_level.is_finite()
+        || config.confidence_level <= 0.5
+        || config.confidence_level >= 1.0
+        || config.minimum_independent_units_per_task < 2
+    {
+        return Err(MemoryOperationError::BootstrapInvalidConfig);
+    }
+
+    let mut grouped = BTreeMap::<
+        (MemoryOperationKind, String),
+        Vec<f64>,
+    >::new();
+    for row in &comparison.unit_deltas {
+        if let Some(delta) = row.fidelity_delta {
+            grouped
+                .entry((row.operation, row.task_id.clone()))
+                .or_default()
+                .push(delta);
+        }
+    }
+
+    let mut summaries = Vec::with_capacity(comparison.summaries.len());
+    for (operation_index, paired_summary) in comparison.summaries.iter().enumerate() {
+        let task_groups = grouped
+            .iter()
+            .filter(|((operation, _), _)| *operation == paired_summary.operation)
+            .map(|((_, task_id), values)| (task_id, values))
+            .collect::<Vec<_>>();
+        let independent_unit_count = task_groups.iter().map(|(_, rows)| rows.len()).sum();
+        let contributing_task_count = task_groups.len();
+        let task_means = task_groups
+            .iter()
+            .map(|(_, values)| values.iter().sum::<f64>() / values.len() as f64)
+            .collect::<Vec<_>>();
+        let estimate = (!task_means.is_empty())
+            .then(|| task_means.iter().sum::<f64>() / task_means.len() as f64);
+        let sufficient = !task_groups.is_empty()
+            && task_groups.iter().all(|(_, rows)| {
+                rows.len() >= config.minimum_independent_units_per_task
+            });
+
+        if !sufficient {
+            summaries.push(ClusterBootstrapOperationSummary {
+                operation: paired_summary.operation,
+                status: ClusterBootstrapStatus::Underpowered,
+                contributing_task_count,
+                independent_unit_count,
+                estimate_task_macro_mean_delta: estimate,
+                lower_percentile_bound: None,
+                upper_percentile_bound: None,
+            });
+            continue;
+        }
+
+        let mut rng = SplitMix64::new(
+            config.seed ^ ((operation_index as u64 + 1).wrapping_mul(0xD6E8_FEB8_6659_FD93)),
+        );
+        let mut bootstrap_estimates = Vec::with_capacity(config.replicates);
+        for _ in 0..config.replicates {
+            let mut resampled_task_means = Vec::with_capacity(task_groups.len());
+            for (_, unit_deltas) in &task_groups {
+                let mut sum = 0.0;
+                for _ in 0..unit_deltas.len() {
+                    let index = (rng.next_u64() % unit_deltas.len() as u64) as usize;
+                    sum += unit_deltas[index];
+                }
+                resampled_task_means.push(sum / unit_deltas.len() as f64);
+            }
+            bootstrap_estimates.push(
+                resampled_task_means.iter().sum::<f64>() / resampled_task_means.len() as f64,
+            );
+        }
+        bootstrap_estimates.sort_by(f64::total_cmp);
+        let tail_probability = (1.0 - config.confidence_level) / 2.0;
+        let lower_percentile_bound = percentile(&bootstrap_estimates, tail_probability);
+        let upper_percentile_bound = percentile(&bootstrap_estimates, 1.0 - tail_probability);
+
+        summaries.push(ClusterBootstrapOperationSummary {
+            operation: paired_summary.operation,
+            status: ClusterBootstrapStatus::SufficientIndependentUnits,
+            contributing_task_count,
+            independent_unit_count,
+            estimate_task_macro_mean_delta: estimate,
+            lower_percentile_bound,
+            upper_percentile_bound,
+        });
+    }
+
+    Ok(MemoryOperationBootstrapReport {
+        seed: config.seed,
+        replicates: config.replicates,
+        confidence_level: config.confidence_level,
+        minimum_independent_units_per_task: config.minimum_independent_units_per_task,
+        summaries,
+    })
+}
+
+fn percentile(sorted_values: &[f64], probability: f64) -> Option<f64> {
+    if sorted_values.is_empty() || !probability.is_finite() || !(0.0..=1.0).contains(&probability) {
+        return None;
+    }
+    let position = probability * (sorted_values.len() - 1) as f64;
+    let lower_index = position.floor() as usize;
+    let upper_index = position.ceil() as usize;
+    let weight = position - lower_index as f64;
+    Some(
+        sorted_values[lower_index] * (1.0 - weight)
+            + sorted_values[upper_index] * weight,
+    )
 }
 
 fn validate_manifest(
@@ -1272,6 +1453,108 @@ mod tests {
         assert_eq!(audit.summaries[0].independent_unit_count, 2);
 
         assert!(audit_memory_operations(&manifest(vec![first, second]), &[]).is_ok());
+    }
+
+    fn three_unit_paired_arms() -> (MemoryOperationPairedComparison, MemoryOperationPairedComparison) {
+        let mut cases = Vec::new();
+        for task_id in ["WA-01", "TM-02"] {
+            for index in 0..3 {
+                let mut item = case(
+                    &format!("{task_id}-store-{index}"),
+                    1,
+                    MemoryOperationKind::Storage,
+                    MemoryOperationApplicability::Applicable,
+                    Some(digest("a")),
+                );
+                item.task_id = task_id.to_owned();
+                item.episode_id = format!("{task_id}-episode-{index}");
+                item.independence_unit_id = format!("{task_id}-scene-seed-{index}");
+                cases.push(item);
+            }
+        }
+        let base_manifest = manifest(cases.clone());
+        let mut baseline_receipts = cases.iter().map(receipt).collect::<Vec<_>>();
+        for row in &mut baseline_receipts {
+            if row.case_id.ends_with("-0") {
+                row.observed_effect_sha256 = Some(digest("x"));
+            }
+        }
+        let baseline = audit_memory_operations(&base_manifest, &baseline_receipts).unwrap();
+
+        let mut candidate_manifest = base_manifest;
+        candidate_manifest.memory_system_sha256 = digest("a");
+        let mut candidate_receipts = cases.iter().map(receipt).collect::<Vec<_>>();
+        for row in &mut candidate_receipts {
+            row.memory_system_sha256 = digest("a");
+        }
+        let candidate = audit_memory_operations(&candidate_manifest, &candidate_receipts).unwrap();
+        let paired = compare_memory_operation_arms(&baseline, &candidate).unwrap();
+        (paired, baseline)
+    }
+
+    #[test]
+    fn task_stratified_cluster_bootstrap_is_deterministic_and_reports_interval() {
+        let (comparison, _) = three_unit_paired_arms();
+        let config = ClusterBootstrapConfig {
+            replicates: 2_000,
+            seed: 42,
+            confidence_level: 0.95,
+            minimum_independent_units_per_task: 2,
+        };
+        let first = bootstrap_memory_operation_comparison(&comparison, config).unwrap();
+        let second = bootstrap_memory_operation_comparison(&comparison, config).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.summaries.len(), 1);
+        let summary = &first.summaries[0];
+        assert_eq!(summary.status, ClusterBootstrapStatus::SufficientIndependentUnits);
+        assert_eq!(summary.contributing_task_count, 2);
+        assert_eq!(summary.independent_unit_count, 6);
+        assert_eq!(summary.estimate_task_macro_mean_delta, Some(1.0 / 3.0));
+        assert!(summary.lower_percentile_bound.unwrap() <= summary.estimate_task_macro_mean_delta.unwrap());
+        assert!(summary.upper_percentile_bound.unwrap() >= summary.estimate_task_macro_mean_delta.unwrap());
+    }
+
+    #[test]
+    fn cluster_bootstrap_with_too_few_units_is_explicitly_underpowered() {
+        let (comparison, _) = three_unit_paired_arms();
+        let config = ClusterBootstrapConfig {
+            replicates: 2_000,
+            seed: 7,
+            confidence_level: 0.95,
+            minimum_independent_units_per_task: 4,
+        };
+        let report = bootstrap_memory_operation_comparison(&comparison, config).unwrap();
+        assert_eq!(report.summaries[0].status, ClusterBootstrapStatus::Underpowered);
+        assert_eq!(report.summaries[0].estimate_task_macro_mean_delta, Some(1.0 / 3.0));
+        assert_eq!(report.summaries[0].lower_percentile_bound, None);
+        assert_eq!(report.summaries[0].upper_percentile_bound, None);
+    }
+
+    #[test]
+    fn cluster_bootstrap_rejects_invalid_configuration() {
+        let (comparison, _) = three_unit_paired_arms();
+        let mut config = ClusterBootstrapConfig {
+            replicates: 0,
+            seed: 1,
+            confidence_level: 0.95,
+            minimum_independent_units_per_task: 2,
+        };
+        assert_eq!(
+            bootstrap_memory_operation_comparison(&comparison, config),
+            Err(MemoryOperationError::BootstrapInvalidConfig)
+        );
+        config.replicates = 1_000;
+        config.confidence_level = 1.0;
+        assert_eq!(
+            bootstrap_memory_operation_comparison(&comparison, config),
+            Err(MemoryOperationError::BootstrapInvalidConfig)
+        );
+        config.confidence_level = 0.95;
+        config.minimum_independent_units_per_task = 1;
+        assert_eq!(
+            bootstrap_memory_operation_comparison(&comparison, config),
+            Err(MemoryOperationError::BootstrapInvalidConfig)
+        );
     }
 
     #[test]
