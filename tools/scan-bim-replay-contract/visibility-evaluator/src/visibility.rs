@@ -636,20 +636,24 @@ impl TriangleBvh {
                 suffix_bounds[bin - 1] = accumulated;
             }
 
-            for split_bin in 0..(BVH_SAH_BIN_COUNT - 1) {
-                let left_count = prefix_counts[split_bin];
-                let right_count = suffix_counts[split_bin];
-                let (Some(left_bounds), Some(right_bounds)) = (
-                    prefix_bounds[split_bin],
-                    suffix_bounds[split_bin],
-                ) else {
+            for (
+                split_bin,
+                (((left_count, right_count), left_bounds), right_bounds),
+            ) in prefix_counts
+                .iter()
+                .zip(suffix_counts.iter())
+                .zip(prefix_bounds.iter())
+                .zip(suffix_bounds.iter())
+                .enumerate()
+            {
+                let (Some(left_bounds), Some(right_bounds)) = (*left_bounds, *right_bounds) else {
                     continue;
                 };
-                if left_count == 0 || right_count == 0 {
+                if *left_count == 0 || *right_count == 0 {
                     continue;
                 }
-                let cost = left_bounds.surface_area() * left_count as f64
-                    + right_bounds.surface_area() * right_count as f64;
+                let cost = left_bounds.surface_area() * *left_count as f64
+                    + right_bounds.surface_area() * *right_count as f64;
                 if !cost.is_finite() {
                     continue;
                 }
