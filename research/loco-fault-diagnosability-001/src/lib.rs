@@ -9,7 +9,10 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FeatureSpec {
     pub feature_id: String,
+    pub source_id: String,
     pub unit_id: String,
+    /// Maximum age of this feature at the decision time.
+    pub max_age_ns: u64,
     /// Channels derived from the same encoder/bus/clock share this group.
     pub common_cause_group: String,
 }
@@ -69,7 +72,10 @@ pub struct DiagnosticActionReceipt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ObservationValue {
     pub feature_id: String,
+    pub source_id: String,
     pub unit_id: String,
+    /// Timestamp mapped through the receipt-bound monotonic clock map.
+    pub observed_at_ns: u64,
     pub value: i64,
 }
 
@@ -95,6 +101,8 @@ pub struct DiagnosabilityProblem {
     pub sensor_manifest_digest: String,
     pub calibration_digest: String,
     pub clock_map_digest: String,
+    /// Maximum permitted timestamp spread across the feature vector.
+    pub max_cross_channel_skew_ns: u64,
     /// Complete authoritative still-possible fault set from the upstream
     /// fault-state authority. Never replace with a classifier top-1 result.
     pub physically_possible_fault_ids: Vec<String>,
@@ -168,6 +176,10 @@ pub enum DiagnosabilityError {
     DuplicateObservationFeature,
     ObservationFeatureOutsideSchema,
     ObservationUnitMismatch,
+    ObservationSourceMismatch,
+    ObservationTimeInFuture,
+    StaleObservationFeature,
+    ObservationSkewExceeded,
     StaleReceipt,
     InvalidReceiptInterval,
     ReceiptContextMismatch,
@@ -282,9 +294,13 @@ fn canonicalize_and_validate(
     let mut schema_ids = BTreeSet::new();
     for feature in &schema {
         if !nonempty(&feature.feature_id)
+            || !nonempty(&feature.source_id)
             || !nonempty(&feature.unit_id)
             || !nonempty(&feature.common_cause_group)
         {
+            return Err(DiagnosabilityError::EmptyIdentifier);
+        }
+        if feature.max_age_ns == 0 {
             return Err(DiagnosabilityError::EmptyIdentifier);
         }
         if !schema_ids.insert(feature.feature_id.as_str()) {
@@ -523,10 +539,22 @@ fn evaluate_observation(
         return Err(DiagnosabilityError::ObservationSchemaMismatch);
     }
     let mut values = BTreeMap::new();
+    let mut earliest_feature_time = u64::MAX;
+    let mut latest_feature_time = 0_u64;
     for value in &observation.values {
-        if !nonempty(&value.feature_id) || !nonempty(&value.unit_id) {
+        if !nonempty(&value.feature_id)
+            || !nonempty(&value.source_id)
+            || !nonempty(&value.unit_id)
+        {
             return Err(DiagnosabilityError::EmptyIdentifier);
         }
+        if value.observed_at_ns > problem.now_ns
+            || value.observed_at_ns > observation.observed_at_ns
+        {
+            return Err(DiagnosabilityError::ObservationTimeInFuture);
+        }
+        earliest_feature_time = earliest_feature_time.min(value.observed_at_ns);
+        latest_feature_time = latest_feature_time.max(value.observed_at_ns);
         if values.insert(value.feature_id.as_str(), value).is_some() {
             return Err(DiagnosabilityError::DuplicateObservationFeature);
         }
@@ -538,6 +566,17 @@ fn evaluate_observation(
         if value.unit_id != feature.unit_id {
             return Err(DiagnosabilityError::ObservationUnitMismatch);
         }
+        if value.source_id != feature.source_id {
+            return Err(DiagnosabilityError::ObservationSourceMismatch);
+        }
+        if problem.now_ns.saturating_sub(value.observed_at_ns) > feature.max_age_ns {
+            return Err(DiagnosabilityError::StaleObservationFeature);
+        }
+    }
+    if latest_feature_time.saturating_sub(earliest_feature_time)
+        > problem.max_cross_channel_skew_ns
+    {
+        return Err(DiagnosabilityError::ObservationSkewExceeded);
     }
     if values.len() != schema.len() {
         return Err(DiagnosabilityError::ObservationFeatureOutsideSchema);
@@ -630,12 +669,16 @@ mod tests {
         vec![
             FeatureSpec {
                 feature_id: "joint_velocity_residual".to_owned(),
+                source_id: "joint-encoder-source-1".to_owned(),
                 unit_id: "mrad_per_s".to_owned(),
+                max_age_ns: 100,
                 common_cause_group: "joint-encoder-1".to_owned(),
             },
             FeatureSpec {
                 feature_id: "motor_current_residual".to_owned(),
+                source_id: "motor-current-source-1".to_owned(),
                 unit_id: "milliamp".to_owned(),
+                max_age_ns: 100,
                 common_cause_group: "current-sensor-1".to_owned(),
             },
         ]
@@ -700,6 +743,7 @@ mod tests {
             sensor_manifest_digest: "sensors-v1".to_owned(),
             calibration_digest: "calibration-v1".to_owned(),
             clock_map_digest: "clock-v1".to_owned(),
+            max_cross_channel_skew_ns: 20,
             physically_possible_fault_ids: envelopes
                 .iter()
                 .map(|item| item.hypothesis_id.clone())
@@ -713,19 +757,23 @@ mod tests {
 
     fn observation(velocity: i64, current: i64) -> ObservationSnapshot {
         ObservationSnapshot {
-            observed_at_ns: 600,
+            observed_at_ns: 450,
             sensor_manifest_digest: "sensors-v1".to_owned(),
             calibration_digest: "calibration-v1".to_owned(),
             clock_map_digest: "clock-v1".to_owned(),
             values: vec![
                 ObservationValue {
                     feature_id: "joint_velocity_residual".to_owned(),
+                    source_id: "joint-encoder-source-1".to_owned(),
                     unit_id: "mrad_per_s".to_owned(),
+                    observed_at_ns: 440,
                     value: velocity,
                 },
                 ObservationValue {
                     feature_id: "motor_current_residual".to_owned(),
+                    source_id: "motor-current-source-1".to_owned(),
                     unit_id: "milliamp".to_owned(),
+                    observed_at_ns: 445,
                     value: current,
                 },
             ],
@@ -892,13 +940,15 @@ mod tests {
     fn missing_or_mismatched_observation_feature_is_rejected() {
         let mut input = problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
         input.observation = Some(ObservationSnapshot {
-            observed_at_ns: 600,
+            observed_at_ns: 450,
             sensor_manifest_digest: "sensors-v1".to_owned(),
             calibration_digest: "calibration-v1".to_owned(),
             clock_map_digest: "clock-v1".to_owned(),
             values: vec![ObservationValue {
                 feature_id: "joint_velocity_residual".to_owned(),
+                source_id: "joint-encoder-source-1".to_owned(),
                 unit_id: "mrad_per_s".to_owned(),
+                observed_at_ns: 440,
                 value: 0,
             }],
         });
