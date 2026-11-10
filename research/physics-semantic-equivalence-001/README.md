@@ -8,7 +8,7 @@ It deliberately does not:
 - declare one backend to be ground truth;
 - replace #443, #460, #1172 or #1472.
 
-The transport contract is [semantic_mapping_receipt_v0_1.schema.json](../../../schemas/physics/semantic_mapping_receipt_v0_1.schema.json). `parse_receipt_json` rejects unknown fields and malformed values before the parsed receipt reaches `validate_receipt`; `validate_json_receipt` combines both operations. Positive and negative JSON fixtures exercise this transport path. `validate_receipt_schema_json` also executes the checked-in Draft 2020-12 schema through the independent Rust `jsonschema` validator; `validate_schema_and_json_receipt` requires both schema conformance and typed semantic admission.
+The transport contract is [semantic_mapping_receipt_v0_1.schema.json](../../../schemas/physics/semantic_mapping_receipt_v0_1.schema.json). `parse_receipt_json` rejects duplicate object keys recursively, unknown fields and malformed values before the parsed receipt reaches `validate_receipt`; `validate_json_receipt` combines both operations. Positive and negative JSON fixtures exercise this transport path. `validate_receipt_schema_json` first rejects duplicate JSON object keys, then executes the checked-in Draft 2020-12 schema through the independent Rust `jsonschema` validator; `validate_schema_and_json_receipt` requires both schema conformance and typed semantic admission.
 
 ## Run
 
