@@ -175,6 +175,20 @@ pub struct MemoryOperationSummary {
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub struct MemoryOperationUnitSummary {
+    pub task_id: String,
+    pub independence_unit_id: String,
+    pub operation: MemoryOperationKind,
+    pub applicable_count: usize,
+    pub not_applicable_count: usize,
+    pub correct_count: usize,
+    pub incorrect_count: usize,
+    pub unresolved_count: usize,
+    pub fidelity_rate: Option<f64>,
+    pub evidence_coverage: Option<f64>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
 pub struct MemoryOperationAudit {
     pub protocol_sha256: String,
     pub operation_roster_sha256: String,
@@ -189,6 +203,62 @@ pub struct MemoryOperationAudit {
     pub summaries: Vec<MemoryOperationSummary>,
     /// Task-stratified summaries to expose easy-task / hard-task masking.
     pub task_summaries: Vec<MemoryOperationSummary>,
+    /// Independent scene/seed-unit rows for cluster-aware resampling.
+    pub unit_summaries: Vec<MemoryOperationUnitSummary>,
+}
+
+#[derive(Debug, Default)]
+struct UnitAccumulator {
+    applicable_count: usize,
+    not_applicable_count: usize,
+    correct_count: usize,
+    incorrect_count: usize,
+    unresolved_count: usize,
+}
+
+impl UnitAccumulator {
+    fn observe(&mut self, outcome: MemoryOperationOutcome) {
+        match outcome {
+            MemoryOperationOutcome::NotApplicable => self.not_applicable_count += 1,
+            MemoryOperationOutcome::Correct => {
+                self.applicable_count += 1;
+                self.correct_count += 1;
+            }
+            MemoryOperationOutcome::Incorrect => {
+                self.applicable_count += 1;
+                self.incorrect_count += 1;
+            }
+            MemoryOperationOutcome::Unresolved => {
+                self.applicable_count += 1;
+                self.unresolved_count += 1;
+            }
+        }
+    }
+
+    fn finish(
+        self,
+        task_id: String,
+        independence_unit_id: String,
+        operation: MemoryOperationKind,
+    ) -> MemoryOperationUnitSummary {
+        MemoryOperationUnitSummary {
+            task_id,
+            independence_unit_id,
+            operation,
+            applicable_count: self.applicable_count,
+            not_applicable_count: self.not_applicable_count,
+            correct_count: self.correct_count,
+            incorrect_count: self.incorrect_count,
+            unresolved_count: self.unresolved_count,
+            fidelity_rate: (self.applicable_count > 0).then(|| {
+                self.correct_count as f64 / self.applicable_count as f64
+            }),
+            evidence_coverage: (self.applicable_count > 0).then(|| {
+                (self.correct_count + self.incorrect_count) as f64
+                    / self.applicable_count as f64
+            }),
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -322,6 +392,8 @@ pub fn audit_memory_operations(
     let mut accumulators = BTreeMap::<MemoryOperationKind, OperationAccumulator>::new();
     let mut task_accumulators =
         BTreeMap::<(MemoryOperationKind, String), OperationAccumulator>::new();
+    let mut unit_accumulators =
+        BTreeMap::<(String, String, MemoryOperationKind), UnitAccumulator>::new();
 
     for case in &manifest.cases {
         let outcome = match case.applicability {
@@ -376,12 +448,26 @@ pub fn audit_memory_operations(
             .entry((case.operation, case.task_id.clone()))
             .or_default()
             .observe(&result);
+        unit_accumulators
+            .entry((
+                case.task_id.clone(),
+                case.independence_unit_id.clone(),
+                case.operation,
+            ))
+            .or_default()
+            .observe(outcome);
         results.push(result);
     }
 
     let task_summaries = task_accumulators
         .into_iter()
         .map(|((operation, task_id), accumulator)| accumulator.finish(operation, Some(task_id)))
+        .collect::<Vec<_>>();
+    let unit_summaries = unit_accumulators
+        .into_iter()
+        .map(|((task_id, independence_unit_id, operation), accumulator)| {
+            accumulator.finish(task_id, independence_unit_id, operation)
+        })
         .collect::<Vec<_>>();
 
     let mut summaries = [
@@ -428,6 +514,7 @@ pub fn audit_memory_operations(
         results,
         summaries,
         task_summaries,
+        unit_summaries,
     })
 }
 
@@ -956,6 +1043,27 @@ mod tests {
         assert_eq!(audit.summaries[0].independent_unit_count, 1);
 
         assert!(audit_memory_operations(&manifest(vec![first, second]), &[]).is_ok());
+    }
+
+    #[test]
+    fn per_independence_unit_rows_keep_correlated_checkpoints_together() {
+        let mut first = case("store-1", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let mut second = case("store-2", 2, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("b")));
+        first.independence_unit_id = "shared-scene-seed".to_owned();
+        second.independence_unit_id = "shared-scene-seed".to_owned();
+        let mut second_receipt = receipt(&second);
+        second_receipt.observed_effect_sha256 = Some(digest("x"));
+        let audit = audit_memory_operations(
+            &manifest(vec![first.clone(), second.clone()]),
+            &[receipt(&first), second_receipt],
+        ).unwrap();
+
+        assert_eq!(audit.unit_summaries.len(), 1);
+        assert_eq!(audit.unit_summaries[0].independence_unit_id, "shared-scene-seed");
+        assert_eq!(audit.unit_summaries[0].applicable_count, 2);
+        assert_eq!(audit.unit_summaries[0].correct_count, 1);
+        assert_eq!(audit.unit_summaries[0].incorrect_count, 1);
+        assert_eq!(audit.unit_summaries[0].fidelity_rate, Some(0.5));
     }
 
     #[test]
