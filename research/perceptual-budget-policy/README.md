@@ -49,7 +49,8 @@ Actual benchmark runs must use capture/measurement receipts from #4486 and set `
 
 When an energy cap is requested, a profile must carry an `EnergyMeasurement`:
 
-- telemetry source (`nvml_power_samples`, `dcgm_profiling`, or `external_gpu_power_meter`);
+- telemetry source (`nvml_power_samples`, `dcgm_profiling`, or `external_gpu_power_meter`) and exact API/driver/firmware version;
+- sampling semantics (`instantaneous`, `window_average`, or `external_integrated`);
 - SHA-256 of the original monotonic power-sample series;
 - trapezoid-integrated GPU-board energy in microjoules;
 - measurement-window duration and rendered-frame count;
@@ -64,7 +65,7 @@ E_uJ = sum( ((P_i_mW + P_(i+1)_mW) / 2) * delta_t_us / 1000 )
 energy_uJ_per_frame = E_uJ / rendered_frame_count
 ```
 
-Store the raw samples, timestamps, device identity, driver/API version, sampling semantics, render-window boundaries, scene/config receipt and integration output in the upstream measurement artifact; bind the artifact digest in `sample_series_sha256` and `measurement_receipt_sha256`. The policy validates their declared structure and binding, not the truth of the raw samples or the telemetry API.
+Store the raw samples, timestamps, device identity, driver/API version, sampling semantics, render-window boundaries, scene/config receipt and integration output in the upstream measurement artifact; bind the artifact digest in `sample_series_sha256` and `measurement_receipt_sha256`. The policy validates their declared structure and binding, not the truth of the raw samples or the telemetry API. The sampling-semantics field is important: a one-second moving average must not be described as an instantaneous per-frame power sample.
 
 ### Measurement cautions
 
