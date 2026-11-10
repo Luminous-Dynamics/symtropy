@@ -753,6 +753,31 @@ mod tests {
     }
 
     #[test]
+    fn rejects_conditioning_evidence_reused_from_source_representation() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["uncertainty"]["update_basis"] = json!("evidence_conditioned");
+        value["transitions"][0]["uncertainty"]["conditioning_evidence"] = json!([{
+            "artifact_id": "SCAN-001",
+            "sha256": "a".repeat(64),
+            "role": "independent_checkpoint"
+        }]);
+        value["transitions"][0]["uncertainty"]["estimator_id"] = json!("update-v1");
+        value["transitions"][0]["uncertainty"]["calibration_profile_id"] = json!("cal-v1");
+        let error = audit(&value).expect_err("source evidence cannot be reused as new independent evidence");
+        assert!(error.contains("must be additional to the source representation"));
+    }
+
+    #[test]
+    fn rejects_inferred_claim_without_evidence_or_derivation_assumptions() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["claims"][0]["origin"] = json!("inferred");
+        value["transitions"][0]["claims"][0]["source_evidence"] = json!([]);
+        value["transitions"][0]["claims"][0]["derivation_method"] = json!("plane-fit-v1");
+        let error = audit(&value).expect_err("inference must retain source support");
+        assert!(error.contains("requires a derivation method and value digest"));
+    }
+
+    #[test]
     fn rejects_conditioned_update_without_independent_checkpoint() {
         let mut value = valid_receipt();
         value["transitions"][0]["uncertainty"]["update_basis"] = json!("evidence_conditioned");
