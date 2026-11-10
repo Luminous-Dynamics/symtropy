@@ -438,8 +438,10 @@ pub fn allocate(
             .checked_mul(source.compute_units_per_rollout)
             .expect("compute budget gate prevents overflow");
         let schedule_or_time_capped = additional >= item.max_additional_rollouts;
-        let budget_exhausted = cost < source.compute_units_per_rollout
-            || config.total_compute_budget_units == compute_used;
+        let remaining_budget = config.total_compute_budget_units
+            .checked_sub(compute_used)
+            .unwrap_or(0);
+        let budget_exhausted = remaining_budget < source.compute_units_per_rollout;
         allocations.push(OpportunityAllocation {
             opportunity_id: source.opportunity_id.clone(),
             opportunity_digest: source.opportunity_digest.clone(),
@@ -584,7 +586,7 @@ mod tests {
 
     #[test]
     fn rejects_marginal_value_sum_overflow() {
-        let item = opportunity("overflow", vec![u64::MAX, 1]);
+        let item = opportunity("overflow", vec![u64::MAX, u64::MAX]);
         let receipt = allocate(&[item], config(10)).unwrap();
         assert_eq!(receipt.rejected_opportunities[0].reason, RejectionReason::MarginalValueOverflow);
     }
