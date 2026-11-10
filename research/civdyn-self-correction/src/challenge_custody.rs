@@ -82,7 +82,6 @@ pub enum ChallengeCustodyError {
     CandidateNotChainHead,
     ChallengeDataConsumedByRevision { revision_id: String },
     DuplicateReceiptId { receipt_id: String },
-    ReceiptModelNotInLineage { receipt_id: String },
     DisclosedChallengeRetired,
 }
 
@@ -103,7 +102,7 @@ fn nonempty(value: &str, field: &'static str) -> Result<(), ChallengeCustodyErro
 
 fn validate_revision_chain(
     revisions: &[ModelRevision],
-) -> Result<(BTreeSet<String>, BTreeSet<String>), ChallengeCustodyError> {
+) -> Result<BTreeSet<String>, ChallengeCustodyError> {
     if revisions.is_empty() {
         return Err(ChallengeCustodyError::EmptyRevisionChain);
     }
@@ -159,10 +158,7 @@ fn validate_revision_chain(
         }
     }
 
-    Ok((
-        model_digests.into_iter().map(str::to_string).collect(),
-        consumed_evidence_digests,
-    ))
+    Ok(consumed_evidence_digests)
 }
 
 /// Validate that a declared challenge dataset remains independent of all
@@ -178,7 +174,7 @@ pub fn validate_challenge_eligibility(
     nonempty(&request.challenge_manifest_digest, "challenge_manifest_digest")?;
     nonempty(&request.evaluation_protocol_digest, "evaluation_protocol_digest")?;
 
-    let (model_digests, consumed_evidence_digests) = validate_revision_chain(revisions)?;
+    let consumed_evidence_digests = validate_revision_chain(revisions)?;
     if revisions.last().map(|revision| revision.model_digest.as_str())
         != Some(request.candidate_model_digest.as_str())
     {
@@ -214,12 +210,6 @@ pub fn validate_challenge_eligibility(
                 receipt_id: receipt.receipt_id.clone(),
             });
         }
-        if !model_digests.contains(&receipt.model_digest) {
-            return Err(ChallengeCustodyError::ReceiptModelNotInLineage {
-                receipt_id: receipt.receipt_id.clone(),
-            });
-        }
-
         let same_data = receipt.challenge_data_digest == request.challenge_data_digest;
         let same_manifest = receipt.challenge_manifest_digest == request.challenge_manifest_digest;
         if receipt.result_disclosed_to_developers && (same_data || same_manifest) {
