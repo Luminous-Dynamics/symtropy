@@ -1,0 +1,52 @@
+name: Shipyard Weld Twin Verification
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/shipyard-weld-twin/**"
+      - "benchmarks/shipyard/weld-twin-corpus-v0.1.json"
+      - "docs/tech/SHIPYARD_WELD_TWIN_V0_1.schema.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "rust-toolchain.toml"
+      - ".github/workflows/shipyard-weld-twin.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-weld-twin-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify frozen weld process traces
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Run independent weld-twin corpus verifier tests
+        run: cargo test --locked -p shipyard-weld-twin
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked -p shipyard-weld-twin --all-targets -- -D warnings
+
+      - name: Verify exact frozen corpus from CLI
+        run: cargo run --locked -p shipyard-weld-twin -- benchmarks/shipyard/weld-twin-corpus-v0.1.json
+
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
