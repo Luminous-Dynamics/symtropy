@@ -53,11 +53,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "pass",
@@ -110,7 +113,7 @@
       "measurement": null,
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "fail",
@@ -165,7 +168,7 @@
       "measurement": null,
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "fail",
@@ -225,11 +228,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -288,11 +294,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -351,11 +360,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -414,11 +426,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "pass",
@@ -475,11 +490,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "tight-installation",
-        "maximum_expanded_uncertainty_m": 0.004
+        "maximum_total_error_bound_m": 0.004
       },
       "expected": {
         "overall_disposition": "fail",
@@ -531,7 +549,7 @@
       "measurement": null,
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -591,11 +609,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "fail",
@@ -655,11 +676,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "fail",
@@ -718,11 +742,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -781,11 +808,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -844,11 +874,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "fail",
@@ -903,7 +936,7 @@
       "measurement": null,
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "fail",
@@ -959,7 +992,7 @@
       "measurement": null,
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -1014,7 +1047,7 @@
       "measurement": null,
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "fail",
@@ -1069,7 +1102,7 @@
       "measurement": null,
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -1129,11 +1162,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -1192,11 +1228,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -1242,11 +1281,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -1300,11 +1342,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
@@ -1363,11 +1408,14 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "fail",
@@ -1426,16 +1474,283 @@
         "coverage_probability": 0.95,
         "uncertainty_method_id": "synthetic-known-answer-v1",
         "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-        "unit": "metre"
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
       },
       "task": {
         "task_id": "coarse-layout",
-        "maximum_expanded_uncertainty_m": 0.02
+        "maximum_total_error_bound_m": 0.02
       },
       "expected": {
         "overall_disposition": "unresolved",
         "reason_codes": [
           "SENSOR_ENVIRONMENT_OUT_OF_DOMAIN"
+        ]
+      }
+    },
+    {
+      "case_id": "systematic_error_bound_changes_task_acceptance",
+      "building_group_id": "synthetic-systematic_error_bound_changes_task_acceptance",
+      "capture_group_id": "capture-systematic_error_bound_changes_task_acceptance",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.01,
+        "systematic_bound_method_id": "synthetic-large-systematic-bound-v1",
+        "systematic_bound_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.015
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "TASK_TOTAL_ERROR_BOUND_EXCEEDED"
+        ]
+      }
+    },
+    {
+      "case_id": "systematic_error_bound_unknown_unresolved",
+      "building_group_id": "synthetic-systematic_error_bound_unknown_unresolved",
+      "capture_group_id": "capture-systematic_error_bound_unknown_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": null,
+        "systematic_bound_method_id": null,
+        "systematic_bound_evidence_sha256": null
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SYSTEMATIC_ERROR_BOUND_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "case_id": "systematic_error_bound_evidence_missing_unresolved",
+      "building_group_id": "synthetic-systematic_error_bound_evidence_missing_unresolved",
+      "capture_group_id": "capture-systematic_error_bound_evidence_missing_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": null,
+        "systematic_bound_evidence_sha256": null
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SYSTEMATIC_ERROR_BOUND_EVIDENCE_MISSING_OR_INVALID"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_systematic_error_bound_fails",
+      "building_group_id": "synthetic-invalid_systematic_error_bound_fails",
+      "capture_group_id": "capture-invalid_systematic_error_bound_fails",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": -0.001,
+        "systematic_bound_method_id": "synthetic-invalid-bound-v1",
+        "systematic_bound_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "INVALID_SYSTEMATIC_ERROR_BOUND"
         ]
       }
     }
