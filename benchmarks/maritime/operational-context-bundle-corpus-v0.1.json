@@ -297,7 +297,7 @@
         {
           "path": "claims.0.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "S131_CONTEXT_NOT_AVAILABILITY"
@@ -324,7 +324,7 @@
         {
           "path": "claims.1.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "PILOT_ASSIGNMENT_AUTHORITY_MISSING"
@@ -351,7 +351,7 @@
         {
           "path": "claims.2.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "RADIO_LINK_MEASUREMENT_MISSING"
@@ -378,7 +378,7 @@
         {
           "path": "claims.3.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "WARNING_RECEIPT_EVIDENCE_MISSING"
@@ -405,7 +405,7 @@
         {
           "path": "claims.3.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "WARNING_COMPLETENESS_UNKNOWN"
@@ -421,7 +421,7 @@
         {
           "path": "claims.3.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "CANCELLED_WARNING_NOT_CURRENT"
@@ -437,7 +437,7 @@
         {
           "path": "claims.4.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "PREPLAN_NOT_ACTUAL_PLAN"
@@ -453,7 +453,7 @@
         {
           "path": "claims.4.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "UKC_PLAN_VESSEL_MISMATCH"
@@ -469,7 +469,7 @@
         {
           "path": "claims.4.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "UKC_PLAN_ROUTE_MISMATCH"
@@ -508,7 +508,7 @@
         {
           "path": "claims.4.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "UKC_PLAN_EXPIRED"
@@ -540,7 +540,7 @@
         {
           "path": "claims.4.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "UKC_PHYSICAL_QUALIFICATION_MISSING"
@@ -567,7 +567,7 @@
         {
           "path": "claims.6.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "ETA_CALIBRATION_NOT_ESTABLISHED"
@@ -594,7 +594,7 @@
         {
           "path": "claims.6.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "DCSA_EVENT_SEMANTICS_INVALID"
@@ -610,7 +610,7 @@
         {
           "path": "claims.7.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "PROVIDER_COMMITMENT_NOT_CONFIRMED"
@@ -631,7 +631,7 @@
         {
           "path": "claims.7.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "PROVIDER_COMMITMENT_REVOKED"
@@ -647,7 +647,7 @@
         {
           "path": "claims.7.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "PROVIDER_COMMITMENT_EXPIRED"
@@ -679,7 +679,7 @@
         {
           "path": "claims.8.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "SYNTHETIC_RUN_NOT_PHYSICAL_QUALIFICATION"
@@ -695,7 +695,7 @@
         {
           "path": "claims.8.status",
           "op": "set",
-          "value": "proven"
+          "value": "proven_in_declared_scope"
         }
       ],
       "expected_code": "RUN_REPLAY_NOT_VERIFIED"
