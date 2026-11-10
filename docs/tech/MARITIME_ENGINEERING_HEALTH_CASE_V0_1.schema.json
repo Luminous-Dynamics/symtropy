@@ -157,7 +157,8 @@
         "unknown_domain",
         "recovery",
         "expected",
-        "decision_time_ms"
+        "decision_time_ms",
+        "decision_clock_domain"
       ],
       "properties": {
         "case_id": {
@@ -305,6 +306,10 @@
         "decision_time_ms": {
           "type": "integer",
           "minimum": 0
+        },
+        "decision_clock_domain": {
+          "type": "string",
+          "minLength": 2
         }
       }
     }
