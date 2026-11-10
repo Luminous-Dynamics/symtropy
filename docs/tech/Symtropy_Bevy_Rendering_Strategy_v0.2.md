@@ -582,3 +582,14 @@ Asset policy: Every renderable asset must carry provenance, license, material fa
 - [R7] Bevy `VisibilityRange` docs. https://docs.rs/bevy/latest/bevy/camera/visibility/struct.VisibilityRange.html
 - [R8] Bevy asset processor docs. https://docs.rs/bevy/latest/bevy/asset/processor/index.html
 - [R9] Bevy `Gltf` docs. https://docs.rs/bevy/latest/bevy/gltf/struct.Gltf.html
+
+ 
+---
+
+## 2026-11-10 compatibility note
+
+This strategy document was drafted against the Bevy 0.18 generation and retains that historical comparison material above. It is **not** the current production dependency declaration.
+
+The coordinated migration is staged on [PR #4497](https://github.com/Luminous-Dynamics/symtropy/pull/4497) against Bevy 0.20.1. The current render implementation work is captured in [docs/BEVY_020_GRAPHICS_AND_MIGRATION.md](../BEVY_020_GRAPHICS_AND_MIGRATION.md). The historical Bevy 0.18 recommendations and companion-crate version examples above must not be copied into current manifests without re-verifying their compatibility.
+
+The active visual research direction is perceptual and temporal quality per unit compute, with matched Bevy / Unreal / Godot / offline-reference workloads and blind human evaluation. A successful shader import or image-diff check is not, by itself, a visual-quality result. See [WORLD-QUALITY-PER-WATT-001 #4486](https://github.com/Luminous-Dynamics/symtropy/issues/4486).
