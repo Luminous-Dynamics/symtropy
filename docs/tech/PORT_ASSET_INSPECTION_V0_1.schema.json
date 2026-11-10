@@ -1,0 +1,1050 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/port-asset-inspection-v0.1.schema.json",
+  "title": "Port Asset Inspection-to-Maintenance Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_cases",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.port-asset-inspection"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_cases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_quay_inspection"
+      ],
+      "properties": {
+        "valid_quay_inspection": {
+          "$ref": "#/$defs/inspectionCase"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 36,
+      "items": {
+        "$ref": "#/$defs/testCase"
+      }
+    }
+  },
+  "$defs": {
+    "nullableNumber": {
+      "oneOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "nullableString": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "hash": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "sensor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sensor_id",
+        "platform_id",
+        "modality",
+        "calibration_state",
+        "calibration_valid_until_utc",
+        "resolution_m",
+        "max_range_m",
+        "health_state",
+        "model_revision",
+        "source_group",
+        "output_digest"
+      ],
+      "properties": {
+        "sensor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "modality": {
+          "enum": [
+            "optical_imaging",
+            "imaging_sonar",
+            "multibeam_sonar",
+            "laser_metrology",
+            "ultrasonic_thickness",
+            "other_synthetic"
+          ]
+        },
+        "calibration_state": {
+          "enum": [
+            "current",
+            "expired",
+            "unknown"
+          ]
+        },
+        "calibration_valid_until_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "resolution_m": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "max_range_m": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "health_state": {
+          "enum": [
+            "nominal_synthetic",
+            "degraded",
+            "unknown"
+          ]
+        },
+        "model_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_group": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_digest": {
+          "$ref": "#/$defs/hash"
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "mission_id",
+        "sensor_id",
+        "asset_id",
+        "asset_feature_id",
+        "asset_revision",
+        "geometry_revision",
+        "position_reference",
+        "source_time_utc",
+        "retrieved_at_utc",
+        "pose_error_m",
+        "coverage_fraction",
+        "occlusion_state",
+        "result_class",
+        "indication_type",
+        "measured_value",
+        "measurement_unit",
+        "uncertainty",
+        "evidence_class",
+        "independence_group"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mission_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_feature_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "asset_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geometry_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position_reference": {
+          "enum": [
+            "structure_relative_pose",
+            "surveyed_absolute_pose",
+            "unknown"
+          ]
+        },
+        "source_time_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "retrieved_at_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pose_error_m": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "coverage_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "occlusion_state": {
+          "enum": [
+            "clear_synthetic",
+            "occluded",
+            "acoustic_shadow",
+            "unknown"
+          ]
+        },
+        "result_class": {
+          "enum": [
+            "indication_synthetic",
+            "no_indication",
+            "ambiguous",
+            "unknown"
+          ]
+        },
+        "indication_type": {
+          "enum": [
+            "surface_spall",
+            "surface_anomaly",
+            "corrosion_thickness_loss",
+            "crack_indication",
+            "scour_indication",
+            "none",
+            "unknown"
+          ]
+        },
+        "measured_value": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "measurement_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic_sensor_observation",
+            "simulated",
+            "inferred",
+            "qualified_ndt",
+            "unknown"
+          ]
+        },
+        "independence_group": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "inspectionCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "fixture_kind",
+        "corpus_version",
+        "evaluation_cutoff_utc",
+        "asset",
+        "mission",
+        "environment",
+        "spatial_reference",
+        "bathymetry",
+        "sensors",
+        "observations",
+        "coverage",
+        "independent_reference",
+        "assessment",
+        "maintenance",
+        "commissioning"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "corpus_version": {
+          "const": "0.1.0"
+        },
+        "evaluation_cutoff_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "asset": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "asset_id",
+            "component_id",
+            "feature_id",
+            "asset_type",
+            "asset_revision",
+            "geometry_revision",
+            "horizontal_crs",
+            "vertical_datum",
+            "state_class",
+            "asset_status"
+          ],
+          "properties": {
+            "asset_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "component_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "feature_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "asset_type": {
+              "enum": [
+                "reinforced_concrete_quay_wall",
+                "steel_pile",
+                "sheet_pile",
+                "dolphin",
+                "fender",
+                "bollard",
+                "crane_rail_support",
+                "lock_gate"
+              ]
+            },
+            "asset_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "geometry_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "horizontal_crs": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "vertical_datum": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "state_class": {
+              "enum": [
+                "as_built",
+                "as_inspected",
+                "as_operated",
+                "inferred",
+                "synthetic"
+              ]
+            },
+            "asset_status": {
+              "enum": [
+                "in_service",
+                "restricted",
+                "out_of_service",
+                "unknown"
+              ]
+            }
+          }
+        },
+        "mission": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mission_id",
+            "platform_id",
+            "platform_type",
+            "status",
+            "started_at_utc",
+            "completed_at_utc",
+            "required_asset_feature_id",
+            "survey_revision",
+            "source_group",
+            "rights_review_status"
+          ],
+          "properties": {
+            "mission_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "platform_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "platform_type": {
+              "enum": [
+                "rov",
+                "auv",
+                "uav",
+                "crawler",
+                "diver",
+                "survey_vessel",
+                "manual"
+              ]
+            },
+            "status": {
+              "enum": [
+                "completed_synthetic",
+                "interrupted",
+                "aborted",
+                "unknown"
+              ]
+            },
+            "started_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "completed_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "required_asset_feature_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "survey_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rights_review_status": {
+              "enum": [
+                "reviewed_permitted",
+                "review_required",
+                "synthetic_not_applicable"
+              ]
+            }
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "optical_visibility_state",
+            "turbidity_state",
+            "current_state",
+            "sea_state",
+            "observed_at_utc",
+            "valid_until_utc"
+          ],
+          "properties": {
+            "optical_visibility_state": {
+              "enum": [
+                "nominal_synthetic",
+                "degraded",
+                "outside_validated_envelope",
+                "unknown"
+              ]
+            },
+            "turbidity_state": {
+              "enum": [
+                "nominal_synthetic",
+                "high",
+                "unknown"
+              ]
+            },
+            "current_state": {
+              "enum": [
+                "within_synthetic_envelope",
+                "outside_synthetic_envelope",
+                "unknown"
+              ]
+            },
+            "sea_state": {
+              "enum": [
+                "nominal_synthetic",
+                "degraded",
+                "unknown"
+              ]
+            },
+            "observed_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "valid_until_utc": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "spatial_reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "horizontal_crs",
+            "vertical_datum",
+            "localization_status",
+            "pose_error_m",
+            "max_pose_error_m",
+            "geometry_registration_status",
+            "transform_revision",
+            "transform_parent_digest"
+          ],
+          "properties": {
+            "horizontal_crs": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "vertical_datum": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "localization_status": {
+              "enum": [
+                "qualified_synthetic",
+                "ambiguous",
+                "unqualified"
+              ]
+            },
+            "pose_error_m": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max_pose_error_m": {
+              "type": "number",
+              "minimum": 0
+            },
+            "geometry_registration_status": {
+              "enum": [
+                "registered_synthetic",
+                "unregistered",
+                "unknown"
+              ]
+            },
+            "transform_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "transform_parent_digest": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        },
+        "bathymetry": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "product",
+            "edition",
+            "survey_order",
+            "vertical_datum",
+            "coverage_status",
+            "coverage_fraction",
+            "uncertainty_m",
+            "source_time_utc",
+            "retrieved_at_utc",
+            "source_digest",
+            "sample_count",
+            "minimum_samples"
+          ],
+          "properties": {
+            "product": {
+              "const": "S-102"
+            },
+            "edition": {
+              "type": "string",
+              "minLength": 1
+            },
+            "survey_order": {
+              "type": "string",
+              "minLength": 1
+            },
+            "vertical_datum": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "coverage_status": {
+              "enum": [
+                "complete_synthetic",
+                "incomplete",
+                "unknown"
+              ]
+            },
+            "coverage_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "uncertainty_m": {
+              "$ref": "#/$defs/nullableNumber"
+            },
+            "source_time_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "retrieved_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "source_digest": {
+              "$ref": "#/$defs/hash"
+            },
+            "sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "minimum_samples": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "survey_sequence": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "latest_survey_sequence": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "sensors": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/sensor"
+          }
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        },
+        "coverage": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "required_fraction",
+            "observed_fraction",
+            "coverage_status",
+            "inaccessible_fraction",
+            "occluded_fraction",
+            "blind_zone_declared",
+            "registered_geometry_revision"
+          ],
+          "properties": {
+            "required_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "observed_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "coverage_status": {
+              "enum": [
+                "complete_synthetic",
+                "incomplete",
+                "unknown"
+              ]
+            },
+            "inaccessible_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "occluded_fraction": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "blind_zone_declared": {
+              "type": "boolean"
+            },
+            "registered_geometry_revision": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "independent_reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "available",
+            "blind",
+            "method",
+            "asset_feature_id",
+            "asset_revision",
+            "disposition",
+            "indication_type",
+            "source_group",
+            "source_time_utc",
+            "reference_digest"
+          ],
+          "properties": {
+            "available": {
+              "type": "boolean"
+            },
+            "blind": {
+              "type": "boolean"
+            },
+            "method": {
+              "type": "string",
+              "minLength": 1
+            },
+            "asset_feature_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "asset_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "disposition": {
+              "enum": [
+                "indication_confirmed_synthetic",
+                "no_indication",
+                "not_available",
+                "unknown"
+              ]
+            },
+            "indication_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_group": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_time_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "reference_digest": {
+              "$ref": "#/$defs/hash"
+            }
+          }
+        },
+        "assessment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "assessment_id",
+            "assessor_id",
+            "disposition",
+            "indication_type",
+            "severity",
+            "confidence",
+            "confidence_status",
+            "claim_type",
+            "reference_link",
+            "source_time_utc",
+            "state_age_s",
+            "max_state_age_s",
+            "fusion_method",
+            "claims_independent_corroboration"
+          ],
+          "properties": {
+            "assessment_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "assessor_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "disposition": {
+              "enum": [
+                "indication_confirmed_synthetic",
+                "no_indication",
+                "ambiguous",
+                "unknown"
+              ]
+            },
+            "indication_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "severity": {
+              "type": "string",
+              "minLength": 1
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "confidence_status": {
+              "enum": [
+                "calibrated_synthetic",
+                "uncalibrated",
+                "unknown"
+              ]
+            },
+            "claim_type": {
+              "enum": [
+                "observed_condition_indication",
+                "structural_capacity",
+                "qualified_ndt_result",
+                "unknown"
+              ]
+            },
+            "reference_link": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "source_time_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "state_age_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "max_state_age_s": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fusion_method": {
+              "enum": [
+                "independent_evidence_preserved",
+                "naive_average",
+                "unresolved_conflict",
+                "single_source"
+              ]
+            },
+            "claims_independent_corroboration": {
+              "type": "boolean"
+            }
+          }
+        },
+        "maintenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "recommendation",
+            "maintenance_state",
+            "maintenance_authorized",
+            "approval_status",
+            "approval_ref",
+            "work_order_ref",
+            "repair_required",
+            "repair_completed",
+            "post_action_verification",
+            "source_writeback"
+          ],
+          "properties": {
+            "recommendation": {
+              "enum": [
+                "monitor",
+                "targeted_reinspection",
+                "targeted_ndt",
+                "engineering_review",
+                "create_work_order",
+                "none"
+              ]
+            },
+            "maintenance_state": {
+              "enum": [
+                "not_authorized",
+                "proposed",
+                "authorized",
+                "in_progress",
+                "completed",
+                "unknown"
+              ]
+            },
+            "maintenance_authorized": {
+              "type": "boolean"
+            },
+            "approval_status": {
+              "enum": [
+                "not_requested",
+                "approved",
+                "revoked",
+                "unknown"
+              ]
+            },
+            "approval_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "work_order_ref": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "repair_required": {
+              "type": "boolean"
+            },
+            "repair_completed": {
+              "type": "boolean"
+            },
+            "post_action_verification": {
+              "enum": [
+                "not_applicable",
+                "verified_synthetic",
+                "missing",
+                "unknown"
+              ]
+            },
+            "source_writeback": {
+              "type": "boolean"
+            }
+          }
+        },
+        "commissioning": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_latency_ms",
+            "observed_latency_ms",
+            "expected_update_interval_s",
+            "observed_update_interval_s",
+            "required_fidelity",
+            "observed_fidelity",
+            "projection_write_mode",
+            "source_time_role",
+            "retrieval_time_role"
+          ],
+          "properties": {
+            "max_latency_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "observed_latency_ms": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_update_interval_s": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "observed_update_interval_s": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "required_fidelity": {
+              "const": "identity_coverage_uncertainty"
+            },
+            "observed_fidelity": {
+              "enum": [
+                "complete_synthetic",
+                "lossy",
+                "incomplete",
+                "unknown"
+              ]
+            },
+            "projection_write_mode": {
+              "enum": [
+                "read_only",
+                "read_write"
+              ]
+            },
+            "source_time_role": {
+              "const": "source_observation"
+            },
+            "retrieval_time_role": {
+              "const": "ingestion"
+            }
+          }
+        }
+      }
+    },
+    "mutation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "op"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "op": {
+          "enum": [
+            "set",
+            "remove"
+          ]
+        },
+        "value": {}
+      }
+    },
+    "testCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "base",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base": {
+          "const": "valid_quay_inspection"
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/mutation"
+          }
+        },
+        "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
