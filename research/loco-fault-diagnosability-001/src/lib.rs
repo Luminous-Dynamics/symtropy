@@ -803,7 +803,14 @@ mod tests {
             report.pair_relations[1].status,
             PairStatus::UnknownOverlapping
         );
-        assert_eq!(report.ambiguity_components.len(), 2);
+        assert_eq!(
+            report.ambiguity_components,
+            vec![vec![
+                "joint-locked".to_owned(),
+                "torque-derated".to_owned(),
+                "unmodeled-fault".to_owned()
+            ]]
+        );
     }
 
     #[test]
