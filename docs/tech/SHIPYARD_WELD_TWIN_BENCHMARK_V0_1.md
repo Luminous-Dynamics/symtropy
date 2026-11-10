@@ -111,7 +111,7 @@ Four additional adversarial cases close gaps found during code review:
 - every pass's parameter-envelope reference must equal the approved procedure's envelope;
 - observed digital-twin update interval must not exceed the declared expected interval.
 
-The frozen corpus is now 46 cases (1 positive, 45 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
+The frozen corpus is now 48 cases (1 positive, 47 negative). The independent Rust evaluator and unit-test count are updated accordingly. These remain synthetic contract controls, not physical welding process qualifications.
 
 
 ## Normative effectivity: decision time versus subject construction date — 2026-11-10
