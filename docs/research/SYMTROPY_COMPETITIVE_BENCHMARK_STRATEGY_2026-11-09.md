@@ -37,13 +37,13 @@ A fair benchmark freezes the physical problem, geometry, units, material paramet
 
 | System | Current reference | What changed / why it matters |
 |---|---|---|
-| MuJoCo | **4.0.0**, released 2026-11-06; **3.17.0** batch API introduced 2026-10-22 | 4.0.0 adds speculative convex contacts intended to prevent tunnelling within a timestep, and stateful elasto-plasticity for joint/tendon springs and 2D/3D flexes. The 3.17.0 batch API runs many simulations of one model on a thread pool and documents bit-identical results to a plain loop across thread counts. Benchmark CCD/contact capability and CPU batch scaling as separate profiles; preserve historical 3.x receipts. |
+| MuJoCo | **4.0.0**, released 2026-11-06; **3.17.0** batch API introduced 2026-10-22 | 4.0.0 adds speculative convex contacts intended to prevent tunnelling within a timestep, and stateful elasto-plasticity for joint/tendon springs and 2D/3D flexes. The 3.17.0 batch API runs many simulations of one model on a thread pool and documents bit-identical results to a plain loop across thread counts. The current *unreleased* upstream changelog also lists a fix for a 4.0.0 sparse Cholesky bug that can yield a wrong Hessian factor, incorrect accelerations and divergence with sparse constraint Jacobians. Benchmark CCD/contact, CPU batch scaling and sparse-constraint conditioning as separate profiles; preserve historical receipts and do not attribute an unreleased fix to 4.0.0. |
 | Isaac Lab | **3.0.0 GA**, released 2026-10-20 | A single task API spans multiple physics/rendering backends, including kit-less Newton workflows. Pin Isaac Lab plus the exact physics backend, renderer, task and solver path. |
 | Newton | **1.7.0**, released 2026-10-14 | Adds composable solver diagnostics, expanded rigid/deformable coupling, mimic-joint support across several solver paths, collision/scene optimizations and controller improvements. It also changes or clarifies imported damping, angular units, joint-coordinate references and MPM material scaling. Pin solver, importer flags, Warp/CUDA, precision, schedule and material migration settings; do not compare headline GPU throughput with CPU-only Rust measurements. |
 | Project Chrono | **10.0.0**, released 2026-03-27 | Adds/updates FSI solver paths, peridynamics, checkpointing, implicit-integrator Jacobian strategies and sensor functionality. Use domain-specific modules only where the physical problem overlaps. |
 | Rapier | **0.18.0** in Symtropy's current bridge manifest | Preserve 0.18 receipts as historical evidence. A newer Rapier baseline must be a separate, matched migration lane, not an in-place replacement. |
 
-Sources: [MuJoCo 4.0.0 changelog](https://mujoco.readthedocs.io/en/4.0.0/changelog.html), [Isaac Lab releases](https://github.com/isaac-sim/IsaacLab/releases), [Newton 1.7.0 release](https://github.com/newton-physics/newton/releases/tag/v1.7.0), [Project Chrono 10.0.0 release](https://github.com/projectchrono/chrono/releases/tag/10.0.0), and the repository's `crates/bridges/symtropy-rapier3d-bridge/Cargo.toml`.
+Sources: [MuJoCo 4.0.0 changelog](https://mujoco.readthedocs.io/en/4.0.0/changelog.html), [current upstream MuJoCo changelog (upcoming fix is unreleased)](https://mujoco.readthedocs.io/en/latest/changelog.html), [Isaac Lab 3.0.0 GA](https://github.com/isaac-sim/IsaacLab/releases/tag/v3.0.0), [Newton 1.7.0 release](https://github.com/newton-physics/newton/releases/tag/v1.7.0), [Project Chrono 10.0.0 release](https://github.com/projectchrono/chrono/releases/tag/10.0.0), and the repository's `crates/bridges/symtropy-rapier3d-bridge/Cargo.toml`.
 
 **New benchmark admission requirement:** the same asset and timestep do not establish the same physical model. A pairwise mapping must explicitly compare contact law, friction cone, restitution, solver/regularization, integration, damping, inertia, joint constraints, CCD coverage, actuation and observable conventions. See [Cross-Simulator Semantic Equivalence V0.1](CROSS_SIMULATOR_SEMANTIC_EQUIVALENCE_V0_1.md) and [issue #4366](https://github.com/Luminous-Dynamics/symtropy). Unknown and known-non-equivalent cases are not eligible for matched solver-accuracy scores.
 
@@ -81,6 +81,44 @@ References:
 - NASA-STD-7009B: https://standards.nasa.gov/node/263
 - NASA-HDBK-7009B (published 2026-02-03): https://standards.nasa.gov/standard/NASA/NASA-HDBK-7009
 - FMI 3.0.2 specification: https://fmi-standard.org/docs/3.0.2/
+
+## 3.4.1 Sparse constrained systems and numerical conditioning
+
+A useful new challenge is to test the *linear-algebra path underneath constrained dynamics*, not just end-to-end trajectory error. This is timely because MuJoCo's current upstream changelog lists an **unreleased** fix for a sparse Cholesky factorization bug introduced in 4.0.0: rows with different descendants could be merged into one supernode, yielding a wrong Newton-solver Hessian factor for sparse constraint Jacobians, with slow convergence, incorrect accelerations or divergence. The 4.0.0 release remains the pinned released baseline; the upcoming fix must be tested as a separate release/commit once published.
+
+This is not evidence that MuJoCo is generally unreliable. It is evidence that even mature engines need adversarial sparse-system tests and exact release identity. Symtropy should build a comparable numerical-robustness lane around its own constraint solve and any future sparse/matrix-free path.
+
+Proposed cases:
+- **Known-spectrum systems:** construct constraint matrices/Jacobians with prescribed singular values and condition numbers; solve against manufactured right-hand sides with known solutions.
+- **Topology sweeps:** serial chains, branching trees, loops, sparse grids and deliberately redundant constraints; report graph ordering and sparsity pattern.
+- **Mass-ratio and scale sweeps:** vary body mass/inertia ratios, geometry scale and constraint stiffness across declared ranges without mixing unit conversion with solver error.
+- **Near-singular controls:** duplicate/dependent constraints, near-collinear axes, vanishing lever arms, near-zero effective mass and rank transitions.
+- **Permutation controls:** reorder bodies, constraints and rows/columns while preserving the mathematical problem; the physical solution should remain invariant within numerical tolerance.
+- **Precision controls:** compare the same mathematical case under supported f32/f64 paths, with explicit residual and backward-error gates.
+- **Failure observability:** record non-finite state, factorization/iteration failure, residual growth, divergence, fallback/preconditioner path and early termination. Failure must not be hidden by reset/recovery.
+
+Report at least:
+- normalized constraint residual and backward error;
+- forward error against the manufactured/high-precision reference;
+- condition estimate and rank classification where available;
+- position/velocity constraint drift over time;
+- energy/work balance only where the system boundary makes it meaningful;
+- iterations, factorization/rebuild counts, p50/p95/p99 step latency and memory;
+- sensitivity to ordering, precision, scale, tolerance and solver iteration limit.
+
+Do not require Symtropy to expose the same sparse factorization algorithm as MuJoCo. Compare the resulting physical/numerical contract and diagnostics, not private implementation details. The test owner is [#3749](https://github.com/Luminous-Dynamics/symtropy/issues/3749); results belong to the single [#460 qualification corpus](https://github.com/Luminous-Dynamics/symtropy/issues/460). This must not become a second scenario registry.
+
+## 3.4.2 Application-level humanoid benchmark is a separate tier
+
+NIST's Humanoid Robot Baseline Performance Benchmark is currently a **proposal being developed with industry and research partners**, not a finalized universal certification. Its stated task families include basic mobility and manipulation/dexterity, coordinated loco-manipulation, confined-space whole-body awareness/control, and minimal reasoning/task/scene understanding. These are valuable application-level outcomes, but they are not solver-correctness tests.
+
+Symtropy should maintain two linked scorecards:
+1. **Model/solver evidence:** semantics, oracle error, convergence, stability, uncertainty and physical correlation.
+2. **Robot-task outcomes:** task completion, time, success/failure modes, payload/environment conditions, energy, recovery and operator intervention, bound to the exact robot/controller/configuration.
+
+A robot can pass a task despite an inaccurate simulator through controller adaptation; a simulator can be numerically excellent while its task model omits perception, actuation or environment effects. Never substitute one scorecard for the other. Track NIST's proposal as an external application benchmark and version the test procedure when NIST publishes revisions.
+
+Reference: [NIST Humanoid Robot Baseline Performance Benchmark proposal](https://www.nist.gov/el/intelligent-systems-division-73500/humanoid-robot-baseline-performance-benchmark).
 
 ## 3.5 How to outperform established simulators
 
