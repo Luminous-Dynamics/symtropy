@@ -337,22 +337,28 @@ impl<const D: usize> RotationalInertiaOperator<D> {
         }
 
         let mut input = [0.0_f64; MAX_ROTATIONAL_DOF];
-        for index in 0..dof {
+        for (index, component) in input.iter_mut().take(dof).enumerate() {
             let (i, j) = Self::plane_pair(index)?;
-            input[index] = vector.get(i, j);
+            *component = vector.get(i, j);
+        }
+
+        let mut output = [0.0_f64; MAX_ROTATIONAL_DOF];
+        for (row, output_value) in output.iter_mut().take(dof).enumerate() {
+            let row_start = row * dof;
+            *output_value = self.matrix_row_major[row_start..row_start + dof]
+                .iter()
+                .zip(input.iter().take(dof))
+                .map(|(matrix_value, vector_value)| matrix_value * vector_value)
+                .sum();
+            if !output_value.is_finite() {
+                return Err(MassPropertiesError::NonFiniteValue);
+            }
         }
 
         let mut result = Bivector::<D>::zero();
-        for row in 0..dof {
-            let mut value = 0.0_f64;
-            for column in 0..dof {
-                value += self.matrix_row_major[row * dof + column] * input[column];
-            }
-            if !value.is_finite() {
-                return Err(MassPropertiesError::NonFiniteValue);
-            }
-            let (i, j) = Self::plane_pair(row)?;
-            result.set(i, j, value);
+        for (index, value) in output.iter().take(dof).enumerate() {
+            let (i, j) = Self::plane_pair(index)?;
+            result.set(i, j, *value);
         }
         Ok(result)
     }
@@ -372,15 +378,15 @@ impl<const D: usize> RotationalInertiaOperator<D> {
         }
 
         let mut rhs = [0.0_f64; MAX_ROTATIONAL_DOF];
-        for index in 0..dof {
+        for (index, value) in rhs.iter_mut().take(dof).enumerate() {
             let (i, j) = Self::plane_pair(index)?;
-            rhs[index] = angular_momentum.get(i, j);
+            *value = angular_momentum.get(i, j);
         }
         let solution = self.solve_fixed(&rhs)?;
         let mut result = Bivector::<D>::zero();
-        for index in 0..dof {
+        for (index, value) in solution.iter().take(dof).enumerate() {
             let (i, j) = Self::plane_pair(index)?;
-            result.set(i, j, solution[index]);
+            result.set(i, j, *value);
         }
         Ok(result)
     }
@@ -417,25 +423,40 @@ impl<const D: usize> RotationalInertiaOperator<D> {
         let mut forward = [0.0_f64; MAX_ROTATIONAL_DOF];
         let mut solution = [0.0_f64; MAX_ROTATIONAL_DOF];
 
-        for row in 0..dof {
-            let mut value = rhs[row];
-            for column in 0..row {
-                value -= self.cholesky_lower_row_major[row * dof + column] * forward[column];
-            }
-            let diagonal = self.cholesky_lower_row_major[row * dof + row];
+        for (row, rhs_value) in rhs.iter().take(dof).enumerate() {
+            let row_start = row * dof;
+            let known_coefficients =
+                &self.cholesky_lower_row_major[row_start..row_start + row];
+            let (completed, remaining) = forward.split_at_mut(row);
+            let current = remaining
+                .first_mut()
+                .ok_or(MassPropertiesError::InvalidDimension)?;
+            let known_sum = known_coefficients
+                .iter()
+                .zip(completed.iter())
+                .map(|(coefficient, value)| coefficient * value)
+                .sum::<f64>();
+            let diagonal = self.cholesky_lower_row_major[row_start + row];
             if !diagonal.is_finite() || diagonal <= f64::MIN_POSITIVE {
                 return Err(MassPropertiesError::NotPositiveDefinite);
             }
-            forward[row] = value / diagonal;
+            *current = (*rhs_value - known_sum) / diagonal;
         }
 
         for row in (0..dof).rev() {
-            let mut value = forward[row];
-            for column in (row + 1)..dof {
-                value -= self.cholesky_lower_row_major[column * dof + row] * solution[column];
-            }
+            let (through_current, following) = solution.split_at_mut(row + 1);
+            let current = through_current
+                .last_mut()
+                .ok_or(MassPropertiesError::InvalidDimension)?;
+            let following_sum = following
+                .iter()
+                .enumerate()
+                .map(|(offset, value)| {
+                    self.cholesky_lower_row_major[(row + 1 + offset) * dof + row] * value
+                })
+                .sum::<f64>();
             let diagonal = self.cholesky_lower_row_major[row * dof + row];
-            solution[row] = value / diagonal;
+            *current = (forward[row] - following_sum) / diagonal;
         }
 
         if !solution[..dof].iter().all(|value| value.is_finite()) {
