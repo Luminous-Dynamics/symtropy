@@ -1,0 +1,17 @@
+[package]
+name = "scan-bim-visibility-evaluator"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "Apache-2.0 OR MIT"
+description = "Isolated evaluator-only visibility oracle for Scan-to-BIM reference geometry"
+
+[dependencies]
+scan-bim-replay-contract = { path = ".." }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+
+[lints.rust]
+unsafe_code = "forbid"
