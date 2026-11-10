@@ -386,7 +386,7 @@ fn fallback_disposition(
         || fallback.abstraction_digest != problem.proposal.abstraction_digest
         || fallback.domain_digest != problem.proposal.domain_digest
         || fallback.actuator_digest != problem.proposal.actuator_digest
-        || fallback.intended_apply_at_ns != problem.proposal.intended_apply_at_ns
+        || fallback.intended_apply_at_ns < problem.now_ns
         || fallback.valid_from_ns > fallback.valid_until_ns
         || problem.now_ns < fallback.valid_from_ns
         || problem.now_ns > fallback.valid_until_ns
@@ -563,7 +563,6 @@ fn identity_gate(problem: &ProjectionGateProblem) -> Result<(), ProjectionError>
         || proposal.submitted_at_ns > problem.now_ns
         || proposal.submitted_at_ns > proposal.intended_apply_at_ns
         || proposal.intended_apply_at_ns > proposal.deadline_ns
-        || problem.now_ns > proposal.intended_apply_at_ns
     {
         return Err(ProjectionError::InvalidProposalTiming);
     }
@@ -1058,11 +1057,6 @@ pub fn qualify_projected_action(
         numerically_unqualified: Vec::new(),
     };
 
-    if let Some(disposition) = possibility_receipt_disposition(problem)? {
-        report.disposition = disposition;
-        return Ok(report);
-    }
-
     match problem.result.disposition {
         SolverDisposition::Infeasible => {
             let witness = problem
@@ -1119,6 +1113,24 @@ pub fn qualify_projected_action(
             return Ok(report);
         }
         SolverDisposition::Feasible => {}
+    }
+
+    // A result that missed its intended application time is never executed,
+    // even if the numerical solver eventually reports Feasible.
+    if problem.now_ns > problem.proposal.intended_apply_at_ns
+        || problem.result.completed_at_ns > problem.proposal.intended_apply_at_ns
+    {
+        report.disposition = fallback_disposition(
+            &problem.fallback,
+            problem,
+            "projection completed after intended application time",
+        );
+        return Ok(report);
+    }
+
+    if let Some(disposition) = possibility_receipt_disposition(problem)? {
+        report.disposition = disposition;
+        return Ok(report);
     }
 
     if problem.result.primal_residual > problem.result.primal_tolerance
