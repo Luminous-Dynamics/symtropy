@@ -433,16 +433,29 @@
           "type": "string"
         },
         "group_type": {
-          "const": "original_recording_file"
+          "enum": [
+            "original_recording_file",
+            "baseline_reference_recording"
+          ]
         },
         "assignment": {
           "type": [
             "string",
             "null"
+          ],
+          "enum": [
+            "train",
+            "validation",
+            "test",
+            "reference_only",
+            null
           ]
         },
         "assignment_state": {
-          "const": "unassigned_requires_review"
+          "enum": [
+            "unassigned_requires_review",
+            "preassigned_reference_only"
+          ]
         },
         "note": {
           "type": "string"
