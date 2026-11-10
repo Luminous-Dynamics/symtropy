@@ -232,3 +232,58 @@ jobs:
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
           PY
+
+      - name: Verify rights-aware empirical source passport controls
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin empirical-source-passport-sweep > /tmp/civdyn-source-passports.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin empirical-source-passport-sweep > /tmp/civdyn-source-passports-replay.csv
+          cmp /tmp/civdyn-source-passports.csv /tmp/civdyn-source-passports-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-source-passports.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 17
+          assert len(rows) == 3
+          by_source = {row["source_id"]: row for row in rows}
+          assert set(by_source) == {
+              "synthetic-water-balance-fixture",
+              "synthetic-municipal-finance-q2",
+              "synthetic-hourly-system-data-request",
+          }
+
+          water = by_source["synthetic-water-balance-fixture"]
+          assert water["eligibility"] == "eligible_for_declared_purpose"
+          assert water["purpose"] == "validation"
+          assert water["acquisition_state"] == "semantically_verified"
+          assert water["revision_status"] == "final"
+          assert water["observed_count"] == "1"
+          assert water["estimated_count"] == "1"
+          assert water["defaulted_count"] == "1"
+          assert water["imputed_count"] == "0"
+          assert water["missing_count"] == "1"
+          assert water["suppressed_count"] == "1"
+
+          treasury = by_source["synthetic-municipal-finance-q2"]
+          assert treasury["eligibility"] == "eligible_for_declared_purpose"
+          assert treasury["purpose"] == "exploration"
+          assert treasury["acquisition_state"] == "integrity_verified"
+          assert treasury["revision_status"] == "under_review"
+          assert treasury["observed_count"] == "1"
+
+          eskom = by_source["synthetic-hourly-system-data-request"]
+          assert eskom["eligibility"].startswith("not_eligible:")
+          assert "ArtifactNotAcquired" in eskom["eligibility"]
+          assert eskom["acquisition_state"] == "requested"
+          assert eskom["observed_count"] == ""
+          assert eskom["estimated_count"] == ""
+          assert eskom["defaulted_count"] == ""
+
+          assert all("synthetic" in row["source_id"] for row in rows)
+          print("Source-passport CSV valid: observed/estimated/defaulted/imputed/missing/suppressed retained separately; under-review data exploration-only; unacquired data cannot qualify.")
+          PY
