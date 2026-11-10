@@ -117,6 +117,18 @@ jobs:
             (.checked_nearest_identity_sets == 11) and
             (.oracle == "independent_bruteforce_moller_trumbore_f64_v1")
           ' /tmp/scan-bim-ray-query-fixture-report.json
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            -p scan-bim-visibility-evaluator --example validate_ray_query_fixture -- \
+            research/scan-bim-rayquery-comparator-001/fixtures/ray-query-known-answers-scale-1e3-v0-1.json \
+            > /tmp/scan-bim-ray-query-scale-report.json
+          jq -e '
+            (.fixture_id == "SCAN-BIM-RAYQUERY-KA-001-SCALE-1E3") and
+            (.triangle_count == 4) and
+            (.ray_count == 11) and
+            (.hit_count == 7) and
+            (.miss_count == 4) and
+            (.checked_nearest_identity_sets == 11)
+          ' /tmp/scan-bim-ray-query-scale-report.json
       - name: Run strict Clippy
         run: cargo clippy --locked --workspace --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
