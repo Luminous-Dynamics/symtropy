@@ -99,12 +99,16 @@ pub struct OccluderTriangle {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VisibilityProfile {
-    /// Maximum number of probe × view × occluder ray/triangle tests. Exceeding
-    /// this budget is an error; the evaluator never silently truncates.
+    /// Hard input cardinality limits.
+    pub max_probe_count: usize,
+    pub max_view_count: usize,
+    pub max_occluder_triangles: usize,
+    /// Maximum probe × view observations, including outside-FOV views.
+    pub max_probe_view_evaluations: usize,
+    /// Maximum number of actual ray/triangle intersection tests.
     pub max_ray_tests: usize,
-    /// Minimum absolute cosine between the source-winding normal and the
-    /// direction from the probe toward the sensor. Values near zero flag
-    /// grazing incidence without assuming globally consistent outward winding.
+    /// Minimum absolute cosine between source-winding normal and direction
+    /// from probe toward sensor. Values near zero flag grazing incidence.
     pub min_incidence_cosine: f64,
 }
 
@@ -209,6 +213,8 @@ pub struct VisibilityReceipt {
     pub min_incidence_cosine: f64,
     pub probe_count: usize,
     pub view_count: usize,
+    pub occluder_triangle_count: usize,
+    pub probe_view_evaluation_count: usize,
     pub ray_test_count: usize,
     pub observable_area_m2: f64,
     pub grazing_area_m2: f64,
@@ -716,6 +722,10 @@ fn receipt_digest(
     occluders: &[OccluderTriangle],
 ) -> String {
     let mut hasher = Sha256::new();
+    hasher.update(evaluation.profile.max_probe_count.to_le_bytes());
+    hasher.update(evaluation.profile.max_view_count.to_le_bytes());
+    hasher.update(evaluation.profile.max_occluder_triangles.to_le_bytes());
+    hasher.update(evaluation.profile.max_probe_view_evaluations.to_le_bytes());
     hasher.update(evaluation.profile.max_ray_tests.to_le_bytes());
     update_f64(&mut hasher, evaluation.profile.min_incidence_cosine);
     update_string(&mut hasher, "scan_bim_evaluator_visibility_ray_v1");
@@ -994,8 +1004,30 @@ pub fn derive_surface_visibility(
     if evaluation.probes.is_empty() || evaluation.views.is_empty() {
         return Err("visibility requires at least one probe and one view".to_owned());
     }
-    if evaluation.profile.max_ray_tests == 0 {
-        return Err("max_ray_tests must be positive".to_owned());
+    if evaluation.profile.max_probe_count == 0
+        || evaluation.profile.max_view_count == 0
+        || evaluation.profile.max_occluder_triangles == 0
+        || evaluation.profile.max_probe_view_evaluations == 0
+        || evaluation.profile.max_ray_tests == 0
+    {
+        return Err("all visibility resource limits must be positive".to_owned());
+    }
+    if evaluation.probes.len() > evaluation.profile.max_probe_count {
+        return Err("visibility max_probe_count exceeded".to_owned());
+    }
+    if evaluation.views.len() > evaluation.profile.max_view_count {
+        return Err("visibility max_view_count exceeded".to_owned());
+    }
+    if evaluation.occluders.len() > evaluation.profile.max_occluder_triangles {
+        return Err("visibility max_occluder_triangles exceeded".to_owned());
+    }
+    let probe_view_evaluation_count = evaluation
+        .probes
+        .len()
+        .checked_mul(evaluation.views.len())
+        .ok_or("visibility probe-view evaluation count overflowed")?;
+    if probe_view_evaluation_count > evaluation.profile.max_probe_view_evaluations {
+        return Err("visibility max_probe_view_evaluations exceeded".to_owned());
     }
     if !evaluation.profile.min_incidence_cosine.is_finite()
         || !(0.0..=1.0).contains(&evaluation.profile.min_incidence_cosine)
@@ -1175,6 +1207,8 @@ pub fn derive_surface_visibility(
         min_incidence_cosine: evaluation.profile.min_incidence_cosine,
         probe_count: results.len(),
         view_count: owned_views.len(),
+        occluder_triangle_count: ordered_occluders.len(),
+        probe_view_evaluation_count,
         ray_test_count,
         observable_area_m2: totals[0],
         grazing_area_m2: totals[1],
@@ -1302,6 +1336,10 @@ mod tests {
             views,
             occluders: &full_reference_and_occluders,
             profile: VisibilityProfile {
+                max_probe_count: 1_000,
+                max_view_count: 32,
+                max_occluder_triangles: 10_000,
+                max_probe_view_evaluations: 10_000,
                 max_ray_tests: 10_000,
                 min_incidence_cosine: 0.0,
             },
@@ -1433,6 +1471,10 @@ mod tests {
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
             occluders: &[reversed],
             profile: VisibilityProfile {
+                max_probe_count: 1_000,
+                max_view_count: 32,
+                max_occluder_triangles: 10_000,
+                max_probe_view_evaluations: 10_000,
                 max_ray_tests: 100,
                 min_incidence_cosine: 0.0,
             },
@@ -1584,6 +1626,10 @@ mod tests {
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
             occluders: &[target_triangle(), blocker(OccluderKind::SameBuilding)],
             profile: VisibilityProfile {
+                max_probe_count: 1_000,
+                max_view_count: 32,
+                max_occluder_triangles: 10_000,
+                max_probe_view_evaluations: 10_000,
                 max_ray_tests: 0,
                 min_incidence_cosine: 0.0,
             },
@@ -1665,6 +1711,10 @@ mod tests {
             "views": [serde_json::to_value(view("VIEW-1", [0.0, 0.0, 0.0])).expect("view JSON")],
             "occluders": [serde_json::to_value(target).expect("target JSON")],
             "profile": {
+                "max_probe_count": 1000,
+                "max_view_count": 32,
+                "max_occluder_triangles": 10000,
+                "max_probe_view_evaluations": 10000,
                 "max_ray_tests": 100,
                 "min_incidence_cosine": 0.0
             }
@@ -1710,6 +1760,10 @@ mod tests {
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
             occluders: &original_occluders,
             profile: VisibilityProfile {
+                max_probe_count: 1_000,
+                max_view_count: 32,
+                max_occluder_triangles: 10_000,
+                max_probe_view_evaluations: 10_000,
                 max_ray_tests: 100,
                 min_incidence_cosine: 0.0,
             },
@@ -1732,6 +1786,10 @@ mod tests {
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
             occluders: &changed_occluders,
             profile: VisibilityProfile {
+                max_probe_count: 1_000,
+                max_view_count: 32,
+                max_occluder_triangles: 10_000,
+                max_probe_view_evaluations: 10_000,
                 max_ray_tests: 100,
                 min_incidence_cosine: 0.0,
             },
@@ -1761,6 +1819,10 @@ mod tests {
             views: &[view("VIEW-1", [0.0, 0.0, 0.0])],
             occluders: &[target_triangle()],
             profile: VisibilityProfile {
+                max_probe_count: 1_000,
+                max_view_count: 32,
+                max_occluder_triangles: 10_000,
+                max_probe_view_evaluations: 10_000,
                 max_ray_tests: 100,
                 min_incidence_cosine: 0.0,
             },
