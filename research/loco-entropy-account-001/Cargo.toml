@@ -1,0 +1,12 @@
+[package]
+name = "loco-entropy-account-001"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Analytical, bounded reference kernel for two-reservoir entropy generation and exergy destruction"
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
