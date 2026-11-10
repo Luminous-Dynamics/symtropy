@@ -10,7 +10,7 @@ The dependency-free Rust library in \`src/lib.rs\` composes caller-supplied viab
 
 ## Definitions
 
-A physical route class is keyed by the ordered physical edge identity sequence and terminal recovery-region identity. Action IDs, policy labels and gait names do not contribute to physical-path identity.
+A physical route class is keyed by the exact start-state identity, edge-namespace digest, transition-abstraction digest, ordered physical edge identity sequence and terminal recovery-region identity. These fields prevent equal edge labels from different abstraction namespaces or initial states from being merged. The context digest must additionally bind morphology/configuration, environment, clock, model and evidence snapshot. Action IDs, policy labels and gait names do not contribute to physical-path identity.
 
 For each route class \`r\`, \`D(r)\` is the set of source-qualified common-cause failure-group IDs obtained by expanding its component/domain dependencies through the supplied domain manifest.
 
@@ -31,7 +31,8 @@ These are graph/domain-manifest properties, not physical safety probabilities or
 A route is considered only when all of the following hold:
 
 - upstream action admission is explicitly Admitted;
-- physical branch coverage is complete;
+- physical branch coverage is complete and bound to a non-empty branch-manifest digest;
+- latency-prefix coverage is complete and bound to a non-empty time-expanded prefix-manifest digest;
 - every physically possible successor is explicitly Viable (probabilities do not remove possible branches);
 - intermediate-state and latency-prefix inventories are complete, and every supplied intermediate state is Viable;
 - viability and transition receipts are present, context-matched and fresh at the evaluation tick;
@@ -41,6 +42,10 @@ A route is considered only when all of the following hold:
 A known Nonviable branch or intermediate state rejects the route. An Unknown, missing or stale item makes the route Unknown. Context mismatches, duplicate identities and malformed canonical path inputs are invalid input errors.
 
 If any unresolved route remains, the auditor reports known qualifying routes only as a lower bound and suppresses global independent-route and cut-set metrics. Missing evidence is never converted into assumed independence.
+
+## Identifier and manifest integrity
+
+The start state, edge namespace and transition abstraction are first-class route identity fields and are included in each reported physical route class. Successor and intermediate-state IDs must be non-empty and unique within a route; duplicate identities are Invalid rather than being resolved by input order. The branch and latency-prefix manifest digests are required evidence references. The auditor checks that they are present and context-bound through the caller's contract, but does not authenticate their contents or independently prove that a supplied boolean/list is complete.
 
 ## Alias handling
 
@@ -58,7 +63,7 @@ Inputs outside these limits return explicit errors. The algorithms do not silent
 
 ## Tests
 
-Nineteen unit tests cover action-alias collapse, shared power/clock cuts, zero-probability-but-physically-possible dead ends, nonviable intermediate latency states, missing failure-domain identity, energy limits, stale evidence, context mismatch, common-cause group collapse, permutation invariance, monotonicity under added physical possibilities, resource bounds, two disjoint recovery routes and conservative alias dependency union.
+Twenty-four unit tests cover action-alias collapse, shared power/clock cuts, zero-probability-but-physically-possible dead ends, nonviable intermediate latency states, missing failure-domain identity, energy limits, stale evidence, context mismatch, common-cause group collapse, permutation invariance, monotonicity under added physical possibilities, resource bounds, two disjoint recovery routes and conservative alias dependency union.
 
 ## Verification status
 
