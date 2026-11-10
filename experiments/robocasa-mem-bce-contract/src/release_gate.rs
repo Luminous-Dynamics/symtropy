@@ -466,10 +466,17 @@ mod tests {
             package_version: "0.1.0".to_owned(),
             candidate_source_commit: "1".repeat(40),
             manifest_source_commit: "1".repeat(40),
-            source_file_manifest_sha256: "2".repeat(64),
-            suite_manifest_sha256: "3".repeat(64),
-            evaluation_input_lock_sha256: "4".repeat(64),
-            simulator_source_lock_sha256: "5".repeat(64),
+            release_manifest_sha256: "2".repeat(64),
+            source_file_manifest_sha256: "3".repeat(64),
+            suite_manifest_sha256: "4".repeat(64),
+            evaluation_input_lock_sha256: "5".repeat(64),
+            simulator_source_lock_sha256: "6".repeat(64),
+            dataset_manifest_sha256: "7".repeat(64),
+            dataset_rights_manifest_sha256: "8".repeat(64),
+            asset_rights_manifest_sha256: "9".repeat(64),
+            asset_verification_receipt_sha256: "a".repeat(64),
+            policy_family_manifest_sha256: "b".repeat(64),
+            source_file_manifest_verified: true,
             expected_task_count: 9,
             manifest_task_count: 9,
             expected_suite_count: 27,
@@ -478,8 +485,8 @@ mod tests {
             resolved_input_count: 450,
             suite_bytes_preserved: true,
             release_ready_attested: true,
-            asset_manifest_sha256: "6".repeat(64),
-            asset_archive_sha256: "7".repeat(64),
+            asset_manifest_sha256: "c".repeat(64),
+            asset_archive_sha256: "d".repeat(64),
             asset_manifest_task_coverage_verified: true,
             asset_receipt_task_coverage_verified: true,
             asset_verified_task_count: 9,
@@ -487,25 +494,32 @@ mod tests {
             clean_candidate_installation_verified: true,
             dataset_rights: EvaluationRights::Authorized,
             asset_rights: EvaluationRights::Authorized,
+            expected_model_families: vec!["act".to_owned(), "diffusion".to_owned(), "pi05".to_owned()],
             installed_wheel: InstalledWheelAcceptance {
-                candidate_wheel_sha256: "8".repeat(64),
-                tested_wheel_sha256: "8".repeat(64),
-                candidate_runtime_sha256: "9".repeat(64),
-                tested_runtime_sha256: "9".repeat(64),
+                candidate_wheel_sha256: "e".repeat(64),
+                tested_wheel_sha256: "e".repeat(64),
+                candidate_runtime_sha256: "f".repeat(64),
+                tested_runtime_sha256: "f".repeat(64),
                 expected_cases: 450,
                 passed_cases: 450,
                 failed_cases: 0,
                 clean_environment_verified: true,
             },
-            model_smoke: ModelSmokeEvidence {
-                checkpoint_sha256: "a".repeat(64),
-                candidate_runtime_sha256: "9".repeat(64),
-                tested_runtime_sha256: "9".repeat(64),
-                episodes: 1,
-                successful_episodes: 1,
-                failed_episodes: 0,
-                checkpoint_rights: EvaluationRights::Authorized,
-            },
+            model_smokes: ["act", "diffusion", "pi05"]
+                .into_iter()
+                .enumerate()
+                .map(|(index, family)| ModelSmokeEvidence {
+                    family_id: family.to_owned(),
+                    checkpoint_sha256: format!("{:x}", index + 1).repeat(64),
+                    candidate_runtime_sha256: "f".repeat(64),
+                    tested_runtime_sha256: "f".repeat(64),
+                    checkpoint_loaded: true,
+                    inference_requests: 1,
+                    runtime_errors: 0,
+                    episode_artifacts_complete: true,
+                    checkpoint_rights: EvaluationRights::Authorized,
+                })
+                .collect(),
         }
     }
 
@@ -584,7 +598,7 @@ mod tests {
         let mut candidate = evidence();
         candidate.dataset_rights = EvaluationRights::Unknown;
         candidate.asset_rights = EvaluationRights::Restricted;
-        candidate.model_smoke.checkpoint_rights = EvaluationRights::Unknown;
+        candidate.model_smokes[0].checkpoint_rights = EvaluationRights::Unknown;
 
         let report = qualify_release(&candidate).unwrap();
         assert!(report.has_blocker(ReleaseGateBlocker::DatasetRightsUnknown));
@@ -595,7 +609,7 @@ mod tests {
     #[test]
     fn model_smoke_must_use_exact_checkpoint_and_candidate_runtime() {
         let mut candidate = evidence();
-        candidate.model_smoke.candidate_runtime_sha256 = "a".repeat(64);
+        candidate.model_smokes[0].candidate_runtime_sha256 = "a".repeat(64);
 
         let report = qualify_release(&candidate).unwrap();
         assert!(report.has_blocker(ReleaseGateBlocker::ModelSmokeRuntimeDigestMismatch));
@@ -636,14 +650,30 @@ mod tests {
     }
 
     #[test]
-    fn model_smoke_cannot_claim_success_with_missing_or_failed_episode_results() {
+    fn every_policy_family_requires_a_loaded_checkpoint_and_inference_smoke() {
         let mut candidate = evidence();
-        candidate.model_smoke.episodes = 2;
-        candidate.model_smoke.successful_episodes = 1;
-        candidate.model_smoke.failed_episodes = 0;
+        candidate.model_smokes[1].checkpoint_loaded = false;
+        candidate.model_smokes[2].inference_requests = 0;
 
         let report = qualify_release(&candidate).unwrap();
-        assert!(report.has_blocker(ReleaseGateBlocker::ModelSmokeFailedEpisodes));
+        assert!(report.has_blocker(ReleaseGateBlocker::ModelSmokeCheckpointNotLoaded));
+        assert!(report.has_blocker(ReleaseGateBlocker::ModelSmokeNoInferenceRequests));
+        assert!(!report.native_evaluation_ready);
+    }
+
+    #[test]
+    fn missing_or_duplicate_policy_family_smokes_block_release() {
+        let mut missing = evidence();
+        missing.model_smokes.pop();
+        let report = qualify_release(&missing).unwrap();
+        assert!(report.has_blocker(ReleaseGateBlocker::ModelFamilySetMismatch));
+        assert!(report.has_blocker(ReleaseGateBlocker::MissingModelFamilySmoke));
+
+        let mut duplicate = evidence();
+        duplicate.model_smokes[2].family_id = "act".to_owned();
+        let report = qualify_release(&duplicate).unwrap();
+        assert!(report.has_blocker(ReleaseGateBlocker::DuplicateModelFamilySmoke));
+        assert!(report.has_blocker(ReleaseGateBlocker::ModelFamilySetMismatch));
     }
 
     #[test]
