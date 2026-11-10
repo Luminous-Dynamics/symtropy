@@ -944,6 +944,37 @@ mod tests {
     }
 
     #[test]
+    fn receipt_reuse_after_calibration_or_action_duration_change_is_rejected() {
+        let mut wrong_calibration =
+            problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
+        wrong_calibration.calibration_digest = "calibration-v2".to_owned();
+        assert_eq!(
+            audit_diagnosability(&wrong_calibration),
+            Err(DiagnosabilityError::ReceiptContextMismatch)
+        );
+
+        let mut wrong_duration =
+            problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
+        wrong_duration.action_duration_ms = 600;
+        assert_eq!(
+            audit_diagnosability(&wrong_duration),
+            Err(DiagnosabilityError::ReceiptDurationMismatch)
+        );
+    }
+
+    #[test]
+    fn observation_outside_receipt_time_window_is_rejected() {
+        let mut input = problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
+        let mut item = observation(0, 10);
+        item.observed_at_ns = 99;
+        input.observation = Some(item);
+        assert_eq!(
+            audit_diagnosability(&input),
+            Err(DiagnosabilityError::ObservationOutsideReceiptWindow)
+        );
+    }
+
+    #[test]
     fn feature_id_and_unit_schema_must_match_exactly() {
         let mut input = problem(vec![bounded("joint-locked", (-10, 10), (0, 20))]);
         input.envelopes[0].features[0].unit_id = "degrees_per_s".to_owned();
