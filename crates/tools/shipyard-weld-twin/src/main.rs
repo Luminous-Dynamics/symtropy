@@ -4,9 +4,10 @@
 #![forbid(unsafe_code)]
 
 use serde_json::{Value, json};
+use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 use std::process::ExitCode;
 
 fn value_at<'a>(root: &'a Value, path: &str) -> Option<&'a Value> {
@@ -37,7 +38,83 @@ fn is_current_until(root: &Value, path: &str, cutoff: &str) -> bool {
     text_at(root, path).is_some_and(|until| until.ends_with('Z') && until >= cutoff)
 }
 
-fn evaluate(weld: &Value) -> &'static str {
+fn resolve_trace_path(workspace_root: &Path, relative: &str) -> Result<PathBuf, &'static str> {
+    if relative.is_empty() || relative.contains(['\\', ':']) {
+        return Err("UNSAFE_PROCESS_TRACE_PATH");
+    }
+    let relative_path = Path::new(relative);
+    if relative_path.is_absolute()
+        || relative_path
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
+    {
+        return Err("UNSAFE_PROCESS_TRACE_PATH");
+    }
+
+    let root = workspace_root
+        .canonicalize()
+        .map_err(|_| "PROCESS_TRACE_ROOT_UNAVAILABLE")?;
+    let candidate = root.join(relative_path);
+    let canonical = candidate
+        .canonicalize()
+        .map_err(|_| "PROCESS_TRACE_UNAVAILABLE")?;
+    if !canonical.starts_with(&root) {
+        return Err("UNSAFE_PROCESS_TRACE_PATH");
+    }
+    Ok(canonical)
+}
+
+fn verify_process_trace(
+    weld: &Value,
+    pass: &Value,
+    workspace_root: &Path,
+) -> &'static str {
+    let Some(relative) = pass.get("process_trace_ref").and_then(Value::as_str) else {
+        return "PROCESS_TRACE_MISSING";
+    };
+    let path = match resolve_trace_path(workspace_root, relative) {
+        Ok(value) => value,
+        Err(code) => return code,
+    };
+    let bytes = match fs::read(path) {
+        Ok(value) => value,
+        Err(_) => return "PROCESS_TRACE_UNAVAILABLE",
+    };
+    let observed_digest = format!("{:x}", Sha256::digest(&bytes));
+    if pass.get("process_trace_sha256").and_then(Value::as_str)
+        != Some(observed_digest.as_str())
+    {
+        return "PROCESS_TRACE_DIGEST_MISMATCH";
+    }
+
+    let trace: Value = match serde_json::from_slice(&bytes) {
+        Ok(value) => value,
+        Err(_) => return "PROCESS_TRACE_INVALID_JSON",
+    };
+    let bindings = [
+        ("fixture_kind", Some("synthetic_fixture")),
+        ("workpiece_component_id", text_at(weld, "workpiece.component_id")),
+        ("workpiece_serial_id", text_at(weld, "workpiece.serial_id")),
+        ("joint_id", text_at(pass, "joint_id")),
+        ("pass_id", text_at(pass, "pass_id")),
+        ("pass_role", text_at(pass, "role")),
+        ("workpiece_revision", text_at(pass, "workpiece_revision")),
+        ("wps_revision", text_at(pass, "wps_revision")),
+        ("equipment_revision", text_at(pass, "equipment_revision")),
+        ("evidence_class", text_at(pass, "evidence_class")),
+        ("parameter_envelope_ref", text_at(pass, "parameter_envelope_ref")),
+        ("observed_envelope_status", text_at(pass, "observed_envelope_status")),
+        ("source_time_utc", text_at(pass, "source_time_utc")),
+    ];
+    if bindings.iter().any(|(field, expected)| {
+        trace.get(*field).and_then(Value::as_str) != *expected
+    }) {
+        return "PROCESS_TRACE_SUBJECT_MISMATCH";
+    }
+    "PROCESS_TRACE_VALID_EXACT_BYTES"
+}
+
+fn evaluate(weld: &Value, workspace_root: &Path) -> &'static str {
     let cutoff = match text_at(weld, "evaluation_cutoff_utc") {
         Some(value) if value.ends_with('Z') => value,
         _ => return "INVALID_DECISION_CUTOFF",
@@ -173,8 +250,9 @@ fn evaluate(weld: &Value) -> &'static str {
         {
             return "PROGRAM_REVISION_MISMATCH";
         }
-        if pass.get("process_trace_ref").is_none_or(Value::is_null) {
-            return "PROCESS_TRACE_MISSING";
+        let trace_disposition = verify_process_trace(weld, pass, workspace_root);
+        if trace_disposition != "PROCESS_TRACE_VALID_EXACT_BYTES" {
+            return trace_disposition;
         }
         if pass.get("observed_envelope_status").and_then(Value::as_str)
             != Some("within_declared_envelope")
@@ -353,7 +431,7 @@ fn apply_mutation(root: &mut Value, mutation: &Value) -> Result<(), String> {
     }
 }
 
-fn verify_corpus(corpus: &Value) -> Result<Value, String> {
+fn verify_corpus(corpus: &Value, workspace_root: &Path) -> Result<Value, String> {
     let base = corpus
         .get("base_cases")
         .and_then(|value| value.get("valid_robotic_weld"))
@@ -383,7 +461,7 @@ fn verify_corpus(corpus: &Value) -> Result<Value, String> {
             apply_mutation(&mut input, mutation)
                 .map_err(|error| format!("case {id}: {error}"))?;
         }
-        let observed = evaluate(&input);
+        let observed = evaluate(&input, workspace_root);
         let passed = observed == expected;
         if !passed {
             failures.push(json!({
@@ -434,7 +512,14 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
-    let report = match verify_corpus(&corpus) {
+    let workspace_root = match env::current_dir() {
+        Ok(value) => value,
+        Err(error) => {
+            eprintln!("cannot resolve workspace root: {error}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let report = match verify_corpus(&corpus, &workspace_root) {
         Ok(value) => value,
         Err(error) => {
             eprintln!("corpus verification could not run: {error}");
@@ -453,16 +538,22 @@ fn main() -> ExitCode {
 mod tests {
     use super::{apply_mutation, evaluate, verify_corpus};
     use serde_json::Value;
+    use std::path::PathBuf;
 
     const CORPUS: &str =
         include_str!("../../../../benchmarks/shipyard/weld-twin-corpus-v0.1.json");
 
+    fn workspace_root() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../..")
+    }
+
     #[test]
     fn frozen_corpus_matches_all_expected_dispositions() {
         let corpus: Value = serde_json::from_str(CORPUS).expect("frozen corpus parses");
-        let report = verify_corpus(&corpus).expect("frozen corpus evaluates");
-        assert_eq!(report["case_count"].as_u64(), Some(34));
-        assert_eq!(report["passed_count"].as_u64(), Some(34));
+        let root = workspace_root();
+        let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
+        assert_eq!(report["case_count"].as_u64(), Some(37));
+        assert_eq!(report["passed_count"].as_u64(), Some(37));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
     }
 
@@ -470,7 +561,10 @@ mod tests {
     fn valid_base_is_not_a_physical_acceptance() {
         let corpus: Value = serde_json::from_str(CORPUS).expect("frozen corpus parses");
         let base = corpus["base_cases"]["valid_robotic_weld"].clone();
-        assert_eq!(evaluate(&base), "WELD_TRACE_VALID_SYNTHETIC_ONLY");
+        assert_eq!(
+            evaluate(&base, &workspace_root()),
+            "WELD_TRACE_VALID_SYNTHETIC_ONLY"
+        );
     }
 
     #[test]
