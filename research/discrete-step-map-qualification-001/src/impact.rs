@@ -275,8 +275,6 @@ impl ImpactModel1D {
                 branch,
                 derivative_class: if boundary {
                     ImpactDerivativeClass::EventBoundary
-                } else if branch == ImpactBranch::PlasticImpactThenSupport {
-                    ImpactDerivativeClass::BranchLocalSingleImpact
                 } else {
                     ImpactDerivativeClass::BranchLocalSingleImpact
                 },
@@ -408,8 +406,11 @@ impl ImpactModel1D {
         let acceleration = self.acceleration_m_s2;
         let restitution = self.restitution;
         let event_time_dgap = 1.0 / speed;
-        let event_time_dvelocity =
-            (-1.0 - initial.velocity_m_s / speed) / acceleration;
+        let event_time_dvelocity = if acceleration.abs() <= f64::MIN_POSITIVE {
+            event_time / speed
+        } else {
+            (-1.0 - initial.velocity_m_s / speed) / acceleration
+        };
         let incoming_dgap = acceleration / speed;
         let incoming_dvelocity = -initial.velocity_m_s / speed;
         let outgoing_dgap = -restitution * incoming_dgap;
@@ -555,6 +556,22 @@ mod tests {
         assert!(result.state.gap_m > 0.0);
         assert!(result.state.velocity_m_s > 0.0);
         assert!(result.step_jacobian.is_some());
+    }
+
+    #[test]
+    fn zero_acceleration_restitution_jacobian_matches_finite_difference() {
+        let model = ImpactModel1D::try_new(1.0, 0.0, 0.4).unwrap();
+        let initial = ImpactState1D {
+            gap_m: 0.5,
+            velocity_m_s: -1.0,
+        };
+        let outcome = model.step(initial, 1.0, 1.0e-12).unwrap();
+        let jacobian = outcome.step_jacobian.unwrap();
+        close(outcome.event_time_s.unwrap(), 0.5, 1.0e-12);
+        close(jacobian.dgap_dgap, -0.4, 1.0e-12);
+        close(jacobian.dgap_dvelocity, -0.4, 1.0e-12);
+        close(jacobian.dvelocity_dgap, 0.0, 1.0e-12);
+        close(jacobian.dvelocity_dvelocity, -0.4, 1.0e-12);
     }
 
     #[test]
