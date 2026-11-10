@@ -75,6 +75,12 @@ pub struct MemoryOperationReceipt {
     pub independence_unit_id: String,
     pub sequence: u64,
     pub operation: MemoryOperationKind,
+    /// Exact cohort context that produced this receipt.
+    pub protocol_sha256: String,
+    pub operation_roster_sha256: String,
+    pub policy_artifact_sha256: String,
+    pub memory_system_sha256: String,
+    pub evaluator_sha256: String,
     pub observed_source_event_sha256: Option<String>,
     /// Evaluator-derived semantic readback digest; for Compression this is
     /// required-fact preservation, not the compressed snapshot's byte digest.
@@ -108,6 +114,7 @@ pub enum MemoryOperationError {
     UnknownReceipt,
     ReceiptForNotApplicableCase,
     ReceiptIdentityMismatch,
+    ReceiptContextMismatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -315,7 +322,7 @@ pub fn audit_memory_operations(
                 match receipt_by_id.get(case.case_id.as_str()) {
                     None => MemoryOperationOutcome::Unresolved,
                     Some(receipt) => {
-                        validate_receipt_identity(case, receipt)?;
+                        validate_receipt_identity(manifest, case, receipt)?;
                         derive_outcome(case, receipt)
                     }
                 }
@@ -508,6 +515,11 @@ fn validate_receipt_digests(
     }
 
     for digest in [
+        Some(receipt.protocol_sha256.as_str()),
+        Some(receipt.operation_roster_sha256.as_str()),
+        Some(receipt.policy_artifact_sha256.as_str()),
+        Some(receipt.memory_system_sha256.as_str()),
+        Some(receipt.evaluator_sha256.as_str()),
         receipt.observed_source_event_sha256.as_deref(),
         receipt.observed_effect_sha256.as_deref(),
         receipt.memory_snapshot_before_sha256.as_deref(),
@@ -525,9 +537,18 @@ fn validate_receipt_digests(
 }
 
 fn validate_receipt_identity(
+    manifest: &MemoryOperationManifest,
     case: &ExpectedMemoryOperation,
     receipt: &MemoryOperationReceipt,
 ) -> Result<(), MemoryOperationError> {
+    if receipt.protocol_sha256 != manifest.protocol_sha256
+        || receipt.operation_roster_sha256 != manifest.operation_roster_sha256
+        || receipt.policy_artifact_sha256 != manifest.policy_artifact_sha256
+        || receipt.memory_system_sha256 != manifest.memory_system_sha256
+        || receipt.evaluator_sha256 != manifest.evaluator_sha256
+    {
+        return Err(MemoryOperationError::ReceiptContextMismatch);
+    }
     if receipt.case_id != case.case_id
         || receipt.task_id != case.task_id
         || receipt.episode_id != case.episode_id
@@ -622,6 +643,11 @@ mod tests {
             independence_unit_id: case.independence_unit_id.clone(),
             sequence: case.sequence,
             operation: case.operation,
+            protocol_sha256: digest("2"),
+            operation_roster_sha256: digest("3"),
+            policy_artifact_sha256: digest("4"),
+            memory_system_sha256: digest("5"),
+            evaluator_sha256: digest("6"),
             observed_source_event_sha256: Some(case.source_event_sha256.clone()),
             observed_effect_sha256: case.expected_effect_sha256.clone(),
             memory_snapshot_before_sha256: Some(digest("7")),
@@ -914,6 +940,17 @@ mod tests {
         assert_eq!(
             audit_memory_operations(&unexpected, &[]),
             Err(MemoryOperationError::UnexpectedTask)
+        );
+    }
+
+    #[test]
+    fn receipt_context_must_match_protocol_policy_memory_and_evaluator() {
+        let item = case("store", 1, MemoryOperationKind::Storage, MemoryOperationApplicability::Applicable, Some(digest("a")));
+        let mut observed = receipt(&item);
+        observed.memory_system_sha256 = digest("z");
+        assert_eq!(
+            audit_memory_operations(&manifest(vec![item]), &[observed]),
+            Err(MemoryOperationError::ReceiptContextMismatch)
         );
     }
 
