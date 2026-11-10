@@ -63,6 +63,31 @@ pub struct ResourceBudget {
     pub max_peak_vram_bytes: u64,
     /// When present, every candidate must provide measured GPU energy/frame.
     pub max_gpu_energy_uj_per_frame: Option<f64>,
+    /// Largest permitted gap between adjacent GPU power samples.
+    /// Must be supplied exactly when an energy budget is requested.
+    pub max_energy_sample_gap_us: Option<u64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct EnergyMeasurement {
+    pub source: EnergyTelemetrySource,
+    /// Digest of the original monotonic power-sample series used for integration.
+    pub sample_series_sha256: String,
+    /// Trapezoid-integrated GPU board energy over the measurement window.
+    pub integrated_gpu_energy_uj: f64,
+    pub measurement_window_us: u64,
+    pub rendered_frame_count: u64,
+    pub power_sample_count: u32,
+    pub max_sample_gap_us: u64,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EnergyTelemetrySource {
+    NvmlPowerSamples,
+    DcgmProfiling,
+    ExternalGpuPowerMeter,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -82,7 +107,7 @@ pub struct MeasuredProfile {
     pub frame_time_p95_us: u64,
     pub frame_time_p99_us: u64,
     pub peak_vram_bytes: u64,
-    pub gpu_energy_uj_per_frame: Option<f64>,
+    pub energy_measurement: Option<EnergyMeasurement>,
     pub human_preference: Option<HumanPreferenceEvidence>,
 }
 
@@ -140,6 +165,8 @@ pub enum RejectionReason {
     P99FrameTimeBudgetExceeded,
     VramBudgetExceeded,
     EnergyMeasurementMissing,
+    EnergySamplesInsufficient,
+    EnergySampleGapExceeded,
     EnergyBudgetExceeded,
     HumanPanelMissing,
     HumanPanelTooSmall,
@@ -259,9 +286,9 @@ pub fn evaluate(input: &PolicyInputV1) -> Result<PolicyReceiptV1, PolicyError> {
 
     let selected = admissible.into_iter().min_by(|a, b| {
         if canonical.budget.max_gpu_energy_uj_per_frame.is_some() {
-            a.gpu_energy_uj_per_frame
+            energy_uj_per_frame(a)
                 .unwrap_or(f64::INFINITY)
-                .total_cmp(&b.gpu_energy_uj_per_frame.unwrap_or(f64::INFINITY))
+                .total_cmp(&energy_uj_per_frame(b).unwrap_or(f64::INFINITY))
                 .then_with(|| a.frame_time_p95_us.cmp(&b.frame_time_p95_us))
                 .then_with(|| a.peak_vram_bytes.cmp(&b.peak_vram_bytes))
                 .then_with(|| a.profile_id.cmp(&b.profile_id))
@@ -294,6 +321,14 @@ pub fn evaluate(input: &PolicyInputV1) -> Result<PolicyReceiptV1, PolicyError> {
         evaluations,
         claim_ceiling: CLAIM_CEILING.to_owned(),
     })
+}
+
+fn energy_uj_per_frame(profile: &MeasuredProfile) -> Option<f64> {
+    let measurement = profile.energy_measurement.as_ref()?;
+    if measurement.rendered_frame_count == 0 {
+        return None;
+    }
+    Some(measurement.integrated_gpu_energy_uj / measurement.rendered_frame_count as f64)
 }
 
 fn rejection_reasons(
@@ -354,12 +389,22 @@ fn rejection_reasons(
     }
 
     if let Some(max_energy) = input.budget.max_gpu_energy_uj_per_frame {
-        match profile.gpu_energy_uj_per_frame {
+        match &profile.energy_measurement {
             None => reasons.push(RejectionReason::EnergyMeasurementMissing),
-            Some(energy) if energy > max_energy => {
-                reasons.push(RejectionReason::EnergyBudgetExceeded)
+            Some(measurement) => {
+                if measurement.power_sample_count < 2 {
+                    reasons.push(RejectionReason::EnergySamplesInsufficient);
+                }
+                if measurement.max_sample_gap_us
+                    > input.budget.max_energy_sample_gap_us.unwrap_or(0)
+                    || measurement.measurement_window_us < measurement.max_sample_gap_us
+                {
+                    reasons.push(RejectionReason::EnergySampleGapExceeded);
+                }
+                if energy_uj_per_frame(profile).is_some_and(|energy| energy > max_energy) {
+                    reasons.push(RejectionReason::EnergyBudgetExceeded);
+                }
             }
-            Some(_) => {}
         }
     }
 
@@ -444,8 +489,27 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
     if input.budget.max_peak_vram_bytes == 0 {
         return Err(PolicyError::ZeroResourceBudget("max_peak_vram_bytes"));
     }
-    if let Some(value) = input.budget.max_gpu_energy_uj_per_frame {
-        validate_nonnegative_finite(value, "budget.max_gpu_energy_uj_per_frame")?;
+    match (
+        input.budget.max_gpu_energy_uj_per_frame,
+        input.budget.max_energy_sample_gap_us,
+    ) {
+        (Some(value), Some(max_gap)) => {
+            validate_nonnegative_finite(value, "budget.max_gpu_energy_uj_per_frame")?;
+            if max_gap == 0 {
+                return Err(PolicyError::ZeroResourceBudget("budget.max_energy_sample_gap_us"));
+            }
+        }
+        (Some(_), None) => {
+            return Err(PolicyError::EmptyField(
+                "budget.max_energy_sample_gap_us required with energy budget",
+            ));
+        }
+        (None, Some(_)) => {
+            return Err(PolicyError::EmptyField(
+                "budget.max_energy_sample_gap_us must be absent without energy budget",
+            ));
+        }
+        (None, None) => {}
     }
 
     let mut protected = BTreeSet::new();
@@ -482,8 +546,30 @@ fn validate_input(input: &PolicyInputV1) -> Result<(), PolicyError> {
         if profile.peak_vram_bytes == 0 {
             return Err(PolicyError::ZeroResourceBudget("profile.peak_vram_bytes"));
         }
-        if let Some(value) = profile.gpu_energy_uj_per_frame {
-            validate_nonnegative_finite(value, "profile.gpu_energy_uj_per_frame")?;
+        if let Some(measurement) = &profile.energy_measurement {
+            validate_sha256(
+                &measurement.sample_series_sha256,
+                "profile.energy_measurement.sample_series_sha256",
+            )?;
+            validate_nonnegative_finite(
+                measurement.integrated_gpu_energy_uj,
+                "profile.energy_measurement.integrated_gpu_energy_uj",
+            )?;
+            if measurement.measurement_window_us == 0 {
+                return Err(PolicyError::ZeroResourceBudget(
+                    "profile.energy_measurement.measurement_window_us",
+                ));
+            }
+            if measurement.rendered_frame_count == 0 {
+                return Err(PolicyError::ZeroResourceBudget(
+                    "profile.energy_measurement.rendered_frame_count",
+                ));
+            }
+            if measurement.max_sample_gap_us == 0 {
+                return Err(PolicyError::ZeroResourceBudget(
+                    "profile.energy_measurement.max_sample_gap_us",
+                ));
+            }
         }
         if !profile_ids.insert(profile.profile_id.clone()) {
             return Err(PolicyError::DuplicateProfileId(profile.profile_id.clone()));
@@ -648,7 +734,15 @@ mod tests {
             frame_time_p95_us: p95,
             frame_time_p99_us: p95 + 2_000,
             peak_vram_bytes: 4_000_000_000,
-            gpu_energy_uj_per_frame: energy,
+            energy_measurement: energy.map(|energy_per_frame| EnergyMeasurement {
+                source: EnergyTelemetrySource::NvmlPowerSamples,
+                sample_series_sha256: H4.to_owned(),
+                integrated_gpu_energy_uj: energy_per_frame * 1_000.0,
+                measurement_window_us: 16_000_000,
+                rendered_frame_count: 1_000,
+                power_sample_count: 17,
+                max_sample_gap_us: 1_000_000,
+            }),
             human_preference: None,
         }
     }
@@ -683,6 +777,7 @@ mod tests {
                 max_p99_frame_time_us: 25_000,
                 max_peak_vram_bytes: 6_000_000_000,
                 max_gpu_energy_uj_per_frame: Some(8_000.0),
+                max_energy_sample_gap_us: Some(1_250_000),
             },
             profiles: vec![
                 profile("high-quality", Some(7_500.0), 14_000),
@@ -786,8 +881,24 @@ mod tests {
         data.budget.max_gpu_energy_uj_per_frame = None;
         data.profiles[0].frame_time_p95_us = 9_000;
         data.profiles[1].frame_time_p95_us = 12_000;
-        data.profiles[0].gpu_energy_uj_per_frame = Some(7_500.0);
-        data.profiles[1].gpu_energy_uj_per_frame = Some(5_000.0);
+        data.profiles[0].energy_measurement = Some(EnergyMeasurement {
+            source: EnergyTelemetrySource::NvmlPowerSamples,
+            sample_series_sha256: H4.to_owned(),
+            integrated_gpu_energy_uj: 7_500_000.0,
+            measurement_window_us: 16_000_000,
+            rendered_frame_count: 1_000,
+            power_sample_count: 17,
+            max_sample_gap_us: 1_000_000,
+        });
+        data.profiles[1].energy_measurement = Some(EnergyMeasurement {
+            source: EnergyTelemetrySource::NvmlPowerSamples,
+            sample_series_sha256: H3.to_owned(),
+            integrated_gpu_energy_uj: 5_000_000.0,
+            measurement_window_us: 16_000_000,
+            rendered_frame_count: 1_000,
+            power_sample_count: 17,
+            max_sample_gap_us: 1_000_000,
+        });
         let receipt = evaluate(&data).expect("no energy cap requested");
         assert_eq!(
             receipt.decision,
@@ -801,7 +912,7 @@ mod tests {
     #[test]
     fn requested_energy_measurement_cannot_be_missing() {
         let mut data = input();
-        data.profiles[0].gpu_energy_uj_per_frame = None;
+        data.profiles[0].energy_measurement = None;
         let receipt = evaluate(&data).expect("valid record with missing optional energy");
         assert!(receipt.evaluations.iter().any(|entry| {
             entry.profile_id == "high-quality"
@@ -812,7 +923,15 @@ mod tests {
     #[test]
     fn requested_energy_budget_is_enforced() {
         let mut data = input();
-        data.profiles[0].gpu_energy_uj_per_frame = Some(9_000.0);
+        data.profiles[0].energy_measurement = Some(EnergyMeasurement {
+            source: EnergyTelemetrySource::NvmlPowerSamples,
+            sample_series_sha256: H4.to_owned(),
+            integrated_gpu_energy_uj: 9_000_000.0,
+            measurement_window_us: 16_000_000,
+            rendered_frame_count: 1_000,
+            power_sample_count: 17,
+            max_sample_gap_us: 1_000_000,
+        });
         let receipt = evaluate(&data).expect("valid record");
         assert!(receipt.evaluations.iter().any(|entry| {
             entry.profile_id == "high-quality"
