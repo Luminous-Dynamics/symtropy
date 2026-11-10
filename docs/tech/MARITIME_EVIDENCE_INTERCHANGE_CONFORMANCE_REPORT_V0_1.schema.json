@@ -265,6 +265,18 @@
     "validator_version": {
       "type": "string",
       "minLength": 1
+    },
+    "global_errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   }
 }
