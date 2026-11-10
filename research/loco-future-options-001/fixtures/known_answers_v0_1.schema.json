@@ -201,7 +201,9 @@
             "required": [
               "node_id",
               "temperature_c",
-              "hard_limit_c"
+              "hard_limit_c",
+              "source_class",
+              "uncertainty_c"
             ],
             "properties": {
               "node_id": {
@@ -213,6 +215,18 @@
               },
               "hard_limit_c": {
                 "type": "number"
+              },
+              "source_class": {
+                "enum": [
+                  "measured",
+                  "estimated",
+                  "environmental_boundary",
+                  "synthetic_fixture"
+                ]
+              },
+              "uncertainty_c": {
+                "type": "number",
+                "minimum": 0
               }
             }
           }
