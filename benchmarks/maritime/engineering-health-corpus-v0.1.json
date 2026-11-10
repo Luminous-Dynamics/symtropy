@@ -22,7 +22,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "shaft-pickup"
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:positive-propulsion-nominal:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -63,7 +72,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "dep-a"
+          "dependency_group": "dep-a",
+          "source_ref": "synthetic-source:negative-main-engine-derate:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:engine-output:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o2",
@@ -72,7 +90,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "fuel-meter"
+          "dependency_group": "fuel-meter",
+          "source_ref": "synthetic-source:negative-main-engine-derate:o2",
+          "unit": "1",
+          "calibration_ref": "synthetic-calibration:fuel-index:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -115,7 +142,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "propulsion-plc"
+          "dependency_group": "propulsion-plc",
+          "source_ref": "synthetic-source:common-cause-shaft-rpm:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o2",
@@ -124,7 +160,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "propulsion-plc"
+          "dependency_group": "propulsion-plc",
+          "source_ref": "synthetic-source:common-cause-shaft-rpm:o2",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:engine-rpm:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -167,7 +212,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "steering-controller"
+          "dependency_group": "steering-controller",
+          "source_ref": "synthetic-source:negative-steering-feedback:o1",
+          "unit": "deg",
+          "calibration_ref": "synthetic-calibration:rudder-command:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o2",
@@ -176,7 +230,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "rudder-encoder"
+          "dependency_group": "rudder-encoder",
+          "source_ref": "synthetic-source:negative-steering-feedback:o2",
+          "unit": "deg",
+          "calibration_ref": "synthetic-calibration:rudder-angle:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -219,7 +282,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "generator-controller"
+          "dependency_group": "generator-controller",
+          "source_ref": "synthetic-source:negative-generator-start:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -262,7 +334,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "switchboard-meter"
+          "dependency_group": "switchboard-meter",
+          "source_ref": "synthetic-source:negative-bus-undervoltage:o1",
+          "unit": "V",
+          "calibration_ref": "synthetic-calibration:bus-voltage:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -305,7 +386,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "battery-bms"
+          "dependency_group": "battery-bms",
+          "source_ref": "synthetic-source:negative-battery-bms:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -348,7 +438,16 @@
           "source_role": "measured_sensor",
           "quality": "conflicted",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "cooling-controller"
+          "dependency_group": "cooling-controller",
+          "source_ref": "synthetic-source:negative-cooling-anomaly:o1",
+          "unit": "Cel",
+          "calibration_ref": "synthetic-calibration:coolant-temperature:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o2",
@@ -357,7 +456,16 @@
           "source_role": "measured_sensor",
           "quality": "conflicted",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "cooling-controller"
+          "dependency_group": "cooling-controller",
+          "source_ref": "synthetic-source:negative-cooling-anomaly:o2",
+          "unit": "m3/s",
+          "calibration_ref": "synthetic-calibration:coolant-flow:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -400,7 +508,16 @@
           "source_role": "model_residual",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "lube-model-inputs"
+          "dependency_group": "lube-model-inputs",
+          "source_ref": "synthetic-source:negative-lubrication-residual:o1",
+          "unit": "1",
+          "calibration_ref": "not-applicable:model_residual:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -443,7 +560,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "rudder-encoder"
+          "dependency_group": "rudder-encoder",
+          "source_ref": "synthetic-source:positive-steering-nominal:o1",
+          "unit": "deg",
+          "calibration_ref": "synthetic-calibration:rudder-angle:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -484,7 +610,16 @@
           "source_role": "measured_sensor",
           "quality": "stale",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "fuel-rail"
+          "dependency_group": "fuel-rail",
+          "source_ref": "synthetic-source:negative-fuel-stale:o1",
+          "unit": "kPa",
+          "calibration_ref": "synthetic-calibration:fuel-pressure:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -527,7 +662,16 @@
           "source_role": "measured_sensor",
           "quality": "wrong_unit",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "fuel-rail"
+          "dependency_group": "fuel-rail",
+          "source_ref": "synthetic-source:negative-wrong-unit:o1",
+          "unit": "kPa",
+          "calibration_ref": "synthetic-calibration:fuel-pressure:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -570,7 +714,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r6",
-          "dependency_group": "pump-sensor"
+          "dependency_group": "pump-sensor",
+          "source_ref": "synthetic-source:negative-wrong-config:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:pump-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -613,7 +766,16 @@
           "source_role": "measured_sensor",
           "quality": "calibration_expired",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "pump-vibration"
+          "dependency_group": "pump-vibration",
+          "source_ref": "synthetic-source:negative-calibration-expired:o1",
+          "unit": "mm/s",
+          "calibration_ref": "synthetic-calibration:vibration:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -656,7 +818,16 @@
           "source_role": "external_diagnostic",
           "quality": "unauthenticated",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "vendor-gateway"
+          "dependency_group": "vendor-gateway",
+          "source_ref": "synthetic-source:negative-unauthenticated:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:external_diagnostic:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -699,7 +870,16 @@
           "source_role": "simulator_only",
           "quality": "simulator_only",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "sim-truth"
+          "dependency_group": "sim-truth",
+          "source_ref": "synthetic-source:negative-simulator-only:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:simulator_only:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -742,7 +922,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "bilge-level-sensor"
+          "dependency_group": "bilge-level-sensor",
+          "source_ref": "synthetic-source:negative-bilge-pump:o1",
+          "unit": "mm",
+          "calibration_ref": "synthetic-calibration:bilge-level:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o2",
@@ -751,7 +940,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "bilge-pump-controller"
+          "dependency_group": "bilge-pump-controller",
+          "source_ref": "synthetic-source:negative-bilge-pump:o2",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -794,7 +992,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "level-probe"
+          "dependency_group": "level-probe",
+          "source_ref": "synthetic-source:negative-flood-corroborated:o1",
+          "unit": "mm",
+          "calibration_ref": "synthetic-calibration:compartment-level:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o2",
@@ -803,7 +1010,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "flood-panel"
+          "dependency_group": "flood-panel",
+          "source_ref": "synthetic-source:negative-flood-corroborated:o2",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -846,7 +1062,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "fire-panel"
+          "dependency_group": "fire-panel",
+          "source_ref": "synthetic-source:negative-fire-detection:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -889,7 +1114,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "fire-panel"
+          "dependency_group": "fire-panel",
+          "source_ref": "synthetic-source:ambiguity-fire-suppression-unknown:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -930,7 +1164,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "ballast-controller"
+          "dependency_group": "ballast-controller",
+          "source_ref": "synthetic-source:negative-ballast-pump:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -973,7 +1216,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "hvac-controller"
+          "dependency_group": "hvac-controller",
+          "source_ref": "synthetic-source:negative-hvac-electronics-cooling:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -1016,7 +1268,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "aux-power"
+          "dependency_group": "aux-power",
+          "source_ref": "synthetic-source:common-cause-multiple-alarms:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o2",
@@ -1025,7 +1286,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "aux-power"
+          "dependency_group": "aux-power",
+          "source_ref": "synthetic-source:common-cause-multiple-alarms:o2",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o3",
@@ -1034,7 +1304,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "aux-power"
+          "dependency_group": "aux-power",
+          "source_ref": "synthetic-source:common-cause-multiple-alarms:o3",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -1077,7 +1356,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "engine-temp-probe"
+          "dependency_group": "engine-temp-probe",
+          "source_ref": "synthetic-source:positive-three-separated-inputs:o1",
+          "unit": "Cel",
+          "calibration_ref": "synthetic-calibration:engine-temp:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o2",
@@ -1086,7 +1374,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "flow-meter"
+          "dependency_group": "flow-meter",
+          "source_ref": "synthetic-source:positive-three-separated-inputs:o2",
+          "unit": "m3/s",
+          "calibration_ref": "synthetic-calibration:coolant-flow:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o3",
@@ -1095,7 +1392,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "shaft-pickup"
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:positive-three-separated-inputs:o3",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -1136,7 +1442,16 @@
           "source_role": "maintenance_record",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "unknown"
+          "dependency_group": "unknown",
+          "source_ref": "synthetic-source:ambiguity-maintenance-note-only:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:maintenance_record:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -1179,7 +1494,16 @@
           "source_role": "operator_report",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "unknown"
+          "dependency_group": "unknown",
+          "source_ref": "synthetic-source:ambiguity-operator-report-only:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:operator_report:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -1222,7 +1546,16 @@
           "source_role": "model_residual",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "residual-model"
+          "dependency_group": "residual-model",
+          "source_ref": "synthetic-source:ambiguity-unknown-model-domain:o1",
+          "unit": "1",
+          "calibration_ref": "not-applicable:model_residual:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -1263,7 +1596,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "clock-source"
+          "dependency_group": "clock-source",
+          "source_ref": "synthetic-source:negative-common-clock-fault:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:engine-event:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         },
         {
           "observation_id": "o2",
@@ -1272,7 +1614,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "clock-source"
+          "dependency_group": "clock-source",
+          "source_ref": "synthetic-source:negative-common-clock-fault:o2",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:steering-event:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -1315,7 +1666,16 @@
           "source_role": "measured_sensor",
           "quality": "missing_lineage",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "unknown"
+          "dependency_group": "unknown",
+          "source_ref": "synthetic-source:negative-missing-lineage:o1",
+          "unit": "mm/s",
+          "calibration_ref": "synthetic-calibration:shaft-vibration:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -1358,7 +1718,16 @@
           "source_role": "native_equipment_alarm",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "pump-controller"
+          "dependency_group": "pump-controller",
+          "source_ref": "synthetic-source:positive-native-alarm-clear:o1",
+          "unit": "enum:state",
+          "calibration_ref": "not-applicable:native_equipment_alarm:v0",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -1399,7 +1768,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "repair-test-sensor"
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-missing-inspection:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -1440,7 +1818,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "repair-test-sensor"
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-no-authorization:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -1481,7 +1868,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "repair-test-sensor"
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-config-unreconciled:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -1522,7 +1918,16 @@
           "source_role": "measured_sensor",
           "quality": "stale",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "repair-test-sensor"
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-stale-test-evidence:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -1563,7 +1968,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "repair-test-sensor"
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-active-fault-remains:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [
@@ -1606,7 +2020,16 @@
           "source_role": "measured_sensor",
           "quality": "current",
           "config_revision": "vessel-config-r7",
-          "dependency_group": "repair-test-sensor"
+          "dependency_group": "repair-test-sensor",
+          "source_ref": "synthetic-source:recovery-evidence-complete:o1",
+          "unit": "enum:state",
+          "calibration_ref": "synthetic-calibration:post-repair-state:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
         }
       ],
       "fault_hypotheses": [],
@@ -1626,6 +2049,110 @@
         "disposition": "restoration_evidence_complete",
         "capability_remains_restricted": true,
         "restoration_evidence_complete": true
+      }
+    },
+    {
+      "case_id": "negative-age-exceeds-validity",
+      "case_class": "negative",
+      "description": "A nominal quality label cannot override observation age exceeding the bound validity profile.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-001",
+        "component_id": "component-001",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:negative-age-exceeds-validity:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "monotonic_and_utc_bound",
+          "age_ms": 9000,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
+        }
+      ],
+      "fault_hypotheses": [
+        "propulsion-condition-uncertain"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
+      }
+    },
+    {
+      "case_id": "negative-clock-unqualified",
+      "case_class": "ambiguity",
+      "description": "A current-looking sensor observation with conflicted clock quality cannot support a current disposition.",
+      "asset": {
+        "vessel_id": "synthetic-vessel-01",
+        "asset_id": "asset-001",
+        "component_id": "component-001",
+        "config_revision": "vessel-config-r7",
+        "capability": "propulsion-service"
+      },
+      "observations": [
+        {
+          "observation_id": "o1",
+          "after_ms": 100,
+          "signal": "shaft-speed",
+          "source_role": "measured_sensor",
+          "quality": "current",
+          "config_revision": "vessel-config-r7",
+          "dependency_group": "shaft-pickup",
+          "source_ref": "synthetic-source:negative-clock-unqualified:o1",
+          "unit": "rev/min",
+          "calibration_ref": "synthetic-calibration:shaft-speed:v1",
+          "clock_domain": "vessel-monotonic-utc-1",
+          "clock_quality": "conflicted",
+          "age_ms": 100,
+          "max_age_ms": 5000,
+          "validity_profile_ref": "synthetic-validity-profile-v0",
+          "uncertainty_ref": "not-quantified-in-v0.1"
+        }
+      ],
+      "fault_hypotheses": [
+        "propulsion-condition-uncertain"
+      ],
+      "unknown_domain": false,
+      "recovery": {
+        "attempted": false,
+        "repair_record": false,
+        "inspection": false,
+        "proof_test": false,
+        "authorization": false,
+        "configuration_reconciled": false
+      },
+      "expected": {
+        "admitted_observations": 0,
+        "decision_evidence_observations": 0,
+        "distinct_declared_dependency_groups": 0,
+        "disposition": "unknown_escalate",
+        "capability_remains_restricted": true,
+        "restoration_evidence_complete": false
       }
     }
   ]
