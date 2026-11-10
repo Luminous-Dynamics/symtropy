@@ -102,6 +102,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "scan-bim-visibility-evaluator"
+version = "0.1.0"
+dependencies = [
+ "scan-bim-replay-contract",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "serde"
 version = "1.0.229"
 source = "registry+https://github.com/rust-lang/crates.io-index"
