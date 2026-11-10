@@ -12,7 +12,10 @@ This independent Rust crate establishes a reproducible analytic benchmark for th
   - q_next = q + h*v_next
 - A semi-implicit Euler baseline.
 - An independent closed-form continuous-time solution for underdamped, critically damped and overdamped cases.
-- The analytic Jacobian of the complete discrete transition.
+- The analytic state Jacobian of the complete discrete transition.
+- Analytic parameter sensitivities of the forced transition with respect to mass, damping, stiffness, force and timestep.
+- A central finite-difference step ladder for all five parameter derivatives.
+- Full coherent SI base-unit covariance of the forced step map.
 - An exact discrete energy-change identity.
 - Dimensionless stiffness and damping parameters.
 
@@ -29,6 +32,7 @@ The tests cover:
 5. First-order convergence toward the independent closed-form trajectory.
 6. Unit-invariant dimensionless parameters.
 7. Fail-closed validation of invalid models, states and timesteps.
+8. Parameter/timestep Jacobians and full length-time-mass unit covariance.
 
 ## Scope boundary
 
