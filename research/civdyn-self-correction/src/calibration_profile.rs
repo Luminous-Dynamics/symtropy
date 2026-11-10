@@ -476,7 +476,7 @@ pub fn assess_calibration_profile(
                 draw_set_digest: row.draw_set_digest.clone(),
             };
             if &current_predictive != predictive_identity {
-                if row.model_digest != baseline.model_digest {
+                if row.model_digest.as_deref() != baseline.model_digest.as_deref() {
                     return Err(CalibrationProfileError::ModelDigestMismatch {
                         statistic_id: row.statistic_id.clone(),
                         unit_id: row.independent_unit_id.clone(),
