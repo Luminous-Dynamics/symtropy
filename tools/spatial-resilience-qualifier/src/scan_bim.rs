@@ -5,7 +5,9 @@
 //! needed to qualify scan actions, then delegates finite-state feasibility and
 //! Pareto evaluation to the existing spatial-resilience decision-impact oracle.
 
-use crate::decision_impact::{DecisionCaseResult, DecisionImpactFailure, evaluate_decision_case_value};
+use crate::decision_impact::{
+    DecisionCaseResult, DecisionImpactFailure, evaluate_decision_case_value,
+};
 use crate::sha256_hex;
 use jsonschema::validator_for;
 use serde::{Deserialize, Serialize};
@@ -329,7 +331,11 @@ fn case_to_decision_value(
     json!({
         "id": case.case_id,
         "state_revision": case.model_revision,
-        "state_ids": case.possible_states.iter().map(|state| state.state_id.clone()).collect::<Vec<_>>(),
+        "state_ids": case
+            .possible_states
+            .iter()
+            .map(|state| state.state_id.clone())
+            .collect::<Vec<_>>(),
         "current_possible_state_ids": case.current_possible_state_ids,
         "unresolved_critical_unknown_ids": case.task.unresolved_critical_unknown_ids,
         "candidates": candidates,
@@ -442,7 +448,13 @@ pub fn evaluate_scan_bim_decision_bytes(
         decision_rejected_action_count,
         decision,
         action_qualifications: qualifications,
-        claim_ceiling: "FINITE_STATE_SYNTHETIC_DECISION_ADAPTER_ONLY: declared visibility, pose, sensor, hypothesis and cost evidence are not authenticated or calibrated by this adapter; no probability, physical survey accuracy, or real building decision claim is made.".to_owned(),
+        claim_ceiling: concat!(
+            "FINITE_STATE_SYNTHETIC_DECISION_ADAPTER_ONLY: declared visibility, pose, ",
+            "sensor, hypothesis and cost evidence are not authenticated or calibrated ",
+            "by this adapter; no probability, physical survey accuracy, or real building ",
+            "decision claim is made."
+        )
+        .to_owned(),
     })
 }
 
@@ -518,7 +530,8 @@ fn validate_case_header(case: &ScanBimDecisionCase) -> Result<(), Vec<ScanBimAda
             failures.push(ScanBimAdapterFailure {
                 code: "SCAN_BIM_HYPOTHESIS_INVALID".to_owned(),
                 path: "possible_states".to_owned(),
-                detail: "Hypothesis identities, interpretations and finite property values are required.".to_owned(),
+                detail: "Hypothesis identities, interpretations and finite property values are required."
+                    .to_owned(),
             });
         }
         let meets_requirement = match case.task.comparison {
@@ -534,7 +547,8 @@ fn validate_case_header(case: &ScanBimDecisionCase) -> Result<(), Vec<ScanBimAda
                 code: "SCAN_BIM_HYPOTHESIS_REQUIREMENT_CONTRADICTION".to_owned(),
                 path: "possible_states".to_owned(),
                 detail: format!(
-                    "State {:?} declares requirement_satisfied={} but property value {} and threshold {} imply {}.",
+                    "State {:?} declares requirement_satisfied={} but property value {} ",
+                    "and threshold {} imply {}.",
                     state.state_id,
                     state.requirement_satisfied,
                     state.property_value_m,
@@ -632,7 +646,11 @@ mod tests {
         let qualification = report.action_qualifications.iter()
             .find(|item| item.action_id == action.action_id)
             .expect("blocked scan qualification");
-        assert!(qualification.rejection_codes.contains(&"TARGET_NOT_THEORETICALLY_OBSERVABLE".to_owned()));
+        assert!(
+            qualification
+                .rejection_codes
+                .contains(&"TARGET_NOT_THEORETICALLY_OBSERVABLE".to_owned())
+        );
     }
 
     #[test]
@@ -655,7 +673,11 @@ mod tests {
         let qualification = report.action_qualifications.iter()
             .find(|item| item.action_id == "targeted-oblique-clearance-scan")
             .expect("targeted scan qualification");
-        assert!(qualification.rejection_codes.contains(&"TARGET_COVERAGE_BELOW_TASK_THRESHOLD".to_owned()));
+        assert!(
+            qualification
+                .rejection_codes
+                .contains(&"TARGET_COVERAGE_BELOW_TASK_THRESHOLD".to_owned())
+        );
     }
 
     #[test]
