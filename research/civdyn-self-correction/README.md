@@ -246,3 +246,15 @@ The current scorer is a finite-draw, sample-size-matched reference. It does not:
 The energy/variogram values are comparable only under the declared ordered component vocabulary, normalization references, exponent and pair weights. Do not compare raw scores from different statistic definitions as if they were a common leaderboard metric.
 
 Run the joint-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The CIVDYN workflow checks the two known-answer candidates and their native identities. This is synthetic scorer evidence only.
+
+## Scenario M: temporal network topology adequacy
+
+The temporal network reference extends src/network_adequacy.rs with TemporalNetworkSequence and the temporal-network-adequacy-sweep binary. It advances [CIVDYN-TEMPORAL-NETWORK-001 #4457](https://github.com/Luminous-Dynamics/symtropy/issues/4457).
+
+A sequence has a stable node universe, two or more graph snapshots, and strictly increasing integer ticks. It reports mean component count, mean degree and mean transitivity alongside OLS trends per actual tick; adjacent-snapshot edge Jaccard persistence; edge turnover; and normalized edge additions/removals per possible dyad. It does not invent missing snapshots or collapse a sequence into one aggregate graph.
+
+### Reversed-path known answer
+
+The observed path is C6 -> 2K3 -> 3K2. The counterexample reverses it. Both contain the same three snapshots, with identical snapshot-marginal distributions and identical average component count/degree. Their component-count and mean-degree trends have opposite signs, so the joint temporal evaluator penalizes the reversed path.
+
+The ten-component temporal vector is normalized by frozen, declared reference centers/scales; none is estimated from the held-out path. Energy and variogram scores remain separate. These known-answer values qualify the temporal evaluation contract only; they do not establish empirical dynamic-network fidelity.
