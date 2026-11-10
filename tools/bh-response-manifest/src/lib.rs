@@ -573,6 +573,39 @@ impl ResponseManifest {
                         ));
                     }
                 }
+                // A cross-check over several representations must be one
+                // connected comparison graph. Separate, disconnected pairs
+                // cannot qualify the entire declared method ensemble.
+                let mut connected: BTreeSet<&str> = BTreeSet::new();
+                if let Some(first) = self.methods.first() {
+                    connected.insert(first.method_id.as_str());
+                }
+                loop {
+                    let mut changed = false;
+                    for comparison in self.comparisons.iter().filter(|x| x.accepted) {
+                        let left = comparison.left_method_id.as_str();
+                        let right = comparison.right_method_id.as_str();
+                        if connected.contains(left) && connected.insert(right) {
+                            changed = true;
+                        }
+                        if connected.contains(right) && connected.insert(left) {
+                            changed = true;
+                        }
+                    }
+                    if !changed {
+                        break;
+                    }
+                }
+                if connected.len() != self.methods.len() {
+                    let unreachable: Vec<&str> = self.methods.iter()
+                        .map(|method| method.method_id.as_str())
+                        .filter(|id| !connected.contains(id))
+                        .collect();
+                    e.push(format!(
+                        "cross-check comparison graph is disconnected; methods unreachable from the first method: {}",
+                        unreachable.join(", ")
+                    ));
+                }
             }
         }
         if self.qualification == Qualification::Converged {
@@ -888,6 +921,45 @@ mod tests {
         assert!(errors.iter().any(|e| e.contains("metric-definition digest invalid")));
         assert!(errors.iter().any(|e| e.contains("aligned-sample digest invalid")));
         assert!(errors.iter().any(|e| e.contains("norm differs")));
+    }
+
+    #[test]
+    fn cross_check_requires_a_connected_method_comparison_graph() {
+        let mut m = base();
+        m.qualification = Qualification::IndependentlyCrossChecked;
+        oracle(&mut m);
+        m.provenance.input_digests.push(NamedDigest {
+            name: "initial-data".into(),
+            sha256: d('e'),
+        });
+        m.methods.extend([
+            method("fd", 'f', '1'),
+            method("freq", '0', '2'),
+            method("green-a", '3', '4'),
+            method("green-b", '5', '6'),
+        ]);
+        for window_id in ["fd-freq", "green-a-green-b"] {
+            m.response_windows.push(ResponseWindow {
+                window_id: window_id.into(),
+                causal_region: "late-time".into(),
+                norm_id: "complex-l2-relative".into(),
+                observed_error: 1e-9,
+                acceptance_limit: 1e-8,
+            });
+        }
+        m.comparisons.push(pair_comparison("fd-freq", "fd", "freq", 1e-9, 1e-8));
+        m.comparisons.push(pair_comparison("green-a-green-b", "green-a", "green-b", 1e-9, 1e-8));
+        assert!(m.validate().unwrap_err().iter().any(|e| e.contains("comparison graph is disconnected")));
+
+        m.response_windows.push(ResponseWindow {
+            window_id: "bridge".into(),
+            causal_region: "late-time".into(),
+            norm_id: "complex-l2-relative".into(),
+            observed_error: 1e-9,
+            acceptance_limit: 1e-8,
+        });
+        m.comparisons.push(pair_comparison("bridge", "freq", "green-a", 1e-9, 1e-8));
+        assert!(m.validate().is_ok());
     }
 
     #[test]
