@@ -22,7 +22,7 @@
       "capability_census_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "scenario_mapping_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "semantic_equivalence": "matched",
-      "evidence_class": "independently_validated",
+      "evidence_class": "synthetic_only",
       "validity": "inside_declared_envelope",
       "horizon_covered": true,
       "hard_constraints": "within_bounds",
@@ -41,7 +41,7 @@
       "capability_census_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "scenario_mapping_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
       "semantic_equivalence": "matched",
-      "evidence_class": "analytic_oracle",
+      "evidence_class": "synthetic_only",
       "validity": "inside_declared_envelope",
       "horizon_covered": true,
       "hard_constraints": "within_bounds",
@@ -53,5 +53,5 @@
       "independent_validation_receipt_sha256s": []
     }
   ],
-  "decision_risk": "engineering_decision"
+  "decision_risk": "exploratory"
 }
