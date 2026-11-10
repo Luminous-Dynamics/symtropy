@@ -8,6 +8,8 @@ const BENCHMARK_ID: &str = "SHIPYARD-DISTORTION-CO-DESIGN-001";
 const SCHEMA_VERSION: &str = "0.1.0";
 const DEFAULT_CORPUS: &str = "benchmarks/shipyard/distortion-co-design/corpus-v0.1.json";
 const DEFAULT_SCHEMA: &str = "docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_V0_1.schema.json";
+const DEFAULT_ENUMERABLE_CORPUS: &str = "benchmarks/shipyard/distortion-co-design/enumerable-oracle-v0.1.json";
+const DEFAULT_ENUMERABLE_SCHEMA: &str = "docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_ENUMERABLE_ORACLE_V0_1.schema.json";
 
 #[derive(Debug, PartialEq, Eq)]
 struct Summary {
@@ -389,11 +391,9 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
     }
 
     let mut permutations = Vec::new();
-    collect_permutations(
-        &mut task_ids.clone(),
-        &mut Vec::new(),
-        &mut permutations,
-    );
+    let mut remaining_tasks = task_ids.clone();
+    let mut prefix = Vec::new();
+    collect_permutations(&mut remaining_tasks, &mut prefix, &mut permutations);
 
     let mut plans = Vec::new();
     for sequence in permutations {
@@ -671,10 +671,22 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
 
 fn main() -> ExitCode {
     let mut args = env::args().skip(1);
-    let corpus_path = args.next().unwrap_or_else(|| DEFAULT_CORPUS.to_owned());
-    let schema_path = args.next().unwrap_or_else(|| DEFAULT_SCHEMA.to_owned());
+    let first_arg = args.next();
+    let is_oracle_mode = first_arg.as_deref() == Some("--oracle");
+    let corpus_path = if is_oracle_mode {
+        args.next().unwrap_or_else(|| DEFAULT_ENUMERABLE_CORPUS.to_owned())
+    } else {
+        first_arg.unwrap_or_else(|| DEFAULT_CORPUS.to_owned())
+    };
+    let schema_path = if is_oracle_mode {
+        args.next().unwrap_or_else(|| DEFAULT_ENUMERABLE_SCHEMA.to_owned())
+    } else {
+        args.next().unwrap_or_else(|| DEFAULT_SCHEMA.to_owned())
+    };
     if args.next().is_some() {
-        eprintln!("usage: shipyard-distortion-co-design [CORPUS_PATH] [SCHEMA_PATH]");
+        eprintln!(
+            "usage: shipyard-distortion-co-design [CORPUS_PATH] [SCHEMA_PATH] | --oracle [ORACLE_CORPUS] [ORACLE_SCHEMA]"
+        );
         return ExitCode::from(2);
     }
 
@@ -692,6 +704,27 @@ fn main() -> ExitCode {
             return ExitCode::FAILURE;
         }
     };
+
+    if is_oracle_mode {
+        return match validate_enumerable_oracle(&schema_text, &corpus_text) {
+            Ok(summary) => {
+                println!(
+                    "PASS: exhaustively enumerated {cases} toy cases, {feasible} feasible plans and {pareto} Pareto plans; symbolic objectives only",
+                    cases = summary.cases,
+                    feasible = summary.feasible_plans,
+                    pareto = summary.pareto_plans
+                );
+                ExitCode::SUCCESS
+            }
+            Err(errors) => {
+                eprintln!("ORACLE FAIL: {} discrepancy/contract error(s)", errors.len());
+                for error in errors {
+                    eprintln!("- {error}");
+                }
+                ExitCode::FAILURE
+            }
+        };
+    }
 
     match validate_manifest(&schema_text, &corpus_text) {
         Ok(summary) => {
@@ -725,6 +758,34 @@ mod tests {
 
     fn corpus_value() -> Value {
         serde_json::from_str(CORPUS_TEXT).expect("corpus must parse")
+    }
+
+    const ORACLE_SCHEMA_TEXT: &str =
+        include_str!("../../../../docs/tech/SHIPYARD_DISTORTION_CO_DESIGN_ENUMERABLE_ORACLE_V0_1.schema.json");
+    const ORACLE_CORPUS_TEXT: &str =
+        include_str!("../../../../benchmarks/shipyard/distortion-co-design/enumerable-oracle-v0.1.json");
+
+    #[test]
+    fn exhaustive_oracle_matches_frozen_counts_and_pareto_sets() {
+        let summary = validate_enumerable_oracle(ORACLE_SCHEMA_TEXT, ORACLE_CORPUS_TEXT)
+            .expect("enumerable oracle should match every frozen known-answer case");
+        assert_eq!(
+            summary,
+            OracleSummary {
+                cases: 4,
+                feasible_plans: 37,
+                pareto_plans: 15,
+            }
+        );
+    }
+
+    #[test]
+    fn exhaustive_oracle_rejects_a_falsified_pareto_answer() {
+        let mut corpus: Value =
+            serde_json::from_str(ORACLE_CORPUS_TEXT).expect("oracle corpus must parse");
+        corpus["cases"][1]["pareto_plan_ids"] = Value::Array(Vec::new());
+        let serialized = serde_json::to_string(&corpus).expect("serialize oracle mutation");
+        assert!(validate_enumerable_oracle(ORACLE_SCHEMA_TEXT, &serialized).is_err());
     }
 
     #[test]
