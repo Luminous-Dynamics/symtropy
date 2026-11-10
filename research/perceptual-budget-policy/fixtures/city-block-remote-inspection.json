@@ -4,7 +4,7 @@
   "scene_capture_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "metric_bundle_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
   "contract": {
-    "task_mode": "remote_low_power",
+    "task_mode": "engineering_inspection",
     "max_spatial_error": 0.1,
     "max_temporal_error": 0.1,
     "min_task_legibility": 0.8,
@@ -18,7 +18,9 @@
     "protected_asset_ids": ["asset-critical-01"],
     "require_measured_workload": true,
     "min_panel_evaluators": 0,
-    "min_preference_lower_95": null
+    "min_preference_lower_95": null,
+    "human_panel_protocol_sha256": null,
+    "human_panel_sample_set_sha256": null
   },
   "budget": {
     "max_p95_frame_time_us": 16700,
@@ -29,7 +31,7 @@
   "profiles": [
     {
       "profile_id": "high-quality",
-      "task_mode": "remote_low_power",
+      "task_mode": "engineering_inspection",
       "scene_capture_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "metric_bundle_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "measurement_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
