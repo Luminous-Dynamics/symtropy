@@ -397,7 +397,8 @@
             "required_asset_feature_id",
             "survey_revision",
             "source_group",
-            "rights_review_status"
+            "rights_review_status",
+            "max_observation_age_s"
           ],
           "properties": {
             "mission_id": {
@@ -453,6 +454,10 @@
                 "review_required",
                 "synthetic_not_applicable"
               ]
+            },
+            "max_observation_age_s": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         },
