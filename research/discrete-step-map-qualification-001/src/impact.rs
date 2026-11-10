@@ -307,6 +307,11 @@ impl ImpactModel1D {
                     )
                 };
 
+            let event_gap = initial.gap_m
+                + initial.velocity_m_s * event_time
+                + 0.5 * self.acceleration_m_s2 * event_time * event_time;
+            let complementarity_residual =
+                event_gap.abs() * impact_impulse + state.gap_m * support_impulse;
             let outcome = ImpactStepOutcome {
                 state,
                 branch,
@@ -318,18 +323,14 @@ impl ImpactModel1D {
                 event_time_s: Some(event_time),
                 impact_impulse_ns: impact_impulse,
                 support_impulse_ns: support_impulse,
-                complementarity_residual: {
-                    let event_gap = initial.gap_m
-                        + initial.velocity_m_s * event_time
-                        + 0.5 * self.acceleration_m_s2 * event_time * event_time;
-                    event_gap.abs() * impact_impulse + state.gap_m * support_impulse
-                },
+                complementarity_residual,
                 step_jacobian: if boundary { None } else { jacobian },
             };
             if !outcome.impact_impulse_ns.is_finite()
                 || !outcome.support_impulse_ns.is_finite()
                 || !outcome.state.gap_m.is_finite()
                 || !outcome.state.velocity_m_s.is_finite()
+                || !outcome.complementarity_residual.is_finite()
             {
                 return Err(ImpactError::NonFiniteResult);
             }
@@ -367,6 +368,14 @@ impl ImpactModel1D {
             )?)
         };
 
+        let event_gap = initial.gap_m
+            + initial.velocity_m_s * event_time
+            + 0.5 * self.acceleration_m_s2 * event_time * event_time;
+        let complementarity_residual = event_gap.abs() * impact_impulse;
+        if !impact_impulse.is_finite() || !complementarity_residual.is_finite() {
+            return Err(ImpactError::NonFiniteResult);
+        }
+
         Ok(ImpactStepOutcome {
             state: ImpactState1D {
                 gap_m: final_gap.max(0.0),
@@ -381,12 +390,7 @@ impl ImpactModel1D {
             event_time_s: Some(event_time),
             impact_impulse_ns: impact_impulse,
             support_impulse_ns: 0.0,
-            complementarity_residual: {
-                let event_gap = initial.gap_m
-                    + initial.velocity_m_s * event_time
-                    + 0.5 * self.acceleration_m_s2 * event_time * event_time;
-                event_gap.abs() * impact_impulse
-            },
+            complementarity_residual,
             step_jacobian: jacobian,
         })
     }
@@ -755,6 +759,39 @@ mod tests {
             .unwrap();
         assert_eq!(result.derivative_class, ImpactDerivativeClass::EventBoundary);
         assert!(result.step_jacobian.is_none());
+    }
+
+    #[test]
+    fn invalid_dimensional_tolerances_fail_closed() {
+        let model = ImpactModel1D::try_new(1.0, -9.81, 0.0).unwrap();
+        assert_eq!(
+            model.step(
+                ImpactState1D {
+                    gap_m: 1.0,
+                    velocity_m_s: 0.0,
+                },
+                0.5,
+                ImpactTolerances {
+                    event_time_s: 0.0,
+                    ..ImpactTolerances::default()
+                },
+            ),
+            Err(ImpactError::InvalidTolerance)
+        );
+        assert_eq!(
+            model.step(
+                ImpactState1D {
+                    gap_m: 1.0,
+                    velocity_m_s: 0.0,
+                },
+                0.5,
+                ImpactTolerances {
+                    normal_velocity_m_s: f64::NAN,
+                    ..ImpactTolerances::default()
+                },
+            ),
+            Err(ImpactError::InvalidTolerance)
+        );
     }
 
     #[test]
