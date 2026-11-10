@@ -64,6 +64,8 @@ pub struct ThermalUpdateReceipt {
     pub context_digest: String,
     pub model_digest: String,
     pub manifest_digest: String,
+    pub prior_thermal_state_digest: String,
+    pub resulting_thermal_state_digest: String,
     pub valid_through_tick: u64,
 }
 
@@ -80,6 +82,7 @@ pub struct MissionState {
     /// Identity and fresh initial evidence for the whole-body thermal network.
     pub thermal_model_digest: String,
     pub thermal_receipt_ref: String,
+    pub thermal_state_digest: String,
     pub thermal_valid_through_tick: u64,
     /// Per-node temperatures; never replaced by an average temperature.
     pub thermal_nodes: Vec<ThermalNodeState>,
@@ -172,6 +175,7 @@ pub enum MissionError {
     InvalidInitialThermalEnvelope,
     EmptyThermalModelDigest,
     EmptyInitialThermalReceipt,
+    EmptyInitialThermalStateDigest,
     EmptyThermalNodeId,
     DuplicateThermalNodeId(String),
     EmptyThermalNodeSource(String),
@@ -226,6 +230,9 @@ fn validate_initial(state: &MissionState) -> Result<(), MissionError> {
     }
     if state.thermal_receipt_ref.trim().is_empty() {
         return Err(MissionError::EmptyInitialThermalReceipt);
+    }
+    if state.thermal_state_digest.trim().is_empty() {
+        return Err(MissionError::EmptyInitialThermalStateDigest);
     }
     if state.thermal_nodes.is_empty() {
         return Err(MissionError::EmptyThermalNodeId);
@@ -395,6 +402,8 @@ pub fn replay(
             || thermal_receipt.manifest_digest.trim().is_empty()
             || thermal_receipt.context_digest != state.context_digest
             || thermal_receipt.model_digest != state.thermal_model_digest
+            || thermal_receipt.prior_thermal_state_digest != state.thermal_state_digest
+            || thermal_receipt.resulting_thermal_state_digest.trim().is_empty()
             || thermal_receipt.valid_through_tick < event.event_tick
         {
             return Ok(stopped(
@@ -451,6 +460,7 @@ pub fn replay(
             }
         }
         next.thermal_receipt_ref = thermal_receipt.receipt_ref.clone();
+        next.thermal_state_digest = thermal_receipt.resulting_thermal_state_digest.clone();
         next.thermal_valid_through_tick = thermal_receipt.valid_through_tick;
         if next
             .thermal_nodes
@@ -642,6 +652,7 @@ mod tests {
             thermal_capacity_mj: 500,
             thermal_model_digest: "whole-body-thermal-model:v1".to_owned(),
             thermal_receipt_ref: "thermal:initial".to_owned(),
+            thermal_state_digest: "thermal-state:initial".to_owned(),
             thermal_valid_through_tick: 1_000,
             thermal_nodes: vec![
                 ThermalNodeState {
@@ -688,6 +699,8 @@ mod tests {
                 context_digest: "mission-context-1".to_owned(),
                 model_digest: "whole-body-thermal-model:v1".to_owned(),
                 manifest_digest: "thermal-manifest:v1".to_owned(),
+                prior_thermal_state_digest: "thermal-state:initial".to_owned(),
+                resulting_thermal_state_digest: format!("thermal-state:{id}:{tick}"),
                 valid_through_tick: 1_000,
             }),
             thermal_node_updates: vec![
