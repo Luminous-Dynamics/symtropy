@@ -1,0 +1,32 @@
+name: Discrete Step-Map Qualification Seed
+
+on:
+  push:
+    paths:
+      - "research/discrete-step-map-qualification-001/**"
+      - ".github/workflows/discrete-step-map-qualification.yml"
+  pull_request:
+    paths:
+      - "research/discrete-step-map-qualification-001/**"
+      - ".github/workflows/discrete-step-map-qualification.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify-discrete-step-map:
+    name: Validate analytic discrete step-map oracle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/discrete-step-map-qualification-001/Cargo.toml -- --check
+      - name: Test analytic trajectory, step map and energy identity
+        run: cargo +1.96.0 test --locked --manifest-path research/discrete-step-map-qualification-001/Cargo.toml
+      - name: Strict Clippy
+        run: cargo +1.96.0 clippy --locked --manifest-path research/discrete-step-map-qualification-001/Cargo.toml --all-targets -- -D warnings
