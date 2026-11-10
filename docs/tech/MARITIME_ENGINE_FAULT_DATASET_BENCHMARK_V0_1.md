@@ -83,9 +83,28 @@ Use grouped bootstrap confidence intervals by recording, not by individual row. 
 
 ## Industry/SOTA positioning
 
-This public test bench enables a fair comparison against conventional condition-monitoring and ML workflows, but it does not constitute a universal marine-engine SOTA leaderboard. ISO 17359 and ISO 13374-1 provide condition-monitoring programme and diagnostic-data process guidance, not a matched fault-detection score. DNV AROS separately recognizes engineering functions alongside navigation, operational and safety functions; the benchmark therefore feeds a bounded engineering-capability status rather than redefining vessel autonomy or mode authority.
+This public test bench enables matched experiments against conventional condition-monitoring and ML workflows, but it is not a universal marine-engine SOTA leaderboard. ISO 17359 and ISO 13374-1 provide condition-monitoring programme and diagnostic-data process guidance, not a matched fault-detection score. DNV AROS separately recognizes engineering functions alongside navigation, operational and safety functions; the benchmark therefore feeds a bounded engineering-capability status rather than redefining vessel autonomy or mode authority.
 
-Our potential differentiation is the assurance layer around diagnostics: configuration-bound evidence, source and calibration lineage, common-cause handling, clock/freshness qualification, calibrated unknown states, capability impact and review-gated recovery. We must still prove diagnostic quality on this public measured dataset and later on independent engine models and shipboard data.
+### Commercial baseline
+
+Current OEM/service offerings already cover important parts of this problem:
+
+| Provider/product | Publicly described capability | What it means for our comparison |
+|---|---|---|
+| Wärtsilä Expert Insight | Vessel-specific operating-profile analytics, AI anomaly detection, rule-based diagnostics and expert analysis; onboard and shore collaboration on recommendations and cases | The bar is not merely "detect anomalies"; compare false alarms, lead time, expert burden, evidence traceability and cross-OEM portability |
+| MAN CEON / PrimeServ Assist | Real-time data from hundreds of engine/turbine/compressor sensors, ML/AI analysis and global expert monitoring/advisory | Compare per-equipment configuration, fault isolation, calibrated uncertainty, maintainability and vendor-neutral evidence exports |
+| Kongsberg Vessel Insight / Health Management | Edge collection, aggregation, compression/caching, ship-system connectors and segmented network path; machinery-health analytics and experts-in-the-loop | Compare data lineage, offline/partition behavior, protocol interoperability, asset identity and exact replay across edge/cloud boundaries |
+| DNV Machinery Maintenance Connect / PMS-RCM | Remote machinery planned-maintenance survey using vessel maintenance data, algorithms and reliability-centred maintenance | Compare assurance-grade maintenance evidence, change history, auditability and the boundary between diagnostic advice and class/maintenance authority |
+
+These descriptions are vendor or provider material, not independent proof of diagnostic accuracy. No public, matched head-to-head dataset or universal performance score was identified for these proprietary service offerings. We therefore must not claim that Symthaea/Symtropy currently outperforms them. The useful strategic wedge is an open, vendor-neutral assurance and evidence layer that can consume OEM diagnostics without silently trusting them, reconcile the evidence to exact vessel configuration, and carry capability impacts into ODD/mode assurance.
+
+### Additional research dataset candidate
+
+A second, more demanding data descriptor appeared in *Scientific Data* on 22 August 2026: [Multi-source thermal and performance data for thermal fault diagnosis in marine diesel engines](https://doi.org/10.1038/s41597-026-07924-7). Its abstract describes calibrated simulation, noisy bench measurements, real-vessel telemetry and virtual-real fault fusion; 24-dimensional high-frequency gas-path and steady-state indicators; one healthy condition and ten thermal fault modes. It reports 70.18% zero-shot virtual-to-real accuracy under its own protocol. That score is not comparable to results on the MU323DGSC archive or to our future runs. Treat it as a **high-priority data-access and protocol-audit candidate**, not as an integrated benchmark: verify the data repository, licensing, real-vessel label provenance and exact train/test separation before use.
+
+A separate 2026 paper reports 99.45% accuracy for a multisource-fusion method, but its methods include simulation-generated samples and the paper itself notes limits on broader real-world validation. A headline accuracy is therefore not a defensible SOTA comparator unless we reproduce the same source domains, sample-level independence, class definitions and split protocol. We should compare methods on a common frozen test protocol and publish per-domain results instead.
+
+Our potential differentiation is the assurance layer around diagnostics: configuration-bound evidence, source and calibration lineage, common-cause handling, clock/freshness qualification, calibrated unknown states, capability impact and review-gated recovery. We must still prove diagnostic quality on public measured data and later on independent engine models and shipboard data.
 
 ## Attribution and claim boundary
 
