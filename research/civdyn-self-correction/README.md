@@ -233,3 +233,14 @@ The diagnostic statistic IDs and observation digests are caller-declared provena
 The benchmark's diagnostic statistic IDs and observation digests are distinct from all held-out challenge receipts. These are protocol known answers, not evidence that an actual repair improved a real simulator.
 
 Run repair-qualification-sweep using the locked workspace manifest. CI checks the named CSV schema, per-network transition, report claim, exact challenge identities, and byte-identical replay.
+
+
+## Scenario L: fresh-challenge repair width budget
+
+The repair qualification reference now also enforces a predeclared maximum ratio between repaired and baseline predictive interval widths. The default fixture budget is 1.0 (no widening). Every challenge statistic/unit reports its baseline width, repaired width, width ratio where defined, and an independent width-budget-exceeded flag.
+
+A repaired observation can move inside its predictive interval while the repair still fails the width budget. This prevents interval inflation from being counted as restoration. If the baseline interval width is zero, any positive repaired width exceeds the budget; the ratio is emitted as unavailable rather than infinity or a misleading finite number.
+
+The report keeps coverage transitions and width inflation distinct. Regression remains the highest-priority global failure; a primary width-budget violation blocks restoration and is separately counted. A known regression or width violation remains visible even where another statistic improves.
+
+The deterministic repair sweep includes a fourth scenario, width_budget_exceeded, where the repaired model covers a previously outside held-out observation only by widening its interval beyond the maximum ratio. This is a synthetic protocol counterexample, not evidence about a real repaired model.
