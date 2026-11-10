@@ -229,6 +229,48 @@ pub struct ProjectionGateReport {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RealizationStatus {
+    Matched,
+    Mismatch,
+    Unknown,
+    Invalid,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActuatorRealizationReceipt {
+    pub receipt_id: String,
+    pub result_digest: String,
+    pub executed_command_digest: String,
+    pub input_state_digest: String,
+    pub model_digest: String,
+    pub abstraction_digest: String,
+    pub domain_digest: String,
+    pub actuator_digest: String,
+    pub status: RealizationStatus,
+    pub witness_or_reason: Option<String>,
+    pub applied_at_ns: u64,
+    pub observed_at_ns: u64,
+    pub valid_from_ns: u64,
+    pub valid_until_ns: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RealizationDisposition {
+    ConfirmedDelivered { result_digest: String },
+    DeliveryMismatch { witness_id: String },
+    Unknown { reason: String },
+    Invalid { reason: String },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeliveryReconciliation {
+    pub disposition: RealizationDisposition,
+    /// A subsequent state-changing command is permitted only after a matched
+    /// command-to-delivered realization receipt.
+    pub next_command_permitted: bool,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectionError {
     EmptyIdentifier,
     InvalidProposalTiming,
@@ -742,6 +784,119 @@ fn validate_independent_receipts(problem: &ProjectionGateProblem) -> Result<(), 
         return Err(ProjectionError::ReceiptContextMismatch);
     }
     Ok(())
+}
+
+/// Reconcile a command that the independent projection gate authorized.
+/// A mismatch/unknown result blocks the next state-changing command until the
+/// actuator outcome is independently reconciled.
+pub fn reconcile_delivery(
+    disposition: &GateDisposition,
+    proposal: &PolicyProposal,
+    receipt: &ActuatorRealizationReceipt,
+    now_ns: u64,
+) -> Result<DeliveryReconciliation, ProjectionError> {
+    let authorized_digest = match disposition {
+        GateDisposition::ExecuteProjected { command_digest }
+        | GateDisposition::ExecuteFallback { command_digest, .. } => command_digest,
+        GateDisposition::Rejected { .. }
+        | GateDisposition::Unknown { .. }
+        | GateDisposition::Invalid { .. } => {
+            return Err(ProjectionError::UnexpectedExecutionReceipt);
+        }
+    };
+
+    for id in [
+        receipt.receipt_id.as_str(),
+        receipt.result_digest.as_str(),
+        receipt.executed_command_digest.as_str(),
+        receipt.input_state_digest.as_str(),
+        receipt.model_digest.as_str(),
+        receipt.abstraction_digest.as_str(),
+        receipt.domain_digest.as_str(),
+        receipt.actuator_digest.as_str(),
+    ] {
+        if !nonempty(id) {
+            return Err(ProjectionError::EmptyIdentifier);
+        }
+    }
+    if receipt.executed_command_digest != *authorized_digest {
+        return Err(ProjectionError::ExecutionReceiptMismatch);
+    }
+    if receipt.input_state_digest != proposal.input_state_digest {
+        return Err(ProjectionError::StateIdentityMismatch);
+    }
+    if receipt.model_digest != proposal.model_digest {
+        return Err(ProjectionError::ModelIdentityMismatch);
+    }
+    if receipt.abstraction_digest != proposal.abstraction_digest {
+        return Err(ProjectionError::AbstractionIdentityMismatch);
+    }
+    if receipt.domain_digest != proposal.domain_digest {
+        return Err(ProjectionError::DomainIdentityMismatch);
+    }
+    if receipt.actuator_digest != proposal.actuator_digest {
+        return Err(ProjectionError::ActuatorIdentityMismatch);
+    }
+    if receipt.applied_at_ns != proposal.intended_apply_at_ns
+        || receipt.observed_at_ns < receipt.applied_at_ns
+        || receipt.observed_at_ns > now_ns
+    {
+        return Err(ProjectionError::InvalidSolverTiming);
+    }
+    validate_receipt_interval(
+        receipt.valid_from_ns,
+        receipt.valid_until_ns,
+        receipt.observed_at_ns,
+    )?;
+
+    let disposition = match receipt.status {
+        RealizationStatus::Matched => {
+            if receipt.witness_or_reason.is_some() {
+                return Err(ProjectionError::InvalidReceipt);
+            }
+            RealizationDisposition::ConfirmedDelivered {
+                result_digest: receipt.result_digest.clone(),
+            }
+        }
+        RealizationStatus::Mismatch => {
+            let witness = receipt
+                .witness_or_reason
+                .as_deref()
+                .filter(|value| nonempty(value))
+                .ok_or(ProjectionError::MissingStatusReason)?;
+            RealizationDisposition::DeliveryMismatch {
+                witness_id: witness.to_owned(),
+            }
+        }
+        RealizationStatus::Unknown => {
+            let reason = receipt
+                .witness_or_reason
+                .as_deref()
+                .filter(|value| nonempty(value))
+                .ok_or(ProjectionError::MissingStatusReason)?;
+            RealizationDisposition::Unknown {
+                reason: reason.to_owned(),
+            }
+        }
+        RealizationStatus::Invalid => {
+            let reason = receipt
+                .witness_or_reason
+                .as_deref()
+                .filter(|value| nonempty(value))
+                .ok_or(ProjectionError::MissingStatusReason)?;
+            RealizationDisposition::Invalid {
+                reason: reason.to_owned(),
+            }
+        }
+    };
+    let next_command_permitted = matches!(
+        disposition,
+        RealizationDisposition::ConfirmedDelivered { .. }
+    );
+    Ok(DeliveryReconciliation {
+        disposition,
+        next_command_permitted,
+    })
 }
 
 pub fn qualify_projected_action(
