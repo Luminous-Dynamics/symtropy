@@ -1281,7 +1281,7 @@ pub struct KerrMinoTrajectoryPoint {
     pub constraint_residuals: KerrMinoConstraintResiduals,
 }
 
-/// Completed exterior Kerr null trajectory and numerical diagnostics.
+/// Completed Kerr null trajectory and numerical diagnostics.
 #[derive(Debug, Clone, PartialEq)]
 pub struct KerrMinoTrajectory {
     /// Coordinate chart that gives meaning to the time/azimuth slots in every state.
@@ -1430,7 +1430,7 @@ impl KerrSeparatedNullGeodesic {
         self,
         state: MinoVector,
         step: f64,
-        chart: KerrMinoChart,
+        chart: KerrMinoCoordinateChart,
     ) -> Result<MinoVector, KerrGeodesicError> {
         let k1 = self.mino_vector_field(state, chart)?;
         let k2 = self.mino_vector_field(state.add_scaled(k1, 0.5 * step), chart)?;
@@ -1466,7 +1466,7 @@ impl KerrSeparatedNullGeodesic {
             initial,
             final_parameter,
             config,
-            KerrMinoChart::BoyerLindquist,
+            KerrMinoCoordinateChart::BoyerLindquist,
         )
     }
 
@@ -1483,7 +1483,7 @@ impl KerrSeparatedNullGeodesic {
             initial,
             final_parameter,
             config,
-            KerrMinoChart::Ingoing,
+            KerrMinoCoordinateChart::Ingoing,
         )
     }
 
@@ -1492,7 +1492,7 @@ impl KerrSeparatedNullGeodesic {
         initial: KerrMinoDynamicState,
         final_parameter: f64,
         config: KerrMinoIntegrationConfig,
-        chart: KerrMinoChart,
+        chart: KerrMinoCoordinateChart,
     ) -> Result<KerrMinoTrajectory, KerrMinoIntegrationError> {
         if !final_parameter.is_finite() || final_parameter < 0.0 {
             return Err(KerrMinoIntegrationError::InvalidFinalParameter(final_parameter));
