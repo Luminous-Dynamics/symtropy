@@ -238,8 +238,8 @@ cargo run --locked \
 The tool hashes each declared member and supplied archive, requires a valid ZIP signature plus exact publisher-MD5 match before returning success, checks the 3-row/73-column and 3-row/70-column layouts, validates binary anomaly-state labels, verifies onset-evaluable label coverage for the 13 recordings expected to contain both states, records the two anomaly-only nozzle files without inventing onset, audits absolute timestamp empties/duplicates and numeric relative-time ordering, counts common missing-value tokens by channel, and emits a split template with fault recordings unassigned and the baseline reference-only. It rejects path traversal and symlink escape, bounds file reads to 128 MiB, and does not download or extract archive content itself.
 
 The report schema is
-`docs/tech/MARITIME_ENGINE_DATASET_AUDIT_REPORT_V0_1.schema.json`.
-A successful structural audit is still pending independent review; the dataset index and variable dictionary require semantic reconciliation. The report never auto-assigns train/test splits.
+`docs/tech/MARITIME_ENGINE_DATASET_AUDIT_REPORT_V0_1.schema.json`. The report warns about duplicate timestamps, incomplete header metadata and extraction provenance that must be preserved separately.
+A successful structural audit is still pending independent review; the dataset index and variable dictionary require semantic reconciliation. The report never auto-assigns train/test splits. Prognostics/RUL contracts and decision metrics are documented separately in `MARITIME_PROGNOSTICS_BENCHMARK_V0_1.md` and `MARITIME_RUL_FORECAST_V0_1.schema.json`.
 
 Zenodo's file card lists the archive at 26.5 MB, while its separate record-statistics block displays 37.7 GB as data volume. The manifest records both separately and does not interpret the aggregate statistics value as archive payload size. The file-level preview inventory is not a substitute for retrieving and hashing the actual archive bytes.
 
