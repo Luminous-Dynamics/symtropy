@@ -63,8 +63,8 @@ Marine_Engine_Fault_Data directory itself. The CLI:
 - attempts publisher-MD5 verification using md5sum, md5 or OpenSSL when available;
 - parses scenario/baseline CSV files with a strict UTF-8 RFC-4180-style reader;
 - validates the three header rows and 73-column scenario / 70-column baseline layouts;
-- records row counts, binary anomaly labels, 0-to-1 onset transitions, anomaly-only
-  nozzle behavior, relative-time backsteps/duplicates and per-channel missing cells;
+- records row counts, binary anomaly labels, 0-to-1 onset transitions, both anomaly-only
+  injector-nozzle files, relative-time backsteps/duplicates and per-channel missing cells;
 - hashes and UTF-8 checks the metadata files, and generically parses metadata CSVs;
 - emits a file-level split-manifest template that keeps every fault recording unassigned and marks the single baseline recording as reference_only.
 
