@@ -102,7 +102,12 @@ impl<const D: usize> HingeJoint<D> {
         }
     }
 
-    /// Set angle limits in radians.
+    /// Store requested angle limits in radians.
+    ///
+    /// **The 0.2.1 hinge solver does not currently enforce these limits.**
+    /// Do not use this method as a travel stop or physical safety bound.
+    /// See PHYS-HINGE-MOTOR-001:
+    /// https://github.com/Luminous-Dynamics/symtropy/issues/4516.
     pub fn with_limits(mut self, min: f64, max: f64) -> Self {
         self.angle_limits = Some((min, max));
         self
