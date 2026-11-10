@@ -2,9 +2,10 @@ name: Scan-to-BIM Replay Contract
 
 on:
   pull_request:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-visibility-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-visibility-v0-1", "research/scan-bim-rayquery-comparator-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
+      - "research/scan-bim-rayquery-comparator-001/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
@@ -16,9 +17,10 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_DIRECTED_ACCURACY_CORE_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_SURFACE_SAMPLING_V0_1.md"
   push:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-visibility-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-visibility-v0-1", "research/scan-bim-rayquery-comparator-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
+      - "research/scan-bim-rayquery-comparator-001/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
@@ -71,6 +73,22 @@ jobs:
             (.bvh_node_visit_count > 0) and
             ((.visibility_sha256 | length) == 64)
           ' /tmp/scan-bim-visibility-receipt.json
+      - name: Check ray-query known-answer fixture contract
+        run: |
+          jq -e '
+            (.fixture_version == "0.1") and
+            (.coordinate_system.linear_unit == "metre") and
+            (.coordinate_system.axis_order == "xyz") and
+            (.coordinate_system.handedness == "right_handed") and
+            ((.triangles | length) == 3) and
+            ((.rays | length) == 4) and
+            (.rays[0].expected.status == "hit") and
+            (.rays[0].expected.nearest_distance_m == 2.0) and
+            ((.rays[0].expected.nearest_hits | length) == 2) and
+            (.rays[1].expected.status == "miss") and
+            (.rays[2].expected.nearest_distance_m == 4.0) and
+            (.rays[3].expected.status == "miss")
+          ' research/scan-bim-rayquery-comparator-001/fixtures/ray-query-known-answers-v0-1.json
       - name: Run strict Clippy
         run: cargo clippy --locked --workspace --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
