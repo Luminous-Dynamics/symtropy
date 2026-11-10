@@ -146,6 +146,7 @@ pub enum Finding {
     ReplayedActorPolicyChanged,
     ReplayedActorActionChanged,
     ReplayedActorRandomnessChanged,
+    ReplayedActorRandomnessMissing,
     DuplicateRandomEvent,
     MissingExpectedRandomEvent,
     UnexpectedRandomEvent,
@@ -286,7 +287,17 @@ fn validate_branch_pair(branch: &BranchRecord, parent: &BranchRecord, findings: 
             if actor.action_digest != previous.action_digest {
                 findings.push(Finding::ReplayedActorActionChanged);
             }
-            if actor.randomness_digest != previous.randomness_digest {
+            let randomness_is_present = actor
+                .randomness_digest
+                .as_deref()
+                .is_some_and(nonempty);
+            let parent_randomness_is_present = previous
+                .randomness_digest
+                .as_deref()
+                .is_some_and(nonempty);
+            if !randomness_is_present || !parent_randomness_is_present {
+                findings.push(Finding::ReplayedActorRandomnessMissing);
+            } else if actor.randomness_digest != previous.randomness_digest {
                 findings.push(Finding::ReplayedActorRandomnessChanged);
             }
         }
@@ -349,6 +360,9 @@ fn validate_information_fields(
         }
     }
     for field in fields {
+        if field.field_id.trim().is_empty() {
+            findings.push(Finding::EmptyIdentity("information_field"));
+        }
         if field.source_role != InformationSourceRole::PolicyVisible {
             findings.push(if query_inputs {
                 Finding::QueryInputNotPolicyVisible
@@ -831,6 +845,17 @@ mod tests {
         let report = validate_campaign(&campaign);
         assert!(!has(&report, Finding::ReplayedActorInputChanged));
         assert!(!has(&report, Finding::ReplayedActorActionChanged));
+        assert!(!has(&report, Finding::ReplayedActorRandomnessMissing));
+    }
+
+    #[test]
+    fn rejects_replayed_actor_without_randomness_identity() {
+        let mut campaign = valid_campaign();
+        campaign.branches[1].actor_responses[0] =
+            actor(ActorResponseOrigin::Replayed, "actor-input-1", "actor-action-1");
+        campaign.branches[1].actor_responses[0].randomness_digest = None;
+        let report = validate_campaign(&campaign);
+        assert!(has(&report, Finding::ReplayedActorRandomnessMissing));
     }
 
     #[test]
@@ -890,6 +915,18 @@ mod tests {
         campaign.branches[0].random_events[0].shared_with_parent = true;
         let report = validate_campaign(&campaign);
         assert!(has(&report, Finding::DeclaredSharedKeyMismatch));
+    }
+
+    #[test]
+    fn rejects_empty_policy_field_identity() {
+        let mut campaign = valid_campaign();
+        campaign.branches[0].policy_input_fields.push(InformationField {
+            field_id: " ".to_string(),
+            source_role: InformationSourceRole::PolicyVisible,
+            available_tick: 10,
+        });
+        let report = validate_campaign(&campaign);
+        assert!(has(&report, Finding::EmptyIdentity("information_field")));
     }
 
     #[test]
