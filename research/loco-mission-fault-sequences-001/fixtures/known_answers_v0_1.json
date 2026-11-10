@@ -16,7 +16,30 @@
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 300,
         "topology_independent_routes": 2,
-        "terminal_safe_stop_required_energy_mwh": 100
+        "terminal_safe_stop_required_energy_mwh": 100,
+        "thermal_model_digest": "whole-body-thermal-model:v1",
+        "thermal_receipt_ref": "thermal-initial:M01_EACH_EVENT_PASSES_ALONE_BUT_SEQUENCE_EXHAUSTS_RESERVE",
+        "thermal_valid_through_tick": 100000,
+        "thermal_nodes": [
+          {
+            "node_id": "motor:hip_fl",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fl"
+          },
+          {
+            "node_id": "motor:hip_fr",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fr"
+          },
+          {
+            "node_id": "onboard-compute",
+            "temperature_milli_c": 40000,
+            "maximum_temperature_milli_c": 90000,
+            "source_ref": "thermal-source:compute"
+          }
+        ]
       },
       "events": [
         {
@@ -26,7 +49,28 @@
           "authority_loss_ppm": 300000,
           "qualified": true,
           "minimum_authority_required_ppm": 600000,
-          "recovery_budget_cost_mwh": 120
+          "recovery_budget_cost_mwh": 120,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:torque_derate",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 62000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 61000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 41000
+            }
+          ]
         },
         {
           "event_id": "low_friction_recovery",
@@ -35,7 +79,28 @@
           "authority_loss_ppm": 0,
           "qualified": true,
           "minimum_authority_required_ppm": 600000,
-          "recovery_budget_cost_mwh": 210
+          "recovery_budget_cost_mwh": 210,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:low_friction_recovery",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 62000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 61000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 41000
+            }
+          ]
         }
       ],
       "operation_between_events": null,
@@ -54,7 +119,30 @@
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 500,
         "topology_independent_routes": 2,
-        "terminal_safe_stop_required_energy_mwh": 100
+        "terminal_safe_stop_required_energy_mwh": 100,
+        "thermal_model_digest": "whole-body-thermal-model:v1",
+        "thermal_receipt_ref": "thermal-initial:M02_ORDER_CHANGES_TERMINAL_THERMAL_STATE",
+        "thermal_valid_through_tick": 100000,
+        "thermal_nodes": [
+          {
+            "node_id": "motor:hip_fl",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fl"
+          },
+          {
+            "node_id": "motor:hip_fr",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fr"
+          },
+          {
+            "node_id": "onboard-compute",
+            "temperature_milli_c": 40000,
+            "maximum_temperature_milli_c": 90000,
+            "source_ref": "thermal-source:compute"
+          }
+        ]
       },
       "event_sequences": [
         [
@@ -65,7 +153,28 @@
             "authority_loss_ppm": 0,
             "qualified": true,
             "minimum_authority_required_ppm": 900000,
-            "recovery_budget_cost_mwh": 0
+            "recovery_budget_cost_mwh": 0,
+            "thermal_update_receipt": {
+              "receipt_ref": "thermal-update:high_load_turn",
+              "context_digest": "mission-sequence-context-v1",
+              "model_digest": "whole-body-thermal-model:v1",
+              "manifest_digest": "thermal-node-manifest:v1",
+              "valid_through_tick": 100000
+            },
+            "thermal_node_updates": [
+              {
+                "node_id": "motor:hip_fl",
+                "temperature_milli_c": 94000
+              },
+              {
+                "node_id": "motor:hip_fr",
+                "temperature_milli_c": 62000
+              },
+              {
+                "node_id": "onboard-compute",
+                "temperature_milli_c": 46000
+              }
+            ]
           },
           {
             "event_id": "torque_derate",
@@ -74,7 +183,28 @@
             "authority_loss_ppm": 250000,
             "qualified": true,
             "minimum_authority_required_ppm": 600000,
-            "recovery_budget_cost_mwh": 0
+            "recovery_budget_cost_mwh": 0,
+            "thermal_update_receipt": {
+              "receipt_ref": "thermal-update:torque_derate",
+              "context_digest": "mission-sequence-context-v1",
+              "model_digest": "whole-body-thermal-model:v1",
+              "manifest_digest": "thermal-node-manifest:v1",
+              "valid_through_tick": 100000
+            },
+            "thermal_node_updates": [
+              {
+                "node_id": "motor:hip_fl",
+                "temperature_milli_c": 62000
+              },
+              {
+                "node_id": "motor:hip_fr",
+                "temperature_milli_c": 61000
+              },
+              {
+                "node_id": "onboard-compute",
+                "temperature_milli_c": 41000
+              }
+            ]
           }
         ],
         [
@@ -85,7 +215,28 @@
             "authority_loss_ppm": 250000,
             "qualified": true,
             "minimum_authority_required_ppm": 600000,
-            "recovery_budget_cost_mwh": 0
+            "recovery_budget_cost_mwh": 0,
+            "thermal_update_receipt": {
+              "receipt_ref": "thermal-update:torque_derate",
+              "context_digest": "mission-sequence-context-v1",
+              "model_digest": "whole-body-thermal-model:v1",
+              "manifest_digest": "thermal-node-manifest:v1",
+              "valid_through_tick": 100000
+            },
+            "thermal_node_updates": [
+              {
+                "node_id": "motor:hip_fl",
+                "temperature_milli_c": 62000
+              },
+              {
+                "node_id": "motor:hip_fr",
+                "temperature_milli_c": 61000
+              },
+              {
+                "node_id": "onboard-compute",
+                "temperature_milli_c": 41000
+              }
+            ]
           },
           {
             "event_id": "high_load_turn",
@@ -94,7 +245,28 @@
             "authority_loss_ppm": 0,
             "qualified": true,
             "minimum_authority_required_ppm": 900000,
-            "recovery_budget_cost_mwh": 0
+            "recovery_budget_cost_mwh": 0,
+            "thermal_update_receipt": {
+              "receipt_ref": "thermal-update:high_load_turn",
+              "context_digest": "mission-sequence-context-v1",
+              "model_digest": "whole-body-thermal-model:v1",
+              "manifest_digest": "thermal-node-manifest:v1",
+              "valid_through_tick": 100000
+            },
+            "thermal_node_updates": [
+              {
+                "node_id": "motor:hip_fl",
+                "temperature_milli_c": 94000
+              },
+              {
+                "node_id": "motor:hip_fr",
+                "temperature_milli_c": 62000
+              },
+              {
+                "node_id": "onboard-compute",
+                "temperature_milli_c": 46000
+              }
+            ]
           }
         ]
       ],
@@ -119,7 +291,30 @@
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 400,
         "topology_independent_routes": 2,
-        "terminal_safe_stop_required_energy_mwh": 100
+        "terminal_safe_stop_required_energy_mwh": 100,
+        "thermal_model_digest": "whole-body-thermal-model:v1",
+        "thermal_receipt_ref": "thermal-initial:M03_SECOND_FAULT_BEFORE_COOLDOWN",
+        "thermal_valid_through_tick": 100000,
+        "thermal_nodes": [
+          {
+            "node_id": "motor:hip_fl",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fl"
+          },
+          {
+            "node_id": "motor:hip_fr",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fr"
+          },
+          {
+            "node_id": "onboard-compute",
+            "temperature_milli_c": 40000,
+            "maximum_temperature_milli_c": 90000,
+            "source_ref": "thermal-source:compute"
+          }
+        ]
       },
       "events": [
         {
@@ -129,7 +324,28 @@
           "authority_loss_ppm": 250000,
           "qualified": true,
           "minimum_authority_required_ppm": 0,
-          "recovery_budget_cost_mwh": 0
+          "recovery_budget_cost_mwh": 0,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:thermal_derate",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 88000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 65000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 44000
+            }
+          ]
         },
         {
           "event_id": "second_fault_before_cooldown",
@@ -138,7 +354,28 @@
           "authority_loss_ppm": 200000,
           "qualified": false,
           "minimum_authority_required_ppm": 0,
-          "recovery_budget_cost_mwh": 0
+          "recovery_budget_cost_mwh": 0,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:second_fault_before_cooldown",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 99000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 72000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 49000
+            }
+          ]
         }
       ],
       "operation_between_events": {
@@ -160,7 +397,30 @@
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 250,
         "topology_independent_routes": 2,
-        "terminal_safe_stop_required_energy_mwh": 100
+        "terminal_safe_stop_required_energy_mwh": 100,
+        "thermal_model_digest": "whole-body-thermal-model:v1",
+        "thermal_receipt_ref": "thermal-initial:M04_PROBES_COLLECTIVELY_DRAIN_RESERVE",
+        "thermal_valid_through_tick": 100000,
+        "thermal_nodes": [
+          {
+            "node_id": "motor:hip_fl",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fl"
+          },
+          {
+            "node_id": "motor:hip_fr",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fr"
+          },
+          {
+            "node_id": "onboard-compute",
+            "temperature_milli_c": 40000,
+            "maximum_temperature_milli_c": 90000,
+            "source_ref": "thermal-source:compute"
+          }
+        ]
       },
       "events": [
         {
@@ -170,7 +430,28 @@
           "authority_loss_ppm": 0,
           "qualified": true,
           "minimum_authority_required_ppm": 0,
-          "recovery_budget_cost_mwh": 70
+          "recovery_budget_cost_mwh": 70,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:diagnostic_probe_1",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 62000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 61000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 41000
+            }
+          ]
         },
         {
           "event_id": "diagnostic_probe_2",
@@ -179,7 +460,28 @@
           "authority_loss_ppm": 0,
           "qualified": true,
           "minimum_authority_required_ppm": 0,
-          "recovery_budget_cost_mwh": 80
+          "recovery_budget_cost_mwh": 80,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:diagnostic_probe_2",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 68000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 63000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 42000
+            }
+          ]
         },
         {
           "event_id": "fault_recovery",
@@ -188,7 +490,28 @@
           "authority_loss_ppm": 0,
           "qualified": true,
           "minimum_authority_required_ppm": 0,
-          "recovery_budget_cost_mwh": 150
+          "recovery_budget_cost_mwh": 150,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:fault_recovery",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 62000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 61000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 41000
+            }
+          ]
         }
       ],
       "expected": {
@@ -205,7 +528,30 @@
         "actuator_authority_ppm": 650000,
         "recovery_energy_mwh": 250,
         "topology_independent_routes": 1,
-        "terminal_safe_stop_required_energy_mwh": 100
+        "terminal_safe_stop_required_energy_mwh": 100,
+        "thermal_model_digest": "whole-body-thermal-model:v1",
+        "thermal_receipt_ref": "thermal-initial:M05_REPAIR_DOES_NOT_RESET_WITHOUT_REQUALIFICATION",
+        "thermal_valid_through_tick": 100000,
+        "thermal_nodes": [
+          {
+            "node_id": "motor:hip_fl",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fl"
+          },
+          {
+            "node_id": "motor:hip_fr",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fr"
+          },
+          {
+            "node_id": "onboard-compute",
+            "temperature_milli_c": 40000,
+            "maximum_temperature_milli_c": 90000,
+            "source_ref": "thermal-source:compute"
+          }
+        ]
       },
       "events": [
         {
@@ -215,7 +561,28 @@
           "authority_loss_ppm": 0,
           "qualified": false,
           "minimum_authority_required_ppm": 0,
-          "recovery_budget_cost_mwh": 0
+          "recovery_budget_cost_mwh": 0,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:repair_claim",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 62000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 61000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 41000
+            }
+          ]
         }
       ],
       "operation_between_events": {
@@ -240,7 +607,30 @@
         "actuator_authority_ppm": 1000000,
         "recovery_energy_mwh": 180,
         "topology_independent_routes": 2,
-        "terminal_safe_stop_required_energy_mwh": 180
+        "terminal_safe_stop_required_energy_mwh": 180,
+        "thermal_model_digest": "whole-body-thermal-model:v1",
+        "thermal_receipt_ref": "thermal-initial:M06_TASK_COMPLETE_WITHOUT_TERMINAL_SAFE_STOP_RESERVE",
+        "thermal_valid_through_tick": 100000,
+        "thermal_nodes": [
+          {
+            "node_id": "motor:hip_fl",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fl"
+          },
+          {
+            "node_id": "motor:hip_fr",
+            "temperature_milli_c": 60000,
+            "maximum_temperature_milli_c": 100000,
+            "source_ref": "thermal-source:hip_fr"
+          },
+          {
+            "node_id": "onboard-compute",
+            "temperature_milli_c": 40000,
+            "maximum_temperature_milli_c": 90000,
+            "source_ref": "thermal-source:compute"
+          }
+        ]
       },
       "events": [
         {
@@ -250,7 +640,28 @@
           "authority_loss_ppm": 0,
           "qualified": true,
           "minimum_authority_required_ppm": 0,
-          "recovery_budget_cost_mwh": 0
+          "recovery_budget_cost_mwh": 0,
+          "thermal_update_receipt": {
+            "receipt_ref": "thermal-update:task_completion",
+            "context_digest": "mission-sequence-context-v1",
+            "model_digest": "whole-body-thermal-model:v1",
+            "manifest_digest": "thermal-node-manifest:v1",
+            "valid_through_tick": 100000
+          },
+          "thermal_node_updates": [
+            {
+              "node_id": "motor:hip_fl",
+              "temperature_milli_c": 82000
+            },
+            {
+              "node_id": "motor:hip_fr",
+              "temperature_milli_c": 61000
+            },
+            {
+              "node_id": "onboard-compute",
+              "temperature_milli_c": 44000
+            }
+          ]
         }
       ],
       "expected": {
