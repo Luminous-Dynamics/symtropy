@@ -869,3 +869,42 @@ The minimal source repair and qualification remain owned by [SWARM-AUTH-IMPL-001
 - Symthaea [SWARM-AUTH-001 #4143](https://github.com/Luminous-Dynamics/symthaea/issues/4143): explicit no-authority-from-collective-intelligence boundary.
 
 - Symthaea [OLI-APE-SPATIAL-001 #11459](https://github.com/Luminous-Dynamics/symthaea/issues/11459): first source-pinned, task-level non-linguistic cognition reference using EVApeCognition's great-ape hidden-object displacement task. The source data were inspected: 375 trials, 25 subjects, 5 conditions, with 3 trials per subject/condition. A descriptive subject-cluster bootstrap reproduces the expected difficulty ordering, but is not a confirmatory inferential result. The benchmark must use subject-held-out splits and omit names/demographic roster data.
+
+
+## 22. First executable abiotic mechanism controls (10 November 2026)
+
+OLI's first runnable abiotic controls are now being added to the standalone Symtropy workspace. These are deliberately two different causal mechanism families, not a claim that the 12-family abiotic tournament is complete.
+
+### 22.1 Gray–Scott reaction–diffusion
+
+- Tracking issue: [OLI-ABIOTIC-RD-001 #4592](https://github.com/Luminous-Dynamics/symtropy/issues/4592).
+- Draft implementation: [PR #4594](https://github.com/Luminous-Dynamics/symtropy/pull/4594).
+- Crate: \`symtropy-oli-abiotic\`.
+- Generator ID: \`OLI-ABIOTIC-GRAY-SCOTT-001\`.
+
+The first reference implements periodic two-field Gray–Scott reaction–diffusion with a declared deterministic seed patch, explicit Euler integration, bounded timestep and finite/concentration guards. The matched negative control uses the same initial field, grid, timestep and diffusion coefficients but removes the reaction/feed/kill terms. This provides a known-truth comparison between driven pattern formation and diffusion-only smoothing.
+
+The crate tests replay determinism, driven-vs-control spatial variance separation, timestep rejection without mutation, invalid parameters, a zero-feed intervention, and undersized grids. The zero-feed outcome is measured, not assumed.
+
+### 22.2 Synchronization from coupling vs a common external signal
+
+- Tracking issue: [OLI-ABIOTIC-OSCILLATOR-001 #4596](https://github.com/Luminous-Dynamics/symtropy/issues/4596).
+- Draft stacked implementation: [PR #4598](https://github.com/Luminous-Dynamics/symtropy/pull/4598), based on the Gray–Scott crate foundation.
+- Generator ID: \`OLI-ABIOTIC-OSCILLATOR-001\`.
+
+The phase-oscillator benchmark compares:
+- pairwise-coupled oscillators with no common input;
+- uncoupled oscillators synchronized by a shared external periodic forcing;
+- independent oscillators with neither coupling nor common input.
+
+For the frozen deterministic 32-oscillator / 5,000-step profile, a separate reference computation using the same LCG and update equations reports order parameters of approximately 0.997 (coupled-only), 0.997 (common-input-only with coupling exactly zero), and 0.283 (independent).
+
+This is a direct CCI-07 negative control: correlated behavior and high synchronization do not prove communication or collective cognition. The implementation also time-averages phase lag relative to the external driver; the locking metric is unavailable when that driver is absent. It does not substitute the instantaneous order parameter, whose magnitude is invariant under a global phase rotation.
+
+### 22.3 Engineering and qualification status
+
+Both PRs are draft. Exact-head Actions qualification is not yet claimed. The authoring environment does not have Rust/Cargo available, so source-level checks and an independent numerical reference are explicitly separated from Rust compile/fmt/test/Clippy results.
+
+Once the parent Gray–Scott PR is reviewed, the oscillator follow-up can be reviewed as its dependent mechanism control. These two generators are a first executable tranche only; subsequent abiotic families still include hysteresis/memory, reaction-oscillator controls, coherent fluid structures, crystals, granular systems, magnetic-field structures and other mechanism-specific generators.
+
+No synthetic generator result is evidence that a natural sample is living or non-living outside the declared model, regime and intervention scope.
