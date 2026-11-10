@@ -528,7 +528,11 @@ mod tests {
         assert_eq!(forward.final_state.actuator_authority_ppm, 750_000);
         assert_eq!(forward.final_state.thermal_headroom_mj, 70);
 
-        let reversed = replay(&state, &[derate, high_load]).unwrap();
+        let mut derate_first = derate;
+        derate_first.event_tick = 1;
+        let mut high_load_second = high_load;
+        high_load_second.event_tick = 2;
+        let reversed = replay(&state, &[derate_first, high_load_second]).unwrap();
         assert_eq!(reversed.status, MissionStatus::Rejected);
         assert_eq!(
             reversed.stop_reason,
