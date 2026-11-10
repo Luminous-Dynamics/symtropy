@@ -271,7 +271,7 @@ mod tests {
         frame_generator.set(0, 2, 0.58);
         frame_generator.set(1, 2, 0.22);
         let frame_change = Rotor::<3>::from_bivector(&frame_generator);
-        let rotation = frame_change.to_matrix();
+        let rotation = *frame_change.to_matrix();
 
         let original_point_velocity = angular_point_velocity(&angular_velocity, &offset);
         let rotated_angular_matrix =
