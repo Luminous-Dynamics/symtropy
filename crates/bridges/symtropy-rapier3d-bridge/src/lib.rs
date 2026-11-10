@@ -926,6 +926,12 @@ mod tests {
                 true,
             )
             .expect("first body removed");
+        bridge.prune_callback_bodies(&world.bodies);
+        assert_eq!(
+            bridge.callback_body(first),
+            None,
+            "removed bindings are pruned at the explicit reconciliation boundary"
+        );
         let second = world.bodies.insert(
             RigidBodyBuilder::dynamic()
                 .translation(vector![0.0, 10.0, 0.0])
@@ -943,11 +949,6 @@ mod tests {
             "generation must change on reuse"
         );
 
-        assert_eq!(
-            bridge.callback_body(first),
-            None,
-            "removed bindings are pruned"
-        );
         bridge
             .bind_callback_body(second, BodyHandle(11))
             .expect("recycled slot receives a distinct declared identity");
