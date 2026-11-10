@@ -90,6 +90,7 @@ pub enum So3LogError {
     InvalidConfig,
     NonFiniteMatrix,
     NonFiniteParameter,
+    NonFiniteTranslation,
     NonFiniteTangent,
     InvalidRotation {
         orthogonality_error: f64,
@@ -107,6 +108,7 @@ impl fmt::Display for So3LogError {
             Self::InvalidConfig => write!(f, "invalid SO(3) logarithm configuration"),
             Self::NonFiniteMatrix => write!(f, "rotation matrix contains non-finite values"),
             Self::NonFiniteParameter => write!(f, "interpolation parameter must be finite"),
+            Self::NonFiniteTranslation => write!(f, "transform translation contains non-finite values"),
             Self::NonFiniteTangent => write!(f, "SO(3) tangent perturbation must be finite"),
             Self::InvalidRotation {
                 orthogonality_error,
