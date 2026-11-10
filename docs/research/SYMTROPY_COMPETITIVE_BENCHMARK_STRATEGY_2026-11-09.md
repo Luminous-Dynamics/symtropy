@@ -184,6 +184,49 @@ Sources:
 
 The Symtropy differentiator should be **composable assurance**: exact model identity and semantic admission, solver diagnostics, uncertainty and branch semantics, and reproducible evidence across native and external engines. phyz is a useful peer and possible component/adapter target; its public benchmark is not evidence that either project universally dominates the other.
 
+### 3.2.3 Counterexample-guided differential physics — a self-expanding falsification programme
+
+The next paradigm shift is to move from a hand-curated static benchmark suite to a **self-expanding, counterexample-guided falsification loop**. The goal is not to generate as many simulations as possible; it is to generate physically valid, semantically matched cases that are likely to expose a consequential weakness, then reduce every failure to a small reproducible example.
+
+Draft issue [PHYS-DIFF-FUZZ-001 #4446](https://github.com/Luminous-Dynamics/symtropy/issues/4446) owns generation, metamorphic transformations, discrepancy classification and failure-preserving minimization. Existing authorities remain unchanged:
+- #4366 admits or rejects the exact cross-backend semantic pair;
+- #1472 declares backend capabilities and exact model paths;
+- #1172/#3060/#2985 own runtime identity, canonical identity and typed scenario compilation;
+- #443/#495 own Rapier execution and version qualification;
+- #3749 owns analytic/manufactured physics oracles and solver-level V&V;
+- #460 remains the only canonical qualification corpus.
+
+The closed loop is:
+
+```text
+seeded physical generator
+  -> model validity + capability preflight
+  -> pairwise semantic admission
+  -> independent backend execution
+  -> analytical / metamorphic comparison
+  -> discrepancy classification
+  -> minimization preserving semantics + failure
+  -> exact replay and independent reproduction
+  -> reviewed promotion into #460
+```
+
+Candidate generation should cover articulated topology, inertia/mass ratios, contact/friction/restitution regimes, near-simultaneous impacts, grazing, CCD thin-wall/rotating geometry, redundant constraints, solver conditioning, timestep/precision and snapshot/restore. Keep physically valid scenarios distinct from malformed-input parser fuzzing.
+
+Metamorphic relations should include global rigid transforms, coherent unit rescaling, body/constraint permutation, supported Galilean changes, symmetry transforms and timestep refinement. Each relation needs explicit preconditions and an independent verifier; do not assume an invariance where gravity, materials, boundaries or contact law make it invalid.
+
+A disagreement is not automatically a bug and does not identify which engine is correct. Classify semantic mismatch, import/lowering, frame/unit conversion, collision/event ordering, contact law, numerical/integration error, conditioning, precision, replay/restore, or unresolved disagreement. Preserve competing hypotheses if evidence does not isolate one.
+
+Minimization must preserve the semantic admission result, the discrepancy predicate and threshold, relevant contact/event branch, physical preconditions and deterministic replay. A reduced case that changes the physical branch or becomes incomparable is not a valid reproducer. Retain the unreduced parent, generator seed and reducer trace.
+
+Initial targets (research goals, not measured performance):
+- 1,000 valid low-dimensional generated candidates per bounded nightly campaign on fixed reference hardware;
+- 100% semantic admission before a pair receives a numerical comparison score;
+- 100% deterministic replay of a minimized counterexample under its named runtime identity;
+- 100% promoted regressions have an independent oracle or explicit metamorphic relation and reviewer-approved claim ceiling;
+- report generation/admission/execution rates, discrepancy yield, minimization ratio, replay success and cost—not raw simulation count alone.
+
+The first implementation should use the analytical 1D impact/repeated-bounce oracle (#3394/#3407), then one small articulated/free-body family from #3749. Do not begin with humanoid locomotion or large mesh contact. Prove the generator cannot manufacture false comparisons before increasing complexity.
+
 ### 3.3 Richer physical interactions
 
 The frontier includes articulated rigid bodies, contacts, tendons, cables, cloth, deformables, particles and coupled solvers. This is not a reason to immediately implement all of them. It is a reason to define extension boundaries and choose domain-specific solvers based on validated use cases.
