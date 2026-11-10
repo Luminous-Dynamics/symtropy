@@ -20,7 +20,17 @@ This crate is a coordinator. It does not implement an inference allocator: it ca
 6. If ratios tie, prefer the already-qualified inference slice; stable behavior is explicit.
 7. If neither resource has positive admissible value, stop deliberation and return commit-now (not an actuator command).
 
-## Common resource unit
+## Common comparison units
+
+There are three units that must be shared before the scheduler compares candidates:
+
+- **Resource unit:** the same quantity for sensor work and inference work, e.g. measured microjoules on the exact target hardware.
+- **Decision-value unit:** the same regret-reduction scale for sensor refresh and inference, e.g. caller-defined micro-loss units. The scheduler cannot compare scores from different utility scales.
+- **Clock domain:** the same declared clock/tick domain for sensor acquisition-to-delivery and inference latency bounds. Wall-clock nanoseconds cannot be mixed with simulation ticks.
+
+The identifiers are passed explicitly and are bound into the joint decision receipt. The scheduler checks identity equality; it does **not** independently calibrate a measurement, prove the utility estimates are well calibrated, or authenticate the source digests. The inference allocator's `compute_units_per_rollout` value must be calibrated into the same resource unit by the caller and bound by its compute-cost digest. FLOPs, tokens, GPU utilization and model steps are proxies, not measured energy.
+
+Sensor grants carry the exact SAM evidence digest that admitted their estimated decision value. This establishes a reference to the evidence used, not proof that the estimate is correct or an authenticated signature.
 
 Sensor and inference costs must use the same caller-declared resource unit, e.g. measured microjoules on the exact target hardware. The inference allocator's compute_units_per_rollout value must be calibrated into that same unit by the caller and bound by its compute-cost digest. FLOPs, tokens, GPU utilization and model steps are proxies, not measured energy.
 
