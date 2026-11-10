@@ -39,7 +39,8 @@
             "maximum_temperature_milli_c": 90000,
             "source_ref": "thermal-source:compute"
           }
-        ]
+        ],
+        "thermal_state_digest": "thermal-state:initial"
       },
       "events": [
         {
@@ -55,7 +56,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:initial",
+            "resulting_thermal_state_digest": "thermal-state:M01_EACH_EVENT_PASSES_ALONE_BUT_SEQUENCE_EXHAUSTS_RESERVE:sequence-0:step-0"
           },
           "thermal_node_updates": [
             {
@@ -85,7 +88,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:M01_EACH_EVENT_PASSES_ALONE_BUT_SEQUENCE_EXHAUSTS_RESERVE:sequence-0:step-0",
+            "resulting_thermal_state_digest": "thermal-state:M01_EACH_EVENT_PASSES_ALONE_BUT_SEQUENCE_EXHAUSTS_RESERVE:sequence-0:step-1"
           },
           "thermal_node_updates": [
             {
@@ -142,7 +147,8 @@
             "maximum_temperature_milli_c": 90000,
             "source_ref": "thermal-source:compute"
           }
-        ]
+        ],
+        "thermal_state_digest": "thermal-state:initial"
       },
       "event_sequences": [
         [
@@ -159,7 +165,9 @@
               "context_digest": "mission-sequence-context-v1",
               "model_digest": "whole-body-thermal-model:v1",
               "manifest_digest": "thermal-node-manifest:v1",
-              "valid_through_tick": 100000
+              "valid_through_tick": 100000,
+              "prior_thermal_state_digest": "thermal-state:initial",
+              "resulting_thermal_state_digest": "thermal-state:M02_ORDER_CHANGES_TERMINAL_THERMAL_STATE:sequence-0:step-0"
             },
             "thermal_node_updates": [
               {
@@ -189,7 +197,9 @@
               "context_digest": "mission-sequence-context-v1",
               "model_digest": "whole-body-thermal-model:v1",
               "manifest_digest": "thermal-node-manifest:v1",
-              "valid_through_tick": 100000
+              "valid_through_tick": 100000,
+              "prior_thermal_state_digest": "thermal-state:M02_ORDER_CHANGES_TERMINAL_THERMAL_STATE:sequence-0:step-0",
+              "resulting_thermal_state_digest": "thermal-state:M02_ORDER_CHANGES_TERMINAL_THERMAL_STATE:sequence-0:step-1"
             },
             "thermal_node_updates": [
               {
@@ -221,7 +231,9 @@
               "context_digest": "mission-sequence-context-v1",
               "model_digest": "whole-body-thermal-model:v1",
               "manifest_digest": "thermal-node-manifest:v1",
-              "valid_through_tick": 100000
+              "valid_through_tick": 100000,
+              "prior_thermal_state_digest": "thermal-state:initial",
+              "resulting_thermal_state_digest": "thermal-state:M02_ORDER_CHANGES_TERMINAL_THERMAL_STATE:sequence-1:step-0"
             },
             "thermal_node_updates": [
               {
@@ -251,7 +263,9 @@
               "context_digest": "mission-sequence-context-v1",
               "model_digest": "whole-body-thermal-model:v1",
               "manifest_digest": "thermal-node-manifest:v1",
-              "valid_through_tick": 100000
+              "valid_through_tick": 100000,
+              "prior_thermal_state_digest": "thermal-state:M02_ORDER_CHANGES_TERMINAL_THERMAL_STATE:sequence-1:step-0",
+              "resulting_thermal_state_digest": "thermal-state:M02_ORDER_CHANGES_TERMINAL_THERMAL_STATE:sequence-1:step-1"
             },
             "thermal_node_updates": [
               {
@@ -314,7 +328,8 @@
             "maximum_temperature_milli_c": 90000,
             "source_ref": "thermal-source:compute"
           }
-        ]
+        ],
+        "thermal_state_digest": "thermal-state:initial"
       },
       "events": [
         {
@@ -330,7 +345,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:initial",
+            "resulting_thermal_state_digest": "thermal-state:M03_SECOND_FAULT_BEFORE_COOLDOWN:sequence-0:step-0"
           },
           "thermal_node_updates": [
             {
@@ -360,7 +377,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:M03_SECOND_FAULT_BEFORE_COOLDOWN:sequence-0:step-0",
+            "resulting_thermal_state_digest": "thermal-state:M03_SECOND_FAULT_BEFORE_COOLDOWN:sequence-0:step-1"
           },
           "thermal_node_updates": [
             {
@@ -420,7 +439,8 @@
             "maximum_temperature_milli_c": 90000,
             "source_ref": "thermal-source:compute"
           }
-        ]
+        ],
+        "thermal_state_digest": "thermal-state:initial"
       },
       "events": [
         {
@@ -436,7 +456,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:initial",
+            "resulting_thermal_state_digest": "thermal-state:M04_PROBES_COLLECTIVELY_DRAIN_RESERVE:sequence-0:step-0"
           },
           "thermal_node_updates": [
             {
@@ -466,7 +488,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:M04_PROBES_COLLECTIVELY_DRAIN_RESERVE:sequence-0:step-0",
+            "resulting_thermal_state_digest": "thermal-state:M04_PROBES_COLLECTIVELY_DRAIN_RESERVE:sequence-0:step-1"
           },
           "thermal_node_updates": [
             {
@@ -496,7 +520,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:M04_PROBES_COLLECTIVELY_DRAIN_RESERVE:sequence-0:step-1",
+            "resulting_thermal_state_digest": "thermal-state:M04_PROBES_COLLECTIVELY_DRAIN_RESERVE:sequence-0:step-2"
           },
           "thermal_node_updates": [
             {
@@ -551,7 +577,8 @@
             "maximum_temperature_milli_c": 90000,
             "source_ref": "thermal-source:compute"
           }
-        ]
+        ],
+        "thermal_state_digest": "thermal-state:initial"
       },
       "events": [
         {
@@ -567,7 +594,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:initial",
+            "resulting_thermal_state_digest": "thermal-state:M05_REPAIR_DOES_NOT_RESET_WITHOUT_REQUALIFICATION:sequence-0:step-0"
           },
           "thermal_node_updates": [
             {
@@ -630,7 +659,8 @@
             "maximum_temperature_milli_c": 90000,
             "source_ref": "thermal-source:compute"
           }
-        ]
+        ],
+        "thermal_state_digest": "thermal-state:initial"
       },
       "events": [
         {
@@ -646,7 +676,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:initial",
+            "resulting_thermal_state_digest": "thermal-state:M06_TASK_COMPLETE_WITHOUT_TERMINAL_SAFE_STOP_RESERVE:sequence-0:step-0"
           },
           "thermal_node_updates": [
             {
@@ -703,7 +735,8 @@
             "maximum_temperature_milli_c": 90000,
             "source_ref": "thermal-source:compute"
           }
-        ]
+        ],
+        "thermal_state_digest": "thermal-state:initial"
       },
       "events": [
         {
@@ -719,7 +752,9 @@
             "context_digest": "mission-sequence-context-v1",
             "model_digest": "whole-body-thermal-model:v1",
             "manifest_digest": "thermal-node-manifest:v1",
-            "valid_through_tick": 100000
+            "valid_through_tick": 100000,
+            "prior_thermal_state_digest": "thermal-state:initial",
+            "resulting_thermal_state_digest": "thermal-state:M07_SINGLE_HOT_MOTOR_HIDDEN_BY_ACCEPTABLE_MEAN:sequence-0:step-0"
           },
           "thermal_node_updates": [
             {
