@@ -487,6 +487,11 @@ mod tests {
             (r0 - r1) + 2.0 * ((r0 / 2.0 - 1.0).ln() - (r1 / 2.0 - 1.0).ln());
         assert!((final_state.coordinates.time_over_m - expected_delta_t).abs() < 2e-8);
         assert!(result.maximum_abs_hamiltonian < 1e-10);
+        assert!(result.maximum_normalized_radial_first_integral_residual < 2e-9);
+        assert!(result.maximum_normalized_polar_first_integral_residual < 2e-12);
+        assert!(result.maximum_relative_energy_drift < 2e-12);
+        assert!(result.maximum_relative_angular_momentum_drift < 2e-12);
+        assert!(result.maximum_relative_carter_drift < 2e-12);
     }
 
     #[test]
@@ -508,6 +513,11 @@ mod tests {
         assert!(final_radius < horizon);
         assert!(final_radius > 0.0);
         assert!(result.maximum_abs_hamiltonian < 1e-8);
+        assert!(result.maximum_normalized_radial_first_integral_residual < 2e-8);
+        assert!(result.maximum_normalized_polar_first_integral_residual < 2e-12);
+        assert!(result.maximum_relative_energy_drift < 2e-10);
+        assert!(result.maximum_relative_angular_momentum_drift < 2e-12);
+        assert!(result.maximum_relative_carter_drift < 2e-10);
     }
 
     #[test]
@@ -555,6 +565,32 @@ mod tests {
         };
         assert!(distance(fine.samples.last().unwrap().state, reference.samples.last().unwrap().state)
             <= distance(coarse.samples.last().unwrap().state, reference.samples.last().unwrap().state));
+    }
+
+
+    #[test]
+    fn trajectory_records_all_three_constraint_channels_at_each_sample() {
+        let black_hole = hole(0.7);
+        let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
+        let canonical = KerrCanonicalHamiltonian::new(black_hole);
+        let initial = canonical.state_from_separated(
+            KerrMinoState::new(0.0, 10.0, 1.0, 0.0),
+            constants,
+            KerrMinoDirection::Decreasing,
+            KerrMinoDirection::Increasing,
+        ).unwrap();
+        let result = KerrNullTrajectoryIntegrator::new(
+            black_hole, KerrIntegrationChart::BoyerLindquist, options(),
+        ).unwrap().integrate(initial, 0.2).unwrap();
+        assert!(result.samples.len() > 1);
+        for sample in &result.samples {
+            assert!(sample.hamiltonian.abs() < 1e-9);
+            assert!(sample.normalized_radial_first_integral_residual < 1e-9);
+            assert!(sample.normalized_polar_first_integral_residual < 1e-9);
+            assert!((sample.energy - 1.0).abs() < 1e-10);
+            assert!((sample.angular_momentum_z_over_m - 2.0).abs() < 1e-10);
+            assert!((sample.carter_constant_over_m2 - 3.0).abs() < 1e-9);
+        }
     }
 
     #[test]
