@@ -146,9 +146,10 @@ fn evaluate(weld: &Value) -> &'static str {
         if pass.get("sequence_index").and_then(Value::as_u64) != Some((index + 1) as u64) {
             return "PASS_SEQUENCE_INVALID";
         }
-        if pass.get("serial_id").and_then(Value::as_str) != Some(serial)
-            || pass.get("joint_id").and_then(Value::as_str) != Some(joint)
-        {
+        if pass.get("serial_id").and_then(Value::as_str) != Some(serial) {
+            return "WORKPIECE_IDENTITY_MISMATCH";
+        }
+        if pass.get("joint_id").and_then(Value::as_str) != Some(joint) {
             return "JOINT_IDENTITY_MISMATCH";
         }
         if pass.get("workpiece_revision").and_then(Value::as_str) != Some(revision) {
