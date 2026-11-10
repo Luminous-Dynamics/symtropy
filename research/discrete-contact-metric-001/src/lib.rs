@@ -593,6 +593,7 @@ mod tests {
         assert!((result.next_velocity[0] + 1.0 / 3.0).abs() < 1.0e-12);
         assert!((result.next_velocity[1] - 1.0 / 3.0).abs() < 1.0e-12);
         assert!(result.contact_slack[0].abs() < 1.0e-12);
+        assert!(result.max_metric_equation_residual < 1.0e-10);
     }
 
     #[test]
@@ -657,4 +658,24 @@ mod tests {
             Err(StepError::MatrixNotSymmetric { name: "stiffness", .. })
         ));
     }
+    #[test]
+    fn contradictory_unilateral_rows_return_no_complementary_solution() {
+        let input = DiscreteStepInput {
+            mass: scalar(1.0),
+            damping: scalar(0.0),
+            stiffness: scalar(0.0),
+            position_error: vec![0.0],
+            velocity: vec![0.0],
+            external_force: vec![0.0],
+            contact_jacobian: Matrix::new(2, 1, vec![1.0, -1.0]).unwrap(),
+            contact_gap: vec![-0.1, -0.1],
+            dt: 0.01,
+        };
+        assert_eq!(
+            solve_discrete_step(&input),
+            Err(StepError::NoComplementarySolution)
+        );
+    }
+
+
 }
