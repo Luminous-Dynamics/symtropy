@@ -50,6 +50,7 @@ pub enum ImpactBranch {
     FreeFlight,
     RestingSupport,
     PlasticImpactThenSupport,
+    PlasticImpactThenFreeFlight,
     SingleRestitutionImpact,
 }
 
@@ -84,6 +85,7 @@ pub enum ImpactError {
     InvalidTimestep,
     InvalidTolerance,
     MultipleImpactsInOneStep,
+    GrazingOrUnresolvedEvent,
     UnsupportedOutwardAccelerationAtContact,
     NonFiniteResult,
 }
@@ -97,6 +99,7 @@ impl fmt::Display for ImpactError {
             Self::InvalidTimestep => write!(f, "timestep must be finite and positive"),
             Self::InvalidTolerance => write!(f, "event tolerance must be finite and positive"),
             Self::MultipleImpactsInOneStep => write!(f, "multiple impacts in one step are unsupported"),
+            Self::GrazingOrUnresolvedEvent => write!(f, "step crosses the contact surface without a resolvable inward event"),
             Self::UnsupportedOutwardAccelerationAtContact => {
                 write!(f, "active support requires nonpositive normal acceleration")
             }
@@ -183,8 +186,8 @@ impl ImpactModel1D {
             initial.velocity_m_s + self.acceleration_m_s2 * dt_s;
 
         let Some(event_time) = self.first_inward_event(initial, dt_s, event_tolerance_s) else {
-            if free_gap < -event_tolerance_s {
-                return Err(ImpactError::NonFiniteResult);
+            if free_gap < 0.0 {
+                return Err(ImpactError::GrazingOrUnresolvedEvent);
             }
             let state = ImpactState1D {
                 gap_m: free_gap.max(0.0),
@@ -219,17 +222,60 @@ impl ImpactModel1D {
         let remaining = (dt_s - event_time).max(0.0);
 
         if self.restitution == 0.0 {
-            let support_impulse = -self.mass_kg * self.acceleration_m_s2 * remaining;
             let boundary = event_time <= event_tolerance_s
                 || remaining <= event_tolerance_s;
+            let (state, branch, support_impulse, jacobian) =
+                if self.acceleration_m_s2 < 0.0 {
+                    (
+                        ImpactState1D {
+                            gap_m: 0.0,
+                            velocity_m_s: 0.0,
+                        },
+                        ImpactBranch::PlasticImpactThenSupport,
+                        -self.mass_kg * self.acceleration_m_s2 * remaining,
+                        Some(ImpactStepJacobian {
+                            dgap_dgap: 0.0,
+                            dgap_dvelocity: 0.0,
+                            dvelocity_dgap: 0.0,
+                            dvelocity_dvelocity: 0.0,
+                        }),
+                    )
+                } else {
+                    // No inward support force is needed. The body leaves the
+                    // contact surface under outward/zero acceleration.
+                    let final_gap = 0.5 * self.acceleration_m_s2 * remaining * remaining;
+                    let final_velocity = self.acceleration_m_s2 * remaining;
+                    (
+                        ImpactState1D {
+                            gap_m: final_gap,
+                            velocity_m_s: final_velocity,
+                        },
+                        ImpactBranch::PlasticImpactThenFreeFlight,
+                        0.0,
+                        Some(ImpactStepJacobian {
+                            dgap_dgap: -self.acceleration_m_s2
+                                * remaining
+                                * (1.0 / (-incoming_velocity)),
+                            dgap_dvelocity: -self.acceleration_m_s2
+                                * remaining
+                                * ((-1.0 - initial.velocity_m_s / (-incoming_velocity))
+                                    / self.acceleration_m_s2),
+                            dvelocity_dgap: self.acceleration_m_s2
+                                * (1.0 / (-incoming_velocity)),
+                            dvelocity_dvelocity: self.acceleration_m_s2
+                                * ((-1.0 - initial.velocity_m_s / (-incoming_velocity))
+                                    / self.acceleration_m_s2),
+                        }),
+                    )
+                };
+
             let outcome = ImpactStepOutcome {
-                state: ImpactState1D {
-                    gap_m: 0.0,
-                    velocity_m_s: 0.0,
-                },
-                branch: ImpactBranch::PlasticImpactThenSupport,
+                state,
+                branch,
                 derivative_class: if boundary {
                     ImpactDerivativeClass::EventBoundary
+                } else if branch == ImpactBranch::PlasticImpactThenSupport {
+                    ImpactDerivativeClass::BranchLocalSingleImpact
                 } else {
                     ImpactDerivativeClass::BranchLocalSingleImpact
                 },
@@ -237,22 +283,12 @@ impl ImpactModel1D {
                 impact_impulse_ns: impact_impulse,
                 support_impulse_ns: support_impulse,
                 complementarity_residual: 0.0,
-                // Within this fixed plastic-impact/support branch the endpoint
-                // state is identically (0,0); this is not a cross-branch
-                // derivative at the event boundary.
-                step_jacobian: if boundary {
-                    None
-                } else {
-                    Some(ImpactStepJacobian {
-                        dgap_dgap: 0.0,
-                        dgap_dvelocity: 0.0,
-                        dvelocity_dgap: 0.0,
-                        dvelocity_dvelocity: 0.0,
-                    })
-                },
+                step_jacobian: if boundary { None } else { jacobian },
             };
             if !outcome.impact_impulse_ns.is_finite()
                 || !outcome.support_impulse_ns.is_finite()
+                || !outcome.state.gap_m.is_finite()
+                || !outcome.state.velocity_m_s.is_finite()
             {
                 return Err(ImpactError::NonFiniteResult);
             }
@@ -265,7 +301,7 @@ impl ImpactModel1D {
         let final_velocity =
             outgoing_velocity + self.acceleration_m_s2 * remaining;
 
-        if final_gap < -event_tolerance_s {
+        if final_gap < 0.0 || (final_gap.abs() <= event_tolerance_s * event_tolerance_s && final_velocity < 0.0) {
             return Err(ImpactError::MultipleImpactsInOneStep);
         }
         if !final_gap.is_finite() || !final_velocity.is_finite() {
@@ -355,8 +391,8 @@ impl ImpactModel1D {
         let event_time_dgap = 1.0 / speed;
         let event_time_dvelocity =
             (-1.0 - initial.velocity_m_s / speed) / acceleration;
-        let incoming_dgap = -acceleration / speed;
-        let incoming_dvelocity = initial.velocity_m_s / speed;
+        let incoming_dgap = acceleration / speed;
+        let incoming_dvelocity = -initial.velocity_m_s / speed;
         let outgoing_dgap = -restitution * incoming_dgap;
         let outgoing_dvelocity = -restitution * incoming_dvelocity;
         let remaining = dt_s - event_time;
