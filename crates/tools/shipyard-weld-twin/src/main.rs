@@ -624,7 +624,7 @@ mod tests {
         let corpus: Value = serde_json::from_str(CORPUS).expect("frozen corpus parses");
         let root = workspace_root();
         let report = verify_corpus(&corpus, &root).expect("frozen corpus evaluates");
-        assert_eq!(report["case_count"].as_u64(), Some(40));
+        assert_eq!(report["case_count"].as_u64(), Some(41));
         assert_eq!(report["passed_count"].as_u64(), Some(37));
         assert_eq!(report["failed_count"].as_u64(), Some(0));
     }
