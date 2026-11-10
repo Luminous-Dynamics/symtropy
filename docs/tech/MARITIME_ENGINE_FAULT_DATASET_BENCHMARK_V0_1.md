@@ -181,10 +181,17 @@ Two additional 2026 directions materially change the benchmark plan:
 1. **Cross-individual digital-twin transfer.** Sun et al., *Research on cross-individual fault diagnosis of marine main engines based on adaptive mechanisms*, reports 100% DT-DANN diagnostic accuracy and 0.052% MAPE for adaptive tuning of individual-engine performance factors. The article explicitly describes the diagnostic result as simulation-based. These numbers must remain separate: twin-parameter MAPE is not classification accuracy, and the 100% result is not physical unseen-engine validation. The full engine-level split, twin-calibration leakage controls and independent physical validation remain to be audited. [DOI](https://doi.org/10.19693/j.issn.1673-3185.04917).
 2. **Continual condition adaptation.** Shi et al., *Synaptic regularization for continual transfer*, proposes path-integral importance estimation and dynamic parameter masking for incremental marine-engine operating conditions under fixed model capacity and no historical-data replay. It compares against fine-tuning and regularization-based continual-learning methods and evaluates average accuracy and forgetting. This creates a separate benchmark axis: adaptation to new load/condition domains without erasing previously qualified conditions. Do not translate its qualitative abstract claims into numerical scores; reproduce the paper's exact protocol first. [DOI](https://doi.org/10.1016/j.energy.2026.141124).
 
-Add two distinct experiments rather than another blended leaderboard:
+3. **Multi-source adaptive transfer on measured data.** The 2026 *Energy Conversion and Management* study on four-stroke marine-diesel lubrication diagnosis reports 83.64% average accuracy for pure real measured scenarios and 82.37% for real/simulation hybrid scenarios on an instrumented 8V396 testbed at 25%, 50% and 75% loads. It proposes a shared-specialized feature network with entropy-weighted dynamic source-domain contributions and semi-supervised target adaptation. Its domain/task differs from Aalto MU323DGSC, so these are literature replication targets, not directly comparable scores. Reproduce source-only, equal-weight multi-source and entropy-weighted multi-source variants under the paper's exact protocol; then test negative transfer on held-out conditions. [DOI](https://doi.org/10.1016/j.enconman.2026.121194).
+4. **Vessel-data quality and missing-value recovery.** The 2026 *Ocean Engineering* paper on localized anomaly detection and recovery uses GMM-EM to identify seven operating regions and SVD-based methods for localized anomaly detection and missing-value recovery on an oceangoing-vessel dataset. The accessible abstract does not give a numerical performance score. This is a data-quality comparator, not a directly comparable fault classifier. It motivates explicit testing of whether cleaning/imputation hides sensor failures or faults. [DOI](https://doi.org/10.1016/j.oceaneng.2026.124356).
 
+Add four distinct experiments rather than another blended leaderboard:
+
+- **Multi-source transfer / negative-transfer track:** compare source-only, best-single-source, equal-weight fusion, entropy-weighted source adaptation and target-supervised/few-shot adaptation. Hold target fault labels back in zero-shot tests, and report source contribution weights, target label budget, per-source domain gap and worst-target-condition performance.
+- **Data-quality qualification track:** evaluate sensor dropout, intermittent missingness, stuck-at values, calibration drift, timestamp gaps and operating-mode transitions. Compare no imputation, mask-aware models and explicit GMM/SVD-style recovery. Report reconstruction error separately from fault-detection metrics, and measure whether imputation increases false-safe decisions or suppresses anomaly recall.
 - **Cross-engine transfer track:** calibrate an individual digital twin using only permitted target-engine healthy-state/reference data; freeze target fault labels and evaluation recordings; hold out whole engines where possible; compare zero-shot, few-shot, source-only and domain-adapted methods. Report target calibration error separately from fault-classification metrics. A model that uses target fault labels during twin calibration is not zero-shot.
 - **Continual-learning track:** order tasks by load, speed or operating regime; compare naive fine-tuning, SI/EWC/MAS-style regularization and the reported synaptic-tagging/capture method. After every update, re-evaluate all prior domains, fault classes, calibration and false-alarm rates. Report average accuracy, backward transfer, forgetting, worst-domain recall, update compute/storage and whether raw historical data were retained or replayed.
+
+**Data integrity invariant:** a repaired or imputed value is never silently reclassified as a measured observation. Preserve the original missingness mask, transformation identity/version, input window, method parameters, training-data scope, uncertainty estimate and source digest. A synthetic/reconstructed value may support a model, but it cannot independently corroborate the underlying physical state or close an evidence gap in the engineering-health evaluator.
 
 Proposed internal continual-learning target (not an existing result): after each new operating-condition update, keep prior-domain macro-F1 degradation within **2 percentage points**, and reduce average forgetting by at least **20%** against the strongest reproduced fixed-capacity/no-replay baseline. These targets apply only to the frozen research protocol; they do not qualify an operational system.
 
@@ -197,6 +204,30 @@ Proposed internal continual-learning target (not an existing result): after each
 - No "beats SOTA" headline until both the payload and matched baselines are independently audited and reproduced.
 
 The paradigm shift is **diagnostics that compile into evidence-qualified capability**: identify a fault hypothesis; expose source, calibration, configuration and uncertainty lineage; map affected services and dependency paths; project only a bounded capability impact to the ODD owner; require accountable inspection, proof-test, configuration and authorization evidence before a human-led recovery review. This is how Symtropy/Symthaea/Mycelix can complement OEM diagnostics without pretending to replace engine OEMs, chief engineers, class or flag authorities.
+
+## Reproducible dataset payload audit
+
+The Rust-first audit executable is added at
+`benchmarks/maritime-engineering-health/src/bin/marine_engine_dataset_audit.rs`.
+After retrieving and safely extracting the licensed archive, run:
+
+~~~sh
+cargo run --locked \
+  --manifest-path benchmarks/maritime-engineering-health/Cargo.toml \
+  --bin marine-engine-dataset-audit -- \
+  /path/to/extracted-dataset-root \
+  benchmarks/maritime/marine-engine-fault-dataset-v1.manifest.json \
+  --archive /path/to/Marine_Engine_Fault_Data_v1.zip \
+  --output /path/to/marine-engine-dataset-audit-v0.1.json
+~~~
+
+The tool hashes each declared member and optional archive, checks the 3-row/73-column and 3-row/70-column layouts, validates binary anomaly-state labels, records 0-to-1 transitions without inventing onset for anomaly-only recordings, checks numeric relative-time order, counts missing cells by channel, and emits an unassigned file-level split template. It rejects path traversal, limits individual members to 128 MiB and does not download or extract archive content itself.
+
+The report schema is
+`docs/tech/MARITIME_ENGINE_DATASET_AUDIT_REPORT_V0_1.schema.json`.
+A successful structural audit is still pending independent review; the dataset index and variable dictionary require semantic reconciliation. The report never auto-assigns train/test splits.
+
+Zenodo's file card lists the archive at 26.5 MB, while its separate record-statistics block displays 37.7 GB as data volume. The manifest records both separately and does not interpret the aggregate statistics value as archive payload size. The file-level preview inventory is not a substitute for retrieving and hashing the actual archive bytes.
 
 ## Machine-readable baseline registry
 
