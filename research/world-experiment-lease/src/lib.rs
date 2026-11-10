@@ -416,8 +416,8 @@ fn validate_usage_shape(
     let mut view_events = 0_u64;
     let mut rendered_frames = 0_u64;
     let mut energy_sum = 0_u64;
-    let mut all_energy_present = true;
-    let mut all_energy_absent = true;
+    let mut energy_present = false;
+    let mut energy_missing = false;
 
     for view in &usage.views {
         if !seen.insert(view.view_id.as_str()) {
@@ -441,32 +441,14 @@ fn validate_usage_shape(
             .checked_add(view.rendered_frames)
             .ok_or(LeaseError::CounterOverflow)?;
 
-        match (admission.max_gpu_energy_uj_per_frame, view.gpu_energy_uj) {
-            (Some(cap), Some(energy)) => {
-                let maximum = cap
-                    .checked_mul(view.rendered_frames)
-                    .ok_or(LeaseError::CounterOverflow)?;
-                if energy > maximum {
-                    // The usage is well-formed; the policy response below stops it.
-                }
-                all_energy_absent = false;
+        match view.gpu_energy_uj {
+            Some(energy) => {
+                energy_present = true;
                 energy_sum = energy_sum
                     .checked_add(energy)
                     .ok_or(LeaseError::CounterOverflow)?;
             }
-            (Some(_), None) => {
-                all_energy_present = false;
-                all_energy_absent = false;
-            }
-            (None, Some(_)) => {
-                all_energy_absent = false;
-                energy_sum = energy_sum
-                    .checked_add(view.gpu_energy_uj.unwrap_or_default())
-                    .ok_or(LeaseError::CounterOverflow)?;
-            }
-            (None, None) => {
-                all_energy_present = false;
-            }
+            None => energy_missing = true,
         }
     }
 
@@ -474,10 +456,10 @@ fn validate_usage_shape(
         return Err(LeaseError::InconsistentUsageTotals);
     }
 
-    if !usage.views.is_empty() && !all_energy_present && !all_energy_absent {
+    if energy_present && energy_missing {
         return Err(LeaseError::InconsistentUsageTotals);
     }
-    if all_energy_present && !usage.views.is_empty() {
+    if energy_present {
         if usage.gpu_energy_uj_total != Some(energy_sum) {
             return Err(LeaseError::InconsistentUsageTotals);
         }
@@ -486,6 +468,81 @@ fn validate_usage_shape(
     }
 
     Ok(())
+}
+
+fn usage_stop_reason(
+    lease: &LeaseReceiptV1,
+    usage: &UsageSnapshotV1,
+) -> Result<Option<StopReason>, LeaseError> {
+    let admissions: BTreeMap<&str, &ViewAdmissionRef> = lease
+        .views
+        .iter()
+        .map(|view| (view.view_id.as_str(), view))
+        .collect();
+
+    for view in &usage.views {
+        let admission = admissions
+            .get(view.view_id.as_str())
+            .ok_or_else(|| LeaseError::UnknownView(view.view_id.clone()))?;
+        if view.p95_frame_time_us > admission.max_p95_frame_time_us
+            || view.p99_frame_time_us > admission.max_p99_frame_time_us
+        {
+            return Ok(Some(StopReason::FrameTimeBudgetExceeded));
+        }
+        if view.peak_vram_bytes > admission.max_peak_vram_bytes
+            || view.peak_vram_bytes > lease.budget.max_peak_vram_bytes
+        {
+            return Ok(Some(StopReason::GpuMemoryBudgetExceeded));
+        }
+        match (admission.max_gpu_energy_uj_per_frame, view.gpu_energy_uj) {
+            (Some(_), None) => return Ok(Some(StopReason::RequiredEnergyMissing)),
+            (Some(cap), Some(energy)) => {
+                let maximum = cap
+                    .checked_mul(view.rendered_frames)
+                    .ok_or(LeaseError::CounterOverflow)?;
+                if energy > maximum {
+                    return Ok(Some(StopReason::GpuEnergyBudgetExceeded));
+                }
+            }
+            (None, _) => {}
+        }
+    }
+
+    if usage.peak_system_memory_bytes == 0 {
+        return Err(LeaseError::InvalidUsageCounters);
+    }
+    if usage.peak_system_memory_bytes > lease.budget.max_peak_system_memory_bytes {
+        return Ok(Some(StopReason::SystemMemoryBudgetExceeded));
+    }
+    if usage.views.len() > lease.budget.max_distinct_views as usize {
+        return Ok(Some(StopReason::ViewEventBudgetExceeded));
+    }
+    if usage.view_event_count > lease.budget.max_view_events {
+        return Ok(Some(StopReason::ViewEventBudgetExceeded));
+    }
+    if usage.rendered_frames_total > lease.budget.max_rendered_frames {
+        return Ok(Some(StopReason::RenderedFrameBudgetExceeded));
+    }
+    if usage
+        .views
+        .iter()
+        .map(|view| view.peak_vram_bytes)
+        .max()
+        .unwrap_or(0)
+        > lease.budget.max_peak_vram_bytes
+    {
+        return Ok(Some(StopReason::GpuMemoryBudgetExceeded));
+    }
+
+    if let Some(cap) = lease.budget.max_gpu_energy_uj_total {
+        match usage.gpu_energy_uj_total {
+            Some(energy) if energy <= cap => {}
+            Some(_) => return Ok(Some(StopReason::GpuEnergyBudgetExceeded)),
+            None => return Ok(Some(StopReason::RequiredEnergyMissing)),
+        }
+    }
+
+    Ok(None)
 }
 
 /// Check a cumulative usage snapshot. Corrupt scope/counters are errors;
@@ -500,7 +557,7 @@ pub fn evaluate_usage(
 
     if let Some(previous) = previous {
         validate_usage_shape(lease, previous)?;
-        if evaluate_usage(lease, previous, None)?.is_stop() {
+        if previous.physical_mutation_attempted || usage_stop_reason(lease, previous)?.is_some() {
             return Err(LeaseError::PreviousSnapshotStopped);
         }
         if current.sequence != previous.sequence.checked_add(1).ok_or(LeaseError::CounterOverflow)?
@@ -538,95 +595,8 @@ pub fn evaluate_usage(
             reason: StopReason::PhysicalMutationAttempted,
         });
     }
-
-    let admissions: BTreeMap<&str, &ViewAdmissionRef> = lease
-        .views
-        .iter()
-        .map(|view| (view.view_id.as_str(), view))
-        .collect();
-    for view in &current.views {
-        let admission = admissions
-            .get(view.view_id.as_str())
-            .ok_or_else(|| LeaseError::UnknownView(view.view_id.clone()))?;
-        if view.p95_frame_time_us > admission.max_p95_frame_time_us
-            || view.p99_frame_time_us > admission.max_p99_frame_time_us
-        {
-            return Ok(UsageDecision::Stop {
-                reason: StopReason::FrameTimeBudgetExceeded,
-            });
-        }
-        if view.peak_vram_bytes > admission.max_peak_vram_bytes
-            || view.peak_vram_bytes > lease.budget.max_peak_vram_bytes
-        {
-            return Ok(UsageDecision::Stop {
-                reason: StopReason::GpuMemoryBudgetExceeded,
-            });
-        }
-        match (admission.max_gpu_energy_uj_per_frame, view.gpu_energy_uj) {
-            (Some(_), None) => {
-                return Ok(UsageDecision::Stop {
-                    reason: StopReason::RequiredEnergyMissing,
-                });
-            }
-            (Some(cap), Some(energy)) => {
-                let maximum = cap
-                    .checked_mul(view.rendered_frames)
-                    .ok_or(LeaseError::CounterOverflow)?;
-                if energy > maximum {
-                    return Ok(UsageDecision::Stop {
-                        reason: StopReason::GpuEnergyBudgetExceeded,
-                    });
-                }
-            }
-            (None, _) => {}
-        }
-    }
-
-    if current.peak_system_memory_bytes > lease.budget.max_peak_system_memory_bytes {
-        return Ok(UsageDecision::Stop {
-            reason: StopReason::SystemMemoryBudgetExceeded,
-        });
-    }
-    if current.peak_system_memory_bytes == 0 {
-        return Err(LeaseError::InvalidUsageCounters);
-    }
-    if current.views.len() > lease.budget.max_distinct_views as usize {
-        return Ok(UsageDecision::Stop {
-            reason: StopReason::ViewEventBudgetExceeded,
-        });
-    }
-    if current.view_event_count > lease.budget.max_view_events {
-        return Ok(UsageDecision::Stop {
-            reason: StopReason::ViewEventBudgetExceeded,
-        });
-    }
-    if current.rendered_frames_total > lease.budget.max_rendered_frames {
-        return Ok(UsageDecision::Stop {
-            reason: StopReason::RenderedFrameBudgetExceeded,
-        });
-    }
-    if current.views.iter().map(|view| view.peak_vram_bytes).max().unwrap_or(0)
-        > lease.budget.max_peak_vram_bytes
-    {
-        return Ok(UsageDecision::Stop {
-            reason: StopReason::GpuMemoryBudgetExceeded,
-        });
-    }
-
-    if let Some(cap) = lease.budget.max_gpu_energy_uj_total {
-        match current.gpu_energy_uj_total {
-            Some(energy) if energy <= cap => {}
-            Some(_) => {
-                return Ok(UsageDecision::Stop {
-                    reason: StopReason::GpuEnergyBudgetExceeded,
-                });
-            }
-            None => {
-                return Ok(UsageDecision::Stop {
-                    reason: StopReason::RequiredEnergyMissing,
-                });
-            }
-        }
+    if let Some(reason) = usage_stop_reason(lease, current)? {
+        return Ok(UsageDecision::Stop { reason });
     }
 
     Ok(UsageDecision::Continue {
@@ -634,13 +604,6 @@ pub fn evaluate_usage(
         sequence: current.sequence,
     })
 }
-
-impl UsageDecision {
-    fn is_stop(&self) -> bool {
-        matches!(self, Self::Stop { .. })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
