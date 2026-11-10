@@ -522,7 +522,10 @@ pub fn evaluate_case(case: &Case) -> CaseOutcome {
             return local_owner(Disposition::FallbackContinues, "no_current_packet_before_deadline");
         }
         PacketState::Stale | PacketState::WrongConfiguration => {
-            return local_owner(Disposition::TransferRejected, "packet_not_current_for_configuration");
+            return local_owner(
+                Disposition::TransferRejected,
+                "packet_not_current_for_configuration",
+            );
         }
         PacketState::Conflicted | PacketState::MissingLineage => {
             let clarification = first_event_time(case, EventKind::ClarificationRequested);
@@ -530,7 +533,10 @@ pub fn evaluate_case(case: &Case) -> CaseOutcome {
             if matches!((clarification, fallback), (Some(c), Some(f)) if c < f)
                 || clarification.is_some() && fallback.is_none()
             {
-                return local_owner(Disposition::ClarificationRequired, "material_evidence_conflict");
+                return local_owner(
+                    Disposition::ClarificationRequired,
+                    "material_evidence_conflict",
+                );
             }
             if fallback.is_some() {
                 return local_owner(Disposition::TransferRejected, "fallback_preceded_resolution");
@@ -553,7 +559,10 @@ pub fn evaluate_case(case: &Case) -> CaseOutcome {
             | TargetSourceClass::V2xOnly
             | TargetSourceClass::MixedOrUnknown
     ) {
-        return local_owner(Disposition::ClarificationRequired, "target_source_not_admissible_as_local_truth");
+        return local_owner(
+            Disposition::ClarificationRequired,
+            "target_source_not_admissible_as_local_truth",
+        );
     }
 
     if setup.authority_state != AuthorityState::ValidScoped {
@@ -574,19 +583,27 @@ pub fn evaluate_case(case: &Case) -> CaseOutcome {
 
     if let Some(ack_at) = acknowledged_at {
         if ack_at > setup.deadline_ms || fallback_at.is_some_and(|fallback| fallback < ack_at) {
-            return local_owner(Disposition::TransferRejected, "acknowledgement_late_or_after_fallback");
+            return local_owner(
+                Disposition::TransferRejected,
+                "acknowledgement_late_or_after_fallback",
+            );
         }
     }
 
     let Some(accepted) = accepted_at else {
         if first_event_time(case, EventKind::ClarificationRequested).is_some() {
-            return local_owner(Disposition::ClarificationRequired, "operator_requested_clarification");
+            return local_owner(
+                Disposition::ClarificationRequired,
+                "operator_requested_clarification",
+            );
         }
         return local_owner(Disposition::FallbackContinues, "no_operator_acceptance");
     };
 
     if accepted > setup.deadline_ms
-        || delivered_at.is_none_or(|delivered| delivered > accepted || delivered > setup.deadline_ms)
+        || delivered_at.is_none_or(|delivered| {
+            delivered > accepted || delivered > setup.deadline_ms
+        })
     {
         return local_owner(Disposition::TransferRejected, "acceptance_without_timely_packet");
     }
@@ -697,7 +714,12 @@ mod tests {
     fn all_frozen_cases_match_independent_expected_dispositions() {
         let report = evaluate_bytes(CORPUS.as_bytes()).expect("evaluate frozen corpus");
         assert_eq!(report.case_count, 33);
-        assert_eq!(report.passed_count, 33, "{:#?}", report.cases.iter().filter(|c| !c.passed).collect::<Vec<_>>());
+        assert_eq!(
+            report.passed_count,
+            33,
+            "{:#?}",
+            report.cases.iter().filter(|case| !case.passed).collect::<Vec<_>>()
+        );
         assert_eq!(report.failed_count, 0);
         assert!(report.all_pass);
         assert_eq!(report.corpus_sha256.len(), 64);
@@ -759,8 +781,12 @@ mod tests {
     #[test]
     fn malformed_monotonic_tape_is_rejected_before_evaluation() {
         let mut corpus = parsed_corpus();
-        let case = corpus.cases.iter_mut().find(|c| c.case_id == "positive-current-scoped-transfer").unwrap();
-        case.events[1].after_ms = 0;
+        let case = corpus
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "positive-current-scoped-transfer")
+            .unwrap();
+        case.events[2].after_ms = 50;
         let bytes = serde_json::to_vec(&corpus).expect("serialize mutated corpus");
         let error = Corpus::from_bytes(&bytes).expect_err("non-monotonic tape must fail closed");
         assert!(error.to_string().contains("event time decreases"));
@@ -772,7 +798,8 @@ mod tests {
             "\"corpus_version\": \"0.1.0\"",
             "\"corpus_version\": \"0.1.0\", \"unreviewed_override\": true",
         );
-        let error = Corpus::from_bytes(invalid.as_bytes()).expect_err("unknown fields must fail closed");
+        let error = Corpus::from_bytes(invalid.as_bytes())
+            .expect_err("unknown fields must fail closed");
         assert!(error.to_string().contains("invalid corpus JSON"));
     }
 }
