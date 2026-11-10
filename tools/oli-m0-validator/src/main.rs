@@ -465,6 +465,30 @@ fn validate_fixture(value: &Value) -> Vec<String> {
             {
                 errors.push("abiotic hard negative must preserve supported self-organization".to_owned());
             }
+            for property in [
+                "self_maintenance",
+                "reproduction",
+                "heredity",
+                "adaptation",
+                "learning",
+                "agency",
+                "intelligence",
+                "collective_intelligence",
+                "sentience_consciousness",
+            ] {
+                if assessments.get(property).and_then(Value::as_str)
+                    == Some("SUPPORTED_WITHIN_SCOPE")
+                {
+                    errors.push(format!(
+                        "abiotic self-organizing control cannot support life/agency property {property}"
+                    ));
+                }
+            }
+            if absence_allowed {
+                errors.push(
+                    "abiotic self-organizing control cannot authorize absence inference".to_owned(),
+                );
+            }
         }
         "DUSTY_PLASMA_PHYSICS_REFERENCE" => {
             if evidence_class != "PUBLISHED_EXPERIMENT_REFERENCE_METADATA_ONLY"
@@ -672,6 +696,35 @@ mod tests {
         value["property_assessments"]["intelligence"] =
             Value::String("SUPPORTED_WITHIN_SCOPE".to_owned());
         assert!(!validate_fixture(&value).is_empty());
+    }
+
+    #[test]
+    fn abiotic_lookalike_cannot_be_promoted_to_life_or_intelligence() {
+        let original: Value =
+            serde_json::from_str(include_str!("../fixtures/oli-m0-abiotic-001.json")).unwrap();
+        for property in [
+            "self_maintenance",
+            "reproduction",
+            "heredity",
+            "adaptation",
+            "learning",
+            "agency",
+            "intelligence",
+            "collective_intelligence",
+            "sentience_consciousness",
+        ] {
+            let mut altered = original.clone();
+            altered["property_assessments"][property] =
+                Value::String("SUPPORTED_WITHIN_SCOPE".to_owned());
+            assert!(
+                !validate_fixture(&altered).is_empty(),
+                "abiotic control must reject supported {property}"
+            );
+        }
+
+        let mut absence = original;
+        absence["expected_result"]["absence_inference_allowed"] = Value::Bool(true);
+        assert!(!validate_fixture(&absence).is_empty());
     }
 
     #[test]
