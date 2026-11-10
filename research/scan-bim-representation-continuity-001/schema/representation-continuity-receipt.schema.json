@@ -1,0 +1,425 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/scan-bim-representation-continuity-v0.1.json",
+  "title": "Scan-to-BIM Representation Continuity Receipt v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "receipt_id",
+    "replay",
+    "scene",
+    "transitions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1"
+    },
+    "receipt_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "replay": {
+      "$ref": "#/$defs/replay"
+    },
+    "scene": {
+      "$ref": "#/$defs/scene"
+    },
+    "transitions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/transition"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "replay": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "receipt_sha256",
+        "candidate_source_commit"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/id"
+        },
+        "receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_source_commit": {
+          "$ref": "#/$defs/commit"
+        }
+      }
+    },
+    "scene": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "building_group_id",
+        "scene_id",
+        "source_model_revision"
+      ],
+      "properties": {
+        "building_group_id": {
+          "$ref": "#/$defs/id"
+        },
+        "scene_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_model_revision": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "representation": {
+      "enum": [
+        "raw_observations",
+        "registered_point_cloud",
+        "surface_mesh",
+        "spatial_graph",
+        "parametric_model",
+        "ifc_model"
+      ]
+    },
+    "evidenceRole": {
+      "enum": [
+        "raw_measurement",
+        "survey_solution",
+        "independent_checkpoint",
+        "transform",
+        "registered_observation",
+        "geometry_output",
+        "prior_state",
+        "calibration",
+        "other"
+      ]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "sha256",
+        "role"
+      ],
+      "properties": {
+        "artifact_id": {
+          "$ref": "#/$defs/id"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "role": {
+          "$ref": "#/$defs/evidenceRole"
+        }
+      }
+    },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "configuration_sha256"
+      ],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/id"
+        },
+        "version": {
+          "$ref": "#/$defs/id"
+        },
+        "configuration_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "correspondence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "kind",
+        "source_entity_ids",
+        "target_entity_ids",
+        "identity_receipt_sha256"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "enum": [
+            "one_to_one",
+            "split",
+            "merge",
+            "replacement",
+            "unresolved"
+          ]
+        },
+        "source_entity_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1
+        },
+        "target_entity_ids": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "minItems": 1
+        },
+        "identity_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "target_entity_id",
+        "property_id",
+        "origin",
+        "source_evidence",
+        "value_sha256",
+        "derivation_method",
+        "assumptions",
+        "unknown_reason"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/id"
+        },
+        "target_entity_id": {
+          "$ref": "#/$defs/id"
+        },
+        "property_id": {
+          "$ref": "#/$defs/id"
+        },
+        "origin": {
+          "enum": [
+            "measured",
+            "inferred",
+            "assumed",
+            "unknown"
+          ]
+        },
+        "source_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "value_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "derivation_method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "assumptions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        },
+        "unknown_reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1024
+        }
+      }
+    },
+    "uncertaintyBound": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "metric_id",
+            "absolute_bound_m"
+          ],
+          "properties": {
+            "status": {
+              "const": "known"
+            },
+            "metric_id": {
+              "const": "conservative_absolute_bound_m"
+            },
+            "absolute_bound_m": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "metric_id",
+            "absolute_bound_m"
+          ],
+          "properties": {
+            "status": {
+              "const": "unknown"
+            },
+            "metric_id": {
+              "type": "null"
+            },
+            "absolute_bound_m": {
+              "type": "null"
+            }
+          }
+        }
+      ]
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "before",
+        "after",
+        "approximation_error_bound_m",
+        "update_basis",
+        "conditioning_evidence",
+        "estimator_id",
+        "calibration_profile_id"
+      ],
+      "properties": {
+        "before": {
+          "$ref": "#/$defs/uncertaintyBound"
+        },
+        "after": {
+          "$ref": "#/$defs/uncertaintyBound"
+        },
+        "approximation_error_bound_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "update_basis": {
+          "enum": [
+            "representation_only",
+            "evidence_conditioned"
+          ]
+        },
+        "conditioning_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "estimator_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        },
+        "calibration_profile_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 256
+        }
+      }
+    },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "transition_id",
+        "from_representation",
+        "to_representation",
+        "source_artifacts",
+        "output_artifacts",
+        "tool",
+        "correspondences",
+        "claims",
+        "uncertainty"
+      ],
+      "properties": {
+        "transition_id": {
+          "$ref": "#/$defs/id"
+        },
+        "from_representation": {
+          "$ref": "#/$defs/representation"
+        },
+        "to_representation": {
+          "$ref": "#/$defs/representation"
+        },
+        "source_artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "output_artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/artifact"
+          }
+        },
+        "tool": {
+          "$ref": "#/$defs/tool"
+        },
+        "correspondences": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/correspondence"
+          }
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/claim"
+          }
+        },
+        "uncertainty": {
+          "$ref": "#/$defs/uncertainty"
+        }
+      }
+    }
+  }
+}
