@@ -837,6 +837,24 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                                     if audit.time_rel_backsteps > 0 {
                                         file_errors.push(format!("Time_rel has {} backsteps", audit.time_rel_backsteps));
                                     }
+                                    if audit.time_abs_duplicate_rows > 0 {
+                                        warnings.push(format!("{}: Time_abs contains {} duplicate timestamps", entry.path, audit.time_abs_duplicate_rows));
+                                    }
+                                    if audit.time_rel_duplicates > 0 {
+                                        warnings.push(format!("{}: Time_rel contains {} duplicate timestamps", entry.path, audit.time_rel_duplicates));
+                                    }
+                                    if !audit.missing_header_names.is_empty()
+                                        || !audit.missing_shorthand_symbols.is_empty()
+                                        || !audit.missing_units.is_empty()
+                                    {
+                                        warnings.push(format!(
+                                            "{}: incomplete header metadata (names {}, symbols {}, units {})",
+                                            entry.path,
+                                            audit.missing_header_names.len(),
+                                            audit.missing_shorthand_symbols.len(),
+                                            audit.missing_units.len()
+                                        ));
+                                    }
                                     if audit.time_abs_empty_rows > 0 {
                                         file_errors.push(format!("Time_abs has {} empty rows", audit.time_abs_empty_rows));
                                     }
@@ -906,6 +924,8 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
     }
     if archive.is_none() {
         warnings.push("archive bytes were not supplied; only extracted member files can be audited".into());
+    } else {
+        warnings.push("the auditor does not prove that the extracted tree was produced from the supplied ZIP; retain the extraction command, tool version and extraction log separately".into());
     }
 
     let all_expected_csvs = scenario_csvs_audited == 15 && baseline_csvs_audited == 1;
