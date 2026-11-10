@@ -48,6 +48,10 @@ An unresolved candidate is rejected for this decision, allowing a more expensive
 
 This is **not** a safety classifier: above/below has no universal pass/fail meaning. The caller defines the engineering criterion, the threshold, the required separation margin, and the validity of the supplied interval. The interval radius is a declared conservative bound, not automatically a calibrated statistical confidence interval. The underlying evidence still needs independent qualification for the chosen risk tier.
 
+
+At runtime the monitor requires an observation-bound decision estimate when the policy has a decision boundary. It recomputes the interval classification using the exact same threshold and margin. An observed interval that becomes unresolved, or switches from above to below (or vice versa), causes abstention and requires fresh state-bound admission. Missing estimates, unexpected estimates without a configured boundary, and quantity/unit/reference-frame mismatches are rejected. Runtime observation does not inherit a previous decision merely because the original model was admitted.
+
+
 Schema version 2 adds `decision_boundary`, `decision_estimate` and per-candidate `decision_class` output. The bundled fixture remains an exploratory synthetic-only software test with no decision boundary or physical claim.
 
 ## Important limits
