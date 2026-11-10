@@ -1257,6 +1257,150 @@ mod tests {
     }
 
     #[test]
+    fn reports_preserved_host_opening_relation() {
+        let report = audit(&valid_receipt()).expect("complete relation inventory");
+        assert_eq!(report.source_relation_count, 1);
+        assert_eq!(report.preserved_relation_count, 1);
+        assert_eq!(report.modified_relation_count, 0);
+        assert_eq!(report.lost_relation_count, 0);
+        assert_eq!(report.unsupported_relation_count, 0);
+        assert_eq!(report.unresolved_relation_count, 0);
+        assert_eq!(report.incomplete_relation_inventory_count, 0);
+        assert_eq!(report.continuity_state, "continuity_preserved");
+    }
+
+    #[test]
+    fn reports_lost_relation_as_degraded_not_preserved() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
+            json!("lost");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] =
+            json!([]);
+        value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
+            json!("opening relation was dropped during mesh export");
+        let report = audit(&value).expect("explicit relation loss is auditable");
+        assert_eq!(report.source_relation_count, 1);
+        assert_eq!(report.lost_relation_count, 1);
+        assert_eq!(report.preserved_relation_count, 0);
+        assert_eq!(report.continuity_state, "continuity_degraded");
+    }
+
+    #[test]
+    fn reports_modified_relation_as_degraded_with_reason() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
+            json!("modified");
+        value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
+            json!("opening host relation was re-authored with a changed semantic constraint");
+        let report = audit(&value).expect("explicit relation modification is auditable");
+        assert_eq!(report.modified_relation_count, 1);
+        assert_eq!(report.continuity_state, "continuity_degraded");
+    }
+
+    #[test]
+    fn reports_unsupported_relation_as_unresolved() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
+            json!("unsupported");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] =
+            json!([]);
+        value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
+            json!("target representation cannot encode host-opening relations");
+        let report = audit(&value).expect("unsupported relation is not silently passed");
+        assert_eq!(report.unsupported_relation_count, 1);
+        assert_eq!(report.continuity_state, "continuity_unresolved");
+    }
+
+    #[test]
+    fn incomplete_relation_inventory_prevents_preserved_continuity_claim() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["completeness"] = json!("partial");
+        let report = audit(&value).expect("partial inventory remains explicitly qualified");
+        assert_eq!(report.incomplete_relation_inventory_count, 1);
+        assert_eq!(report.preserved_relation_count, 1);
+        assert_eq!(report.continuity_state, "continuity_unresolved");
+    }
+
+    #[test]
+    fn rejects_relation_endpoint_that_does_not_follow_entity_correspondence() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
+            ["object_entity_id"] = json!("WALL-SURFACE-001");
+        let error = audit(&value).expect_err("relation endpoints must follow the entity map");
+        assert!(error.contains("does not follow the declared source-entity correspondence"));
+    }
+
+    #[test]
+    fn rejects_preserved_relation_with_changed_canonical_kind() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
+            ["relation_kind"] = json!("adjacent_to");
+        let error = audit(&value).expect_err("preserved relation cannot change semantic kind");
+        assert!(error.contains("changes canonical relation kind"));
+    }
+
+    #[test]
+    fn rejects_duplicate_source_relation_identity() {
+        let mut value = valid_receipt();
+        let duplicate = value["transitions"][0]["relation_audit"]["relations"][0].clone();
+        value["transitions"][0]["relation_audit"]["relations"]
+            .as_array_mut()
+            .expect("relation rows")
+            .push(duplicate);
+        let error = audit(&value).expect_err("source relation IDs must be unique");
+        assert!(error.contains("appears more than once in the relation inventory"));
+    }
+
+    #[test]
+    fn rejects_target_relation_mapped_from_two_source_relations() {
+        let mut value = valid_receipt();
+        let mut duplicate = value["transitions"][0]["relation_audit"]["relations"][0].clone();
+        duplicate["source_relation_id"] = json!("REL-RAW-OPENING-WALL-002");
+        duplicate["source_subject_entity_id"] = json!("OPENING-RAW-001");
+        duplicate["source_object_entity_id"] = json!("WALL-RAW-001");
+        duplicate["directed"] = json!(false);
+        duplicate["relation_kind"] = json!("host_opening");
+        value["transitions"][0]["relation_audit"]["relations"]
+            .as_array_mut()
+            .expect("relation rows")
+            .push(duplicate);
+        let error = audit(&value).expect_err("target relation identity must be unique");
+        assert!(error.contains("is mapped more than once"));
+    }
+
+    #[test]
+    fn rejects_relation_inventory_artifact_with_wrong_role() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["source_artifacts"][2]["role"] = json!("raw_measurement");
+        let error = audit(&value).expect_err("relation inventory must have typed role");
+        assert!(error.contains("relation inventory artifact must have the relation_inventory"));
+    }
+
+    #[test]
+    fn relation_audit_is_required_even_when_no_relationships_are_known() {
+        let mut value = valid_receipt();
+        value["transitions"][0]
+            .as_object_mut()
+            .expect("transition object")
+            .remove("relation_audit");
+        let error = audit(&value).expect_err("missing relation inventory is not an empty inventory");
+        assert!(error.contains("missing field relation_audit"));
+    }
+
+    #[test]
+    fn undirected_relation_allows_reversed_target_endpoints() {
+        let mut value = valid_receipt();
+        value["transitions"][0]["relation_audit"]["relations"][0]["directed"] = json!(false);
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
+            ["subject_entity_id"] = json!("OPENING-SURFACE-001");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
+            ["object_entity_id"] = json!("WALL-SURFACE-001");
+        let report = audit(&value).expect("undirected target endpoint order can reverse");
+        assert_eq!(report.preserved_relation_count, 1);
+        assert_eq!(report.continuity_state, "continuity_preserved");
+    }
+
+    #[test]
     fn rejects_unknown_fields() {
         let mut value = valid_receipt();
         value["transitions"][0]["unverified_confidence"] = json!(0.99);
