@@ -1,0 +1,394 @@
+{
+  "schema_version": "0.1.0",
+  "protocol_id": "LOCO-FUTURE-OPTIONS-001",
+  "status": "synthetic_known_answers_only",
+  "cases": [
+    {
+      "case_id": "FO01_CLAIRVOYANCE_TRAP",
+      "description": "Two physical successors are indistinguishable to the controller; each has a different individually feasible continuation, so no common continuation exists.",
+      "candidate_action_id": "foothold:left-foothold",
+      "initial_state_digest": "sha256:fo01-initial",
+      "transition_model_digest": "sha256:fo01-model",
+      "action_domain_digest": "sha256:fo01-actions",
+      "continuation_domain_digest": "sha256:fo01-continuations",
+      "branch_manifest": {
+        "complete": true,
+        "digest": "sha256:fo01-branches"
+      },
+      "thermal_chain": {
+        "status": "not_applicable"
+      },
+      "branches": [
+        {
+          "branch_id": "b1",
+          "physically_possible": true,
+          "probability_mass": 0.5,
+          "observation_class": "ambiguous",
+          "successor_state_digest": "sha256:fo01-s1",
+          "continuation_actions": [
+            {
+              "label": "left-step",
+              "physical_action_id": "physical:left"
+            }
+          ],
+          "hard_constraint_status": "within_limits"
+        },
+        {
+          "branch_id": "b2",
+          "physically_possible": true,
+          "probability_mass": 0.5,
+          "observation_class": "ambiguous",
+          "successor_state_digest": "sha256:fo01-s2",
+          "continuation_actions": [
+            {
+              "label": "right-step",
+              "physical_action_id": "physical:right"
+            }
+          ],
+          "hard_constraint_status": "within_limits"
+        }
+      ],
+      "expected": {
+        "disposition": "Qualified",
+        "common_continuations_by_observation": {
+          "ambiguous": []
+        },
+        "clairvoyant_branch_continuations": {
+          "b1": [
+            "physical:left"
+          ],
+          "b2": [
+            "physical:right"
+          ]
+        },
+        "clairvoyant_only_action_count": 2,
+        "deployable_common_action_count_by_observation": {
+          "ambiguous": 0
+        }
+      }
+    },
+    {
+      "case_id": "FO02_VALID_OBSERVATION_SPLITS_STATES",
+      "description": "A fresh observation separates the two successor states; each observation class can support its own continuation.",
+      "candidate_action_id": "foothold:probe-edge",
+      "initial_state_digest": "sha256:fo02-initial",
+      "transition_model_digest": "sha256:fo02-model",
+      "action_domain_digest": "sha256:fo02-actions",
+      "continuation_domain_digest": "sha256:fo02-continuations",
+      "branch_manifest": {
+        "complete": true,
+        "digest": "sha256:fo02-branches"
+      },
+      "thermal_chain": {
+        "status": "not_applicable"
+      },
+      "branches": [
+        {
+          "branch_id": "b1",
+          "physically_possible": true,
+          "probability_mass": 0.5,
+          "observation_class": "measured:rough",
+          "observation_receipt": "sha256:fo02-observation-rough",
+          "observation_valid": true,
+          "successor_state_digest": "sha256:fo02-s1",
+          "continuation_actions": [
+            {
+              "label": "retreat",
+              "physical_action_id": "physical:retreat"
+            }
+          ],
+          "hard_constraint_status": "within_limits"
+        },
+        {
+          "branch_id": "b2",
+          "physically_possible": true,
+          "probability_mass": 0.5,
+          "observation_class": "measured:firm",
+          "observation_receipt": "sha256:fo02-observation-firm",
+          "observation_valid": true,
+          "successor_state_digest": "sha256:fo02-s2",
+          "continuation_actions": [
+            {
+              "label": "continue",
+              "physical_action_id": "physical:continue"
+            }
+          ],
+          "hard_constraint_status": "within_limits"
+        }
+      ],
+      "expected": {
+        "disposition": "Qualified",
+        "common_continuations_by_observation": {
+          "measured:rough": [
+            "physical:retreat"
+          ],
+          "measured:firm": [
+            "physical:continue"
+          ]
+        },
+        "clairvoyant_branch_continuations": {
+          "b1": [
+            "physical:retreat"
+          ],
+          "b2": [
+            "physical:continue"
+          ]
+        },
+        "clairvoyant_only_action_count": 2,
+        "deployable_common_action_count_by_observation": {
+          "measured:rough": 1,
+          "measured:firm": 1
+        }
+      }
+    },
+    {
+      "case_id": "FO03_HOT_NODE_HIDDEN_BY_MEAN",
+      "description": "One motor exceeds its own hard temperature limit even though the three-node arithmetic mean is below the limit.",
+      "candidate_action_id": "foothold:high-torque-turn",
+      "initial_state_digest": "sha256:fo03-initial",
+      "transition_model_digest": "sha256:fo03-model",
+      "action_domain_digest": "sha256:fo03-actions",
+      "continuation_domain_digest": "sha256:fo03-continuations",
+      "branch_manifest": {
+        "complete": true,
+        "digest": "sha256:fo03-branches"
+      },
+      "thermal_chain": {
+        "status": "valid",
+        "model_digest": "sha256:thermal-model",
+        "node_manifest_digest": "sha256:thermal-nodes",
+        "predecessor_state_digest": "sha256:thermal-predecessor",
+        "result_state_digest": "sha256:thermal-result"
+      },
+      "thermal_nodes": [
+        {
+          "node_id": "motor-a",
+          "temperature_c": 85,
+          "hard_limit_c": 110
+        },
+        {
+          "node_id": "motor-b",
+          "temperature_c": 101,
+          "hard_limit_c": 100
+        },
+        {
+          "node_id": "compute",
+          "temperature_c": 45,
+          "hard_limit_c": 105
+        }
+      ],
+      "branches": [
+        {
+          "branch_id": "b1",
+          "physically_possible": true,
+          "probability_mass": 1,
+          "observation_class": "hot-state",
+          "successor_state_digest": "sha256:fo03-s1",
+          "continuation_actions": [
+            {
+              "label": "continue",
+              "physical_action_id": "physical:continue"
+            }
+          ],
+          "hard_constraint_status": "violated:thermal_node: motor-b"
+        }
+      ],
+      "expected": {
+        "disposition": "Invalid",
+        "mean_temperature_c": 77,
+        "violating_nodes": [
+          "motor-b"
+        ],
+        "common_continuations_by_observation": {
+          "hot-state": []
+        },
+        "deployable_common_action_count_by_observation": {
+          "hot-state": 0
+        }
+      }
+    },
+    {
+      "case_id": "FO04_ZERO_MASS_PHYSICAL_BRANCH",
+      "description": "A physically possible branch has zero calibrated probability mass but removes the only robust continuation.",
+      "candidate_action_id": "foothold:edge-step",
+      "initial_state_digest": "sha256:fo04-initial",
+      "transition_model_digest": "sha256:fo04-model",
+      "action_domain_digest": "sha256:fo04-actions",
+      "continuation_domain_digest": "sha256:fo04-continuations",
+      "branch_manifest": {
+        "complete": true,
+        "digest": "sha256:fo04-branches"
+      },
+      "thermal_chain": {
+        "status": "not_applicable"
+      },
+      "branches": [
+        {
+          "branch_id": "b1",
+          "physically_possible": true,
+          "probability_mass": 1,
+          "observation_class": "same-observation",
+          "successor_state_digest": "sha256:fo04-s1",
+          "continuation_actions": [
+            {
+              "label": "forward",
+              "physical_action_id": "physical:forward"
+            }
+          ],
+          "hard_constraint_status": "within_limits"
+        },
+        {
+          "branch_id": "b2",
+          "physically_possible": true,
+          "probability_mass": 0,
+          "observation_class": "same-observation",
+          "successor_state_digest": "sha256:fo04-s2",
+          "continuation_actions": [],
+          "hard_constraint_status": "within_limits"
+        }
+      ],
+      "expected": {
+        "disposition": "Qualified",
+        "common_continuations_by_observation": {
+          "same-observation": []
+        },
+        "clairvoyant_branch_continuations": {
+          "b1": [
+            "physical:forward"
+          ],
+          "b2": []
+        },
+        "clairvoyant_only_action_count": 1,
+        "deployable_common_action_count_by_observation": {
+          "same-observation": 0
+        }
+      }
+    },
+    {
+      "case_id": "FO05_INCOMPLETE_BRANCH_MANIFEST",
+      "description": "The transition authority cannot establish complete physical successor coverage; no positive robust continuation result is emitted.",
+      "candidate_action_id": "foothold:uncertain-contact",
+      "initial_state_digest": "sha256:fo05-initial",
+      "transition_model_digest": "sha256:fo05-model",
+      "action_domain_digest": "sha256:fo05-actions",
+      "continuation_domain_digest": "sha256:fo05-continuations",
+      "branch_manifest": {
+        "complete": false,
+        "digest": "sha256:fo05-partial-branches"
+      },
+      "thermal_chain": {
+        "status": "not_applicable"
+      },
+      "branches": [
+        {
+          "branch_id": "b1",
+          "physically_possible": true,
+          "probability_mass": 1,
+          "observation_class": "o1",
+          "successor_state_digest": "sha256:fo05-s1",
+          "continuation_actions": [
+            {
+              "label": "continue",
+              "physical_action_id": "physical:continue"
+            }
+          ],
+          "hard_constraint_status": "within_limits"
+        }
+      ],
+      "expected": {
+        "disposition": "Unknown",
+        "common_continuations_by_observation": {},
+        "deployable_common_action_count_by_observation": {}
+      }
+    },
+    {
+      "case_id": "FO06_ACTION_ALIAS_COLLAPSE",
+      "description": "Two user-facing action labels denote the same physical continuation and must count once.",
+      "candidate_action_id": "foothold:stable-step",
+      "initial_state_digest": "sha256:fo06-initial",
+      "transition_model_digest": "sha256:fo06-model",
+      "action_domain_digest": "sha256:fo06-actions",
+      "continuation_domain_digest": "sha256:fo06-continuations",
+      "branch_manifest": {
+        "complete": true,
+        "digest": "sha256:fo06-branches"
+      },
+      "thermal_chain": {
+        "status": "not_applicable"
+      },
+      "branches": [
+        {
+          "branch_id": "b1",
+          "physically_possible": true,
+          "probability_mass": 1,
+          "observation_class": "o1",
+          "successor_state_digest": "sha256:fo06-s1",
+          "continuation_actions": [
+            {
+              "label": "short-step",
+              "physical_action_id": "physical:step-A"
+            },
+            {
+              "label": "recovery-step",
+              "physical_action_id": "physical:step-A"
+            }
+          ],
+          "hard_constraint_status": "within_limits"
+        }
+      ],
+      "expected": {
+        "disposition": "Qualified",
+        "common_continuations_by_observation": {
+          "o1": [
+            "physical:step-A"
+          ]
+        },
+        "deployable_common_action_count_by_observation": {
+          "o1": 1
+        }
+      }
+    },
+    {
+      "case_id": "FO07_THERMAL_PREDECESSOR_MISMATCH",
+      "description": "Thermal evidence is internally valid but belongs to a different predecessor history; the current path receives no positive continuation claim.",
+      "candidate_action_id": "foothold:turn-under-heat",
+      "initial_state_digest": "sha256:fo07-initial",
+      "transition_model_digest": "sha256:fo07-model",
+      "action_domain_digest": "sha256:fo07-actions",
+      "continuation_domain_digest": "sha256:fo07-continuations",
+      "branch_manifest": {
+        "complete": true,
+        "digest": "sha256:fo07-branches"
+      },
+      "thermal_chain": {
+        "status": "mismatched_predecessor",
+        "model_digest": "sha256:thermal-model",
+        "node_manifest_digest": "sha256:thermal-nodes",
+        "expected_predecessor_state_digest": "sha256:thermal-current-predecessor",
+        "observed_predecessor_state_digest": "sha256:thermal-other-predecessor",
+        "result_state_digest": "sha256:thermal-result"
+      },
+      "branches": [
+        {
+          "branch_id": "b1",
+          "physically_possible": true,
+          "probability_mass": 1,
+          "observation_class": "o1",
+          "successor_state_digest": "sha256:fo07-s1",
+          "continuation_actions": [
+            {
+              "label": "continue",
+              "physical_action_id": "physical:continue"
+            }
+          ],
+          "hard_constraint_status": "within_limits"
+        }
+      ],
+      "expected": {
+        "disposition": "Unknown",
+        "common_continuations_by_observation": {},
+        "deployable_common_action_count_by_observation": {}
+      }
+    }
+  ]
+}
