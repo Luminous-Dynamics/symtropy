@@ -722,7 +722,10 @@
           ]
         },
         "writeback_state": {
-          "const": "effects_disabled"
+          "enum": [
+            "effects_disabled",
+            "writeback_attempted"
+          ]
         },
         "independent_verification_state": {
           "enum": [
@@ -813,19 +816,19 @@
           }
         },
         "s131": {
-          "$ref": "#/$defs/s131"
+          "$ref": "#/$defs/product131"
         },
         "s127": {
-          "$ref": "#/$defs/s127"
+          "$ref": "#/$defs/product127"
         },
         "s123": {
-          "$ref": "#/$defs/s123"
+          "$ref": "#/$defs/product123"
         },
         "s124": {
-          "$ref": "#/$defs/s124"
+          "$ref": "#/$defs/product124"
         },
         "s129": {
-          "$ref": "#/$defs/s129"
+          "$ref": "#/$defs/product129"
         },
         "dcsa": {
           "$ref": "#/$defs/dcsa"
