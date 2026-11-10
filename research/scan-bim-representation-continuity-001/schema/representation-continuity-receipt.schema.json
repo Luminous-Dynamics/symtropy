@@ -109,6 +109,7 @@
         "representation_output",
         "prior_state",
         "calibration",
+        "relation_inventory",
         "other"
       ]
     },
@@ -377,6 +378,7 @@
         "output_artifacts",
         "tool",
         "correspondences",
+        "relation_audit",
         "claims",
         "uncertainty"
       ],
@@ -423,6 +425,201 @@
         },
         "uncertainty": {
           "$ref": "#/$defs/uncertainty"
+        },
+        "relation_audit": {
+          "$ref": "#/$defs/relationAudit"
+        }
+      }
+    },
+    "relationInventoryCompleteness": {
+      "enum": [
+        "complete",
+        "partial",
+        "unknown"
+      ]
+    },
+    "relationDisposition": {
+      "enum": [
+        "preserved",
+        "modified",
+        "lost",
+        "unsupported",
+        "unresolved"
+      ]
+    },
+    "targetRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relation_id",
+        "relation_type",
+        "subject_entity_id",
+        "object_entity_id"
+      ],
+      "properties": {
+        "relation_id": {
+          "$ref": "#/$defs/id"
+        },
+        "relation_type": {
+          "$ref": "#/$defs/id"
+        },
+        "subject_entity_id": {
+          "$ref": "#/$defs/id"
+        },
+        "object_entity_id": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "relationLineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_relation_id",
+        "relation_kind",
+        "source_relation_type",
+        "source_subject_entity_id",
+        "source_object_entity_id",
+        "directed",
+        "disposition",
+        "target_relations",
+        "reason"
+      ],
+      "properties": {
+        "source_relation_id": {
+          "$ref": "#/$defs/id"
+        },
+        "relation_kind": {
+          "$ref": "#/$defs/id"
+        },
+        "source_relation_type": {
+          "$ref": "#/$defs/id"
+        },
+        "source_subject_entity_id": {
+          "$ref": "#/$defs/id"
+        },
+        "source_object_entity_id": {
+          "$ref": "#/$defs/id"
+        },
+        "directed": {
+          "type": "boolean"
+        },
+        "disposition": {
+          "$ref": "#/$defs/relationDisposition"
+        },
+        "target_relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/targetRelation"
+          }
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 1024
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "preserved",
+                  "modified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "target_relations": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "enum": [
+                  "lost",
+                  "unsupported",
+                  "unresolved"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "target_relations": {
+                "maxItems": 0
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "preserved"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disposition": {
+                "const": "modified"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "relationAudit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inventory_artifact_id",
+        "completeness",
+        "relations"
+      ],
+      "properties": {
+        "inventory_artifact_id": {
+          "$ref": "#/$defs/id"
+        },
+        "completeness": {
+          "$ref": "#/$defs/relationInventoryCompleteness"
+        },
+        "relations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relationLineage"
+          }
         }
       }
     }
