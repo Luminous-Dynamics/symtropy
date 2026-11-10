@@ -1,0 +1,701 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/shore-power-interface-v0.1.schema.json",
+  "title": "Port Shore-to-Ship Interface Corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "corpus_id",
+    "corpus_version",
+    "claim_ceiling",
+    "base_cases",
+    "cases"
+  ],
+  "properties": {
+    "corpus_id": {
+      "const": "luminous.symtropy.shore-power-interface"
+    },
+    "corpus_version": {
+      "const": "0.1.0"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_cases": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "valid_lvsc",
+        "valid_hvsc"
+      ],
+      "properties": {
+        "valid_lvsc": {
+          "$ref": "#/$defs/interfaceCase"
+        },
+        "valid_hvsc": {
+          "$ref": "#/$defs/interfaceCase"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 30,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "interfaceCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "fixture_kind",
+        "contract_version",
+        "evaluation_cutoff_utc",
+        "ship",
+        "berth",
+        "shore",
+        "standards",
+        "grid_observation",
+        "commitment",
+        "protection",
+        "communications",
+        "power_quality",
+        "authorities",
+        "connection"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_kind": {
+          "const": "synthetic_fixture"
+        },
+        "contract_version": {
+          "const": "0.1.0"
+        },
+        "evaluation_cutoff_utc": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "ship": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "ship_id",
+            "configuration_revision",
+            "electrical_system_class",
+            "nominal_voltage_v",
+            "min_voltage_v",
+            "max_voltage_v",
+            "frequency_hz",
+            "min_frequency_hz",
+            "max_frequency_hz",
+            "phase_count",
+            "required_current_a",
+            "required_power_mva",
+            "connector_family",
+            "required_cable_reach_m",
+            "max_load_step_mva",
+            "requested_load_step_mva",
+            "transient_profile_revision"
+          ],
+          "properties": {
+            "ship_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "configuration_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "electrical_system_class": {
+              "enum": [
+                "LVSC",
+                "HVSC"
+              ]
+            },
+            "nominal_voltage_v": {
+              "type": "number",
+              "minimum": 0
+            },
+            "min_voltage_v": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max_voltage_v": {
+              "type": "number",
+              "minimum": 0
+            },
+            "frequency_hz": {
+              "type": "number",
+              "minimum": 0
+            },
+            "min_frequency_hz": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max_frequency_hz": {
+              "type": "number",
+              "minimum": 0
+            },
+            "phase_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "required_current_a": {
+              "type": "number",
+              "minimum": 0
+            },
+            "required_power_mva": {
+              "type": "number",
+              "minimum": 0
+            },
+            "connector_family": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required_cable_reach_m": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max_load_step_mva": {
+              "type": "number",
+              "minimum": 0
+            },
+            "requested_load_step_mva": {
+              "type": "number",
+              "minimum": 0
+            },
+            "transient_profile_revision": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "berth": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "port_id",
+            "berth_id",
+            "connection_point_id",
+            "facility_id",
+            "facility_revision",
+            "s131_feature_ref"
+          ],
+          "properties": {
+            "port_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "berth_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "connection_point_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "facility_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "facility_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "s131_feature_ref": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "shore": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "connection_system_class",
+            "nominal_voltage_v",
+            "frequency_hz",
+            "phase_count",
+            "rated_current_a",
+            "rated_power_mva",
+            "connector_family",
+            "available_cable_reach_m",
+            "transformer_id",
+            "installed_transformer_revision",
+            "required_transformer_revision",
+            "transformer_capacity_mva",
+            "earthing_arrangement",
+            "required_earthing_arrangement"
+          ],
+          "properties": {
+            "connection_system_class": {
+              "enum": [
+                "LVSC",
+                "HVSC"
+              ]
+            },
+            "nominal_voltage_v": {
+              "type": "number",
+              "minimum": 0
+            },
+            "frequency_hz": {
+              "type": "number",
+              "minimum": 0
+            },
+            "phase_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "rated_current_a": {
+              "type": "number",
+              "minimum": 0
+            },
+            "rated_power_mva": {
+              "type": "number",
+              "minimum": 0
+            },
+            "connector_family": {
+              "type": "string",
+              "minLength": 1
+            },
+            "available_cable_reach_m": {
+              "type": "number",
+              "minimum": 0
+            },
+            "transformer_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "installed_transformer_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required_transformer_revision": {
+              "type": "string",
+              "minLength": 1
+            },
+            "transformer_capacity_mva": {
+              "type": "number",
+              "minimum": 0
+            },
+            "earthing_arrangement": {
+              "type": "string",
+              "minLength": 1
+            },
+            "required_earthing_arrangement": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "standards": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "connection_standard_id",
+            "connection_standard_status",
+            "communication_standard_id",
+            "communication_standard_status",
+            "edition3_claimed"
+          ],
+          "properties": {
+            "connection_standard_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "connection_standard_status": {
+              "enum": [
+                "published",
+                "under_development",
+                "unknown"
+              ]
+            },
+            "communication_standard_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "communication_standard_status": {
+              "enum": [
+                "published",
+                "under_review",
+                "under_development",
+                "unknown"
+              ]
+            },
+            "edition3_claimed": {
+              "type": "boolean"
+            }
+          }
+        },
+        "grid_observation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "available_capacity_mva",
+            "observed_at_utc",
+            "valid_until_utc",
+            "source_id",
+            "evidence_class",
+            "metering_boundary_id"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "measured",
+                "forecast",
+                "unknown"
+              ]
+            },
+            "available_capacity_mva": {
+              "type": "number",
+              "minimum": 0
+            },
+            "observed_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "valid_until_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "source_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_class": {
+              "enum": [
+                "observed_synthetic",
+                "simulated",
+                "inferred",
+                "unknown"
+              ]
+            },
+            "metering_boundary_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "commitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "provider_id",
+            "ship_id",
+            "berth_id",
+            "connection_point_id",
+            "reserved_power_mva",
+            "window_start_utc",
+            "window_end_utc",
+            "revoked",
+            "evidence_id"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "accepted",
+                "proposed",
+                "rejected",
+                "unknown"
+              ]
+            },
+            "provider_id": {
+              "type": "string"
+            },
+            "ship_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "berth_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "connection_point_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reserved_power_mva": {
+              "type": "number",
+              "minimum": 0
+            },
+            "window_start_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "window_end_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "revoked": {
+              "type": "boolean"
+            },
+            "evidence_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "protection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "commissioning_state",
+            "earthing_state",
+            "protective_tests_state",
+            "safety_loop_state",
+            "interlock_state",
+            "breaker_control_state",
+            "emergency_safety_independent",
+            "commissioning_receipt"
+          ],
+          "properties": {
+            "commissioning_state": {
+              "enum": [
+                "commissioned",
+                "pending",
+                "unknown"
+              ]
+            },
+            "earthing_state": {
+              "enum": [
+                "verified",
+                "unverified",
+                "unknown"
+              ]
+            },
+            "protective_tests_state": {
+              "enum": [
+                "current",
+                "stale",
+                "unknown"
+              ]
+            },
+            "safety_loop_state": {
+              "enum": [
+                "verified",
+                "unverified",
+                "unknown"
+              ]
+            },
+            "interlock_state": {
+              "enum": [
+                "verified",
+                "bypassed",
+                "unknown"
+              ]
+            },
+            "breaker_control_state": {
+              "enum": [
+                "verified",
+                "unverified",
+                "unknown"
+              ]
+            },
+            "emergency_safety_independent": {
+              "type": "boolean"
+            },
+            "commissioning_receipt": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "communications": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "profile",
+            "last_observed_at_utc",
+            "emergency_functions_carried"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "available",
+                "stale",
+                "unavailable",
+                "unknown"
+              ]
+            },
+            "profile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "last_observed_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "emergency_functions_carried": {
+              "type": "boolean"
+            }
+          }
+        },
+        "power_quality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "observed_at_utc",
+            "valid_until_utc",
+            "metering_boundary_id",
+            "evidence_id"
+          ],
+          "properties": {
+            "state": {
+              "enum": [
+                "within_declared_limits",
+                "out_of_limits",
+                "unknown"
+              ]
+            },
+            "observed_at_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "valid_until_utc": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "metering_boundary_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "authorities": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "port_electrical_owner",
+            "ship_electrical_authority"
+          ],
+          "properties": {
+            "port_electrical_owner": {
+              "$ref": "#/$defs/authority"
+            },
+            "ship_electrical_authority": {
+              "$ref": "#/$defs/authority"
+            }
+          }
+        },
+        "connection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "claimed_state",
+            "evidence_class",
+            "source_writeback"
+          ],
+          "properties": {
+            "claimed_state": {
+              "enum": [
+                "described",
+                "compatible",
+                "ready_for_connection",
+                "energized",
+                "operating",
+                "disconnected"
+              ]
+            },
+            "evidence_class": {
+              "enum": [
+                "observed_synthetic",
+                "simulated",
+                "inferred",
+                "unknown"
+              ]
+            },
+            "source_writeback": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "scope",
+        "issuer"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "approved",
+            "pending",
+            "unknown",
+            "revoked"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "issuer": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "base",
+        "mutations",
+        "expected_code"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "base": {
+          "enum": [
+            "valid_lvsc",
+            "valid_hvsc"
+          ]
+        },
+        "mutations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "value"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {}
+            }
+          }
+        },
+        "expected_code": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
