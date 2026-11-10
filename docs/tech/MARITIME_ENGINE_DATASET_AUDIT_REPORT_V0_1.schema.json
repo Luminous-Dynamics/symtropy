@@ -112,7 +112,8 @@
         "publisher_md5",
         "observed_md5",
         "publisher_md5_matches",
-        "md5_tool_available"
+        "md5_tool_available",
+        "zip_signature_valid"
       ],
       "properties": {
         "path": {
@@ -145,6 +146,9 @@
           ]
         },
         "md5_tool_available": {
+          "type": "boolean"
+        },
+        "zip_signature_valid": {
           "type": "boolean"
         }
       }
@@ -187,6 +191,11 @@
         "units",
         "anomaly_label_column",
         "time_abs_column",
+        "time_abs_nonempty_rows",
+        "time_abs_empty_rows",
+        "time_abs_duplicate_rows",
+        "first_time_abs",
+        "last_time_abs",
         "anomaly_zero_rows",
         "anomaly_one_rows",
         "anomaly_invalid_rows",
@@ -332,6 +341,30 @@
             "type": "integer",
             "minimum": 0
           }
+        },
+        "time_abs_nonempty_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_abs_empty_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "time_abs_duplicate_rows": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_time_abs": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "last_time_abs": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
