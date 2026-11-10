@@ -45,6 +45,7 @@ pub enum CaseError {
     NonPositiveGravity,
     RestitutionOutsideUnitInterval,
     InvalidUnitScale,
+    CandidateCountTooLarge,
     NonFiniteOracleResult,
 }
 
@@ -59,6 +60,9 @@ impl fmt::Display for CaseError {
             }
             Self::InvalidUnitScale => {
                 formatter.write_str("length and time scales must be finite and positive")
+            }
+            Self::CandidateCountTooLarge => {
+                formatter.write_str("candidate count exceeds the deterministic generator limit")
             }
             Self::NonFiniteOracleResult => {
                 formatter.write_str("analytic impact prediction is non-finite or invalid")
@@ -237,12 +241,19 @@ impl SplitMix64 {
     }
 }
 
+/// Maximum number of candidates accepted by one generator invocation.
+pub const MAX_CANDIDATES: usize = 100_000;
+
 /// Generate bounded, physically valid point-impact candidates in a deterministic order.
 ///
-/// Height and gravity are sampled log-uniformly over declared ranges. Initial
+/// A hard count cap bounds allocation and execution cost. Height and gravity are
+/// sampled log-uniformly over declared ranges. Initial
 /// velocity is sampled relative to sqrt(g h), avoiding a scale-dependent velocity
 /// distribution. Every sixteenth candidate exercises e=0 and e=1 explicitly.
 pub fn generate_candidates(seed: u64, count: usize) -> Result<Vec<GeneratedCandidate>, CaseError> {
+    if count > MAX_CANDIDATES {
+        return Err(CaseError::CandidateCountTooLarge);
+    }
     let mut rng = SplitMix64::new(seed);
     let mut candidates = Vec::with_capacity(count);
 
@@ -404,6 +415,24 @@ mod tests {
                     );
                 }
             }
+        }
+    }
+
+    #[test]
+    fn generator_enforces_its_declared_count_and_parameter_bounds() {
+        assert_eq!(
+            generate_candidates(7, MAX_CANDIDATES + 1),
+            Err(CaseError::CandidateCountTooLarge)
+        );
+        for candidate in generate_candidates(9, 4_096).expect("bounded corpus") {
+            let case = candidate.case;
+            assert!((1.0e-2..=1.0e3).contains(&case.initial_height_m));
+            assert!((1.0e-2..=1.0e1).contains(&case.gravity_m_s2));
+            assert!((-3.0..=3.0).contains(
+                &(case.initial_velocity_m_s
+                    / (case.initial_height_m * case.gravity_m_s2).sqrt())
+            ));
+            assert!((0.0..=1.0).contains(&case.restitution));
         }
     }
 
