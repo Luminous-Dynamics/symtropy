@@ -127,6 +127,41 @@ pub struct OccluderTriangle {
     pub kind: OccluderKind,
 }
 
+/// A single nearest-hit query against an immutable evaluator-side triangle index.
+/// Distances are metres because directions must be unit length and coordinates
+/// use the evaluator's metre-based frame contract.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RayQueryV1 {
+    pub origin: Point3,
+    pub direction: Point3,
+    pub tnear_m: f64,
+    pub tfar_m: f64,
+    pub exclude_target: Option<[String; 2]>,
+}
+
+/// Stable identity and distance for one member of the nearest-hit tie set.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct RayQueryHitV1 {
+    pub surface_id: String,
+    pub triangle_id: String,
+    pub distance_m: f64,
+}
+
+/// Per-ray result. The index build statistics are available on
+/// `RayQueryIndexV1::build_stats`; per-query work is recorded here.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct RayQueryReceiptV1 {
+    pub algorithm_id: String,
+    pub occluder_manifest_sha256: String,
+    pub nearest_hits: Vec<RayQueryHitV1>,
+    pub bvh_node_count: usize,
+    pub bvh_leaf_count: usize,
+    pub ray_test_count: usize,
+    pub bvh_node_visit_count: usize,
+    pub query_sha256: String,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VisibilityProfile {
