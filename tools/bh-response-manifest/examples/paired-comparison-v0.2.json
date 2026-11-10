@@ -26,7 +26,8 @@
       }
     ],
     "reproduction_command": "cargo run --release -- --study pt-response-example-v0.2",
-    "environment": "rustc-1.96.0; binary64; linux-x86_64"
+    "environment": "rustc-1.96.0; binary64; linux-x86_64",
+    "canonical_input_set_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
   },
   "numerical": {
     "solver_id": "analytic-example-not-an-executed-run",
