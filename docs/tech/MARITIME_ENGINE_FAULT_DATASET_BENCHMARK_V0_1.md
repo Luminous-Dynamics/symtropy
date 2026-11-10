@@ -157,6 +157,20 @@ Three additional studies broaden the benchmark requirements beyond static classi
 
 The two-stroke paper makes an important point: we should not use one scalar "accuracy" score to claim superiority. Detection false positives, diagnosis quality and RUL prediction are distinct tasks with different labels, denominators and uncertainty.
 
+### Causal risk from incident and maintenance narratives
+
+A further 2026 direction is [A Novel Time-Varying Failure Risk Assessment Framework for Marine Diesel Engines Integrating Large Language Models and Bayesian Networks](https://doi.org/10.3390/jmse14171586), published 27 August 2026. Its hard-starting case study reports 338 cause descriptions from 35 records, 12 risk-influencing factors after extraction/expert consolidation, semantic coverage above 93% across four models, and service-time-dependent Bayesian risk estimates. The paper reports conditional posteriors of 60.92% for fuel-injection mechanical failure and 36.91% for governor/actuation failure after a hard-starting symptom, and a model-inferred single-start hard-start probability rising from 38.09% to 75.23% over 0–10,000 service hours under its parameterization.
+
+These are **conditional model inferences**, not observed fleet failure rates. The benchmark must separately assess:
+- source-span attribution and hallucination/omission;
+- extraction precision/recall and expert agreement;
+- causal-graph edge direction/support versus mere correlation;
+- time-varying Bayesian calibration, prior sensitivity and Brier/log score;
+- copied-report duplicate suppression and common-source dependence;
+- whether a symptom-conditioned posterior is clearly distinguished from unconditional incidence.
+
+LLMs may extract and organize candidate facts but cannot create incident evidence, assert physical causality without support, or authorize maintenance. This research is tracked separately in [MARITIME-CAUSAL-RISK-001 #4548](https://github.com/Luminous-Dynamics/symtropy/issues/4548).
+
 ### A harder SOTA protocol
 
 Use two gates. A same-paper random split is a reproduction target; independent recording/domain generalization is a separate achievement.
