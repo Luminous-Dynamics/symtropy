@@ -130,30 +130,61 @@ pub enum RepairQualificationError {
     DiagnosticAndChallengeManifestMustDiffer,
     EmptyDiagnosticStatisticSet,
     EmptyDiagnosticStatisticId,
-    DuplicateDiagnosticStatisticId { statistic_id: String },
-    ChallengeStatisticWasUsedForRepair { statistic_id: String },
+    DuplicateDiagnosticStatisticId {
+        statistic_id: String,
+    },
+    ChallengeStatisticWasUsedForRepair {
+        statistic_id: String,
+    },
     EmptyDiagnosticObservationSet,
     EmptyDiagnosticObservationDigest,
-    DuplicateDiagnosticObservationDigest { observation_digest: String },
-    ChallengeObservationWasUsedForRepair { observation_digest: String },
+    DuplicateDiagnosticObservationDigest {
+        observation_digest: String,
+    },
+    ChallengeObservationWasUsedForRepair {
+        observation_digest: String,
+    },
     ChallengeMustUseSplitPredictiveAssessment,
     ChallengeManifestMismatch,
     ChallengeRegistryMismatch,
     ChallengeCentralMassMismatch,
     ChallengeAssessmentRoleMismatch,
     ChallengeRegistryMustContainOnlyChallengeStatistics,
-    ChallengeIndependentUnitMismatch { statistic_id: String },
+    ChallengeIndependentUnitMismatch {
+        statistic_id: String,
+    },
     EmptyChallengeUnits,
-    AssessmentModelIdentityMismatch { model_digest: String },
-    DuplicateAssessmentRow { statistic_id: String, unit_id: String },
-    UnknownAssessmentStatistic { statistic_id: String },
-    UnknownAssessmentUnit { statistic_id: String, unit_id: String },
-    AssessmentStatisticIdentityMismatch { statistic_id: String },
-    MissingRequiredAssessmentRow { statistic_id: String, unit_id: String },
+    AssessmentModelIdentityMismatch {
+        model_digest: String,
+    },
+    DuplicateAssessmentRow {
+        statistic_id: String,
+        unit_id: String,
+    },
+    UnknownAssessmentStatistic {
+        statistic_id: String,
+    },
+    UnknownAssessmentUnit {
+        statistic_id: String,
+        unit_id: String,
+    },
+    AssessmentStatisticIdentityMismatch {
+        statistic_id: String,
+    },
+    MissingRequiredAssessmentRow {
+        statistic_id: String,
+        unit_id: String,
+    },
     RequiredEvidenceCompletenessMismatch,
     DomainStatusMismatch,
-    BaselineAndRepairedObservationMismatch { statistic_id: String, unit_id: String },
-    BaselineAndRepairedDrawCountMismatch { statistic_id: String, unit_id: String },
+    BaselineAndRepairedObservationMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
+    BaselineAndRepairedDrawCountMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
     BaselineAndRepairedChallengeVocabularyMismatch,
 }
 
@@ -171,8 +202,7 @@ impl From<AdequacyError> for RepairQualificationError {
     }
 }
 
-type AssessmentRows<'a> =
-    BTreeMap<AssessmentKey, &'a crate::model_adequacy::StatisticAssessment>;
+type AssessmentRows<'a> = BTreeMap<AssessmentKey, &'a crate::model_adequacy::StatisticAssessment>;
 
 fn validate_assessment<'a>(
     assessment: &'a AdequacyAssessment,
@@ -203,8 +233,11 @@ fn validate_assessment<'a>(
         return Err(RepairQualificationError::ChallengeAssessmentRoleMismatch);
     }
 
-    let challenge_units: BTreeSet<&str> =
-        manifest.challenge_units.iter().map(String::as_str).collect();
+    let challenge_units: BTreeSet<&str> = manifest
+        .challenge_units
+        .iter()
+        .map(String::as_str)
+        .collect();
     let mut rows = BTreeMap::new();
 
     for row in &assessment.statistics {
@@ -225,9 +258,11 @@ fn validate_assessment<'a>(
             || row.source_digest != spec.source_digest
             || row.measurement_unit != spec.measurement_unit
         {
-            return Err(RepairQualificationError::AssessmentStatisticIdentityMismatch {
-                statistic_id: row.statistic_id.clone(),
-            });
+            return Err(
+                RepairQualificationError::AssessmentStatisticIdentityMismatch {
+                    statistic_id: row.statistic_id.clone(),
+                },
+            );
         }
 
         if let Some(receipt_model) = row.model_digest.as_deref() {
@@ -243,20 +278,26 @@ fn validate_assessment<'a>(
             let lower = row.lower_reference;
             let upper = row.upper_reference;
             let consistent = row.model_digest.as_deref() == Some(expected_model_digest)
-                && row.draw_set_digest.as_deref().is_some_and(|digest| !digest.trim().is_empty())
-                && row.observation_digest.as_deref().is_some_and(|digest| !digest.trim().is_empty())
+                && row
+                    .draw_set_digest
+                    .as_deref()
+                    .is_some_and(|digest| !digest.trim().is_empty())
+                && row
+                    .observation_digest
+                    .as_deref()
+                    .is_some_and(|digest| !digest.trim().is_empty())
                 && row.sample_size > 0
                 && observed.is_some_and(f64::is_finite)
                 && lower.is_some_and(f64::is_finite)
                 && upper.is_some_and(f64::is_finite)
                 && lower <= upper
-                && row.predictive_rank.is_some_and(|rank| {
-                    rank.is_finite() && (0.0..=1.0).contains(&rank)
-                })
+                && row
+                    .predictive_rank
+                    .is_some_and(|rank| rank.is_finite() && (0.0..=1.0).contains(&rank))
                 && row.draw_count >= spec.minimum_draws
-                && row.measurement_standard_error.is_none_or(|value| {
-                    value.is_finite() && value >= 0.0
-                })
+                && row
+                    .measurement_standard_error
+                    .is_none_or(|value| value.is_finite() && value >= 0.0)
                 && match (row.status, observed, lower, upper) {
                     (
                         StatisticStatus::WithinReferenceInterval,
@@ -273,9 +314,11 @@ fn validate_assessment<'a>(
                     _ => false,
                 };
             if !consistent {
-                return Err(RepairQualificationError::AssessmentStatisticIdentityMismatch {
-                    statistic_id: row.statistic_id.clone(),
-                });
+                return Err(
+                    RepairQualificationError::AssessmentStatisticIdentityMismatch {
+                        statistic_id: row.statistic_id.clone(),
+                    },
+                );
             }
         }
 
@@ -390,14 +433,24 @@ pub fn qualify_repair_on_fresh_challenge(
         return Err(RepairQualificationError::EmptyChallengeUnits);
     }
     if input.challenge_registry.statistics.is_empty()
-        || input.challenge_registry.statistics.iter().any(|spec| spec.role != SplitRole::Challenge)
+        || input
+            .challenge_registry
+            .statistics
+            .iter()
+            .any(|spec| spec.role != SplitRole::Challenge)
     {
         return Err(RepairQualificationError::ChallengeRegistryMustContainOnlyChallengeStatistics);
     }
-    if input.challenge_registry.statistics.iter().any(|spec| {
-        spec.independent_unit != input.challenge_manifest.independent_unit
-    }) {
-        let spec = input.challenge_registry.statistics.iter()
+    if input
+        .challenge_registry
+        .statistics
+        .iter()
+        .any(|spec| spec.independent_unit != input.challenge_manifest.independent_unit)
+    {
+        let spec = input
+            .challenge_registry
+            .statistics
+            .iter()
             .find(|spec| spec.independent_unit != input.challenge_manifest.independent_unit)
             .expect("mismatched statistic exists");
         return Err(RepairQualificationError::ChallengeIndependentUnitMismatch {
@@ -421,9 +474,11 @@ pub fn qualify_repair_on_fresh_challenge(
     }
     for spec in &input.challenge_registry.statistics {
         if diagnostic_ids.contains(spec.id.as_str()) {
-            return Err(RepairQualificationError::ChallengeStatisticWasUsedForRepair {
-                statistic_id: spec.id.clone(),
-            });
+            return Err(
+                RepairQualificationError::ChallengeStatisticWasUsedForRepair {
+                    statistic_id: spec.id.clone(),
+                },
+            );
         }
     }
 
@@ -436,9 +491,11 @@ pub fn qualify_repair_on_fresh_challenge(
             return Err(RepairQualificationError::EmptyDiagnosticObservationDigest);
         }
         if !diagnostic_observations.insert(observation_digest.as_str()) {
-            return Err(RepairQualificationError::DuplicateDiagnosticObservationDigest {
-                observation_digest: observation_digest.clone(),
-            });
+            return Err(
+                RepairQualificationError::DuplicateDiagnosticObservationDigest {
+                    observation_digest: observation_digest.clone(),
+                },
+            );
         }
     }
 
@@ -470,9 +527,9 @@ pub fn qualify_repair_on_fresh_challenge(
     let mut primary_repaired_discrepancy_count = 0;
 
     for (key, baseline_row) in &baseline_rows {
-        let repaired_row = repaired_rows.get(key).ok_or(
-            RepairQualificationError::BaselineAndRepairedChallengeVocabularyMismatch,
-        )?;
+        let repaired_row = repaired_rows
+            .get(key)
+            .ok_or(RepairQualificationError::BaselineAndRepairedChallengeVocabularyMismatch)?;
         if baseline_row.source_family != repaired_row.source_family
             || baseline_row.source_digest != repaired_row.source_digest
             || baseline_row.observation_digest != repaired_row.observation_digest
@@ -481,41 +538,52 @@ pub fn qualify_repair_on_fresh_challenge(
             || baseline_row.observed_value != repaired_row.observed_value
             || baseline_row.measurement_standard_error != repaired_row.measurement_standard_error
         {
-            return Err(RepairQualificationError::BaselineAndRepairedObservationMismatch {
-                statistic_id: key.statistic_id.clone(),
-                unit_id: key.independent_unit_id.clone(),
-            });
+            return Err(
+                RepairQualificationError::BaselineAndRepairedObservationMismatch {
+                    statistic_id: key.statistic_id.clone(),
+                    unit_id: key.independent_unit_id.clone(),
+                },
+            );
         }
         if baseline_row.draw_count != repaired_row.draw_count {
-            return Err(RepairQualificationError::BaselineAndRepairedDrawCountMismatch {
-                statistic_id: key.statistic_id.clone(),
-                unit_id: key.independent_unit_id.clone(),
-            });
+            return Err(
+                RepairQualificationError::BaselineAndRepairedDrawCountMismatch {
+                    statistic_id: key.statistic_id.clone(),
+                    unit_id: key.independent_unit_id.clone(),
+                },
+            );
         }
 
         if let Some(observation_digest) = baseline_row.observation_digest.as_deref() {
             if diagnostic_observations.contains(observation_digest) {
-                return Err(RepairQualificationError::ChallengeObservationWasUsedForRepair {
-                    observation_digest: observation_digest.to_string(),
-                });
+                return Err(
+                    RepairQualificationError::ChallengeObservationWasUsedForRepair {
+                        observation_digest: observation_digest.to_string(),
+                    },
+                );
             }
         }
-        let spec = input.challenge_registry
+        let spec = input
+            .challenge_registry
             .get(&key.statistic_id)
             .expect("assessment key already validated against registry");
         let transition = match (baseline_row.status, repaired_row.status) {
-            (StatisticStatus::OutsideReferenceInterval, StatisticStatus::WithinReferenceInterval) => {
-                RepairTransition::Improved
-            }
-            (StatisticStatus::WithinReferenceInterval, StatisticStatus::OutsideReferenceInterval) => {
-                RepairTransition::Regressed
-            }
-            (StatisticStatus::OutsideReferenceInterval, StatisticStatus::OutsideReferenceInterval) => {
-                RepairTransition::PersistentDiscrepancy
-            }
-            (StatisticStatus::WithinReferenceInterval, StatisticStatus::WithinReferenceInterval) => {
-                RepairTransition::UnchangedWithinReference
-            }
+            (
+                StatisticStatus::OutsideReferenceInterval,
+                StatisticStatus::WithinReferenceInterval,
+            ) => RepairTransition::Improved,
+            (
+                StatisticStatus::WithinReferenceInterval,
+                StatisticStatus::OutsideReferenceInterval,
+            ) => RepairTransition::Regressed,
+            (
+                StatisticStatus::OutsideReferenceInterval,
+                StatisticStatus::OutsideReferenceInterval,
+            ) => RepairTransition::PersistentDiscrepancy,
+            (
+                StatisticStatus::WithinReferenceInterval,
+                StatisticStatus::WithinReferenceInterval,
+            ) => RepairTransition::UnchangedWithinReference,
             _ => RepairTransition::NotAssessed,
         };
 
@@ -557,9 +625,7 @@ pub fn qualify_repair_on_fresh_challenge(
         RepairQualificationStatus::RegressionDetected
     } else if !evidence_complete {
         RepairQualificationStatus::NotAssessed
-    } else if primary_baseline_discrepancy_count > 0
-        && primary_repaired_discrepancy_count == 0
-    {
+    } else if primary_baseline_discrepancy_count > 0 && primary_repaired_discrepancy_count == 0 {
         RepairQualificationStatus::RestoredOnFreshChallenge
     } else if primary_improvement_count > 0 && primary_repaired_discrepancy_count > 0 {
         RepairQualificationStatus::ImprovedButNotRestored
@@ -596,8 +662,8 @@ pub fn qualify_repair_on_fresh_challenge(
 mod tests {
     use super::*;
     use crate::model_adequacy::{
-        assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
-        StatisticSpec,
+        IndependentUnitKind, ObservedStatistic, PredictiveDraw, StatisticSpec,
+        assess_predictive_partition,
     };
 
     const BASELINE_MODEL: &str = "sha256-baseline-model";
@@ -666,10 +732,7 @@ mod tests {
             },
         ];
         let mut draws = Vec::new();
-        for (unit_id, maybe_values) in [
-            ("network-a", values_a),
-            ("network-b", values_b),
-        ] {
+        for (unit_id, maybe_values) in [("network-a", values_a), ("network-b", values_b)] {
             if let Some(values) = maybe_values {
                 for (index, value) in values.into_iter().enumerate() {
                     draws.push(PredictiveDraw {
@@ -754,7 +817,10 @@ mod tests {
         );
         let report = qualify_repair_on_fresh_challenge(&input(baseline, repaired))
             .expect("restored challenge report");
-        assert_eq!(report.status, RepairQualificationStatus::RestoredOnFreshChallenge);
+        assert_eq!(
+            report.status,
+            RepairQualificationStatus::RestoredOnFreshChallenge
+        );
         assert_eq!(report.primary_improvement_count, 2);
         assert_eq!(report.primary_repaired_discrepancy_count, 0);
     }
@@ -780,10 +846,20 @@ mod tests {
     #[test]
     fn rejects_statistic_leakage_into_repair_diagnostics() {
         let mut candidate = input(
-            assessment(BASELINE_MODEL, Some([0.1, 0.2, 0.2, 0.3, 0.4]), Some([0.1, 0.2, 0.2, 0.3, 0.4])),
-            assessment(REPAIRED_MODEL, Some([0.7, 0.75, 0.8, 0.85, 0.9]), Some([0.7, 0.75, 0.8, 0.85, 0.9])),
+            assessment(
+                BASELINE_MODEL,
+                Some([0.1, 0.2, 0.2, 0.3, 0.4]),
+                Some([0.1, 0.2, 0.2, 0.3, 0.4]),
+            ),
+            assessment(
+                REPAIRED_MODEL,
+                Some([0.7, 0.75, 0.8, 0.85, 0.9]),
+                Some([0.7, 0.75, 0.8, 0.85, 0.9]),
+            ),
         );
-        candidate.diagnostic_statistic_ids.push("held-out-transitivity".to_string());
+        candidate
+            .diagnostic_statistic_ids
+            .push("held-out-transitivity".to_string());
         assert!(matches!(
             qualify_repair_on_fresh_challenge(&candidate),
             Err(RepairQualificationError::ChallengeStatisticWasUsedForRepair { .. })
@@ -803,8 +879,7 @@ mod tests {
             Some([0.7, 0.75, 0.8, 0.85, 0.9]),
         );
         let mut candidate = input(baseline, repaired);
-        candidate.diagnostic_observation_digests =
-            vec!["sha256-network-a-observation".to_string()];
+        candidate.diagnostic_observation_digests = vec!["sha256-network-a-observation".to_string()];
         assert!(matches!(
             qualify_repair_on_fresh_challenge(&candidate),
             Err(RepairQualificationError::ChallengeObservationWasUsedForRepair { .. })
@@ -878,6 +953,9 @@ mod tests {
             .expect("underpowered challenge is reportable");
         assert!(!report.evidence_complete);
         assert_eq!(report.status, RepairQualificationStatus::NotAssessed);
-        assert_eq!(report.transitions[1].repaired_status, StatisticStatus::NotAssessed);
+        assert_eq!(
+            report.transitions[1].repaired_status,
+            StatisticStatus::NotAssessed
+        );
     }
 }
