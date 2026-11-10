@@ -1255,6 +1255,23 @@ mod tests {
     fn problem() -> ProjectionGateProblem {
         ProjectionGateProblem {
             now_ns: 190,
+            physical_possibility_receipt: PhysicalPossibilityReceipt {
+                receipt_id: "possibility-receipt".to_owned(),
+                result_digest: "possibility-result".to_owned(),
+                possibility_set_digest: "possibilities-v1".to_owned(),
+                possibility_ids: vec!["contact-mode-a".to_owned()],
+                input_state_digest: "state-v1".to_owned(),
+                model_digest: "model-v1".to_owned(),
+                abstraction_digest: "abstraction-v1".to_owned(),
+                domain_digest: "domain-v1".to_owned(),
+                actuator_digest: "actuator-v1".to_owned(),
+                horizon_steps: 10,
+                complete: true,
+                status: AuthorityStatus::Admitted,
+                witness_or_reason: None,
+                valid_from_ns: 150,
+                valid_until_ns: 250,
+            },
             proposal: proposal(),
             required_constraint_inventory: vec![
                 requirement("torque-limit", ConstraintClass::HardPhysical),
@@ -1506,6 +1523,7 @@ mod tests {
         input.proposal.deadline_ns = 205;
         input.result.deadline_ns = 205;
         input.result.disposition = SolverDisposition::DeadlineMiss;
+        input.result.status_reason = Some("projection deadline exceeded".to_owned());
         input.result.completed_at_ns = 201;
         let mut fallback = admitted_fallback();
         fallback.intended_apply_at_ns = 205;
@@ -1644,6 +1662,18 @@ mod tests {
     fn all_constraints_are_checked_for_every_physical_possibility() {
         let mut input = problem();
         input.physical_possibility_ids.push("contact-mode-b".to_owned());
+        input
+            .physical_possibility_receipt
+            .possibility_ids
+            .push("contact-mode-b".to_owned());
+        input
+            .physical_possibility_receipt
+            .possibility_ids
+            .push("contact-mode-b".to_owned());
+        input
+            .physical_possibility_receipt
+            .possibility_ids
+            .push("contact-mode-b".to_owned());
         for (id, margin) in [
             ("torque-limit", 90),
             ("friction-cone", 40),
@@ -1721,6 +1751,34 @@ mod tests {
         assert_eq!(
             report.numerically_unqualified,
             vec!["contact-mode-a:torque-limit".to_owned()]
+        );
+    }
+
+    #[test]
+    fn incomplete_physical_possibility_receipt_never_authorizes_projection() {
+        let mut input = problem();
+        input.physical_possibility_receipt.complete = false;
+        let report = qualify_projected_action(&input).expect("incomplete set is unknown");
+        assert!(matches!(report.disposition, GateDisposition::Unknown { .. }));
+    }
+
+    #[test]
+    fn physical_possibility_receipt_must_match_exact_id_inventory() {
+        let mut input = problem();
+        input.physical_possibility_receipt.possibility_ids[0] = "other-contact-mode".to_owned();
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::PhysicalPossibilityReceiptMismatch)
+        );
+    }
+
+    #[test]
+    fn physical_possibility_receipt_must_be_fresh_at_application_time() {
+        let mut input = problem();
+        input.physical_possibility_receipt.valid_until_ns = 199;
+        assert_eq!(
+            qualify_projected_action(&input),
+            Err(ProjectionError::StaleReceipt)
         );
     }
 
