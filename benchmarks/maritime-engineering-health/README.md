@@ -9,7 +9,7 @@ From the repository root:
 
 ~~~sh
 cargo fmt --manifest-path benchmarks/maritime-engineering-health/Cargo.toml -- --check
-cargo test --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml
+cargo test --locked --all-targets --manifest-path benchmarks/maritime-engineering-health/Cargo.toml
 cargo clippy --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml --all-targets -- -D warnings
 cargo run --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml -- benchmarks/maritime/engineering-health-corpus-v0.1.json
 ~~~
