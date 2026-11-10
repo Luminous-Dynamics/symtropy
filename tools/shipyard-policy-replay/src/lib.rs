@@ -798,6 +798,113 @@ mod tests {
     }
 
     #[test]
+    fn weld_work_remains_awaiting_inspection_until_ndt_result_is_observed() {
+        let mut accepted_ndt = event("ndt-accepted", 4);
+        accepted_ndt.observation_key = "ndt-disposition:accepted".to_owned();
+        let mut rejected_ndt = event("ndt-rejected", 4);
+        rejected_ndt.observation_key = "ndt-disposition:rejected".to_owned();
+
+        let replay = suite(
+            &["weld-accepted", "weld-rejected"],
+            vec![0, 2, 5, 7],
+            vec![
+                scenario(
+                    "weld-accepted",
+                    vec![event("root-fill-cap-complete", 0), accepted_ndt],
+                    vec![
+                        action(0, "execute-weld"),
+                        action(2, "await-inspection"),
+                        action(5, "release-downstream"),
+                        action(7, "continue-next-work"),
+                    ],
+                ),
+                scenario(
+                    "weld-rejected",
+                    vec![event("root-fill-cap-complete", 0), rejected_ndt],
+                    vec![
+                        action(0, "execute-weld"),
+                        action(2, "await-inspection"),
+                        action(5, "open-authorized-repair"),
+                        action(7, "reinspection-complete"),
+                    ],
+                ),
+            ],
+        );
+
+        let report = audit_policy_replay(&replay);
+        assert_eq!(report.status, PolicyReplayStatus::Consistent);
+        assert_eq!(report.information_set_comparisons, 2);
+        assert!(report.diagnostics.is_empty());
+    }
+
+    #[test]
+    fn rejects_weld_acceptance_or_repair_branch_before_ndt_is_observed() {
+        let mut accepted_ndt = event("ndt-accepted", 4);
+        accepted_ndt.observation_key = "ndt-disposition:accepted".to_owned();
+        let mut rejected_ndt = event("ndt-rejected", 4);
+        rejected_ndt.observation_key = "ndt-disposition:rejected".to_owned();
+
+        let replay = suite(
+            &["weld-accepted", "weld-rejected"],
+            vec![0, 2, 5],
+            vec![
+                scenario(
+                    "weld-accepted",
+                    vec![event("root-fill-cap-complete", 0), accepted_ndt],
+                    vec![
+                        action(0, "execute-weld"),
+                        action(2, "release-downstream"),
+                        action(5, "continue-next-work"),
+                    ],
+                ),
+                scenario(
+                    "weld-rejected",
+                    vec![event("root-fill-cap-complete", 0), rejected_ndt],
+                    vec![
+                        action(0, "execute-weld"),
+                        action(2, "open-authorized-repair"),
+                        action(5, "repair-and-reinspect"),
+                    ],
+                ),
+            ],
+        );
+
+        let report = audit_policy_replay(&replay);
+        assert_eq!(report.status, PolicyReplayStatus::AnticipativityViolation);
+        assert!(report.diagnostics.iter().any(|diagnostic| {
+            diagnostic.code == "NON_ANTICIPATIVE_ACTION_MISMATCH"
+                && diagnostic.tick == Some(2)
+        }));
+    }
+
+    #[test]
+    fn inspection_rework_event_can_change_the_policy_only_after_its_observation_tick() {
+        let mut rejected_ndt = event("ndt-rejected", 4);
+        rejected_ndt.observation_key = "ndt-disposition:rejected".to_owned();
+        let mut repair_route = event("repair-route-authorized", 6);
+        repair_route.observation_key = "repair-route:approved-for-synthetic-case".to_owned();
+
+        let replay = suite(
+            &["weld-rejected"],
+            vec![0, 2, 5, 7],
+            vec![scenario(
+                "weld-rejected",
+                vec![event("root-fill-cap-complete", 0), rejected_ndt, repair_route],
+                vec![
+                    action(0, "execute-weld"),
+                    action(2, "await-inspection"),
+                    action(5, "hold-downstream"),
+                    action(7, "schedule-authorized-repair-and-reinspection"),
+                ],
+            )],
+        );
+
+        let report = audit_policy_replay(&replay);
+        assert_eq!(report.status, PolicyReplayStatus::Consistent);
+        assert!(report.diagnostics.is_empty());
+    }
+
+    #[test]
     fn missing_action_is_incomplete_not_a_pass() {
         let replay = suite(
             &["case-a"],
