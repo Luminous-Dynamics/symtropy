@@ -453,40 +453,34 @@ fn make_changed_action_branch(
     })
 }
 
-fn invoke_symthaea_bridge(
-    episode_dir: &Path,
-    bridge_config: Value,
-    vision_config: Value,
-    observations: Vec<Value>,
+fn invoke_bridge_process(
     bridge_binary: &Path,
-) -> Result<(usize, bool, u64, u64, bool), Box<dyn Error>> {
-    let request_path = episode_dir.join("episode-request.json");
-    let bridge_dir = episode_dir.join("symthaea-bridge");
-    let receipts_path = bridge_dir.join("bridge-receipts.json");
-    let policy_inputs_dir = bridge_dir.join("policy-inputs");
-    fs::create_dir_all(&bridge_dir)?;
-
-    let request = json!({
-        "schema_version": 1,
-        "bridge_config": bridge_config,
-        "vision_config": vision_config,
-        "observations": observations
-    });
-    write_json(&request_path, &request)?;
-
+    request_path: &Path,
+    receipts_path: &Path,
+    policy_inputs_dir: &Path,
+) -> Result<Value, Box<dyn Error>> {
+    fs::create_dir_all(
+        receipts_path
+            .parent()
+            .ok_or("bridge receipts path must have a parent directory")?,
+    )?;
+    fs::create_dir_all(policy_inputs_dir)?;
     let status = Command::new(bridge_binary)
-        .arg(&request_path)
-        .arg(&receipts_path)
-        .arg(&policy_inputs_dir)
+        .arg(request_path)
+        .arg(receipts_path)
+        .arg(policy_inputs_dir)
         .status()?;
     if !status.success() {
-        return Err(format!(
-            "Symthaea camera-driving-bridge exited with status {status}"
-        )
-        .into());
+        return Err(format!("Symthaea camera-driving-bridge exited with status {status}").into());
     }
+    Ok(read_json(receipts_path)?)
+}
 
-    let bridge_output = read_json(&receipts_path)?;
+fn validate_bridge_output(
+    bridge_output: &Value,
+    observations: &[Value],
+    policy_inputs_dir: &Path,
+) -> Result<(bool, bool), Box<dyn Error>> {
     let receipts = bridge_output["receipts"]
         .as_array()
         .ok_or("Symthaea bridge output is missing receipts[]")?;
@@ -502,10 +496,10 @@ fn invoke_symthaea_bridge(
     {
         return Err("Symthaea bridge output denominator/count mismatch".into());
     }
-    let frozen = bridge_output["vision_learning_frozen"].as_bool() == Some(true);
-    let before = bridge_output["vision_training_steps_before"].as_u64().unwrap_or(u64::MAX);
-    let after = bridge_output["vision_training_steps_after"].as_u64().unwrap_or(u64::MAX);
-    if !frozen || before != after {
+    if bridge_output["vision_learning_frozen"].as_bool() != Some(true)
+        || bridge_output["vision_training_steps_before"]
+            != bridge_output["vision_training_steps_after"]
+    {
         return Err("Symthaea bridge did not preserve frozen-learning evidence".into());
     }
 
@@ -572,11 +566,113 @@ fn invoke_symthaea_bridge(
             artifact_chain_valid = false;
         }
     }
-
     if !receipt_chain_valid || !artifact_chain_valid {
         return Err("Symthaea bridge receipt or HDC artifact chain failed reconciliation".into());
     }
-    Ok((receipts.len(), frozen, before, after, receipt_chain_valid && artifact_chain_valid))
+    Ok((receipt_chain_valid, artifact_chain_valid))
+}
+
+fn invoke_symthaea_bridge(
+    episode_dir: &Path,
+    bridge_config: Value,
+    vision_config: Value,
+    observations: Vec<Value>,
+    bridge_binary: &Path,
+) -> Result<(usize, bool, u64, u64, bool, bool), Box<dyn Error>> {
+    let request_path = episode_dir.join("episode-request.json");
+    let bridge_dir = episode_dir.join("symthaea-bridge");
+    let first_receipts = bridge_dir.join("bridge-receipts.json");
+    let first_policy_inputs = bridge_dir.join("policy-inputs");
+    let replay_dir = bridge_dir.join("fresh-process-replay");
+    let replay_receipts = replay_dir.join("bridge-receipts.json");
+    let replay_policy_inputs = replay_dir.join("policy-inputs");
+
+    let request = json!({
+        "schema_version": 1,
+        "bridge_config": bridge_config,
+        "vision_config": vision_config,
+        "observations": observations
+    });
+    write_json(&request_path, &request)?;
+
+    // Each invocation is a new OS process and reconstructs a new Vision Manifold.
+    let first_output = invoke_bridge_process(
+        bridge_binary,
+        &request_path,
+        &first_receipts,
+        &first_policy_inputs,
+    )?;
+    let (receipt_valid, artifact_valid) =
+        validate_bridge_output(&first_output, &observations, &first_policy_inputs)?;
+
+    let replay_output = invoke_bridge_process(
+        bridge_binary,
+        &request_path,
+        &replay_receipts,
+        &replay_policy_inputs,
+    )?;
+    let (replay_receipt_valid, replay_artifact_valid) =
+        validate_bridge_output(&replay_output, &observations, &replay_policy_inputs)?;
+
+    let receipt_replay_exact = first_output == replay_output
+        && receipt_valid
+        && replay_receipt_valid
+        && artifact_valid
+        && replay_artifact_valid;
+
+    let first_artifacts = first_output["policy_input_artifacts"]
+        .as_array()
+        .ok_or("first bridge output is missing policy_input_artifacts[]")?;
+    let replay_artifacts = replay_output["policy_input_artifacts"]
+        .as_array()
+        .ok_or("replay bridge output is missing policy_input_artifacts[]")?;
+    let mut byte_replay_exact = first_artifacts.len() == replay_artifacts.len();
+    for (left, right) in first_artifacts.iter().zip(replay_artifacts) {
+        if left["relative_path"] != right["relative_path"] || left["sha256"] != right["sha256"] {
+            byte_replay_exact = false;
+            continue;
+        }
+        let relative = left["relative_path"].as_str().unwrap_or("");
+        let first_bytes = fs::read(first_policy_inputs.join(relative))?;
+        let replay_bytes = fs::read(replay_policy_inputs.join(relative))?;
+        if first_bytes != replay_bytes {
+            byte_replay_exact = false;
+        }
+    }
+
+    let replay_exact = receipt_replay_exact && byte_replay_exact;
+    if !replay_exact {
+        return Err("fresh-process Symthaea bridge replay diverged in receipts or HDC artifacts".into());
+    }
+
+    let receipts = first_output["receipts"]
+        .as_array()
+        .ok_or("first bridge output is missing receipts[]")?;
+    let frozen = first_output["vision_learning_frozen"].as_bool() == Some(true);
+    let before = first_output["vision_training_steps_before"].as_u64().unwrap_or(u64::MAX);
+    let after = first_output["vision_training_steps_after"].as_u64().unwrap_or(u64::MAX);
+    if !frozen || before != after {
+        return Err("Symthaea bridge did not preserve frozen-learning evidence".into());
+    }
+
+    write_json(
+        &bridge_dir.join("fresh-process-replay-comparison.json"),
+        &json!({
+            "receipt_json_exact": receipt_replay_exact,
+            "policy_input_artifact_bytes_exact": byte_replay_exact,
+            "fresh_process_replay_exact": replay_exact,
+            "observation_count": receipts.len()
+        }),
+    )?;
+
+    Ok((
+        receipts.len(),
+        frozen,
+        before,
+        after,
+        receipt_valid && artifact_valid,
+        replay_exact,
+    ))
 }
 
 fn run_parent(
@@ -746,8 +842,14 @@ fn run_parent(
         }),
     )?;
 
-    let (bridge_count, frozen, training_before, training_after, bridge_chain_valid) =
-        invoke_symthaea_bridge(
+    let (
+        bridge_count,
+        frozen,
+        training_before,
+        training_after,
+        bridge_chain_valid,
+        bridge_replay_exact,
+    ) = invoke_symthaea_bridge(
             &episode_dir,
             bridge_config,
             vision_config,
@@ -768,6 +870,7 @@ fn run_parent(
         delayed_observations: delayed_count,
         fresh_observations: fresh_count,
         fresh_process_renderer_replay_exact: replay_exact,
+        fresh_process_symthaea_bridge_replay_exact: bridge_replay_exact,
         symthaea_bridge_invoked: true,
         symthaea_bridge_processed_observations: bridge_count,
         symthaea_receipt_chain_valid: bridge_chain_valid,
