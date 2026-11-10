@@ -636,7 +636,7 @@ mod tests {
     #[test]
     fn incomplete_target_visibility_is_rejected() {
         let mut value = fixture_value();
-        value["actions"][0]["target_visibility"] = serde_json::json!([]);
+        value["task"]["target_entity_ids"] = serde_json::json!(["DOOR-001", "DOOR-002"]);
         let report = evaluate(&value);
         let qualification = report.action_qualifications.iter()
             .find(|item| item.action_id == "targeted-oblique-clearance-scan")
@@ -654,6 +654,21 @@ mod tests {
             .expect("targeted action");
         assert_eq!(action.status, "reject_action");
         assert!(action.rejection_codes.contains(&"ACTION_PARTITION_INCOMPLETE".to_owned()));
+    }
+
+    #[test]
+    fn contradictory_hypothesis_requirement_flag_is_rejected() {
+        let mut value = fixture_value();
+        value["possible_states"][0]["requirement_satisfied"] = Value::Bool(false);
+        let bytes = serde_json::to_vec(&value).expect("serialize contradictory hypothesis");
+        let errors = evaluate_scan_bim_decision_bytes(
+            &bytes,
+            EMBEDDED_SCAN_BIM_DECISION_SCHEMA.as_bytes(),
+        )
+        .expect_err("requirement flag must match the numerical hypothesis and threshold");
+        assert!(errors.iter().any(
+            |error| error.code == "SCAN_BIM_HYPOTHESIS_REQUIREMENT_CONTRADICTION"
+        ));
     }
 
     #[test]
