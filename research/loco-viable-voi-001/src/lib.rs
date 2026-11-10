@@ -233,6 +233,7 @@ pub enum ViableVoiError {
     PriorMassNotNormalized,
     HypothesisMarginalMismatch,
     DuplicateContinuationOutcome,
+    DuplicateEvidenceReceipt,
     MissingContinuationOutcome,
     ContinuationContextMismatch,
     EmptyPostStateSetDigest,
@@ -529,6 +530,12 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
         .horizon_steps
         .checked_sub(problem.probe.probe_duration_steps)
         .ok_or(ViableVoiError::InvalidHorizon)?;
+    let mut evidence_receipt_ids = BTreeSet::new();
+    evidence_receipt_ids.insert(problem.probe.receipt.receipt_id.as_str());
+    evidence_receipt_ids.insert(problem.passive_receipt.receipt_id.as_str());
+    if evidence_receipt_ids.len() != 2 {
+        return Err(ViableVoiError::DuplicateEvidenceReceipt);
+    }
     let mut continuation_ids = BTreeSet::new();
     for continuation in &problem.continuation_evidence {
         if !continuation_ids.insert(continuation.outcome_id.as_str()) {
@@ -548,6 +555,9 @@ fn validate_and_compute(problem: &ViableVoiProblem) -> Result<ViableVoiReport, V
             remaining_horizon,
         )
         .map_err(|_| ViableVoiError::ContinuationContextMismatch)?;
+        if !evidence_receipt_ids.insert(continuation.receipt.receipt_id.as_str()) {
+            return Err(ViableVoiError::DuplicateEvidenceReceipt);
+        }
         if !nonempty(&continuation.post_state_set_digest) {
             return Err(ViableVoiError::EmptyPostStateSetDigest);
         }
@@ -1461,6 +1471,17 @@ mod tests {
         assert_eq!(
             evaluate_viable_voi(&problem),
             Err(ViableVoiError::PassiveLossForUnadmittedAction)
+        );
+    }
+
+    #[test]
+    fn the_same_evidence_receipt_cannot_authorize_two_composition_roles() {
+        let mut problem = safe_problem();
+        problem.continuation_evidence[0].receipt.receipt_id =
+            problem.passive_receipt.receipt_id.clone();
+        assert_eq!(
+            evaluate_viable_voi(&problem),
+            Err(ViableVoiError::DuplicateEvidenceReceipt)
         );
     }
 
