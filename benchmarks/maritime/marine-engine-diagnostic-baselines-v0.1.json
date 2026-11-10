@@ -587,6 +587,47 @@
         "Review reports that diagnostic research advances faster than operational validation and calls for multi-engine/multi-vessel data, interpretable hybrid models and standardized benchmarks.",
         "Use as a landscape and gap-analysis source rather than an experimental classifier baseline."
       ]
+    },
+    {
+      "id": "control-aware-domain-adversarial-maneuvering-2026",
+      "title": "Fault diagnosis of marine diesel engine via control-aware domain-adversarial network: A control-diagnosis collaboration perspective",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-09-24",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.1177/01423312261487500",
+      "data_domain": "Thermodynamic marine-engine simulation with fault diagnosis across maneuvering-regime distributions; no real-engine validation. Dataset is stated to be available from the corresponding author upon reasonable request.",
+      "task": "Control-aware injector-system fault diagnosis combining controller/control-signal features with physical state-signal features using control-generated feature weights and multi-class maneuvering-regime domain discrimination.",
+      "reported_metrics": [
+        {
+          "metric": "real_engine_validation",
+          "value": "not performed",
+          "unit": "validation_scope",
+          "context": "The accessible abstract explicitly states experiments use simulation data from a thermodynamic model and that real-engine validation is absent. This is a scope fact, not a performance score.",
+          "source_location": "Abstract, final sentence"
+        },
+        {
+          "metric": "control_sensor_dropout_robustness",
+          "value": "qualitative_improvement_reported",
+          "unit": "authors_claim",
+          "context": "Authors report stronger robustness than mainstream methods when control sensors drop out; exact quantitative effect and full dropout protocol require full-paper reproduction.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Simulation-only evaluation using a thermodynamic engine model and maneuvering-regime distributions. The accessible abstract does not disclose enough detail to reconstruct the exact split, class balance, sample independence, control-channel dropout distributions or model compute. Recover these from the full article and author-accessible data before reproduction.",
+      "reported_limitations": [
+        "No real-engine validation is reported; do not describe the paper as physical test-bench or vessel validation.",
+        "The abstract's qualitative dropout robustness claim is not a quantified, independently reproduced metric.",
+        "Control-channel semantics, timing, controller-mode availability and command/feedback distinctions require full-methods audit.",
+        "Dataset available from corresponding author upon reasonable request; access and license are not established here."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Important architecture lead: distinguish control intent, actuator/controller state and physical plant response rather than treating all variables as generic features.",
+        "Compare state-only, control-only, naive fusion, gated fusion, control-aware multi-class regime adaptation and physics/rule-based command-response residual baselines under matched task/model/data budgets.",
+        "Aalto's accessible metadata does not establish that controller setpoints, governor outputs, actuator feedback or controller-mode signals are included; do not assume the dataset supports this benchmark before the payload and variable dictionary are inspected.",
+        "Composes with MARITIME-CONTROL-AWARE-DIAGNOSIS-001 #4628 and the transfer/continual owner #4510."
+      ]
     }
   ]
 }
