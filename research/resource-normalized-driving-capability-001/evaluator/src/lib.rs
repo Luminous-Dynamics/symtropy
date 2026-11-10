@@ -844,7 +844,7 @@ mod tests {
 
     #[test]
     fn documented_not_run_template_is_parseable_and_valid() {
-        let template = include_str!("../result_card.template.json");
+        let template = include_str!("../../result_card.template.json");
         let card = ResultCard::from_json(template).unwrap();
         assert_eq!(card.status, RunStatus::NotRun);
         assert!(card.validate().is_ok());
