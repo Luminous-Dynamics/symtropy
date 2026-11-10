@@ -281,6 +281,52 @@ Initial internal targets (not current measurements or universal standards): SO(3
 
 The competitive opportunity is not to claim that a Rotor is a complete Lie-group mechanics stack. It is to connect configuration geometry, dual spatial mechanics, inertia, numerical integration and qualified derivatives under one convention that can be independently tested.
 
+#### Benchmark design update: Mosaic's scorecard, extended to mechanics
+
+Mosaic (2026) is a useful current benchmark-design reference, but it is **not** a directly comparable rigid-body benchmark: its published suites cover fluid, structural and thermal PDE problems. Its contribution is the evaluation protocol. It reports forward accuracy, gradient/VJP quality, optimization progress, compute and memory cost, and development effort/deviations separately; it explicitly avoids collapsing them into one composite score. Adopt that discipline for Symtropy's mechanics corpus rather than comparing headline runtimes across different physical problems.
+
+Mosaic reference:
+- Repository and benchmark protocol: https://github.com/pasteurlabs/mosaic
+- Results and scoring definitions: https://docs.pasteurlabs.ai/projects/mosaic/stable/results/
+- 2026 paper: https://arxiv.org/abs/2606.27895
+
+**Symtropy mechanics extension of the scorecard**
+
+| Axis | What we measure | Required control |
+|---|---|---|
+| Forward/geometric accuracy | exp-log reconstruction, orthogonality/determinant defect, pose composition, invariant drift, trajectory/contact observables | analytic/manufactured answer or independent high-accuracy reference |
+| Derivative quality | tangent-space FD/analytic gradient agreement, VJP direction and magnitude, Jacobian conditioning, branch consistency over rollout length | perturb through declared plus/retraction; independently sweep FD step sizes |
+| Optimization usefulness | convergence, final physical residual, failure/stall rate and iteration count | same objective, initial conditions, stopping criteria and gradient budget |
+| Runtime/resource cost | forward and VJP latency distributions, throughput, allocations, peak memory and scaling | same hardware, precision, model semantics, solver tolerance and warmup protocol |
+| Coverage/integration effort | supported group/dimension/contact/event family, adapter effort, deviations and unsupported cases | publish the exact substitution/deviation record; unsupported is not a zero score |
+| Evidence quality | replayability, exact source/toolchain/input identity, oracle independence, branch and derivative receipts | exact-head digest and negative control on every hard gate |
+
+**Mechanics suite tiers**
+- G0 geometry kernel: SO(2)/SO(3), then SO(4) unequal double rotations; exp/log, plus/minus, cut-locus behavior, left/right Jacobians and tangent transport.
+- G1 free rigid body: isotropic and asymmetric tops, torque-free and forced motion, energy and world-momentum conservation.
+- G2 contact: impact, resting contact, frictional slide, rolling, grazing and near-simultaneous impacts.
+- G3 articulated mechanics: pendulum, coupled chains, closed loops where supported, joint limits and actuator work.
+- G4 hybrid derivatives: TOI, contact creation/removal, impact/reset/saltation, frozen and branch-local paths.
+- G5 cross-engine equivalence: only semantically admitted pairs, with MuJoCo / Pinocchio / Drake / Rapier or other pinned baselines selected per case.
+
+**Gradient protocol**
+1. Freeze the physical branch and semantic preconditions for the smooth-region check.
+2. Compute tangent-space central differences using the same declared retraction, with at least a logarithmic sweep of perturbation sizes; identify a stable plateau rather than choosing one favorable epsilon.
+3. Compare analytic/autodiff/VJP output to both the finite-difference plateau and any available closed-form derivative. Report cosine similarity, relative magnitude error and conditioning separately.
+4. Repeat along increasing rollout depth and through composed transforms/dynamics; measure gradient degradation.
+5. At branch changes, grazing events and cut-locus boundaries, classify the derivative as branch-local, nonsmooth, ambiguous or unsupported. Do not score an undefined derivative as an inaccurate smooth derivative, and never silently substitute zero or identity.
+6. Run a deliberately wrong ambient-coordinate perturbation as a negative control; the harness must detect the mismatch.
+
+**Targets (internal proposals, not measured results):**
+- G0: SO(3) reconstruction relative error ≤1e-12 on well-conditioned f64 cases; exact-π deterministic branch reconstruction ≤1e-10; zero unreported branch fallbacks.
+- G0 tangent calculus: relative Jacobian discrepancy ≤1e-8 on smooth, well-conditioned fixtures; dual power-pairing defect ≤1e-12 after SE(3) adjoint/coadjoint exists.
+- G1: conservation error must converge with timestep/order as predicted; no fixed universal energy-drift threshold across integrators.
+- G2/G4: zero false-qualified exact gradients when objective-relevant paths are frozen, detached, unsupported or branch-ambiguous; 100% derivative-path coverage receipts for accepted updates.
+- Cross-engine: 100% of scored comparisons first pass semantic admission and disclose deviations; preserve every unresolved discrepancy.
+- Performance: establish matched baseline first; then target ≥20% lower cost per accepted, evidence-qualified update without raising false-qualification rate. Do not optimize this before correctness.
+
+The relevant industry bar is substantial: Pinocchio 4.1.0 describes analytical derivatives for rigid-body dynamics; MuJoCo distinguishes configuration and tangent dimensions; Drake has explicit frame-aware spatial algebra and spatial inertia; Nimble's hard-contact differentiable LCP work reported an 87× single-core speedup over finite differences for one single-timestep Jacobian experiment. Those are scoped reference points, not directly comparable universal scores. Symtropy must win on the same problem, semantics, precision and error budget before making a superiority claim.
+
 ### 3.3 Richer physical interactions
 
 The frontier includes articulated rigid bodies, contacts, tendons, cables, cloth, deformables, particles and coupled solvers. This is not a reason to immediately implement all of them. It is a reason to define extension boundaries and choose domain-specific solvers based on validated use cases.
