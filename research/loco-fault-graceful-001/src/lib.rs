@@ -91,6 +91,7 @@ pub struct AdmissionReceipt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ActionDecision {
     pub observed_at_ns: u64,
+    pub current_state_digest: String,
     pub action_id: String,
     pub selected: bool,
     pub physically_possible_fault_ids: Vec<String>,
@@ -215,7 +216,9 @@ pub enum FaultEpisodeError {
     MissingActionIdentity,
     ActionDecisionTimeOutOfOrder,
     ActionApplicationBeforeDecision,
+    ActionApplicationAfterEvaluation,
     ActionDeadlineBeforeDecision,
+    EmptyPhysicalFaultSet,
     InvalidReceiptInterval,
     ModeTransitionOutOfOrder,
     DuplicateModeTransitionTime,
@@ -231,14 +234,17 @@ fn nonempty(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
-fn validate_unique_ids(values: &[String]) -> Result<(), FaultEpisodeError> {
+fn validate_unique_ids(
+    values: &[String],
+    duplicate_error: FaultEpisodeError,
+) -> Result<(), FaultEpisodeError> {
     let mut seen = BTreeSet::new();
     for value in values {
         if !nonempty(value) {
             return Err(FaultEpisodeError::EmptyIdentifier);
         }
         if !seen.insert(value.as_str()) {
-            return Err(FaultEpisodeError::DuplicateControllerHypothesis);
+            return Err(duplicate_error);
         }
     }
     Ok(())
@@ -258,6 +264,7 @@ fn is_safe_terminal(disposition: TerminalDisposition) -> bool {
 fn receipt_is_valid(
     receipt: &AdmissionReceipt,
     identity: &EpisodeIdentity,
+    state_digest: &str,
     at_ns: u64,
 ) -> bool {
     nonempty(&receipt.receipt_id)
@@ -265,7 +272,7 @@ fn receipt_is_valid(
         && receipt.valid_from_ns <= receipt.valid_until_ns
         && at_ns >= receipt.valid_from_ns
         && at_ns <= receipt.valid_until_ns
-        && receipt.state_digest == identity.initial_state_digest
+        && receipt.state_digest == state_digest
         && receipt.model_digest == identity.model_digest
         && receipt.abstraction_digest == identity.abstraction_digest
         && receipt.actuator_digest == identity.actuator_digest
@@ -297,8 +304,16 @@ fn evaluate_action_decision(
     if !nonempty(&decision.action_id) {
         return Err(FaultEpisodeError::MissingActionIdentity);
     }
-    validate_unique_ids(&decision.physically_possible_fault_ids)
-        .map_err(|_| FaultEpisodeError::DuplicatePhysicalHypothesis)?;
+    if !nonempty(&decision.current_state_digest) {
+        return Err(FaultEpisodeError::EmptyIdentifier);
+    }
+    if decision.physically_possible_fault_ids.is_empty() {
+        return Err(FaultEpisodeError::EmptyPhysicalFaultSet);
+    }
+    validate_unique_ids(
+        &decision.physically_possible_fault_ids,
+        FaultEpisodeError::DuplicatePhysicalHypothesis,
+    )?;
     if decision.deadline_ns < decision.observed_at_ns {
         return Err(FaultEpisodeError::ActionDeadlineBeforeDecision);
     }
@@ -307,6 +322,12 @@ fn evaluate_action_decision(
         .is_some_and(|applied_at| applied_at < decision.observed_at_ns)
     {
         return Err(FaultEpisodeError::ActionApplicationBeforeDecision);
+    }
+    if decision
+        .applied_at_ns
+        .is_some_and(|applied_at| applied_at > episode.now_ns)
+    {
+        return Err(FaultEpisodeError::ActionApplicationAfterEvaluation);
     }
 
     let mut admission_map = std::collections::BTreeMap::new();
@@ -333,7 +354,12 @@ fn evaluate_action_decision(
     }
 
     let mut violations = Vec::new();
-    if !receipt_is_valid(&decision.receipt, &episode.identity, decision.observed_at_ns) {
+    if !receipt_is_valid(
+        &decision.receipt,
+        &episode.identity,
+        &decision.current_state_digest,
+        decision.observed_at_ns,
+    ) {
         violations.push(GateViolation::InvalidOrStaleReceipt {
             at_ns: decision.observed_at_ns,
         });
@@ -437,7 +463,10 @@ pub fn audit_fault_episode(
             return Err(FaultEpisodeError::DuplicateDiagnosisTime);
         }
         previous_diagnosis_time = Some(snapshot.observed_at_ns);
-        validate_unique_ids(&snapshot.controller_plausible_fault_ids)?;
+        validate_unique_ids(
+            &snapshot.controller_plausible_fault_ids,
+            FaultEpisodeError::DuplicateControllerHypothesis,
+        )?;
 
         match &snapshot.state {
             DiagnosisState::Nominal => {}
@@ -458,7 +487,9 @@ pub fn audit_fault_episode(
                 if !nonempty(hypothesis_id) {
                     return Err(FaultEpisodeError::InvalidDiagnosisState);
                 }
-                if *confidence_ppm > PPM_SCALE {
+                if *confidence_ppm > PPM_SCALE
+                    || *confidence_ppm < 900_000
+                {
                     return Err(FaultEpisodeError::InvalidDiagnosisConfidence);
                 }
                 if !snapshot
@@ -651,6 +682,7 @@ mod tests {
             ],
             action_decisions: vec![ActionDecision {
                 observed_at_ns: 160,
+                current_state_digest: "state-v1".to_owned(),
                 action_id: "safe-hold".to_owned(),
                 selected: true,
                 physically_possible_fault_ids: vec![
