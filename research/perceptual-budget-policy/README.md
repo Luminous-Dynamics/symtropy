@@ -38,3 +38,9 @@ This is policy conformance over supplied finite measurement records only. It doe
 - mutate physics, controls or authoritative world state.
 
 Human preference is optional unless the task contract requires it. A panel record must bind its protocol and sample-set digests; its statistical method and evaluator protocol remain owned by the benchmark research programme (#4486).
+
+## Bundled fixture status
+
+`fixtures/city-block-remote-inspection.json` is **synthetic-only software test data**. Its digests are placeholders and its frame-time, VRAM and energy values are invented known-answer inputs. It is deliberately marked `synthetic_only` and `require_measured_workload = false`; it is not an engine benchmark or a claim about measured performance.
+
+Actual benchmark runs must use capture/measurement receipts from #4486 and set `require_measured_workload = true`. A real measured-workload candidate must be classified `frozen_workload_measurement`, bind the exact scene and metric-bundle digests, and use the actual upstream receipt digest.
