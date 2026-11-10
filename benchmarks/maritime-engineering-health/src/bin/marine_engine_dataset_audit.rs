@@ -12,6 +12,8 @@ use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::env;
 use std::fs;
+use std::fs::File;
+use std::io::Read;
 use std::path::{Component, Path, PathBuf};
 use std::process::Command;
 use std::process::ExitCode;
@@ -182,9 +184,16 @@ fn safe_relative_path(value: &str) -> Result<PathBuf, String> {
 
 fn resolve_inventory_path(root: &Path, relative: &str) -> Result<PathBuf, String> {
     let safe = safe_relative_path(relative)?;
+    let canonical_root = fs::canonicalize(root)
+        .map_err(|error| format!("cannot resolve dataset root {}: {error}", root.display()))?;
     let direct = root.join(&safe);
     if direct.is_file() {
-        return Ok(direct);
+        let canonical = fs::canonicalize(&direct)
+            .map_err(|error| format!("cannot resolve {}: {error}", direct.display()))?;
+        if !canonical.starts_with(&canonical_root) {
+            return Err(format!("inventory path escapes dataset root through a symlink: {relative}"));
+        }
+        return Ok(canonical);
     }
 
     let stripped = relative
@@ -193,7 +202,12 @@ fn resolve_inventory_path(root: &Path, relative: &str) -> Result<PathBuf, String
     let stripped_path = safe_relative_path(stripped)?;
     let alternate = root.join(stripped_path);
     if alternate.is_file() {
-        return Ok(alternate);
+        let canonical = fs::canonicalize(&alternate)
+            .map_err(|error| format!("cannot resolve {}: {error}", alternate.display()))?;
+        if !canonical.starts_with(&canonical_root) {
+            return Err(format!("inventory path escapes dataset root through a symlink: {relative}"));
+        }
+        return Ok(canonical);
     }
 
     Err(format!("file not found beneath dataset root: {relative}"))
@@ -356,8 +370,27 @@ fn md5_with_available_tool(path: &Path) -> Option<String> {
     None
 }
 
+fn sha256_file(path: &Path) -> Result<(u64, String), String> {
+    let mut file = File::open(path)
+        .map_err(|error| format!("cannot open {}: {error}", path.display()))?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0u8; 64 * 1024];
+    let mut total = 0u64;
+    loop {
+        let read = file
+            .read(&mut buffer)
+            .map_err(|error| format!("cannot hash {}: {error}", path.display()))?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+        total = total.saturating_add(read as u64);
+    }
+    Ok((total, format!("{:x}", hasher.finalize())))
+}
+
 fn audit_archive(path: &Path, manifest: &Value) -> Result<ArchiveAudit, String> {
-    let bytes = fs::read(path).map_err(|error| format!("cannot read archive {}: {error}", path.display()))?;
+    let (size_bytes, sha256) = sha256_file(path)?;
     let expected_md5 = manifest
         .pointer("/public_record_metadata/archive/source_published_md5")
         .and_then(Value::as_str)
@@ -370,8 +403,8 @@ fn audit_archive(path: &Path, manifest: &Value) -> Result<ArchiveAudit, String> 
 
     Ok(ArchiveAudit {
         path: path.display().to_string(),
-        size_bytes: bytes.len() as u64,
-        sha256: sha256_hex(&bytes),
+        size_bytes,
+        sha256,
         publisher_md5: expected_md5,
         observed_md5: observed_md5.clone(),
         publisher_md5_matches,
