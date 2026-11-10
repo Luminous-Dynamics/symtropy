@@ -232,8 +232,8 @@ The first implementation should use the analytical 1D impact/repeated-bounce ora
 Symtropy should invest in differential geometry, but the goal is **not** to add more abstract algebra or replace its existing geometric-algebra representation. The goal is to make every rotational/rigid-body computation use the correct configuration manifold, tangent space, dual space, frame and local derivative.
 
 The existing code already has Bivector<D> for so(D), Rotor<D> for SO(D), Transform<D> for rigid transforms and a validated SO(D) matrix-admission path in draft PR #4412. The principal gaps are:
-- draft PR #4473 now supplies checked SO(3) logarithm, branch metadata, geodesic interpolation and paired left/spatial plus/minus vs right/body plus/minus; full SO(D) logarithms, SO(4) multiple-plane branch decomposition and tangent transport are still missing;
-- no left/right exponential Jacobians or inverse Jacobians yet, and no generic SO(D) typed tangent API;
+- main now contains branch-aware SO(3) logarithm, cut-locus metadata, tangent plus/minus and geodesic interpolation. Draft PR #4494 exports that module and adds checked Transform<3> interpolation plus analytic left/right exponential Jacobians and inverse Jacobians; its exact-head CI is queued, so the submitted implementation is not yet CI-qualified. Full SO(D) logarithms, SO(4) multiple-plane branch decomposition and tangent transport are still missing;
+- draft PR #4494 adds SO(3) left/right exponential Jacobians and inverse Jacobians with finite-difference tests; a generic SO(D) typed tangent API and tangent transport remain missing;
 - no unified distinction between body- and spatial-trivialized angular velocity/momentum;
 - no SE(D) spatial twist/wrench adjoint/coadjoint API with a power-pairing invariant;
 - production RigidBody inertia remains an axis SVector<D> and the integrator reduces it to a scalar mean for bivector acceleration/energy;
@@ -241,7 +241,7 @@ The existing code already has Bivector<D> for so(D), Rotor<D> for SO(D), Transfo
 
 A concrete example already exists in the production math code: Rotor::slerp extracts one plane from (R-Rᵀ)/2. That skew part vanishes for an exact SO(3) half-turn, and the current implementation returns identity on that path. For generic SO(4) rotations with two independent planes and different angles, one plane/angle is also insufficient. Transform::interpolate uses this path for relative rotations. The replacement requires a checked logarithm and explicit branch policy; an ambiguous cut-locus case must not silently become identity.
 
-The new [draft SO(3) implementation PR #4473](https://github.com/Luminous-Dynamics/symtropy/pull/4473) adds a separate checked API and matched tangent plus/minus operations. It does not yet redirect the legacy generic `Rotor::slerp` or `Transform::interpolate`; the defect therefore remains present in those call paths until a dimension-correct migration is reviewed and qualified.
+The branch-aware SO(3) module is present on main; [draft PR #4494](https://github.com/Luminous-Dynamics/symtropy/pull/4494) exposes the API, adds checked `Transform<3>::try_interpolate`, and adds left/right exponential Jacobians with inverse maps. It does not yet redirect the legacy generic `Rotor::slerp` or `Transform::interpolate`; the defect therefore remains present in those call paths until a dimension-correct migration is reviewed and qualified.
 
 #### Industry baselines: the established pattern is tangent-space awareness
 
@@ -264,16 +264,16 @@ Primary documentation:
 1. **SO(3) exp/log:** identity and small-angle series; generic axis-angle; exact and near-π rotations; branch/cut-locus typing. Check round-trip and reconstructed matrix independently.
 2. **SO(4) multi-plane:** simultaneous independent rotations with unequal angles; preserve each principal-plane action and group composition. Do not reduce to one axis/plane.
 3. **Retraction and tangent difference:** minus(R, plus(R, δ)) returns δ within the declared injectivity region; use tangent-space finite differences, not raw matrix/quaternion coefficient perturbations.
-4. **Differential of exp:** check left/right Jacobians and inverses against high-precision central differences on well-conditioned charts; typed singular/ill-conditioned result near branch boundaries.
+4. **Differential of exp:** check left/right Jacobians and inverse maps against independent high-precision central differences, across a step-size ladder, on well-conditioned charts; verify inverse products and typed singular/ill-conditioned results near nonzero 2π singularities.
 5. **Adjoint/coadjoint:** frame changes of twists and wrenches preserve their dual power pairing; test body/world conversion and non-commuting transforms.
 6. **Rigid-body dynamics:** torque-free asymmetric top, same inertia re-expressed in rotated body frames, and agreement between body- and spatial-trivialized formulations; report energy and world angular momentum independently.
 7. **Hybrid/contact derivatives:** compose tangent transport with event saltation and branch-local contact derivatives; never conflate smooth manifold derivatives with nonsmooth event sensitivities.
 
-Initial internal targets (not current measurements or universal standards): SO(3) exp/log relative error ≤1e-12 away from the cut locus in f64; tangent Jacobian relative discrepancy ≤1e-8 against independent references on well-conditioned cases; twist–wrench power-pairing defect ≤1e-12; zero silent identity fallbacks for ambiguous logs; 100% derivative receipts bind their chart, tangent coordinates, frame and left/right convention.
+Initial internal targets (not current measurements or universal standards): SO(3) exp/log relative error ≤1e-12 away from the cut locus in f64; exact-π reconstruction ≤1e-10; left/right Jacobian relative discrepancy ≤1e-8 against independent references on well-conditioned cases; forward/inverse Jacobian product defect ≤1e-12; twist–wrench power-pairing defect ≤1e-12; zero silent identity fallbacks for ambiguous logs; 100% derivative receipts bind chart, basis order, tangent coordinates, parameter point, frame, left/right convention, branch and conditioning.
 
 #### Existing ownership — do not fork the geometry stack
 
-- [#4452](https://github.com/Luminous-Dynamics/symtropy/issues/4452) owns shared SO(D) log, tangent calculus, Jacobian and SE(D) adjoint/coadjoint primitives; [draft PR #4473](https://github.com/Luminous-Dynamics/symtropy/pull/4473) begins the SO(3) log/plus/minus slice.
+- [#4452](https://github.com/Luminous-Dynamics/symtropy/issues/4452) owns shared SO(D) log, tangent calculus, Jacobian and SE(D) adjoint/coadjoint primitives; [draft PR #4494](https://github.com/Luminous-Dynamics/symtropy/pull/4494) integrates the SO(3) public API, checked transform interpolation and left/right exponential Jacobians.
 - [#1613 / PR #1641](https://github.com/Luminous-Dynamics/symtropy/issues/1613) owns frame-labelled rigid transforms and pose composition.
 - [#3753 / PR #3920](https://github.com/Luminous-Dynamics/symtropy/issues/3753) owns physically realizable mass properties and the bivector inertia operator.
 - [#3132 / #3119](https://github.com/Luminous-Dynamics/symtropy/issues/3132) own SO(3) equivariance and momentum-map physics evidence.
@@ -321,7 +321,7 @@ Mosaic reference:
 
 **Targets (internal proposals, not measured results):**
 - G0: SO(3) reconstruction relative error ≤1e-12 on well-conditioned f64 cases; exact-π deterministic branch reconstruction ≤1e-10; zero unreported branch fallbacks.
-- G0 tangent calculus: relative Jacobian discrepancy ≤1e-8 on smooth, well-conditioned fixtures; dual power-pairing defect ≤1e-12 after SE(3) adjoint/coadjoint exists.
+- G0 tangent calculus: relative Jacobian discrepancy ≤1e-8 on smooth, well-conditioned fixtures; forward/inverse Jacobian product defect ≤1e-12; zero unreported singular/ill-conditioned inverse results; dual power-pairing defect ≤1e-12 after SE(3) adjoint/coadjoint exists.
 - G1: conservation error must converge with timestep/order as predicted; no fixed universal energy-drift threshold across integrators.
 - G2/G4: zero false-qualified exact gradients when objective-relevant paths are frozen, detached, unsupported or branch-ambiguous; 100% derivative-path coverage receipts for accepted updates.
 - Cross-engine: 100% of scored comparisons first pass semantic admission and disclose deviations; preserve every unresolved discrepancy.
