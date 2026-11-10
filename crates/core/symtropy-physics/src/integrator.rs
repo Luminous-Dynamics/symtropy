@@ -258,6 +258,52 @@ mod tests {
     }
 
     #[test]
+    fn angular_point_velocity_and_impulse_are_rotation_covariant() {
+        let mut angular_velocity = Bivector::<3>::zero();
+        angular_velocity.set(0, 1, 0.41);
+        angular_velocity.set(0, 2, -0.63);
+        angular_velocity.set(1, 2, 0.29);
+        let offset = SVector::from([0.7, -0.2, 1.1]);
+        let impulse = SVector::from([-0.4, 0.9, 0.3]);
+
+        let mut frame_generator = Bivector::<3>::zero();
+        frame_generator.set(0, 1, -0.37);
+        frame_generator.set(0, 2, 0.58);
+        frame_generator.set(1, 2, 0.22);
+        let frame_change = Rotor::<3>::from_bivector(&frame_generator);
+        let rotation = frame_change.to_matrix();
+
+        let original_point_velocity = angular_point_velocity(&angular_velocity, &offset);
+        let rotated_angular_matrix =
+            rotation * angular_velocity.to_matrix() * rotation.transpose();
+        let rotated_angular_velocity = Bivector::<3>::from_matrix(&rotated_angular_matrix);
+        let rotated_offset = frame_change.rotate_vector(&offset);
+        let rotated_point_velocity =
+            angular_point_velocity(&rotated_angular_velocity, &rotated_offset);
+        let expected_rotated_velocity = frame_change.rotate_vector(&original_point_velocity);
+        assert!(
+            (rotated_point_velocity - expected_rotated_velocity).norm() < 2.0e-12,
+            "physical point velocity did not transform covariantly"
+        );
+
+        let original_impulse = angular_impulse_from_point(&offset, &impulse);
+        let rotated_offset = frame_change.rotate_vector(&offset);
+        let rotated_impulse = frame_change.rotate_vector(&impulse);
+        let transformed_impulse =
+            angular_impulse_from_point(&rotated_offset, &rotated_impulse);
+        let expected_impulse_matrix =
+            rotation * original_impulse.to_matrix() * rotation.transpose();
+        let expected_impulse = Bivector::<3>::from_matrix(&expected_impulse_matrix);
+        assert!(
+            transformed_impulse
+                .add(&expected_impulse.scale(-1.0))
+                .norm()
+                < 2.0e-12,
+            "off-centre angular impulse did not transform covariantly"
+        );
+    }
+
+    #[test]
     fn off_centre_impulse_matches_rotor_motion_and_physical_torque_sign() {
         let mut body =
             RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
