@@ -311,7 +311,11 @@
     "independent_rust_reference_validation": "NOT_RUN",
     "rust_formatting": "NOT_RUN",
     "rust_compilation": "NOT_RUN",
-    "exact_head_ci": "PENDING"
+    "exact_head_ci": "PENDING",
+    "rust_independent_implementation_test_count": 13,
+    "partial_observation_attempt_accounting_added": true,
+    "extreme_finite_barrier_gradient_added": true,
+    "rust_independent_implementation_validation": "NOT_RUN"
   },
   "oli_improvement_targets": {
     "static_equal_success_cost": "At equal success probability and the same safety envelope, reduce total sensor/function evaluations or energy-distance cost by >=20% on at least two source-reproduced benchmark strata.",
