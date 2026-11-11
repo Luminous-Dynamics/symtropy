@@ -1435,11 +1435,8 @@ mod tests {
         let force = asymmetric_force();
         let canonical = run_canonical(state, force, 0.02);
         let basis = frozen_dense_basis(2);
-        let basis_inverse = inverse6(
-            &basis,
-            StepProfileV1::default().relative_pivot_tolerance,
-        )
-        .unwrap();
+        let basis_inverse =
+            inverse6(&basis, StepProfileV1::default().relative_pivot_tolerance).unwrap();
         let transformed_state = transform_state_to_basis(state, &basis_inverse);
         let transformed_mass = transformed_mass_metric(&mass_metric(masses), &basis);
         let transformed_force = transform_force_covector(&basis, &force);
