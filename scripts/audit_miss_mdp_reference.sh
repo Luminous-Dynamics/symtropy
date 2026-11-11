@@ -71,7 +71,9 @@ for index in "${!paths[@]}"; do
       (.results.pomcp | length | tostring),
       ([.results.pomcp[] | select(.finished != true)] | length | tostring),
       (.results.baseline | map(.baseline) | join(";")),
-      (.results.learning | map(.algorithm) | unique | join(";"))
+      (.results.learning | map(.algorithm) | unique | join(";")),
+      ([.results.baseline[] | select(.baseline == "upper") | .mean][0] | tostring),
+      ([.results.baseline[] | select(.baseline == "random") | .mean][0] | tostring)
     ] | @tsv
   ' "$file"
 
