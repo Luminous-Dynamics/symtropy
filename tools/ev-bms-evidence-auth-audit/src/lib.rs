@@ -741,4 +741,25 @@ mod tests {
         assert_eq!(event.physical_validity_state, "NOT_ESTABLISHED_BY_SIGNATURE");
     }
 
+    #[test]
+    fn calibration_digest_is_covered_by_the_event_signature() {
+        let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus JSON");
+        let event = corpus["events"].as_array_mut().unwrap()
+            .iter_mut().find(|event| event["claims"]["event_id"] == "evt-valid-001").unwrap();
+        event["claims"]["payload"]["calibration_sha256"] =
+            Value::String("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".into());
+        let bytes = serde_json::to_vec(&corpus).expect("mutated corpus");
+        let report = audit_corpus(SCHEMA, &bytes).expect("calibration tamper becomes rejected row");
+        assert_eq!(row(&report, "evt-valid-001").authenticity_state, "REJECTED_SIGNATURE");
+    }
+
+    #[test]
+    fn a_current_calibration_claim_requires_an_exact_reference_and_digest() {
+        let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus JSON");
+        let payload = &mut corpus["events"][0]["claims"]["payload"];
+        payload.as_object_mut().unwrap().remove("calibration_sha256");
+        let bytes = serde_json::to_vec(&corpus).expect("mutated corpus");
+        assert!(audit_corpus(SCHEMA, &bytes).is_err());
+    }
+
 }
