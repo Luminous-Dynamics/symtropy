@@ -233,7 +233,9 @@ fn run_profile(
     let entities_per_second = entity_count as f64 * 1_000_000_000.0 / p50 as f64;
     let events_per_second = event_count as f64 * 1_000_000_000.0 / p50 as f64;
     Ok(BenchmarkResult {
-        profile: format!("entities-{entity_count}-observables-{observables_per_entity}-events-{event_count}"),
+        profile: format!(
+            "entities-{entity_count}-observables-{observables_per_entity}-events-{event_count}"
+        ),
         architecture: std::env::consts::ARCH.to_string(),
         target_os: std::env::consts::OS.to_string(),
         runner_image_os: std::env::var("RUNNER_IMAGE_OS")
