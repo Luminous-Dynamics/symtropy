@@ -226,9 +226,7 @@ pub fn audit_delivery_receipt_bytes(bytes: &[u8]) -> Result<DeliveryAuditReport,
 }
 
 /// Validate an already parsed delivery receipt.
-pub fn audit_delivery_receipt(
-    receipt: DeliveryReceipt,
-) -> Result<DeliveryAuditReport, String> {
+pub fn audit_delivery_receipt(receipt: DeliveryReceipt) -> Result<DeliveryAuditReport, String> {
     if receipt.schema_version != "0.1" {
         return Err("unsupported delivery receipt schema_version".to_owned());
     }
@@ -236,11 +234,23 @@ pub fn audit_delivery_receipt(
         ("delivery_id", receipt.delivery_id.as_str()),
         ("reported_at", receipt.reported_at.as_str()),
         ("replay.run_id", receipt.replay.run_id.as_str()),
-        ("scene.building_group_id", receipt.scene.building_group_id.as_str()),
+        (
+            "scene.building_group_id",
+            receipt.scene.building_group_id.as_str(),
+        ),
         ("scene.scene_id", receipt.scene.scene_id.as_str()),
-        ("scene.source_model_revision", receipt.scene.source_model_revision.as_str()),
-        ("exchange_profile.ifc_schema", receipt.exchange_profile.ifc_schema.as_str()),
-        ("exchange_profile.exchange_view", receipt.exchange_profile.exchange_view.as_str()),
+        (
+            "scene.source_model_revision",
+            receipt.scene.source_model_revision.as_str(),
+        ),
+        (
+            "exchange_profile.ifc_schema",
+            receipt.exchange_profile.ifc_schema.as_str(),
+        ),
+        (
+            "exchange_profile.exchange_view",
+            receipt.exchange_profile.exchange_view.as_str(),
+        ),
         (
             "exchange_profile.coordinate_frame_id",
             receipt.exchange_profile.coordinate_frame_id.as_str(),
@@ -257,7 +267,10 @@ pub fn audit_delivery_receipt(
     }
 
     validate_sha256("replay.receipt_sha256", &receipt.replay.receipt_sha256)?;
-    validate_commit_sha("replay.candidate_source_commit", &receipt.replay.candidate_source_commit)?;
+    validate_commit_sha(
+        "replay.candidate_source_commit",
+        &receipt.replay.candidate_source_commit,
+    )?;
     validate_artifact("ifc", &receipt.ifc)?;
     validate_artifact("element_graph", &receipt.element_graph)?;
     validate_exchange_profile(&receipt.exchange_profile)?;
@@ -265,7 +278,9 @@ pub fn audit_delivery_receipt(
     if let Some(ids) = &receipt.ids_requirements {
         validate_sha256("ids_requirements.sha256", &ids.sha256)?;
         if ids.standard_version != "1.0" || ids.requirement_revision.trim().is_empty() {
-            return Err("IDS requirements must declare IDS 1.0 and a non-empty revision".to_owned());
+            return Err(
+                "IDS requirements must declare IDS 1.0 and a non-empty revision".to_owned(),
+            );
         }
     }
 
@@ -297,13 +312,21 @@ pub fn audit_delivery_receipt(
         validate_gate_binding(gate, &receipt)?;
         validate_gate_subjects(gate, &receipt)?;
         validate_gate_execution_shape(gate)?;
-        *status_counts.entry(format!("{:?}", gate.status).to_ascii_uppercase()).or_insert(0) += 1;
+        *status_counts
+            .entry(format!("{:?}", gate.status).to_ascii_uppercase())
+            .or_insert(0) += 1;
     }
 
     let (supported_count, unresolved_count) = validate_crosswalk(&receipt.crosswalk)?;
 
-    let has_failure = receipt.gates.iter().any(|gate| gate.status == GateStatus::Fail);
-    let all_pass = receipt.gates.iter().all(|gate| gate.status == GateStatus::Pass);
+    let has_failure = receipt
+        .gates
+        .iter()
+        .any(|gate| gate.status == GateStatus::Fail);
+    let all_pass = receipt
+        .gates
+        .iter()
+        .all(|gate| gate.status == GateStatus::Pass);
     let crosswalk_complete = !receipt.crosswalk.is_empty()
         && receipt
             .crosswalk
@@ -338,7 +361,12 @@ pub fn audit_delivery_receipt(
             receipt.decision.status, derived_decision
         ));
     }
-    if receipt.decision.reason_codes.iter().any(|code| code.trim().is_empty()) {
+    if receipt
+        .decision
+        .reason_codes
+        .iter()
+        .any(|code| code.trim().is_empty())
+    {
         return Err("decision reason codes must not be empty strings".to_owned());
     }
     if derived_decision == DeliveryDecisionStatus::Qualified
@@ -371,7 +399,9 @@ fn validate_sha256(field: &str, digest: &str) -> Result<(), String> {
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
-        return Err(format!("{field} must be 64 lowercase hexadecimal characters"));
+        return Err(format!(
+            "{field} must be 64 lowercase hexadecimal characters"
+        ));
     }
     Ok(())
 }
@@ -382,7 +412,9 @@ fn validate_commit_sha(field: &str, sha: &str) -> Result<(), String> {
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
-        return Err(format!("{field} must be a 40-character lowercase commit SHA"));
+        return Err(format!(
+            "{field} must be a 40-character lowercase commit SHA"
+        ));
     }
     Ok(())
 }
@@ -395,9 +427,14 @@ fn validate_artifact(field: &str, artifact: &Artifact) -> Result<(), String> {
     if artifact.path.trim().is_empty()
         || artifact.path.starts_with('/')
         || artifact.path.contains('\\')
-        || artifact.path.split('/').any(|part| part.is_empty() || part == "." || part == "..")
+        || artifact
+            .path
+            .split('/')
+            .any(|part| part.is_empty() || part == "." || part == "..")
     {
-        return Err(format!("{field}.path must be a normalized relative path without traversal"));
+        return Err(format!(
+            "{field}.path must be a normalized relative path without traversal"
+        ));
     }
     Ok(())
 }
@@ -424,13 +461,22 @@ fn validate_exchange_profile(profile: &ExchangeProfile) -> Result<(), String> {
 fn validate_gate_binding(gate: &Gate, receipt: &DeliveryReceipt) -> Result<(), String> {
     validate_sha256("gate.replay_receipt_sha256", &gate.replay_receipt_sha256)?;
     if gate.replay_receipt_sha256 != receipt.replay.receipt_sha256 {
-        return Err(format!("gate {:?} is bound to a different replay receipt", gate.gate_id));
+        return Err(format!(
+            "gate {:?} is bound to a different replay receipt",
+            gate.gate_id
+        ));
     }
     if gate.scene_id != receipt.scene.scene_id {
-        return Err(format!("gate {:?} is bound to a different scene", gate.gate_id));
+        return Err(format!(
+            "gate {:?} is bound to a different scene",
+            gate.gate_id
+        ));
     }
     if gate.scope.trim().is_empty() || gate.limitation.trim().is_empty() {
-        return Err(format!("gate {:?} must declare scope and limitation", gate.gate_id));
+        return Err(format!(
+            "gate {:?} must declare scope and limitation",
+            gate.gate_id
+        ));
     }
     Ok(())
 }
@@ -446,7 +492,10 @@ fn validate_gate_subjects(gate: &Gate, receipt: &DeliveryReceipt) -> Result<(), 
             ));
         }
         if !roles.insert(subject.role) {
-            return Err(format!("gate {:?} has duplicate subject artifact roles", gate.gate_id));
+            return Err(format!(
+                "gate {:?} has duplicate subject artifact roles",
+                gate.gate_id
+            ));
         }
         validate_sha256("gate.subject_artifacts.sha256", &subject.sha256)?;
         match subject.role {
@@ -519,13 +568,20 @@ fn validate_gate_execution_shape(gate: &Gate) -> Result<(), String> {
             }
         }
         GateStatus::Pass | GateStatus::Fail => {
-            let producer = gate.producer.as_ref().ok_or_else(|| {
-                format!("evaluated gate {:?} requires a producer", gate.gate_id)
-            })?;
+            let producer = gate
+                .producer
+                .as_ref()
+                .ok_or_else(|| format!("evaluated gate {:?} requires a producer", gate.gate_id))?;
             if producer.tool.trim().is_empty() || producer.version.trim().is_empty() {
-                return Err(format!("gate {:?} producer identity must not be empty", gate.gate_id));
+                return Err(format!(
+                    "gate {:?} producer identity must not be empty",
+                    gate.gate_id
+                ));
             }
-            validate_sha256("gate.producer.configuration_sha256", &producer.configuration_sha256)?;
+            validate_sha256(
+                "gate.producer.configuration_sha256",
+                &producer.configuration_sha256,
+            )?;
             if gate.evidence.is_empty() || gate.subject_artifacts.is_empty() {
                 return Err(format!(
                     "evaluated gate {:?} requires subject artifacts and evidence",
@@ -566,7 +622,10 @@ fn validate_gate_execution_shape(gate: &Gate) -> Result<(), String> {
             || evidence.media_type.trim().is_empty()
             || !evidence_ids.insert(evidence.artifact_id.as_str())
         {
-            return Err(format!("gate {:?} has empty or duplicate evidence identity", gate.gate_id));
+            return Err(format!(
+                "gate {:?} has empty or duplicate evidence identity",
+                gate.gate_id
+            ));
         }
         validate_sha256("gate.evidence.sha256", &evidence.sha256)?;
     }
@@ -575,7 +634,10 @@ fn validate_gate_execution_shape(gate: &Gate) -> Result<(), String> {
             || diagnostic.message.trim().is_empty()
             || !matches!(diagnostic.severity.as_str(), "info" | "warning" | "error")
         {
-            return Err(format!("gate {:?} contains an invalid diagnostic", gate.gate_id));
+            return Err(format!(
+                "gate {:?} contains an invalid diagnostic",
+                gate.gate_id
+            ));
         }
     }
     Ok(())
@@ -590,8 +652,7 @@ fn validate_ifc_global_id(global_id: &str) -> Result<(), String> {
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'_' || byte == 36)
     {
         return Err(
-            "22-character compressed IFC GUID alphabet required; leading range 0..=3"
-                .to_owned(),
+            "22-character compressed IFC GUID alphabet required; leading range 0..=3".to_owned(),
         );
     }
     Ok(())
@@ -623,7 +684,7 @@ fn validate_crosswalk(entries: &[CrosswalkEntry]) -> Result<(usize, usize), Stri
                 }
                 if !supported_graph_ids.insert(entry.element_graph_id.as_str()) {
                     return Err(
-                        "supported crosswalk contains a duplicate element-graph ID".to_owned(),
+                        "supported crosswalk contains a duplicate element-graph ID".to_owned()
                     );
                 }
                 if entry.evidence_sha256.is_none() {
@@ -642,7 +703,10 @@ fn validate_crosswalk(entries: &[CrosswalkEntry]) -> Result<(usize, usize), Stri
         }
     }
 
-    if supported_ifc_ids.iter().any(|id| unresolved_ifc_ids.contains(id)) {
+    if supported_ifc_ids
+        .iter()
+        .any(|id| unresolved_ifc_ids.contains(id))
+    {
         return Err(
             "supported crosswalk conflicts with an ambiguous or unresolved IFC GlobalId".to_owned(),
         );
@@ -701,7 +765,9 @@ mod tests {
     fn rejects_forged_qualified_decision() {
         let value = case_report("forged_qualified_with_not_run");
         let error = audit_delivery_receipt_bytes(
-            serde_json::to_string(&value).expect("serialize fixture").as_bytes(),
+            serde_json::to_string(&value)
+                .expect("serialize fixture")
+                .as_bytes(),
         )
         .expect_err("NOT_RUN gates cannot yield QUALIFIED");
         assert!(error.contains("does not match derived decision"));
@@ -746,7 +812,10 @@ mod tests {
             "requirement_revision": "synthetic-ids-v0.1"
         });
 
-        let ifc_digest = value["ifc"]["sha256"].as_str().expect("IFC digest").to_owned();
+        let ifc_digest = value["ifc"]["sha256"]
+            .as_str()
+            .expect("IFC digest")
+            .to_owned();
         let graph_digest = value["element_graph"]["sha256"]
             .as_str()
             .expect("graph digest")
@@ -757,7 +826,10 @@ mod tests {
             ("ifc_schema", vec!["ifc_output"]),
             ("ids_xsd_validity", vec!["ids_requirements"]),
             ("ids_semantic_support", vec!["ids_requirements"]),
-            ("ifc_ids_conformance", vec!["ifc_output", "ids_requirements"]),
+            (
+                "ifc_ids_conformance",
+                vec!["ifc_output", "ids_requirements"],
+            ),
             ("semantic_preservation", vec!["ifc_output", "element_graph"]),
             ("geometry_topology", vec!["ifc_output", "element_graph"]),
             ("edit_round_trip", vec!["ifc_output", "round_trip_output"]),
@@ -845,9 +917,8 @@ mod tests {
 
     #[test]
     fn rejects_non_alphabet_character_in_ifc_global_id() {
-        let error = validate_ifc_global_id("3t3TDZl_D9NOIWB0BSjzJ!").expect_err(
-            "characters outside the compressed IFC GUID alphabet must be rejected",
-        );
+        let error = validate_ifc_global_id("3t3TDZl_D9NOIWB0BSjzJ!")
+            .expect_err("characters outside the compressed IFC GUID alphabet must be rejected");
         assert!(error.contains("22-character compressed IFC GUID alphabet"));
     }
 
@@ -882,7 +953,10 @@ mod tests {
             "correspondence": "ambiguous",
             "evidence_sha256": "e".repeat(64)
         });
-        value["crosswalk"].as_array_mut().expect("crosswalk array").push(ambiguous);
+        value["crosswalk"]
+            .as_array_mut()
+            .expect("crosswalk array")
+            .push(ambiguous);
         let error = audit_delivery_receipt_bytes(
             serde_json::to_string(&value).expect("serialize").as_bytes(),
         )
@@ -899,7 +973,10 @@ mod tests {
             "correspondence": "unresolved",
             "evidence_sha256": "f".repeat(64)
         });
-        value["crosswalk"].as_array_mut().expect("crosswalk array").push(unresolved);
+        value["crosswalk"]
+            .as_array_mut()
+            .expect("crosswalk array")
+            .push(unresolved);
         let error = audit_delivery_receipt_bytes(
             serde_json::to_string(&value).expect("serialize").as_bytes(),
         )
