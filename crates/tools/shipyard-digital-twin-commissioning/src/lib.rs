@@ -60,6 +60,7 @@ pub struct StreamObservation {
 pub struct CommissioningInput {
     pub twin_id: String,
     pub twin_revision: String,
+    pub master_clock_id: String,
     pub declared_operational_purpose: String,
     pub configuration_sha256: [u8; 32],
     pub now_tick: u64,
@@ -91,6 +92,8 @@ pub enum StreamViolationCode {
     ClockMismatch,
     EvidenceClassNotAdmitted,
     InsufficientSamples,
+    MissingObservation,
+    InvalidRequirement,
     TimestampCountMismatch,
     DuplicateTimestamp,
     OutOfOrderTimestamp,
@@ -202,7 +205,7 @@ fn assess_stream(
         || requirement.expected_interval_ticks == 0
         || requirement.minimum_coverage_permille > 1_000
     {
-        add(&mut violations, StreamViolationCode::NumericOverflow);
+        add(&mut violations, StreamViolationCode::InvalidRequirement);
     }
 
     if observation.stream_id != requirement.stream_id
@@ -215,7 +218,9 @@ fn assess_stream(
     {
         add(&mut violations, StreamViolationCode::SchemaMismatch);
     }
-    if observation.clock_id != requirement.clock_id {
+    if requirement.clock_id != input.master_clock_id
+        || observation.clock_id != requirement.clock_id
+    {
         add(&mut violations, StreamViolationCode::ClockMismatch);
     }
     if observation.evidence_class != EvidenceClass::Synthetic {
@@ -256,7 +261,6 @@ fn assess_stream(
 
     let source = &observation.source_timestamps_ticks;
     let ingestion = &observation.ingestion_timestamps_ticks;
-    let mut metrics = empty_metrics(source.len());
 
     if source.len() < 2 {
         add(&mut violations, StreamViolationCode::InsufficientSamples);
@@ -331,7 +335,7 @@ fn assess_stream(
         add(&mut violations, StreamViolationCode::ObservationStale);
     }
 
-    metrics = StreamMetrics {
+    let metrics = StreamMetrics {
         sample_count: source.len(),
         mean_interval_ticks: mean_interval,
         maximum_interval_ticks: maximum_interval,
@@ -360,7 +364,7 @@ fn missing_stream_report(stream_id: &str) -> StreamReport {
         stream_id: stream_id.to_owned(),
         commissioned: false,
         metrics: empty_metrics(0),
-        violations: vec![StreamViolationCode::InsufficientSamples],
+        violations: vec![StreamViolationCode::MissingObservation],
     }
 }
 
@@ -372,7 +376,10 @@ pub fn commission_twin(input: &CommissioningInput) -> CommissioningReport {
         }
     };
 
-    if input.twin_id.trim().is_empty() || input.twin_revision.trim().is_empty() {
+    if input.twin_id.trim().is_empty()
+        || input.twin_revision.trim().is_empty()
+        || input.master_clock_id.trim().is_empty()
+    {
         add_twin(&mut twin_violations, TwinViolationCode::EmptyTwinIdentity);
     }
     if input.declared_operational_purpose.trim().is_empty() {
@@ -390,7 +397,10 @@ pub fn commission_twin(input: &CommissioningInput) -> CommissioningReport {
     if input
         .requested_capabilities
         .iter()
-        .any(|capability| !permitted.contains(capability.as_str()))
+        .any(|capability| {
+            capability != "read_only_telemetry"
+                || !permitted.contains(capability.as_str())
+        })
     {
         add_twin(&mut twin_violations, TwinViolationCode::AuthorityEscalation);
     }
@@ -518,6 +528,7 @@ mod tests {
         CommissioningInput {
             twin_id: "SHIPYARD-WELD-CELL-01".to_owned(),
             twin_revision: "CELL-R7".to_owned(),
+            master_clock_id: "CELL-MASTER".to_owned(),
             declared_operational_purpose: "offline_state_visualization_and_recommendation".to_owned(),
             configuration_sha256: hashes(8),
             now_tick: 4_205,
@@ -553,6 +564,7 @@ mod tests {
         let observation = input.observations.iter_mut()
             .find(|s| s.stream_id == "robot-tcp").unwrap();
         observation.ingestion_timestamps_ticks = vec![3_883, 3_966, 4_047, 4_128, 4_210];
+        input.now_tick = 4_210;
         let report = commission_twin(&input);
         let robot = report.streams.iter().find(|s| s.stream_id == "robot-tcp").unwrap();
         assert_eq!(robot.metrics.p50_latency_ticks, Some(8));
@@ -637,8 +649,11 @@ mod tests {
     #[test]
     fn dropped_sample_gap_exceeds_cadence_budget() {
         let mut input = base_input();
-        input.observations[1].source_timestamps_ticks[3] += 160;
-        input.observations[1].ingestion_timestamps_ticks[3] += 160;
+        input.observations[1].source_timestamps_ticks =
+            vec![3_880, 3_960, 4_040, 4_200, 4_280];
+        input.observations[1].ingestion_timestamps_ticks =
+            vec![3_882, 3_962, 4_042, 4_202, 4_282];
+        input.now_tick = 4_285;
         let report = commission_twin(&input);
         assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::SampleJitterExceeded)));
     }
@@ -646,7 +661,7 @@ mod tests {
     #[test]
     fn latency_budget_violation_is_detected() {
         let mut input = base_input();
-        input.observations[0].ingestion_timestamps_ticks[2] += 20;
+        input.observations[0].ingestion_timestamps_ticks[2] = 4_205;
         let report = commission_twin(&input);
         assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::LatencyExceeded)));
     }
@@ -654,8 +669,10 @@ mod tests {
     #[test]
     fn stale_observation_is_rejected() {
         let mut input = base_input();
-        input.observations[4].source_timestamps_ticks[4] = 3_000;
-        input.observations[4].ingestion_timestamps_ticks[4] = 3_010;
+        input.observations[4].source_timestamps_ticks =
+            vec![1_700, 1_950, 2_200, 2_450, 2_700];
+        input.observations[4].ingestion_timestamps_ticks =
+            vec![1_710, 1_960, 2_210, 2_460, 2_710];
         let report = commission_twin(&input);
         assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::ObservationStale)));
     }
@@ -743,6 +760,27 @@ mod tests {
         input.requested_capabilities.push("robot_motion_command".to_owned());
         let report = commission_twin(&input);
         assert!(report.twin_violations.contains(&TwinViolationCode::AuthorityEscalation));
+    }
+
+    #[test]
+    fn master_clock_identity_is_enforced_across_all_required_streams() {
+        let mut input = base_input();
+        input.master_clock_id = "OTHER-MASTER".to_owned();
+        let report = commission_twin(&input);
+        assert_eq!(report.decision, CommissioningDecision::NotReady);
+        assert!(report.streams.iter().all(|stream| {
+            stream.violations.contains(&StreamViolationCode::ClockMismatch)
+        }));
+    }
+
+    #[test]
+    fn caller_cannot_grant_itself_robot_authority() {
+        let mut input = base_input();
+        input.permitted_capabilities.push("robot_motion_command".to_owned());
+        input.requested_capabilities.push("robot_motion_command".to_owned());
+        let report = commission_twin(&input);
+        assert!(report.twin_violations.contains(&TwinViolationCode::AuthorityEscalation));
+        assert_eq!(report.maximum_authority, "READ_ONLY_TELEMETRY");
     }
 
     #[test]
