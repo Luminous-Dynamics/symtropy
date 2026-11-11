@@ -10,7 +10,9 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-use degradation_recovery_envelope::{audit_campaign, standard_fault_schedule, AuditReport, Campaign};
+use degradation_recovery_envelope::{
+    AuditReport, Campaign, audit_campaign, standard_fault_schedule,
+};
 use serde_json::json;
 
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
@@ -22,7 +24,10 @@ fn audit_value(input: &str) -> Result<AuditReport, String> {
 }
 
 fn write_report(path: &Path, report: &AuditReport) -> Result<(), Box<dyn Error>> {
-    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
         fs::create_dir_all(parent)?;
     }
     fs::write(path, serde_json::to_vec_pretty(report)?)?;
@@ -31,7 +36,10 @@ fn write_report(path: &Path, report: &AuditReport) -> Result<(), Box<dyn Error>>
 
 fn run() -> Result<i32, Box<dyn Error>> {
     let args = env::args().skip(1).collect::<Vec<_>>();
-    if args.first().is_some_and(|value| value == "generate-schedule") {
+    if args
+        .first()
+        .is_some_and(|value| value == "generate-schedule")
+    {
         if args.len() != 8 {
             return Err(
                 "usage: degradation-recovery-envelope generate-schedule <first-start-tick> <spacing-ticks> <exposure-ticks> <detection-deadline-ticks> <containment-deadline-ticks> <recovery-quorum-ticks> <output.json>"
@@ -53,7 +61,10 @@ fn run() -> Result<i32, Box<dyn Error>> {
         )
         .map_err(|error| format!("cannot generate schedule: {error}"))?;
         let output_path = Path::new(&args[7]);
-        if let Some(parent) = output_path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+        if let Some(parent) = output_path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
             fs::create_dir_all(parent)?;
         }
         fs::write(output_path, serde_json::to_vec_pretty(&events)?)?;
@@ -76,8 +87,8 @@ fn run() -> Result<i32, Box<dyn Error>> {
         return Err("campaign input must be a regular file no larger than 64 MiB".into());
     }
     let input = fs::read_to_string(input_path)?;
-    let report = audit_value(&input)
-        .map_err(|error| format!("campaign input rejected: {error}"))?;
+    let report =
+        audit_value(&input).map_err(|error| format!("campaign input rejected: {error}"))?;
     write_report(output_path, &report)?;
     println!(
         "degradation/recovery audit: {} ({} findings); report: {}",
@@ -138,8 +149,14 @@ mod tests {
             serde_json::from_str(include_str!("../schemas/campaign-v1.schema.json")).unwrap();
         let report_schema: serde_json::Value =
             serde_json::from_str(include_str!("../schemas/report-v1.schema.json")).unwrap();
-        assert_eq!(campaign_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
-        assert_eq!(report_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+        assert_eq!(
+            campaign_schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(
+            report_schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
         for field in [
             "model_id",
             "model_status",
@@ -151,11 +168,13 @@ mod tests {
             "policy_visible_inputs",
             "fault_schedule_visible_to_policy",
         ] {
-            assert!(campaign_schema["required"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|entry| entry == field));
+            assert!(
+                campaign_schema["required"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|entry| entry == field)
+            );
         }
         for field in [
             "clean_control_deadline_miss_ticks",
@@ -164,22 +183,28 @@ mod tests {
             "hardware_id",
             "policy_visible_inputs",
         ] {
-            assert!(report_schema["required"]
+            assert!(
+                report_schema["required"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|entry| entry == field)
+            );
+        }
+        assert!(
+            campaign_schema["$defs"]["tick"]["required"]
                 .as_array()
                 .unwrap()
                 .iter()
-                .any(|entry| entry == field));
-        }
-        assert!(campaign_schema["$defs"]["tick"]["required"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|field| field == "fault_detection_event_ids"));
-        assert!(report_schema["$defs"]["event_metrics"]["required"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|field| field == "severity_ppm"));
+                .any(|field| field == "fault_detection_event_ids")
+        );
+        assert!(
+            report_schema["$defs"]["event_metrics"]["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|field| field == "severity_ppm")
+        );
     }
 
     #[test]
@@ -201,8 +226,11 @@ mod tests {
         let second = audit_value(&value.to_string()).unwrap();
         assert_eq!(first, second);
         assert_eq!(first.disposition, "rejected");
-        assert!(first.findings.iter().any(|finding| {
-            finding == "forbidden_policy_input_accepted"
-        }));
+        assert!(
+            first
+                .findings
+                .iter()
+                .any(|finding| { finding == "forbidden_policy_input_accepted" })
+        );
     }
 }
