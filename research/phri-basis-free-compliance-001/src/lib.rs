@@ -439,6 +439,7 @@ pub struct BasisFreeRateOptimizationReceipt {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BasisFreeOptimizerError {
+    InvalidInput,
     InvalidObjectiveWeight,
     InvalidReferenceRate,
     NegativeDampingDissipation,
@@ -828,7 +829,7 @@ pub fn optimize_basis_free_compliance_rate(
         matrix_tolerance: request.matrix_tolerance,
         passivity_tolerance_w: request.passivity_tolerance_w,
     })
-    .map_err(|_| BasisFreeOptimizerError::IndependentPostCheckFailed)?;
+    .map_err(|_| BasisFreeOptimizerError::InvalidInput)?;
     if !validation.candidate_admissible {
         return Err(BasisFreeOptimizerError::Infeasible);
     }
@@ -852,10 +853,12 @@ pub fn optimize_basis_free_compliance_rate(
     let lower = cholesky_lower_3(stiffness_dense)?;
     let inverse_lower = inverse_lower_3(lower)?;
     let inverse_lower_transpose = transpose_dense3(inverse_lower);
-    let stiffness_reference = multiply_dense3(
+    let stiffness_reference_raw = multiply_dense3(
         multiply_dense3(inverse_lower, dense_from_symmetric(request.stiffness_rate_reference)),
         inverse_lower_transpose,
     );
+    let stiffness_reference =
+        dense_from_symmetric(symmetric_from_dense(stiffness_reference_raw)?);
     if !stiffness_reference.iter().flatten().all(|value| value.is_finite()) {
         return Err(BasisFreeOptimizerError::ArithmeticOverflow);
     }
@@ -1181,7 +1184,7 @@ mod tests {
     fn optimizer_request() -> BasisFreeRateOptimizationRequest {
         BasisFreeRateOptimizationRequest {
             epsilon: 1.0,
-            epsilon_min: 0.0,
+            epsilon_min: 0.5,
             epsilon_decay_rate: 1.0,
             epsilon_rate_reference: 1.0,
             task_inertia: Symmetric3::diagonal(1.0, 1.0, 1.0),
