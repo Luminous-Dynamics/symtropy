@@ -196,10 +196,19 @@ pub struct DiscreteStepResult {
     /// Positive slack means the linearized next-step gap is nonnegative.
     pub contact_slack: Vec<f64>,
     pub active_contacts: Vec<bool>,
+    /// Absolute infinity-norm residual of the effective-metric equation.
     pub max_metric_equation_residual: f64,
+    /// Dimensionless equation residual normalized per generalized coordinate.
+    pub max_scaled_metric_equation_residual: f64,
     pub max_negative_impulse: f64,
     pub max_negative_contact_slack: f64,
     pub max_complementarity_residual: f64,
+    /// Dimensionless dual-feasibility residual, normalized by impulse scale.
+    pub max_scaled_dual_feasibility_residual: f64,
+    /// Dimensionless primal-feasibility residual, normalized by row velocity scale.
+    pub max_scaled_primal_feasibility_residual: f64,
+    /// Dimensionless complementarity residual, normalized per active row.
+    pub max_scaled_complementarity_residual: f64,
 }
 
 /// Evaluate the effective-metric step and solve its small frictionless contact LCP.
@@ -280,7 +289,7 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             let Some(active_impulse) = solve_spd(&active_matrix, &active_rhs) else {
                 continue;
             };
-            if active_impulse.iter().any(|value| *value < -SOLVE_TOLERANCE) {
+            if relative_negative_residual(&active_impulse) > SOLVE_TOLERANCE {
                 continue;
             }
             for (active_index, &contact_index) in active_indices.iter().enumerate() {
@@ -301,17 +310,16 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             .map(|(velocity, target)| velocity - target)
             .collect::<Vec<_>>();
 
-        if impulse.iter().any(|value| *value < -SOLVE_TOLERANCE)
-            || slack.iter().any(|value| *value < -SOLVE_TOLERANCE)
+        let primal_residual =
+            relative_primal_feasibility(&normal_velocity, &target_velocity, &slack);
+        if relative_negative_residual(&impulse) > SOLVE_TOLERANCE
+            || primal_residual > SOLVE_TOLERANCE
         {
             continue;
         }
 
-        let complementarity = impulse
-            .iter()
-            .zip(&slack)
-            .map(|(p, s)| (p * s).abs())
-            .fold(0.0_f64, f64::max);
+        let complementarity =
+            relative_complementarity_residual(&impulse, &normal_velocity, &target_velocity, &slack);
         if complementarity > 1.0e-8 {
             continue;
         }
@@ -359,6 +367,27 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         .zip(&contact_slack)
         .map(|(impulse, slack)| (impulse * slack).abs())
         .fold(0.0_f64, f64::max);
+    let normal_velocity = mat_vec(&input.contact_jacobian, &next_velocity);
+    let max_scaled_metric_equation_residual = metric_equation_relative_residual(
+        &metric,
+        &next_velocity,
+        &rhs,
+        &input.contact_jacobian,
+        &contact_impulse,
+    );
+    let max_scaled_dual_feasibility_residual =
+        relative_negative_residual(&contact_impulse);
+    let max_scaled_primal_feasibility_residual = relative_primal_feasibility(
+        &normal_velocity,
+        &target_velocity,
+        &contact_slack,
+    );
+    let max_scaled_complementarity_residual = relative_complementarity_residual(
+        &contact_impulse,
+        &normal_velocity,
+        &target_velocity,
+        &contact_slack,
+    );
 
     Ok(DiscreteStepResult {
         effective_metric: metric,
@@ -370,9 +399,13 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         contact_slack,
         active_contacts,
         max_metric_equation_residual: metric_residual,
+        max_scaled_metric_equation_residual,
         max_negative_impulse,
         max_negative_contact_slack,
         max_complementarity_residual,
+        max_scaled_dual_feasibility_residual,
+        max_scaled_primal_feasibility_residual,
+        max_scaled_complementarity_residual,
     })
 }
 
@@ -540,6 +573,109 @@ fn multiply(left: &Matrix, right: &Matrix) -> Matrix {
 
 fn dot(left: &[f64], right: &[f64]) -> f64 {
     left.iter().zip(right).map(|(a, b)| a * b).sum()
+}
+
+/// Return max negative violation divided by the vector's own infinity norm.
+/// This is invariant under uniform unit changes; the all-zero vector has no
+/// violation and therefore returns zero.
+fn relative_negative_residual(values: &[f64]) -> f64 {
+    let scale = values.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
+    let violation = values
+        .iter()
+        .map(|value| (-value).max(0.0))
+        .fold(0.0_f64, f64::max);
+    if violation == 0.0 {
+        0.0
+    } else if scale > 0.0 {
+        violation / scale
+    } else {
+        f64::INFINITY
+    }
+}
+
+/// Dimensionless unilateral feasibility residual, normalized per contact row
+/// by the larger of the attained and target normal velocities.
+fn relative_primal_feasibility(
+    normal_velocity: &[f64],
+    target_velocity: &[f64],
+    slack: &[f64],
+) -> f64 {
+    normal_velocity
+        .iter()
+        .zip(target_velocity)
+        .zip(slack)
+        .map(|((normal, target), row_slack)| {
+            let violation = (-row_slack).max(0.0);
+            let scale = normal.abs().max(target.abs());
+            if violation == 0.0 {
+                0.0
+            } else if scale > 0.0 {
+                violation / scale
+            } else {
+                f64::INFINITY
+            }
+        })
+        .fold(0.0_f64, f64::max)
+}
+
+/// Dimensionless complementarity residual. For each positive impulse, divide
+/// |p_i s_i| by |p_i| times that row's normal-velocity scale. Zero-impulse rows
+/// satisfy complementarity by construction.
+fn relative_complementarity_residual(
+    impulse: &[f64],
+    normal_velocity: &[f64],
+    target_velocity: &[f64],
+    slack: &[f64],
+) -> f64 {
+    impulse
+        .iter()
+        .zip(normal_velocity)
+        .zip(target_velocity)
+        .zip(slack)
+        .map(|(((p, normal), target), row_slack)| {
+            if *p <= 0.0 {
+                0.0
+            } else {
+                let scale = normal.abs().max(target.abs());
+                if row_slack.abs() == 0.0 {
+                    0.0
+                } else if scale > 0.0 {
+                    row_slack.abs() / scale
+                } else {
+                    f64::INFINITY
+                }
+            }
+        })
+        .fold(0.0_f64, f64::max)
+}
+
+/// Maximum componentwise equation residual normalized by the largest
+/// contributing term for that generalized coordinate.
+fn metric_equation_relative_residual(
+    metric: &Matrix,
+    velocity: &[f64],
+    rhs: &[f64],
+    contact_jacobian: &Matrix,
+    impulse: &[f64],
+) -> f64 {
+    let lhs = mat_vec(metric, velocity);
+    let mut maximum = 0.0_f64;
+    for row in 0..lhs.len() {
+        let contact_term = (0..impulse.len())
+            .map(|contact| contact_jacobian[(contact, row)] * impulse[contact])
+            .sum::<f64>();
+        let residual = (lhs[row] - rhs[row] - contact_term).abs();
+        let scale = lhs[row].abs().max(rhs[row].abs()).max(contact_term.abs());
+        let relative = if residual == 0.0 {
+            0.0
+        } else if scale > 0.0 {
+            residual / scale
+        } else {
+            f64::INFINITY
+        };
+        maximum = maximum.max(relative);
+    }
+    maximum
 }
 
 fn metric_equation_residual(
