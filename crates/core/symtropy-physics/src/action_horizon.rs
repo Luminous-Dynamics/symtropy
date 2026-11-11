@@ -61,11 +61,13 @@ impl HorizonConstraint {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum HorizonEvidence {
     Qualified {
+        constraint: HorizonConstraint,
         remaining_ns: u64,
         source_id: String,
         timebase_id: String,
     },
     Unknown {
+        constraint: HorizonConstraint,
         reason: String,
     },
 }
@@ -73,6 +75,7 @@ pub enum HorizonEvidence {
 impl HorizonEvidence {
     /// Construct a qualified, identity-bound horizon.
     pub fn qualified(
+        constraint: HorizonConstraint,
         remaining_ns: u64,
         source_id: impl Into<String>,
         timebase_id: impl Into<String>,
@@ -86,6 +89,7 @@ impl HorizonEvidence {
             return Err(HorizonInputError::EmptyTimebaseIdentity);
         }
         Ok(Self::Qualified {
+            constraint,
             remaining_ns,
             source_id,
             timebase_id,
@@ -94,12 +98,15 @@ impl HorizonEvidence {
 
     /// Construct an explicitly unknown bound. Unknown must remain visible;
     /// it is not a large duration and cannot be omitted.
-    pub fn unknown(reason: impl Into<String>) -> Result<Self, HorizonInputError> {
+    pub fn unknown(
+        constraint: HorizonConstraint,
+        reason: impl Into<String>,
+    ) -> Result<Self, HorizonInputError> {
         let reason = reason.into();
         if reason.trim().is_empty() {
             return Err(HorizonInputError::EmptyUnknownReason);
         }
-        Ok(Self::Unknown { reason })
+        Ok(Self::Unknown { constraint, reason })
     }
 }
 
@@ -156,7 +163,10 @@ impl std::error::Error for HorizonInputError {}
 /// minimum can be traced to its owner and evidence source.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct HorizonBoundReceipt<'a> {
+    /// Canonical constraint expected for this array slot.
     pub constraint: HorizonConstraint,
+    /// Constraint declared by the input evidence item.
+    pub reported_constraint: HorizonConstraint,
     pub remaining_ns: Option<u64>,
     pub source_id: Option<&'a str>,
     pub timebase_id: Option<&'a str>,
@@ -170,6 +180,8 @@ pub enum HorizonDisposition {
     UnqualifiedEvidence,
     /// All bounds are known but are not mapped to one common timebase.
     IncompatibleTimebases,
+    /// An evidence item declared a different constraint than its canonical slot.
+    ConstraintOrderMismatch,
     /// The safe duration does not contain one complete control cycle.
     NoCompleteActionCycle,
     /// Required open-loop queue coverage exceeds the safe maximum.
@@ -225,16 +237,21 @@ pub fn select_action_horizon<'a>(
     let mut unknown_count = 0usize;
     let mut common_timebase: Option<&'a str> = None;
     let mut timebase_mismatch = false;
+    let mut constraint_mismatch = false;
     let mut safe_horizon_ns = u64::MAX;
 
     let receipts = core::array::from_fn(|index| {
         let constraint = HorizonConstraint::ALL[index];
         match &request.bounds[index] {
             HorizonEvidence::Qualified {
+                constraint: reported_constraint,
                 remaining_ns,
                 source_id,
                 timebase_id,
             } => {
+                if *reported_constraint != constraint {
+                    constraint_mismatch = true;
+                }
                 match common_timebase {
                     None => common_timebase = Some(timebase_id.as_str()),
                     Some(existing) if existing != timebase_id => timebase_mismatch = true,
@@ -243,16 +260,21 @@ pub fn select_action_horizon<'a>(
                 safe_horizon_ns = safe_horizon_ns.min(*remaining_ns);
                 HorizonBoundReceipt {
                     constraint,
+                    reported_constraint: *reported_constraint,
                     remaining_ns: Some(*remaining_ns),
                     source_id: Some(source_id.as_str()),
                     timebase_id: Some(timebase_id.as_str()),
                     unknown_reason: None,
                 }
             }
-            HorizonEvidence::Unknown { reason } => {
+            HorizonEvidence::Unknown { constraint: reported_constraint, reason } => {
+                if *reported_constraint != constraint {
+                    constraint_mismatch = true;
+                }
                 unknown_count += 1;
                 HorizonBoundReceipt {
                     constraint,
+                    reported_constraint: *reported_constraint,
                     remaining_ns: None,
                     source_id: None,
                     timebase_id: None,
@@ -286,6 +308,10 @@ pub fn select_action_horizon<'a>(
     };
 
     if unknown_count > 0 {
+        return Ok(selection);
+    }
+    if constraint_mismatch {
+        selection.disposition = HorizonDisposition::ConstraintOrderMismatch;
         return Ok(selection);
     }
     if timebase_mismatch {
@@ -423,7 +449,7 @@ mod tests {
     #[test]
     fn unknown_bound_is_not_dropped_or_treated_as_infinity() {
         let mut bounds = qualified_bounds([100; ACTION_HORIZON_CONSTRAINT_COUNT]);
-        bounds[6] = HorizonEvidence::unknown("motor thermal state has no qualified estimate").unwrap();
+        bounds[6] = HorizonEvidence::unknown(HorizonConstraint::ThermalDerating, "motor thermal state has no qualified estimate").unwrap();
         let request = ActionHorizonRequest {
             bounds,
             controller_period_ns: 10,
@@ -444,7 +470,7 @@ mod tests {
     fn every_required_constraint_is_mandatory() {
         for index in 0..ACTION_HORIZON_CONSTRAINT_COUNT {
             let mut bounds = qualified_bounds([u64::MAX; ACTION_HORIZON_CONSTRAINT_COUNT]);
-            bounds[index] = HorizonEvidence::unknown("not supplied").unwrap();
+            bounds[index] = HorizonEvidence::unknown(HorizonConstraint::ALL[index], "not supplied").unwrap();
             let result = select_action_horizon(&ActionHorizonRequest {
                 bounds,
                 controller_period_ns: 1,
@@ -458,9 +484,38 @@ mod tests {
     }
 
     #[test]
+    fn misordered_constraint_identity_rejects_composition() {
+        let mut bounds = qualified_bounds([100; ACTION_HORIZON_CONSTRAINT_COUNT]);
+        bounds[6] = HorizonEvidence::qualified(
+            HorizonConstraint::ObservationFreshness,
+            50,
+            "wrongly-labelled-source",
+            "application-monotonic-epoch-7",
+        )
+        .unwrap();
+        let result = select_action_horizon(&ActionHorizonRequest {
+            bounds,
+            controller_period_ns: 10,
+            p99_total_latency_ns: 20,
+            latency_profile_id: "p99-profile/test-target-a".to_owned(),
+            execution_mode: ActionExecutionMode::QueuedOpenLoop,
+        })
+        .unwrap();
+
+        assert_eq!(result.disposition, HorizonDisposition::ConstraintOrderMismatch);
+        assert_eq!(result.safe_horizon_ns, None);
+        assert_eq!(result.selected_cycles, None);
+        assert_eq!(
+            result.bounds[6].reported_constraint,
+            HorizonConstraint::ObservationFreshness
+        );
+    }
+
+    #[test]
     fn mismatched_timebases_reject_composition() {
         let mut bounds = qualified_bounds([100; ACTION_HORIZON_CONSTRAINT_COUNT]);
         bounds[3] = HorizonEvidence::qualified(
+            HorizonConstraint::StateCertificate,
             50,
             "certificate-42",
             "another-monotonic-epoch",
@@ -582,15 +637,15 @@ mod tests {
     #[test]
     fn empty_evidence_identities_are_rejected() {
         assert_eq!(
-            HorizonEvidence::qualified(10, " ", "timebase"),
+            HorizonEvidence::qualified(HorizonConstraint::ObservationFreshness, 10, " ", "timebase"),
             Err(HorizonInputError::EmptySourceIdentity)
         );
         assert_eq!(
-            HorizonEvidence::qualified(10, "source", " "),
+            HorizonEvidence::qualified(HorizonConstraint::ObservationFreshness, 10, "source", " "),
             Err(HorizonInputError::EmptyTimebaseIdentity)
         );
         assert_eq!(
-            HorizonEvidence::unknown(" "),
+            HorizonEvidence::unknown(HorizonConstraint::ObservationFreshness, " "),
             Err(HorizonInputError::EmptyUnknownReason)
         );
     }
