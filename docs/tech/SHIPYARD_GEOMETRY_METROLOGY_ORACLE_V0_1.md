@@ -21,7 +21,7 @@ The conservative integrated uncertainty is the trapezoid sum of reference-point 
 - Negative-only triangular profile: signed/removed area2 = −80 / 80.
 - Mixed crossing profile [0, −2, +2] over x=[0,10,20]: signed net area2 = −20, added area2 = 10, removed area2 = 30.
 - Flat unchanged surface: all areas = 0.
-- Combined point and registration bounds of 1 + 2 + 1 µm over 20 µm ROI: uncertainty area2 = 120.
+- Combined point and registration bounds of 1 + 2 + 1 µm over 20 µm ROI: uncertainty area2 = 160.
 
 These are synthetic integer known answers, not actual BAM geometry or a claimed physical scan resolution.
 
