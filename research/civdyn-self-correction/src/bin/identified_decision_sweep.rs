@@ -161,6 +161,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         PolicyConstraintInterval {
             policy_id: "maintenance".to_string(),
             constraint_id: "daily-water-use".to_string(),
+            measurement_unit: "litres_per_household_day".to_string(),
             lower: 55.0,
             upper: 70.0,
             evidence_digest: "sha256-maintenance-water".to_string(),
@@ -168,6 +169,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         PolicyConstraintInterval {
             policy_id: "maintenance".to_string(),
             constraint_id: "minimum-service-coverage".to_string(),
+            measurement_unit: "coverage_fraction".to_string(),
             lower: 0.86,
             upper: 0.90,
             evidence_digest: "sha256-maintenance-service".to_string(),
@@ -175,6 +177,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         PolicyConstraintInterval {
             policy_id: "infrastructure".to_string(),
             constraint_id: "daily-water-use".to_string(),
+            measurement_unit: "litres_per_household_day".to_string(),
             lower: 45.0,
             upper: 65.0,
             evidence_digest: "sha256-infrastructure-water".to_string(),
@@ -182,6 +185,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         PolicyConstraintInterval {
             policy_id: "infrastructure".to_string(),
             constraint_id: "minimum-service-coverage".to_string(),
+            measurement_unit: "coverage_fraction".to_string(),
             lower: 0.86,
             upper: 0.92,
             evidence_digest: "sha256-infrastructure-service".to_string(),
