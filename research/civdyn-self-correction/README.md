@@ -264,7 +264,7 @@ The ten-component temporal vector is normalized by frozen, declared reference ce
 
 The first exact-known-truth reference for [CIVDYN-INTERFERENCE-ROBUST-001 #4483](https://github.com/Luminous-Dynamics/symtropy/issues/4483) is implemented in src/network_interference.rs and the network-interference-sweep binary.
 
-The four-node fixture has two two-node clusters and both within-cluster and cross-cluster edges. Its known-truth outcome mechanism keeps three effects separate: direct treatment, per-treated-neighbor within-cluster spillover, and per-treated-neighbor between-cluster spillover. The finite two-stage design first chooses a cluster saturation count uniformly from all feasible counts, then uniformly chooses the treated subset conditional on that count. Every assignment is enumerated and its exact design probability is retained; the implementation rejects more than 16 nodes rather than silently approximating the design.
+The four-node fixture has two two-node clusters and both within-cluster and cross-cluster edges. Its known-truth outcome mechanism keeps three effects separate: direct treatment, per-treated-neighbor within-cluster spillover, and per-treated-neighbor between-cluster spillover. The finite two-stage design independently selects a cluster saturation probability from the frozen levels {0, 0.5, 1} uniformly within each cluster, then independently assigns each individual using that probability. Every one of the 2^n assignments is enumerated and its exact marginal design probability is retained; the implementation rejects more than 16 nodes rather than silently approximating the design.
 
 Five exposure mappings are challenged:
 - Full network with separate within- and between-cluster treated-neighbor counts.
