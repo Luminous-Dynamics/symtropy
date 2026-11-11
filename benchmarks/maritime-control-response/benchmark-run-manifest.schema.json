@@ -235,7 +235,8 @@
         "shift_holdout_manifest_sha256",
         "independent_test_recordings",
         "active_evidence_selection",
-        "streaming_contract"
+        "streaming_contract",
+        "external_dataset_track"
       ],
       "properties": {
         "protocol_sha256": {
@@ -617,6 +618,231 @@
               ]
             }
           }
+        },
+        "external_dataset_track": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "dataset_doi",
+            "dataset_license",
+            "license_verified",
+            "archive_sha256",
+            "file_manifest_sha256",
+            "dataset_index_sha256",
+            "variable_dictionary_sha256",
+            "normalization_script_sha256",
+            "signal_semantic_mapping_sha256",
+            "fault_ontology_mapping_sha256",
+            "split_manifest_sha256",
+            "recording_count",
+            "sample_count",
+            "signal_mapping_reviewed",
+            "label_mapping_reviewed",
+            "independent_engine_count",
+            "event_latency_eligible_recording_count",
+            "cross_engine_or_fleet_claim_allowed"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "symtropy-marine-external-dataset-track-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "metadata_audited_archive_not_audited",
+                "archive_audited",
+                "evaluated_unqualified",
+                "qualified",
+                "not_evaluable"
+              ]
+            },
+            "dataset_doi": {
+              "const": "10.5281/zenodo.19857425"
+            },
+            "dataset_license": {
+              "const": "CC-BY-4.0"
+            },
+            "license_verified": {
+              "type": "boolean"
+            },
+            "archive_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "file_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "dataset_index_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "variable_dictionary_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "normalization_script_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "signal_semantic_mapping_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "fault_ontology_mapping_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "split_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "recording_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "signal_mapping_reviewed": {
+              "type": "boolean"
+            },
+            "label_mapping_reviewed": {
+              "type": "boolean"
+            },
+            "independent_engine_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "event_latency_eligible_recording_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cross_engine_or_fleet_claim_allowed": {
+              "const": false
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "status": {
+                    "const": "qualified"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "license_verified": {
+                    "const": true
+                  },
+                  "archive_sha256": {
+                    "type": "string"
+                  },
+                  "file_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "dataset_index_sha256": {
+                    "type": "string"
+                  },
+                  "variable_dictionary_sha256": {
+                    "type": "string"
+                  },
+                  "normalization_script_sha256": {
+                    "type": "string"
+                  },
+                  "signal_semantic_mapping_sha256": {
+                    "type": "string"
+                  },
+                  "fault_ontology_mapping_sha256": {
+                    "type": "string"
+                  },
+                  "split_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "recording_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "sample_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "signal_mapping_reviewed": {
+                    "const": true
+                  },
+                  "label_mapping_reviewed": {
+                    "const": true
+                  },
+                  "cross_engine_or_fleet_claim_allowed": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          ]
         }
       }
     },
@@ -841,6 +1067,45 @@
         "risk_evidence_unreviewed_candidate_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "external_dataset_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "external_dataset_recording_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "external_dataset_event_recall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "external_dataset_false_known_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "external_dataset_false_alarms_per_observed_normal_hour": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "external_dataset_held_out_load_macro_recall": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },
@@ -1023,6 +1288,61 @@
                   },
                   "input_output_cardinality_mismatch_count": {
                     "const": 0
+                  }
+                }
+              },
+              "external_dataset_track": {
+                "properties": {
+                  "status": {
+                    "const": "metadata_audited_archive_not_audited"
+                  },
+                  "license_verified": {
+                    "const": false
+                  },
+                  "archive_sha256": {
+                    "type": "null"
+                  },
+                  "file_manifest_sha256": {
+                    "type": "null"
+                  },
+                  "dataset_index_sha256": {
+                    "type": "null"
+                  },
+                  "variable_dictionary_sha256": {
+                    "type": "null"
+                  },
+                  "normalization_script_sha256": {
+                    "type": "null"
+                  },
+                  "signal_semantic_mapping_sha256": {
+                    "type": "null"
+                  },
+                  "fault_ontology_mapping_sha256": {
+                    "type": "null"
+                  },
+                  "split_manifest_sha256": {
+                    "type": "null"
+                  },
+                  "recording_count": {
+                    "const": 0
+                  },
+                  "sample_count": {
+                    "const": 0
+                  },
+                  "signal_mapping_reviewed": {
+                    "const": false
+                  },
+                  "label_mapping_reviewed": {
+                    "const": false
+                  },
+                  "independent_engine_count": {
+                    "const": 0
+                  },
+                  "event_latency_eligible_recording_count": {
+                    "const": 0
+                  },
+                  "cross_engine_or_fleet_claim_allowed": {
+                    "const": false
                   }
                 }
               }
