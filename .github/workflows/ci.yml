@@ -14,6 +14,39 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+
+  civdyn-state-observability-reference-audit:
+    name: CIVDYN State Observability Reference Audit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: ai-fm/missingness-mdps
+        ref: 186c454c8e1581adbbf3cbb49ed9e0df510356f4
+        path: reference/missingness-mdps
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+    - name: Check Formatting
+      run: cargo fmt --manifest-path research/civdyn-state-observability/Cargo.toml --all -- --check
+    - name: Run Strict Clippy
+      run: cargo clippy --locked --manifest-path research/civdyn-state-observability/Cargo.toml --all-targets -- -D warnings
+    - name: Compile and Test
+      run: |
+        cargo check --locked --manifest-path research/civdyn-state-observability/Cargo.toml --all-targets
+        cargo test --locked --manifest-path research/civdyn-state-observability/Cargo.toml --all-targets
+    - name: Audit Immutable Upstream Artifacts
+      run: |
+        set -euo pipefail
+        bash scripts/audit_miss_mdp_reference.sh reference/missingness-mdps > /tmp/miss-mdp-reference.tsv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit-replay.csv
+        cmp /tmp/miss-mdp-audit.csv /tmp/miss-mdp-audit-replay.csv
+        grep -F 'TOTAL,all,all,NA,3000,2877,123,0.959000,120,3,0,10,40' /tmp/miss-mdp-audit.csv
+
   test:
     # Living World exact-head qualification helpers have their own dedicated,
     # immutable-product workflows. Running the full 3-OS workspace matrix on
@@ -86,35 +119,3 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
-
-  civdyn-state-observability-reference-audit:
-    name: CIVDYN State Observability Reference Audit
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/checkout@v4
-      with:
-        repository: ai-fm/missingness-mdps
-        ref: 186c454c8e1581adbbf3cbb49ed9e0df510356f4
-        path: reference/missingness-mdps
-    - name: Set up Rust
-      uses: dtolnay/rust-toolchain@stable
-      with:
-        toolchain: 1.96.0
-        components: clippy, rustfmt
-    - name: Check Formatting
-      run: cargo fmt --manifest-path research/civdyn-state-observability/Cargo.toml --all -- --check
-    - name: Run Strict Clippy
-      run: cargo clippy --locked --manifest-path research/civdyn-state-observability/Cargo.toml --all-targets -- -D warnings
-    - name: Compile and Test
-      run: |
-        cargo check --locked --manifest-path research/civdyn-state-observability/Cargo.toml --all-targets
-        cargo test --locked --manifest-path research/civdyn-state-observability/Cargo.toml --all-targets
-    - name: Audit Immutable Upstream Artifacts
-      run: |
-        set -euo pipefail
-        bash scripts/audit_miss_mdp_reference.sh reference/missingness-mdps > /tmp/miss-mdp-reference.tsv
-        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit.csv
-        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit-replay.csv
-        cmp /tmp/miss-mdp-audit.csv /tmp/miss-mdp-audit-replay.csv
-        grep -F 'TOTAL,all,all,NA,3000,2877,123,0.959000,120,3,0,10,40' /tmp/miss-mdp-audit.csv
