@@ -714,6 +714,35 @@ mod tests {
     }
 
     #[test]
+    fn rotational_inverse_effective_mass_is_covariant_under_global_rotation() {
+        let body_inertia =
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+                .unwrap();
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.3);
+        generator.set(0, 2, -0.2);
+        generator.set(1, 2, 0.4);
+        let global = Rotor::from_bivector(&generator);
+        let world_inertia = body_inertia.rotated_by(&global).unwrap();
+        let offset = SVector::new(0.7, -0.25, 0.4);
+        let direction = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let expected = body_inertia
+            .rotational_inverse_effective_mass(&offset, &direction, 1e-12)
+            .unwrap();
+        let observed = world_inertia
+            .rotational_inverse_effective_mass(
+                &global.rotate_vector(&offset),
+                &global.rotate_vector(&direction),
+                1e-12,
+            )
+            .unwrap();
+        assert!(
+            (observed - expected).abs() < 2.0e-11,
+            "rotational effective mass changed under global frame rotation: expected={expected:e}, observed={observed:e}"
+        );
+    }
+
+    #[test]
     fn rotational_inverse_effective_mass_rejects_zero_direction() {
         let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
         assert_eq!(
