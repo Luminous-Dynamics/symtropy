@@ -628,6 +628,9 @@ impl FaultCampaign {
                 if restored < recovery.fault_onset_tick
                     || stable < restored
                     || recovery.stability_window_ticks == 0
+                    || !run.fault_events.iter().any(|event| {
+                        event.kind == FaultEventKind::FaultRestored && event.tick == restored
+                    })
                 {
                     findings.push(Finding::InvalidRecoveryAssessment);
                 }
@@ -1213,6 +1216,21 @@ mod tests {
         value.pairs[0].perturbed.metrics.get_mut("driving_score").unwrap().lower_95 = Some(80.0);
         let report = value.audit();
         assert!(report.findings.contains(&Finding::InvalidMetricInterval));
+    }
+
+    #[test]
+    fn recovered_status_requires_a_matching_fault_restored_event() {
+        let mut value = campaign();
+        value.pairs[0].perturbed.recovery = Some(RecoveryAssessment {
+            disposition: RecoveryDisposition::Recovered,
+            fault_onset_tick: 100,
+            fault_restored_tick: Some(120),
+            stable_from_tick: Some(125),
+            stability_window_ticks: 20,
+            stability_envelope_sha256: digest('a'),
+        });
+        let report = value.audit();
+        assert!(report.findings.contains(&Finding::InvalidRecoveryAssessment));
     }
 
     #[test]
