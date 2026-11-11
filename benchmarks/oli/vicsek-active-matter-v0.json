@@ -60,6 +60,25 @@
       "url": "https://doi.org/10.1103/rf2v-sy5d",
       "published": "2026-08-07",
       "warning": "Transfer entropy is statistical information transfer, not by itself causal influence; causal influence requires a defined intervention or structural model."
+    },
+    "visual_field_offset_2026": {
+      "title": "Influence of visual field offset on collective behavior: An exploration using the two-dimensional Vicsek model",
+      "authors": [
+        "Poorendra Ramlall",
+        "Sachit Butail",
+        "Subhradeep Roy"
+      ],
+      "journal": "Physical Review E",
+      "published": "2026-06-17",
+      "doi": "10.1103/bbl5-1yjb",
+      "url": "https://doi.org/10.1103/bbl5-1yjb",
+      "dataset_doi": "10.17632/y8fx3shsvx.1",
+      "dataset_url": "https://datacommons.erau.edu/datasets/y8fx3shsvx/1",
+      "dataset_license": "CC BY 4.0 declared at dataset level",
+      "data_inventory_status": "NOT_FETCHED; page exposes Download All but no file rows in retrieved rendering",
+      "source_reproduction_status": "NOT_RUN",
+      "reported_finding": "The authors report that a flipped/rear-facing restricted visual field can produce near-perfect alignment and clustering at the centre of mass even under high noise.",
+      "parameter_grid": "NOT_EXTRACTED; aperture, exact offset grid, density, speed, seeds and measurement windows must be recovered from the full methods and source files."
     }
   },
   "model_definition": {
@@ -115,6 +134,19 @@
       ],
       "response_population": "all particles except the directly treated particle",
       "claim_boundary": "Causal effects are established only inside the declared synthetic dynamics and intervention model."
+    },
+    "visual_sector_perception": {
+      "enum": "VicsekPerception::VisualSector",
+      "parameters": [
+        "half_aperture_rad",
+        "offset_rad"
+      ],
+      "rule": "For each focal particle, a neighbour is visible when its minimum-image bearing is within the visual sector centred at focal_heading + offset and within interaction_radius.",
+      "offset_convention": "0 radians is forward-facing; PI radians is directly behind the focal heading.",
+      "directionality": "Visibility is focal-agent-specific and may be asymmetric; no reciprocal edge is assumed.",
+      "default": "MetricRadius remains the default for existing callers.",
+      "graph_semantics": "Visual-sector topology snapshots use a weakly connected projection, while local visible-neighbour counts and local order use directed out-neighbours.",
+      "validation": "Half-aperture must be finite in [0, PI]; offset must be finite and is normalized to [0, 2PI)."
     }
   },
   "benchmark_regimes": [
@@ -438,7 +470,11 @@
     "nontrivial_cluster_coverage_fraction": "Fraction of particles belonging to connected components with at least two members; isolates do not count as collective clusters.",
     "mean_nontrivial_cluster_polar_order": "Mean per-component polar order over clusters of size >=2; null if all components are singletons.",
     "nontrivial_cluster_polar_order_variance": "Population variance of the nontrivial-cluster polar-order values; null if all components are singletons.",
-    "singleton_warning": "The unweighted mean over all connected components assigns singleton components polar order 1 by construction. Report nontrivial_cluster_coverage_fraction and mean_nontrivial_cluster_polar_order alongside the all-component statistic."
+    "singleton_warning": "The unweighted mean over all connected components assigns singleton components polar order 1 by construction. Report nontrivial_cluster_coverage_fraction and mean_nontrivial_cluster_polar_order alongside the all-component statistic.",
+    "directed_interaction_edge_count": "Count of focal-agent directed visibility relations over unordered pairs.",
+    "reciprocal_interaction_pair_count": "Count of unordered pairs where both directed visibility relations exist.",
+    "interaction_reciprocity_fraction": "2 * reciprocal_interaction_pair_count / directed_interaction_edge_count; null if no directed edge exists.",
+    "graph_semantics": "Every metric row tags whether topology is an undirected metric graph or the weakly connected projection of directed visual visibility."
   },
   "benchmark_tasks": [
     "Collective order versus independent-particle baseline",
@@ -463,7 +499,13 @@
     "Causal edge null: a single-particle intervention must have zero downstream effect in an isolated system even when common-driver correlations are present.",
     "Paired intervention/sham replay with common random numbers and per-tick response curves",
     "Interventional influence propagation measured on untreated particles, separately for heading and position",
-    "Nontrivial cluster coherence: singleton components must not contribute perfect-order evidence"
+    "Nontrivial cluster coherence: singleton components must not contribute perfect-order evidence",
+    "Visual-sector source reproduction using the 2026 Ramlall, Butail and Roy paper after exact source parameter admission",
+    "Forward/side/rear perception offset sweep with matched seeds and parameter controls",
+    "Visual-sector directed-edge recovery and reciprocity, including one-way visibility",
+    "Visual-field offset inference from trajectories with angular-error and calibration metrics",
+    "Compare directed out-neighbour local order with weakly connected cluster topology without conflating them",
+    "Interventional influence propagation under visual-sector perception against common-random-number sham trajectories"
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
@@ -478,7 +520,11 @@
     "Report direct treatment effects, downstream effects and sham/null responses separately; transfer entropy alone is not a causal claim.",
     "Record common environmental inputs separately from agent-to-agent interaction variables.",
     "A common exogenous intervention affecting multiple agents is not an inter-agent causal edge; include common-driver nulls in false-edge evaluation.",
-    "Every metric snapshot includes its update_rule. Do not pool CurrentPositionAlignment and NextPositionAlignment rows or drop the rule field during export."
+    "Every metric snapshot includes its update_rule. Do not pool CurrentPositionAlignment and NextPositionAlignment rows or drop the rule field during export.",
+    "Visual-sector source parameter grids and original source-code outputs must be reproduced before claiming paper parity.",
+    "Do not treat frame-level observations from one visual-field trajectory as independent samples.",
+    "Record offset, aperture, radial range, update rule and graph semantics as required grouping keys.",
+    "A weakly connected component is not evidence of mutual visibility; preserve directed edge and reciprocity fields."
   ],
   "reproducibility": {
     "manifest_is_input_contract": true,
@@ -495,7 +541,9 @@
     "causal_intervention_status": "PAIRED_COUNTERFACTUAL_RUNNER_AND_COMMON_DRIVER_CONTROLS_IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
     "update_rule_erratum_status": "IMPLEMENTED_AS_EXPLICIT_NEXT_POSITION_ALIGNMENT_MODE; source reproduction not yet run",
     "topology_checkpoint_schedule": "PENDING_BENCHMARK_RUNNER; initial proposal: tick 0, warm-up completion, then every 50 ticks and final tick",
-    "nontrivial_cluster_order_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION"
+    "nontrivial_cluster_order_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "visual_sector_code_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "visual_field_source_profile": "benchmarks/oli/visual-field-offset-source-profile-v0.json"
   },
   "acceptance": {
     "intervention_sham_counterfactual_parity_required": true,
@@ -504,6 +552,10 @@
     "paired_treatment_sham_replay_required": true,
     "common_random_numbers_must_be_identical": true,
     "single_particle_intervention_must_have_zero_untreated_effect_on_self_only_null": true,
-    "singleton_components_must_not_count_as_nontrivial_cluster_order": true
+    "singleton_components_must_not_count_as_nontrivial_cluster_order": true,
+    "visual_sector_forward_and_rear_controls_required": true,
+    "directed_visibility_and_reciprocity_metrics_required": true,
+    "metric_rows_must_include_perception_and_graph_semantics": true,
+    "source_paper_parameter_grid_reproduction_required_before_sota_claim": true
   }
 }
