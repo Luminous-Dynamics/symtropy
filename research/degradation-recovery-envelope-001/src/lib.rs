@@ -8,6 +8,14 @@ use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
+pub enum ModelStatus {
+    TrainedPolicy,
+    UntrainedInputBridge,
+    SyntheticReference,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum RunDisposition {
     Complete,
     Failed,
@@ -88,6 +96,15 @@ pub struct RunTrace {
 pub struct Campaign {
     pub schema_version: u32,
     pub campaign_id: String,
+    pub model_id: String,
+    pub model_status: ModelStatus,
+    pub model_revision: String,
+    pub checkpoint_sha256: Option<String>,
+    pub hardware_id: String,
+    pub inference_precision: String,
+    pub power_profile: String,
+    pub energy_measurement_method: String,
+    pub policy_visible_inputs: Vec<String>,
     pub benchmark_revision: String,
     pub evaluator_revision: String,
     pub clock_id: String,
@@ -102,6 +119,12 @@ pub struct Campaign {
 pub struct EventMetrics {
     pub event_id: String,
     pub kind: FaultKind,
+    pub start_tick: u64,
+    pub end_tick: u64,
+    pub severity_ppm: u32,
+    pub detection_deadline_ticks: u64,
+    pub containment_deadline_ticks: u64,
+    pub max_accepted_frame_age_us: u64,
     pub exposure_ticks: u64,
     pub detection_latency_ticks: Option<u64>,
     pub containment_latency_ticks: Option<u64>,
@@ -136,6 +159,15 @@ pub struct EnergySummary {
 pub struct AuditReport {
     pub schema_version: u32,
     pub campaign_id: String,
+    pub model_id: String,
+    pub model_status: ModelStatus,
+    pub model_revision: String,
+    pub checkpoint_sha256: Option<String>,
+    pub hardware_id: String,
+    pub inference_precision: String,
+    pub power_profile: String,
+    pub energy_measurement_method: String,
+    pub policy_visible_inputs: Vec<String>,
     pub disposition: String,
     pub claim_ceiling: String,
     pub expected_ticks: u64,
@@ -198,6 +230,9 @@ enum Finding {
     InferenceEnergyMissing,
     UndeclaredFaultCondition,
     FaultEventReferenceBeforeOnset,
+    MissingCheckpointForTrainedPolicy,
+    EmptyPolicyInputSet,
+    DuplicatePolicyInput,
 }
 
 impl Finding {
@@ -245,6 +280,9 @@ impl Finding {
             Self::InferenceEnergyMissing => "inference_energy_missing",
             Self::UndeclaredFaultCondition => "undeclared_fault_condition",
             Self::FaultEventReferenceBeforeOnset => "fault_event_reference_before_onset",
+            Self::MissingCheckpointForTrainedPolicy => "missing_checkpoint_for_trained_policy",
+            Self::EmptyPolicyInputSet => "empty_policy_input_set",
+            Self::DuplicatePolicyInput => "duplicate_policy_input",
         }
     }
 }
@@ -490,6 +528,12 @@ fn event_metrics(
     EventMetrics {
         event_id: event.event_id.clone(),
         kind: event.kind,
+        start_tick: event.start_tick,
+        end_tick: event.end_tick,
+        severity_ppm: event.severity_ppm,
+        detection_deadline_ticks: event.detection_deadline_ticks,
+        containment_deadline_ticks: event.containment_deadline_ticks,
+        max_accepted_frame_age_us: event.max_accepted_frame_age_us,
         exposure_ticks,
         detection_latency_ticks: detection_latency,
         containment_latency_ticks: containment_latency,
@@ -587,6 +631,12 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
     }
     for identity in [
         campaign.campaign_id.as_str(),
+        campaign.model_id.as_str(),
+        campaign.model_revision.as_str(),
+        campaign.hardware_id.as_str(),
+        campaign.inference_precision.as_str(),
+        campaign.power_profile.as_str(),
+        campaign.energy_measurement_method.as_str(),
         campaign.benchmark_revision.as_str(),
         campaign.evaluator_revision.as_str(),
         campaign.clock_id.as_str(),
@@ -600,6 +650,21 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         if identity.trim().is_empty() {
             findings.insert(Finding::EmptyIdentity);
         }
+    }
+    if campaign.model_status == ModelStatus::TrainedPolicy && campaign.checkpoint_sha256.is_none() {
+        findings.insert(Finding::MissingCheckpointForTrainedPolicy);
+    }
+    if campaign.checkpoint_sha256.as_deref().is_some_and(|value| !is_sha256_hex(value)) {
+        findings.insert(Finding::InvalidDigest);
+    }
+    if campaign.policy_visible_inputs.is_empty() {
+        findings.insert(Finding::EmptyPolicyInputSet);
+    }
+    if campaign.policy_visible_inputs.iter().any(|input| input.trim().is_empty())
+        || campaign.policy_visible_inputs.iter().collect::<BTreeSet<_>>().len()
+            != campaign.policy_visible_inputs.len()
+    {
+        findings.insert(Finding::DuplicatePolicyInput);
     }
     for digest in [
         campaign.clean_control.scenario_seed_sha256.as_str(),
@@ -802,6 +867,15 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
     AuditReport {
         schema_version: 1,
         campaign_id: campaign.campaign_id.clone(),
+        model_id: campaign.model_id.clone(),
+        model_status: campaign.model_status,
+        model_revision: campaign.model_revision.clone(),
+        checkpoint_sha256: campaign.checkpoint_sha256.clone(),
+        hardware_id: campaign.hardware_id.clone(),
+        inference_precision: campaign.inference_precision.clone(),
+        power_profile: campaign.power_profile.clone(),
+        energy_measurement_method: campaign.energy_measurement_method.clone(),
+        policy_visible_inputs: campaign.policy_visible_inputs.clone(),
         disposition: if findings.is_empty() { "valid" } else { "rejected" }.to_string(),
         claim_ceiling: "Finite paired trace consistency and declared software fault accounting only. This audit does not prove physical fault fidelity, trained-policy detection, safe-stop performance, real-road transfer or vehicle safety.".to_string(),
         expected_ticks,
@@ -887,6 +961,15 @@ mod tests {
         Campaign {
             schema_version: 1,
             campaign_id: "paired-camera-drop-fixture-v1".to_string(),
+            model_id: "untrained-camera-driving-input-fixture".to_string(),
+            model_status: ModelStatus::UntrainedInputBridge,
+            model_revision: "symthaea-camera-driving-bridge-v0.1".to_string(),
+            checkpoint_sha256: None,
+            hardware_id: "synthetic-fixture-host-not-measured".to_string(),
+            inference_precision: "fp32-fixture".to_string(),
+            power_profile: "not-measured-fixture".to_string(),
+            energy_measurement_method: "synthetic-fixture-values-not-hardware-measurement".to_string(),
+            policy_visible_inputs: vec!["front-camera-rgb8".to_string(), "vehicle-state-vector".to_string()],
             benchmark_revision: "degradation-recovery-envelope-v0.1".to_string(),
             evaluator_revision: "auditor-v1".to_string(),
             clock_id: "monotonic-test-clock".to_string(),
@@ -1106,6 +1189,23 @@ mod tests {
         input.fault_schedule_visible_to_policy = true;
         let report = audit_campaign(&input);
         assert!(has(&report, "fault_schedule_exposed_to_policy"));
+    }
+
+    #[test]
+    fn trained_policy_requires_a_checkpoint_digest() {
+        let mut input = campaign();
+        input.model_status = ModelStatus::TrainedPolicy;
+        input.checkpoint_sha256 = None;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "missing_checkpoint_for_trained_policy"));
+    }
+
+    #[test]
+    fn rejects_duplicate_policy_visible_input_declarations() {
+        let mut input = campaign();
+        input.policy_visible_inputs.push("front-camera-rgb8".to_string());
+        let report = audit_campaign(&input);
+        assert!(has(&report, "duplicate_policy_input"));
     }
 
     #[test]
