@@ -101,8 +101,8 @@ From the Symtropy repository root, assuming the Symtropy and Symthaea working tr
 cargo run --release --locked \
   --manifest-path research/fresh-process-driving-observation-replay-001/Cargo.toml -- \
   ./out/fresh-driving-episode \
-  ./bridge-config.json \
-  ./vision-config.json \
+  ../symthaea/bridge-config.json \
+  ../symthaea/vision-config.json \
   ../symthaea/target/debug/camera-driving-bridge \
   ../symtropy-auditor/research/recoverable-driving-evidence-001/target/debug/recoverable-driving-evidence
 ```
