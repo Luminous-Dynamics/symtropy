@@ -33,6 +33,7 @@ The reported regret is measured against the best feasible physical policy in eac
 
 - No prior probabilities and no model-count weighting.
 - Candidate partitions are keyed only by the observed categorical outcome.
+- The candidate-facing ActiveSensingReport contains no missingness-cause field. Hidden causes are emitted only by the separate evaluator_prediction_audit API.
 - Evaluator-only missingness causes are retained in separate audit receipts and never used as candidate-visible distinctions.
 - Energy and service units are combined only through the explicit `service_units_per_kwh` coefficient.
 - Latency loss is model-specific and multiplies declared acquisition ticks.
@@ -43,7 +44,7 @@ The reported regret is measured against the best feasible physical policy in eac
 
 ## Metrics
 
-The deterministic sweep records no-sensing policy/regret; energy cost and conversion; acquisition latency and worst world-specific service loss; maximum total penalty; worst post-sensing regret and regret reduction; each observation partition and selected action; and evaluator-side prediction receipts including hidden missingness causes.
+The deterministic sweep records no-sensing policy/regret; energy cost and conversion; acquisition latency and worst world-specific service loss; maximum total penalty; worst post-sensing regret and regret reduction; each observation partition and selected action; and evaluator-side prediction receipts including hidden missingness causes. These audit rows are produced from a separate evaluator API and are not part of the candidate-facing decision report.
 
 These are separate quantities, not a composite information score.
 
