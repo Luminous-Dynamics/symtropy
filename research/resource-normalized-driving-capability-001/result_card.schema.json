@@ -264,7 +264,8 @@
         "censored_episodes",
         "worst_family_metrics",
         "calibration_metrics",
-        "robustness_metrics"
+        "robustness_metrics",
+        "episode_outcomes"
       ],
       "properties": {
         "native_metrics": {
@@ -330,6 +331,57 @@
           ],
           "minimum": 0,
           "maximum": 100
+        },
+        "episode_outcomes": {
+          "type": "array",
+          "maxItems": 1000000,
+          "description": "One typed record for every expected evaluation episode. Cluster IDs identify repeated rollouts/seeds from the same scenario.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "episode_id",
+              "scenario_family",
+              "scenario_cluster_id",
+              "disposition",
+              "native_metrics"
+            ],
+            "properties": {
+              "episode_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "scenario_family": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "scenario_cluster_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              },
+              "disposition": {
+                "enum": [
+                  "completed",
+                  "failed",
+                  "incomplete",
+                  "censored"
+                ]
+              },
+              "native_metrics": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": [
+                    "number",
+                    "integer",
+                    "null"
+                  ]
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -386,6 +438,9 @@
     "expected_episode_count must equal completed+failed+incomplete+censored+otherwise explicitly dispositioned episodes",
     "training and inference measurements must identify the actual host/hardware/power profile",
     "teacher/generated labels and all privileged inputs must be counted and declared",
-    "metrics from different benchmark versions or task tracks must never be pooled"
+    "metrics from different benchmark versions or task tracks must never be pooled",
+    "Complete result cards contain exactly one episode_outcomes record per expected episode; aggregate dispositions equal the per-episode disposition counts.",
+    "Paired statistical comparison requires identical episode IDs, scenario families, scenario-cluster IDs, dispositions, and non-null per-episode values for the requested native metric.",
+    "Bootstrap resampling is by scenario cluster within scenario family, not by frame or repeated rollout; missing outcomes are never imputed as zero."
   ]
 }
