@@ -1418,6 +1418,103 @@ mod tests {
         assert!(rotated.passivity_residual_w <= rotated_request.passivity_tolerance_w);
     }
 
+
+    #[test]
+    fn optimizer_deterministic_randomized_spd_psd_sweep_has_no_false_feasible_output() {
+        fn next_unit(state: &mut u64) -> f64 {
+            *state ^= *state >> 12;
+            *state ^= *state << 25;
+            *state ^= *state >> 27;
+            let value = state.wrapping_mul(0x2545_f491_4f6c_dd1d);
+            ((value >> 11) as f64) * (1.0 / 9_007_199_254_740_992.0)
+        }
+
+        fn next_signed(state: &mut u64) -> f64 {
+            2.0 * next_unit(state) - 1.0
+        }
+
+        fn random_spd(state: &mut u64) -> Symmetric3 {
+            let lower = [
+                [0.8 + next_unit(state), 0.0, 0.0],
+                [0.3 * next_signed(state), 0.8 + next_unit(state), 0.0],
+                [0.3 * next_signed(state), 0.3 * next_signed(state), 0.8 + next_unit(state)],
+            ];
+            let matrix = multiply_dense3(lower, transpose_dense3(lower));
+            symmetric_from_dense(matrix).unwrap()
+        }
+
+        fn random_psd(state: &mut u64) -> Symmetric3 {
+            let factor = [
+                [next_signed(state), next_signed(state), next_signed(state)],
+                [next_signed(state), next_signed(state), next_signed(state)],
+                [next_signed(state), next_signed(state), next_signed(state)],
+            ];
+            let mut matrix = multiply_dense3(factor, transpose_dense3(factor));
+            for axis in 0..3 {
+                matrix[axis][axis] += 0.05;
+            }
+            symmetric_from_dense(matrix).unwrap()
+        }
+
+        let mut seed = 0x2026_1111_4751_u64;
+        for case_index in 0..128 {
+            let stiffness = random_spd(&mut seed);
+            let task_inertia = random_spd(&mut seed);
+            let damping = random_psd(&mut seed);
+            let reference_dense = [
+                [next_signed(&mut seed), next_signed(&mut seed), next_signed(&mut seed)],
+                [0.0, next_signed(&mut seed), next_signed(&mut seed)],
+                [0.0, 0.0, next_signed(&mut seed)],
+            ];
+            let stiffness_rate_reference = symmetric_from_dense([
+                [reference_dense[0][0], reference_dense[0][1], reference_dense[0][2]],
+                [reference_dense[0][1], reference_dense[1][1], reference_dense[1][2]],
+                [reference_dense[0][2], reference_dense[1][2], reference_dense[2][2]],
+            ]).unwrap();
+            let mut request = optimizer_request();
+            request.epsilon = 0.8 + next_unit(&mut seed);
+            request.epsilon_min = 0.2 + 0.2 * next_unit(&mut seed);
+            request.epsilon_decay_rate = 0.1 + next_unit(&mut seed);
+            request.epsilon_rate_reference = 2.0 * next_signed(&mut seed);
+            request.task_inertia = task_inertia;
+            request.stiffness = stiffness;
+            request.stiffness_rate_reference = stiffness_rate_reference;
+            request.damping = damping;
+            request.stiffness_decay_rate = 0.1 + next_unit(&mut seed);
+            request.task_error = [
+                next_signed(&mut seed),
+                next_signed(&mut seed),
+                next_signed(&mut seed),
+            ];
+            request.task_error_velocity = [
+                next_signed(&mut seed),
+                next_signed(&mut seed),
+                next_signed(&mut seed),
+            ];
+            request.epsilon_rate_weight = 0.2 + 2.0 * next_unit(&mut seed);
+            request.stiffness_rate_weight = 0.2 + 2.0 * next_unit(&mut seed);
+            request.passivity_tolerance_w = 1.0e-8;
+
+            let result = optimize_basis_free_compliance_rate(request)
+                .unwrap_or_else(|error| panic!("case {case_index} failed: {error:?}"));
+            assert!(result.candidate_admissible, "case {case_index}");
+            assert!(
+                result.passivity_residual_w <= request.passivity_tolerance_w,
+                "case {case_index}: {}",
+                result.passivity_residual_w
+            );
+            assert!(
+                result.minimum_stiffness_barrier_eigenvalue >= -1.0e-7,
+                "case {case_index}: {}",
+                result.minimum_stiffness_barrier_eigenvalue
+            );
+            assert!(result.scalar_stationarity_residual < 1.0e-6, "case {case_index}");
+            assert!(result.matrix_stationarity_residual < 1.0e-6, "case {case_index}");
+            assert!(result.cone_dual_minimum_eigenvalue >= -1.0e-7, "case {case_index}");
+            assert!(result.cone_complementarity_residual < 1.0e-5, "case {case_index}");
+        }
+    }
+
     #[test]
     fn optimizer_rejects_nonpositive_objective_weights_and_bad_references() {
         let mut request = optimizer_request();
