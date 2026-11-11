@@ -23,11 +23,11 @@
     "maximum_timestamp_uncertainty_ms": 5
   },
   "evidence_digests": {
-    "sensor_topology_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "fault_model_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-    "evaluator_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "sensor_topology_sha256": null,
+    "fault_model_sha256": null,
+    "evaluator_sha256": null,
     "dataset_sha256": null,
-    "split_manifest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "split_manifest_sha256": null,
     "model_sha256": null
   },
   "layout_profile": {

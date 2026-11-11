@@ -160,49 +160,22 @@
       ],
       "properties": {
         "sensor_topology_sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
+          "type": "null"
         },
         "fault_model_sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
+          "type": "null"
         },
         "evaluator_sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
+          "type": "null"
         },
         "dataset_sha256": {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": "^[a-f0-9]{64}$"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": "null"
         },
         "split_manifest_sha256": {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": "^[a-f0-9]{64}$"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": "null"
         },
         "model_sha256": {
-          "oneOf": [
-            {
-              "type": "string",
-              "pattern": "^[a-f0-9]{64}$"
-            },
-            {
-              "type": "null"
-            }
-          ]
+          "type": "null"
         }
       }
     },
@@ -467,7 +440,8 @@
             }
           }
         }
-      }
+      },
+      "maxItems": 16
     },
     "required_fault_pairs": {
       "type": "array",

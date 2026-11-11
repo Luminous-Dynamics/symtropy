@@ -6,7 +6,7 @@ A thin maritime asset/sensor adapter over `symtropy-sensor-observability-bench`.
 
 ```sh
 cargo test --manifest-path crates/domains/symtropy-maritime-observability-bench/Cargo.toml
-cargo run --manifest-path crates/domains/symtropy-maritime-observability-bench/Cargo.toml -- benchmarks/maritime-observability/maritime-observability-case-v0.1.json --source-commit <40-hex> --case-sha256 <64-hex>
+cargo run --manifest-path crates/domains/symtropy-maritime-observability-bench/Cargo.toml -- benchmarks/maritime-observability/maritime-observability-case-v0.1.json --source-commit <40-hex> --case-sha256 <64-hex> --clock-qualification benchmarks/maritime-observability/synthetic-clock-qualification-v0.1.json --clock-sha256 <64-hex>
 ```
 
 ## P0.2 semantics
@@ -39,3 +39,12 @@ The workflow hashes the synthetic clock fixture independently and checks its dig
 ## Qualification semantics
 
 `observable_and_isolable` means a fault is distinguishable from normal and every declared in-domain alternative. `ambiguity_class` is reserved for a connected set of at least two faults that are each detectable against normal but remain pairwise indistinguishable. A fault detectable versus normal but not uniquely isolable from a fault outside such a connected set is reported as `detectable_not_isolable`, rather than receiving an empty or fabricated ambiguity class.
+
+
+## P0.4 — exact timebase-artifact reconciliation and non-transitive ambiguity
+
+The CLI requires the separate clock-qualification JSON and its byte-level SHA-256. The evaluator checks the artifact schema version, evidence class, qualification ID, timebase ID, clock domain, mapping method, uncertainty source, declared uncertainty, layout maximum and hardware-measurement flag against every installed sensor. The operating-domain, layout-profile and clock-artifact maxima must agree. For this synthetic identity-mapping fixture, every sensor must belong to the one clock domain named by the fixture. A mismatch withdraws the case before pairwise reporting.
+
+Fault ambiguity is represented by maximal pairwise-indistinguishable sets (maximal cliques), not graph connected components. Interval overlap is not transitive: A can overlap B, B overlap C, while A and C remain disjoint. A fault may belong to more than one ambiguity set; the report carries all `ambiguity_class_ids` and an explicit top-level list of ambiguity classes and pairwise non-isolable pairs. It does not collapse a chain into a false equivalence class.
+
+The embedded sensor-topology, fault-model, evaluator, dataset, split and model SHA fields are null in P0 because no separate artifact bytes are supplied for those objects. The execution receipt binds the exact case-file SHA-256 and exact source commit; the clock artifact receives its own separately computed byte digest.

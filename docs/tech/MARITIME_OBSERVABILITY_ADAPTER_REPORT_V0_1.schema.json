@@ -13,6 +13,7 @@
     "evidence_digests",
     "sensor_inventory",
     "fault_assessments",
+    "ambiguity_classes",
     "pair_assessments",
     "sensor_loss_scenarios",
     "metrics",
@@ -139,34 +140,22 @@
       ],
       "properties": {
         "sensor_topology_sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
+          "type": "null"
         },
         "fault_model_sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
+          "type": "null"
         },
         "evaluator_sha256": {
-          "type": "string",
-          "pattern": "^[a-f0-9]{64}$"
+          "type": "null"
         },
         "dataset_sha256": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "null"
         },
         "split_manifest_sha256": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "null"
         },
         "model_sha256": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "type": "null"
         }
       }
     },
@@ -352,6 +341,7 @@
           "fault_id",
           "state",
           "ambiguity_class_id",
+          "ambiguity_class_ids",
           "candidate_fault_ids",
           "signature_evidence",
           "review_state"
@@ -431,6 +421,14 @@
               "human_review_required",
               "independently_reviewed"
             ]
+          },
+          "ambiguity_class_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
           }
         }
       }
@@ -629,7 +627,10 @@
       "additionalProperties": false,
       "required": [
         "source_commit",
-        "case_sha256"
+        "case_sha256",
+        "clock_qualification_id",
+        "clock_qualification_sha256",
+        "timebase_id"
       ],
       "properties": {
         "source_commit": {
@@ -639,8 +640,76 @@
         "case_sha256": {
           "type": "string",
           "pattern": "^[a-f0-9]{64}$"
+        },
+        "clock_qualification_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_qualification_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "timebase_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
+    },
+    "ambiguity_classes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ambiguity_class_id",
+          "candidate_fault_ids",
+          "pairwise_non_isolable_pairs"
+        ],
+        "properties": {
+          "ambiguity_class_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidate_fault_ids": {
+            "type": "array",
+            "minItems": 2,
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "pairwise_non_isolable_pairs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "fault_a",
+                "fault_b",
+                "state"
+              ],
+              "properties": {
+                "fault_a": {
+                  "$ref": "#/$defs/ref"
+                },
+                "fault_b": {
+                  "$ref": "#/$defs/ref"
+                },
+                "state": {
+                  "const": "non_isolable"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "ref": {
+      "type": "string",
+      "minLength": 1
     }
   }
 }
