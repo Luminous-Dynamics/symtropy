@@ -155,6 +155,14 @@ A source audit found a discrepancy requiring resolution before exact reproductio
 
 The static replication script uses the circle-packing coordinates in `utils/csq_coords/csq8.txt` when present, 100 repetitions, eight agents, a Rastrigin 2D default, `dt=0.1`, `tau=60*dt`, `omega=0.2`, `sigma0=0.05`, and per-agent/per-dimension noise seeds determined by `2*i + M*(j-1) + nr - 1`. These are the inspected repository script defaults, not a substitute for reproducing every paper figure/table and its supplementary dataset protocol.
 
+### Independent Rust reference now started
+
+A clean-room, CPU-first reference has been added at `crates/domains/symtropy-lifesim-core/src/scm.rs`, exported from the crate, with a separate machine-readable control set at `benchmarks/oli/scm-reference-cases-v0.json`.
+
+The implementation exposes both the paper-rendered sine kernel and the inspected MATLAB-source sine kernel. It also exposes the paper's equal half-window consensus convention separately from the inclusive-endpoint indexing observed in the MATLAB replication loop. It adds finite handling for zero mean gradient, zero swarm spread, equal fitness, and a flat consensus trend, plus a transactional update: candidate positions, RNG state, observations and counters commit only after all successor observations succeed.
+
+The independent Rust RNG is not MATLAB's RNG; the module is a mathematical reference and adversarial-control starting point, not a bitwise port. Twelve unit tests were added, but rustfmt, compilation, test execution and exact-head CI remain pending. No SCM benchmark result has been generated.
+ 
 ### OLI extension opportunities
 
 1. **Cost-aware objective:** optimize probability of mission success under energy, travel, sampling, time and communication budgets—not success rate alone.
