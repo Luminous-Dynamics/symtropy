@@ -54,10 +54,6 @@ pub enum PassivityError {
     NonMonotonicSampleId,
     NonFinitePortSample,
     ArithmeticOverflow,
-    InvalidEnergyBudget,
-    InvalidUpdateWeight,
-    InvalidUpdateBounds,
-    EnergyBudgetInfeasible,
 }
 
 impl fmt::Display for PassivityError {
@@ -475,12 +471,12 @@ pub fn project_diagonal_virtual_parameter_update(
 
         if index < 6 {
             let old = request.old.virtual_inertia[index];
-            if old + lower <= 0.0 {
+            if !((old + lower).is_finite() && (old + upper).is_finite()) || old + lower <= 0.0 {
                 return Err(VirtualImpedanceError::InvalidUpdateBounds);
             }
         } else {
             let old = request.old.stiffness[index - 6];
-            if old + lower < 0.0 {
+            if !((old + lower).is_finite() && (old + upper).is_finite()) || old + lower < 0.0 {
                 return Err(VirtualImpedanceError::InvalidUpdateBounds);
             }
         }
@@ -502,7 +498,7 @@ pub fn project_diagonal_virtual_parameter_update(
         };
 
         if coefficient > 0.0 && baseline[index] > nonnegative_floor {
-            let threshold = (baseline[index] - nonnegative_floor) * weight / coefficient;
+            let threshold = (desired - nonnegative_floor).max(0.0) * weight / coefficient;
             if !threshold.is_finite() {
                 return Err(VirtualImpedanceError::ArithmeticOverflow);
             }
@@ -515,8 +511,14 @@ pub fn project_diagonal_virtual_parameter_update(
     }
 
     let baseline_debit = parameter_update_debit(&baseline, &coefficients);
+    if !baseline_debit.is_finite() {
+        return Err(VirtualImpedanceError::ArithmeticOverflow);
+    }
     if baseline_debit <= request.available_energy_budget_j {
         let released = parameter_update_uncredited_release(&baseline, &coefficients);
+        if !released.is_finite() {
+            return Err(VirtualImpedanceError::ArithmeticOverflow);
+        }
         return Ok(VirtualParameterUpdateSelection {
             accepted_delta: baseline,
             parameter_energy_debit_j: baseline_debit,
@@ -608,6 +610,10 @@ pub enum VirtualImpedanceError {
     NonPositiveVirtualInertia,
     NegativeStiffness,
     NonFiniteParameter,
+    InvalidEnergyBudget,
+    InvalidUpdateWeight,
+    InvalidUpdateBounds,
+    EnergyBudgetInfeasible,
     ArithmeticOverflow,
 }
 
