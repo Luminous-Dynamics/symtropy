@@ -110,6 +110,8 @@ The module currently covers:
 6. Non-PSD and triangle-inequality negative controls.
 7. Improper-Rotor rejection.
 8. A huge-offset/tiny-mass fixture whose spatial mass matrix remains finite.
+9. Shift-then-inverse-shift restores the original point identity, COM offset and central inertia.
+10. Uniform mass scaling by `1e-12` and `1e12` scales the 6×6 matrix, spatial momentum and kinetic energy linearly without changing geometry.
 
 ## Promotion gates
 
