@@ -105,7 +105,7 @@
     },
     {
       "report_ref": "synthetic-mission-report:wasteful",
-      "report_sha256": "d1b1b5696893166ec77b608139909591802ee6f0d322c15703ecf263343bf31d",
+      "report_sha256": "5422a6ba1b521ea697fb1f772f65260dd1c65797e41e3b906cdd475b3dd7eb90",
       "report": {
         "schema_version": "0.2.0",
         "catalog_id": "EV-PLATFORM-001",
@@ -379,9 +379,9 @@
       "label": "Slower high-energy route",
       "strategy_class": "route_profile",
       "source_report_ref": "synthetic-mission-report:wasteful",
-      "source_report_sha256": "d1b1b5696893166ec77b608139909591802ee6f0d322c15703ecf263343bf31d",
+      "source_report_sha256": "5422a6ba1b521ea697fb1f772f65260dd1c65797e41e3b906cdd475b3dd7eb90",
       "scenario_id": "wasteful",
-      "source_result_sha256": "8654df53cb8a73d1a233ae44dafd00f7ae1be08a1c57389108d4b31947f9a224",
+      "source_result_sha256": "3b503f19c1e9585efcc28130bf11b35bd3397a5f7af2ecc0e36c4eb722c9873d",
       "service_delivery": {
         "lower": 1190,
         "upper": 1210,
