@@ -204,11 +204,7 @@ fn topological_order(
 
         for parent_id in &event.parent_ids {
             if let Some(producer) = producer_by_node.get(parent_id) {
-                if producer != &event.event_id {
-                    dependencies.insert(producer.clone());
-                } else {
-                    dependencies.insert(producer.clone());
-                }
+                dependencies.insert(producer.clone());
             }
         }
 
@@ -723,7 +719,7 @@ mod tests {
         assert_eq!(report.node_count, 8);
         assert_eq!(report.event_count, 6);
         assert_eq!(report.test_count, 1);
-        assert_eq!(report.topological_event_order, vec!["E1", "E2", "E3", "E4", "E5", "E6"]);
+        assert_eq!(report.topological_event_order, vec!["E1".to_string(), "E2".to_string(), "E3".to_string(), "E4".to_string(), "E5".to_string(), "E6".to_string()]);
         assert_eq!(report.tested_cell_ids, vec!["CELL"]);
     }
 
