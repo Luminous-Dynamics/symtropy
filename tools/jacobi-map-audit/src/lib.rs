@@ -8,6 +8,7 @@
 #![forbid(unsafe_code)]
 
 use serde::{Deserialize, Serialize};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const DEFAULT_MAX_CONDITION_NUMBER: f64 = 1.0e10;
 
@@ -427,6 +428,9 @@ pub fn compare_maps(
     if left.branch_id != right.branch_id {
         return Err(AuditError::BranchMismatch);
     }
+    if left.branch_parameter != right.branch_parameter {
+        return Err(AuditError::ParameterMismatch);
+    }
     let l = left.map.entries;
     let r = right.map.entries;
     let difference = Matrix2::new(
@@ -465,6 +469,7 @@ pub enum AuditError {
     NumericRange(&'static str),
     NormalizationMismatch,
     BranchMismatch,
+    ParameterMismatch,
     NonIncreasingBranchParameter,
 }
 
@@ -478,6 +483,7 @@ impl std::fmt::Display for AuditError {
             Self::NumericRange(field) => write!(f, "numeric range exhausted while evaluating {field}"),
             Self::NormalizationMismatch => write!(f, "Jacobi maps use different source/observer area normalizations"),
             Self::BranchMismatch => write!(f, "Jacobi maps refer to different tracked image branches"),
+            Self::ParameterMismatch => write!(f, "Jacobi maps refer to different points along the tracked branch"),
             Self::NonIncreasingBranchParameter => write!(f, "caustic samples must be strictly increasing along one tracked branch"),
         }
     }
@@ -490,6 +496,32 @@ pub fn parse_and_analyze_json(
 ) -> Result<Vec<JacobiMapAnalysis>, String> {
     let samples: Vec<JacobiMapEvidence> =
         serde_json::from_str(input).map_err(|error| format!("invalid Jacobi map JSON: {error}"))?;
+    let mut sample_ids = BTreeSet::new();
+    let mut branch_parameters = BTreeSet::new();
+    let mut branch_normalizations = BTreeMap::new();
+    for sample in &samples {
+        sample.validate().map_err(|error| error.to_string())?;
+        if !sample_ids.insert(sample.sample_id.as_str()) {
+            return Err(format!("duplicate Jacobi map sample_id: {}", sample.sample_id));
+        }
+        if !branch_parameters.insert((sample.branch_id.as_str(), sample.branch_parameter.to_bits())) {
+            return Err(format!(
+                "duplicate branch parameter {} for branch {}",
+                sample.branch_parameter, sample.branch_id
+            ));
+        }
+        if let Some(existing) = branch_normalizations.insert(
+            sample.branch_id.as_str(),
+            sample.normalization_id.as_str(),
+        ) {
+            if existing != sample.normalization_id {
+                return Err(format!(
+                    "branch {} mixes source/observer normalizations",
+                    sample.branch_id
+                ));
+            }
+        }
+    }
     samples
         .iter()
         .map(|sample| {
@@ -621,6 +653,8 @@ mod tests {
         assert_eq!(compare_maps(&left, &mismatched), Err(AuditError::NormalizationMismatch));
         let wrong_branch = JacobiMapEvidence { branch_id: "other-branch".into(), ..mismatched };
         assert_eq!(compare_maps(&left, &wrong_branch), Err(AuditError::BranchMismatch));
+        let wrong_point = JacobiMapEvidence { branch_parameter: 1.0, ..right.clone() };
+        assert_eq!(compare_maps(&left, &wrong_point), Err(AuditError::ParameterMismatch));
     }
 
     #[test]
@@ -654,6 +688,26 @@ mod tests {
         let near_caustic = analyses.iter().find(|analysis| analysis.sample_id == "near-caustic-unresolved").unwrap();
         assert_eq!(near_caustic.status, MapStatus::Unresolved);
         assert!(near_caustic.log_magnification.is_none());
+    }
+
+    #[test]
+    fn atlas_parser_rejects_duplicate_ids_parameters_and_mixed_branch_normalization() {
+        let first = sample("same", 0.0, [[1.0, 0.0], [0.0, 1.0]], 0.0);
+        let duplicate_id = sample("same", 1.0, [[1.0, 0.0], [0.0, 1.0]], 0.0);
+        let duplicate_parameter = sample("other", 0.0, [[1.0, 0.0], [0.0, 1.0]], 0.0);
+        let mixed_norm = JacobiMapEvidence {
+            sample_id: "mixed".into(),
+            branch_parameter: 2.0,
+            normalization_id: "different".into(),
+            ..first.clone()
+        };
+        let serialize = |samples: &[JacobiMapEvidence]| serde_json::to_string(samples).unwrap();
+        assert!(parse_and_analyze_json(&serialize(&[first.clone(), duplicate_id]), DEFAULT_MAX_CONDITION_NUMBER)
+            .unwrap_err().contains("duplicate Jacobi map sample_id"));
+        assert!(parse_and_analyze_json(&serialize(&[first.clone(), duplicate_parameter]), DEFAULT_MAX_CONDITION_NUMBER)
+            .unwrap_err().contains("duplicate branch parameter"));
+        assert!(parse_and_analyze_json(&serialize(&[first, mixed_norm]), DEFAULT_MAX_CONDITION_NUMBER)
+            .unwrap_err().contains("mixes source/observer normalizations"));
     }
 
     #[test]
