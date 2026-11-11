@@ -920,7 +920,7 @@ mod tests {
 
         let metrics = model.metrics();
         assert!(metrics.polar_order < 1.0e-12);
-        assert!((metrics.mean_local_polar_order - 1.0).abs() < 1.0e-12);
+        assert!((metrics.mean_local_polar_order.unwrap() - 1.0).abs() < 1.0e-12);
         assert!((metrics.mean_cluster_polar_order - 1.0).abs() < 1.0e-12);
         assert_eq!(metrics.cluster_count, 2);
         assert_eq!(metrics.mean_cluster_size, 2.0);
@@ -984,7 +984,7 @@ mod tests {
         )
         .unwrap();
 
-        let metrics = model.metrics();
+        let metrics = model.fast_metrics();
         assert!(metrics.polar_order < 1.0e-12, "{metrics:?}");
         assert_eq!(metrics.cluster_count, 2);
         assert_eq!(metrics.largest_cluster_fraction, 0.5);
