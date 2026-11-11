@@ -52,7 +52,7 @@ pub struct SpatialInertia3 {
     about: ReferencePointId,
     mass: f64,
     center_of_mass_from_reference: SVector<f64, 3>,
-    central_inertia: SMatrix<f64, 3, 3>,
+    // Symmetric matrix packed as [Ixx, Iyy, Izz, Ixy, Ixz, Iyz].
 }
 
 impl SpatialInertia3 {
@@ -127,7 +127,7 @@ impl SpatialInertia3 {
             about,
             mass,
             center_of_mass_from_reference,
-            central_inertia: validated,
+            central_inertia_components: tensor_to_components(&validated),
         })
     }
 
@@ -151,9 +151,17 @@ impl SpatialInertia3 {
         &self.center_of_mass_from_reference
     }
 
+    /// Return the six independent central-inertia components in order
+    /// `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]`.
     #[inline]
-    pub const fn central_inertia(&self) -> &SMatrix<f64, 3, 3> {
-        &self.central_inertia
+    pub const fn central_inertia_components(&self) -> [f64; 6] {
+        self.central_inertia_components
+    }
+
+    /// Reconstruct the symmetric 3x3 central inertia matrix.
+    #[inline]
+    pub fn central_inertia(&self) -> SMatrix<f64, 3, 3> {
+        components_to_tensor(self.central_inertia_components)
     }
 
     /// Return the 6x6 spatial mass matrix for twist ordering `[omega; v_P]`.
@@ -170,7 +178,7 @@ impl SpatialInertia3 {
             self.mass,
             &self.center_of_mass_from_reference,
         )?;
-        let rotational_about_p = self.central_inertia
+        let rotational_about_p = self.central_inertia()
             + SMatrix::<f64, 3, 3>::identity() * trace(&rotational_shift)
             - rotational_shift;
 
@@ -241,7 +249,7 @@ impl SpatialInertia3 {
             new_about,
             self.mass,
             new_com_offset,
-            self.central_inertia,
+            self.central_inertia(),
         )
     }
 
@@ -263,7 +271,7 @@ impl SpatialInertia3 {
             self.about,
             self.mass,
             old_to_new.rotate_vector(&self.center_of_mass_from_reference),
-            rotation * self.central_inertia * rotation.transpose(),
+            rotation * self.central_inertia() * rotation.transpose(),
         )
     }
 
@@ -312,7 +320,7 @@ impl SpatialInertia3 {
         let offset_b = other.center_of_mass_from_reference - combined_com;
         let shift_a = checked_mass_weighted_outer(self.mass, &offset_a)?;
         let shift_b = checked_mass_weighted_outer(other.mass, &offset_b)?;
-        let central = self.central_inertia + other.central_inertia
+        let central = self.central_inertia() + other.central_inertia()
             + SMatrix::<f64, 3, 3>::identity() * trace(&shift_a)
             - shift_a
             + SMatrix::<f64, 3, 3>::identity() * trace(&shift_b)
@@ -320,6 +328,26 @@ impl SpatialInertia3 {
         Self::new(self.frame, self.about, total_mass, combined_com, central)
             .map_err(|_| SpatialInertia3Error::UnrepresentableComposition)
     }
+}
+
+fn tensor_to_components(tensor: &SMatrix<f64, 3, 3>) -> [f64; 6] {
+    [
+        tensor[(0, 0)],
+        tensor[(1, 1)],
+        tensor[(2, 2)],
+        0.5 * tensor[(0, 1)] + 0.5 * tensor[(1, 0)],
+        0.5 * tensor[(0, 2)] + 0.5 * tensor[(2, 0)],
+        0.5 * tensor[(1, 2)] + 0.5 * tensor[(2, 1)],
+    ]
+}
+
+fn components_to_tensor(components: [f64; 6]) -> SMatrix<f64, 3, 3> {
+    let [ixx, iyy, izz, ixy, ixz, iyz] = components;
+    SMatrix::new(
+        ixx, ixy, ixz,
+        ixy, iyy, iyz,
+        ixz, iyz, izz,
+    )
 }
 
 fn skew(vector: &SVector<f64, 3>) -> SMatrix<f64, 3, 3> {
@@ -386,6 +414,19 @@ mod tests {
     }
 
     #[test]
+    fn central_inertia_uses_six_canonical_symmetric_components() {
+        let inertia = sample();
+        assert_eq!(
+            inertia.central_inertia_components(),
+            [0.5, 0.6, 0.7, 0.0, 0.0, 0.0]
+        );
+        let matrix = inertia.central_inertia();
+        assert_eq!(matrix[(0, 1)], matrix[(1, 0)]);
+        assert_eq!(matrix[(0, 2)], matrix[(2, 0)]);
+        assert_eq!(matrix[(1, 2)], matrix[(2, 1)]);
+    }
+
+    #[test]
     fn spatial_mass_matrix_matches_com_kinetic_energy_decomposition() {
         let inertia = sample();
         let twist = sample_twist();
@@ -394,7 +435,7 @@ mod tests {
         let velocity_at_p = twist.fixed_rows::<3>(3).into_owned();
         let c = inertia.center_of_mass_from_reference;
         let velocity_at_com = velocity_at_p + omega.cross(&c);
-        let expected = 0.5 * omega.dot(&(inertia.central_inertia * omega))
+        let expected = 0.5 * omega.dot(&(inertia.central_inertia() * omega))
             + 0.5 * inertia.mass * velocity_at_com.norm_squared();
         assert!((energy - expected).abs() < 1.0e-12);
     }
