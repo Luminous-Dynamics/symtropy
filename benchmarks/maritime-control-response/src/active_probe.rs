@@ -747,7 +747,7 @@ fn posterior_manifest_sha256(
     hypotheses: &[HypothesisPrior],
 ) -> Result<String, ProbeError> {
     sha256_serializable(
-        b"symtropy-diagnostic-posterior-manifest-v1\\0",
+        b"symtropy-diagnostic-posterior-manifest-v1\0",
         &hypotheses
             .iter()
             .map(|hypothesis| (
@@ -762,7 +762,7 @@ fn observation_ledger_digest(
     ledger: &ProbeObservationLedger,
 ) -> Result<String, ProbeError> {
     sha256_serializable(
-        b"symtropy-diagnostic-observation-ledger-v1\\0",
+        b"symtropy-diagnostic-observation-ledger-v1\0",
         &(
             ledger.schema_version.as_str(),
             ledger.current_posterior_manifest_sha256.as_str(),
@@ -1368,7 +1368,7 @@ mod tests {
     }
 
     #[test]
-    fn operator_inspection_needs_explicit_human_authority_and_policy_enablement() {
+    fn operator_inspection_needs_explicit_human_authority_andpolicy_enablement() {
         let candidate = candidate(
             "inspect_actuator_linkage",
             ProbeClass::OperatorInspection,
@@ -1805,12 +1805,12 @@ mod tests {
         );
         let hypotheses = hypotheses();
         let candidates = vec![item.clone()];
-        let (_policy, portfolio, selection) =
+        let (policy, portfolio, selection) =
             selected_probe_context(&hypotheses, &candidates);
         let update = realize_probe_observation(
             &hypotheses,
             &candidates,
-            &_policy,
+            &policy,
             &portfolio,
             &selection,
             &item,
@@ -1846,12 +1846,12 @@ mod tests {
         item.candidate_manifest_sha256 = candidate_manifest_sha256(&item).unwrap();
         let hypotheses = hypotheses();
         let candidates = vec![item.clone()];
-        let (_policy, portfolio, selection) =
+        let (policy, portfolio, selection) =
             selected_probe_context(&hypotheses, &candidates);
         let update = realize_probe_observation(
             &hypotheses,
             &candidates,
-            &_policy,
+            &policy,
             &portfolio,
             &selection,
             &item,
@@ -1878,13 +1878,13 @@ mod tests {
         );
         let hypotheses = hypotheses();
         let candidates = vec![item.clone()];
-        let (_policy, portfolio, selection) =
+        let (policy, portfolio, selection) =
             selected_probe_context(&hypotheses, &candidates);
         assert_eq!(
             realize_probe_observation(
                 &hypotheses,
                 &candidates,
-                &_policy,
+                &policy,
                 &portfolio,
                 &selection,
                 &item,
@@ -1898,7 +1898,7 @@ mod tests {
             realize_probe_observation(
                 &hypotheses,
                 &candidates,
-                &_policy,
+                &policy,
                 &portfolio,
                 &selection,
                 &item,
@@ -1931,13 +1931,13 @@ mod tests {
         ];
         impossible.candidate_manifest_sha256 = candidate_manifest_sha256(&impossible).unwrap();
         let impossible_candidates = vec![impossible.clone()];
-        let (_policy, portfolio, selection) =
+        let (policy, portfolio, selection) =
             selected_probe_context(&hypotheses, &impossible_candidates);
         assert_eq!(
             realize_probe_observation(
                 &hypotheses,
                 &impossible_candidates,
-                &_policy,
+                &policy,
                 &portfolio,
                 &selection,
                 &impossible,
