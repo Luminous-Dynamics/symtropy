@@ -8,7 +8,8 @@
     "output_scope": "released_angular_distortion",
     "validation_status": "validated",
     "model_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    "parameter_set_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    "parameter_set_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "output_definition_id": "released_free_state_angular_deviation_v1"
   },
   "domains": [
     {
@@ -27,7 +28,11 @@
         "thickness_max_mm": 32,
         "boundary_class": "ambient_air_cooling",
         "output_scope": "released_angular_distortion",
-        "coordinate_frame": "welding_reference_frame"
+        "coordinate_frame": "welding_reference_frame",
+        "output_definition_id": "released_free_state_angular_deviation_v1",
+        "datum_id": "panel_reference_datum_v1",
+        "measurement_operator_id": "laser_surface_registration_v1",
+        "measurement_calibration_digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     },
     {
@@ -46,7 +51,11 @@
         "thickness_max_mm": 32,
         "boundary_class": "ambient_air_cooling",
         "output_scope": "released_angular_distortion",
-        "coordinate_frame": "welding_reference_frame"
+        "coordinate_frame": "welding_reference_frame",
+        "output_definition_id": "released_free_state_angular_deviation_v1",
+        "datum_id": "panel_reference_datum_v1",
+        "measurement_operator_id": "laser_surface_registration_v1",
+        "measurement_calibration_digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     },
     {
@@ -65,7 +74,11 @@
         "thickness_max_mm": 32,
         "boundary_class": "ambient_air_cooling",
         "output_scope": "released_angular_distortion",
-        "coordinate_frame": "welding_reference_frame"
+        "coordinate_frame": "welding_reference_frame",
+        "output_definition_id": "released_free_state_angular_deviation_v1",
+        "datum_id": "panel_reference_datum_v1",
+        "measurement_operator_id": "laser_surface_registration_v1",
+        "measurement_calibration_digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     },
     {
@@ -84,7 +97,11 @@
         "thickness_max_mm": 32,
         "boundary_class": "ambient_air_cooling",
         "output_scope": "released_angular_distortion",
-        "coordinate_frame": "welding_reference_frame"
+        "coordinate_frame": "welding_reference_frame",
+        "output_definition_id": "released_free_state_angular_deviation_v1",
+        "datum_id": "panel_reference_datum_v1",
+        "measurement_operator_id": "laser_surface_registration_v1",
+        "measurement_calibration_digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       }
     }
   ],
@@ -118,7 +135,11 @@
       "model_form_uncertainty_units": 4,
       "transfer_uncertainty_units": 5,
       "evidence_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "validated_at_tick": 90
+      "validated_at_tick": 90,
+      "output_definition_id": "released_free_state_angular_deviation_v1",
+      "error_metric_id": "max_abs_released_angular_deviation_mm_v1",
+      "measurement_operator_id": "laser_surface_registration_v1",
+      "measurement_calibration_digest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
     },
     {
       "edge_id": "E12",
@@ -149,7 +170,11 @@
       "model_form_uncertainty_units": 4,
       "transfer_uncertainty_units": 5,
       "evidence_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "validated_at_tick": 90
+      "validated_at_tick": 90,
+      "output_definition_id": "released_free_state_angular_deviation_v1",
+      "error_metric_id": "max_abs_released_angular_deviation_mm_v1",
+      "measurement_operator_id": "laser_surface_registration_v1",
+      "measurement_calibration_digest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
     },
     {
       "edge_id": "E23",
@@ -180,7 +205,11 @@
       "model_form_uncertainty_units": 4,
       "transfer_uncertainty_units": 5,
       "evidence_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "validated_at_tick": 90
+      "validated_at_tick": 90,
+      "output_definition_id": "released_free_state_angular_deviation_v1",
+      "error_metric_id": "max_abs_released_angular_deviation_mm_v1",
+      "measurement_operator_id": "laser_surface_registration_v1",
+      "measurement_calibration_digest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
     }
   ],
   "request": {
@@ -188,6 +217,8 @@
     "requested_output_scope": "released_angular_distortion",
     "decision_cutoff_tick": 100,
     "maximum_total_uncertainty_units": 60,
-    "required_minimum_coverage_permille": 950
+    "required_minimum_coverage_permille": 950,
+    "requested_output_definition_id": "released_free_state_angular_deviation_v1",
+    "required_error_metric_id": "max_abs_released_angular_deviation_mm_v1"
   }
 }
