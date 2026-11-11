@@ -126,8 +126,7 @@ fn capture_gate(
 
     let sensor_profile_id = string_at(binding, "sensor_profile_id").unwrap_or("");
     let sensor_profile_sha = string_at(binding, "sensor_profile_sha256").unwrap_or("");
-    let expected_sensor_profile_id =
-        string_at(asset, "expected_sensor_profile_id").unwrap_or("");
+    let expected_sensor_profile_id = string_at(asset, "expected_sensor_profile_id").unwrap_or("");
     let expected_sensor_profile_sha =
         string_at(asset, "expected_sensor_profile_sha256").unwrap_or("");
     let pose_revision = string_at(binding, "pose_revision").unwrap_or("");
@@ -438,7 +437,9 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
     // Canonicalize semantically unordered case and binding collections before
     // delegation/reporting. Exact input hashes remain byte-order sensitive.
     generic_cases.sort_by(|left, right| {
-        string_at(left, "id").unwrap_or("").cmp(string_at(right, "id").unwrap_or(""))
+        string_at(left, "id")
+            .unwrap_or("")
+            .cmp(string_at(right, "id").unwrap_or(""))
     });
     adapter_cases.sort_by(|left, right| left.case_id.cmp(&right.case_id));
 
@@ -601,10 +602,7 @@ mod tests {
         );
         let mut corpus = fixture();
         corpus["cases"].as_array_mut().unwrap().reverse();
-        let reversed = validate_adapter_bytes(
-            &bytes(&corpus),
-            EMBEDDED_ADAPTER_SCHEMA.as_bytes(),
-        );
+        let reversed = validate_adapter_bytes(&bytes(&corpus), EMBEDDED_ADAPTER_SCHEMA.as_bytes());
         assert!(original.core.passed, "{:#?}", original.core.failures);
         assert!(reversed.core.passed, "{:#?}", reversed.core.failures);
         assert_eq!(
@@ -625,10 +623,7 @@ mod tests {
             .as_array_mut()
             .unwrap()
             .reverse();
-        let reversed = validate_adapter_bytes(
-            &bytes(&corpus),
-            EMBEDDED_ADAPTER_SCHEMA.as_bytes(),
-        );
+        let reversed = validate_adapter_bytes(&bytes(&corpus), EMBEDDED_ADAPTER_SCHEMA.as_bytes());
         assert!(original.core.passed, "{:#?}", original.core.failures);
         assert!(reversed.core.passed, "{:#?}", reversed.core.failures);
         assert_eq!(
@@ -666,8 +661,9 @@ mod tests {
     #[test]
     fn sensor_profile_digest_must_match_building_contract() {
         let mut corpus = fixture();
-        corpus["cases"][0]["capture_bindings"][0]["sensor_profile_sha256"] =
-            Value::String("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".to_owned());
+        corpus["cases"][0]["capture_bindings"][0]["sensor_profile_sha256"] = Value::String(
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".to_owned(),
+        );
         let report = validate_adapter_bytes(&bytes(&corpus), EMBEDDED_ADAPTER_SCHEMA.as_bytes());
         assert!(!report.core.passed);
         let gate = report
