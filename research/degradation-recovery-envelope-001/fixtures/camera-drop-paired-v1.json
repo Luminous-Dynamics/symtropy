@@ -318,5 +318,17 @@
       "recovery_healthy_quorum_ticks": 2
     }
   ],
-  "fault_schedule_visible_to_policy": false
+  "fault_schedule_visible_to_policy": false,
+  "model_id": "untrained-camera-driving-input-fixture",
+  "model_status": "untrained_input_bridge",
+  "model_revision": "symthaea-camera-driving-bridge-v0.1",
+  "checkpoint_sha256": null,
+  "hardware_id": "synthetic-fixture-host-not-measured",
+  "inference_precision": "fp32-fixture",
+  "power_profile": "not-measured-fixture",
+  "energy_measurement_method": "synthetic-fixture-values-not-hardware-measurement",
+  "policy_visible_inputs": [
+    "front-camera-rgb8",
+    "vehicle-state-vector"
+  ]
 }
