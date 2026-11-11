@@ -114,7 +114,7 @@
   "operational_metrics": [
     "event_recall",
     "event_detection_latency",
-    "false_alarms_per_recording_hour",
+    "false_alarms_per_observed_normal_hour",
     "per_fault_macro_recall",
     "per_driving_cycle_score",
     "unknown_fault_false_known_rate",
@@ -127,7 +127,14 @@
     "model_artifact_bytes",
     "inverse_solution_set_cardinality",
     "false_unique_root_cause_rate",
-    "parameter_identifiability_rank_or_condition"
+    "parameter_identifiability_rank_or_condition",
+    "mean_detection_latency_seconds",
+    "duplicate_alarm_count_during_detected_events",
+    "late_alarm_count_during_missed_events",
+    "transient_burst_count",
+    "observed_normal_exposure_seconds",
+    "isolation_top1_accuracy",
+    "mean_true_class_probability"
   ],
   "hard_evidence_gates": [
     "model, source data, evaluator, feature map and split manifests are content-addressed",
@@ -139,7 +146,12 @@
     "commands are never treated as actual actuator movement or physical delivery",
     "physical feedback roles require an independently reviewed instrument/I-O dictionary",
     "no single sample-level scalar can override material per-fault or per-cycle regressions",
-    "a physical inverse model must report non-unique admissible parameter/fault hypotheses; a single optimizer minimum is not a root-cause proof"
+    "a physical inverse model must report non-unique admissible parameter/fault hypotheses; a single optimizer minimum is not a root-cause proof",
+    "fault-event onsets and offsets are bound to an authoritative annotation or independently recorded injection manifest; approximate prose timings are not ground truth",
+    "alarm debounce, merge-gap, detection deadline and observation-gap policy are frozen before confirmatory evaluation",
+    "event-to-alarm matching is one-to-one; alarms before fault onset cannot be counted as early fault detections",
+    "false-alarm exposure excludes unobserved time gaps and fault-active intervals; the exact exposure denominator is reported",
+    "event-level uncertainty is resampled by independent recording/engine run, never by 20 Hz rows or alarm windows"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -186,6 +198,16 @@
       "id": "inverse_identifiability_honesty",
       "target": "Zero unique root-cause claims when two or more fault/parameter hypotheses remain inside the preregistered calibrated acceptance region.",
       "status": "aspirational"
+    },
+    {
+      "id": "event_recall_at_fixed_false_alarm_exposure",
+      "target": "At least +5 percentage points event recall versus the best matched baseline without increasing false alarms per observed normal hour, with recording-clustered uncertainty.",
+      "status": "aspirational"
+    },
+    {
+      "id": "event_detection_latency",
+      "target": "P95 event confirmation latency at or below 5 seconds on supported held-out episodes, or at least 20% lower than the best matched baseline at a non-increased false-alarm rate.",
+      "status": "aspirational"
     }
   ],
   "prohibited_claims": [
@@ -219,5 +241,43 @@
     "inverse_solution_set_cardinality": "Number of disconnected admissible fault/degradation parameter-hypothesis components under the frozen calibration acceptance rule.",
     "false_unique_root_cause_rate": "Cases where a system emits one unique physical cause although the reference admissible set contains multiple components or fails the preregistered identifiability condition.",
     "parameter_identifiability_rank_or_condition": "Numerical rank, singular spectrum and condition number of the dimensionless uncertainty-whitened response-sensitivity Jacobian, with tolerance and parameter scaling disclosed."
+  },
+  "event_evaluation": {
+    "schema_version": "liu-ice-event-metrics-v0.1",
+    "status": "protocol_only_not_executed",
+    "onset_and_offset_source": "authoritative sample annotations or independently recorded injection log; public approximate onset wording is insufficient",
+    "alarm_debounce": {
+      "minimum_positive_samples": 3,
+      "merge_positive_samples_gap_seconds": 0.15,
+      "confirmation_time": "timestamp of the third positive sample in the merged alarm episode"
+    },
+    "timing": {
+      "maximum_detection_latency_seconds": 10,
+      "maximum_observation_gap_seconds": 0.1,
+      "normal_exposure": "sum only adjacent observation intervals no longer than the configured maximum gap, minus overlap with fault-active intervals",
+      "missing_observation_gaps_count_as_exposure": false
+    },
+    "matching": {
+      "rule": "one_to_one",
+      "alarm_must_start_at_or_after_fault_onset": true,
+      "confirmation_must_precede_both_deadline_and_fault_end": true,
+      "pre_onset_alarm": "false_alarm_not_detection",
+      "repeated_alarm": "duplicate_alarm_or_late_alarm_reported_separately"
+    },
+    "required_reports": [
+      "fault_event_count",
+      "event_recall",
+      "mean_median_p95_and_max_detection_latency_seconds",
+      "false_alarm_count",
+      "false_alarms_per_observed_normal_hour",
+      "observed_normal_exposure_seconds",
+      "duplicate_alarm_count_during_detected_events",
+      "late_alarm_count_during_missed_events",
+      "transient_burst_count",
+      "event_isolation_top1_accuracy",
+      "mean_true_class_probability"
+    ],
+    "uncertainty_unit": "independent_recording_or_engine_run",
+    "claim_ceiling": "synthetic event-contract tests only until authoritative event labels, source data bytes and a frozen model run are audited"
   }
 }
