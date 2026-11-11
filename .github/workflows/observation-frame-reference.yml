@@ -1,0 +1,55 @@
+name: Observation Frame Reference Oracle
+
+on:
+  push:
+    branches: ["research/observation-frame-reference-v0"]
+    paths:
+      - "research/observation-frame-reference/**"
+      - ".github/workflows/observation-frame-reference.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/observation-frame-reference/**"
+      - ".github/workflows/observation-frame-reference.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: observation-frame-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component clippy --component rustfmt
+          rustc +1.96.0 --version
+          cargo +1.96.0 --version
+
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/observation-frame-reference/Cargo.toml -- --check
+
+      - name: Run reference corpus
+        run: cargo +1.96.0 test --locked --manifest-path research/observation-frame-reference/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo +1.96.0 clippy --locked --manifest-path research/observation-frame-reference/Cargo.toml --all-targets -- -D warnings
+
+      - name: Check deterministic receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="research/observation-frame-reference"
+          cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- "$package/fixtures/machine-test-01.json" > /tmp/observation-first.json
+          cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- "$package/fixtures/machine-test-01.json" > /tmp/observation-second.json
+          cmp /tmp/observation-first.json /tmp/observation-second.json
+          grep -q '"claim_ceiling":' /tmp/observation-first.json
+          sha256sum /tmp/observation-first.json
+
