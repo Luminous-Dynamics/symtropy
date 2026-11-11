@@ -176,6 +176,10 @@ pub struct VicsekMetrics {
     pub mean_neighbors_excluding_self: f64,
     /// Population variance of the per-particle neighbour counts.
     pub neighbor_count_variance: f64,
+    /// Mean polar order inside each particle's local interaction neighbourhood.
+    pub mean_local_polar_order: f64,
+    /// Population variance of local polar-order values across particles.
+    pub local_polar_order_variance: f64,
     /// Number of connected components in the metric-neighbour graph.
     pub cluster_count: usize,
     /// Fraction of all particles in the largest connected component.
@@ -360,6 +364,16 @@ impl VicsekModel {
         let polar_order = (sum_cos.hypot(sum_sin) / count as f64).clamp(0.0, 1.0);
 
         let mut neighbor_counts = vec![0usize; count];
+        let mut local_sum_cos: Vec<f64> = self
+            .particles
+            .iter()
+            .map(|particle| particle.heading_rad.cos())
+            .collect();
+        let mut local_sum_sin: Vec<f64> = self
+            .particles
+            .iter()
+            .map(|particle| particle.heading_rad.sin())
+            .collect();
         let mut parents: Vec<usize> = (0..count).collect();
 
         for left in 0..count {
@@ -376,6 +390,10 @@ impl VicsekModel {
                 if dx.hypot(dy) <= self.config.interaction_radius {
                     neighbor_counts[left] += 1;
                     neighbor_counts[right] += 1;
+                    local_sum_cos[left] += b.heading_rad.cos();
+                    local_sum_cos[right] += a.heading_rad.cos();
+                    local_sum_sin[left] += b.heading_rad.sin();
+                    local_sum_sin[right] += a.heading_rad.sin();
                     union(&mut parents, left, right);
                 }
             }
@@ -386,6 +404,25 @@ impl VicsekModel {
             .iter()
             .map(|neighbors| {
                 let delta = *neighbors as f64 - mean_neighbors;
+                delta * delta
+            })
+            .sum::<f64>()
+            / count as f64;
+
+        // Each local neighbourhood includes the particle itself, so add one to its
+        // pairwise neighbour count when normalizing the local mean heading vector.
+        let local_orders: Vec<f64> = (0..count)
+            .map(|index| {
+                local_sum_cos[index].hypot(local_sum_sin[index])
+                    / (neighbor_counts[index] + 1) as f64
+            })
+            .collect();
+        let mean_local_polar_order =
+            local_orders.iter().sum::<f64>() / count as f64;
+        let local_polar_order_variance = local_orders
+            .iter()
+            .map(|order| {
+                let delta = *order - mean_local_polar_order;
                 delta * delta
             })
             .sum::<f64>()
@@ -405,6 +442,8 @@ impl VicsekModel {
             polar_order,
             mean_neighbors_excluding_self: mean_neighbors,
             neighbor_count_variance,
+            mean_local_polar_order,
+            local_polar_order_variance,
             cluster_count,
             largest_cluster_fraction: largest_cluster as f64 / count as f64,
         }
@@ -540,6 +579,7 @@ mod tests {
         );
         assert_eq!(metrics.cluster_count, 1);
         assert_eq!(metrics.largest_cluster_fraction, 1.0);
+        assert!((metrics.mean_local_polar_order - 1.0).abs() < 1.0e-12);
     }
 
     #[test]
@@ -604,6 +644,9 @@ mod tests {
                 && (0.0..=1.0).contains(&metrics.polar_order)
                 && metrics.mean_neighbors_excluding_self.is_finite()
                 && metrics.neighbor_count_variance.is_finite()
+                && metrics.mean_local_polar_order.is_finite()
+                && (0.0..=1.0).contains(&metrics.mean_local_polar_order)
+                && metrics.local_polar_order_variance.is_finite()
                 && metrics.largest_cluster_fraction.is_finite()
         }));
     }
