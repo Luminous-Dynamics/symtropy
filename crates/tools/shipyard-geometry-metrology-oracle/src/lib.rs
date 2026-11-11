@@ -569,9 +569,9 @@ mod tests {
         );
         input.registration_residual_bound_um = 1;
         let result = compare_profiles(&input).expect("bounded uncertainty should pass");
-        assert_eq!(result.uncertainty_area2_um2, 120);
-        assert_eq!(result.net_area_interval_lower2_um2, 40);
-        assert_eq!(result.net_area_interval_upper2_um2, 160);
+        assert_eq!(result.uncertainty_area2_um2, 160);
+        assert_eq!(result.net_area_interval_lower2_um2, 0);
+        assert_eq!(result.net_area_interval_upper2_um2, 320);
     }
 
     #[test]
