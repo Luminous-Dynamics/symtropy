@@ -1,5 +1,5 @@
 {
-  "schema_version": "liu-ice-active-evidence-selection-v0.1",
+  "schema_version": "liu-ice-active-evidence-selection-v0.2",
   "status": "protocol_only_not_executed",
   "purpose": "Rank additional passive observations and explicitly authorized operator inspections by expected reduction in diagnostic hypothesis uncertainty, subject to declared cost, delay, risk and authority gates. This module is a read-only selector.",
   "method": {
@@ -7,7 +7,15 @@
     "utility": "EIG / (1 + expected_cost_seconds/cost_penalty_scale_seconds + expected_delay_seconds/delay_penalty_scale_seconds + risk_score_ppm/risk_penalty_scale_ppm).",
     "likelihood_contract": "For every hypothesis, conditional probabilities across all declared outcomes sum to one; each likelihood table binds the exact sorted hypothesis/prior manifest.",
     "prior_contract": "Prior probabilities are finite, non-negative and sum to one; priors and the hypothesis label space are content-addressed.",
-    "calibration_contract": "Likelihood model and calibration digests must be present. Their statistical calibration and signer/source trust are established upstream; digest shape alone does not prove model validity."
+    "calibration_contract": "Likelihood model and calibration digests must be present. Their statistical calibration and signer/source trust are established upstream; digest shape alone does not prove model validity.",
+    "uncertainty_scenarios": {
+      "description": "Represent calibrated likelihood uncertainty as a frozen finite set of plausible scenarios. Each scenario supplies a normalized outcome likelihood table for the same hypothesis manifest.",
+      "scenario_weights": "Positive scenario weights sum to one and define the expected information gain across the declared uncertainty set.",
+      "expected_information_gain": "Weighted mean of scenario-specific expected information gain.",
+      "worst_case_information_gain": "Minimum scenario-specific expected information gain across the entire declared scenario set.",
+      "eligibility": "Require worst-case expected information gain to exceed the policy floor; an optimistic mean cannot compensate for an uninformative plausible scenario.",
+      "qualification": "A candidate with one point-estimate table may be ranked as a provisional point-model result but is not epistemically robust-qualified. Two or more distinct calibrated scenarios are required for that status."
+    }
   },
   "candidate_classes": {
     "passive_measurement": {
@@ -45,8 +53,8 @@
       "method": "Choose among the exact same eligible set using a frozen seed manifest."
     },
     {
-      "id": "risk_adjusted_eig",
-      "method": "Proposed selector: information gain adjusted by frozen cost, delay and risk scales, after hard authority and safety gates."
+      "id": "risk_adjusted_worst_case_eig",
+      "method": "Proposed selector: minimum expected information gain across all declared likelihood scenarios, adjusted by frozen cost, delay and risk scales, after hard authority/safety gates."
     }
   ],
   "required_metrics": [
@@ -63,7 +71,10 @@
     "authority_gate_violations",
     "controlled_perturbations_recommended",
     "unsafe_probe_recommendations",
-    "false_unique_root_cause_rate"
+    "false_unique_root_cause_rate",
+    "worst_case_expected_information_gain_nats",
+    "likelihood_scenario_count",
+    "epistemic_robustness_qualified"
   ],
   "hard_gates": [
     "hypothesis IDs, prior and label-space digest are fixed for the selection decision",
@@ -77,7 +88,13 @@
     "zero expected-information-gain candidates are not recommended by default",
     "no sensor read, inspection, actuation, maintenance order or controller write is performed by the selector",
     "all baselines use the identical candidate catalogue, likelihood tables and hard eligibility set",
-    "random baseline seed and comparator configuration are frozen before confirmatory outcomes"
+    "random baseline seed and comparator configuration are frozen before confirmatory outcomes",
+    "the scenario ID set is unique and frozen before confirmatory outcomes",
+    "every scenario likelihood table is normalized for each hypothesis and uses the same sorted hypothesis manifest",
+    "scenario weights are finite, strictly positive and sum to one",
+    "eligibility and risk-adjusted utility use the minimum scenario-specific expected information gain, not only a weighted mean",
+    "one-scenario point estimates are visibly marked not epistemically robust-qualified",
+    "no scenario may be added, removed, reweighted or recalibrated after observing confirmatory outcomes"
   ],
   "research_targets_not_achieved": [
     {
@@ -99,12 +116,23 @@
       "id": "epistemic_honesty",
       "target": "No unique root-cause output when multiple hypotheses remain admissible after the selected evidence.",
       "status": "aspirational"
+    },
+    {
+      "id": "robust_information_gain",
+      "target": "The selected evidence candidate retains positive worst-case expected information gain across every preregistered calibrated likelihood scenario, and exceeds the best matched baseline lower bound.",
+      "status": "aspirational"
+    },
+    {
+      "id": "calibration_uncertainty",
+      "target": "Empirical likelihood-scenario coverage is measured on independent episodes and no confirmatory outcome is used to construct the uncertainty set.",
+      "status": "aspirational"
     }
   ],
   "evidence_boundaries": {
     "data_status": "No physical observation likelihoods or benchmark-selected actions have been evaluated in this workstream.",
     "simulation_status": "Synthetic contract tests verify entropy ranking and hard exclusions only; they do not establish real diagnostic utility or safety.",
     "authority_status": "Authorization enum and digest are caller-supplied references. Signature verification, identity, scope, expiry, issuer authority and revocation are external mandatory checks.",
-    "claim_ceiling": "Read-only ranking contract and synthetic numerical behavior only; no evidence-acquisition execution, active-control result or physical validation claim."
+    "claim_ceiling": "Read-only ranking contract and synthetic numerical behavior only; no evidence-acquisition execution, active-control result or physical validation claim.",
+    "scenario_status": "The Rust selector evaluates scenario tables supplied by the caller. It does not create or statistically validate those scenarios; scenario calibration and coverage must be demonstrated upstream."
   }
 }
