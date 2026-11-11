@@ -14,7 +14,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-use crate::causal_transport::{CausalTransportResult, TransportIdentificationStatus};
+use crate::causal_transport::{
+    CausalTransportResult, TransportIdentificationReason, TransportIdentificationStatus,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum UtilityDirection {
@@ -135,16 +137,28 @@ impl PolicyUtilityBounds {
                 let point = transport
                     .target_ate_point
                     .ok_or(IdentifiedDecisionError::CausalTransportResultInconsistent)?;
+                if transport.identification_reason
+                    != TransportIdentificationReason::FullSupportAndAssumptionsSupported
+                {
+                    return Err(IdentifiedDecisionError::CausalTransportResultInconsistent);
+                }
                 (point, point)
             }
-            TransportIdentificationStatus::PartiallyIdentified => (
-                transport
-                    .target_ate_lower
-                    .ok_or(IdentifiedDecisionError::CausalTransportResultInconsistent)?,
-                transport
-                    .target_ate_upper
-                    .ok_or(IdentifiedDecisionError::CausalTransportResultInconsistent)?,
-            ),
+            TransportIdentificationStatus::PartiallyIdentified => {
+                if transport.identification_reason
+                    != TransportIdentificationReason::TargetSupportViolation
+                {
+                    return Err(IdentifiedDecisionError::CausalTransportResultInconsistent);
+                }
+                (
+                    transport
+                        .target_ate_lower
+                        .ok_or(IdentifiedDecisionError::CausalTransportResultInconsistent)?,
+                    transport
+                        .target_ate_upper
+                        .ok_or(IdentifiedDecisionError::CausalTransportResultInconsistent)?,
+                )
+            },
             TransportIdentificationStatus::NotIdentified => {
                 return Err(IdentifiedDecisionError::CausalEffectNotIdentified);
             }
@@ -164,6 +178,11 @@ impl PolicyUtilityBounds {
             transport_protocol_digest: transport.protocol_digest.clone(),
         };
         validate_utility(&policy)?;
+        if policy.lower < -1.0 || policy.upper > 1.0 {
+            return Err(IdentifiedDecisionError::InvalidUtilityInterval {
+                policy_id: policy.policy_id.clone(),
+            });
+        }
         Ok(policy)
     }
 }
@@ -181,6 +200,7 @@ pub struct HardConstraintSpec {
 pub struct PolicyConstraintInterval {
     pub policy_id: String,
     pub constraint_id: String,
+    pub measurement_unit: String,
     pub lower: f64,
     pub upper: f64,
     pub evidence_digest: String,
@@ -410,7 +430,9 @@ pub fn evaluate_identified_decision(
                 constraint_id: interval.constraint_id.clone(),
             });
         }
-        if !interval.lower.is_finite()
+        let matching_spec = constraint_by_id[interval.constraint_id.as_str()];
+        if interval.measurement_unit != matching_spec.measurement_unit
+            || !interval.lower.is_finite()
             || !interval.upper.is_finite()
             || interval.lower > interval.upper
             || interval.evidence_digest.trim().is_empty()
@@ -595,6 +617,7 @@ mod tests {
         PolicyConstraintInterval {
             policy_id: policy_id.to_string(),
             constraint_id: "water-use-limit".to_string(),
+            measurement_unit: "litres_per_household_day".to_string(),
             lower,
             upper,
             evidence_digest: format!("sha256-water-{policy_id}"),
