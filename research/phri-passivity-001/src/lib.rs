@@ -384,6 +384,243 @@ pub struct VirtualParameterStorageDelta {
     pub uncredited_storage_release_j: f64,
 }
 
+/// Request for the diagonal variable-impedance passivity-rate QP.
+///
+/// The model follows the sufficient continuous-time passivity inequality
+/// derived for diagonal desired inertia/stiffness in Dinc et al. (arXiv:2611.10778):
+///
+/// 0.5 * sum(v_i^2 * Lambda_d_i * alpha_dot_i + e_i^2 * K_dot_i)
+///     - sum(v_i^2 * D_i) <= 0
+///
+/// with D_i = 2 * sqrt(K_i * alpha_i * Lambda_d_i).
+///
+/// This is a task-space diagonal model. It does not qualify null-space
+/// dynamics, full-matrix compliance, discrete integration or physical safety.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DiagonalPassivityQpRequest {
+    pub base_inertia: [f64; 6],
+    pub inertia_scale: [f64; 6],
+    pub minimum_inertia_scale: [f64; 6],
+    pub stiffness: [f64; 6],
+    pub error: [f64; 6],
+    pub error_velocity: [f64; 6],
+    pub inertia_decay_rate: [f64; 6],
+    pub stiffness_decay_rate: [f64; 6],
+    pub inertia_reference_rate: [f64; 6],
+    pub stiffness_reference_rate: [f64; 6],
+    pub inertia_max_rate: [f64; 6],
+    pub stiffness_max_rate: [f64; 6],
+    /// Positive diagonal objective weights ordered [alpha_dot[0..6], K_dot[0..6]].
+    pub objective_weights: [f64; 12],
+}
+
+/// Solution to the diagonal variable-impedance rate QP.
+///
+/// Rates satisfy the current-state continuous-time sufficient passivity
+/// inequality and the parameter lower/upper rate bounds. The caller must
+/// still qualify sampled integration, state evolution between updates,
+/// null-space behavior, actuator limits and its independent safety authority.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DiagonalPassivityQpSelection {
+    pub inertia_rate: [f64; 6],
+    pub stiffness_rate: [f64; 6],
+    pub passivity_lhs_w: f64,
+    pub damping_power_rhs_w: f64,
+    pub passivity_slack_w: f64,
+    pub dual_multiplier: f64,
+    pub projection_active: bool,
+}
+
+/// Solve the diagonal passivity-constrained rate QP with a scalar KKT
+/// multiplier and 80 fixed bisection iterations.
+///
+/// The objective is the weighted squared distance to the reference rates.
+/// There is one affine passivity inequality and twelve box constraints, so
+/// the solution is the weighted projection onto a half-space intersected
+/// with the per-parameter rate box. No solver dependency or allocation is used.
+pub fn solve_diagonal_passivity_rate_qp(
+    request: DiagonalPassivityQpRequest,
+) -> Result<DiagonalPassivityQpSelection, VirtualImpedanceError> {
+    let mut coefficients = [0.0_f64; 12];
+    let mut lower = [0.0_f64; 12];
+    let mut upper = [0.0_f64; 12];
+    let mut reference = [0.0_f64; 12];
+    let mut weights = request.objective_weights;
+    let mut damping_power_rhs_w = 0.0_f64;
+
+    for index in 0..6 {
+        let base_inertia = request.base_inertia[index];
+        let inertia_scale = request.inertia_scale[index];
+        let min_scale = request.minimum_inertia_scale[index];
+        let stiffness = request.stiffness[index];
+        let error = request.error[index];
+        let velocity = request.error_velocity[index];
+        let alpha_decay = request.inertia_decay_rate[index];
+        let stiffness_decay = request.stiffness_decay_rate[index];
+        let alpha_rate_ref = request.inertia_reference_rate[index];
+        let stiffness_rate_ref = request.stiffness_reference_rate[index];
+        let alpha_rate_max = request.inertia_max_rate[index];
+        let stiffness_rate_max = request.stiffness_max_rate[index];
+
+        if !base_inertia.is_finite() || base_inertia <= 0.0
+            || !inertia_scale.is_finite() || inertia_scale <= 0.0
+            || !min_scale.is_finite() || min_scale <= 0.0
+            || inertia_scale < min_scale
+        {
+            return Err(VirtualImpedanceError::NonPositiveVirtualInertia);
+        }
+        if !stiffness.is_finite() || stiffness <= 0.0 {
+            return Err(VirtualImpedanceError::NegativeStiffness);
+        }
+        if !error.is_finite() || !velocity.is_finite()
+            || !alpha_decay.is_finite() || alpha_decay <= 0.0
+            || !stiffness_decay.is_finite() || stiffness_decay <= 0.0
+            || !alpha_rate_ref.is_finite() || !stiffness_rate_ref.is_finite()
+            || !alpha_rate_max.is_finite() || !stiffness_rate_max.is_finite()
+        {
+            return Err(VirtualImpedanceError::NonFiniteParameter);
+        }
+
+        let alpha_lower = alpha_decay * (min_scale - inertia_scale);
+        let stiffness_lower = -stiffness_decay * stiffness;
+        if !alpha_lower.is_finite() || !stiffness_lower.is_finite()
+            || alpha_rate_max < alpha_lower
+            || stiffness_rate_max < stiffness_lower
+        {
+            return Err(VirtualImpedanceError::InvalidUpdateBounds);
+        }
+
+        let damping = 2.0 * (stiffness * inertia_scale * base_inertia).sqrt();
+        let alpha_coefficient = 0.5 * velocity * velocity * base_inertia;
+        let stiffness_coefficient = 0.5 * error * error;
+        let damping_power = velocity * velocity * damping;
+        if !damping.is_finite()
+            || !alpha_coefficient.is_finite()
+            || !stiffness_coefficient.is_finite()
+            || !damping_power.is_finite()
+        {
+            return Err(VirtualImpedanceError::ArithmeticOverflow);
+        }
+
+        coefficients[index] = alpha_coefficient;
+        coefficients[index + 6] = stiffness_coefficient;
+        lower[index] = alpha_lower;
+        lower[index + 6] = stiffness_lower;
+        upper[index] = alpha_rate_max;
+        upper[index + 6] = stiffness_rate_max;
+        reference[index] = alpha_rate_ref;
+        reference[index + 6] = stiffness_rate_ref;
+        damping_power_rhs_w += damping_power;
+        if !damping_power_rhs_w.is_finite() {
+            return Err(VirtualImpedanceError::ArithmeticOverflow);
+        }
+    }
+
+    for (weight, (lower_rate, upper_rate)) in weights.iter().zip(lower.iter().zip(upper.iter())) {
+        if !weight.is_finite() || *weight <= 0.0 {
+            return Err(VirtualImpedanceError::InvalidUpdateWeight);
+        }
+        if lower_rate > upper_rate {
+            return Err(VirtualImpedanceError::InvalidUpdateBounds);
+        }
+    }
+
+    let minimum_lhs = coefficients.iter().zip(lower.iter())
+        .map(|(coefficient, rate)| coefficient * rate)
+        .sum::<f64>();
+    if !minimum_lhs.is_finite() {
+        return Err(VirtualImpedanceError::ArithmeticOverflow);
+    }
+    if minimum_lhs > damping_power_rhs_w {
+        return Err(VirtualImpedanceError::EnergyBudgetInfeasible);
+    }
+
+    let mut accepted = core::array::from_fn(|index| {
+        reference[index].clamp(lower[index], upper[index])
+    });
+    let unconstrained_lhs = coefficients.iter().zip(accepted.iter())
+        .map(|(coefficient, rate)| coefficient * rate)
+        .sum::<f64>();
+    if !unconstrained_lhs.is_finite() {
+        return Err(VirtualImpedanceError::ArithmeticOverflow);
+    }
+
+    let mut dual_multiplier = 0.0_f64;
+    let mut projection_active = false;
+    if unconstrained_lhs > damping_power_rhs_w {
+        projection_active = true;
+        let mut upper_multiplier = 0.0_f64;
+        for index in 0..12 {
+            let coefficient = coefficients[index];
+            if coefficient > 0.0 {
+                let threshold = (reference[index] - lower[index]).max(0.0)
+                    * weights[index] / coefficient;
+                if !threshold.is_finite() {
+                    return Err(VirtualImpedanceError::ArithmeticOverflow);
+                }
+                upper_multiplier = upper_multiplier.max(threshold);
+            }
+        }
+        let mut lower_multiplier = 0.0_f64;
+        for _ in 0..80 {
+            let midpoint = lower_multiplier.midpoint(upper_multiplier);
+            let candidate = passivity_rate_candidate(
+                &reference, &lower, &upper, &coefficients, &weights, midpoint,
+            );
+            let lhs = coefficients.iter().zip(candidate.iter())
+                .map(|(coefficient, rate)| coefficient * rate)
+                .sum::<f64>();
+            if !lhs.is_finite() {
+                return Err(VirtualImpedanceError::ArithmeticOverflow);
+            }
+            if lhs > damping_power_rhs_w {
+                lower_multiplier = midpoint;
+            } else {
+                upper_multiplier = midpoint;
+            }
+        }
+        dual_multiplier = upper_multiplier;
+        accepted = passivity_rate_candidate(
+            &reference, &lower, &upper, &coefficients, &weights, dual_multiplier,
+        );
+    }
+
+    let passivity_lhs_w = coefficients.iter().zip(accepted.iter())
+        .map(|(coefficient, rate)| coefficient * rate)
+        .sum::<f64>();
+    if !passivity_lhs_w.is_finite() || passivity_lhs_w > damping_power_rhs_w + 1.0e-9 {
+        return Err(VirtualImpedanceError::ArithmeticOverflow);
+    }
+
+    let inertia_rate = core::array::from_fn(|index| accepted[index]);
+    let stiffness_rate = core::array::from_fn(|index| accepted[index + 6]);
+
+    Ok(DiagonalPassivityQpSelection {
+        inertia_rate,
+        stiffness_rate,
+        passivity_lhs_w,
+        damping_power_rhs_w,
+        passivity_slack_w: damping_power_rhs_w - passivity_lhs_w,
+        dual_multiplier,
+        projection_active,
+    })
+}
+
+fn passivity_rate_candidate(
+    reference: &[f64; 12],
+    lower: &[f64; 12],
+    upper: &[f64; 12],
+    coefficients: &[f64; 12],
+    weights: &[f64; 12],
+    multiplier: f64,
+) -> [f64; 12] {
+    core::array::from_fn(|index| {
+        let unconstrained = reference[index]
+            - multiplier * coefficients[index] / weights[index];
+        unconstrained.clamp(lower[index], upper[index])
+    })
+}
+
 /// A bounded proposed update for the diagonal virtual inertia/stiffness model.
 ///
 /// Parameter order is [M0..M5, K0..K5]. Bounds are deltas and must already
@@ -922,6 +1159,118 @@ mod tests {
             relative_velocity: velocity,
             available_energy_budget_j: budget_j,
         }
+    }
+
+    fn passivity_qp_request(
+        reference_alpha_rate: [f64; 6],
+        reference_stiffness_rate: [f64; 6],
+        alpha_rate_max: [f64; 6],
+        stiffness_rate_max: [f64; 6],
+        error: [f64; 6],
+        velocity: [f64; 6],
+    ) -> DiagonalPassivityQpRequest {
+        DiagonalPassivityQpRequest {
+            base_inertia: [2.0; 6],
+            inertia_scale: [1.0; 6],
+            minimum_inertia_scale: [0.5; 6],
+            stiffness: [4.0; 6],
+            error,
+            error_velocity: velocity,
+            inertia_decay_rate: [1.0; 6],
+            stiffness_decay_rate: [1.0; 6],
+            inertia_reference_rate,
+            stiffness_reference_rate,
+            inertia_max_rate: alpha_rate_max,
+            stiffness_max_rate: stiffness_rate_max,
+            objective_weights: [1.0; 12],
+        }
+    }
+
+    #[test]
+    fn published_diagonal_vic_qp_projects_rates_onto_passivity_halfspace() {
+        // Only axis 0 is active:
+        // a_alpha = 0.5 * 1^2 * 2 = 1
+        // a_K = 0.5 * 2^2 = 2
+        // D = 2 * sqrt(4 * 1 * 2) = 5.656854...
+        // Projection of (4,4) onto alpha_dot + 2*K_dot <= D.
+        let mut request = passivity_qp_request(
+            [4.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [4.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [10.0; 6],
+            [10.0; 6],
+            [2.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        );
+        request.base_inertia[0] = 2.0;
+        let result = solve_diagonal_passivity_rate_qp(request).unwrap();
+        let rhs = 2.0 * (4.0_f64 * 1.0 * 2.0).sqrt();
+        let excess = 12.0 - rhs;
+        let lambda = excess / 5.0;
+
+        assert!(result.projection_active);
+        assert!((result.inertia_rate[0] - (4.0 - lambda)).abs() < 1.0e-8);
+        assert!((result.stiffness_rate[0] - (4.0 - 2.0 * lambda)).abs() < 1.0e-8);
+        assert!(result.passivity_lhs_w <= result.damping_power_rhs_w + 1.0e-9);
+        assert!(result.passivity_slack_w.abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn published_diagonal_vic_qp_leaves_already_passive_reference_unchanged() {
+        let result = solve_diagonal_passivity_rate_qp(passivity_qp_request(
+            [0.1; 6],
+            [0.1; 6],
+            [1.0; 6],
+            [1.0; 6],
+            [0.0; 6],
+            [0.0; 6],
+        ))
+        .unwrap();
+
+        assert!(!result.projection_active);
+        assert_eq!(result.inertia_rate, [0.1; 6]);
+        assert_eq!(result.stiffness_rate, [0.1; 6]);
+        assert!(result.passivity_slack_w.abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn published_diagonal_vic_qp_enforces_parameter_decay_barriers() {
+        let mut request = passivity_qp_request(
+            [0.0; 6],
+            [0.0; 6],
+            [1.0; 6],
+            [1.0; 6],
+            [0.0; 6],
+            [0.0; 6],
+        );
+        request.inertia_scale[0] = 0.75;
+        request.minimum_inertia_scale[0] = 0.5;
+        request.inertia_decay_rate[0] = 2.0;
+        request.stiffness[1] = 3.0;
+        request.stiffness_decay_rate[1] = 0.5;
+
+        let result = solve_diagonal_passivity_rate_qp(request).unwrap();
+        assert!(result.inertia_rate[0] >= -0.5);
+        assert!(result.stiffness_rate[1] >= -1.5);
+    }
+
+    #[test]
+    fn published_diagonal_vic_qp_rejects_invalid_state_and_infeasible_bounds() {
+        let mut request = passivity_qp_request(
+            [0.0; 6], [0.0; 6], [1.0; 6], [1.0; 6], [0.0; 6], [0.0; 6],
+        );
+        request.inertia_scale[0] = 0.0;
+        assert_eq!(
+            solve_diagonal_passivity_rate_qp(request),
+            Err(VirtualImpedanceError::NonPositiveVirtualInertia)
+        );
+
+        request = passivity_qp_request(
+            [0.0; 6], [0.0; 6], [-1.0; 6], [1.0; 6], [0.0; 6], [0.0; 6],
+        );
+        assert_eq!(
+            solve_diagonal_passivity_rate_qp(request),
+            Err(VirtualImpedanceError::InvalidUpdateBounds)
+        );
     }
 
     #[test]
