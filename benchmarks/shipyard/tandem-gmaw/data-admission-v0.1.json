@@ -1,0 +1,1359 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-TANDEM-GMAW-DATA-ADMISSION-001",
+  "source_record": {
+    "doi": "10.5281/zenodo.21824586",
+    "record_url": "https://zenodo.org/records/21824586",
+    "version": "2.0.0",
+    "published_on": "2026-08-07",
+    "modified_on": "2026-08-10",
+    "publisher": "Bundesanstalt für Materialforschung und -prüfung",
+    "dataset_open_badge": true,
+    "license_field": null,
+    "rights_notice": "Copyright (C) 2026 The Authors.",
+    "reported_archive_size_gb": 4.5,
+    "raw_files_downloaded": false,
+    "raw_files_vendored": false
+  },
+  "rights_gate": {
+    "status": "RIGHTS_PENDING",
+    "permission_text_recorded": false,
+    "redistribution_allowed": false,
+    "derivative_publication_allowed": false,
+    "model_training_allowed": false,
+    "raw_data_scoring_allowed": false,
+    "raw_data_license_still_pending": true
+  },
+  "experiment_design": {
+    "workpiece_count": 5,
+    "layers_per_workpiece": 6,
+    "layer_row_count": 30,
+    "independent_unit": "workpiece",
+    "split_group": "workpiece_id",
+    "random_layer_split_allowed": false,
+    "mode_causal_claim_allowed": false,
+    "material": "S355J2+N",
+    "wire": "ER70S-6",
+    "plate_thickness_mm": 30,
+    "groove_opening_deg_approx": 50,
+    "root_layer": "L1 single_wire",
+    "tandem_layers": "L2-L6",
+    "mode_groups": {
+      "PMC+CMT": [
+        "WID615",
+        "WID632"
+      ],
+      "PMC+PMC": [
+        "WID617",
+        "WID631"
+      ],
+      "CMT+CMT": [
+        "WID630"
+      ]
+    },
+    "tandem_only_analysis_excludes_root_layer": true,
+    "repeat_comparator": {
+      "workpiece_id": "WID617",
+      "comparator": "Sproesser et al. 2015 published experiment",
+      "status": "source_article_describes_as_repeat_of_published_sequence_parameters_with_modern_T_GMAW_equipment",
+      "independent_replicate": false
+    },
+    "matched_mode_pair": {
+      "workpieces": [
+        "WID631",
+        "WID632"
+      ],
+      "contrast": "PMC+PMC versus PMC+CMT",
+      "matched_parameters": "same leading/trailing wire feed settings, travel speeds and weaving settings as reported in the source article",
+      "workpiece_replicates_per_mode": 1,
+      "supports_causal_generalization": false
+    },
+    "materials_detail": {
+      "base_material": "S355J2+N",
+      "wire": "ER70S-6",
+      "wire_diameter_mm": 1.2,
+      "shielding_gas": "82% Ar / 18% CO2 (ISO 14175 M21-ArC-18)",
+      "nominal_gas_flow_l_per_min": 20,
+      "position": "1G_flat",
+      "root_gap_mm_range": [
+        1,
+        2
+      ],
+      "support": "steel backing plate with ceramic backing inlay",
+      "tack_welded_for_positioning": true
+    }
+  },
+  "claim_ceiling": "Metadata-only contract PASS. No raw file reuse, stream parsing, process superiority, physical weld quality, NDT, thermal history, residual stress, released-state distortion or production readiness is established.",
+  "workpieces": [
+    {
+      "workpiece_id": "WID615",
+      "tandem_mode": "PMC+CMT",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        }
+      ]
+    },
+    {
+      "workpiece_id": "WID617",
+      "tandem_mode": "PMC+PMC",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        }
+      ]
+    },
+    {
+      "workpiece_id": "WID630",
+      "tandem_mode": "CMT+CMT",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_AVAILABLE",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        }
+      ]
+    },
+    {
+      "workpiece_id": "WID631",
+      "tandem_mode": "PMC+PMC",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_AVAILABLE",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_AVAILABLE",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        }
+      ]
+    },
+    {
+      "workpiece_id": "WID632",
+      "tandem_mode": "PMC+CMT",
+      "layers": [
+        {
+          "layer_id": "L1",
+          "layer_order": 1,
+          "layer_class": "single_wire_root",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L2",
+          "layer_order": 2,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_AVAILABLE",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L3",
+          "layer_order": 3,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L4",
+          "layer_order": 4,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L5",
+          "layer_order": 5,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_LISTED_AS_MISSING",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        },
+        {
+          "layer_id": "L6",
+          "layer_order": 6,
+          "layer_class": "tandem",
+          "expected_artifact_roles": [
+            "robot_motion",
+            "process_voltage_current",
+            "power_source_leading",
+            "power_source_trailing",
+            "scan_pre",
+            "video",
+            "scan_post"
+          ],
+          "t85_field": {
+            "value_ingestion_status": "NOT_INGESTED",
+            "raw_value": null,
+            "source_declared_unit": "s",
+            "semantic_definition_status": "PAPER_DEFINED_T8_5",
+            "physical_definition": "elapsed cooling time from 800 C to 500 C",
+            "extraction_method": "manually extracted from Type-K thermocouple temperature record placed in weld pool when measurement succeeded",
+            "source_declared_availability": "NOT_AVAILABLE",
+            "semantic_source_doi": "10.1016/j.dib.2026.113329"
+          }
+        }
+      ]
+    }
+  ],
+  "controls": [
+    {
+      "control_id": "TGMAW-001",
+      "class": "positive_contract_control",
+      "expected_disposition": "METADATA_ONLY_ADMISSION_VALID",
+      "mutation": "Represent the public Zenodo v2.0.0 record with rights unresolved, no raw downloads, five WIDs and six-layer metadata topology.",
+      "rationale": "Positive baseline accepts only the metadata-only source representation."
+    },
+    {
+      "control_id": "TGMAW-002",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS",
+      "mutation": "Zenodo license field is blank but manifest promotes raw files to CC BY 4.0.",
+      "rationale": "No licence is stated on the record."
+    },
+    {
+      "control_id": "TGMAW-003",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS",
+      "mutation": "The Dataset Open badge is treated as an explicit grant of redistribution and derivative-work rights.",
+      "rationale": "Availability is not an explicit reuse licence."
+    },
+    {
+      "control_id": "TGMAW-004",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS",
+      "mutation": "Raw 4.5 GB archives are mirrored into this public repository before permission is established.",
+      "rationale": "Raw files remain outside the repository pending rights review."
+    },
+    {
+      "control_id": "TGMAW-005",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS",
+      "mutation": "A public model is trained on the raw recordings while rights are unresolved.",
+      "rationale": "Training and public model-release rights are not established."
+    },
+    {
+      "control_id": "TGMAW-006",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SOURCE_IDENTITY",
+      "mutation": "A later or earlier Zenodo version is substituted for record v2.0.0 without a new manifest revision.",
+      "rationale": "Source version is part of the reproducibility identity."
+    },
+    {
+      "control_id": "TGMAW-007",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SOURCE_IDENTITY",
+      "mutation": "A third-party mirror is used as the authoritative raw source.",
+      "rationale": "Source identity must resolve to the official record or authorized custody."
+    },
+    {
+      "control_id": "TGMAW-008",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SOURCE_INTEGRITY",
+      "mutation": "Downloaded bytes disagree with the source-record artifact checksum.",
+      "rationale": "A file inventory must not admit digest drift."
+    },
+    {
+      "control_id": "TGMAW-009",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LAYER_TOPOLOGY",
+      "mutation": "A workpiece has fewer or more than six declared layer records.",
+      "rationale": "The published topology is six layers per WID."
+    },
+    {
+      "control_id": "TGMAW-010",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LAYER_TOPOLOGY",
+      "mutation": "Duplicate WID/layer/track identities are admitted.",
+      "rationale": "Layer identity must be unique within the WID."
+    },
+    {
+      "control_id": "TGMAW-011",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LAYER_SEMANTICS",
+      "mutation": "L1 is incorrectly classified as a tandem two-wire pass.",
+      "rationale": "The dataset describes L1 as a single-wire root pass."
+    },
+    {
+      "control_id": "TGMAW-012",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LAYER_SEMANTICS",
+      "mutation": "L2-L6 are classified as single-wire root passes.",
+      "rationale": "The dataset describes L2-L6 as tandem passes."
+    },
+    {
+      "control_id": "TGMAW-013",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ARTIFACT_ROLES",
+      "mutation": "A tandem layer lacks the trailing power-source recording reference.",
+      "rationale": "The source description specifies leading and trailing recordings for tandem passes."
+    },
+    {
+      "control_id": "TGMAW-014",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ARTIFACT_ROLES",
+      "mutation": "The single-wire root pass is required to have a trailing power-source file.",
+      "rationale": "Root-pass artifact roles differ from tandem pass roles."
+    },
+    {
+      "control_id": "TGMAW-015",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ARTIFACT_ROLES",
+      "mutation": "A post-weld scan is assumed for every layer.",
+      "rationale": "The record specifies pre-pass scans and a post-weld scan on final L6."
+    },
+    {
+      "control_id": "TGMAW-016",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ARTIFACT_ROLES",
+      "mutation": "The final L6 post-weld scan is omitted from the artifact-role contract.",
+      "rationale": "Final L6 is explicitly described as including a post-weld scan."
+    },
+    {
+      "control_id": "TGMAW-017",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_T85_MISSINGNESS",
+      "mutation": "An un-ingested or blank t85 value is replaced with numeric zero.",
+      "rationale": "Unknown/missing is not zero."
+    },
+    {
+      "control_id": "TGMAW-018",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_T85_SEMANTICS",
+      "mutation": "The t85 field is interpreted as a metallurgical t8/5 measurement without its definition and derivation being documented.",
+      "rationale": "The field meaning and provenance need independent definition."
+    },
+    {
+      "control_id": "TGMAW-019",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIMEBASE",
+      "mutation": "Robot, process, power-source and video streams are aligned by row number without timestamp evidence.",
+      "rationale": "Cross-stream clock mapping must be demonstrated."
+    },
+    {
+      "control_id": "TGMAW-020",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIMEBASE",
+      "mutation": "The two synchronized welding sources are assumed to prove common time alignment for every sensor/video stream.",
+      "rationale": "Synchronization of welding sources does not prove all acquisition clocks align."
+    },
+    {
+      "control_id": "TGMAW-021",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_VIDEO_COMPARABILITY",
+      "mutation": "Video frames are scored as directly comparable despite different recording settings/camera arrangements.",
+      "rationale": "Video capture comparability is explicitly variable."
+    },
+    {
+      "control_id": "TGMAW-022",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SCAN_SEMANTICS",
+      "mutation": "A pre-pass surface scan is relabelled as a post-pass measurement.",
+      "rationale": "Scan timing/role must preserve source semantics."
+    },
+    {
+      "control_id": "TGMAW-023",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SCAN_GEOMETRY",
+      "mutation": "Surface scans are compared without datum, frame, registration and uncertainty metadata.",
+      "rationale": "Geometry metrics require a qualified measurement frame and uncertainty."
+    },
+    {
+      "control_id": "TGMAW-024",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SPLIT_LEAKAGE",
+      "mutation": "Layers or sensor windows from one WID are split across training and test.",
+      "rationale": "All observations from a workpiece must remain in one split."
+    },
+    {
+      "control_id": "TGMAW-025",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SAMPLE_INDEPENDENCE",
+      "mutation": "Thirty layer records are treated as thirty independent physical workpieces.",
+      "rationale": "The independent workpiece count is five, not thirty."
+    },
+    {
+      "control_id": "TGMAW-026",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CAUSAL_CLAIM",
+      "mutation": "PMC/CMT superiority is claimed from the five WID configurations without accounting for WID and parameter confounding.",
+      "rationale": "Mode is not independently randomized across comparable repeated workpieces."
+    },
+    {
+      "control_id": "TGMAW-027",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CLAIM_PROMOTION",
+      "mutation": "Process-trace completeness is promoted to weld acceptance, NDT adequacy or structural integrity.",
+      "rationale": "Process trace is not physical quality evidence."
+    },
+    {
+      "control_id": "TGMAW-028",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CLAIM_PROMOTION",
+      "mutation": "Pre-scan/final scan differences are promoted to fixture-release distortion without a documented release history and free-state measurement.",
+      "rationale": "The dataset record does not establish restraint-release history."
+    },
+    {
+      "control_id": "TGMAW-029",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_DERIVATION_PROVENANCE",
+      "mutation": "A derived feature is stored without exact source-file digest, transform revision, units and timebase.",
+      "rationale": "Derived features must be reproducible and lineage-bound."
+    },
+    {
+      "control_id": "TGMAW-030",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_EVIDENCE_CLASS",
+      "mutation": "Synthetic or simulated streams are labelled as raw experimental observations.",
+      "rationale": "Evidence class must not be laundered."
+    },
+    {
+      "control_id": "TGMAW-031",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_STATISTICAL_SCOPE",
+      "mutation": "A five-WID result is described as broad SOTA generalization without per-WID holdout uncertainty and sample-size disclosure.",
+      "rationale": "The available independent cluster count is small."
+    },
+    {
+      "control_id": "TGMAW-032",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS",
+      "mutation": "The published Data in Brief article carries CC BY 4.0, so the separate Zenodo raw archive with a blank licence field is marked CC BY 4.0.",
+      "rationale": "The article licence applies to the article, not automatically to the separate 4.5 GB raw dataset record."
+    },
+    {
+      "control_id": "TGMAW-033",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIMEBASE",
+      "mutation": "The less-than-10-microsecond drift statement for Beckhoff analog terminals is generalized to robot TCP transport and 100 ms OPC-UA power-source transfers.",
+      "rationale": "The paper distinguishes analog distributed-clock precision from sampling intervals and communication latency."
+    },
+    {
+      "control_id": "TGMAW-034",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIMEBASE",
+      "mutation": "The 0.1 ms process current/voltage sampling interval is assigned to robot, power-source, video and geometry streams as if they shared one sample cadence.",
+      "rationale": "Streams share a master timestamp basis but have different sample intervals."
+    },
+    {
+      "control_id": "TGMAW-035",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SCAN_SEMANTICS",
+      "mutation": "Layer L1 is required to have a separate L1 scan_post file rather than mapping its after-state to L2 scan_pre.",
+      "rationale": "The article explicitly maps the resulting surface after layer n to the scan_pre file of layer n+1 for layers 1-5."
+    },
+    {
+      "control_id": "TGMAW-036",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SCAN_SEMANTICS",
+      "mutation": "The L2 scan_pre measurement is treated only as a before-L2 surface and is never linked as the after-L1 surface.",
+      "rationale": "Each scan file participates in adjacent layer-state mapping; scan roles are not independent snapshots."
+    },
+    {
+      "control_id": "TGMAW-037",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_T85_MISSINGNESS",
+      "mutation": "WID630 L6, WID631 L5/L6 or WID632 L2/L6 t8/5 values are populated from interpolation or zero despite source-reported unavailable thermocouple measurements.",
+      "rationale": "The paper identifies these five records as unavailable due to insufficient thermocouple attachment."
+    },
+    {
+      "control_id": "TGMAW-038",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SAMPLE_INDEPENDENCE",
+      "mutation": "The L1 single-wire PMC root passes are included in a tandem-GMAW-only training/evaluation denominator.",
+      "rationale": "The source article explicitly says the single-wire root pass is not to be included in analyses strictly limited to T-GMAW."
+    },
+    {
+      "control_id": "TGMAW-039",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SAMPLE_INDEPENDENCE",
+      "mutation": "WID617 is counted as an independent replicate of a randomized process-mode treatment rather than a repeat of an earlier published parameter sequence.",
+      "rationale": "The article positions WID617 as a repeat of a published configuration using modern T-GMAW equipment."
+    },
+    {
+      "control_id": "TGMAW-040",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CAUSAL_CLAIM",
+      "mutation": "The WID631/WID632 matched-parameter mode contrast (one specimen per mode) is promoted to a replicated causal claim across all workpieces and shipyards.",
+      "rationale": "It is a useful controlled exploratory pair but has one workpiece per mode and no independent replication."
+    }
+  ],
+  "published_article": {
+    "doi": "10.1016/j.dib.2026.113329",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13718683/",
+    "pmcid": "PMC13718683",
+    "published_on": "2026-10-10",
+    "title": "Multimodal experimental data for tandem gas metal arc welding of thick steel plates with advanced pulsed and short-circuiting process modes",
+    "license": "CC-BY-4.0",
+    "license_applies_to": "published_article_text_and_metadata",
+    "not_a_license_for_zenodo_raw_archive": true
+  },
+  "clock_contract": {
+    "timestamp_representation": "UTC",
+    "timestamp_coordinate": "time",
+    "master_clock": "TwinCAT3_runtime_EtherCAT_master",
+    "common_master_clock_declared_for_recorded_time_series_and_video_triggers": true,
+    "distributed_clocks_enabled": true,
+    "reported_analog_signal_drift_upper_bound_us": 10,
+    "drift_bound_scope": "Beckhoff EtherCAT analog-to-digital terminals; do not apply this precision claim to all channel sample intervals or upstream robot/OPC-UA transfer latency",
+    "file_minimum_sample_intervals_ms": {
+      "robot_file": 1,
+      "process_file": 0.1,
+      "power_source_files": 100
+    },
+    "channel_sampling_intervals_ms": {
+      "robot_tcp_coords": 8,
+      "process_current_voltage": 0.1,
+      "power_source_opcua_variables": 100,
+      "control_system_power_gas_thermocouple": 1
+    },
+    "video_frame_trigger_hz": 40,
+    "video_frame_trigger_interval_ms": 25,
+    "scan_profile_trigger_hz": 50
+  },
+  "surface_scan_contract": {
+    "files_per_workpiece": 7,
+    "total_files": 35,
+    "layer_transitions_per_workpiece": 6,
+    "total_layer_transitions": 30,
+    "total_laser_line_profiles": 47188,
+    "points_per_profile": 2048,
+    "approximate_scan_line_length_mm": 100,
+    "approximate_lateral_resolution_mm": 0.05,
+    "profile_trigger_hz": 50,
+    "coordinates_unit": "mm",
+    "coordinates_frame": "welding_reference_frame",
+    "profile_position_recorded_with_robot_position": true,
+    "triangulation_variable": "triangles",
+    "coordinate_variable": "coordinates",
+    "after_layer_storage_rule": "For L1-L5, the after-state for layer n is the scan_pre file of layer n+1. For L6, the after-state is the L6 scan_post file.",
+    "video_resolution_px": [
+      1280,
+      1024
+    ],
+    "video_frame_count": 51783,
+    "video_intrinsic_extrinsic_calibration_available": false
+  },
+  "scan_state_transitions": [
+    {
+      "workpiece_id": "WID615",
+      "layer_id": "L1",
+      "before_scan_artifact": "WID615_L1_T1_scan_pre.nc",
+      "after_scan_artifact": "WID615_L2_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID615",
+      "layer_id": "L2",
+      "before_scan_artifact": "WID615_L2_T1_scan_pre.nc",
+      "after_scan_artifact": "WID615_L3_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID615",
+      "layer_id": "L3",
+      "before_scan_artifact": "WID615_L3_T1_scan_pre.nc",
+      "after_scan_artifact": "WID615_L4_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID615",
+      "layer_id": "L4",
+      "before_scan_artifact": "WID615_L4_T1_scan_pre.nc",
+      "after_scan_artifact": "WID615_L5_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID615",
+      "layer_id": "L5",
+      "before_scan_artifact": "WID615_L5_T1_scan_pre.nc",
+      "after_scan_artifact": "WID615_L6_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID615",
+      "layer_id": "L6",
+      "before_scan_artifact": "WID615_L6_T1_scan_pre.nc",
+      "after_scan_artifact": "WID615_L6_T1_scan_post.nc",
+      "after_scan_storage": "same_layer_scan_post"
+    },
+    {
+      "workpiece_id": "WID617",
+      "layer_id": "L1",
+      "before_scan_artifact": "WID617_L1_T1_scan_pre.nc",
+      "after_scan_artifact": "WID617_L2_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID617",
+      "layer_id": "L2",
+      "before_scan_artifact": "WID617_L2_T1_scan_pre.nc",
+      "after_scan_artifact": "WID617_L3_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID617",
+      "layer_id": "L3",
+      "before_scan_artifact": "WID617_L3_T1_scan_pre.nc",
+      "after_scan_artifact": "WID617_L4_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID617",
+      "layer_id": "L4",
+      "before_scan_artifact": "WID617_L4_T1_scan_pre.nc",
+      "after_scan_artifact": "WID617_L5_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID617",
+      "layer_id": "L5",
+      "before_scan_artifact": "WID617_L5_T1_scan_pre.nc",
+      "after_scan_artifact": "WID617_L6_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID617",
+      "layer_id": "L6",
+      "before_scan_artifact": "WID617_L6_T1_scan_pre.nc",
+      "after_scan_artifact": "WID617_L6_T1_scan_post.nc",
+      "after_scan_storage": "same_layer_scan_post"
+    },
+    {
+      "workpiece_id": "WID630",
+      "layer_id": "L1",
+      "before_scan_artifact": "WID630_L1_T1_scan_pre.nc",
+      "after_scan_artifact": "WID630_L2_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID630",
+      "layer_id": "L2",
+      "before_scan_artifact": "WID630_L2_T1_scan_pre.nc",
+      "after_scan_artifact": "WID630_L3_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID630",
+      "layer_id": "L3",
+      "before_scan_artifact": "WID630_L3_T1_scan_pre.nc",
+      "after_scan_artifact": "WID630_L4_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID630",
+      "layer_id": "L4",
+      "before_scan_artifact": "WID630_L4_T1_scan_pre.nc",
+      "after_scan_artifact": "WID630_L5_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID630",
+      "layer_id": "L5",
+      "before_scan_artifact": "WID630_L5_T1_scan_pre.nc",
+      "after_scan_artifact": "WID630_L6_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID630",
+      "layer_id": "L6",
+      "before_scan_artifact": "WID630_L6_T1_scan_pre.nc",
+      "after_scan_artifact": "WID630_L6_T1_scan_post.nc",
+      "after_scan_storage": "same_layer_scan_post"
+    },
+    {
+      "workpiece_id": "WID631",
+      "layer_id": "L1",
+      "before_scan_artifact": "WID631_L1_T1_scan_pre.nc",
+      "after_scan_artifact": "WID631_L2_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID631",
+      "layer_id": "L2",
+      "before_scan_artifact": "WID631_L2_T1_scan_pre.nc",
+      "after_scan_artifact": "WID631_L3_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID631",
+      "layer_id": "L3",
+      "before_scan_artifact": "WID631_L3_T1_scan_pre.nc",
+      "after_scan_artifact": "WID631_L4_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID631",
+      "layer_id": "L4",
+      "before_scan_artifact": "WID631_L4_T1_scan_pre.nc",
+      "after_scan_artifact": "WID631_L5_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID631",
+      "layer_id": "L5",
+      "before_scan_artifact": "WID631_L5_T1_scan_pre.nc",
+      "after_scan_artifact": "WID631_L6_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID631",
+      "layer_id": "L6",
+      "before_scan_artifact": "WID631_L6_T1_scan_pre.nc",
+      "after_scan_artifact": "WID631_L6_T1_scan_post.nc",
+      "after_scan_storage": "same_layer_scan_post"
+    },
+    {
+      "workpiece_id": "WID632",
+      "layer_id": "L1",
+      "before_scan_artifact": "WID632_L1_T1_scan_pre.nc",
+      "after_scan_artifact": "WID632_L2_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID632",
+      "layer_id": "L2",
+      "before_scan_artifact": "WID632_L2_T1_scan_pre.nc",
+      "after_scan_artifact": "WID632_L3_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID632",
+      "layer_id": "L3",
+      "before_scan_artifact": "WID632_L3_T1_scan_pre.nc",
+      "after_scan_artifact": "WID632_L4_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID632",
+      "layer_id": "L4",
+      "before_scan_artifact": "WID632_L4_T1_scan_pre.nc",
+      "after_scan_artifact": "WID632_L5_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID632",
+      "layer_id": "L5",
+      "before_scan_artifact": "WID632_L5_T1_scan_pre.nc",
+      "after_scan_artifact": "WID632_L6_T1_scan_pre.nc",
+      "after_scan_storage": "next_layer_scan_pre"
+    },
+    {
+      "workpiece_id": "WID632",
+      "layer_id": "L6",
+      "before_scan_artifact": "WID632_L6_T1_scan_pre.nc",
+      "after_scan_artifact": "WID632_L6_T1_scan_post.nc",
+      "after_scan_storage": "same_layer_scan_post"
+    }
+  ]
+}
