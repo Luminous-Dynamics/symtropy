@@ -141,8 +141,10 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         errors.push("matched_mode_pair is required".to_owned());
         return Err(errors);
     };
-    if string_array(matched_pair, "workpieces")
-        .is_none_or(|ids| ids != ["WID631".to_owned(), "WID632".to_owned()])
+    let matched_pair_ids = string_array(matched_pair, "workpieces").unwrap_or_default();
+    if matched_pair_ids.len() != 2
+        || matched_pair_ids.first().map(String::as_str) != Some("WID631")
+        || matched_pair_ids.get(1).map(String::as_str) != Some("WID632")
         || str_at(matched_pair, "contrast") != Some("PMC+PMC versus PMC+CMT")
         || matched_pair
             .get("workpiece_replicates_per_mode")
@@ -308,13 +310,32 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
     };
     if str_at(clock, "timestamp_representation") != Some("UTC")
         || str_at(clock, "master_clock") != Some("TwinCAT3_runtime_EtherCAT_master")
-        || bool_at(clock, "common_master_clock_declared_for_recorded_time_series_and_video_triggers") != Some(true)
+        || bool_at(
+            clock,
+            "common_master_clock_declared_for_recorded_time_series_and_video_triggers",
+        ) != Some(true)
         || bool_at(clock, "distributed_clocks_enabled") != Some(true)
         || clock.get("reported_analog_signal_drift_upper_bound_us").and_then(Value::as_f64) != Some(10.0)
-        || clock.get("file_minimum_sample_intervals_ms").and_then(|v| v.get("robot_file")).and_then(Value::as_f64) != Some(1.0)
-        || clock.get("file_minimum_sample_intervals_ms").and_then(|v| v.get("process_file")).and_then(Value::as_f64) != Some(0.1)
-        || clock.get("file_minimum_sample_intervals_ms").and_then(|v| v.get("power_source_files")).and_then(Value::as_f64) != Some(100.0)
-        || clock.get("channel_sampling_intervals_ms").and_then(|v| v.get("robot_tcp_coords")).and_then(Value::as_f64) != Some(8.0)
+        || clock
+            .get("file_minimum_sample_intervals_ms")
+            .and_then(|v| v.get("robot_file"))
+            .and_then(Value::as_f64)
+            != Some(1.0)
+        || clock
+            .get("file_minimum_sample_intervals_ms")
+            .and_then(|v| v.get("process_file"))
+            .and_then(Value::as_f64)
+            != Some(0.1)
+        || clock
+            .get("file_minimum_sample_intervals_ms")
+            .and_then(|v| v.get("power_source_files"))
+            .and_then(Value::as_f64)
+            != Some(100.0)
+        || clock
+            .get("channel_sampling_intervals_ms")
+            .and_then(|v| v.get("robot_tcp_coords"))
+            .and_then(Value::as_f64)
+            != Some(8.0)
         || clock.get("video_frame_trigger_hz").and_then(Value::as_u64) != Some(40)
     {
         errors.push("clock/sample interval metadata differs from the published article".to_owned());
@@ -337,7 +358,10 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         || str_at(scan_contract, "coordinates_frame") != Some("welding_reference_frame")
         || bool_at(scan_contract, "profile_position_recorded_with_robot_position") != Some(true)
     {
-        errors.push("surface scan topology/coordinate metadata differs from the published article".to_owned());
+        errors.push(
+            "surface scan topology/coordinate metadata differs from the published article"
+                .to_owned(),
+        );
     }
 
     let Some(scan_transitions) = manifest.get("scan_state_transitions").and_then(Value::as_array) else {
@@ -367,7 +391,9 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
                     || str_at(transition, "after_scan_artifact") != Some(expected_after.as_str())
                     || str_at(transition, "after_scan_storage") != Some(expected_storage)
                 {
-                    errors.push(format!("{expected_wid} L{layer}: before/after scan state mapping is invalid"));
+                    errors.push(format!(
+                        "{expected_wid} L{layer}: before/after scan state mapping is invalid"
+                    ));
                 }
                 scan_artifacts.insert(expected_before);
                 scan_artifacts.insert(expected_after);
