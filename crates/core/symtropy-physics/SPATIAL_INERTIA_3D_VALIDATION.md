@@ -115,6 +115,7 @@ The module currently covers:
 9. Shift-then-inverse-shift restores the original point identity, COM offset and central inertia.
 10. Uniform mass scaling by `1e-12` and `1e12` scales the 6×6 matrix, spatial momentum and kinetic energy linearly without changing geometry.
 11. Six-component central-inertia packing/reconstruction preserves exact matrix symmetry.
+12. A deterministic 48-case rotated-positive-second-moment sweep checks 6×6 spatial-matrix symmetry, positive semidefiniteness and positive finite kinetic energy.
 
 ## Criterion reference-cost measurements
 
