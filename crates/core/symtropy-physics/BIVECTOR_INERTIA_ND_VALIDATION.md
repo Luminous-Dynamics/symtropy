@@ -56,7 +56,7 @@ where `T` is the stored-bivector representation of the physical applied torque. 
 - Analytical isotropic contact effective mass and anisotropic principal-plane contact response, including equivalence of body-frame and transformed world-frame contact queries.
 - Off-centre impulse from rest: direct point-velocity response agrees with the scalar rotational inverse effective mass, and rotational kinetic-energy increase equals half the impulse dotted with the contact-point velocity change.
 - Torque-free momentum/energy derivative and instantaneous applied-torque balance.
-- Parallel-axis composition with centered offsets, scale-safe huge-offset/tiny-mass controls, explicit underflow rejection, point-mass translation invariance (including small geometry far from world origin), canonical point-cloud input-order invariance, and offset-centering negative control.
+- Parallel-axis composition and point-cloud accumulation with scale-safe huge-offset/tiny-mass controls, explicit underflow rejection, point-mass translation invariance (including small geometry far from world origin), canonical point-cloud input-order invariance, and offset-centering negative control.
 - Invalid dimensions outside `2 <= D <= 9`, asymmetric/indefinite/zero-mass/degenerate inputs, invalid tolerance, singular rotation planes, zero impulse direction, improper Rotor, non-finite intermediates and overflow controls.
 
 ## Mathematical prior art and novelty boundary
