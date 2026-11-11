@@ -77,6 +77,96 @@ jobs:
     - name: Run Clippy
       run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
+    # CIVDYN closed-loop policy reference: keep this small, isolated crate
+    # qualified by the repository's existing PR workflow. The dedicated
+    # CIVDYN workflow becomes available for subsequent commits after registry.
+    - name: CIVDYN Closed-Loop Policy - Format, Clippy, Compile and Tests
+      if: runner.os == 'Linux'
+      run: |
+        cargo fmt --manifest-path research/civdyn-closed-loop-policy/Cargo.toml --all -- --check
+        cargo clippy --locked --manifest-path research/civdyn-closed-loop-policy/Cargo.toml --all-targets -- -D warnings
+        cargo check --locked --manifest-path research/civdyn-closed-loop-policy/Cargo.toml --all-targets
+        cargo test --locked --manifest-path research/civdyn-closed-loop-policy/Cargo.toml --all-targets
+
+    - name: CIVDYN Closed-Loop Policy - Deterministic Known-Answer Contract
+      if: runner.os == 'Linux'
+      run: |
+        set -euo pipefail
+        cargo run --quiet --locked --manifest-path research/civdyn-closed-loop-policy/Cargo.toml --bin closed-loop-policy-sweep > /tmp/civdyn-closed-loop-policy.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-closed-loop-policy/Cargo.toml --bin closed-loop-policy-sweep > /tmp/civdyn-closed-loop-policy-replay.csv
+        cmp /tmp/civdyn-closed-loop-policy.csv /tmp/civdyn-closed-loop-policy-replay.csv
+        python3 - <<'PY'
+        import csv
+        from pathlib import Path
+
+        with Path("/tmp/civdyn-closed-loop-policy.csv").open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            fields = reader.fieldnames
+            rows = list(reader)
+
+        assert fields is not None and len(fields) == 36
+        assert len(rows) == 10
+        worlds = {"water_degradation", "energy_degradation"}
+        assert {row["true_world_id"] for row in rows} == worlds
+
+        for world in worlds:
+            subset = [row for row in rows if row["true_world_id"] == world]
+            assert len(subset) == 5
+            assert sum(row["policy_id"] == "evaluator_only_oracle" for row in subset) == 1
+            assert sum(row["policy_id"] == "action_conditioned_model" for row in subset) == 2
+
+            oracle = next(row for row in subset if row["policy_id"] == "evaluator_only_oracle")
+            assert oracle["evaluator_oracle_access"] == "true"
+            assert oracle["terminal_feasible"] == "true"
+            assert oracle["cumulative_service_points"] == "50"
+            assert oracle["oracle_service_points"] == "50"
+            assert oracle["action_ranking_matches"] == "4"
+
+            correct_id = "water_mechanism_model" if world == "water_degradation" else "energy_mechanism_model"
+            correct = next(row for row in subset if row["candidate_model_id"] == correct_id)
+            assert correct["policy_id"] == "action_conditioned_model"
+            assert correct["evaluator_oracle_access"] == "false"
+            assert correct["terminal_feasible"] == "true"
+            assert correct["cumulative_service_points"] == "50"
+            assert correct["raw_service_regret"] == "0"
+            assert correct["action_trace"] == oracle["action_trace"]
+            assert correct["action_ranking_matches"] == "4"
+            assert correct["replan_count"] == "4"
+            assert correct["abstention_ticks"] == "0"
+            for field in (
+                "water_service_mae", "energy_service_mae",
+                "water_debt_mae", "energy_debt_mae",
+                "water_reserve_mae", "energy_reserve_mae"
+            ):
+                assert float(correct[field]) == 0.0
+
+            wrong = next(row for row in subset if row["policy_id"] == "action_conditioned_model" and row["candidate_model_id"] != correct_id)
+            assert wrong["terminal_feasible"] == "false"
+            assert int(wrong["water_floor_violation_ticks"]) + int(wrong["energy_floor_violation_ticks"]) > 0
+            assert float(wrong["water_service_mae"]) + float(wrong["energy_service_mae"]) > 0.0
+
+            reactive = next(row for row in subset if row["policy_id"] == "reactive_no_model")
+            fixed = next(row for row in subset if row["policy_id"] == "fixed_open_loop")
+            assert reactive["evaluator_oracle_access"] == "false"
+            assert fixed["evaluator_oracle_access"] == "false"
+            assert reactive["terminal_feasible"] == "false"
+            assert fixed["terminal_feasible"] == "false"
+
+            for row in subset:
+                assert row["horizon"] == "4"
+                assert row["decision_count"] == "4"
+                assert row["scenario_manifest_digest"].startswith("sha256-")
+                assert row["split_manifest_digest"].startswith("sha256-")
+                assert row["independent_unit_id"].endswith("-paired-run-001")
+
+        assert any(
+            row["terminal_feasible"] == "false"
+            and int(row["raw_service_regret"]) < 0
+            for row in rows
+        )
+        print("CIVDYN closed-loop policy contract passed: exact oracle, correct/misspecified model arms, hard constraints, provenance and byte-identical replay.")
+        PY
+
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
