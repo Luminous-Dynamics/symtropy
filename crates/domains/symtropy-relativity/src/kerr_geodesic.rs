@@ -471,6 +471,21 @@ pub struct KerrCanonicalEvaluation {
     pub carter_constant_over_m2: f64,
 }
 
+/// Local linearization of the canonical Kerr Hamiltonian flow.
+///
+/// State ordering is z = (t_bar, r_bar, theta, phi, p_t, p_r, p_theta, p_phi).
+/// jacobian[i][j] = d(dot z_i)/d z_j. The matrix is generated analytically
+/// from first and second metric derivatives supplied by Jet2 automatic
+/// differentiation. It is the local generator for dJ/dlambda = A J, not
+/// itself a propagated screen-to-source optical Jacobi map.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrCanonicalLinearization {
+    pub evaluation: KerrCanonicalEvaluation,
+    pub jacobian: [[f64; 8]; 8],
+    /// max absolute component of A^T Omega + Omega A.
+    pub symplectic_lie_residual: f64,
+}
+
 /// Independent canonical Hamiltonian evaluator for exterior Kerr rays.
 ///
 /// The metric and its first derivatives are generated through the existing
@@ -1080,6 +1095,154 @@ impl KerrCanonicalHamiltonian {
         self.evaluate_differentiated(state, differentiated)
     }
 
+    /// Linearize the canonical Hamiltonian flow in exterior Boyer-Lindquist
+    /// coordinates using exact second-order metric derivatives.
+    pub fn linearize(
+        self,
+        state: KerrCanonicalState,
+    ) -> Result<KerrCanonicalLinearization, KerrGeodesicError> {
+        let radius_m = state.coordinates.radius_over_m * self.hole.gravitational_radius_m();
+        let differentiated =
+            DifferentiatedMetric4::kerr_exterior(self.hole, radius_m, state.coordinates.theta_rad)?;
+        self.linearize_differentiated(state, differentiated)
+    }
+
+    /// Horizon-regular ingoing-chart counterpart to linearize.
+    pub fn linearize_ingoing(
+        self,
+        state: KerrCanonicalState,
+    ) -> Result<KerrCanonicalLinearization, KerrGeodesicError> {
+        let radius_m = state.coordinates.radius_over_m * self.hole.gravitational_radius_m();
+        let differentiated =
+            DifferentiatedMetric4::kerr_ingoing(self.hole, radius_m, state.coordinates.theta_rad)?;
+        self.linearize_differentiated(state, differentiated)
+    }
+
+    fn linearize_differentiated(
+        self,
+        state: KerrCanonicalState,
+        differentiated: DifferentiatedMetric4,
+    ) -> Result<KerrCanonicalLinearization, KerrGeodesicError> {
+        let evaluation = self.evaluate_differentiated(state, differentiated)?;
+        let mass_length = self.hole.gravitational_radius_m();
+        let factors = [1.0, 1.0, 1.0 / mass_length, 1.0 / mass_length];
+        let source_metric = differentiated.metric.covariant();
+        let source_first = differentiated.first.components();
+        let source_second = differentiated.second.components();
+
+        let mut metric = [[0.0; 4]; 4];
+        let mut first = [[[0.0; 4]; 4]; 4];
+        let mut second = [[[[0.0; 4]; 4]; 4]; 4];
+        for mu in 0..4 {
+            for nu in 0..4 {
+                let scale = factors[mu] * factors[nu];
+                metric[mu][nu] = source_metric[mu][nu] * scale;
+                first[1][mu][nu] = source_first[1][mu][nu] * mass_length * scale;
+                first[2][mu][nu] = source_first[2][mu][nu] * scale;
+                second[1][1][mu][nu] =
+                    source_second[1][1][mu][nu] * mass_length * mass_length * scale;
+                second[1][2][mu][nu] = source_second[1][2][mu][nu] * mass_length * scale;
+                second[2][1][mu][nu] = source_second[2][1][mu][nu] * mass_length * scale;
+                second[2][2][mu][nu] = source_second[2][2][mu][nu] * scale;
+            }
+        }
+
+        let inverse = MetricComponents4::new(metric)?.inverse()?;
+        // Derivatives of the inverse metric:
+        // G_i = -G g_i G
+        // G_ij = G g_j G g_i G + G g_i G g_j G - G g_ij G.
+        let mut inverse_first = [[[0.0; 4]; 4]; 4];
+        for coordinate in 1..=2 {
+            for mu in 0..4 {
+                for nu in 0..4 {
+                    for a in 0..4 {
+                        for b in 0..4 {
+                            inverse_first[coordinate][mu][nu] -=
+                                inverse[mu][a] * first[coordinate][a][b] * inverse[b][nu];
+                        }
+                    }
+                }
+            }
+        }
+
+        let mut inverse_second = [[[[0.0; 4]; 4]; 4]; 4];
+        for i in 1..=2 {
+            for j in 1..=2 {
+                for mu in 0..4 {
+                    for nu in 0..4 {
+                        for a in 0..4 {
+                            for b in 0..4 {
+                                for c in 0..4 {
+                                    for d in 0..4 {
+                                        inverse_second[i][j][mu][nu] +=
+                                            inverse[mu][a] * first[j][a][b] * inverse[b][c]
+                                                * first[i][c][d] * inverse[d][nu];
+                                        inverse_second[i][j][mu][nu] +=
+                                            inverse[mu][a] * first[i][a][b] * inverse[b][c]
+                                                * first[j][c][d] * inverse[d][nu];
+                                    }
+                                }
+                            }
+                        }
+                        for a in 0..4 {
+                            for b in 0..4 {
+                                inverse_second[i][j][mu][nu] -=
+                                    inverse[mu][a] * second[i][j][a][b] * inverse[b][nu];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let p = state.momenta;
+        let mut jacobian = [[0.0; 8]; 8];
+        // d(qdot^mu)/dq^k = (d_k g^mu nu) p_nu.
+        // d(qdot^mu)/dp_nu = g^mu nu.
+        for mu in 0..4 {
+            for nu in 0..4 {
+                jacobian[mu][4 + nu] = inverse[mu][nu];
+            }
+            for coordinate in 1..=2 {
+                for nu in 0..4 {
+                    jacobian[mu][coordinate] += inverse_first[coordinate][mu][nu] * p[nu];
+                }
+            }
+        }
+
+        // pdot_mu = -1/2 p^T (d_mu g^{-1}) p; its position derivative
+        // therefore uses the second derivative of the inverse metric.
+        for momentum_index in 1..=2 {
+            for coordinate in 1..=2 {
+                for a in 0..4 {
+                    for b in 0..4 {
+                        jacobian[4 + momentum_index][coordinate] -= 0.5 * p[a]
+                            * inverse_second[momentum_index][coordinate][a][b] * p[b];
+                    }
+                }
+            }
+            for nu in 0..4 {
+                for b in 0..4 {
+                    jacobian[4 + momentum_index][4 + nu] -=
+                        inverse_first[momentum_index][nu][b] * p[b];
+                }
+            }
+        }
+
+        if jacobian.iter().flatten().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("canonical_flow_linearization"));
+        }
+        let symplectic_lie_residual = canonical_symplectic_lie_residual(&jacobian);
+        if !symplectic_lie_residual.is_finite() {
+            return Err(KerrGeodesicError::NonFinite("canonical_symplectic_lie_residual"));
+        }
+        Ok(KerrCanonicalLinearization {
+            evaluation,
+            jacobian,
+            symplectic_lie_residual,
+        })
+    }
+
     fn evaluate_differentiated(
         self,
         state: KerrCanonicalState,
@@ -1197,6 +1360,32 @@ impl KerrCanonicalHamiltonian {
     }
 }
 
+
+fn canonical_symplectic_omega(row: usize, column: usize) -> f64 {
+    if row < 4 && column == row + 4 {
+        1.0
+    } else if row >= 4 && column + 4 == row {
+        -1.0
+    } else {
+        0.0
+    }
+}
+
+/// Compute max absolute component of A^T Omega + Omega A.
+fn canonical_symplectic_lie_residual(a: &[[f64; 8]; 8]) -> f64 {
+    let mut maximum: f64 = 0.0;
+    for row in 0..8 {
+        for column in 0..8 {
+            let mut value = 0.0;
+            for k in 0..8 {
+                value += a[k][row] * canonical_symplectic_omega(k, column)
+                    + canonical_symplectic_omega(row, k) * a[k][column];
+            }
+            maximum = maximum.max(value.abs());
+        }
+    }
+    maximum
+}
 
 /// Adaptive step-doubling integrator for the second-order Kerr Mino system.
 ///
