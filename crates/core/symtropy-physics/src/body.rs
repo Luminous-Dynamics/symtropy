@@ -241,9 +241,13 @@ impl<const D: usize> RigidBody<D> {
         self.inertia = SVector::from_element(i_total);
         self.inv_inertia = SVector::from_element(1.0 / i_total);
 
-        // com_offset is body-local; transform it into world coordinates
-        // before moving the body's reference point.
-        self.transform.translation.0 += self.transform.rotation.rotate_vector(&com_offset);
+        // The linear velocity belongs to the body's reference point. Moving
+        // that point by a body-local COM offset also changes its velocity.
+        // Rotor::from_bivector uses exp(-B), so the point-velocity map is
+        // -B*r in the same world-frame convention used by integration.
+        let world_com_offset = self.transform.rotation.rotate_vector(&com_offset);
+        self.linear_velocity -= self.angular_velocity.apply_to_vector(&world_com_offset);
+        self.transform.translation.0 += world_com_offset;
     }
 
     pub fn world_support(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
@@ -354,6 +358,47 @@ mod compound_com_tests {
             "COM translation was not rotated from body frame into world frame"
         );
         assert_original_geometry_preserved(&before, &body);
+    }
+
+
+    #[test]
+    fn merge_toolhead_preserves_velocity_at_new_com_reference() {
+        let mut body = rotated_body();
+        body.linear_velocity = SVector::from([0.6, -0.3, 0.8]);
+        let mut omega = Bivector::<3>::zero();
+        omega.set(0, 1, 0.73);
+        omega.set(0, 2, -0.41);
+        omega.set(1, 2, 0.29);
+        body.angular_velocity = omega;
+
+        let tool_transform = Transform::from_translation(Point::new([1.2, -0.7, 0.4]));
+        let local_com_offset = tool_transform.translation.0 / 3.0;
+        let old_translation = body.transform.translation.0;
+        let old_rotation = body.transform.rotation;
+        let old_linear_velocity = body.linear_velocity;
+        let dt = 1.0e-7;
+
+        // Finite-difference the world trajectory of the point that becomes
+        // the combined COM, using the exact Rotor update used by integrate().
+        let point_before = old_translation + old_rotation.rotate_vector(&local_com_offset);
+        let delta_rotation = Rotor::from_bivector(&omega.scale(dt));
+        let rotation_after = delta_rotation.compose(&old_rotation);
+        let point_after = old_translation
+            + old_linear_velocity * dt
+            + rotation_after.rotate_vector(&local_com_offset);
+        let finite_difference_velocity = (point_after - point_before) / dt;
+
+        body.merge_toolhead(
+            tool_transform,
+            Box::new(Sphere::new(Point::origin(), 0.2)),
+            1.0,
+        );
+
+        assert!(
+            (body.linear_velocity - finite_difference_velocity).norm() < 2.0e-6,
+            "new COM velocity disagrees with Rotor point-velocity finite difference: actual={:?}, expected={finite_difference_velocity:?}",
+            body.linear_velocity
+        );
     }
 
     #[test]
