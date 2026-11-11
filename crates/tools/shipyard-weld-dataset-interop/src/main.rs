@@ -109,6 +109,8 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
             || str_at(intel, "raw_file_license") != Some("Intel Research Use License Agreement")
             || str_at(intel, "access_mode") != Some("gated_research_only")
             || integer_at(intel, "independent_unit_count") != Some(236)
+            || integer_at(intel, "label_count") != Some(12)
+            || integer_at(intel, "reported_size_gb").and_then(|value| u64::try_from(value).ok()) != Some(39)
             || str_at(intel, "grouping_field") != Some("session_or_weld_id")
             || bool_at(intel, "expert_defect_labels_present") != Some(false)
         {
@@ -235,6 +237,18 @@ fn validate_alignment(
             errors.push("alignment case IDs must be unique and non-empty".to_owned());
         }
         let interval = integer_at(case, "sample_interval_ns").unwrap_or(0);
+        let expected_interval = match str_at(case, "modality") {
+            Some("process_current_voltage") => Some(100_000),
+            Some("robot_tcp") => Some(8_000_000),
+            Some("power_source_opcua") => Some(100_000_000),
+            Some("video_trigger") => Some(25_000_000),
+            Some("missing_process_block") => Some(100_000),
+            _ => None,
+        };
+        if expected_interval != Some(interval) {
+            errors.push(format!("{id}: native modality sampling interval changed"));
+        }
+        let expected_missing = id == "ALIGN-MISSING-005";
         let clock_uncertainty = integer_at(case, "clock_uncertainty_ns").unwrap_or(-1);
         let latency_uncertainty = integer_at(case, "latency_uncertainty_ns").unwrap_or(-1);
         let maximum_uncertainty = integer_at(case, "maximum_alignment_uncertainty_ns").unwrap_or(-1);
@@ -247,8 +261,14 @@ fn validate_alignment(
         let samples = case.get("samples").and_then(Value::as_array)
             .ok_or_else(|| vec![format!("{id}: samples must be an array")])?;
         if samples.is_empty() {
+            if !expected_missing {
+                errors.push(format!("{id}: unexpected empty sample block"));
+            }
             missing_total += 1;
             continue;
+        }
+        if expected_missing {
+            errors.push(format!("{id}: explicit missing block must remain empty"));
         }
         let mut previous_local = None;
         for sample in samples {
@@ -452,6 +472,30 @@ mod tests {
     fn mismatched_native_cadence_is_not_accepted_as_known_answer() {
         let mut v=alignment_value();
         v["cases"][1]["sample_interval_ns"]=Value::from(100000);
+        assert!(validate_alignment(ALIGNMENT_SCHEMA,&serde_json::to_string(&v).unwrap()).is_err());
+    }
+
+    #[test]
+    fn wrong_native_sampling_rate_is_rejected() {
+        let mut v=alignment_value();
+        v["cases"][1]["sample_interval_ns"]=Value::from(100_000);
+        assert!(validate_alignment(ALIGNMENT_SCHEMA,&serde_json::to_string(&v).unwrap()).is_err());
+    }
+
+    #[test]
+    fn missing_block_cannot_be_filled_with_a_synthetic_sample() {
+        let mut v=alignment_value();
+        let index=v["cases"].as_array().unwrap().len()-1;
+        v["cases"][index]["samples"]=Value::Array(vec![
+            serde_json::json!({"local_timestamp_ns":10,"expected_master_event_time_ns":10})
+        ]);
+        assert!(validate_alignment(ALIGNMENT_SCHEMA,&serde_json::to_string(&v).unwrap()).is_err());
+    }
+
+    #[test]
+    fn unexpected_empty_modality_stream_is_rejected() {
+        let mut v=alignment_value();
+        v["cases"][0]["samples"]=Value::Array(vec![]);
         assert!(validate_alignment(ALIGNMENT_SCHEMA,&serde_json::to_string(&v).unwrap()).is_err());
     }
 
