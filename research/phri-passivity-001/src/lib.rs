@@ -176,10 +176,7 @@ impl PassivityObserver {
     /// State mutation is transactional: a rejected sample leaves the observer
     /// unchanged. The first sample establishes the integration origin and
     /// contributes no interval work.
-    pub fn observe(
-        &mut self,
-        sample: PortSample,
-    ) -> Result<PassivitySnapshot, PassivityError> {
+    pub fn observe(&mut self, sample: PortSample) -> Result<PassivitySnapshot, PassivityError> {
         if sample.clock != self.clock {
             return Err(PassivityError::ClockDomainMismatch);
         }
@@ -192,10 +189,8 @@ impl PassivityObserver {
         if sample.measurement_profile_digest != self.measurement_profile_digest {
             return Err(PassivityError::MeasurementProfileMismatch);
         }
-        let power_w = port_power_into_robot_w(
-            &sample.wrench_environment_on_robot,
-            &sample.twist_robot,
-        )?;
+        let power_w =
+            port_power_into_robot_w(&sample.wrench_environment_on_robot, &sample.twist_robot)?;
 
         let has_previous_interval = self.previous_sample.is_some();
         let mut interval_minimum_work_j = 0.0_f64;
@@ -215,11 +210,8 @@ impl PassivityObserver {
                 let dt_s = elapsed_ns as f64 * 1.0e-9;
                 let average_power_w = 0.5 * (previous_power + power_w);
                 let interval_work_j = average_power_w * dt_s;
-                interval_minimum_work_j = minimum_linear_power_prefix_work_j(
-                    previous_power,
-                    power_w,
-                    dt_s,
-                );
+                interval_minimum_work_j =
+                    minimum_linear_power_prefix_work_j(previous_power, power_w, dt_s);
                 let total = self.cumulative_port_work_j + interval_work_j;
                 if !dt_s.is_finite()
                     || !average_power_w.is_finite()
@@ -237,26 +229,26 @@ impl PassivityObserver {
 
         let conservative_storage =
             self.initial_energy_budget_j + next_work - self.energy_uncertainty_j;
-        let interval_minimum_storage = self.initial_energy_budget_j
-            + self.cumulative_port_work_j
-            + interval_minimum_work_j
-            - self.energy_uncertainty_j;
+        let interval_minimum_storage =
+            self.initial_energy_budget_j + self.cumulative_port_work_j + interval_minimum_work_j
+                - self.energy_uncertainty_j;
         if !conservative_storage.is_finite() || !interval_minimum_storage.is_finite() {
             return Err(PassivityError::ArithmeticOverflow);
         }
         let endpoint_deficit = (-conservative_storage).max(0.0);
         let interval_deficit = (-interval_minimum_storage).max(0.0);
         let maximum_interval_deficit = endpoint_deficit.max(interval_deficit);
-        let next_maximum_deficit = self.maximum_passivity_deficit_j.max(maximum_interval_deficit);
-        let next_violation_count = if has_previous_interval
-            && maximum_interval_deficit > self.violation_tolerance_j
-        {
-            self.violation_interval_count
-                .checked_add(1)
-                .ok_or(PassivityError::ArithmeticOverflow)?
-        } else {
-            self.violation_interval_count
-        };
+        let next_maximum_deficit = self
+            .maximum_passivity_deficit_j
+            .max(maximum_interval_deficit);
+        let next_violation_count =
+            if has_previous_interval && maximum_interval_deficit > self.violation_tolerance_j {
+                self.violation_interval_count
+                    .checked_add(1)
+                    .ok_or(PassivityError::ArithmeticOverflow)?
+            } else {
+                self.violation_interval_count
+            };
         let next_sample_count = self
             .sample_count
             .checked_add(1)
@@ -277,8 +269,8 @@ impl PassivityObserver {
 
     /// Return the current snapshot without changing observer state.
     pub fn snapshot(&self) -> PassivitySnapshot {
-        let conservative_storage = self.initial_energy_budget_j + self.cumulative_port_work_j
-            - self.energy_uncertainty_j;
+        let conservative_storage =
+            self.initial_energy_budget_j + self.cumulative_port_work_j - self.energy_uncertainty_j;
         let deficit = (-conservative_storage).max(0.0);
         let elapsed_ns = match (self.first_timestamp_ns, self.previous_sample) {
             (Some(first), Some(last)) => Some(last.at_ns - first),
@@ -448,7 +440,9 @@ pub fn solve_diagonal_passivity_rate_qp(
     let weights = request.objective_weights;
     let mut damping_power_rhs_w = 0.0_f64;
 
-    for (index, values) in request.base_inertia.iter()
+    for (index, values) in request
+        .base_inertia
+        .iter()
         .zip(request.inertia_scale.iter())
         .zip(request.minimum_inertia_scale.iter())
         .zip(request.stiffness.iter())
@@ -462,7 +456,31 @@ pub fn solve_diagonal_passivity_rate_qp(
         .zip(request.stiffness_max_rate.iter())
         .enumerate()
     {
-        let (((((((((((base_inertia, inertia_scale), min_scale), stiffness), error), velocity), alpha_decay), stiffness_decay), alpha_rate_ref), stiffness_rate_ref), alpha_rate_max), stiffness_rate_max) = values;
+        let (
+            (
+                (
+                    (
+                        (
+                            (
+                                (
+                                    (
+                                        (((base_inertia, inertia_scale), min_scale), stiffness),
+                                        error,
+                                    ),
+                                    velocity,
+                                ),
+                                alpha_decay,
+                            ),
+                            stiffness_decay,
+                        ),
+                        alpha_rate_ref,
+                    ),
+                    stiffness_rate_ref,
+                ),
+                alpha_rate_max,
+            ),
+            stiffness_rate_max,
+        ) = values;
         let base_inertia = *base_inertia;
         let inertia_scale = *inertia_scale;
         let min_scale = *min_scale;
@@ -476,9 +494,12 @@ pub fn solve_diagonal_passivity_rate_qp(
         let alpha_rate_max = *alpha_rate_max;
         let stiffness_rate_max = *stiffness_rate_max;
 
-        if !base_inertia.is_finite() || base_inertia <= 0.0
-            || !inertia_scale.is_finite() || inertia_scale <= 0.0
-            || !min_scale.is_finite() || min_scale <= 0.0
+        if !base_inertia.is_finite()
+            || base_inertia <= 0.0
+            || !inertia_scale.is_finite()
+            || inertia_scale <= 0.0
+            || !min_scale.is_finite()
+            || min_scale <= 0.0
             || inertia_scale < min_scale
         {
             return Err(VirtualImpedanceError::NonPositiveVirtualInertia);
@@ -486,18 +507,24 @@ pub fn solve_diagonal_passivity_rate_qp(
         if !stiffness.is_finite() || stiffness <= 0.0 {
             return Err(VirtualImpedanceError::NegativeStiffness);
         }
-        if !error.is_finite() || !velocity.is_finite()
-            || !alpha_decay.is_finite() || alpha_decay <= 0.0
-            || !stiffness_decay.is_finite() || stiffness_decay <= 0.0
-            || !alpha_rate_ref.is_finite() || !stiffness_rate_ref.is_finite()
-            || !alpha_rate_max.is_finite() || !stiffness_rate_max.is_finite()
+        if !error.is_finite()
+            || !velocity.is_finite()
+            || !alpha_decay.is_finite()
+            || alpha_decay <= 0.0
+            || !stiffness_decay.is_finite()
+            || stiffness_decay <= 0.0
+            || !alpha_rate_ref.is_finite()
+            || !stiffness_rate_ref.is_finite()
+            || !alpha_rate_max.is_finite()
+            || !stiffness_rate_max.is_finite()
         {
             return Err(VirtualImpedanceError::NonFiniteParameter);
         }
 
         let alpha_lower = alpha_decay * (min_scale - inertia_scale);
         let stiffness_lower = -stiffness_decay * stiffness;
-        if !alpha_lower.is_finite() || !stiffness_lower.is_finite()
+        if !alpha_lower.is_finite()
+            || !stiffness_lower.is_finite()
             || alpha_rate_max < alpha_lower
             || stiffness_rate_max < stiffness_lower
         {
@@ -539,7 +566,9 @@ pub fn solve_diagonal_passivity_rate_qp(
         }
     }
 
-    let minimum_lhs = coefficients.iter().zip(lower.iter())
+    let minimum_lhs = coefficients
+        .iter()
+        .zip(lower.iter())
         .map(|(coefficient, rate)| coefficient * rate)
         .sum::<f64>();
     if !minimum_lhs.is_finite() {
@@ -549,10 +578,11 @@ pub fn solve_diagonal_passivity_rate_qp(
         return Err(VirtualImpedanceError::EnergyBudgetInfeasible);
     }
 
-    let mut accepted = core::array::from_fn(|index| {
-        reference[index].clamp(lower[index], upper[index])
-    });
-    let unconstrained_lhs = coefficients.iter().zip(accepted.iter())
+    let mut accepted =
+        core::array::from_fn(|index| reference[index].clamp(lower[index], upper[index]));
+    let unconstrained_lhs = coefficients
+        .iter()
+        .zip(accepted.iter())
         .map(|(coefficient, rate)| coefficient * rate)
         .sum::<f64>();
     if !unconstrained_lhs.is_finite() {
@@ -570,8 +600,7 @@ pub fn solve_diagonal_passivity_rate_qp(
             .zip(lower.iter().zip(weights.iter()))
         {
             if *coefficient > 0.0 {
-                let threshold = (*reference_rate - *lower_rate).max(0.0)
-                    * *weight / *coefficient;
+                let threshold = (*reference_rate - *lower_rate).max(0.0) * *weight / *coefficient;
                 if !threshold.is_finite() {
                     return Err(VirtualImpedanceError::ArithmeticOverflow);
                 }
@@ -582,9 +611,16 @@ pub fn solve_diagonal_passivity_rate_qp(
         for _ in 0..80 {
             let midpoint = lower_multiplier.midpoint(upper_multiplier);
             let candidate = passivity_rate_candidate(
-                &reference, &lower, &upper, &coefficients, &weights, midpoint,
+                &reference,
+                &lower,
+                &upper,
+                &coefficients,
+                &weights,
+                midpoint,
             );
-            let lhs = coefficients.iter().zip(candidate.iter())
+            let lhs = coefficients
+                .iter()
+                .zip(candidate.iter())
                 .map(|(coefficient, rate)| coefficient * rate)
                 .sum::<f64>();
             if !lhs.is_finite() {
@@ -598,11 +634,18 @@ pub fn solve_diagonal_passivity_rate_qp(
         }
         dual_multiplier = upper_multiplier;
         accepted = passivity_rate_candidate(
-            &reference, &lower, &upper, &coefficients, &weights, dual_multiplier,
+            &reference,
+            &lower,
+            &upper,
+            &coefficients,
+            &weights,
+            dual_multiplier,
         );
     }
 
-    let passivity_lhs_w = coefficients.iter().zip(accepted.iter())
+    let passivity_lhs_w = coefficients
+        .iter()
+        .zip(accepted.iter())
         .map(|(coefficient, rate)| coefficient * rate)
         .sum::<f64>();
     if !passivity_lhs_w.is_finite() || passivity_lhs_w > damping_power_rhs_w + 1.0e-9 {
@@ -632,8 +675,7 @@ fn passivity_rate_candidate(
     multiplier: f64,
 ) -> [f64; 12] {
     core::array::from_fn(|index| {
-        let unconstrained = reference[index]
-            - multiplier * coefficients[index] / weights[index];
+        let unconstrained = reference[index] - multiplier * coefficients[index] / weights[index];
         unconstrained.clamp(lower[index], upper[index])
     })
 }
@@ -686,7 +728,10 @@ pub fn project_diagonal_virtual_parameter_update(
     request: VirtualParameterUpdateRequest,
 ) -> Result<VirtualParameterUpdateSelection, VirtualImpedanceError> {
     let mut coefficients = [0.0_f64; 12];
-    for (index, (((mass, stiffness), error), velocity)) in request.old.virtual_inertia.iter()
+    for (index, (((mass, stiffness), error), velocity)) in request
+        .old
+        .virtual_inertia
+        .iter()
         .zip(request.old.stiffness.iter())
         .zip(request.error.iter())
         .zip(request.relative_velocity.iter())
@@ -713,9 +758,7 @@ pub fn project_diagonal_virtual_parameter_update(
         }
     }
 
-    if !request.available_energy_budget_j.is_finite()
-        || request.available_energy_budget_j < 0.0
-    {
+    if !request.available_energy_budget_j.is_finite() || request.available_energy_budget_j < 0.0 {
         return Err(VirtualImpedanceError::InvalidEnergyBudget);
     }
 
@@ -812,8 +855,7 @@ pub fn project_diagonal_virtual_parameter_update(
         }
     }
 
-    let accepted_delta =
-        parameter_update_at_multiplier(&request, &coefficients, upper_multiplier);
+    let accepted_delta = parameter_update_at_multiplier(&request, &coefficients, upper_multiplier);
     let parameter_energy_debit_j = parameter_update_debit(&accepted_delta, &coefficients);
     let uncredited_storage_release_j =
         parameter_update_uncredited_release(&accepted_delta, &coefficients);
@@ -856,7 +898,9 @@ fn parameter_update_at_multiplier(
 }
 
 fn parameter_update_debit(delta: &[f64; 12], coefficients: &[f64; 12]) -> f64 {
-    delta.iter().zip(coefficients.iter())
+    delta
+        .iter()
+        .zip(coefficients.iter())
         .map(|(delta, coefficient)| coefficient * delta.max(0.0))
         .sum()
 }
@@ -865,7 +909,9 @@ fn parameter_update_uncredited_release(
     delta: &[f64; 12],
     coefficients: &[f64; 12],
 ) -> f64 {
-    delta.iter().zip(coefficients.iter())
+    delta
+        .iter()
+        .zip(coefficients.iter())
         .map(|(delta, coefficient)| coefficient * (-delta).max(0.0))
         .sum()
 }
@@ -913,7 +959,9 @@ pub fn diagonal_virtual_parameter_storage_delta(
     let mut delta = 0.0_f64;
     let mut required_energy_debit_j = 0.0_f64;
     let mut uncredited_storage_release_j = 0.0_f64;
-    for (((((old_mass, new_mass), old_stiffness), new_stiffness), e), velocity) in old.virtual_inertia.iter()
+    for (((((old_mass, new_mass), old_stiffness), new_stiffness), e), velocity) in old
+        .virtual_inertia
+        .iter()
         .zip(new.virtual_inertia.iter())
         .zip(old.stiffness.iter())
         .zip(new.stiffness.iter())
@@ -980,12 +1028,7 @@ mod tests {
     const PROFILE_DIGEST: [u8; 32] = [0x44; 32];
     const MAX_GAP_NS: u64 = 2_000_000_000;
 
-    fn sample(
-        sample_id: u64,
-        at_ns: u64,
-        force_x_n: f64,
-        velocity_x_mps: f64,
-    ) -> PortSample {
+    fn sample(sample_id: u64, at_ns: u64, force_x_n: f64, velocity_x_mps: f64) -> PortSample {
         PortSample {
             sample_id,
             at_ns,
@@ -1027,7 +1070,10 @@ mod tests {
         let mut new = old;
         new.stiffness[0] = 200.0;
         let result = diagonal_virtual_parameter_storage_delta(
-            old, new, [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0; 6],
+            old,
+            new,
+            [0.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0; 6],
         )
         .unwrap();
 
@@ -1045,7 +1091,10 @@ mod tests {
         let mut new = old;
         new.stiffness[0] = 100.0;
         let result = diagonal_virtual_parameter_storage_delta(
-            old, new, [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0; 6],
+            old,
+            new,
+            [0.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0; 6],
         )
         .unwrap();
 
@@ -1063,7 +1112,10 @@ mod tests {
         let mut new = old;
         new.virtual_inertia[3] = 3.0;
         let result = diagonal_virtual_parameter_storage_delta(
-            old, new, [0.0; 6], [0.0, 0.0, 0.0, 2.0, 0.0, 0.0],
+            old,
+            new,
+            [0.0; 6],
+            [0.0, 0.0, 0.0, 2.0, 0.0, 0.0],
         )
         .unwrap();
 
@@ -1080,7 +1132,10 @@ mod tests {
         new.virtual_inertia[0] = 2.0;
         new.stiffness[1] = 300.0;
         let result = diagonal_virtual_parameter_storage_delta(
-            old, new, [0.2, 0.5, 0.0, 0.0, 0.0, 0.0], [3.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            old,
+            new,
+            [0.2, 0.5, 0.0, 0.0, 0.0, 0.0],
+            [3.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         )
         .unwrap();
 
@@ -1234,12 +1289,7 @@ mod tests {
     #[test]
     fn published_diagonal_vic_qp_leaves_already_passive_reference_unchanged() {
         let result = solve_diagonal_passivity_rate_qp(passivity_qp_request(
-            [0.1; 6],
-            [0.1; 6],
-            [1.0; 6],
-            [1.0; 6],
-            [0.0; 6],
-            [0.0; 6],
+            [0.1; 6], [0.1; 6], [1.0; 6], [1.0; 6], [0.0; 6], [0.0; 6],
         ))
         .unwrap();
 
@@ -1252,12 +1302,7 @@ mod tests {
     #[test]
     fn published_diagonal_vic_qp_enforces_parameter_decay_barriers() {
         let mut request = passivity_qp_request(
-            [-10.0; 6],
-            [-10.0; 6],
-            [1.0; 6],
-            [1.0; 6],
-            [0.0; 6],
-            [0.0; 6],
+            [-10.0; 6], [-10.0; 6], [1.0; 6], [1.0; 6], [0.0; 6], [0.0; 6],
         );
         request.inertia_scale[0] = 0.75;
         request.minimum_inertia_scale[0] = 0.5;
@@ -1296,12 +1341,7 @@ mod tests {
     #[test]
     fn published_diagonal_vic_qp_clamps_reference_to_additional_upper_rate_limits() {
         let result = solve_diagonal_passivity_rate_qp(passivity_qp_request(
-            [5.0; 6],
-            [7.0; 6],
-            [0.25; 6],
-            [0.5; 6],
-            [0.0; 6],
-            [0.0; 6],
+            [5.0; 6], [7.0; 6], [0.25; 6], [0.5; 6], [0.0; 6], [0.0; 6],
         ))
         .unwrap();
 
@@ -1312,18 +1352,15 @@ mod tests {
 
     #[test]
     fn published_diagonal_vic_qp_rejects_invalid_state_and_infeasible_bounds() {
-        let mut request = passivity_qp_request(
-            [0.0; 6], [0.0; 6], [1.0; 6], [1.0; 6], [0.0; 6], [0.0; 6],
-        );
+        let mut request =
+            passivity_qp_request([0.0; 6], [0.0; 6], [1.0; 6], [1.0; 6], [0.0; 6], [0.0; 6]);
         request.inertia_scale[0] = 0.0;
         assert_eq!(
             solve_diagonal_passivity_rate_qp(request),
             Err(VirtualImpedanceError::NonPositiveVirtualInertia)
         );
 
-        request = passivity_qp_request(
-            [0.0; 6], [0.0; 6], [-1.0; 6], [1.0; 6], [0.0; 6], [0.0; 6],
-        );
+        request = passivity_qp_request([0.0; 6], [0.0; 6], [-1.0; 6], [1.0; 6], [0.0; 6], [0.0; 6]);
         assert_eq!(
             solve_diagonal_passivity_rate_qp(request),
             Err(VirtualImpedanceError::InvalidUpdateBounds)
@@ -1341,8 +1378,13 @@ mod tests {
         let mut upper = [200.0; 12];
         upper[6] = 50.0;
         let request = update_request(
-            old, desired, [0.0; 12], upper,
-            [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0; 6], 5.0,
+            old,
+            desired,
+            [0.0; 12],
+            upper,
+            [0.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0; 6],
+            5.0,
         );
         let result = project_diagonal_virtual_parameter_update(request).unwrap();
 
@@ -1366,8 +1408,13 @@ mod tests {
         let mut upper = [0.0; 12];
         upper[7] = 200.0;
         let result = project_diagonal_virtual_parameter_update(update_request(
-            old, desired, lower, upper,
-            [0.5, 0.5, 0.0, 0.0, 0.0, 0.0], [0.0; 6], 5.0,
+            old,
+            desired,
+            lower,
+            upper,
+            [0.5, 0.5, 0.0, 0.0, 0.0, 0.0],
+            [0.0; 6],
+            5.0,
         ))
         .unwrap();
 
@@ -1387,8 +1434,13 @@ mod tests {
         lower[6] = 50.0;
         assert_eq!(
             project_diagonal_virtual_parameter_update(update_request(
-                old, [100.0; 12], lower, [100.0; 12],
-                [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0; 6], 5.0,
+                old,
+                [100.0; 12],
+                lower,
+                [100.0; 12],
+                [0.5, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0; 6],
+                5.0,
             )),
             Err(VirtualImpedanceError::EnergyBudgetInfeasible)
         );
@@ -1408,8 +1460,7 @@ mod tests {
         lower[6] = -100.0;
         let upper = [0.5; 12];
         let result = project_diagonal_virtual_parameter_update(update_request(
-            old, desired, lower, upper,
-            [0.0; 6], [0.0; 6], 0.0,
+            old, desired, lower, upper, [0.0; 6], [0.0; 6], 0.0,
         ))
         .unwrap();
 
@@ -1422,7 +1473,9 @@ mod tests {
     fn positive_environment_work_replenishes_storage() {
         let mut subject = observer(0.5, 0.0, 1.0e-12);
         subject.observe(sample(1, 0, 10.0, 0.1)).unwrap();
-        let result = subject.observe(sample(2, 1_000_000_000, 10.0, 0.1)).unwrap();
+        let result = subject
+            .observe(sample(2, 1_000_000_000, 10.0, 0.1))
+            .unwrap();
 
         assert!((result.cumulative_port_work_j - 1.0).abs() < 1.0e-12);
         assert!((result.conservative_storage_lower_bound_j - 1.5).abs() < 1.0e-12);
@@ -1434,7 +1487,9 @@ mod tests {
     fn negative_environment_work_drains_storage_and_exposes_deficit() {
         let mut subject = observer(0.5, 0.0, 1.0e-9);
         subject.observe(sample(1, 0, -10.0, 0.1)).unwrap();
-        let result = subject.observe(sample(2, 1_000_000_000, -10.0, 0.1)).unwrap();
+        let result = subject
+            .observe(sample(2, 1_000_000_000, -10.0, 0.1))
+            .unwrap();
 
         assert!((result.cumulative_port_work_j + 1.0).abs() < 1.0e-12);
         assert!((result.conservative_storage_lower_bound_j + 0.5).abs() < 1.0e-12);
@@ -1464,7 +1519,9 @@ mod tests {
     fn trapezoidal_integral_handles_ramping_interaction_power() {
         let mut subject = observer(0.0, 0.0, 1.0e-12);
         subject.observe(sample(1, 0, 10.0, 0.1)).unwrap(); // 1 W
-        let result = subject.observe(sample(2, 2_000_000_000, 30.0, 0.1)).unwrap(); // 3 W
+        let result = subject
+            .observe(sample(2, 2_000_000_000, 30.0, 0.1))
+            .unwrap(); // 3 W
 
         // Average power is 2 W over 2 seconds.
         assert!((result.cumulative_port_work_j - 4.0).abs() < 1.0e-12);
@@ -1474,8 +1531,12 @@ mod tests {
     fn irregular_sample_intervals_are_integrated_using_actual_elapsed_time() {
         let mut subject = observer(0.0, 0.0, 1.0e-12);
         subject.observe(sample(1, 0, 10.0, 0.1)).unwrap(); // 1 W
-        subject.observe(sample(2, 1_000_000_000, 10.0, 0.1)).unwrap(); // +1 J
-        let result = subject.observe(sample(3, 3_000_000_000, 30.0, 0.1)).unwrap(); // +4 J
+        subject
+            .observe(sample(2, 1_000_000_000, 10.0, 0.1))
+            .unwrap(); // +1 J
+        let result = subject
+            .observe(sample(3, 3_000_000_000, 30.0, 0.1))
+            .unwrap(); // +4 J
 
         assert!((result.cumulative_port_work_j - 5.0).abs() < 1.0e-12);
         assert_eq!(result.elapsed_ns, Some(3_000_000_000));
@@ -1485,7 +1546,9 @@ mod tests {
     fn energy_uncertainty_is_subtracted_conservatively() {
         let mut subject = observer(0.5, 0.4, 1.0e-12);
         subject.observe(sample(1, 0, -10.0, 0.1)).unwrap();
-        let result = subject.observe(sample(2, 1_000_000_000, -10.0, 0.1)).unwrap();
+        let result = subject
+            .observe(sample(2, 1_000_000_000, -10.0, 0.1))
+            .unwrap();
 
         assert!((result.conservative_storage_lower_bound_j + 0.9).abs() < 1.0e-12);
         assert!((result.passivity_deficit_j - 0.9).abs() < 1.0e-12);
@@ -1499,7 +1562,10 @@ mod tests {
         let mut bad = sample(2, 20, 0.0, 0.0);
         bad.clock.boot_epoch += 1;
 
-        assert_eq!(subject.observe(bad), Err(PassivityError::ClockDomainMismatch));
+        assert_eq!(
+            subject.observe(bad),
+            Err(PassivityError::ClockDomainMismatch)
+        );
         assert_eq!(subject.snapshot(), before);
     }
 
@@ -1541,7 +1607,10 @@ mod tests {
         let mut bad = sample(2, 20, 0.0, 0.0);
         bad.wrench_environment_on_robot[2] = f64::NAN;
 
-        assert_eq!(subject.observe(bad), Err(PassivityError::NonFinitePortSample));
+        assert_eq!(
+            subject.observe(bad),
+            Err(PassivityError::NonFinitePortSample)
+        );
         assert_eq!(subject.snapshot(), before);
     }
 
@@ -1549,7 +1618,9 @@ mod tests {
     fn interior_negative_power_minimum_is_not_hidden_by_zero_net_interval_work() {
         let mut subject = observer(0.1, 0.0, 1.0e-12);
         subject.observe(sample(1, 0, -10.0, 0.1)).unwrap(); // -1 W
-        let result = subject.observe(sample(2, 2_000_000_000, 10.0, 0.1)).unwrap(); // +1 W
+        let result = subject
+            .observe(sample(2, 2_000_000_000, 10.0, 0.1))
+            .unwrap(); // +1 W
 
         // Net trapezoidal work is zero, but the power crosses zero at 1 s and
         // drains 0.5 J before replenishing it.
@@ -1563,7 +1634,9 @@ mod tests {
     fn scaled_zero_crossing_handles_extreme_opposite_signed_port_powers() {
         let mut subject = observer(1.0e307, 0.0, 1.0e306);
         subject.observe(sample(1, 0, -1.0e308, 1.0)).unwrap();
-        let result = subject.observe(sample(2, 2_000_000_000, 1.0e308, 1.0)).unwrap();
+        let result = subject
+            .observe(sample(2, 2_000_000_000, 1.0e308, 1.0))
+            .unwrap();
 
         assert!(result.cumulative_port_work_j.abs() < 1.0e-12);
         assert!((result.maximum_passivity_deficit_j / 1.0e307 - 4.0).abs() < 1.0e-12);
@@ -1588,7 +1661,10 @@ mod tests {
         subject.observe(sample(1, 10, 0.0, 0.0)).unwrap();
         let mut wrong_port = sample(2, 20, 0.0, 0.0);
         wrong_port.port_id += 1;
-        assert_eq!(subject.observe(wrong_port), Err(PassivityError::PortMismatch));
+        assert_eq!(
+            subject.observe(wrong_port),
+            Err(PassivityError::PortMismatch)
+        );
 
         let mut wrong_profile = sample(2, 20, 0.0, 0.0);
         wrong_profile.measurement_profile_digest[0] ^= 0xff;
@@ -1601,11 +1677,33 @@ mod tests {
     #[test]
     fn zero_profile_digest_and_zero_maximum_gap_are_rejected() {
         assert!(matches!(
-            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: [0; 32], max_sample_gap_ns: MAX_GAP_NS, initial_energy_budget_j: 1.0, energy_uncertainty_j: 0.0, violation_tolerance_j: 0.0 }),
+            PassivityObserver::new(
+                clock(),
+                PassivityObserverConfig {
+                    port_id: PORT_ID,
+                    frame_id: FRAME_ID,
+                    measurement_profile_digest: [0; 32],
+                    max_sample_gap_ns: MAX_GAP_NS,
+                    initial_energy_budget_j: 1.0,
+                    energy_uncertainty_j: 0.0,
+                    violation_tolerance_j: 0.0
+                }
+            ),
             Err(PassivityError::InvalidMeasurementProfileDigest)
         ));
         assert!(matches!(
-            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: PROFILE_DIGEST, max_sample_gap_ns: 0, initial_energy_budget_j: 1.0, energy_uncertainty_j: 0.0, violation_tolerance_j: 0.0 }),
+            PassivityObserver::new(
+                clock(),
+                PassivityObserverConfig {
+                    port_id: PORT_ID,
+                    frame_id: FRAME_ID,
+                    measurement_profile_digest: PROFILE_DIGEST,
+                    max_sample_gap_ns: 0,
+                    initial_energy_budget_j: 1.0,
+                    energy_uncertainty_j: 0.0,
+                    violation_tolerance_j: 0.0
+                }
+            ),
             Err(PassivityError::InvalidMaximumSampleGap)
         ));
     }
@@ -1613,15 +1711,48 @@ mod tests {
     #[test]
     fn storage_uncertainty_and_tolerance_are_validated() {
         assert!(matches!(
-            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: PROFILE_DIGEST, max_sample_gap_ns: MAX_GAP_NS, initial_energy_budget_j: -1.0, energy_uncertainty_j: 0.0, violation_tolerance_j: 0.0 }),
+            PassivityObserver::new(
+                clock(),
+                PassivityObserverConfig {
+                    port_id: PORT_ID,
+                    frame_id: FRAME_ID,
+                    measurement_profile_digest: PROFILE_DIGEST,
+                    max_sample_gap_ns: MAX_GAP_NS,
+                    initial_energy_budget_j: -1.0,
+                    energy_uncertainty_j: 0.0,
+                    violation_tolerance_j: 0.0
+                }
+            ),
             Err(PassivityError::InvalidInitialEnergyBudget)
         ));
         assert!(matches!(
-            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: PROFILE_DIGEST, max_sample_gap_ns: MAX_GAP_NS, initial_energy_budget_j: 0.0, energy_uncertainty_j: -0.1, violation_tolerance_j: 0.0 }),
+            PassivityObserver::new(
+                clock(),
+                PassivityObserverConfig {
+                    port_id: PORT_ID,
+                    frame_id: FRAME_ID,
+                    measurement_profile_digest: PROFILE_DIGEST,
+                    max_sample_gap_ns: MAX_GAP_NS,
+                    initial_energy_budget_j: 0.0,
+                    energy_uncertainty_j: -0.1,
+                    violation_tolerance_j: 0.0
+                }
+            ),
             Err(PassivityError::InvalidEnergyUncertainty)
         ));
         assert!(matches!(
-            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: PROFILE_DIGEST, max_sample_gap_ns: MAX_GAP_NS, initial_energy_budget_j: 0.0, energy_uncertainty_j: 0.0, violation_tolerance_j: f64::NAN }),
+            PassivityObserver::new(
+                clock(),
+                PassivityObserverConfig {
+                    port_id: PORT_ID,
+                    frame_id: FRAME_ID,
+                    measurement_profile_digest: PROFILE_DIGEST,
+                    max_sample_gap_ns: MAX_GAP_NS,
+                    initial_energy_budget_j: 0.0,
+                    energy_uncertainty_j: 0.0,
+                    violation_tolerance_j: f64::NAN
+                }
+            ),
             Err(PassivityError::InvalidTolerance)
         ));
     }
@@ -1630,7 +1761,9 @@ mod tests {
     fn deficit_at_or_below_tolerance_is_not_counted_as_violation() {
         let mut subject = observer(0.5, 0.0, 0.5);
         subject.observe(sample(1, 0, -10.0, 0.1)).unwrap();
-        let result = subject.observe(sample(2, 1_000_000_000, -10.0, 0.1)).unwrap();
+        let result = subject
+            .observe(sample(2, 1_000_000_000, -10.0, 0.1))
+            .unwrap();
 
         assert!((result.passivity_deficit_j - 0.5).abs() < 1.0e-12);
         assert_eq!(result.violation_interval_count, 0);
