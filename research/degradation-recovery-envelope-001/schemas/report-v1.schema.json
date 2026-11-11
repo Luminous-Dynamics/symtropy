@@ -7,6 +7,15 @@
   "required": [
     "schema_version",
     "campaign_id",
+    "model_id",
+    "model_status",
+    "model_revision",
+    "checkpoint_sha256",
+    "hardware_id",
+    "inference_precision",
+    "power_profile",
+    "energy_measurement_method",
+    "policy_visible_inputs",
     "disposition",
     "claim_ceiling",
     "expected_ticks",
@@ -96,6 +105,47 @@
     "clean_control_deadline_miss_ticks": {
       "type": "integer",
       "minimum": 0
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "model_status": {
+      "enum": [
+        "trained_policy",
+        "untrained_input_bridge",
+        "synthetic_reference"
+      ]
+    },
+    "model_revision": {
+      "type": "string"
+    },
+    "checkpoint_sha256": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "hardware_id": {
+      "type": "string"
+    },
+    "inference_precision": {
+      "type": "string"
+    },
+    "power_profile": {
+      "type": "string"
+    },
+    "energy_measurement_method": {
+      "type": "string"
+    },
+    "policy_visible_inputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
     }
   },
   "$defs": {
@@ -170,6 +220,12 @@
       "required": [
         "event_id",
         "kind",
+        "start_tick",
+        "end_tick",
+        "severity_ppm",
+        "detection_deadline_ticks",
+        "containment_deadline_ticks",
+        "max_accepted_frame_age_us",
         "exposure_ticks",
         "detection_latency_ticks",
         "containment_latency_ticks",
@@ -228,6 +284,31 @@
         },
         "recovery_observed": {
           "type": "boolean"
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "severity_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "detection_deadline_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "containment_deadline_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_accepted_frame_age_us": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     }
@@ -237,6 +318,8 @@
     "Per-event detection, containment, recovery, stale/corrupt acceptance, clean-control false-positive, latency and energy axes remain separate.",
     "valid means only structural/declared trace conformance under this software auditor, not physical fault handling or vehicle safety.",
     "The clean control must remain in normal mode, accept clean observations, and have complete latency/energy telemetry for every tick.",
-    "Detection and containment evidence references are event-specific; containment requires an actual degraded, fallback or safe-stop state."
+    "Detection and containment evidence references are event-specific; containment requires an actual degraded, fallback or safe-stop state.",
+    "The report preserves the candidate revision, checkpoint identity, hardware, precision, power profile, measurement method and policy-visible inputs.",
+    "Per-event severity and deadline thresholds remain available in the report for stratified comparison."
   ]
 }
