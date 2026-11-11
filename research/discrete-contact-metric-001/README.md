@@ -52,8 +52,9 @@ The regression suite checks a one-contact solution at mass scales
 relatively asymmetric stiffness matrix. The later **Unit-aware contact
 residual contract** section supersedes the original residual limitation: the
 active-set admission path now uses dimensionless dual, primal, complementarity
-and effective-metric equation residuals. Arbitrary mixed generalized-coordinate
-scaling, ill-conditioned coordinates and a normalized energy/work ledger remain
+and effective-metric equation residuals. One moderate diagonal generalized-
+coordinate scaling is now covered by a separate metamorphic test. Arbitrary dense
+coordinate mixing, extreme conditioning and a normalized energy/work ledger remain
 open research limits.
 
 ## Comparator snapshot — 2026-11-11
