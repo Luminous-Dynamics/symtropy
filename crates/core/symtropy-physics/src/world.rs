@@ -994,11 +994,6 @@ impl<const D: usize> PhysicsWorld<D> {
             return contact;
         }
 
-        // Isotropic (mean-of-axes) inverse inertia — see the TODO in
-        // `integrator.rs` (`integrate` / `apply_angular_impulse`) for why
-        // this is only exact for spheres.
-        let inv_i_avg_a = self.bodies[a].inv_inertia.sum() / D as f64;
-        let inv_i_avg_b = self.bodies[b].inv_inertia.sum() / D as f64;
         let com_a = self.bodies[a].position();
         let com_b = self.bodies[b].position();
 
@@ -1073,16 +1068,26 @@ impl<const D: usize> PhysicsWorld<D> {
                 ((bias_depth - slop).max(0.0) * baumgarte / safe_dt).min(MAX_BIAS_VELOCITY);
             let bias = position_bias.max(pt.restitution_bias);
 
-            // Lever-arm effective-mass term: inv_I * |r_perp|^2, where r_perp
-            // is the component of r orthogonal to the contact normal. This is
-            // the dimension-agnostic generalisation of the classic 3D
-            // "(r × n)² / I" rotational contact term (derivable directly from
-            // `Bivector::from_wedge` + `apply_to_vector`; see
-            // `wedge_matches_3d_lever_arm_identity` in symtropy-math).
-            let n_dot_ra = r_a.dot(&contact.normal);
-            let n_dot_rb = r_b.dot(&contact.normal);
-            let ang_term_a = inv_i_avg_a * (r_a.norm_squared() - n_dot_ra * n_dot_ra);
-            let ang_term_b = inv_i_avg_b * (r_b.norm_squared() - n_dot_rb * n_dot_rb);
+            // Lever-arm effective mass from the same generalized inertia
+            // operator used by angular integration. For a unit normal impulse,
+            // tau = n ∧ r; map it through the body's inverse inertia and
+            // project the resulting contact-point velocity change onto n.
+            // This reduces to inv_I * |r_perp|² for isotropic bodies while
+            // retaining world-space anisotropic coupling for rotated 3D links.
+            let angular_impulse_a = Bivector::from_wedge(&contact.normal, &r_a);
+            let angular_impulse_b = Bivector::from_wedge(&contact.normal, &r_b);
+            let delta_omega_a =
+                self.bodies[a].apply_inverse_angular_inertia(&angular_impulse_a);
+            let delta_omega_b =
+                self.bodies[b].apply_inverse_angular_inertia(&angular_impulse_b);
+            let ang_term_a = contact
+                .normal
+                .dot(&delta_omega_a.apply_to_vector(&r_a))
+                .max(0.0);
+            let ang_term_b = contact
+                .normal
+                .dot(&delta_omega_b.apply_to_vector(&r_b))
+                .max(0.0);
 
             // TGS Soft impulse: Δλ = (-v_rel·n + bias) / (w_a + w_b + I_a + I_b + α)
             let denom = total_inv_mass + alpha + ang_term_a + ang_term_b;
