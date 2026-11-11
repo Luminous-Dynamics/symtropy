@@ -1,0 +1,35 @@
+name: PHRI Basis-Free Compliance Reference
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/phri-basis-free-compliance-001/**"
+      - ".github/workflows/phri-basis-free-compliance.yml"
+  push:
+    branches: ["research/phri-basis-free-compliance-001"]
+    paths:
+      - "research/phri-basis-free-compliance-001/**"
+      - ".github/workflows/phri-basis-free-compliance.yml"
+
+concurrency:
+  group: phri-basis-free-compliance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference:
+    name: Deterministic basis-free compliance reference (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/phri-basis-free-compliance-001/Cargo.toml -- --check
+      - name: Test matrix-coordinate reference
+        run: cargo test --locked --manifest-path research/phri-basis-free-compliance-001/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/phri-basis-free-compliance-001/Cargo.toml --all-targets -- -D warnings
