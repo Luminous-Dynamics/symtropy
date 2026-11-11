@@ -20,6 +20,8 @@
 use nalgebra::{SMatrix, SVector};
 use symtropy_math::{Bivector, Rotor};
 
+const ROTATION_VALIDITY_TOLERANCE: f64 = 1.0e-8;
+
 /// Construction errors for a rotational inertia operator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RotationalInertiaError {
@@ -86,7 +88,14 @@ impl<const D: usize> BivectorInertia<D> {
             }
         }
 
-        let symmetric = (second_moment + second_moment.transpose()) * 0.5;
+        // Halve before adding so two large, finite symmetric entries do not
+        // overflow merely while their arithmetic mean is representable.
+        let symmetric = SMatrix::<f64, D, D>::from_fn(|i, j| {
+            0.5 * second_moment[(i, j)] + 0.5 * second_moment[(j, i)]
+        });
+        if !symmetric.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
 
         // nalgebra's fixed-size SymmetricEigen requires a ToTypenum bound that
         // an unconstrained const-generic D cannot provide. Decompose through a
@@ -318,7 +327,7 @@ impl<const D: usize> BivectorInertia<D> {
         angular_momentum: &Bivector<D>,
         relative_tolerance: f64,
     ) -> Result<Bivector<D>, RotationalInertiaError> {
-        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
+        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 || relative_tolerance >= 1.0 {
             return Err(RotationalInertiaError::InvalidTolerance);
         }
         if !angular_momentum.is_finite() {
@@ -395,20 +404,39 @@ impl<const D: usize> BivectorInertia<D> {
         {
             return Err(RotationalInertiaError::NonFinite);
         }
-        let direction_norm = impulse_direction.norm();
-        if !direction_norm.is_finite() || direction_norm == 0.0 {
+        // Normalize after scaling by the largest component so very large or
+        // subnormal-but-nonzero finite directions do not overflow/underflow
+        // during the norm calculation.
+        let direction_scale = impulse_direction
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if direction_scale == 0.0 {
             return Err(RotationalInertiaError::InvalidDirection);
         }
-        let direction = impulse_direction / direction_norm;
+        let scaled_direction = impulse_direction / direction_scale;
+        let scaled_norm = scaled_direction.norm();
+        if !scaled_norm.is_finite() || scaled_norm == 0.0 {
+            return Err(RotationalInertiaError::InvalidDirection);
+        }
+        let direction = scaled_direction / scaled_norm;
         let torque_accumulator = Bivector::from_wedge(offset, &direction);
         let angular_response =
             self.angular_velocity_from_momentum(&torque_accumulator, relative_tolerance)?;
         let point_velocity_change = -angular_response.apply_to_vector(offset);
+        if !point_velocity_change.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
         let effective_mass = direction.dot(&point_velocity_change);
         if !effective_mass.is_finite() {
             return Err(RotationalInertiaError::NonFinite);
         }
-        let effective_mass_tolerance = 1e-12 * point_velocity_change.norm().max(f64::MIN_POSITIVE);
+        let response_scale = point_velocity_change
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let response_norm =
+            (point_velocity_change / response_scale.max(f64::MIN_POSITIVE)).norm();
+        let effective_mass_tolerance =
+            1e-12 * response_scale * response_norm.max(f64::MIN_POSITIVE);
         if effective_mass < -effective_mass_tolerance {
             return Err(RotationalInertiaError::NotPositiveSemidefinite);
         }
@@ -778,6 +806,24 @@ mod tests {
     }
 
     #[test]
+    fn rotational_inverse_effective_mass_normalizes_extreme_finite_direction() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            2.0,
+            SVector::new(1.4, 0.9, 0.5),
+        )
+        .unwrap();
+        let offset = SVector::new(0.7, -0.25, 0.4);
+        let direction = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let expected = inertia
+            .rotational_inverse_effective_mass(&offset, &direction, 1e-12)
+            .unwrap();
+        let observed = inertia
+            .rotational_inverse_effective_mass(&offset, &(direction * 1.0e300), 1e-12)
+            .unwrap();
+        assert!((observed - expected).abs() < 2.0e-11);
+    }
+
+    #[test]
     fn rotational_inverse_effective_mass_rejects_zero_direction() {
         let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
         assert_eq!(
@@ -865,6 +911,37 @@ mod tests {
             "instantaneous angular-momentum derivative must equal applied torque: \
              got={l_dot:?}, expected={torque:?}"
         );
+    }
+
+    #[test]
+    fn angular_momentum_derivative_matches_rotor_finite_difference() {
+        let inertia = BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::new(
+            1.4, 0.12, -0.08,
+            0.12, 2.2, 0.17,
+            -0.08, 0.17, 3.1,
+        ))
+        .unwrap();
+        let mut angular_state = Bivector::<3>::zero();
+        angular_state.set(0, 1, 0.4);
+        angular_state.set(0, 2, -0.25);
+        angular_state.set(1, 2, 0.7);
+        let mut torque = Bivector::<3>::zero();
+        torque.set(0, 1, -0.3);
+        torque.set(0, 2, 0.8);
+        torque.set(1, 2, 0.2);
+
+        let angular_acceleration = inertia
+            .angular_acceleration(&angular_state, &torque, 1e-12)
+            .unwrap();
+        let initial_momentum = inertia.angular_momentum(&angular_state).unwrap();
+        let dt = 1.0e-7;
+        let delta = Rotor::from_bivector(&angular_state.scale(dt));
+        let next_inertia = inertia.rotated_by(&delta).unwrap();
+        let next_angular_state = angular_state.add(&angular_acceleration.scale(dt));
+        let next_momentum = next_inertia.angular_momentum(&next_angular_state).unwrap();
+        let observed_rate = next_momentum.add(&initial_momentum.scale(-1.0)).scale(1.0 / dt);
+        let error = observed_rate.add(&torque.scale(-1.0)).norm();
+        assert!(error < 2.0e-6, "Rotor finite-difference torque error={error:e}");
     }
 
     #[test]
