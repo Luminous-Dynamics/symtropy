@@ -1312,6 +1312,83 @@ mod tests {
     }
 
     #[test]
+    fn rejects_sampler_query_receipt_count_mismatch() {
+        let mut result = card("a", 90.0, Some(2.0), Some(20.0), Some(1_000));
+        result.experience_selection.queries_accepted += 1;
+        assert!(result.validate().is_err());
+    }
+
+    #[test]
+    fn rejects_sampler_costs_that_exceed_total_training_exposure() {
+        let mut result = card("a", 90.0, Some(2.0), Some(20.0), Some(1_000));
+        result.experience_selection.query_simulator_transitions =
+            result.data.simulator_transitions + 1;
+        assert!(result.validate().is_err());
+
+        result = card("b", 90.0, Some(2.0), Some(20.0), Some(1_000));
+        result.experience_selection.query_human_intervention_minutes =
+            result.data.human_intervention_minutes + 1.0;
+        assert!(result.validate().is_err());
+
+        result = card("c", 90.0, Some(2.0), Some(20.0), Some(1_000));
+        result.experience_selection.query_compute_gpu_hours =
+            Some(result.compute.training_gpu_hours.unwrap() + 1.0);
+        assert!(result.validate().is_err());
+    }
+
+    #[test]
+    fn rejects_anytime_rollout_compute_over_budget() {
+        let mut result = card("a", 90.0, Some(2.0), Some(20.0), Some(1_000));
+        result.inference_allocation.rollout_compute_units_used = Some(10_001);
+        assert!(result.validate().is_err());
+    }
+
+    #[test]
+    fn complete_result_requires_sampler_and_allocator_receipt_provenance() {
+        let mut result = card("a", 90.0, Some(2.0), Some(20.0), Some(1_000));
+        result.experience_selection.selection_receipt_manifest_sha256 = None;
+        assert!(result.validate().is_err());
+
+        result = card("b", 90.0, Some(2.0), Some(20.0), Some(1_000));
+        result.inference_allocation.latency_bound_manifest_sha256 = None;
+        assert!(result.validate().is_err());
+    }
+
+    #[test]
+    fn equal_budget_sampler_and_anytime_allocator_remain_matched_comparison_arms() {
+        let baseline = card("fixed", 90.0, Some(2.0), Some(20.0), Some(1_000));
+        let mut candidate = card("anytime", 91.0, Some(2.0), Some(18.0), Some(900));
+        candidate.experience_selection.strategy_id = "sam_decision_value".into();
+        candidate.experience_selection.selector_revision = "sam-selector-v1".into();
+        candidate.experience_selection.candidates_scored = 10_000;
+        candidate.experience_selection.queries_issued = 100;
+        candidate.experience_selection.queries_accepted = 90;
+        candidate.experience_selection.queries_rejected = 10;
+        candidate.experience_selection.query_deadline_misses = 2;
+        candidate.experience_selection.query_simulator_transitions = 500;
+        candidate.experience_selection.query_human_intervention_minutes = 5.0;
+        candidate.experience_selection.query_compute_gpu_hours = Some(1.0);
+        candidate.inference_allocation.allocator_id = "deadline_aware_anytime".into();
+        candidate.inference_allocation.allocator_revision = "anytime-v1".into();
+        candidate.inference_allocation.additional_rollouts = 250;
+        candidate.inference_allocation.rollout_compute_units_used = Some(8_000);
+        candidate.inference_allocation.predicted_regret_reduction = Some(20.0);
+        candidate.inference_allocation.observed_regret_reduction = Some(12.5);
+        let comparison = compare_metric(
+            &baseline,
+            &candidate,
+            "driving_score",
+            MetricDirection::HigherIsBetter,
+        )
+        .unwrap();
+        assert_eq!(comparison.class, ComparisonClass::MatchedCapability);
+        assert_eq!(
+            comparison.candidate_to_baseline_rollout_compute_units_ratio,
+            Some(0.8)
+        );
+    }
+
+    #[test]
     fn matched_comparison_requires_equal_data_and_hardware_budgets() {
         let baseline = card("baseline", 90.0, Some(4.0), Some(20.0), Some(1_000));
         let candidate = card("candidate", 91.0, Some(2.0), Some(18.0), Some(900));
