@@ -155,7 +155,11 @@
     "each benchmark run binds the exact shift-matrix digest, shift axis, holdout manifest digest and independent test recording count",
     "condition-shift retention, fault-semantic unknown rejection and joint C+F robustness are reported as distinct outcomes",
     "a leave-one-known-fault-family-out result is labelled a surrogate open-set test, not proof of a previously unseen physical mechanism",
-    "no C+F transfer claim is made unless independent test recordings cover the joint held-out fault-family and operating-cycle cell"
+    "no C+F transfer claim is made unless independent test recordings cover the joint held-out fault-family and operating-cycle cell",
+    "active evidence selection binds exact hypothesis prior, label space, likelihood model/calibration, candidate catalogue and policy digests",
+    "all value-of-information baselines share the same candidate catalogue and hard eligibility set",
+    "authority digest shape is not signer verification; issuer identity, authority scope, expiry and revocation are verified upstream",
+    "active selector cannot execute observations or inspections and cannot recommend controlled perturbations"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -299,5 +303,24 @@
     "core_rule": "Condition shift, fault-semantic shift and combined shift are separate claims. Passing one axis never qualifies another.",
     "independent_unit": "recording_or_engine_run",
     "cross_engine_fleet": "unsupported_until_independent_engine_or_fleet_units_are_available"
+  },
+  "active_evidence_selection": {
+    "path": "active-evidence-selection-v0.1.json",
+    "schema_version": "liu-ice-active-evidence-selection-v0.1",
+    "status": "protocol_only_not_executed",
+    "selector": "read_only_value_of_information",
+    "utility": "expected_information_gain_nats / (1 + normalized_cost + normalized_delay + normalized_risk)",
+    "comparators": [
+      "no_additional_evidence",
+      "cheapest_eligible",
+      "maximum_eig_only",
+      "eig_per_cost",
+      "seeded_random_eligible",
+      "risk_adjusted_eig"
+    ],
+    "execution_performed": false,
+    "actuation_authorized": false,
+    "controlled_perturbations_recommended": 0,
+    "claim_ceiling": "synthetic likelihood contracts only; no sensor, inspection, controlled test or actuator operation is executed"
   }
 }
