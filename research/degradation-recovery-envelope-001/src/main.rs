@@ -10,7 +10,7 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-use degradation_recovery_envelope::{audit_campaign, AuditReport, Campaign};
+use degradation_recovery_envelope::{audit_campaign, standard_fault_schedule, AuditReport, Campaign};
 use serde_json::json;
 
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
@@ -31,9 +31,42 @@ fn write_report(path: &Path, report: &AuditReport) -> Result<(), Box<dyn Error>>
 
 fn run() -> Result<i32, Box<dyn Error>> {
     let args = env::args().skip(1).collect::<Vec<_>>();
+    if args.first().is_some_and(|value| value == "generate-schedule") {
+        if args.len() != 8 {
+            return Err(
+                "usage: degradation-recovery-envelope generate-schedule <first-start-tick> <spacing-ticks> <exposure-ticks> <detection-deadline-ticks> <containment-deadline-ticks> <recovery-quorum-ticks> <output.json>"
+                    .into(),
+            );
+        }
+        let parse = |index: usize, name: &str| -> Result<u64, Box<dyn Error>> {
+            args[index]
+                .parse::<u64>()
+                .map_err(|error| format!("invalid {name}: {error}").into())
+        };
+        let events = standard_fault_schedule(
+            parse(1, "first-start-tick")?,
+            parse(2, "spacing-ticks")?,
+            parse(3, "exposure-ticks")?,
+            parse(4, "detection-deadline-ticks")?,
+            parse(5, "containment-deadline-ticks")?,
+            parse(6, "recovery-quorum-ticks")?,
+        )
+        .map_err(|error| format!("cannot generate schedule: {error}"))?;
+        let output_path = Path::new(&args[7]);
+        if let Some(parent) = output_path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(output_path, serde_json::to_vec_pretty(&events)?)?;
+        println!(
+            "generated {} deterministic fault events; schedule: {}",
+            events.len(),
+            output_path.display()
+        );
+        return Ok(0);
+    }
     if args.len() != 2 {
         return Err(
-            "usage: degradation-recovery-envelope <campaign.json> <report.json>".into(),
+            "usage: degradation-recovery-envelope <campaign.json> <report.json>\n       degradation-recovery-envelope generate-schedule <first-start-tick> <spacing-ticks> <exposure-ticks> <detection-deadline-ticks> <containment-deadline-ticks> <recovery-quorum-ticks> <output.json>".into(),
         );
     }
     let input_path = Path::new(&args[0]);
@@ -88,6 +121,30 @@ mod tests {
         assert!(rendered.get("clean_control_inference_energy").is_some());
         assert!(rendered.get("faulted_inference_energy").is_some());
         assert!(rendered.get("composite_score").is_none());
+    }
+
+    #[test]
+    fn cli_exposes_deterministic_seven_family_fault_schedule() {
+        let events = standard_fault_schedule(10, 5, 3, 1, 1, 2).unwrap();
+        let rendered = serde_json::to_value(events).unwrap();
+        assert_eq!(rendered.as_array().unwrap().len(), 7);
+        assert_eq!(rendered[0]["kind"], "camera_drop");
+        assert_eq!(rendered[6]["kind"], "compute_overrun");
+    }
+
+    #[test]
+    fn campaign_and_report_schemas_are_valid_json_documents() {
+        let campaign_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/campaign-v1.schema.json")).unwrap();
+        let report_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/report-v1.schema.json")).unwrap();
+        assert_eq!(campaign_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+        assert_eq!(report_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+        assert!(campaign_schema["$defs"]["tick"]["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "fault_detection_event_ids"));
     }
 
     #[test]
