@@ -41,3 +41,9 @@ jobs:
           cargo run --locked --manifest-path research/degradation-recovery-envelope-001/Cargo.toml -- \
             research/degradation-recovery-envelope-001/fixtures/camera-drop-paired-v1.json \
             /tmp/camera-drop-report.json
+
+      - name: Audit compound common-cause fixture
+        run: |
+          cargo run --locked --manifest-path research/degradation-recovery-envelope-001/Cargo.toml -- \
+            research/degradation-recovery-envelope-001/fixtures/compound-common-cause-camera-clock-v1.json \
+            /tmp/compound-camera-clock-report.json
