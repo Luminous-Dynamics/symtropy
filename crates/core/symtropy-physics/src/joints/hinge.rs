@@ -99,6 +99,44 @@ impl<const D: usize> HingeJoint<D> {
     }
 }
 
+/// Effective inverse inertia about the world-space hinge axis.
+///
+/// In 3D, the bivector plane's normal is the hinge axis. The body's diagonal
+/// principal inverse inertia is projected onto that axis in body-local space,
+/// accounting for the body's current orientation. In other dimensions this
+/// engine currently stores only a diagonal vector rather than a full rotational
+/// inertia operator; use the documented mean-inertia approximation.
+fn hinge_axis_inverse_inertia<const D: usize>(
+    body: &RigidBody<D>,
+    plane_axis_a: usize,
+    plane_axis_b: usize,
+) -> f64 {
+    if !body.is_dynamic() {
+        return 0.0;
+    }
+
+    if D == 3 {
+        let axis_index = D - 1 - plane_axis_a - plane_axis_b;
+        let mut world_axis = SVector::<f64, D>::zeros();
+        world_axis[axis_index] = 1.0;
+        let local_axis = body
+            .transform
+            .rotation
+            .reverse()
+            .rotate_vector(&world_axis);
+        (0..D)
+            .map(|i| local_axis[i] * local_axis[i] * body.inv_inertia[i])
+            .sum()
+    } else {
+        let mean_inertia = body.inertia.sum() / D as f64;
+        if mean_inertia.is_finite() && mean_inertia > 0.0 {
+            1.0 / mean_inertia
+        } else {
+            0.0
+        }
+    }
+}
+
 impl<const D: usize> Constraint<D> for HingeJoint<D> {
     fn bodies(&self) -> (BodyHandle, BodyHandle) {
         (self.body_a, self.body_b)
@@ -254,19 +292,28 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 cb.record_work(self.body_b, work_joules);
             }
 
-            let impulse = torque * _dt;
-            if body_a.is_dynamic() {
+            let inverse_inertia_a = hinge_axis_inverse_inertia(body_a, pa, pb);
+            let inverse_inertia_b = hinge_axis_inverse_inertia(body_b, pa, pb);
+            if inverse_inertia_a + inverse_inertia_b <= 1e-15 {
+                return;
+            }
+
+            // Apply equal-and-opposite angular impulse through each body's
+            // effective inverse inertia. A fixed base contributes zero inverse
+            // inertia; it must not cause the moving body's impulse to be halved.
+            let angular_impulse = torque * _dt;
+            if inverse_inertia_a > 0.0 {
                 body_a.angular_velocity.set(
                     pa,
                     pb,
-                    body_a.angular_velocity.get(pa, pb) - impulse * 0.5,
+                    body_a.angular_velocity.get(pa, pb) - angular_impulse * inverse_inertia_a,
                 );
             }
-            if body_b.is_dynamic() {
+            if inverse_inertia_b > 0.0 {
                 body_b.angular_velocity.set(
                     pa,
                     pb,
-                    body_b.angular_velocity.get(pa, pb) + impulse * 0.5,
+                    body_b.angular_velocity.get(pa, pb) + angular_impulse * inverse_inertia_b,
                 );
             }
         }
@@ -350,6 +397,73 @@ mod tests {
 
         let dist = a.transform.translation.distance(&b.transform.translation);
         assert!(dist < 0.1, "4D hinge, dist = {dist}");
+    }
+
+    fn unit_velocity_motor() -> super::super::MotorDrive {
+        super::super::MotorDrive::new(0.0, 100.0).with_gains(1.0, 0.0)
+    }
+
+    #[test]
+    fn motor_impulse_uses_full_inverse_inertia_against_static_base() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        b.inertia = SVector::from([1.0, 1.0, 1.0]);
+        b.inv_inertia = SVector::from([1.0, 1.0, 1.0]);
+
+        let mut motor = unit_velocity_motor();
+        motor.target_vel = 1.0;
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(motor);
+
+        joint.solve_velocity(&mut a, &mut b, 0.1, None);
+
+        assert!((b.angular_velocity.get(0, 1) - 0.1).abs() < 1e-12);
+        assert_eq!(a.angular_velocity.get(0, 1), 0.0);
+    }
+
+    #[test]
+    fn motor_impulse_scales_each_dynamic_body_by_its_inverse_inertia() {
+        let mut a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        a.inertia = SVector::from([1.0, 1.0, 1.0]);
+        a.inv_inertia = SVector::from([1.0, 1.0, 1.0]);
+        b.inertia = SVector::from([1.0, 1.0, 2.0]);
+        b.inv_inertia = SVector::from([1.0, 1.0, 0.5]);
+
+        let mut motor = unit_velocity_motor(1.0);
+        motor.target_vel = 1.0;
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(motor);
+
+        joint.solve_velocity(&mut a, &mut b, 0.1, None);
+
+        assert!((a.angular_velocity.get(0, 1) + 0.1).abs() < 1e-12);
+        assert!((b.angular_velocity.get(0, 1) - 0.05).abs() < 1e-12);
+        let relative_velocity = b.angular_velocity.get(0, 1) - a.angular_velocity.get(0, 1);
+        assert!((relative_velocity - 0.15).abs() < 1e-12);
+    }
+
+    #[test]
+    fn motor_uses_hinge_axis_principal_inertia_in_three_dimensions() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
+        b.inertia = SVector::from([1.0, 2.0, 4.0]);
+        b.inv_inertia = SVector::from([1.0, 0.5, 0.25]);
+
+        let mut motor = unit_velocity_motor(1.0);
+        motor.target_vel = 1.0;
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(motor);
+
+        joint.solve_velocity(&mut a, &mut b, 0.1, None);
+
+        // Plane (0, 1) rotates about Z, whose principal inertia is 4.
+        assert!((b.angular_velocity.get(0, 1) - 0.025).abs() < 1e-12);
     }
 
     #[test]
