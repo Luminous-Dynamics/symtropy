@@ -15,20 +15,24 @@ Autonomous-driving comparisons are misleading when they ignore input privileges,
 
 The aim is not to prove that an HDC model is smaller than a transformer. The aim is to find the best measured competence/constraint frontier and determine which Symthaea components actually contribute.
 
-## What the field is doing (snapshot: 10 November 2026)
+## What the field is doing (snapshot: 11 November 2026)
 
 | Comparator | Public reference | How to use it |
 |---|---|---|
-| Bench2Drive v0.0.4 | LEAD: 95.59 Driving Score; 87.28% Success Rate on the tagged result table | Closed-loop route benchmark; pin exact tag, routes, sensor profile and evaluator |
-| DriveWorld-VLA, ICML 2026 | NAVSIMv1 PDMS 91.3; NAVSIMv2 EPDMS 86.8; nuScenes 3-second average collision rate 0.16 | Strong action-conditioned latent world-model/VLA reference; preserve each native task metric |
+| Bench2Drive v0.0.4 | LEAD: 95.59 Driving Score; 87.28% Success Rate; separate efficiency and comfort measures | Closed-loop route benchmark; pin exact tag, routes, sensor profile and evaluator |
+| DriveWorld-VLA, ICML 2026 | NAVSIMv1 PDMS 91.3; NAVSIMv2 EPDMS 86.8; nuScenes 3-second average collision rate 0.16 | Action-conditioned latent world-model/VLA reference; preserve each native task metric |
 | World-In-World, ICLR 2026 | Closed-loop platform emphasizing task success, controllability, action-observation post-training and inference-time compute | Evaluate whether predicted worlds improve agent success, not just video fidelity |
-| Alpamayo 2 Edge, 10 Nov 2026 | 2B in-car reasoning VLA designed for DRIVE AGX Thor; adaptive reasoning, multi-camera temporal inputs, Super-generated distillation labels and AlpaGym closed-loop RL | Industry edge-student comparator; record hardware, quantization, acceleration and availability |
-| Alpamayo 2 Super | 34B reasoning/teacher model with trajectory, CoC reasoning and auto-label outputs | High-capacity teacher; account for all teacher privilege and generated supervision |
+| NVIDIA Alpamayo 2 Edge, released 10 Nov 2026 | Model card: 2.45B backbone + 0.2B action expert; 15.15 ± 0.04 km per at-fault incident on 875 AlpaSim scenarios / three rollout sets; minADE6 0.52m at 5s on 1,392 samples; Lingo-Judge 75.2; 115,000h video and about 3.7M CoC traces | Strong edge-VLA comparator. Keep closed-loop, open-loop, reasoning, training data and latency as distinct metric families |
+| Alpamayo 2 Edge deployment recipe | NVIDIA's named DRIVE AGX Thor-X recipe reports 160–190ms pixel-to-trajectory latency on DRIVE OS 7.2.7.0, CUDA 13.4 and TensorRT 11.3.1.9 | Latency comparator only on a matching hardware/software measurement configuration |
+| Alpamayo 2 Super | 34B reasoning/teacher model with trajectory, CoC reasoning and auto-label outputs | High-capacity teacher; account for teacher privilege and generated supervision |
+| Waymo WOD-E2E, CVPR 2026 | 4,021 segments / approximately 12h curated for long-tail E2E scenarios with reported occurrence below 0.03% | Rare-event dataset reference; offline dataset, not a closed-loop recovery metric |
+| Waymo Open Dataset challenges | Formal challenges are not hosted in 2026, but public leaderboards remain active | Public evaluator/data route; pin the exact active leaderboard and track |
+| CARLA Leaderboard 2.0 | Separate SENSORS and MAP tracks with route completion and infraction penalties; official challenge is permanently closed | Historical methodology reference only, not an active submission path |
 | Waymo Driver | Company dashboard: 271.3M rider-only miles through June 2026; company-reported 95% fewer serious-injury-or-worse crashes and 82% fewer injury-causing crashes against its location-adjusted human benchmark | Operational safety evidence class and eventual safety-case reference, not a simulator leaderboard |
 
-These results are not pooled into one ranking. In particular, Bench2Drive Driving Score, NAVSIM PDMS/EPDMS, World-In-World task outcomes, Alpamayo reasoning/trajectory measures and Waymo operational crash rates answer different questions.
+These results are not pooled into one ranking. Bench2Drive Driving Score, NAVSIM PDMS/EPDMS, AlpaSim kilometres per at-fault incident, minADE, reasoning scores, WOD-E2E dataset coverage and Waymo operational crash rates answer different questions. The Alpamayo model card's 2.45B + 0.2B breakdown differs from NVIDIA's rounded "2B" headline; the manifest preserves the detailed model-card count and labels the source.
 
-Sources are linked in `benchmark_manifest_v0_1.json`. The comparator register records whether each item is an independently reproducible benchmark, a paper-reported result, a platform capability description or a company-published operational result.
+Sources are linked in `benchmark_manifest_v0_1.json`. Model-card figures and vendor deployment measurements are reported claims, not independent Symtropy reproductions. NVIDIA's 160–190ms latency is meaningful only with its named Thor-X / DRIVE OS / CUDA / TensorRT configuration; it is not compared to laptop or desktop CPU timing.
 
 ## Symthaea's competitive hypothesis
 
@@ -85,7 +89,7 @@ Camera dropout, delayed/stale frames, calibration error, occlusion, lighting/wea
 
 1. 100% exact agreement on analytic control/rendering fixtures and declared negative controls.
 2. 100% expected/observed episode accounting and zero hidden-state or teacher/evaluator leakage in frozen evaluation.
-3. At matched Bench2Drive v0.0.4 conditions, reach within 1.5 native Driving Score points of the strongest reproducible compact baseline while using no more than 50% of its measured inference energy. The hardware and energy measurement rig must be frozen before evaluation.
+3. At matched Bench2Drive v0.0.4 conditions, reach within 1.5 native Driving Score points of the strongest reproducible compact baseline while using no more than 50% of its measured inference energy. Hardware, input privileges, dataset, precision, power profile and energy measurement rig must be frozen before evaluation.
 4. Against uniform sampling, reduce simulator transitions or human correction minutes to a frozen skill threshold by at least 20%, without degrading worst-family constraints, calibration, fallback integrity or held-out competence.
 5. Demonstrate at least one statistically supported HDC/LTC advantage in temporal irregularity, memory, missing-sensor robustness, adaptation cost, latency/energy or recoverability.
 6. Show that action-conditioned world-model training improves closed-loop outcomes versus the same policy without that model, under matched data and compute.
