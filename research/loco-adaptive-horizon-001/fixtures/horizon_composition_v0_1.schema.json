@@ -1,0 +1,449 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/loco-adaptive-horizon-001/fixtures/horizon_composition_v0_1.schema.json",
+  "title": "LOCO-ADAPTIVE-HORIZON-001 synthetic known answers v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "status",
+    "units",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "protocol_id": {
+      "const": "LOCO-ADAPTIVE-HORIZON-001"
+    },
+    "status": {
+      "const": "synthetic_known_answers_only"
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time",
+        "control_period",
+        "horizon"
+      ],
+      "properties": {
+        "time": {
+          "const": "ms"
+        },
+        "control_period": {
+          "const": "ms"
+        },
+        "horizon": {
+          "const": "control_steps"
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "uniqueItems": true,
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH01_QUEUED_HORIZON_FEASIBLE"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH02_P99_LATENCY_EXCEEDS_VIABILITY_HORIZON"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH03_CONTACT_MODEL_SETS_HORIZON"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH04_THERMAL_HEADROOM_SETS_HORIZON"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH05_CLOCK_MAPPING_UNKNOWN"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH06_THERMAL_MODEL_UNQUALIFIED"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH07_SPLIT_TIMESCALE_LOCAL_EXPERT"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH08_DEADLINE_SETS_HORIZON"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH09_REQUESTED_CHUNK_EXCEEDS_K_MAX"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH10_SAFE_STOP_RESERVE_SETS_HORIZON"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH11_ACTUATOR_RESPONSE_SETS_HORIZON"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "AH12_CONTACT_MODEL_UNQUALIFIED"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ],
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "nullable_integer": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "horizons": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_freshness_ms",
+        "chunk_expiry_ms",
+        "task_deadline_ms",
+        "certificate_validity_ms",
+        "contact_model_validity_ms",
+        "actuator_model_validity_ms",
+        "thermal_to_limit_ms",
+        "safe_stop_reserve_horizon_ms"
+      ],
+      "properties": {
+        "observation_freshness_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "chunk_expiry_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "task_deadline_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "certificate_validity_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "contact_model_validity_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "actuator_model_validity_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "thermal_to_limit_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "safe_stop_reserve_horizon_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "execution_mode",
+        "period_ms",
+        "requested_k",
+        "queued_proposal_p99_ms",
+        "local_action_expert_p99_ms",
+        "slow_world_context_p99_ms",
+        "local_expert_available",
+        "all_horizon_evidence_qualified",
+        "clock_mapping_valid",
+        "thermal_model_qualified",
+        "contact_model_qualified",
+        "actuator_response_qualified",
+        "certificate_validity_qualified",
+        "reserve_model_qualified",
+        "horizons"
+      ],
+      "properties": {
+        "execution_mode": {
+          "enum": [
+            "queued_open_loop",
+            "split_timescale_local_expert"
+          ]
+        },
+        "period_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "requested_k": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "queued_proposal_p99_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "local_action_expert_p99_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "slow_world_context_p99_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "local_expert_available": {
+          "type": "boolean"
+        },
+        "all_horizon_evidence_qualified": {
+          "type": "boolean"
+        },
+        "clock_mapping_valid": {
+          "type": "boolean"
+        },
+        "thermal_model_qualified": {
+          "type": "boolean"
+        },
+        "contact_model_qualified": {
+          "type": "boolean"
+        },
+        "actuator_response_qualified": {
+          "type": "boolean"
+        },
+        "certificate_validity_qualified": {
+          "type": "boolean"
+        },
+        "reserve_model_qualified": {
+          "type": "boolean"
+        },
+        "horizons": {
+          "$ref": "#/$defs/horizons"
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "h_safe_ms",
+        "k_min",
+        "k_max",
+        "selected_k",
+        "limiting_bound",
+        "extension_allowed",
+        "fallback_required",
+        "actuation_authorized"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "queued_horizon_feasible",
+            "no_queued_horizon_feasible",
+            "horizon_unknown_fallback",
+            "split_timescale_local_expert_feasible",
+            "requested_horizon_exceeds_bound"
+          ]
+        },
+        "h_safe_ms": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "k_min": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "k_max": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "selected_k": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "limiting_bound": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "extension_allowed": {
+          "type": "boolean"
+        },
+        "fallback_required": {
+          "type": "boolean"
+        },
+        "actuation_authorized": {
+          "const": false
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "description",
+        "inputs",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "enum": [
+            "AH01_QUEUED_HORIZON_FEASIBLE",
+            "AH02_P99_LATENCY_EXCEEDS_VIABILITY_HORIZON",
+            "AH03_CONTACT_MODEL_SETS_HORIZON",
+            "AH04_THERMAL_HEADROOM_SETS_HORIZON",
+            "AH05_CLOCK_MAPPING_UNKNOWN",
+            "AH06_THERMAL_MODEL_UNQUALIFIED",
+            "AH07_SPLIT_TIMESCALE_LOCAL_EXPERT",
+            "AH08_DEADLINE_SETS_HORIZON",
+            "AH09_REQUESTED_CHUNK_EXCEEDS_K_MAX",
+            "AH10_SAFE_STOP_RESERVE_SETS_HORIZON",
+            "AH11_ACTUATOR_RESPONSE_SETS_HORIZON",
+            "AH12_CONTACT_MODEL_UNQUALIFIED"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputs": {
+          "$ref": "#/$defs/inputs"
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
+        }
+      }
+    }
+  }
+}
