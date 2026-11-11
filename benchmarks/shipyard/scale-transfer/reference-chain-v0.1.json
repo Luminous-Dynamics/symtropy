@@ -1,0 +1,193 @@
+{
+  "schema_version": "0.1.0",
+  "model": {
+    "model_id": "MODEL-TEP-01",
+    "revision": "R3",
+    "family": "transient_thermo_elasto_plastic_fem",
+    "calibration_domain_id": "D0",
+    "output_scope": "released_angular_distortion",
+    "validation_status": "validated",
+    "model_digest_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "parameter_set_digest_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "domains": [
+    {
+      "domain_id": "D0",
+      "signature": {
+        "material_family": "ferritic_steel",
+        "material_grade": "S355J2+N",
+        "joint_family": "single_v_groove",
+        "penetration_class": "full_penetration",
+        "process_family": "GMAW",
+        "process_variant": "tandem_pmc_cmt",
+        "pass_topology": "six_layer",
+        "restraint_class": "coupon_rigid_fixture",
+        "scale_tier": "bead_or_coupon",
+        "thickness_min_mm": 28,
+        "thickness_max_mm": 32,
+        "boundary_class": "ambient_air_cooling",
+        "output_scope": "released_angular_distortion",
+        "coordinate_frame": "welding_reference_frame"
+      }
+    },
+    {
+      "domain_id": "D1",
+      "signature": {
+        "material_family": "ferritic_steel",
+        "material_grade": "S355J2+N",
+        "joint_family": "single_v_groove",
+        "penetration_class": "full_penetration",
+        "process_family": "GMAW",
+        "process_variant": "tandem_pmc_cmt",
+        "pass_topology": "six_layer",
+        "restraint_class": "joint_test_fixture",
+        "scale_tier": "joint_specimen",
+        "thickness_min_mm": 28,
+        "thickness_max_mm": 32,
+        "boundary_class": "ambient_air_cooling",
+        "output_scope": "released_angular_distortion",
+        "coordinate_frame": "welding_reference_frame"
+      }
+    },
+    {
+      "domain_id": "D2",
+      "signature": {
+        "material_family": "ferritic_steel",
+        "material_grade": "S355J2+N",
+        "joint_family": "single_v_groove",
+        "penetration_class": "full_penetration",
+        "process_family": "GMAW",
+        "process_variant": "tandem_pmc_cmt",
+        "pass_topology": "six_layer",
+        "restraint_class": "stiffened_panel_fixture",
+        "scale_tier": "subassembly",
+        "thickness_min_mm": 28,
+        "thickness_max_mm": 32,
+        "boundary_class": "ambient_air_cooling",
+        "output_scope": "released_angular_distortion",
+        "coordinate_frame": "welding_reference_frame"
+      }
+    },
+    {
+      "domain_id": "D3",
+      "signature": {
+        "material_family": "ferritic_steel",
+        "material_grade": "S355J2+N",
+        "joint_family": "single_v_groove",
+        "penetration_class": "full_penetration",
+        "process_family": "GMAW",
+        "process_variant": "tandem_pmc_cmt",
+        "pass_topology": "six_layer",
+        "restraint_class": "block_gravity_fixture",
+        "scale_tier": "block_assembly",
+        "thickness_min_mm": 28,
+        "thickness_max_mm": 32,
+        "boundary_class": "ambient_air_cooling",
+        "output_scope": "released_angular_distortion",
+        "coordinate_frame": "welding_reference_frame"
+      }
+    }
+  ],
+  "bridge_edges": [
+    {
+      "edge_id": "E01",
+      "from_domain_id": "D0",
+      "to_domain_id": "D1",
+      "model_id": "MODEL-TEP-01",
+      "model_revision": "R3",
+      "output_scope": "released_angular_distortion",
+      "changed_factors": [
+        "restraint_class",
+        "scale_tier"
+      ],
+      "calibration_specimen_ids": [
+        "CAL-E01"
+      ],
+      "validation_specimen_ids": [
+        "VAL-E01-A",
+        "VAL-E01-B"
+      ],
+      "validation_status": "independently_validated",
+      "maximum_error_milli": 80,
+      "allowed_error_milli": 100,
+      "empirical_coverage_permille": 960,
+      "minimum_coverage_permille": 950,
+      "measurement_uncertainty_units": 1,
+      "parameter_uncertainty_units": 2,
+      "boundary_uncertainty_units": 3,
+      "model_form_uncertainty_units": 4,
+      "transfer_uncertainty_units": 5,
+      "evidence_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "validated_at_tick": 90
+    },
+    {
+      "edge_id": "E02",
+      "from_domain_id": "D1",
+      "to_domain_id": "D2",
+      "model_id": "MODEL-TEP-01",
+      "model_revision": "R3",
+      "output_scope": "released_angular_distortion",
+      "changed_factors": [
+        "restraint_class",
+        "scale_tier"
+      ],
+      "calibration_specimen_ids": [
+        "CAL-E02"
+      ],
+      "validation_specimen_ids": [
+        "VAL-E02-A",
+        "VAL-E02-B"
+      ],
+      "validation_status": "independently_validated",
+      "maximum_error_milli": 80,
+      "allowed_error_milli": 100,
+      "empirical_coverage_permille": 960,
+      "minimum_coverage_permille": 950,
+      "measurement_uncertainty_units": 1,
+      "parameter_uncertainty_units": 2,
+      "boundary_uncertainty_units": 3,
+      "model_form_uncertainty_units": 4,
+      "transfer_uncertainty_units": 5,
+      "evidence_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "validated_at_tick": 90
+    },
+    {
+      "edge_id": "E03",
+      "from_domain_id": "D2",
+      "to_domain_id": "D3",
+      "model_id": "MODEL-TEP-01",
+      "model_revision": "R3",
+      "output_scope": "released_angular_distortion",
+      "changed_factors": [
+        "restraint_class",
+        "scale_tier"
+      ],
+      "calibration_specimen_ids": [
+        "CAL-E03"
+      ],
+      "validation_specimen_ids": [
+        "VAL-E03-A",
+        "VAL-E03-B"
+      ],
+      "validation_status": "independently_validated",
+      "maximum_error_milli": 80,
+      "allowed_error_milli": 100,
+      "empirical_coverage_permille": 960,
+      "minimum_coverage_permille": 950,
+      "measurement_uncertainty_units": 1,
+      "parameter_uncertainty_units": 2,
+      "boundary_uncertainty_units": 3,
+      "model_form_uncertainty_units": 4,
+      "transfer_uncertainty_units": 5,
+      "evidence_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "validated_at_tick": 90
+    }
+  ],
+  "request": {
+    "target_domain_id": "D3",
+    "requested_output_scope": "released_angular_distortion",
+    "decision_cutoff_tick": 100,
+    "maximum_total_uncertainty_units": 60,
+    "required_minimum_coverage_permille": 950
+  }
+}
