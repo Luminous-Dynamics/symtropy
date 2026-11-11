@@ -66,6 +66,10 @@ pub struct DiagnosticProbeCandidate {
     pub authorization_receipt_sha256: Option<String>,
     pub likelihood_model_sha256: String,
     pub likelihood_calibration_sha256: String,
+    /// Digest reference for an independent likelihood-calibration review receipt.
+    pub likelihood_calibration_review_receipt_sha256: String,
+    /// Caller-supplied review flag; reviewer identity/signature are verified upstream.
+    pub likelihood_calibration_reviewed_by_independent_validator: bool,
     /// Digest of the independently reviewed risk assessment backing risk_score_ppm.
     pub risk_assessment_sha256: String,
     /// Caller-supplied review flag; issuer identity and signature are verified upstream.
@@ -143,6 +147,7 @@ pub enum ProbeRejectionReason {
     DelayBudgetExceeded,
     RiskBudgetExceeded,
     RiskEvidenceNotReviewed,
+    LikelihoodCalibrationNotReviewed,
     InformationGainBelowMinimum,
 }
 
@@ -155,7 +160,7 @@ pub struct ProbeAssessment {
     pub worst_case_information_gain_nats: f64,
     pub expected_posterior_entropy_nats: f64,
     pub scenario_count: usize,
-    pub epistemic_robustness_qualified: bool,
+    pub multi_scenario_assessed: bool,
     pub risk_adjusted_utility: Option<f64>,
 }
 
@@ -168,7 +173,7 @@ pub struct RankedDiagnosticProbe {
     pub worst_case_information_gain_nats: f64,
     pub expected_posterior_entropy_nats: f64,
     pub scenario_count: usize,
-    pub epistemic_robustness_qualified: bool,
+    pub multi_scenario_assessed: bool,
     pub risk_adjusted_utility: f64,
     pub expected_cost_seconds: f64,
     pub expected_delay_seconds: f64,
@@ -242,6 +247,8 @@ pub struct ProbePortfolio {
     pub candidate_catalogue_sha256: String,
     pub risk_assessment_catalogue_sha256: String,
     pub risk_evidence_reviewed_by_authority_owner: bool,
+    pub likelihood_calibration_catalogue_sha256: String,
+    pub likelihood_calibration_reviewed_by_independent_validator: bool,
     pub prior_entropy_nats: f64,
     pub ranked_recommendations: Vec<RankedDiagnosticProbe>,
     /// Retains eligible and rejected candidates so exclusion is inspectable.
@@ -294,6 +301,7 @@ impl fmt::Display for ProbeError {
             Self::InvalidLikelihoodNormalization(id) => write!(formatter, "conditional outcomes do not sum to one for every hypothesis: {id}"),
             Self::InvalidScenarioSet(id) => write!(formatter, "likelihood uncertainty scenarios are empty, duplicated, unnormalized, or ambiguous: {id}"),
             Self::RiskEvidenceNotReviewed => write!(formatter, "risk assessment has not been reviewed by the authority owner"),
+            Self::LikelihoodCalibrationNotReviewed => write!(formatter, "likelihood calibration has not been reviewed by an independent validator"),
             Self::CandidateCatalogMismatch => write!(formatter, "baseline candidates do not match the scored probe catalogue"),
             Self::InvalidSeedDigest => write!(formatter, "seed manifest must be a lowercase SHA-256 digest"),
             Self::ObservationCandidateMismatch => write!(formatter, "observed result belongs to a different probe candidate manifest"),
@@ -335,6 +343,8 @@ pub fn candidate_manifest_sha256(
         &candidate.authorization_receipt_sha256,
         candidate.likelihood_model_sha256.as_str(),
         candidate.likelihood_calibration_sha256.as_str(),
+        candidate.likelihood_calibration_review_receipt_sha256.as_str(),
+        candidate.likelihood_calibration_reviewed_by_independent_validator,
         candidate.risk_assessment_sha256.as_str(),
         candidate.risk_assessment_reviewed_by_authority_owner,
         candidate.hypothesis_manifest_sha256.as_str(),
@@ -406,6 +416,22 @@ pub fn rank_diagnostic_probes(
         && candidates
             .iter()
             .all(|candidate| candidate.risk_assessment_reviewed_by_authority_owner);
+    let mut likelihood_calibration_catalogue = candidates
+        .iter()
+        .map(|candidate| (
+            candidate.candidate_id.clone(),
+            candidate.likelihood_calibration_sha256.clone(),
+            candidate.likelihood_calibration_review_receipt_sha256.clone(),
+            candidate.likelihood_calibration_reviewed_by_independent_validator,
+        ))
+        .collect::<Vec<_>>();
+    likelihood_calibration_catalogue.sort_by(|left, right| left.0.cmp(&right.0));
+    let likelihood_calibration_catalogue_sha256 = sha256_serializable(
+        b"symtropy-diagnostic-likelihood-calibration-catalogue-v1\\0",
+        &likelihood_calibration_catalogue,
+    )?;
+    let likelihood_calibration_reviewed_by_independent_validator = !candidates.is_empty()
+        && candidates.iter().all(|candidate| candidate.likelihood_calibration_reviewed_by_independent_validator);
 
     let mut candidate_ids = BTreeSet::new();
     let mut assessments = Vec::with_capacity(candidates.len());
@@ -422,6 +448,7 @@ pub fn rank_diagnostic_probes(
         }
         if !is_sha256_hex(&candidate.likelihood_model_sha256)
             || !is_sha256_hex(&candidate.likelihood_calibration_sha256)
+            || !is_sha256_hex(&candidate.likelihood_calibration_review_receipt_sha256)
             || !is_sha256_hex(&candidate.risk_assessment_sha256)
             || !is_sha256_hex(&candidate.hypothesis_manifest_sha256)
             || !is_sha256_hex(&candidate.candidate_manifest_sha256)
@@ -497,6 +524,9 @@ pub fn rank_diagnostic_probes(
         if !candidate.risk_assessment_reviewed_by_authority_owner {
             rejection_reasons.push(ProbeRejectionReason::RiskEvidenceNotReviewed);
         }
+        if !candidate.likelihood_calibration_reviewed_by_independent_validator {
+            rejection_reasons.push(ProbeRejectionReason::LikelihoodCalibrationNotReviewed);
+        }
         if worst_case_information_gain < policy.minimum_expected_information_gain_nats {
             rejection_reasons.push(ProbeRejectionReason::InformationGainBelowMinimum);
         }
@@ -517,7 +547,7 @@ pub fn rank_diagnostic_probes(
             worst_case_information_gain_nats: worst_case_information_gain,
             expected_posterior_entropy_nats: posterior_entropy,
             scenario_count,
-            epistemic_robustness_qualified: robustness_qualified,
+            multi_scenario_assessed: robustness_qualified,
             risk_adjusted_utility: utility,
         });
         if let Some(utility) = utility {
@@ -529,7 +559,7 @@ pub fn rank_diagnostic_probes(
                 worst_case_information_gain_nats: worst_case_information_gain,
                 expected_posterior_entropy_nats: posterior_entropy,
                 scenario_count,
-                epistemic_robustness_qualified: robustness_qualified,
+                multi_scenario_assessed: robustness_qualified,
                 risk_adjusted_utility: utility,
                 expected_cost_seconds: candidate.expected_cost_seconds,
                 expected_delay_seconds: candidate.expected_delay_seconds,
@@ -560,6 +590,8 @@ pub fn rank_diagnostic_probes(
         candidate_catalogue_sha256,
         risk_assessment_catalogue_sha256,
         risk_evidence_reviewed_by_authority_owner,
+        likelihood_calibration_catalogue_sha256,
+        likelihood_calibration_reviewed_by_independent_validator,
         prior_entropy_nats: prior_entropy,
         ranked_recommendations: ranked,
         assessments,
@@ -814,6 +846,7 @@ pub fn realize_probe_observation(
         || candidate_manifest_sha256(candidate)? != candidate.candidate_manifest_sha256
         || !is_sha256_hex(&candidate.likelihood_model_sha256)
         || !is_sha256_hex(&candidate.likelihood_calibration_sha256)
+        || !is_sha256_hex(&candidate.likelihood_calibration_review_receipt_sha256)
         || !is_sha256_hex(&candidate.risk_assessment_sha256)
     {
         return Err(ProbeError::ObservationCandidateMismatch);
@@ -1295,6 +1328,8 @@ mod tests {
             authorization_receipt_sha256: Some(digest('f')),
             likelihood_model_sha256: digest('a'),
             likelihood_calibration_sha256: digest('b'),
+            likelihood_calibration_review_receipt_sha256: digest('d'),
+            likelihood_calibration_reviewed_by_independent_validator: true,
             risk_assessment_sha256: digest('c'),
             risk_assessment_reviewed_by_authority_owner: true,
             hypothesis_manifest_sha256,
@@ -1430,6 +1465,49 @@ mod tests {
             rank_diagnostic_probes(
                 &hypotheses(),
                 &[candidate],
+                &ProbeSelectionPolicy::conservative_read_only()
+            ),
+            Err(ProbeError::InvalidCandidateDigest(_))
+        ));
+    }
+
+    #[test]
+    fn likelihood_calibration_requires_independent_review_and_receipt() {
+        let mut unreviewed = candidate(
+            "unreviewed_likelihood",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        unreviewed.likelihood_calibration_reviewed_by_independent_validator = false;
+        unreviewed.candidate_manifest_sha256 = candidate_manifest_sha256(&unreviewed).unwrap();
+        let result = rank_diagnostic_probes(
+            &hypotheses(),
+            &[unreviewed],
+            &ProbeSelectionPolicy::conservative_read_only(),
+        )
+        .unwrap();
+        assert!(result.ranked_recommendations.is_empty());
+        assert!(!result.likelihood_calibration_reviewed_by_independent_validator);
+        assert!(result.assessments[0]
+            .rejection_reasons
+            .contains(&ProbeRejectionReason::LikelihoodCalibrationNotReviewed));
+    }
+
+    #[test]
+    fn malformed_likelihood_review_receipt_fails_before_ranking() {
+        let mut malformed = candidate(
+            "malformed_likelihood_receipt",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        malformed.likelihood_calibration_review_receipt_sha256 = "not-a-digest".into();
+        malformed.candidate_manifest_sha256 = candidate_manifest_sha256(&malformed).unwrap();
+        assert!(matches!(
+            rank_diagnostic_probes(
+                &hypotheses(),
+                &[malformed],
                 &ProbeSelectionPolicy::conservative_read_only()
             ),
             Err(ProbeError::InvalidCandidateDigest(_))
@@ -1631,7 +1709,7 @@ mod tests {
         assert!(assessment.expected_information_gain_nats > 0.0);
         assert_eq!(assessment.worst_case_information_gain_nats, 0.0);
         assert_eq!(assessment.scenario_count, 2);
-        assert!(assessment.epistemic_robustness_qualified);
+        assert!(assessment.multi_scenario_assessed);
         assert!(assessment
             .rejection_reasons
             .contains(&ProbeRejectionReason::InformationGainBelowMinimum));
@@ -1663,7 +1741,7 @@ mod tests {
         assert!(ranked.worst_case_information_gain_nats > 0.0);
         assert!(ranked.expected_information_gain_nats >= ranked.worst_case_information_gain_nats);
         assert_eq!(ranked.scenario_count, 2);
-        assert!(ranked.epistemic_robustness_qualified);
+        assert!(ranked.multi_scenario_assessed);
     }
 
     #[test]
