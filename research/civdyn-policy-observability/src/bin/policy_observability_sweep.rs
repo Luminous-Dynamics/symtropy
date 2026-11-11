@@ -90,12 +90,45 @@ fn mar_positive_control() -> Vec<EvaluatorRecord> {
     .collect()
 }
 
+function mixed_mechanism() -> Vec<EvaluatorRecord> {
+    vec![
+        row("mixed_observation", "u1", "high_need", 90, true, None, Some(5_000), MissingnessMechanism::Mar),
+        row("mixed_observation", "u2", "high_need", 10, false, Some(MissingReason::Nonresponse), Some(5_000), MissingnessMechanism::Mar),
+        row("mixed_observation", "u3", "general", 0, false, Some(MissingReason::PolicySuppressed), None, MissingnessMechanism::MnarAdverseOutcomesHidden),
+        row("mixed_observation", "u4", "general", 80, true, None, None, MissingnessMechanism::MnarAdverseOutcomesHidden),
+    ]
+}
+
 fn find_stratum_mean(evaluation: &PolicyEvaluation, stratum_id: &str) -> String {
     evaluation
         .strata
         .iter()
         .find(|stratum| stratum.stratum_id == stratum_id)
         .map_or_else(String::new, |stratum| format!("{:.3}", stratum.true_mean))
+}
+
+fn find_stratum_interval(
+    evaluation: &PolicyEvaluation,
+    stratum_id: &str,
+) -> (String, String, String) {
+    evaluation
+        .strata
+        .iter()
+        .find(|stratum| stratum.stratum_id == stratum_id)
+        .map_or_else(
+            || (String::new(), String::new(), String::new()),
+            |stratum| {
+                (
+                    format!("{:.3}", stratum.estimates.identified_interval.lower),
+                    format!("{:.3}", stratum.estimates.identified_interval.upper),
+                    format!("{:.3}", stratum.estimates.observation_coverage),
+                )
+            },
+        )
+}
+
+fn fmt_u32_option(value: Option<u32>) -> String {
+    value.map_or_else(String::new, |number| number.to_string())
 }
 
 fn fmt_option(value: Option<f64>) -> String {
@@ -124,8 +157,12 @@ fn emit(
     );
     let interval = &evaluation.estimates.identified_interval;
     let truth_contained = interval.contains(evaluation.true_mean);
+    let (high_lower, high_upper, high_coverage) =
+        find_stratum_interval(evaluation, "high_need");
+    let (general_lower, general_upper, general_coverage) =
+        find_stratum_interval(evaluation, "general");
     println!(
-        "{scenario_id},{},{},{:.3},{},{},{:.3},{:.3},{truth_contained},{:.3},{},{},{},{},{:.3},{},{},{},{},{comparison},{regret},{}",
+        "{scenario_id},{},{},{:.3},{},{},{:.3},{:.3},{truth_contained},{:.3},{},{},{},{},{},{:.3},{},{},{},{:.3},{:.3},{},{},{},{},{},{},{},{},{comparison},{regret},{}",
         evaluation.policy_id,
         evaluation.true_mechanism.id(),
         evaluation.true_mean,
@@ -137,19 +174,29 @@ fn emit(
         evaluation.estimates.observed_units,
         evaluation.estimates.missing_units,
         find_stratum_mean(evaluation, "high_need"),
+        high_lower,
+        high_upper,
+        high_coverage,
         find_stratum_mean(evaluation, "general"),
+        general_lower,
+        general_upper,
+        general_coverage,
         evaluation.true_stratum_gap,
         evaluation.estimates.missing_by_reason.get(&MissingReason::TelemetryUnavailable).copied().unwrap_or(0),
         evaluation.estimates.missing_by_reason.get(&MissingReason::Nonresponse).copied().unwrap_or(0),
         evaluation.estimates.missing_by_reason.get(&MissingReason::PolicySuppressed).copied().unwrap_or(0),
         evaluation.estimates.missing_by_reason.get(&MissingReason::AdministrativeExclusion).copied().unwrap_or(0),
+        evaluation.estimates.propensity_units,
+        evaluation.estimates.missing_propensity_units,
+        fmt_u32_option(evaluation.estimates.minimum_propensity_bps),
+        fmt_u32_option(evaluation.estimates.maximum_propensity_bps),
         fmt_option(mar_estimate),
     );
 }
 
 fn main() {
     println!(
-        "scenario_id,policy_id,true_mechanism,true_mean,complete_case_mean,missing_as_zero_mean,identified_lower,identified_upper,truth_contained,observation_coverage,observed_units,missing_units,high_need_true_mean,general_true_mean,true_stratum_gap,missing_telemetry_unavailable_units,missing_nonresponse_units,missing_policy_suppressed_units,missing_administrative_exclusion_units,robust_comparison_vs_reference,worst_case_regret_upper_bound,known_mar_ht_mean"
+        "scenario_id,policy_id,true_mechanism,true_mean,complete_case_mean,missing_as_zero_mean,identified_lower,identified_upper,truth_contained,observation_coverage,observed_units,missing_units,high_need_true_mean,high_need_identified_lower,high_need_identified_upper,high_need_observation_coverage,general_true_mean,general_identified_lower,general_identified_upper,general_observation_coverage,true_stratum_gap,missing_telemetry_unavailable_units,missing_nonresponse_units,missing_policy_suppressed_units,missing_administrative_exclusion_units,propensity_units,missing_propensity_units,minimum_propensity_bps,maximum_propensity_bps,robust_comparison_vs_reference,worst_case_regret_upper_bound,known_mar_ht_mean"
     );
 
     let support = civdyn_policy_observability::OutcomeSupport {
@@ -169,6 +216,10 @@ fn main() {
     let steady_eval = evaluate_policy(&steady, support).expect("steady benefit fixture");
     emit("selective_benefit", &hidden_eval, Some(&steady_eval), None);
     emit("selective_benefit", &steady_eval, Some(&hidden_eval), None);
+
+    let mixed_rows = mixed_mechanism();
+    let mixed_eval = evaluate_policy(&mixed_rows, support).expect("mixed mechanism fixture");
+    emit("mixed_mechanism", &mixed_eval, None, None);
 
     let mar_rows = mar_positive_control();
     let mar_eval = evaluate_policy(&mar_rows, support).expect("MAR positive control");
