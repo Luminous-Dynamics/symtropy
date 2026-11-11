@@ -22,17 +22,32 @@ use symtropy_math::{Bivector, Rotor};
 
 const ROTATION_VALIDITY_TOLERANCE: f64 = 1.0e-8;
 
-/// Average symmetric entries without overflowing equal large values or
-/// erasing equal subnormal values by halving each operand first.
+/// Average symmetric entries without overflowing or erasing a nonzero
+/// average that lies below the smallest representable `f64`.
 #[inline]
-fn symmetric_average(left: f64, right: f64) -> f64 {
-    if left == right {
-        left
-    } else if left.is_sign_positive() == right.is_sign_positive() {
-        left + (right - left) * 0.5
-    } else {
-        left * 0.5 + right * 0.5
+fn symmetric_average(left: f64, right: f64) -> Result<f64, RotationalInertiaError> {
+    if !left.is_finite() || !right.is_finite() {
+        return Err(RotationalInertiaError::NonFinite);
     }
+    if left == right {
+        return Ok(left);
+    }
+    let scale = left.abs().max(right.abs());
+    if scale == 0.0 {
+        return Ok(0.0);
+    }
+    let normalized = 0.5 * (left / scale) + 0.5 * (right / scale);
+    if normalized == 0.0 {
+        if left == -right {
+            return Ok(0.0);
+        }
+        return Err(RotationalInertiaError::NonFinite);
+    }
+    let average = normalized * scale;
+    if !average.is_finite() || average == 0.0 {
+        return Err(RotationalInertiaError::NonFinite);
+    }
+    Ok(average)
 }
 
 /// Compute `m * d * d^T` without overflowing the unweighted outer product.
@@ -136,9 +151,15 @@ impl BivectorInertia<3> {
             }
         }
         // Symmetrize only within the already-checked roundoff tolerance.
-        let symmetric_inertia = SMatrix::<f64, 3, 3>::from_fn(|row, column| {
-            symmetric_average(inertia_tensor[(row, column)], inertia_tensor[(column, row)])
-        });
+        let mut symmetric_inertia = SMatrix::<f64, 3, 3>::zeros();
+        for row in 0..3 {
+            for column in 0..3 {
+                symmetric_inertia[(row, column)] = symmetric_average(
+                    inertia_tensor[(row, column)],
+                    inertia_tensor[(column, row)],
+                )?;
+            }
+        }
         let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
         for row in 0..3 {
             let other_axes = match row {
@@ -227,11 +248,17 @@ impl<const D: usize> BivectorInertia<D> {
             }
         }
 
-        // Halve before adding so two large, finite symmetric entries do not
-        // overflow merely while their arithmetic mean is representable.
-        let symmetric = SMatrix::<f64, D, D>::from_fn(|i, j| {
-            0.5 * second_moment[(i, j)] + 0.5 * second_moment[(j, i)]
-        });
+        // Average through a scale-normalized helper. It preserves equal
+        // subnormal entries and rejects a nonzero average below f64 range.
+        let mut symmetric = SMatrix::<f64, D, D>::zeros();
+        for row in 0..D {
+            for column in 0..D {
+                symmetric[(row, column)] = symmetric_average(
+                    second_moment[(row, column)],
+                    second_moment[(column, row)],
+                )?;
+            }
+        }
         if !symmetric.iter().all(|value| value.is_finite()) {
             return Err(RotationalInertiaError::NonFinite);
         }
