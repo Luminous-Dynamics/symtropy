@@ -203,12 +203,13 @@ pub struct CalibrationBin {
 #[derive(Debug, Clone, Serialize)]
 pub struct Tier2SourceMetrics {
     pub outcome_source: OutcomeSource,
+    pub prediction_model_revision: String,
+    pub prediction_horizon_s: f64,
     pub sample_count: usize,
     pub brier_score: f64,
     pub log_loss: f64,
     pub expected_calibration_error: f64,
     pub calibration_bins: Vec<CalibrationBin>,
-    pub prediction_model_revisions: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -240,6 +241,11 @@ struct DiagnosticKey {
     visibility: String,
     sensor_fault_family: String,
     decision_mode: String,
+    objective_id: String,
+    objective_revision: String,
+    counterfactual_evaluator_revision: String,
+    simulator_revision: String,
+    objective_cost_unit: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -251,6 +257,11 @@ pub struct Tier4Result {
     pub visibility: String,
     pub sensor_fault_family: String,
     pub decision_mode: String,
+    pub objective_id: String,
+    pub objective_revision: String,
+    pub counterfactual_evaluator_revision: String,
+    pub simulator_revision: String,
+    pub objective_cost_unit: String,
     pub decision_count: usize,
     pub avoidable_hard_safety_violation_count: usize,
     pub no_feasible_action_count: usize,
@@ -560,12 +571,19 @@ fn calculate_tier1(campaign: &CampaignRecord) -> Vec<Tier1Result> {
 }
 
 fn calculate_tier2(campaign: &CampaignRecord) -> Vec<Tier2SourceMetrics> {
-    let mut grouped = BTreeMap::<OutcomeSource, Vec<&OutcomePrediction>>::new();
+    let mut grouped = BTreeMap::<(OutcomeSource, String, u64), Vec<&OutcomePrediction>>::new();
     for prediction in &campaign.outcome_predictions {
-        grouped.entry(prediction.outcome_source).or_default().push(prediction);
+        grouped
+            .entry((
+                prediction.outcome_source,
+                prediction.prediction_model_revision.clone(),
+                prediction.prediction_horizon_s.to_bits(),
+            ))
+            .or_default()
+            .push(prediction);
     }
     let mut results = Vec::with_capacity(grouped.len());
-    for (source, predictions) in grouped {
+    for ((source, model_revision, horizon_bits), predictions) in grouped {
         let count = predictions.len();
         let mut brier_sum = 0.0;
         let mut log_loss_sum = 0.0;
@@ -577,7 +595,8 @@ fn calculate_tier2(campaign: &CampaignRecord) -> Vec<Tier2SourceMetrics> {
             brier_sum += error * error;
             let clipped = p.clamp(1e-15, 1.0 - 1e-15);
             log_loss_sum -= actual * clipped.ln() + (1.0 - actual) * (1.0 - clipped).ln();
-            let index = ((p * DEFAULT_CALIBRATION_BINS as f64).floor() as usize).min(DEFAULT_CALIBRATION_BINS - 1);
+            let index = ((p * DEFAULT_CALIBRATION_BINS as f64).floor() as usize)
+                .min(DEFAULT_CALIBRATION_BINS - 1);
             bins[index].push(*prediction);
         }
         let mut calibration_bins = Vec::new();
@@ -585,8 +604,12 @@ fn calculate_tier2(campaign: &CampaignRecord) -> Vec<Tier2SourceMetrics> {
         for (index, samples) in bins.into_iter().enumerate() {
             if samples.is_empty() { continue; }
             let n = samples.len();
-            let mean_predicted = samples.iter().map(|s| s.predicted_collision_probability).sum::<f64>() / n as f64;
-            let observed_rate = samples.iter().filter(|s| s.realized_collision_within_horizon).count() as f64 / n as f64;
+            let mean_predicted = samples.iter()
+                .map(|sample| sample.predicted_collision_probability)
+                .sum::<f64>() / n as f64;
+            let observed_rate = samples.iter()
+                .filter(|sample| sample.realized_collision_within_horizon)
+                .count() as f64 / n as f64;
             let absolute_error = (mean_predicted - observed_rate).abs();
             ece += n as f64 / count as f64 * absolute_error;
             calibration_bins.push(CalibrationBin {
@@ -599,17 +622,15 @@ fn calculate_tier2(campaign: &CampaignRecord) -> Vec<Tier2SourceMetrics> {
                 absolute_calibration_error: absolute_error,
             });
         }
-        let mut revisions = predictions.iter().map(|p| p.prediction_model_revision.clone()).collect::<Vec<_>>();
-        revisions.sort();
-        revisions.dedup();
         results.push(Tier2SourceMetrics {
             outcome_source: source,
+            prediction_model_revision: model_revision,
+            prediction_horizon_s: f64::from_bits(horizon_bits),
             sample_count: count,
             brier_score: brier_sum / count as f64,
             log_loss: log_loss_sum / count as f64,
             expected_calibration_error: ece,
             calibration_bins,
-            prediction_model_revisions: revisions,
         });
     }
     results
@@ -668,18 +689,23 @@ struct DiagnosticAccumulator {
 fn calculate_tier4(campaign: &CampaignRecord, tier1: &[Tier1Result], tier3: &[Tier3Result]) -> Vec<Tier4Result> {
     let decisions = campaign.decisions.iter().map(|d| (d.decision_id.as_str(), d)).collect::<BTreeMap<_, _>>();
     let tier3_by_id = tier3.iter().map(|r| (r.decision_id.as_str(), r)).collect::<BTreeMap<_, _>>();
-    let key_for = |context: &DiagnosticContext| DiagnosticKey {
-        scenario_family: context.scenario_family.clone(),
-        actor_class: context.actor_class.clone(),
-        road_context: context.road_context.clone(),
-        weather: context.weather.clone(),
-        visibility: context.visibility.clone(),
-        sensor_fault_family: context.sensor_fault_family.clone(),
-        decision_mode: context.decision_mode.clone(),
+    let key_for = |decision: &CounterfactualDecision| DiagnosticKey {
+        scenario_family: decision.context.scenario_family.clone(),
+        actor_class: decision.context.actor_class.clone(),
+        road_context: decision.context.road_context.clone(),
+        weather: decision.context.weather.clone(),
+        visibility: decision.context.visibility.clone(),
+        sensor_fault_family: decision.context.sensor_fault_family.clone(),
+        decision_mode: decision.context.decision_mode.clone(),
+        objective_id: decision.objective_id.clone(),
+        objective_revision: decision.objective_revision.clone(),
+        counterfactual_evaluator_revision: decision.counterfactual_evaluator_revision.clone(),
+        simulator_revision: decision.simulator_revision.clone(),
+        objective_cost_unit: decision.objective_cost_unit.clone(),
     };
     let mut grouped = BTreeMap::<DiagnosticKey, DiagnosticAccumulator>::new();
     for (id, decision) in &decisions {
-        let aggregate = grouped.entry(key_for(&decision.context)).or_default();
+        let aggregate = grouped.entry(key_for(decision)).or_default();
         aggregate.decision_count += 1;
         let result = tier3_by_id[id];
         if result.avoidable_hard_safety_violation { aggregate.avoidable_count += 1; }
@@ -692,7 +718,7 @@ fn calculate_tier4(campaign: &CampaignRecord, tier1: &[Tier1Result], tier3: &[Ti
     }
     for event in tier1 {
         let Some(decision) = decisions.get(event.decision_id.as_str()) else { continue; };
-        let aggregate = grouped.entry(key_for(&decision.context)).or_default();
+        let aggregate = grouped.entry(key_for(decision)).or_default();
         aggregate.surrogate_event_count += 1;
         if let Some(ttc) = event.ttc.time_to_collision_s {
             aggregate.min_ttc = Some(aggregate.min_ttc.map_or(ttc, |v| v.min(ttc)));
@@ -719,6 +745,11 @@ fn calculate_tier4(campaign: &CampaignRecord, tier1: &[Tier1Result], tier3: &[Ti
         visibility: key.visibility,
         sensor_fault_family: key.sensor_fault_family,
         decision_mode: key.decision_mode,
+        objective_id: key.objective_id,
+        objective_revision: key.objective_revision,
+        counterfactual_evaluator_revision: key.counterfactual_evaluator_revision,
+        simulator_revision: key.simulator_revision,
+        objective_cost_unit: key.objective_cost_unit,
         decision_count: a.decision_count,
         avoidable_hard_safety_violation_count: a.avoidable_count,
         no_feasible_action_count: a.no_feasible_count,
@@ -921,6 +952,8 @@ mod tests {
         assert_eq!(report.disposition, AuditDisposition::Valid);
         let metrics = &report.tier2_outcome_prediction[0];
         assert_eq!(metrics.outcome_source, OutcomeSource::ForwardSimulation);
+        assert_eq!(metrics.prediction_model_revision, "risk-model-v1");
+        assert_eq!(metrics.prediction_horizon_s, 3.0);
         assert_eq!(metrics.sample_count, 2);
         assert!((metrics.brier_score - 0.025).abs() < 1e-12);
         assert_eq!(metrics.calibration_bins.len(), 2);
