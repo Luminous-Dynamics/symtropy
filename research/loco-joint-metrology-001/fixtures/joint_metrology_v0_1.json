@@ -1,0 +1,398 @@
+{
+  "schema_version": "0.1.0",
+  "protocol_id": "LOCO-JOINT-METROLOGY-001",
+  "status": "synthetic_known_answers_only",
+  "cases": [
+    {
+      "case_id": "JM01_COMPLETE_SYNCHRONIZED_REFERENCE",
+      "description": "Complete same-clock single-joint trace with analytically closed electrical/mechanical/thermal boundary.",
+      "inputs": {
+        "clock_relation": "same_monotonic_clock_verified",
+        "source_observation_time_ns": 100000000,
+        "actuator_application_lower_ns": 110000000,
+        "actuator_application_upper_ns": 110000000,
+        "inference_latency_ms": 20,
+        "command_to_motion_ms": 15,
+        "decision_regret_upper_units": 1,
+        "epsilon_task_loss_units": 2,
+        "hard_physical_limit_binding": false,
+        "electrical_work_in_j": 100,
+        "shaft_work_out_j": 70,
+        "heat_out_j": 25,
+        "delta_stored_energy_j": 5,
+        "energy_boundary_complete": true,
+        "required_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "observed_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "thermal_predecessor_digest": "thermal-state-0",
+        "thermal_result_digest": "thermal-state-1",
+        "thermal_sequence_reset": false,
+        "measured_sample_rate_hz": 20000,
+        "required_sample_rate_hz": 20000,
+        "sampling_spec_valid": true,
+        "terminal_safe_stop_qualified": true
+      },
+      "expected": {
+        "aoi_status": "bounded",
+        "aoi_lower_ns": 10000000,
+        "aoi_upper_ns": 10000000,
+        "energy_status": "balanced",
+        "energy_residual_j": 0,
+        "command_response_status": "within_declared_reference",
+        "decision_status": "sufficient",
+        "thermal_status": "complete_continuous",
+        "mission_status": "closed",
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "JM02_ACTUATOR_QUEUE_DWELL_AGES_INFORMATION",
+      "description": "Inference latency remains 20 ms but actuator application is delayed; source-to-actuator age captures the extra queue/dispatch dwell.",
+      "inputs": {
+        "clock_relation": "same_monotonic_clock_verified",
+        "source_observation_time_ns": 100000000,
+        "actuator_application_lower_ns": 180000000,
+        "actuator_application_upper_ns": 180000000,
+        "inference_latency_ms": 20,
+        "command_to_motion_ms": 15,
+        "decision_regret_upper_units": 1,
+        "epsilon_task_loss_units": 2,
+        "hard_physical_limit_binding": false,
+        "electrical_work_in_j": 100,
+        "shaft_work_out_j": 70,
+        "heat_out_j": 25,
+        "delta_stored_energy_j": 5,
+        "energy_boundary_complete": true,
+        "required_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "observed_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "thermal_predecessor_digest": "thermal-state-0",
+        "thermal_result_digest": "thermal-state-1",
+        "thermal_sequence_reset": false,
+        "measured_sample_rate_hz": 20000,
+        "required_sample_rate_hz": 20000,
+        "sampling_spec_valid": true,
+        "terminal_safe_stop_qualified": true
+      },
+      "expected": {
+        "aoi_status": "bounded",
+        "aoi_lower_ns": 80000000,
+        "aoi_upper_ns": 80000000,
+        "energy_status": "balanced",
+        "energy_residual_j": 0,
+        "command_response_status": "within_declared_reference",
+        "decision_status": "sufficient",
+        "thermal_status": "complete_continuous",
+        "mission_status": "closed",
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "JM03_RESPONSE_DELAY_CHANGES_WITHOUT_AOI_CHANGE",
+      "description": "Source-to-actuator age remains low, but mechanical command-to-motion delay increases independently.",
+      "inputs": {
+        "clock_relation": "same_monotonic_clock_verified",
+        "source_observation_time_ns": 100000000,
+        "actuator_application_lower_ns": 110000000,
+        "actuator_application_upper_ns": 110000000,
+        "inference_latency_ms": 20,
+        "command_to_motion_ms": 45,
+        "decision_regret_upper_units": 1,
+        "epsilon_task_loss_units": 2,
+        "hard_physical_limit_binding": false,
+        "electrical_work_in_j": 100,
+        "shaft_work_out_j": 70,
+        "heat_out_j": 25,
+        "delta_stored_energy_j": 5,
+        "energy_boundary_complete": true,
+        "required_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "observed_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "thermal_predecessor_digest": "thermal-state-0",
+        "thermal_result_digest": "thermal-state-1",
+        "thermal_sequence_reset": false,
+        "measured_sample_rate_hz": 20000,
+        "required_sample_rate_hz": 20000,
+        "sampling_spec_valid": true,
+        "terminal_safe_stop_qualified": true
+      },
+      "expected": {
+        "aoi_status": "bounded",
+        "aoi_lower_ns": 10000000,
+        "aoi_upper_ns": 10000000,
+        "energy_status": "balanced",
+        "energy_residual_j": 0,
+        "command_response_status": "degraded_response",
+        "decision_status": "sufficient",
+        "thermal_status": "complete_continuous",
+        "mission_status": "closed",
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "JM04_CLOCK_RELATION_UNKNOWN",
+      "description": "DAQ and robot clocks lack a qualified mapping; cross-device AoI is Unknown even though point timestamps are present.",
+      "inputs": {
+        "clock_relation": "unknown",
+        "source_observation_time_ns": 100000000,
+        "actuator_application_lower_ns": 110000000,
+        "actuator_application_upper_ns": 110000000,
+        "inference_latency_ms": 20,
+        "command_to_motion_ms": 15,
+        "decision_regret_upper_units": 1,
+        "epsilon_task_loss_units": 2,
+        "hard_physical_limit_binding": false,
+        "electrical_work_in_j": 100,
+        "shaft_work_out_j": 70,
+        "heat_out_j": 25,
+        "delta_stored_energy_j": 5,
+        "energy_boundary_complete": true,
+        "required_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "observed_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "thermal_predecessor_digest": "thermal-state-0",
+        "thermal_result_digest": "thermal-state-1",
+        "thermal_sequence_reset": false,
+        "measured_sample_rate_hz": 20000,
+        "required_sample_rate_hz": 20000,
+        "sampling_spec_valid": true,
+        "terminal_safe_stop_qualified": true
+      },
+      "expected": {
+        "aoi_status": "unknown_clock_relation",
+        "aoi_lower_ns": null,
+        "aoi_upper_ns": null,
+        "energy_status": "balanced",
+        "energy_residual_j": 0,
+        "command_response_status": "within_declared_reference",
+        "decision_status": "sufficient",
+        "thermal_status": "complete_continuous",
+        "mission_status": "unknown",
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "JM05_INCOMPLETE_ENERGY_BOUNDARY",
+      "description": "Auxiliary electrical/thermal paths are omitted; arithmetic balance is not promoted to a physical energy PASS.",
+      "inputs": {
+        "clock_relation": "same_monotonic_clock_verified",
+        "source_observation_time_ns": 100000000,
+        "actuator_application_lower_ns": 110000000,
+        "actuator_application_upper_ns": 110000000,
+        "inference_latency_ms": 20,
+        "command_to_motion_ms": 15,
+        "decision_regret_upper_units": 1,
+        "epsilon_task_loss_units": 2,
+        "hard_physical_limit_binding": false,
+        "electrical_work_in_j": 100,
+        "shaft_work_out_j": 70,
+        "heat_out_j": 25,
+        "delta_stored_energy_j": 5,
+        "energy_boundary_complete": false,
+        "required_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "observed_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "thermal_predecessor_digest": "thermal-state-0",
+        "thermal_result_digest": "thermal-state-1",
+        "thermal_sequence_reset": false,
+        "measured_sample_rate_hz": 20000,
+        "required_sample_rate_hz": 20000,
+        "sampling_spec_valid": true,
+        "terminal_safe_stop_qualified": true
+      },
+      "expected": {
+        "aoi_status": "bounded",
+        "aoi_lower_ns": 10000000,
+        "aoi_upper_ns": 10000000,
+        "energy_status": "inconclusive_boundary",
+        "energy_residual_j": 0,
+        "command_response_status": "within_declared_reference",
+        "decision_status": "sufficient",
+        "thermal_status": "complete_continuous",
+        "mission_status": "unknown",
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "JM06_MISSING_THERMAL_NODE",
+      "description": "Whole-joint average temperature could look plausible, but one required node is missing; thermal coverage remains Unknown.",
+      "inputs": {
+        "clock_relation": "same_monotonic_clock_verified",
+        "source_observation_time_ns": 100000000,
+        "actuator_application_lower_ns": 110000000,
+        "actuator_application_upper_ns": 110000000,
+        "inference_latency_ms": 20,
+        "command_to_motion_ms": 15,
+        "decision_regret_upper_units": 1,
+        "epsilon_task_loss_units": 2,
+        "hard_physical_limit_binding": false,
+        "electrical_work_in_j": 100,
+        "shaft_work_out_j": 70,
+        "heat_out_j": 25,
+        "delta_stored_energy_j": 5,
+        "energy_boundary_complete": true,
+        "required_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "observed_thermal_nodes": [
+          "motor_winding",
+          "drive"
+        ],
+        "thermal_predecessor_digest": "thermal-state-0",
+        "thermal_result_digest": "thermal-state-1",
+        "thermal_sequence_reset": false,
+        "measured_sample_rate_hz": 20000,
+        "required_sample_rate_hz": 20000,
+        "sampling_spec_valid": true,
+        "terminal_safe_stop_qualified": true
+      },
+      "expected": {
+        "aoi_status": "bounded",
+        "aoi_lower_ns": 10000000,
+        "aoi_upper_ns": 10000000,
+        "energy_status": "balanced",
+        "energy_residual_j": 0,
+        "command_response_status": "within_declared_reference",
+        "decision_status": "sufficient",
+        "thermal_status": "unknown_node_coverage",
+        "mission_status": "unknown",
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "JM07_PHYSICAL_STATE_RESET_REJECTED",
+      "description": "A later sequential perturbation silently resets the thermal/reserve state rather than consuming the preceding physical state.",
+      "inputs": {
+        "clock_relation": "same_monotonic_clock_verified",
+        "source_observation_time_ns": 100000000,
+        "actuator_application_lower_ns": 110000000,
+        "actuator_application_upper_ns": 110000000,
+        "inference_latency_ms": 20,
+        "command_to_motion_ms": 15,
+        "decision_regret_upper_units": 1,
+        "epsilon_task_loss_units": 2,
+        "hard_physical_limit_binding": false,
+        "electrical_work_in_j": 100,
+        "shaft_work_out_j": 70,
+        "heat_out_j": 25,
+        "delta_stored_energy_j": 5,
+        "energy_boundary_complete": true,
+        "required_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "observed_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "thermal_predecessor_digest": "thermal-state-0",
+        "thermal_result_digest": "thermal-state-1",
+        "thermal_sequence_reset": true,
+        "measured_sample_rate_hz": 20000,
+        "required_sample_rate_hz": 20000,
+        "sampling_spec_valid": true,
+        "terminal_safe_stop_qualified": true
+      },
+      "expected": {
+        "aoi_status": "bounded",
+        "aoi_lower_ns": 10000000,
+        "aoi_upper_ns": 10000000,
+        "energy_status": "balanced",
+        "energy_residual_j": 0,
+        "command_response_status": "within_declared_reference",
+        "decision_status": "sufficient",
+        "thermal_status": "rejected_state_reset",
+        "mission_status": "rejected",
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "JM08_DECISION_HORIZON_EXPIRES_BEFORE_HARD_LIMIT",
+      "description": "The selected action becomes regretful before any declared thermal/torque hard limit binds; decision quality must end the old commitment.",
+      "inputs": {
+        "clock_relation": "same_monotonic_clock_verified",
+        "source_observation_time_ns": 100000000,
+        "actuator_application_lower_ns": 110000000,
+        "actuator_application_upper_ns": 110000000,
+        "inference_latency_ms": 20,
+        "command_to_motion_ms": 15,
+        "decision_regret_upper_units": 8,
+        "epsilon_task_loss_units": 3,
+        "hard_physical_limit_binding": false,
+        "electrical_work_in_j": 100,
+        "shaft_work_out_j": 70,
+        "heat_out_j": 25,
+        "delta_stored_energy_j": 5,
+        "energy_boundary_complete": true,
+        "required_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "observed_thermal_nodes": [
+          "motor_winding",
+          "motor_housing",
+          "drive"
+        ],
+        "thermal_predecessor_digest": "thermal-state-0",
+        "thermal_result_digest": "thermal-state-1",
+        "thermal_sequence_reset": false,
+        "measured_sample_rate_hz": 20000,
+        "required_sample_rate_hz": 20000,
+        "sampling_spec_valid": true,
+        "terminal_safe_stop_qualified": true
+      },
+      "expected": {
+        "aoi_status": "bounded",
+        "aoi_lower_ns": 10000000,
+        "aoi_upper_ns": 10000000,
+        "energy_status": "balanced",
+        "energy_residual_j": 0,
+        "command_response_status": "within_declared_reference",
+        "decision_status": "insufficient_regret",
+        "thermal_status": "complete_continuous",
+        "mission_status": "rejected",
+        "actuation_authorized": false
+      }
+    }
+  ]
+}
