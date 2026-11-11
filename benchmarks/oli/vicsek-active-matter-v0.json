@@ -89,7 +89,8 @@
         "polar_order": 1,
         "cluster_count": 1,
         "largest_cluster_fraction": 1
-      }
+      },
+      "update_rule": "CurrentPositionAlignment"
     },
     {
       "id": "SELF_ONLY_ZERO_NOISE_NEGATIVE_CONTROL",
@@ -114,7 +115,8 @@
         "polar_order": "unchanged from initial value",
         "mean_neighbors_excluding_self": 0,
         "cluster_count": 5
-      }
+      },
+      "update_rule": "CurrentPositionAlignment"
     },
     {
       "id": "RANDOM_INITIALIZED_LOW_NOISE_EXPLORATION",
@@ -127,7 +129,8 @@
       "angular_noise_width_rad": 0.2,
       "seed": 20261111,
       "execution_steps": 2000,
-      "expected": "No fixed polar-order value is claimed before exact Rust execution. Report the full trajectory, ensemble variability, transient and stationary windows."
+      "expected": "No fixed polar-order value is claimed before exact Rust execution. Report the full trajectory, ensemble variability, transient and stationary windows.",
+      "update_rule": "CurrentPositionAlignment"
     },
     {
       "id": "RANDOM_INITIALIZED_HIGH_NOISE_CONTROL",
@@ -140,7 +143,42 @@
       "angular_noise_width_rad": 4,
       "seed": 20261112,
       "execution_steps": 2000,
-      "expected": "No fixed threshold or universal transition is asserted. Compare distributions and finite-size dependence against the low-noise profile."
+      "expected": "No fixed threshold or universal transition is asserted. Compare distributions and finite-size dependence against the low-noise profile.",
+      "update_rule": "CurrentPositionAlignment"
+    },
+    {
+      "id": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE",
+      "purpose": "Detect whether the implementation selects neighbours at t or at t+dt",
+      "particle_count": 2,
+      "box_size": 10,
+      "interaction_radius": 1.5,
+      "speed": 0.8,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "initial_positions": [
+        [
+          1,
+          1
+        ],
+        [
+          3,
+          1
+        ]
+      ],
+      "initial_headings_rad": [
+        0,
+        1.5707963267948966
+      ],
+      "update_rule_comparison": {
+        "CurrentPositionAlignment": {
+          "expected_cluster_count": 2,
+          "expected_polar_order": "sqrt(1/2)"
+        },
+        "NextPositionAlignment": {
+          "expected_cluster_count": 1,
+          "expected_polar_order": 1
+        }
+      }
     }
   ],
   "observables": {
@@ -155,7 +193,10 @@
     "mean_cluster_size": "Mean number of particles per connected component of the current metric-neighbour graph",
     "cluster_size_variance": "Population variance of connected-component sizes",
     "mean_cluster_polar_order": "Unweighted mean polar order calculated within each connected component; distinguishes aligned opposing clusters from global disorder",
-    "cluster_polar_order_variance": "Population variance of per-component polar order"
+    "cluster_polar_order_variance": "Population variance of per-component polar order",
+    "mean_clustering_coefficient_status": "NOT_IMPLEMENTED; required for parity with 2026 topology/geometry paper",
+    "mean_shortest_path_length_status": "NOT_IMPLEMENTED; required for parity with 2026 topology/geometry paper",
+    "cluster_area_perimeter_scaling_status": "NOT_IMPLEMENTED; research extension"
   },
   "benchmark_tasks": [
     "Collective order versus independent-particle baseline",
@@ -182,6 +223,8 @@
     "no_physical_observation_claim": true,
     "update_rule_must_be_recorded": true,
     "erratum_comparison_pending": true,
-    "source_code_parity_status": "NOT_ESTABLISHED"
+    "source_code_parity_status": "NOT_ESTABLISHED",
+    "exact_head_update_rule_required": true,
+    "update_rule_test": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE"
   }
 }
