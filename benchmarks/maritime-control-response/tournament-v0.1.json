@@ -188,7 +188,14 @@
     "reproduce the six published LiU-ICE reference solutions under the same audited protocol wherever their method/configuration details are recoverable",
     "do not treat the 2026 control-aware marine simulation paper as a matched LiU-ICE or real-engine baseline",
     "risk_score_ppm is a policy score rather than a probability and each candidate binds its risk assessment evidence",
-    "a qualified active evidence decision requires an upstream authority-owner review of the candidate risk-assessment catalogue"
+    "a qualified active evidence decision requires an upstream authority-owner review of the candidate risk-assessment catalogue",
+    "the Zenodo Marine Engine Fault dataset remains a separate protocol and label space from LiU-ICE until an independently reviewed semantic mapping exists",
+    "cross-benchmark runs bind separate archive/file-index/variable-dictionary/normalization digests and whole-file split manifests for each dataset",
+    "the 16-file Marine Engine Fault dataset is not treated as 16 independent engines or a fleet sample",
+    "the two anomaly-only injection-nozzle recordings are excluded from onset-latency metrics unless an independent injection-time source exists",
+    "the five runs with empty Compressor Filter Loss or Turbine Back Pressure values preserve missingness and do not impute zero",
+    "the three-row CSV header and baseline-versus-scenario 70/73-column schema are validated against the published variable dictionary before parsing",
+    "CC BY 4.0 metadata is recorded, but actual archive bytes, file inventory and license notices are audited before repackaging or redistribution"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -264,6 +271,16 @@
     {
       "id": "cross_language_parity",
       "target": "Exact golden-vector parity between Rust core and compliant Python or MATLAB adapter.",
+      "status": "aspirational"
+    },
+    {
+      "id": "external_marine_dataset_held_out_load",
+      "target": "Improve worst-held-out-load event recall by at least 5 percentage points at no higher false-alarm exposure than the best matched baseline, with file-level uncertainty.",
+      "status": "aspirational"
+    },
+    {
+      "id": "cross_dataset_semantic_transfer",
+      "target": "Demonstrate positive or quantify negative transfer between LiU-ICE and Marine Engine Fault using reviewed component/function mappings, separate label spaces and independent split manifests.",
       "status": "aspirational"
     }
   ],
@@ -404,5 +421,24 @@
     "adjacent_marine_research": "Lin et al., Fault diagnosis of marine diesel engine via control-aware domain-adversarial network (2026). The published abstract reports thermodynamic simulation results and explicitly notes absence of real-engine validation. https://doi.org/10.1177/01423312261487500",
     "deployment_assessment": "The 2026 industrial CPS/ICS deployability survey finds that accuracy is much more commonly assessed than other deployment criteria; use a wider readiness matrix rather than accuracy-only comparisons. https://doi.org/10.1007/s10207-026-01330-1",
     "standards_alignment": "ISO 13379-1:2025 diagnostic guidance is contextual alignment, not certification. https://www.iso.org/standard/88027.html"
+  },
+  "external_dataset_track": {
+    "path": "external-marine-engine-dataset-v0.1.json",
+    "schema_version": "symtropy-marine-external-dataset-track-v0.1",
+    "status": "metadata_audited_archive_not_audited",
+    "dataset_doi": "10.5281/zenodo.19857425",
+    "dataset_license": "CC-BY-4.0",
+    "purpose": "Separate external evaluation track for physically induced marine-engine fault scenarios across fixed loads; never pooled with LiU-ICE.",
+    "evaluation_tracks": [
+      "archive_and_signal_semantics_audit",
+      "within_dataset_held_out_load",
+      "leave_one_fault_family_out",
+      "missing_channel_and_sensor_chain",
+      "event_latency",
+      "cross_benchmark_transfer"
+    ],
+    "class_mapping_rule": "No direct sample-level class mapping. Reviewed component/function mappings only where dictionaries, units and fault mechanisms justify equivalence.",
+    "engine_transfer": "unsupported: one MU323DGSC test-bench identity is not a multi-engine or fleet sample",
+    "execution_status": "metadata_only_no_archive_sha_no_scores"
   }
 }
