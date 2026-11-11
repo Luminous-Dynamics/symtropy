@@ -61,6 +61,7 @@ pub enum StreamingError {
     InvalidInputSample,
     RecordingChanged,
     NonMonotonicSample,
+    SampleSequenceGap,
     SessionPoisoned,
     ModelRejectedInput(String),
     OutputIdentityMismatch,
@@ -79,6 +80,7 @@ impl fmt::Display for StreamingError {
             Self::InvalidInputSample => write!(formatter, "streaming input sample has invalid time or signal values"),
             Self::RecordingChanged => write!(formatter, "recording identity changed inside a streaming session"),
             Self::NonMonotonicSample => write!(formatter, "sample index or timestamp did not increase"),
+            Self::SampleSequenceGap => write!(formatter, "streaming sample index skipped one or more samples"),
             Self::SessionPoisoned => write!(formatter, "streaming session is poisoned and must be reconciled or restarted"),
             Self::ModelRejectedInput(message) => write!(formatter, "diagnoser rejected input after call: {message}"),
             Self::OutputIdentityMismatch => write!(formatter, "diagnosis output identity does not match the input sample"),
@@ -155,12 +157,17 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
         if sample.recording_id != self.recording_id {
             return Err(StreamingError::RecordingChanged);
         }
+        if let Some(previous) = self.previous_sample_index {
+            if sample.sample_index <= previous {
+                return Err(StreamingError::NonMonotonicSample);
+            }
+            if sample.sample_index != previous.saturating_add(1) {
+                return Err(StreamingError::SampleSequenceGap);
+            }
+        }
         if self
-            .previous_sample_index
-            .is_some_and(|previous| sample.sample_index <= previous)
-            || self
-                .previous_time_seconds
-                .is_some_and(|previous| sample.time_seconds <= previous)
+            .previous_time_seconds
+            .is_some_and(|previous| sample.time_seconds <= previous)
         {
             return Err(StreamingError::NonMonotonicSample);
         }
@@ -278,9 +285,15 @@ pub fn validate_receipt_chain(
         if receipt.model_sha256 != model_sha256 {
             return Err(StreamingError::MixedModelChain);
         }
-        if previous_index.is_some_and(|previous| receipt.sample_index <= previous)
-            || previous_time.is_some_and(|previous| receipt.time_seconds <= previous)
-        {
+        if let Some(previous) = previous_index {
+            if receipt.sample_index <= previous {
+                return Err(StreamingError::NonMonotonicSample);
+            }
+            if receipt.sample_index != previous.saturating_add(1) {
+                return Err(StreamingError::SampleSequenceGap);
+            }
+        }
+        if previous_time.is_some_and(|previous| receipt.time_seconds <= previous) {
             return Err(StreamingError::NonMonotonicSample);
         }
         if receipt.previous_receipt_sha256.as_deref() != previous_receipt {
@@ -564,8 +577,20 @@ mod tests {
         broken_parent.previous_receipt_sha256 = None;
         assert_eq!(
             validate_receipt_chain(&[first, broken_parent]),
-            Err(StreamingError::ReceiptIntegrityFailure)
+            Err(StreamingError::ReceiptChainBreak)
         );
+    }
+
+    #[test]
+    fn sample_index_gaps_are_not_silently_accepted() {
+        let mut session = session();
+        let _first = session.input(&sample(0, 0.0)).unwrap();
+        assert_eq!(
+            session.input(&sample(2, 0.10)),
+            Err(StreamingError::SampleSequenceGap)
+        );
+        assert_eq!(session.sample_count(), 1);
+        assert!(!session.is_poisoned());
     }
 
     #[test]
