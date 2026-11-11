@@ -1,0 +1,33 @@
+name: Battery process genealogy audit v0.1
+
+on:
+  pull_request:
+    paths:
+      - "docs/transport/BATTERY_PROCESS_STRUCTURE_PERFORMANCE_V0_1.md"
+      - "schemas/transport/battery_process_genealogy_v0_1.schema.json"
+      - "fixtures/ev_battery/battery_process_genealogy_v0_1.json"
+      - "tools/battery-genealogy-audit/**"
+      - ".github/workflows/battery-process-genealogy-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check locked package metadata
+        run: cargo metadata --manifest-path tools/battery-genealogy-audit/Cargo.toml --locked --no-deps
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/battery-genealogy-audit/Cargo.toml -- --check
+      - name: Run genealogy reference-oracle tests
+        run: cargo test --manifest-path tools/battery-genealogy-audit/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/battery-genealogy-audit/Cargo.toml --all-targets --locked -- -D warnings
