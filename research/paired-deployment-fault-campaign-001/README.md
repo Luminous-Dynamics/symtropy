@@ -71,15 +71,20 @@ Exit codes:
 - 1: structurally rejected campaign (report is still written);
 - 2: invocation, input-size, file or typed-JSON error.
 
-The validator checks pair denominator and unique IDs; exact matched context between clean and perturbed records; campaign/evaluator identity and sorted, duplicate-free privilege manifests; every fault family's supported severity values, schedule digest and event family/timing; clean-run fault contamination and perturbed-run missing fault evidence; complete episode disposition accounting; metric definitions, point estimates, confidence intervals and sample counts; recovery assessment consistency; and camera burst missing-frame event denominators.
+The validator checks pair denominator and unique IDs; exact matched context between clean and perturbed records; campaign/evaluator identity and sorted, duplicate-free privilege manifests; every fault family's supported severity values, schedule digest and event family/timing; clean-run fault contamination and perturbed-run missing fault evidence; complete episode disposition accounting; metric definitions, point estimates, confidence intervals and sample counts; recovery assessment consistency tied to a fault-restored event; and the exact consecutive camera-burst missing-frame tick window.
 
-The report includes metric-specific clean value, perturbed value and relative degradation. It does not weight or aggregate different fault families, benchmark scores, latency, energy and recovery into one headline score.
+The report includes metric-specific clean value, perturbed value and relative degradation. It does not weight or aggregate different fault families, benchmark scores, latency, energy and recovery into one headline score. Both input and output Draft 2020-12 schemas are checked in.
 
-## Included fixtures
+## Included fixtures and authored tests
+
+Twenty-one library tests cover the five published fault families, exact burst-tick accounting, paired context mismatch, denominator loss, privilege mismatch, confidence intervals, recovery semantics, baseline-zero handling and direction-aware degradation. Three CLI tests cover valid, rejected and unknown-field inputs.
+
+
 
 - examples/paired-camera-burst-valid.json: valid clean/perturbed pair, 20 explicit missing-frame events and a recovery assessment.
 - examples/mismatched-checkpoint-negative-control.json: same campaign except for a changed perturbed checkpoint; the validator must reject it.
 - schemas/fault-campaign-v1.schema.json: machine-readable Draft 2020-12 input schema.
+- schemas/audit-report-v1.schema.json: machine-readable Draft 2020-12 output/report schema.
 
 ## Next experiments
 
