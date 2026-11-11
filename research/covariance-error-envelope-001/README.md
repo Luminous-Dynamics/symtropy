@@ -15,7 +15,7 @@ This reference reports separately:
 - the classical forward-error expression (widehat{kappa}eta/(1-widehat{kappa}eta)), only when the product is below one;
 - a typed status indicating whether the estimate is informative, weak, vacuous, or outside the declared condition envelope.
 
-The condition number is numerically estimated from a pivoted LU factorization and inverse solves. Therefore the reported envelope is a **numerical estimate**, not a formally certified interval bound. Calibration against an independent high-precision oracle is the next research obligation.
+The condition number is numerically estimated from a pivoted LU factorization and inverse solves. The factor of two conservatively bounds the right-hand-side sensitivity term in Higham's normwise perturbation result. Therefore the reported envelope is a **numerical estimate**, not a formally certified interval bound. Calibration against an independent high-precision oracle is the next research obligation. Reference: [Higham, A Survey of Componentwise Perturbation Theory in Numerical Linear Algebra, Theorem 2.2](https://citeseerx.ist.psu.edu/document?doi=716c7f47274be2d9f6011b2e9719c5f02130c871&repid=rep1&type=pdf).
 
 ## Coordinate covariance primitives
 
