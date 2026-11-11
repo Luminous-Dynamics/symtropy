@@ -245,6 +245,7 @@ impl fmt::Display for ProbeError {
             Self::InvalidLikelihoodProbability(id) => write!(formatter, "probe likelihood is negative, non-finite, or above one: {id}"),
             Self::InvalidLikelihoodNormalization(id) => write!(formatter, "conditional outcomes do not sum to one for every hypothesis: {id}"),
             Self::InvalidScenarioSet(id) => write!(formatter, "likelihood uncertainty scenarios are empty, duplicated, unnormalized, or ambiguous: {id}"),
+            Self::RiskEvidenceNotReviewed => write!(formatter, "risk assessment has not been reviewed by the authority owner"),
             Self::CandidateCatalogMismatch => write!(formatter, "baseline candidates do not match the scored probe catalogue"),
             Self::InvalidSeedDigest => write!(formatter, "seed manifest must be a lowercase SHA-256 digest"),
             Self::InvalidInformationGain(id) => write!(formatter, "expected information gain is numerically invalid: {id}"),
@@ -1069,6 +1070,49 @@ mod tests {
             ),
             Err(ProbeError::InvalidCandidateDigest(_))
         ));
+    }
+
+    #[test]
+    fn unreviewed_risk_assessment_is_excluded_even_with_a_valid_digest() {
+        let mut candidate = candidate(
+            "unreviewed_risk",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        candidate.risk_assessment_reviewed_by_authority_owner = false;
+        candidate.candidate_manifest_sha256 = candidate_manifest_sha256(&candidate).unwrap();
+        let result = rank_diagnostic_probes(
+            &hypotheses(),
+            &[candidate],
+            &ProbeSelectionPolicy::conservative_read_only(),
+        )
+        .unwrap();
+        assert!(result.ranked_recommendations.is_empty());
+        assert!(!result.risk_evidence_reviewed_by_authority_owner);
+        assert!(result.assessments[0]
+            .rejection_reasons
+            .contains(&ProbeRejectionReason::RiskEvidenceNotReviewed));
+    }
+
+    #[test]
+    fn baseline_rejects_same_candidate_ids_with_changed_cost_or_risk_manifest() {
+        let candidates = vec![candidate_with_probability("sensor_a", 0.9, 30.0)];
+        let policy = ProbeSelectionPolicy::conservative_read_only();
+        let portfolio = rank_diagnostic_probes(&hypotheses(), &candidates, &policy).unwrap();
+        let mut altered = candidates.clone();
+        altered[0].expected_cost_seconds = 1.0;
+        altered[0].candidate_manifest_sha256 = candidate_manifest_sha256(&altered[0]).unwrap();
+        assert_eq!(
+            select_probe_baseline(
+                &portfolio,
+                &altered,
+                ProbeBaseline::CheapestEligible,
+                None,
+                policy.cost_penalty_scale_seconds
+            ),
+            Err(ProbeError::CandidateCatalogMismatch)
+        );
     }
 
     #[test]
