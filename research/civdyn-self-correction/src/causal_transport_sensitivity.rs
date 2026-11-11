@@ -800,19 +800,19 @@ mod tests {
     }
 
     #[test]
-    fn tipping_point_is_one_when_support_bounds_already_include_null() {
+    fn tipping_point_is_one_when_large_support_gap_already_includes_null() {
         let candidate = input(vec![
             TargetPopulationStratum {
                 modifier_id: "low-infrastructure".to_string(),
-                target_population_count: 20,
+                target_population_count: 14,
             },
             TargetPopulationStratum {
                 modifier_id: "high-infrastructure".to_string(),
-                target_population_count: 60,
+                target_population_count: 56,
             },
             TargetPopulationStratum {
                 modifier_id: "remote-isolated".to_string(),
-                target_population_count: 20,
+                target_population_count: 30,
             },
         ]);
         let tipping = find_null_tipping_point(
