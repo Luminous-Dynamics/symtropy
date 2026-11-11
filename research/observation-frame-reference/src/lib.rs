@@ -562,6 +562,15 @@ mod tests {
     }
 
     #[test]
+    fn event_order_digest_matches_fixed_known_answer() {
+        let receipt = compile_observation_frame(fixture()).expect("known-answer fixture");
+        assert_eq!(
+            receipt.event_order_sha256.as_deref(),
+            Some("f161695abcfd5dbf2275c1e9a2ff7fbf221fb2f36cc44e49230c47cfd89cf2c0")
+        );
+    }
+
+    #[test]
     fn source_event_order_changes_event_and_frame_identity() {
         let input = fixture();
         let original = compile_observation_frame(input.clone()).expect("original");
