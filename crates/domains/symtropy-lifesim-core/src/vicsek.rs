@@ -683,6 +683,47 @@ mod tests {
     }
 
     #[test]
+    fn next_position_neighbour_rule_detects_newly_adjacent_particles() {
+        let initial = vec![
+            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle {
+                x: 3.0,
+                y: 1.0,
+                heading_rad: std::f64::consts::FRAC_PI_2,
+            },
+        ];
+        let base = VicsekConfig {
+            box_size: 10.0,
+            interaction_radius: 1.5,
+            speed: 0.8,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let mut current_rule = VicsekModel::new(initial.clone(), base, 23).unwrap();
+        let mut next_rule = VicsekModel::new(
+            initial,
+            VicsekConfig {
+                update_rule: VicsekUpdateRule::NextPositionAlignment,
+                ..base
+            },
+            23,
+        )
+        .unwrap();
+
+        let current_metrics = current_rule.step().unwrap();
+        let next_metrics = next_rule.step().unwrap();
+
+        // The pair is 2 units apart at t (outside R=1.5), but their predicted positions
+        // are within R after moving with their old headings.
+        assert_eq!(current_metrics.cluster_count, 2);
+        assert!(current_metrics.polar_order < 0.8);
+        assert_eq!(next_metrics.cluster_count, 1);
+        assert!((next_metrics.polar_order - 1.0).abs() < 1.0e-12);
+        assert!((next_metrics.mean_cluster_polar_order - 1.0).abs() < 1.0e-12);
+    }
+
+    #[test]
     fn cluster_and_local_order_detect_coherent_groups_with_opposing_headings() {
         let particles = vec![
             VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
