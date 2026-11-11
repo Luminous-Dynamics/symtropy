@@ -118,7 +118,10 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
             || str_at(intel, "grouping_field") != Some("session_or_weld_id")
             || bool_at(intel, "expert_defect_labels_present") != Some(false)
         {
-            errors.push("Intel research-only rights, session grouping or weak-label boundary altered".to_owned());
+            errors.push(
+                "Intel research-only rights, session grouping or weak-label boundary altered"
+                    .to_owned(),
+            );
         }
     } else {
         errors.push("Intel source card missing".to_owned());
@@ -133,7 +136,10 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
             || str_at(thermo, "grouping_field") != Some("experiment_run_id")
             || bool_at(thermo, "verified_ndt_labels_present") != Some(false)
         {
-            errors.push("thermography item-level rights, run grouping or macrograph/NDT boundary altered".to_owned());
+            errors.push(
+                "thermography item-level rights, run grouping or macrograph/NDT boundary altered"
+                    .to_owned(),
+            );
         }
     } else {
         errors.push("thermography source card missing".to_owned());
@@ -316,7 +322,12 @@ fn main() -> ExitCode {
     let oracle_path = args.next().unwrap_or_else(|| DEFAULT_ALIGNMENT.to_owned());
     let alignment_schema_path = args.next().unwrap_or_else(|| DEFAULT_ALIGNMENT_SCHEMA.to_owned());
     if args.next().is_some() {
-        eprintln!("usage: shipyard-weld-dataset-interop [MANIFEST] [SCHEMA] [ALIGNMENT_ORACLE] [ALIGNMENT_SCHEMA]");
+        eprintln!(
+            concat!(
+                "usage: shipyard-weld-dataset-interop [MANIFEST] [SCHEMA] ",
+                "[ALIGNMENT_ORACLE] [ALIGNMENT_SCHEMA]"
+            )
+        );
         return ExitCode::from(2);
     }
 
@@ -340,11 +351,22 @@ fn main() -> ExitCode {
         Err(error) => { eprintln!("{error}"); return ExitCode::FAILURE; }
     };
 
-    match (validate_registry(&schema_text, &manifest_text), validate_alignment(&alignment_schema_text, &alignment_text)) {
+    match (
+        validate_registry(&schema_text, &manifest_text),
+        validate_alignment(&alignment_schema_text, &alignment_text),
+    ) {
         (Ok(registry), Ok(alignment)) => {
             println!(
-                "PASS: {sources} metadata sources; {controls} controls ({positive} positive / {negative} negative); {cases} alignment cases; {samples} known-answer samples; {missing} explicit missing cases; no raw file admitted",
-                sources=registry.sources,controls=registry.controls,positive=registry.positive,negative=registry.negative,
+                concat!(
+                    "PASS: {sources} metadata sources; {controls} controls ",
+                    "({positive} positive / {negative} negative); {cases} alignment cases; ",
+                    "{samples} known-answer samples; {missing} explicit missing cases; ",
+                    "no raw file admitted"
+                ),
+                sources = registry.sources,
+                controls = registry.controls,
+                positive = registry.positive,
+                negative = registry.negative,
                 cases=alignment.cases,samples=alignment.samples,missing=alignment.missing_cases
             );
             ExitCode::SUCCESS
@@ -367,10 +389,18 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    const REGISTRY_SCHEMA: &str = include_str!("../../../../docs/tech/SHIPYARD_WELD_DATASET_INTEROP_V0_1.schema.json");
-    const REGISTRY_MANIFEST: &str = include_str!("../../../../benchmarks/shipyard/weld-dataset-interop/registry-v0.1.json");
-    const ALIGNMENT_SCHEMA: &str = include_str!("../../../../docs/tech/WELD_MULTIMODAL_ALIGNMENT_ORACLE_V0_1.schema.json");
-    const ALIGNMENT_CORPUS: &str = include_str!("../../../../benchmarks/shipyard/weld-dataset-interop/alignment-oracle-v0.1.json");
+    const REGISTRY_SCHEMA: &str = include_str!(
+        "../../../../docs/tech/SHIPYARD_WELD_DATASET_INTEROP_V0_1.schema.json"
+    );
+    const REGISTRY_MANIFEST: &str = include_str!(
+        "../../../../benchmarks/shipyard/weld-dataset-interop/registry-v0.1.json"
+    );
+    const ALIGNMENT_SCHEMA: &str = include_str!(
+        "../../../../docs/tech/WELD_MULTIMODAL_ALIGNMENT_ORACLE_V0_1.schema.json"
+    );
+    const ALIGNMENT_CORPUS: &str = include_str!(
+        "../../../../benchmarks/shipyard/weld-dataset-interop/alignment-oracle-v0.1.json"
+    );
 
     fn registry_value() -> Value {
         serde_json::from_str(REGISTRY_MANIFEST).expect("registry manifest must parse")
@@ -447,7 +477,10 @@ mod tests {
         let mut v=alignment_value();
         let last=v["cases"].as_array().unwrap().len()-1;
         assert!(v["cases"][last]["samples"].as_array().unwrap().is_empty());
-        v["cases"][last]["samples"]=Value::Array(vec![serde_json::json!({"local_timestamp_ns":1,"expected_master_event_time_ns":1})]);
+        v["cases"][last]["samples"] = Value::Array(vec![serde_json::json!({
+            "local_timestamp_ns": 1,
+            "expected_master_event_time_ns": 1
+        })]);
         assert!(validate_alignment(ALIGNMENT_SCHEMA,&serde_json::to_string(&v).unwrap()).is_err());
     }
 
