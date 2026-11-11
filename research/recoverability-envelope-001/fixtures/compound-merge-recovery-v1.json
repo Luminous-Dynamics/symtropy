@@ -56,7 +56,8 @@
       "control_deadline_us": 10000,
       "detected_fault_ids": [],
       "mode": "nominal",
-      "oracle_outcome": "within_envelope"
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": []
     },
     {
       "tick": 2,
@@ -68,7 +69,8 @@
         "camera-drop"
       ],
       "mode": "degraded",
-      "oracle_outcome": "degraded_within_envelope"
+      "oracle_outcome": "degraded_within_envelope",
+      "fallback_reason_fault_ids": []
     },
     {
       "tick": 3,
@@ -80,7 +82,11 @@
         "inference-delay"
       ],
       "mode": "fallback",
-      "oracle_outcome": "degraded_within_envelope"
+      "oracle_outcome": "degraded_within_envelope",
+      "fallback_reason_fault_ids": [
+        "camera-drop",
+        "inference-delay"
+      ]
     },
     {
       "tick": 4,
@@ -90,7 +96,10 @@
       "control_deadline_us": 10000,
       "detected_fault_ids": [],
       "mode": "fallback",
-      "oracle_outcome": "degraded_within_envelope"
+      "oracle_outcome": "degraded_within_envelope",
+      "fallback_reason_fault_ids": [
+        "inference-delay"
+      ]
     },
     {
       "tick": 5,
@@ -100,7 +109,10 @@
       "control_deadline_us": 10000,
       "detected_fault_ids": [],
       "mode": "fallback",
-      "oracle_outcome": "degraded_within_envelope"
+      "oracle_outcome": "degraded_within_envelope",
+      "fallback_reason_fault_ids": [
+        "inference-delay"
+      ]
     },
     {
       "tick": 6,
@@ -110,7 +122,8 @@
       "control_deadline_us": 10000,
       "detected_fault_ids": [],
       "mode": "nominal",
-      "oracle_outcome": "within_envelope"
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": []
     },
     {
       "tick": 7,
@@ -120,7 +133,8 @@
       "control_deadline_us": 10000,
       "detected_fault_ids": [],
       "mode": "nominal",
-      "oracle_outcome": "within_envelope"
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": []
     },
     {
       "tick": 8,
@@ -130,7 +144,8 @@
       "control_deadline_us": 10000,
       "detected_fault_ids": [],
       "mode": "nominal",
-      "oracle_outcome": "within_envelope"
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": []
     },
     {
       "tick": 9,
@@ -140,7 +155,8 @@
       "control_deadline_us": 10000,
       "detected_fault_ids": [],
       "mode": "nominal",
-      "oracle_outcome": "within_envelope"
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": []
     },
     {
       "tick": 10,
@@ -150,7 +166,8 @@
       "control_deadline_us": 10000,
       "detected_fault_ids": [],
       "mode": "nominal",
-      "oracle_outcome": "within_envelope"
+      "oracle_outcome": "within_envelope",
+      "fallback_reason_fault_ids": []
     }
   ]
 }
