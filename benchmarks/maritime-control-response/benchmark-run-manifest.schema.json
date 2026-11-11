@@ -228,7 +228,8 @@
         "protocol_sha256",
         "seed_manifest_sha256",
         "tuning_frozen_before_test",
-        "official_interface_reproduced"
+        "official_interface_reproduced",
+        "event_evaluation"
       ],
       "properties": {
         "protocol_sha256": {
@@ -244,6 +245,86 @@
         },
         "official_interface_reproduced": {
           "type": "boolean"
+        },
+        "event_evaluation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "event_manifest_sha256",
+            "event_source_sha256",
+            "config"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "liu-ice-event-metrics-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "public_benchmark_executed",
+                "qualified"
+              ]
+            },
+            "event_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "event_source_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "config": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "minimum_positive_samples",
+                "alarm_merge_gap_seconds",
+                "maximum_detection_latency_seconds",
+                "maximum_observation_gap_seconds",
+                "probability_sum_tolerance"
+              ],
+              "properties": {
+                "minimum_positive_samples": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "alarm_merge_gap_seconds": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "maximum_detection_latency_seconds": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "maximum_observation_gap_seconds": {
+                  "type": "number",
+                  "exclusiveMinimum": 0
+                },
+                "probability_sum_tolerance": {
+                  "type": "number",
+                  "exclusiveMinimum": 0,
+                  "maximum": 0.099999
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -259,7 +340,7 @@
         "official_total_score",
         "event_recall",
         "unknown_false_known_rate",
-        "false_alarms_per_recording_hour",
+        "false_alarms_per_observed_normal_hour",
         "median_detection_latency_seconds",
         "p95_detection_latency_seconds"
       ],
@@ -320,13 +401,6 @@
           "minimum": 0,
           "maximum": 1
         },
-        "false_alarms_per_recording_hour": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "minimum": 0
-        },
         "median_detection_latency_seconds": {
           "type": [
             "number",
@@ -340,6 +414,45 @@
             "null"
           ],
           "minimum": 0
+        },
+        "false_alarms_per_observed_normal_hour": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "duplicate_alarm_count_during_detected_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "late_alarm_count_during_missed_events": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transient_burst_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_normal_exposure_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "event_isolation_top1_accuracy": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "mean_true_class_probability": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },
@@ -448,6 +561,12 @@
             "properties": {
               "official_total_score": {
                 "type": "null"
+              },
+              "event_recall": {
+                "type": "null"
+              },
+              "false_alarms_per_observed_normal_hour": {
+                "type": "null"
               }
             }
           },
@@ -495,6 +614,23 @@
             "properties": {
               "score_claim_allowed": {
                 "const": true
+              }
+            }
+          },
+          "protocol": {
+            "properties": {
+              "event_evaluation": {
+                "properties": {
+                  "status": {
+                    "const": "qualified"
+                  },
+                  "event_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "event_source_sha256": {
+                    "type": "string"
+                  }
+                }
               }
             }
           }
