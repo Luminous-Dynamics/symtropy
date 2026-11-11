@@ -33,6 +33,10 @@ pub enum SpatialInertia3Error {
     CentralInertiaNotPositiveSemidefinite,
     CentralInertiaViolatesTriangleInequality,
     InvalidRotation,
+    InvalidTolerance,
+    InvalidContactDirection,
+    SingularSpatialInertia,
+    NegativeContactEffectiveMass,
     FrameMismatch { left: FrameId, right: FrameId },
     FrameIdentityConflict,
     ReferencePointIdentityConflict,
@@ -217,6 +221,132 @@ impl SpatialInertia3 {
         } else {
             Err(SpatialInertia3Error::UnrepresentableSpatialMassMatrix)
         }
+    }
+
+    /// Solve the spatial mass equation for an applied wrench, using a
+    /// scale-relative eigenspace pseudoinverse for physically singular modes.
+    fn spatial_inverse_response(
+        &self,
+        wrench: &SVector<f64, 6>,
+        relative_tolerance: f64,
+    ) -> Result<SVector<f64, 6>, SpatialInertia3Error> {
+        if !relative_tolerance.is_finite()
+            || relative_tolerance <= 0.0
+            || relative_tolerance >= 1.0
+        {
+            return Err(SpatialInertia3Error::InvalidTolerance);
+        }
+        if !wrench.iter().all(|value| value.is_finite()) {
+            return Err(SpatialInertia3Error::NonFinite);
+        }
+        let matrix = self.spatial_mass_matrix()?;
+        let dynamic = DMatrix::from_fn(6, 6, |row, column| matrix[(row, column)]);
+        let eigen = nalgebra::linalg::SymmetricEigen::new(dynamic);
+        if !eigen.eigenvalues.iter().all(|value| value.is_finite())
+            || !eigen.eigenvectors.iter().all(|value| value.is_finite())
+        {
+            return Err(SpatialInertia3Error::UnrepresentableSpatialMassMatrix);
+        }
+        let scale = eigen
+            .eigenvalues
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if scale == 0.0 {
+            return Err(SpatialInertia3Error::SingularSpatialInertia);
+        }
+        if eigen
+            .eigenvalues
+            .iter()
+            .any(|value| *value < -relative_tolerance * scale)
+        {
+            return Err(SpatialInertia3Error::UnrepresentableSpatialMassMatrix);
+        }
+        let threshold = relative_tolerance * scale;
+        let wrench_scale = wrench
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let null_tolerance = relative_tolerance * wrench_scale.max(f64::MIN_POSITIVE);
+        let mut response = SVector::<f64, 6>::zeros();
+        for axis in 0..6 {
+            let projection = (0..6)
+                .map(|row| eigen.eigenvectors[(row, axis)] * wrench[row])
+                .sum::<f64>();
+            let moment = eigen.eigenvalues[axis];
+            if moment > threshold {
+                let coefficient = projection / moment;
+                if !coefficient.is_finite() {
+                    return Err(SpatialInertia3Error::UnrepresentableSpatialMassMatrix);
+                }
+                for row in 0..6 {
+                    response[row] += eigen.eigenvectors[(row, axis)] * coefficient;
+                }
+            } else if projection.abs() > null_tolerance {
+                return Err(SpatialInertia3Error::SingularSpatialInertia);
+            }
+        }
+        if response.iter().all(|value| value.is_finite()) {
+            Ok(response)
+        } else {
+            Err(SpatialInertia3Error::UnrepresentableSpatialMassMatrix)
+        }
+    }
+
+    /// Return the normal inverse effective mass for a unit impulse at a
+    /// world/contact point offset from this inertia's reference point P.
+    ///
+    /// `offset_from_reference` and `normal` are expressed in `frame`.
+    /// The impulse wrench is `[r × n; n]`, and the post-impulse point
+    /// velocity is `v_P + omega × r`. A singular spatial mode is rejected
+    /// when the contact wrench excites it.
+    pub fn contact_inverse_effective_mass(
+        &self,
+        offset_from_reference: &SVector<f64, 3>,
+        normal: &SVector<f64, 3>,
+        relative_tolerance: f64,
+    ) -> Result<f64, SpatialInertia3Error> {
+        if !offset_from_reference.iter().all(|value| value.is_finite())
+            || !normal.iter().all(|value| value.is_finite())
+        {
+            return Err(SpatialInertia3Error::NonFinite);
+        }
+        let direction_scale = normal
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if direction_scale == 0.0 {
+            return Err(SpatialInertia3Error::InvalidContactDirection);
+        }
+        let scaled = normal / direction_scale;
+        let scaled_norm = scaled.norm();
+        if !scaled_norm.is_finite() || scaled_norm == 0.0 {
+            return Err(SpatialInertia3Error::InvalidContactDirection);
+        }
+        let unit_normal = scaled / scaled_norm;
+        let angular_impulse = offset_from_reference.cross(&unit_normal);
+        if !angular_impulse.iter().all(|value| value.is_finite()) {
+            return Err(SpatialInertia3Error::NonFinite);
+        }
+        let mut wrench = SVector::<f64, 6>::zeros();
+        wrench.fixed_rows_mut::<3>(0).copy_from(&angular_impulse);
+        wrench.fixed_rows_mut::<3>(3).copy_from(&unit_normal);
+        let twist_response = self.spatial_inverse_response(&wrench, relative_tolerance)?;
+        let angular_response = twist_response.fixed_rows::<3>(0).into_owned();
+        let linear_response = twist_response.fixed_rows::<3>(3).into_owned();
+        let point_velocity_response =
+            linear_response + angular_response.cross(offset_from_reference);
+        if !point_velocity_response.iter().all(|value| value.is_finite()) {
+            return Err(SpatialInertia3Error::UnrepresentableSpatialMassMatrix);
+        }
+        let inverse_effective_mass = unit_normal.dot(&point_velocity_response);
+        if !inverse_effective_mass.is_finite() {
+            return Err(SpatialInertia3Error::UnrepresentableSpatialMassMatrix);
+        }
+        let response_scale = point_velocity_response
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if inverse_effective_mass < -relative_tolerance * response_scale {
+            return Err(SpatialInertia3Error::NegativeContactEffectiveMass);
+        }
+        Ok(inverse_effective_mass.max(0.0))
     }
 
     /// Compute kinetic energy for a twist represented at the stored point P.
@@ -661,6 +791,86 @@ mod tests {
         let rotation = Rotor::from_bivector(&generator);
         let result = inertia.reexpress(inertia.frame(), &rotation);
         assert_eq!(result.unwrap_err(), SpatialInertia3Error::FrameIdentityConflict);
+    }
+
+    #[test]
+    fn contact_effective_mass_matches_sphere_and_anisotropic_analytic_values() {
+        let sphere = SpatialInertia3::new(
+            FrameId(1),
+            ReferencePointId(1),
+            3.0,
+            SVector::zeros(),
+            SMatrix::from_diagonal(&SVector::new(1.2, 1.2, 1.2)),
+        )
+        .unwrap();
+        let offset = SVector::new(1.0, 0.0, 0.0);
+        let normal = SVector::new(0.0, 1.0, 0.0);
+        let sphere_value = sphere
+            .contact_inverse_effective_mass(&offset, &normal, 1.0e-12)
+            .unwrap();
+        assert!((sphere_value - (1.0 / 3.0 + 1.0 / 1.2)).abs() < 1.0e-11);
+
+        let anisotropic = SpatialInertia3::new(
+            FrameId(1),
+            ReferencePointId(1),
+            2.0,
+            SVector::zeros(),
+            SMatrix::from_diagonal(&SVector::new(0.5, 0.6, 0.7)),
+        )
+        .unwrap();
+        let value = anisotropic
+            .contact_inverse_effective_mass(&offset, &normal, 1.0e-12)
+            .unwrap();
+        assert!((value - (0.5 + 1.0 / 0.7)).abs() < 1.0e-11);
+
+        let axial = anisotropic
+            .contact_inverse_effective_mass(&offset, &SVector::new(2.0, 0.0, 0.0), 1.0e-12)
+            .unwrap();
+        assert!((axial - 0.5).abs() < 1.0e-11);
+    }
+
+    #[test]
+    fn contact_effective_mass_is_covariant_under_frame_reexpression() {
+        let inertia = sample();
+        let offset = SVector::new(0.7, -0.2, 0.4);
+        let normal = SVector::new(-0.3, 0.8, 0.5).normalize();
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.2);
+        generator.set(0, 2, -0.35);
+        generator.set(1, 2, 0.27);
+        let rotation = Rotor::from_bivector(&generator);
+        let original = inertia
+            .contact_inverse_effective_mass(&offset, &normal, 1.0e-12)
+            .unwrap();
+        let reexpressed = inertia.reexpress(FrameId(2), &rotation).unwrap();
+        let transformed = reexpressed
+            .contact_inverse_effective_mass(
+                &rotation.rotate_vector(&offset),
+                &rotation.rotate_vector(&normal),
+                1.0e-12,
+            )
+            .unwrap();
+        assert!((original - transformed).abs() < 2.0e-11);
+    }
+
+    #[test]
+    fn contact_effective_mass_rejects_an_excited_singular_rotation_mode() {
+        let rod = SpatialInertia3::new(
+            FrameId(1),
+            ReferencePointId(1),
+            1.0,
+            SVector::zeros(),
+            SMatrix::from_diagonal(&SVector::new(1.0, 1.0, 0.0)),
+        )
+        .unwrap();
+        let error = rod
+            .contact_inverse_effective_mass(
+                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::new(0.0, 1.0, 0.0),
+                1.0e-12,
+            )
+            .unwrap_err();
+        assert_eq!(error, SpatialInertia3Error::SingularSpatialInertia);
     }
 
     #[test]
