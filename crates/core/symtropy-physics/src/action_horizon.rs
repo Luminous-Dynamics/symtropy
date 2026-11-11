@@ -207,9 +207,9 @@ pub enum HorizonDisposition {
 
 /// Result of applying the horizon-composition contract.
 ///
-/// selected_cycles is populated only for an admissible result. For queued
-/// execution it is the longest chunk in [K_min, K_max]; for split-timescale
-/// it is K_max. The caller still needs its independent safety authority.
+/// selected_cycles is populated only when the exact requested K is admissible.
+/// The selector never clamps or silently rewrites a policy's requested prefix.
+/// The caller still needs its independent safety authority.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ActionHorizonSelection<'a> {
     // Private fields prevent callers from fabricating or mutating an admissible
@@ -230,8 +230,8 @@ pub struct ActionHorizonSelection<'a> {
     selected_cycles: Option<u64>,
 }
 
-/// Compose the eight qualified bounds and return the longest admissible
-/// whole-cycle action prefix.
+/// Compose the eight qualified bounds and accept or reject the exact
+/// whole-cycle action prefix requested by the policy.
 ///
 /// The selector fails closed: Unknown bounds, incompatible timebases,
 /// horizons shorter than one controller period, and infeasible queued
@@ -1148,6 +1148,21 @@ mod tests {
             10,
         ));
         assert_eq!(result, Err(HorizonInputError::ZeroControllerPeriod));
+    }
+
+    #[test]
+    fn zero_requested_prefix_is_rejected() {
+        let mut request = request(
+            [100; ACTION_HORIZON_CONSTRAINT_COUNT],
+            ActionExecutionMode::QueuedOpenLoop,
+            10,
+            20,
+        );
+        request.requested_cycles = 0;
+        assert_eq!(
+            select_action_horizon(&request),
+            Err(HorizonInputError::ZeroRequestedCycles)
+        );
     }
 
     #[test]
