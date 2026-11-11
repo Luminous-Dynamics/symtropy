@@ -1,252 +1,78 @@
 {
   "schema_version": "0.1.0",
-  "manifest_id": "SYNTH-BATTERY-GENEALOGY-001",
+  "manifest_id": "SYNTH-EV-BATTERY-LINEAGE-OUTCOME-001",
   "evidence_class": "synthetic_fixture",
-  "material_lots": [
+  "cells": [
     {
-      "lot_id": "LOT-CATHODE-A",
-      "material_family": "synthetic-LFP",
-      "source_ref": "SYNTHETIC-MATERIAL-DECLARATION",
-      "disposition": "synthetic_only",
-      "received_at_ns": 10
-    },
-    {
-      "lot_id": "LOT-ANODE-B",
-      "material_family": "synthetic-graphite",
-      "source_ref": "SYNTHETIC-MATERIAL-DECLARATION",
-      "disposition": "synthetic_only",
-      "received_at_ns": 11
-    },
-    {
-      "lot_id": "LOT-BINDER-C",
-      "material_family": "synthetic-binder",
-      "source_ref": "SYNTHETIC-MATERIAL-DECLARATION",
-      "disposition": "synthetic_only",
-      "received_at_ns": 11
-    }
-  ],
-  "process_events": [
-    {
-      "event_id": "EVT-SLURRY-1",
-      "stage": "slurry_preparation",
-      "recipe_revision": "SYNTH-RECIPE-1",
-      "equipment_id": "SYNTH-MIXER-1",
-      "parent_ids": [
-        "LOT-CATHODE-A",
-        "LOT-BINDER-C"
-      ],
-      "child_ids": [
-        "SLURRY-1"
-      ],
-      "field_records": [
+      "cell_id": "CELL-SYN-001",
+      "configuration_ref": "CELL-CONFIG-SYN-R1",
+      "process_window_ref": "PROCESS-WINDOW-SYN-001",
+      "material_lineage": {
+        "sample_lineage_id": "MAT013-SAMPLE-SYN-001",
+        "mat013_schema_version": "0.1",
+        "sample_scale": "device",
+        "lineage_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source_evidence_ref": "SYNTH-MAT013-EVIDENCE"
+      },
+      "process_structure_projection": {
+        "pspp_subject_id": "MAT-PSPP-SYN-001",
+        "pspp_schema_version": "0.1",
+        "sample_lineage_id": "MAT013-SAMPLE-SYN-001",
+        "realized_structure_ref": "MAT-STRUCTURE-SYN-001",
+        "conditioned_property_evidence_refs": [
+          "MAT-PROPERTY-SYN-001"
+        ],
+        "mat_uq_profile_ref": "MAT-UQ-SYN-001"
+      },
+      "interface_refs": [
         {
-          "field": "batch_mass_g",
-          "value": "1000",
-          "unit": "g",
-          "kind": "synthetic_fixture",
-          "evidence_ref": "E-SYN-1",
-          "instrument_id": null,
-          "calibration_ref": null
+          "interface_subject_id": "MAT-INTERFACE-SYN-001",
+          "mat_interface_schema_version": "0.1",
+          "interface_class": "electrode_electrolyte_interface",
+          "condition_state_ref": "INTERFACE-CONDITION-SYN-001",
+          "evidence_refs": [
+            "INTERFACE-EVIDENCE-SYN-001"
+          ],
+          "mat_uq_profile_ref": "MAT-UQ-SYN-001"
         }
-      ],
-      "timestamp_ns": 20
-    },
-    {
-      "event_id": "EVT-COAT-1",
-      "stage": "coating",
-      "recipe_revision": "SYNTH-RECIPE-1",
-      "equipment_id": "SYNTH-COATER-1",
-      "parent_ids": [
-        "SLURRY-1"
-      ],
-      "child_ids": [
-        "WEB-1"
-      ],
-      "field_records": [
-        {
-          "field": "loading_mg_cm2",
-          "value": "18",
-          "unit": "mg/cm2",
-          "kind": "synthetic_fixture",
-          "evidence_ref": "E-SYN-1",
-          "instrument_id": null,
-          "calibration_ref": null
-        }
-      ],
-      "timestamp_ns": 30
-    },
-    {
-      "event_id": "EVT-DRY-1",
-      "stage": "drying",
-      "recipe_revision": "SYNTH-RECIPE-1",
-      "equipment_id": "SYNTH-DRYER-1",
-      "parent_ids": [
-        "WEB-1"
-      ],
-      "child_ids": [
-        "DRIED-WEB-1"
-      ],
-      "field_records": [
-        {
-          "field": "residual_moisture_ppm",
-          "value": "250",
-          "unit": "ppm",
-          "kind": "synthetic_fixture",
-          "evidence_ref": "E-SYN-1",
-          "instrument_id": null,
-          "calibration_ref": null
-        }
-      ],
-      "timestamp_ns": 40
-    },
-    {
-      "event_id": "EVT-CAL-1",
-      "stage": "calendering",
-      "recipe_revision": "SYNTH-RECIPE-1",
-      "equipment_id": "SYNTH-CALENDER-1",
-      "parent_ids": [
-        "DRIED-WEB-1"
-      ],
-      "child_ids": [
-        "ELECTRODE-1"
-      ],
-      "field_records": [
-        {
-          "field": "porosity_fraction",
-          "value": "0.31",
-          "unit": "1",
-          "kind": "synthetic_fixture",
-          "evidence_ref": "E-SYN-1",
-          "instrument_id": null,
-          "calibration_ref": null
-        }
-      ],
-      "timestamp_ns": 50
-    },
-    {
-      "event_id": "EVT-ASSEMBLY-1",
-      "stage": "cell_assembly",
-      "recipe_revision": "SYNTH-CELL-1",
-      "equipment_id": "SYNTH-ASSEMBLY-1",
-      "parent_ids": [
-        "ELECTRODE-1",
-        "LOT-ANODE-B"
-      ],
-      "child_ids": [
-        "CELL-1"
-      ],
-      "field_records": [
-        {
-          "field": "assembly_record",
-          "value": "synthetic",
-          "unit": "none",
-          "kind": "synthetic_fixture",
-          "evidence_ref": "E-SYN-1",
-          "instrument_id": null,
-          "calibration_ref": null
-        }
-      ],
-      "timestamp_ns": 60
-    },
-    {
-      "event_id": "EVT-FORMATION-1",
-      "stage": "formation",
-      "recipe_revision": "SYNTH-FORMATION-1",
-      "equipment_id": "SYNTH-CYCLER-1",
-      "parent_ids": [
-        "CELL-1"
-      ],
-      "child_ids": [
-        "FORMED-CELL-1"
-      ],
-      "field_records": [
-        {
-          "field": "formation_record",
-          "value": "synthetic",
-          "unit": "none",
-          "kind": "synthetic_fixture",
-          "evidence_ref": "E-SYN-1",
-          "instrument_id": null,
-          "calibration_ref": null
-        }
-      ],
-      "timestamp_ns": 70
-    }
-  ],
-  "specimens": [
-    {
-      "specimen_id": "SLURRY-1",
-      "specimen_type": "slurry",
-      "created_at_ns": 20,
-      "created_by_event_id": "EVT-SLURRY-1",
-      "parent_ids": [
-        "LOT-CATHODE-A",
-        "LOT-BINDER-C"
-      ]
-    },
-    {
-      "specimen_id": "WEB-1",
-      "specimen_type": "coated_web",
-      "created_at_ns": 30,
-      "created_by_event_id": "EVT-COAT-1",
-      "parent_ids": [
-        "SLURRY-1"
-      ]
-    },
-    {
-      "specimen_id": "DRIED-WEB-1",
-      "specimen_type": "dried_web",
-      "created_at_ns": 40,
-      "created_by_event_id": "EVT-DRY-1",
-      "parent_ids": [
-        "WEB-1"
-      ]
-    },
-    {
-      "specimen_id": "ELECTRODE-1",
-      "specimen_type": "electrode",
-      "created_at_ns": 50,
-      "created_by_event_id": "EVT-CAL-1",
-      "parent_ids": [
-        "DRIED-WEB-1"
-      ]
-    },
-    {
-      "specimen_id": "FORMED-CELL-1",
-      "specimen_type": "formed_cell",
-      "created_at_ns": 70,
-      "created_by_event_id": "EVT-FORMATION-1",
-      "parent_ids": [
-        "CELL-1"
       ]
     }
   ],
-  "cell_builds": [
+  "cell_tests": [
     {
-      "cell_id": "CELL-1",
-      "created_at_ns": 60,
-      "configuration_ref": "SYNTH-CELL-CONFIG-1",
-      "electrode_specimen_ids": [
-        "ELECTRODE-1"
-      ],
-      "assembly_event_id": "EVT-ASSEMBLY-1",
-      "formation_event_id": "EVT-FORMATION-1",
-      "parent_ids": [
-        "ELECTRODE-1",
-        "LOT-ANODE-B"
-      ]
-    }
-  ],
-  "test_links": [
-    {
-      "test_id": "TEST-1",
-      "cell_id": "CELL-1",
-      "configuration_ref": "SYNTH-CELL-CONFIG-1",
-      "protocol_evidence_ref": "SYNTH-TEST-PROTOCOL-1",
-      "metrology_evidence_ref": "SYNTH-METROLOGY-1",
-      "raw_data_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "test_id": "CELL-TEST-SYN-001",
+      "cell_id": "CELL-SYN-001",
+      "configuration_ref": "CELL-CONFIG-SYN-R1",
+      "protocol_evidence_ref": "SYNTH-TEST-PROTOCOL",
+      "metrology_evidence_ref": "SYNTH-METROLOGY",
+      "raw_data_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
       "result_evidence_class": "synthetic_fixture"
     }
   ],
-  "claim_ceiling": "synthetic genealogy structure only; no physical process, yield, or battery performance claim"
+  "packs": [
+    {
+      "pack_id": "PACK-SYN-001",
+      "configuration_ref": "PACK-CONFIG-SYN-R1",
+      "topology_ref": "PACK-TOPOLOGY-SYN-001",
+      "cell_members": [
+        {
+          "cell_id": "CELL-SYN-001",
+          "cell_configuration_ref": "CELL-CONFIG-SYN-R1"
+        }
+      ]
+    }
+  ],
+  "mission_outcomes": [
+    {
+      "mission_id": "MISSION-SYN-001",
+      "pack_id": "PACK-SYN-001",
+      "duty_cycle_ref": "DUTY-CYCLE-SYN-001",
+      "test_campaign_ref": "MISSION-CAMPAIGN-SYN-001",
+      "system_boundary": "pack",
+      "outcome_evidence_ref": "SYNTH-MISSION-OUTCOME",
+      "metrology_evidence_ref": "SYNTH-PACK-METROLOGY",
+      "raw_data_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_class": "synthetic_fixture"
+    }
+  ]
 }
