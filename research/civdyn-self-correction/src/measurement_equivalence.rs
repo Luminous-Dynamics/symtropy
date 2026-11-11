@@ -1223,6 +1223,22 @@ mod tests {
     }
 
     #[test]
+    fn paired_bridge_requires_a_minimum_paired_sample_count() {
+        let (left, right) = survey_pair();
+        let mut evidence = bridge(EvidenceDisposition::Supported);
+        evidence.paired_sample_size = Some(50);
+        assert_eq!(
+            assess_measurement_equivalence(
+                &left,
+                &right,
+                &MeasurementEquivalenceEvidence::BridgeStudy(evidence)
+            )
+            .unwrap_err(),
+            MeasurementEquivalenceError::InvalidGroupSet
+        );
+    }
+
+    #[test]
     fn bridge_population_noninvariance_blocks_comparison_claims() {
         let (left, right) = survey_pair();
         let report = assess_measurement_equivalence(
