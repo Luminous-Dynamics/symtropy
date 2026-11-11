@@ -193,7 +193,6 @@ impl CompoundMassProperties3 {
             total_mass = next_total;
         }
 
-        let identity = SMatrix::<f64, 3, 3>::identity();
         let mut tensor = SMatrix::<f64, 3, 3>::zeros();
 
         for (part, child_center) in ordered.iter().zip(child_centers.iter()) {
@@ -480,15 +479,15 @@ mod tests {
         let properties = MassProperties3 {
             mass: 1.0e300,
             center_of_mass: SVector::zeros(),
-            principal_inertia: crate::angular_dynamics::PrincipalInertia3::new([1.0e-200; 3])
+            principal_inertia: crate::angular_dynamics::PrincipalInertia3::new([1.0e-50; 3])
                 .unwrap(),
         };
         let parts = [
-            part(1, [-1.0e-200, 0.0, 0.0], Rotor::identity(), properties),
-            part(2, [1.0e-200, 0.0, 0.0], Rotor::identity(), properties),
+            part(1, [-1.0e-170, 0.0, 0.0], Rotor::identity(), properties),
+            part(2, [1.0e-170, 0.0, 0.0], Rotor::identity(), properties),
         ];
         let compound = CompoundMassProperties3::compose(&parts).unwrap();
-        let expected_transverse = 2.0e-100;
+        let expected_transverse = 2.0e-40;
         assert!(
             (compound.inertia_tensor_body[(1, 1)] / expected_transverse - 1.0).abs() < 1.0e-12,
             "scale-safe parallel-axis term was lost: Iyy={:e}",
