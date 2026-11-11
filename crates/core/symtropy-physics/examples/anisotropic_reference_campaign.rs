@@ -193,7 +193,12 @@ fn euler_top_body_derivative(
         principal_moments[1] * omega_body[1],
         principal_moments[2] * omega_body[2],
     ]);
-    angular_momentum.cross(omega_body).component_div(&SVector::from(*principal_moments))
+    let torque_free_rhs = angular_momentum.cross(omega_body);
+    SVector::from([
+        torque_free_rhs[0] / principal_moments[0],
+        torque_free_rhs[1] / principal_moments[1],
+        torque_free_rhs[2] / principal_moments[2],
+    ])
 }
 
 fn rk4_euler_top_body(
