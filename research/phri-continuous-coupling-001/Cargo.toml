@@ -1,0 +1,12 @@
+[package]
+name = "phri-continuous-coupling-001"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Deterministic fixed-size distributed tactile field reference"
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
