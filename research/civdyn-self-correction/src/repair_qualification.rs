@@ -199,7 +199,10 @@ pub enum RepairQualificationError {
     },
     BaselineAndRepairedChallengeVocabularyMismatch,
     InvalidIntervalWidthBudget,
-    InvalidIntervalWidth { statistic_id: String, unit_id: String },
+    InvalidIntervalWidth {
+        statistic_id: String,
+        unit_id: String,
+    },
 }
 
 impl fmt::Display for RepairQualificationError {
@@ -218,9 +221,7 @@ impl From<AdequacyError> for RepairQualificationError {
 
 type AssessmentRows<'a> = BTreeMap<AssessmentKey, &'a crate::model_adequacy::StatisticAssessment>;
 
-fn interval_width(
-    row: &crate::model_adequacy::StatisticAssessment,
-) -> Option<f64> {
+fn interval_width(row: &crate::model_adequacy::StatisticAssessment) -> Option<f64> {
     match (row.lower_reference, row.upper_reference) {
         (Some(lower), Some(upper)) if lower.is_finite() && upper.is_finite() && upper >= lower => {
             let width = upper - lower;
@@ -450,9 +451,7 @@ pub fn qualify_repair_on_fresh_challenge(
     if input.baseline_model_digest == input.repaired_model_digest {
         return Err(RepairQualificationError::BaselineAndRepairedModelMustDiffer);
     }
-    if !input.maximum_interval_width_ratio.is_finite()
-        || input.maximum_interval_width_ratio < 1.0
-    {
+    if !input.maximum_interval_width_ratio.is_finite() || input.maximum_interval_width_ratio < 1.0 {
         return Err(RepairQualificationError::InvalidIntervalWidthBudget);
     }
     input.challenge_registry.validate()?;
@@ -612,23 +611,21 @@ pub fn qualify_repair_on_fresh_challenge(
                 unit_id: key.independent_unit_id.clone(),
             });
         }
-        let (interval_width_ratio, width_budget_exceeded) = match (
-            baseline_interval_width,
-            repaired_interval_width,
-        ) {
-            (Some(baseline_width), Some(repaired_width)) if baseline_width > 0.0 => {
-                let ratio = repaired_width / baseline_width;
-                (Some(ratio), ratio > input.maximum_interval_width_ratio)
-            }
-            (Some(baseline_width), Some(repaired_width)) if baseline_width == 0.0 => {
-                if repaired_width > 0.0 {
-                    (None, true)
-                } else {
-                    (Some(1.0), false)
+        let (interval_width_ratio, width_budget_exceeded) =
+            match (baseline_interval_width, repaired_interval_width) {
+                (Some(baseline_width), Some(repaired_width)) if baseline_width > 0.0 => {
+                    let ratio = repaired_width / baseline_width;
+                    (Some(ratio), ratio > input.maximum_interval_width_ratio)
                 }
-            }
-            _ => (None, false),
-        };
+                (Some(baseline_width), Some(repaired_width)) if baseline_width == 0.0 => {
+                    if repaired_width > 0.0 {
+                        (None, true)
+                    } else {
+                        (Some(1.0), false)
+                    }
+                }
+                _ => (None, false),
+            };
         if width_budget_exceeded {
             width_budget_exceeded_count += 1;
         }
