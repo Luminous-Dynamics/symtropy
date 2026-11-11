@@ -23,7 +23,7 @@ pub enum BodyType {
 }
 
 /// Rotational inertia model used by one rigid body.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RotationalInertiaModel {
     /// Static and kinematic bodies do not respond to applied impulses.
     StaticOrKinematic,
