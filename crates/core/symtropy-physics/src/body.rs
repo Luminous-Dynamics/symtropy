@@ -280,8 +280,9 @@ mod compound_com_tests {
         )
     }
 
-    fn original_child_world_support(
+    fn child_world_support(
         body: &RigidBody<3>,
+        child_index: usize,
         direction: &SVector<f64, 3>,
     ) -> SVector<f64, 3> {
         let compound = body
@@ -291,8 +292,8 @@ mod compound_com_tests {
             .expect("merge_toolhead always stores a compound collider");
         let (child_transform, shape) = compound
             .children()
-            .first()
-            .expect("original collider remains the first compound child");
+            .get(child_index)
+            .expect("requested compound child exists");
         let world_from_child = body.transform.compose(child_transform);
         let child_direction = world_from_child
             .rotation
@@ -302,6 +303,34 @@ mod compound_com_tests {
         world_from_child.transform_point(&Point(local_support)).0
     }
 
+    fn original_child_world_support(
+        body: &RigidBody<3>,
+        direction: &SVector<f64, 3>,
+    ) -> SVector<f64, 3> {
+        child_world_support(body, 0, direction)
+    }
+
+    fn assert_child_geometry_preserved(
+        before: &[SVector<f64, 3>],
+        body: &RigidBody<3>,
+        child_index: usize,
+    ) {
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([1.0, 2.0, -3.0]),
+            SVector::from([-2.0, 0.5, 1.0]),
+        ];
+        for (index, direction) in directions.iter().enumerate() {
+            let after = child_world_support(body, child_index, direction);
+            assert!(
+                (after - before[index]).norm() < 2.0e-10,
+                "compound child {child_index} moved in direction {direction:?}: before={:?}, after={after:?}",
+                before[index]
+            );
+        }
+    }
     fn assert_original_geometry_preserved(before: &[SVector<f64, 3>], body: &RigidBody<3>) {
         let directions = [
             SVector::from([1.0, 0.0, 0.0]),
@@ -423,16 +452,21 @@ mod compound_com_tests {
         );
         assert_original_geometry_preserved(&initial, &body);
 
-        let after_first = directions
+        let after_first_original = directions
             .iter()
-            .map(|direction| body.world_support(direction))
+            .map(|direction| original_child_world_support(&body, direction))
+            .collect::<Vec<_>>();
+        let after_first_tool = directions
+            .iter()
+            .map(|direction| child_world_support(&body, 1, direction))
             .collect::<Vec<_>>();
         body.merge_toolhead(
             Transform::from_translation(Point::new([-0.4, 1.1, 0.6])),
             Box::new(Sphere::new(Point::origin(), 0.1)),
             0.3,
         );
-        assert_original_geometry_preserved(&after_first, &body);
-        assert_support_preserved(&initial, &body);
+        assert_child_geometry_preserved(&after_first_original, &body, 0);
+        assert_child_geometry_preserved(&after_first_tool, &body, 1);
+        assert_original_geometry_preserved(&initial, &body);
     }
 }
