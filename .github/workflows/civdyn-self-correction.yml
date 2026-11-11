@@ -366,7 +366,6 @@ jobs:
 
           full_lowers = [float(full_global[lam]["target_ate_lower"]) for lam in (1.0, 2.0, 4.0)]
           full_uppers = [float(full_global[lam]["target_ate_upper"]) for lam in (1.0, 2.0, 4.0)]
-          assert full_lowers[0] <= full_lowers[1] <= full_lowers[2] is False
           assert full_lowers[0] >= full_lowers[1] >= full_lowers[2]
           assert full_uppers[0] <= full_uppers[1] <= full_uppers[2]
 
