@@ -31,6 +31,35 @@
       },
       "code_repository": "https://github.com/sqrrahman/Vicsek_interaction_network_critical_noise_geometry_and_topology",
       "code_access_status": "GitHub API fetch returned NOT_FOUND through the connected source; code repository should be manually verified before claiming source reproduction."
+    },
+    "erratum": {
+      "citation": "Rahman et al., Erratum: Topology and geometry of clusters in the Vicsek model across scales, Physical Review Research 8, 049002(E) (2026)",
+      "doi": "10.1103/b9yr-8wmv",
+      "published": "2026-10-27",
+      "url": "https://doi.org/10.1103/b9yr-8wmv",
+      "correction": "Use the interaction-neighbour set at t+dt, while summing the neighbours' velocity/headings at t, to calculate the focal particle's heading at t+dt.",
+      "note": "The erratum states the corrected results are indistinguishable from the forward update method; the backward update as printed in the original paper gives different cluster network scaling."
+    },
+    "topology_study": {
+      "citation": "Rahman et al., Topology and geometry of clusters in the Vicsek model across scales, Physical Review Research 8, 033039 (2026)",
+      "doi": "10.1103/hkrb-wpdr",
+      "url": "https://doi.org/10.1103/hkrb-wpdr",
+      "published": "2026-07-10",
+      "observables": "interaction networks, connected clusters, degree distributions, average path length, clustering coefficient, cluster mass, geometric area/perimeter"
+    },
+    "structure_order_study": {
+      "citation": "Jin & Dong, Quantitative relationship between coupled structural dynamics and collective order in the original Vicsek model, Communications Physics (2026)",
+      "doi": "10.1038/s42005-026-02933-9",
+      "url": "https://doi.org/10.1038/s42005-026-02933-9",
+      "published": "2026-10-20",
+      "findings": "global polar order correlates with average interaction number; cluster-level and system-level interaction-number distributions show normalized profile similarities; cluster size correlates with orientation."
+    },
+    "information_causality_study": {
+      "citation": "Pang & Wang, Quantifying influence and information transfer in a modified Vicsek model with nonreciprocal interactions, Physical Review E 114, 024111 (2026)",
+      "doi": "10.1103/rf2v-sy5d",
+      "url": "https://doi.org/10.1103/rf2v-sy5d",
+      "published": "2026-08-07",
+      "warning": "Transfer entropy is statistical information transfer, not by itself causal influence; causal influence requires a defined intervention or structural model."
     }
   },
   "model_definition": {
@@ -180,7 +209,8 @@
           "expected_cluster_count": 1,
           "expected_polar_order": 1
         }
-      }
+      },
+      "update_rule": "CurrentPositionAlignment"
     },
     {
       "id": "OPPOSED_LOCAL_FLOCKS_GLOBAL_CANCELLATION",
@@ -231,7 +261,48 @@
         "mean_local_polar_order": 1,
         "cluster_count": 2,
         "largest_cluster_fraction": 0.5
-      }
+      },
+      "update_rule": "CurrentPositionAlignment"
+    },
+    {
+      "id": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE",
+      "purpose": "Show that current-position versus next-position neighbour selection is a substantive model choice, not an innocuous implementation detail",
+      "particle_count": 2,
+      "box_size": 10,
+      "interaction_radius": 1.5,
+      "speed": 0.8,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "seed": 23,
+      "initial_particles": [
+        {
+          "x": 1,
+          "y": 1,
+          "heading_rad": 0
+        },
+        {
+          "x": 3,
+          "y": 1,
+          "heading_rad": 1.5707963267948966
+        }
+      ],
+      "execution_steps": 1,
+      "compare_update_rules": [
+        "CurrentPositionAlignment",
+        "NextPositionAlignment"
+      ],
+      "expected": {
+        "current_position_alignment": {
+          "cluster_count": 2,
+          "polar_order": "<0.8"
+        },
+        "next_position_alignment": {
+          "cluster_count": 1,
+          "polar_order": 1,
+          "mean_cluster_polar_order": 1
+        }
+      },
+      "interpretation": "The current-position pair is outside the radius, while their predicted next positions are inside it. Under the corrected next-position-neighbour rule, the particles align using headings at t."
     }
   ],
   "observables": {
@@ -250,7 +321,10 @@
     "mean_clustering_coefficient_status": "NOT_IMPLEMENTED; required for parity with 2026 topology/geometry paper",
     "mean_shortest_path_length_status": "NOT_IMPLEMENTED; required for parity with 2026 topology/geometry paper",
     "cluster_area_perimeter_scaling_status": "NOT_IMPLEMENTED; research extension",
-    "local_order_coverage_fraction": "Fraction of particles with at least one other particle within the interaction radius"
+    "local_order_coverage_fraction": "Fraction of particles with at least one other particle within the interaction radius",
+    "mean_clustering_coefficient": "Mean Watts–Strogatz local clustering coefficient across all particles; degree 0 or 1 contributes zero",
+    "mean_shortest_path_length": "Mean unweighted shortest-path distance over connected unordered pairs only; null if there are no connected pairs",
+    "connected_pair_fraction": "Fraction of all unordered particle pairs belonging to the same connected component"
   },
   "benchmark_tasks": [
     "Collective order versus independent-particle baseline",
@@ -265,7 +339,9 @@
     "Local-versus-global order: detect multiple locally aligned groups whose orientations cancel globally",
     "Local-order support: do not report perfect local order for isolated particles whose neighbourhood contains only themselves",
     "Finite-size and density-scaling analysis across independent seeds",
-    "Causal coupling ablation: reduce or remove neighbour alignment while holding initial states and movement noise fixed"
+    "Causal coupling ablation: reduce or remove neighbour alignment while holding initial states and movement noise fixed",
+    "Update-rule sensitivity: compare current-position and corrected next-position neighbour-time conventions with identical initial conditions.",
+    "Network topology: compare degree distributions, local clustering coefficient and mean shortest-path length across cluster sizes and density regimes."
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
@@ -273,7 +349,9 @@
     "Report finite-size dependence and ensemble confidence intervals.",
     "A test at unseen noise amplitude is not a test at unseen interaction rules; reserve whole rule variants for separate open-world evaluation.",
     "The local-order statistic is undefined (null) when no particle has another neighbour; do not replace null with zero or one.",
-    "For all finite-size and parameter-sweep claims, independent seeds/trajectories—not frames—are the inferential units."
+    "For all finite-size and parameter-sweep claims, independent seeds/trajectories—not frames—are the inferential units.",
+    "Record the exact update_rule with every trajectory and benchmark receipt; do not pool CurrentPositionAlignment and NextPositionAlignment results.",
+    "Network paths are computed on the instantaneous interaction graph; report the observation/update time at which the graph was constructed."
   ],
   "reproducibility": {
     "manifest_is_input_contract": true,
