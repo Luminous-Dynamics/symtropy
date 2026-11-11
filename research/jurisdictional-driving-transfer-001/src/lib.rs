@@ -252,6 +252,7 @@ pub fn audit_profile(profile: &JurisdictionProfile) -> ProfileAuditReport {
     let mut source_ids = BTreeSet::new();
     let mut has_legal_statute = false;
     let mut has_legal_sign_manual = false;
+    let mut cross_checked_source_count = 0_usize;
     let mut legal_reviewed_source_count = 0_usize;
 
     for source in &profile.sources {
@@ -287,6 +288,15 @@ pub fn audit_profile(profile: &JurisdictionProfile) -> ProfileAuditReport {
         {
             findings.insert("source_published_date_invalid".to_string());
         }
+        if source.verification_status == VerificationStatus::CrossChecked {
+            cross_checked_source_count += 1;
+            if source.edition_or_revision.as_deref().is_none_or(str::is_empty)
+                || source.content_sha256.is_none()
+                || source.content_sha256.as_deref().is_some_and(|digest| !is_sha256_hex(digest))
+            {
+                findings.insert("cross_checked_source_lacks_revision_or_digest".to_string());
+            }
+        }
         if source.verification_status == VerificationStatus::LegalReviewed {
             legal_reviewed_source_count += 1;
             if source.edition_or_revision.as_deref().is_none_or(str::is_empty)
@@ -313,6 +323,12 @@ pub fn audit_profile(profile: &JurisdictionProfile) -> ProfileAuditReport {
         .is_some_and(is_sha256_hex);
     if profile.rule_bundle_sha256.is_some() && !rule_bundle_digest_present {
         findings.insert("rule_bundle_digest_invalid".to_string());
+    }
+
+    if profile.profile_status == ProfileStatus::Reviewed
+        && cross_checked_source_count + legal_reviewed_source_count == 0
+    {
+        findings.insert("reviewed_profile_requires_cross_checked_source".to_string());
     }
 
     if profile.profile_status == ProfileStatus::PolicyEligible {
@@ -580,6 +596,21 @@ mod tests {
         assert_eq!(audit_profile(&profile).disposition, "valid_draft");
         profile.steering_wheel_side = VehicleHandedness::Unknown;
         assert_eq!(audit_profile(&profile).disposition, "valid_draft");
+    }
+
+    #[test]
+    fn reviewed_profile_requires_at_least_one_cross_checked_source() {
+        let mut profile = south_africa_draft();
+        profile.profile_status = ProfileStatus::Reviewed;
+        let report = audit_profile(&profile);
+        assert!(!report.policy_eligible);
+        assert!(report.findings.contains(
+            &"reviewed_profile_requires_cross_checked_source".to_string()
+        ));
+        profile.sources[0].verification_status = VerificationStatus::CrossChecked;
+        profile.sources[0].edition_or_revision = Some("government-guidance-current-page".into());
+        profile.sources[0].content_sha256 = Some("e".repeat(64));
+        assert_eq!(audit_profile(&profile).disposition, "valid_reviewed_not_policy_eligible");
     }
 
     #[test]
