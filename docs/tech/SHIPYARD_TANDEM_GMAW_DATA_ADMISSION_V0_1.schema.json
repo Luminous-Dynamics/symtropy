@@ -141,7 +141,8 @@
         "redistribution_allowed",
         "derivative_publication_allowed",
         "model_training_allowed",
-        "raw_data_scoring_allowed"
+        "raw_data_scoring_allowed",
+        "raw_data_license_still_pending"
       ],
       "properties": {
         "status": {
@@ -161,6 +162,9 @@
         },
         "raw_data_scoring_allowed": {
           "const": false
+        },
+        "raw_data_license_still_pending": {
+          "const": true
         }
       }
     },
@@ -181,7 +185,11 @@
         "groove_opening_deg_approx",
         "root_layer",
         "tandem_layers",
-        "mode_groups"
+        "mode_groups",
+        "tandem_only_analysis_excludes_root_layer",
+        "repeat_comparator",
+        "matched_mode_pair",
+        "materials_detail"
       ],
       "properties": {
         "workpiece_count": {
@@ -248,6 +256,119 @@
               "const": [
                 "WID630"
               ]
+            }
+          }
+        },
+        "tandem_only_analysis_excludes_root_layer": {
+          "const": true
+        },
+        "repeat_comparator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "workpiece_id",
+            "comparator",
+            "status",
+            "independent_replicate"
+          ],
+          "properties": {
+            "workpiece_id": {
+              "const": "WID617"
+            },
+            "comparator": {
+              "const": "Sproesser et al. 2015 published experiment"
+            },
+            "status": {
+              "const": "source_article_describes_as_repeat_of_published_sequence_parameters_with_modern_T_GMAW_equipment"
+            },
+            "independent_replicate": {
+              "const": false
+            }
+          }
+        },
+        "matched_mode_pair": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "workpieces",
+            "contrast",
+            "matched_parameters",
+            "workpiece_replicates_per_mode",
+            "supports_causal_generalization"
+          ],
+          "properties": {
+            "workpieces": {
+              "const": [
+                "WID631",
+                "WID632"
+              ]
+            },
+            "contrast": {
+              "const": "PMC+PMC versus PMC+CMT"
+            },
+            "matched_parameters": {
+              "type": "string",
+              "minLength": 20
+            },
+            "workpiece_replicates_per_mode": {
+              "const": 1
+            },
+            "supports_causal_generalization": {
+              "const": false
+            }
+          }
+        },
+        "materials_detail": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "base_material",
+            "wire",
+            "wire_diameter_mm",
+            "shielding_gas",
+            "nominal_gas_flow_l_per_min",
+            "position",
+            "root_gap_mm_range",
+            "support",
+            "tack_welded_for_positioning"
+          ],
+          "properties": {
+            "base_material": {
+              "const": "S355J2+N"
+            },
+            "wire": {
+              "const": "ER70S-6"
+            },
+            "wire_diameter_mm": {
+              "const": 1.2
+            },
+            "shielding_gas": {
+              "const": "82% Ar / 18% CO2 (ISO 14175 M21-ArC-18)"
+            },
+            "nominal_gas_flow_l_per_min": {
+              "const": 20
+            },
+            "position": {
+              "const": "1G_flat"
+            },
+            "root_gap_mm_range": {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "const": 1
+                },
+                {
+                  "const": 2
+                }
+              ],
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "support": {
+              "const": "steel backing plate with ceramic backing inlay"
+            },
+            "tack_welded_for_positioning": {
+              "const": true
             }
           }
         }
