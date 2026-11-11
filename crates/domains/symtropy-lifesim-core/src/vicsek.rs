@@ -190,10 +190,15 @@ pub struct VicsekMetrics {
     pub mean_neighbors_excluding_self: f64,
     /// Population variance of the per-particle neighbour counts.
     pub neighbor_count_variance: f64,
-    /// Mean polar order inside each particle's local interaction neighbourhood.
-    pub mean_local_polar_order: f64,
-    /// Population variance of local polar-order values across particles.
-    pub local_polar_order_variance: f64,
+    /// Fraction of particles with at least one other particle in their interaction neighbourhood.
+    pub local_order_coverage_fraction: f64,
+    /// Mean local polar order over particles with at least one other neighbour.
+    ///
+    /// None means that no particle has a multi-particle neighbourhood; self-alignment
+    /// alone is not treated as evidence of local collective order.
+    pub mean_local_polar_order: Option<f64>,
+    /// Population variance of supported local polar-order values.
+    pub local_polar_order_variance: Option<f64>,
     /// Mean size of connected components in the metric-neighbour graph.
     pub mean_cluster_size: f64,
     /// Population variance of connected-component sizes.
@@ -467,25 +472,33 @@ impl VicsekModel {
             .sum::<f64>()
             / count as f64;
 
-        // Each local neighbourhood includes the particle itself, so add one to its
-        // pairwise neighbour count when normalizing the local mean heading vector.
-        let local_orders: Vec<f64> = (0..count)
+        // Local order is only defined for particles with at least one other
+        // neighbour. A one-particle neighbourhood has order 1 by construction and
+        // would otherwise make an isolated random gas look perfectly locally ordered.
+        let supported_orders: Vec<f64> = (0..count)
+            .filter(|index| neighbor_counts[*index] > 0)
             .map(|index| {
                 (local_sum_cos[index].hypot(local_sum_sin[index])
                     / (neighbor_counts[index] + 1) as f64)
                     .clamp(0.0, 1.0)
             })
             .collect();
-        let mean_local_polar_order =
-            local_orders.iter().sum::<f64>() / count as f64;
-        let local_polar_order_variance = local_orders
-            .iter()
-            .map(|order| {
-                let delta = *order - mean_local_polar_order;
-                delta * delta
-            })
-            .sum::<f64>()
-            / count as f64;
+        let local_order_coverage_fraction = supported_orders.len() as f64 / count as f64;
+        let mean_local_polar_order = if supported_orders.is_empty() {
+            None
+        } else {
+            Some(supported_orders.iter().sum::<f64>() / supported_orders.len() as f64)
+        };
+        let local_polar_order_variance = mean_local_polar_order.map(|mean| {
+            supported_orders
+                .iter()
+                .map(|order| {
+                    let delta = *order - mean;
+                    delta * delta
+                })
+                .sum::<f64>()
+                / supported_orders.len() as f64
+        });
 
         let mut component_sizes = vec![0usize; count];
         let mut component_sum_cos = vec![0.0f64; count];
@@ -537,6 +550,7 @@ impl VicsekModel {
             polar_order,
             mean_neighbors_excluding_self: mean_neighbors,
             neighbor_count_variance,
+            local_order_coverage_fraction,
             mean_local_polar_order,
             local_polar_order_variance,
             mean_cluster_size,
@@ -679,7 +693,8 @@ mod tests {
         );
         assert_eq!(metrics.cluster_count, 1);
         assert_eq!(metrics.largest_cluster_fraction, 1.0);
-        assert!((metrics.mean_local_polar_order - 1.0).abs() < 1.0e-12);
+        assert_eq!(metrics.local_order_coverage_fraction, 1.0);
+        assert!((metrics.mean_local_polar_order.unwrap() - 1.0).abs() < 1.0e-12);
     }
 
     #[test]
@@ -776,7 +791,44 @@ mod tests {
 
         assert_eq!(metrics.polar_order, before);
         assert_eq!(metrics.mean_neighbors_excluding_self, 0.0);
+        assert_eq!(metrics.local_order_coverage_fraction, 0.0);
+        assert_eq!(metrics.mean_local_polar_order, None);
+        assert_eq!(metrics.local_polar_order_variance, None);
         assert_eq!(metrics.cluster_count, 5);
+    }
+
+    #[test]
+    fn opposed_local_flocks_cancel_global_order_but_preserve_local_order() {
+        let particles = vec![
+            VicsekParticle { x: 2.0, y: 2.0, heading_rad: 0.0 },
+            VicsekParticle { x: 2.5, y: 2.0, heading_rad: 0.0 },
+            VicsekParticle { x: 2.0, y: 2.5, heading_rad: 0.0 },
+            VicsekParticle { x: 12.0, y: 12.0, heading_rad: std::f64::consts::PI },
+            VicsekParticle { x: 12.5, y: 12.0, heading_rad: std::f64::consts::PI },
+            VicsekParticle { x: 12.0, y: 12.5, heading_rad: std::f64::consts::PI },
+        ];
+        let model = VicsekModel::new(
+            particles,
+            VicsekConfig {
+                box_size: 20.0,
+                interaction_radius: 1.0,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+            },
+            13,
+        )
+        .unwrap();
+
+        let metrics = model.metrics();
+        assert!(metrics.polar_order < 1.0e-12, "{metrics:?}");
+        assert_eq!(metrics.cluster_count, 2);
+        assert_eq!(metrics.largest_cluster_fraction, 0.5);
+        assert_eq!(metrics.local_order_coverage_fraction, 1.0);
+        assert!(
+            (metrics.mean_local_polar_order.unwrap() - 1.0).abs() < 1.0e-12,
+            "{metrics:?}"
+        );
     }
 
     #[test]
@@ -819,9 +871,14 @@ mod tests {
                 && (0.0..=1.0).contains(&metrics.polar_order)
                 && metrics.mean_neighbors_excluding_self.is_finite()
                 && metrics.neighbor_count_variance.is_finite()
-                && metrics.mean_local_polar_order.is_finite()
-                && (0.0..=1.0).contains(&metrics.mean_local_polar_order)
-                && metrics.local_polar_order_variance.is_finite()
+                && metrics.local_order_coverage_fraction.is_finite()
+                && (0.0..=1.0).contains(&metrics.local_order_coverage_fraction)
+                && metrics.mean_local_polar_order.is_none_or(|value| {
+                    value.is_finite() && (0.0..=1.0).contains(&value)
+                })
+                && metrics.local_polar_order_variance.is_none_or(|value| {
+                    value.is_finite() && value >= 0.0
+                })
                 && metrics.mean_cluster_size.is_finite()
                 && metrics.cluster_size_variance.is_finite()
                 && metrics.mean_cluster_polar_order.is_finite()
