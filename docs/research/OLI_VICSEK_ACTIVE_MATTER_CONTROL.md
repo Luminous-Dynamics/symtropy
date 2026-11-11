@@ -117,6 +117,14 @@ Disconnected pairs are not assigned an arbitrary infinite or sentinel path lengt
 
 An all-to-all positive control changes every particle's next heading from 0 to `atan2(1,5)` when one of six headings is rotated by 90°. A self-only negative control changes only the intervened particle and leaves the other particles identical to the sham. These are causal demonstrations inside the declared simulation model—not evidence of natural agency or intelligence.
 
+## Performance and measurement cadence
+
+The implementation separates trajectory-scale and graph-topology analysis:
+- `step()` and `run_steps()` use `fast_metrics()`, computing polar/local order, degree distributions and connected components in (O(N^2)) per step.
+- `metrics()` computes the complete network topology snapshot, including local clustering and all connected-pair shortest paths. This is more expensive and should be called at pre-registered checkpoints rather than every frame.
+
+The benchmark runner should record its checkpoint schedule in the receipt. The initial proposed schedule is tick 0, after warm-up, every 50 ticks and the final tick; this is a proposed operational default, not yet a qualified optimum. Full topology metrics must never be silently omitted: each snapshot declares whether topology analysis was computed, and unset values are not interpreted as zero.
+
 ## Benchmark design
 
 - Compare local alignment against self-only and independent-particle controls.
