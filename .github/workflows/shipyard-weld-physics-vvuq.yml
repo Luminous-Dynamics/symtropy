@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: ["main"]
     paths:
+      - "Cargo.toml"
       - "crates/tools/shipyard-weld-physics-vvuq/**"
       - "crates/tools/shipyard-weld-physics-vvuq/Cargo.lock"
       - "benchmarks/shipyard/weld-physics/**"
