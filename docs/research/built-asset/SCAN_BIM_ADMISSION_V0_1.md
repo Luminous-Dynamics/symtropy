@@ -31,6 +31,18 @@ raw capture
 
 Each transition must be explicit, versioned and reviewable. A low point-cloud residual, high segmentation score, valid IFC file or visually plausible model does not independently establish an accurate as-built state.
 
+### Change attribution requires survey-state separation
+
+A geometric residual is not yet proof of physical building change. Before the admission oracle evaluates element residuals or a proposed model delta, it consumes the qualified survey product's explicit change-estimate disposition, registration-stability disposition and independent-checkpoint evidence reference from #1607.
+
+- A qualified change estimate with registration stable within its validated bound and a checkpoint-evidence digest may proceed to element-level admission.
+- An unresolved change estimate requests additional observation.
+- Suspected common-mode registration shift or unknown registration stability requests additional observation and cannot be promoted to a physical model change.
+- Missing/invalid independent-checkpoint evidence is stale/unqualified evidence, not a zero-error assumption.
+
+This is a consumer-side guard only. #1607 remains the authority for estimating registration stability and physical change; this oracle does not re-register scans, calculate control adjustment, infer a drift field or authenticate the upstream receipt bytes.
+
+
 ## 2. Ownership boundaries
 
 | Concern | Existing owner | This protocol consumes |
