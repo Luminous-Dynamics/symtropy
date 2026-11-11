@@ -318,7 +318,11 @@ impl ObservationStreamGuard {
         if sequence == 0 {
             return Err(RenderError::InvalidObservationSequence);
         }
-        if self.clock_id.as_deref().is_some_and(|expected| expected != clock_id) {
+        if self
+            .clock_id
+            .as_deref()
+            .is_some_and(|expected| expected != clock_id)
+        {
             return Err(RenderError::ClockIdentityChanged);
         }
         if self.last_sequence.is_some_and(|last| sequence <= last) {
@@ -377,7 +381,11 @@ impl ObservationStreamGuard {
         if sequence == 0 {
             return Err(RenderError::InvalidObservationSequence);
         }
-        if self.clock_id.as_deref().is_some_and(|expected| expected != clock_id) {
+        if self
+            .clock_id
+            .as_deref()
+            .is_some_and(|expected| expected != clock_id)
+        {
             return Err(RenderError::ClockIdentityChanged);
         }
         if self.last_sequence.is_some_and(|last| sequence <= last) {
@@ -615,7 +623,10 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
             return Err(RenderError::InitialActionMustBeAbsent);
         }
     } else {
-        let action = snapshot.applied_action.as_ref().ok_or(RenderError::AppliedActionMissing)?;
+        let action = snapshot
+            .applied_action
+            .as_ref()
+            .ok_or(RenderError::AppliedActionMissing)?;
         if action.receipt_id.trim().is_empty() || action.command_id.trim().is_empty() {
             return Err(RenderError::EmptyIdentity);
         }
@@ -705,7 +716,11 @@ fn validate_snapshot(snapshot: &WorldRenderSnapshot) -> Result<(), RenderError> 
         for coordinate in actor.center_world_mm {
             validate_coordinate(coordinate)?;
         }
-        if actor.half_extents_mm.iter().any(|extent| *extent == 0 || *extent > 100_000) {
+        if actor
+            .half_extents_mm
+            .iter()
+            .any(|extent| *extent == 0 || *extent > 100_000)
+        {
             return Err(RenderError::InvalidActorExtent);
         }
     }
@@ -775,7 +790,11 @@ fn validate_rotation(matrix: [[i32; 3]; 3]) -> Result<(), RenderError> {
 fn fill_background(pixels: &mut [u8], width: usize, height: usize) {
     let horizon = height * 2 / 5;
     for y in 0..height {
-        let color = if y < horizon { [108, 159, 202] } else { [72, 86, 74] };
+        let color = if y < horizon {
+            [108, 159, 202]
+        } else {
+            [72, 86, 74]
+        };
         for x in 0..width {
             let offset = (y * width + x) * 3;
             pixels[offset..offset + 3].copy_from_slice(&color);
@@ -792,7 +811,9 @@ fn transform_point(camera: &CameraCalibration, world: [i64; 3]) -> [i64; 3] {
     let mut output = [0_i64; 3];
     for row in 0..3 {
         let sum = (0..3)
-            .map(|column| i128::from(camera.world_to_camera_q16[row][column]) * i128::from(delta[column]))
+            .map(|column| {
+                i128::from(camera.world_to_camera_q16[row][column]) * i128::from(delta[column])
+            })
             .sum::<i128>();
         output[row] = (sum / i128::from(Q16_ONE)) as i64;
     }
@@ -812,10 +833,7 @@ fn clip_intersection_at_depth(from: [i64; 3], to: [i64; 3], depth: i64) -> [i64;
     intersection
 }
 
-fn project_camera_point(
-    camera: &CameraCalibration,
-    point: [i64; 3],
-) -> Option<ProjectedPoint> {
+fn project_camera_point(camera: &CameraCalibration, point: [i64; 3]) -> Option<ProjectedPoint> {
     let z = point[2];
     if z < i64::from(camera.near_plane_mm) || z > i64::from(camera.far_plane_mm) {
         return None;
@@ -922,7 +940,11 @@ fn clip_projected_segment(
             return None;
         }
 
-        let outside = if start_code != 0 { start_code } else { end_code };
+        let outside = if start_code != 0 {
+            start_code
+        } else {
+            end_code
+        };
         let (x, y, z) = if outside & TOP != 0 {
             if start.y == end.y {
                 return None;
@@ -933,7 +955,11 @@ fn clip_projected_segment(
             let interpolate = |a: i64, b: i64| {
                 (i128::from(a) + (i128::from(b) - i128::from(a)) * numerator / denominator) as i64
             };
-            (interpolate(start.x, end.x), y, interpolate(start.z_mm, end.z_mm))
+            (
+                interpolate(start.x, end.x),
+                y,
+                interpolate(start.z_mm, end.z_mm),
+            )
         } else if outside & BOTTOM != 0 {
             if start.y == end.y {
                 return None;
@@ -944,7 +970,11 @@ fn clip_projected_segment(
             let interpolate = |a: i64, b: i64| {
                 (i128::from(a) + (i128::from(b) - i128::from(a)) * numerator / denominator) as i64
             };
-            (interpolate(start.x, end.x), y, interpolate(start.z_mm, end.z_mm))
+            (
+                interpolate(start.x, end.x),
+                y,
+                interpolate(start.z_mm, end.z_mm),
+            )
         } else if outside & RIGHT != 0 {
             if start.x == end.x {
                 return None;
@@ -955,7 +985,11 @@ fn clip_projected_segment(
             let interpolate = |a: i64, b: i64| {
                 (i128::from(a) + (i128::from(b) - i128::from(a)) * numerator / denominator) as i64
             };
-            (x, interpolate(start.y, end.y), interpolate(start.z_mm, end.z_mm))
+            (
+                x,
+                interpolate(start.y, end.y),
+                interpolate(start.z_mm, end.z_mm),
+            )
         } else if outside & LEFT != 0 {
             if start.x == end.x {
                 return None;
@@ -966,7 +1000,11 @@ fn clip_projected_segment(
             let interpolate = |a: i64, b: i64| {
                 (i128::from(a) + (i128::from(b) - i128::from(a)) * numerator / denominator) as i64
             };
-            (x, interpolate(start.y, end.y), interpolate(start.z_mm, end.z_mm))
+            (
+                x,
+                interpolate(start.y, end.y),
+                interpolate(start.z_mm, end.z_mm),
+            )
         } else {
             return None;
         };
@@ -981,11 +1019,7 @@ fn clip_projected_segment(
     None
 }
 
-fn draw_road_markings(
-    snapshot: &WorldRenderSnapshot,
-    pixels: &mut [u8],
-    z_buffer: &mut [i64],
-) {
+fn draw_road_markings(snapshot: &WorldRenderSnapshot, pixels: &mut [u8], z_buffer: &mut [i64]) {
     let width = snapshot.camera.width as usize;
     let height = snapshot.camera.height as usize;
     let mut roads = snapshot.road_markings.iter().collect::<Vec<_>>();
@@ -998,8 +1032,7 @@ fn draw_road_markings(
     for road in roads {
         let color = road.kind.color();
         for segment in road.points_world_mm.windows(2) {
-            let Some((start, end)) =
-                project_segment(&snapshot.camera, segment[0], segment[1])
+            let Some((start, end)) = project_segment(&snapshot.camera, segment[0], segment[1])
             else {
                 continue;
             };
@@ -1008,11 +1041,7 @@ fn draw_road_markings(
     }
 }
 
-fn draw_actors(
-    snapshot: &WorldRenderSnapshot,
-    pixels: &mut [u8],
-    z_buffer: &mut [i64],
-) {
+fn draw_actors(snapshot: &WorldRenderSnapshot, pixels: &mut [u8], z_buffer: &mut [i64]) {
     const EDGES: [[usize; 2]; 12] = [
         [0, 1],
         [0, 2],
@@ -1046,11 +1075,9 @@ fn draw_actors(
             [x + hx, y + hy, z + hz],
         ];
         for [start_index, end_index] in EDGES {
-            let Some((start, end)) = project_segment(
-                &snapshot.camera,
-                corners[start_index],
-                corners[end_index],
-            ) else {
+            let Some((start, end)) =
+                project_segment(&snapshot.camera, corners[start_index], corners[end_index])
+            else {
                 continue;
             };
             draw_line(
@@ -1091,16 +1118,7 @@ fn draw_line(
     let steps = dx.max(-dy);
 
     if steps == 0 {
-        plot_pixel(
-            pixels,
-            z_buffer,
-            width,
-            height,
-            x0,
-            y0,
-            start.z_mm,
-            color,
-        );
+        plot_pixel(pixels, z_buffer, width, height, x0, y0, start.z_mm, color);
         return;
     }
 
@@ -1194,10 +1212,7 @@ fn world_snapshot_digest(snapshot: &WorldRenderSnapshot) -> String {
     } else {
         bytes.push(0);
     }
-    append_string(
-        &mut bytes,
-        &camera_calibration_digest(&snapshot.camera),
-    );
+    append_string(&mut bytes, &camera_calibration_digest(&snapshot.camera));
 
     let mut roads = snapshot.road_markings.iter().collect::<Vec<_>>();
     roads.sort_by(|left, right| {
@@ -1890,10 +1905,12 @@ mod tests {
             points_world_mm: vec![[-100_000, 10_000, 0], [100_000, 10_000, 0]],
         }];
         let rendered = SoftwareCameraRenderer::render(&scene, 1, clocks()).unwrap();
-        assert!(rendered
-            .pixels_rgb
-            .chunks_exact(3)
-            .any(|pixel| pixel == [236, 236, 224]));
+        assert!(
+            rendered
+                .pixels_rgb
+                .chunks_exact(3)
+                .any(|pixel| pixel == [236, 236, 224])
+        );
     }
 
     #[test]
@@ -2362,5 +2379,4 @@ mod tests {
         let _ = std::fs::remove_file(input_path);
         let _ = std::fs::remove_file(output_path);
     }
-
 }
