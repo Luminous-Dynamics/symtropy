@@ -2,8 +2,8 @@
 
 **Parent owner:** Symtropy issue #4628, MARITIME-CONTROL-AWARE-DIAGNOSIS-001  
 **External benchmark:** [LiU-ICE Industrial Fault Diagnosis Benchmark 2026](https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index), DX37  
-**Status:** Rust evaluator, synthetic event tests, robust read-only evidence selector and append-only streaming contract authored; exact-head compilation and public data execution not verified  
-**Claim ceiling:** source contracts and synthetic fixtures only; no trained model, public-data score, competition submission, or physical validation claim
+**Status:** Rust evaluator, event metrics, robust read-only value-of-information selector, append-only streaming contract and separate external marine-dataset protocol authored; exact-head compilation and archive execution not verified  
+**Claim ceiling:** source contracts, synthetic fixtures and dataset metadata protocols only; no trained model, public-data score, competition submission, or physical validation claim
 
 ## External benchmark fit
 
@@ -12,6 +12,25 @@ The public LiU-ICE page describes an engine test-bench dataset at 20 Hz with two
 The evaluator deliberately maps \`umf\` and \`uwg\` to \`CONTROL_INTENT\`. It maps \`yxpos\` only to \`CANDIDATE_ACTUATOR_FEEDBACK\`, pending review of the instrument/I-O dictionary. It is not a wastegate-position signal and is not promoted to verified feedback. The other listed measurements are classified as physical response or disturbance context according to their public descriptions.
 
 The benchmark lists four known fault classes: intake-manifold leakage and multiplicative faults affecting \`ypic\`, \`ypim\` and \`ywaf\`. Its official isolation interface has a fifth slot for unknown/unclassified faults. The public training set is reported as 26 recordings, with only 2–7 recordings per known fault family; evaluation may include driving cycles other than WLTP. See the [official benchmark description](https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index).
+
+## Second marine-engine dataset: separate validation track
+
+A second useful public data asset is [Marine Engine Fault, Zenodo DOI 10.5281/zenodo.19857425](https://zenodo.org/records/19857425), released in 2026 under CC BY 4.0. Its metadata identifies a Matsui Iron Works MU323DGSC test-bench engine and describes 16 CSV files: one baseline reference recording and 15 physically induced fault-scenario recordings, about 115,000 time-stamped samples and roughly 70 measured/derived channels. The CSVs have a three-row header, with separate 70-column baseline and 73-column scenario schemas. A file index, variable dictionary and normalization script are included in the record.
+
+The five described fault families are compressor air-filter clogging, air-cooler fouling, injection-valve nozzle clogging, cooling-water pump cavitation and turbine degradation. Loads vary by scenario (40–85% in the listed tests). The metadata notes that two channels—Compressor Filter Loss and Turbine Back Pressure—are empty in five runs. Two injection-nozzle recordings contain anomalous operation only, so they cannot establish onset latency without an independent injection-time record. [The Zenodo record](https://zenodo.org/records/19857425) is the source of record for the data and licence metadata.
+
+This is **not** an additional engine/fleet validation. The source identifies one MU323DGSC test-bench identity. Nor is it a label-compatible extension of LiU-ICE: the fault families, channel set, headers, label semantics and submission protocol differ. The [external-marine-engine-dataset-v0.1.json](external-marine-engine-dataset-v0.1.json) freezes a separate audit and evaluation track:
+
+- Archive/file audit: verify the ZIP bytes, file inventory, three-row headers, variable dictionary, units, per-file signal presence and normalization script.
+- Held-out-load evaluation: hold out entire recording files/load points, not random time rows or overlapping windows.
+- Leave-one-fault-family-out: use a whole family as an exploratory unknown-fault class, with the known-class/unknown-label semantics declared before training.
+- Missing-channel track: preserve the five runs with blank fields; do not turn empty cells into zero or evidence of a physical sensor fault.
+- Event-latency track: use only files with independently supported onset/offset labels.
+- Cross-benchmark transfer: evaluate LiU-ICE and this dataset separately, then attempt a reviewed component/function-level signal map. Never pool their sample labels or report a single shared score.
+
+Every run must bind separate dataset archive, file-manifest, index, variable-dictionary, normalization-script, signal-map, fault-map and split digests. Similar signal names or the same engine model designation do not establish identical semantics, measurement provenance or independent engine transfer.
+
+The Zenodo metadata lists CC BY 4.0, but the archive has **not** been downloaded or inspected in this workstream. The metadata-level license record is not a substitute for auditing the actual archive notices and file inventory before repackaging or redistribution. No score or validation result is claimed for this dataset.
 
 ## Implemented evaluator primitives
 
