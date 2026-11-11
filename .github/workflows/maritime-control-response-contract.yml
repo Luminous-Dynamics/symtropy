@@ -81,6 +81,12 @@ jobs:
             (.streaming_contract.one_sample_one_output == true) and
             (.streaming_contract.historical_output_mutation == false) and
             (.streaming_contract.rust_core_direct_submission_compatible == false) and
+            (.deployability_matrix.schema_version == "symtropy-industrial-diagnostic-deployability-v0.1") and
+            (.deployability_matrix.status == "evidence_matrix_defined_not_executed") and
+            (.deployability_matrix.dimensions == 9) and
+            (.deployability_matrix.non_compensatory == true) and
+            (.deployability_matrix.overall_status == "not_deployable_claimed") and
+            (.hard_evidence_gates | length >= 58) and
             (.streaming_contract.adapter_status == "not_implemented") and
             (.external_dataset_track.schema_version == "symtropy-marine-external-dataset-track-v0.1") and
             (.external_dataset_track.status == "metadata_audited_archive_not_audited") and
@@ -121,6 +127,19 @@ jobs:
             (.method.likelihood_calibration_review.qualification | contains("not self-authenticating")) and
             (.research_targets_not_achieved | all(.status == "aspirational"))
           ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-industrial-diagnostic-deployability-v0.1" and
+            .status == "evidence_matrix_defined_not_executed" and
+            (.dimensions | length == 9) and
+            ([.dimensions[].id] | unique | length == 9) and
+            (.overall_status == "not_deployable_claimed") and
+            (.non_compensatory_rule | contains("No weighted average")) and
+            ([.dimensions[].research_target] | all(. != null)) and
+            ([.dimensions[].id] | index("resource_efficiency") != null) and
+            ([.dimensions[].id] | index("data_confidentiality") != null) and
+            ([.dimensions[].id] | index("adversarial_robustness") != null)
+          ' benchmarks/maritime-control-response/deployability-matrix-v0.1.json >/dev/null
 
           jq -e '
             .schema_version == "liu-ice-streaming-contract-v0.1" and
@@ -172,6 +191,13 @@ jobs:
             (.properties.protocol.required | index("active_evidence_selection") != null) and
             (.properties.protocol.required | index("streaming_contract") != null) and
             (.properties.protocol.required | index("external_dataset_track") != null) and
+            (.properties.protocol.required | index("deployability_matrix_sha256") != null) and
+            (.properties.protocol.required | index("deployability_assessment") != null) and
+            (.properties.protocol.properties.deployability_assessment.properties.dimension_count.const == 9) and
+            (.properties.protocol.properties.deployability_assessment.properties.evidence.minItems == 9) and
+            (.properties.protocol.properties.deployability_assessment.properties.evidence.maxItems == 9) and
+            (.properties.protocol.properties.deployability_assessment.properties.overall_deployability_claim_allowed.const == false) and
+            (.properties.metrics.properties.overall_deployability_claim_allowed.const == false) and
             (.properties.comparator.properties.family.enum | index("adaptive_residual_qda_lsvc") != null) and
             (.properties.comparator.properties.family.enum | index("rls_open_set_residuals") != null) and
             (.properties.comparator.properties.family.enum | index("distribution_kl_matching") != null) and
