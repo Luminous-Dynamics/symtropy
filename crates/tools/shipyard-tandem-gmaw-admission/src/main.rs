@@ -103,6 +103,7 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         || bool_at(rights, "derivative_publication_allowed") != Some(false)
         || bool_at(rights, "model_training_allowed") != Some(false)
         || bool_at(rights, "raw_data_scoring_allowed") != Some(false)
+        || bool_at(rights, "raw_data_license_still_pending") != Some(true)
     {
         errors.push(
             "rights gate has been promoted without explicit source-owner permission".to_owned(),
@@ -119,11 +120,49 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         || str_at(design, "split_group") != Some("workpiece_id")
         || bool_at(design, "random_layer_split_allowed") != Some(false)
         || bool_at(design, "mode_causal_claim_allowed") != Some(false)
+        || bool_at(design, "tandem_only_analysis_excludes_root_layer") != Some(true)
     {
         errors.push(
             "five-workpiece / six-layer / WID-grouped study design boundary violated"
                 .to_owned(),
         );
+    }
+
+    let Some(repeat_comparator) = design.get("repeat_comparator") else {
+        errors.push("repeat_comparator is required".to_owned());
+        return Err(errors);
+    };
+    if str_at(repeat_comparator, "workpiece_id") != Some("WID617")
+        || bool_at(repeat_comparator, "independent_replicate") != Some(false)
+    {
+        errors.push("WID617 repeat-comparator semantics were altered".to_owned());
+    }
+    let Some(matched_pair) = design.get("matched_mode_pair") else {
+        errors.push("matched_mode_pair is required".to_owned());
+        return Err(errors);
+    };
+    if string_array(matched_pair, "workpieces")
+        .is_none_or(|ids| ids != ["WID631".to_owned(), "WID632".to_owned()])
+        || str_at(matched_pair, "contrast") != Some("PMC+PMC versus PMC+CMT")
+        || matched_pair
+            .get("workpiece_replicates_per_mode")
+            .and_then(Value::as_u64)
+            != Some(1)
+        || bool_at(matched_pair, "supports_causal_generalization") != Some(false)
+    {
+        errors.push("matched WID631/WID632 contrast cannot be promoted to causal replication".to_owned());
+    }
+    let Some(materials) = design.get("materials_detail") else {
+        errors.push("materials_detail is required".to_owned());
+        return Err(errors);
+    };
+    if str_at(materials, "position") != Some("1G_flat")
+        || str_at(materials, "shielding_gas")
+            != Some("82% Ar / 18% CO2 (ISO 14175 M21-ArC-18)")
+        || materials.get("wire_diameter_mm").and_then(Value::as_f64) != Some(1.2)
+        || materials.get("nominal_gas_flow_l_per_min").and_then(Value::as_u64) != Some(20)
+    {
+        errors.push("material/process context differs from the published experiment".to_owned());
     }
 
     let Some(workpieces) = manifest.get("workpieces").and_then(Value::as_array) else {
@@ -601,6 +640,41 @@ mod tests {
         let mut manifest = manifest_value();
         manifest["clock_contract"]["file_minimum_sample_intervals_ms"]["power_source_files"] =
             Value::from(0.1);
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn source_article_license_does_not_change_raw_archive_rights() {
+        let mut manifest = manifest_value();
+        manifest["rights_gate"]["raw_data_license_still_pending"] = Value::Bool(false);
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn root_pass_cannot_be_promoted_into_tandem_only_analysis() {
+        let mut manifest = manifest_value();
+        manifest["experiment_design"]["tandem_only_analysis_excludes_root_layer"] =
+            Value::Bool(false);
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn repeat_comparator_is_not_an_independent_replicate() {
+        let mut manifest = manifest_value();
+        manifest["experiment_design"]["repeat_comparator"]["independent_replicate"] =
+            Value::Bool(true);
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn matched_mode_pair_cannot_be_promoted_to_causal_replication() {
+        let mut manifest = manifest_value();
+        manifest["experiment_design"]["matched_mode_pair"]["supports_causal_generalization"] =
+            Value::Bool(true);
         let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
         assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
     }
