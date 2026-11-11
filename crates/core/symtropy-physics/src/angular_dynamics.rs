@@ -531,7 +531,8 @@ mod tests {
         let fine = symmetric_top_precession_error(0.00025);
         assert!(
             fine < coarse * 0.3,
-            "quarter-step refinement should reduce precession error: coarse={coarse:e}, fine={fine:e}"
+            "quarter-step refinement should reduce precession error: \
+             coarse={coarse:e}, fine={fine:e}"
         );
         assert!(fine < 2.0e-4, "fine-step symmetric-top error={fine:e}");
     }
@@ -594,7 +595,8 @@ mod tests {
 
         assert!(
             maximum_transverse > initial_transverse * 20.0,
-            "middle-axis perturbation should grow strongly: initial={initial_transverse:e}, max={maximum_transverse:e}"
+            "middle-axis perturbation should grow strongly: \
+             initial={initial_transverse:e}, max={maximum_transverse:e}"
         );
         let final_momentum = world_angular_momentum(&rotation, &angular_velocity, inertia).unwrap();
         let initial_momentum = world_angular_momentum(
