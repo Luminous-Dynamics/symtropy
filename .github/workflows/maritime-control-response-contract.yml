@@ -71,6 +71,31 @@ jobs:
             and ([.shift_matrix.axes[].id] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null)
             and ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null)
             and (.shift_matrix.cross_engine_fleet | contains("unsupported"))
+          ' benchmarks/maritime-control-response/shift-matrix-v0.1.json >/dev/null
+
+      - name: Validate active evidence-selection protocol
+        run: |
+          set -euo pipefail
+          jq -e '
+            .schema_version == "liu-ice-active-evidence-selection-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.comparators | length == 6) and
+            (.candidate_classes.controlled_perturbation.eligible == false) and
+            (.hard_gates | length >= 10) and
+            (.research_targets_not_achieved | all(.status == "aspirational")) and
+            (.evidence_boundaries.authority_status | contains("upstream mandatory checks"))
+          ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
+
+      - name: Validate active evidence-selection contract
+        run: |
+          set -euo pipefail
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            (.properties.protocol.required | index("active_evidence_selection") != null) and
+            (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
+            (.properties.protocol.properties.active_evidence_selection.properties.execution_performed.const == false) and
+            (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0)
+          ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
       - name: Validate benchmark run-manifest schema contract
@@ -83,6 +108,7 @@ jobs:
             (.properties.dataset.properties.archive_sha256.oneOf | length == 2) and
             (.properties.protocol.required | index("event_evaluation") != null) and
             (.properties.protocol.required | index("shift_matrix_sha256") != null) and
+            (.properties.protocol.required | index("active_evidence_selection") != null) and
             (.properties.protocol.required | index("shift_axis") != null) and
             (.properties.protocol.properties.shift_holdout_manifest_sha256.pattern == "^[a-f0-9]{64}$") and
             (.properties.metrics.properties.false_alarms_per_observed_normal_hour != null) and
