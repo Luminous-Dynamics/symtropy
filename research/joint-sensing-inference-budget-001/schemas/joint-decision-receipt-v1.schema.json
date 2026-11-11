@@ -1,0 +1,459 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/joint-sensing-inference-decision-receipt-v1.schema.json",
+  "title": "Joint sensing/inference scheduler decision receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scheduler_revision",
+    "allocator_base_revision",
+    "action",
+    "reason",
+    "planning_tick",
+    "decision_deadline_tick",
+    "actuation_recovery_reserve_ticks",
+    "current_observation_age_ticks",
+    "current_observation_digest",
+    "context_digest",
+    "resource_unit_id",
+    "resource_budget_units",
+    "resource_units_reserved_for_recovery",
+    "resource_units_discretionary_before",
+    "resource_units_committed",
+    "resource_units_remaining",
+    "resource_units_discretionary_remaining",
+    "decision_value_unit_id",
+    "clock_id",
+    "completion_bound_tick",
+    "deadline_slack_after_reserve_ticks",
+    "sensor_rejection",
+    "sensor_grant",
+    "inference_grant",
+    "fallback_policy_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "scheduler_revision": {
+      "type": "string",
+      "const": "joint-sensing-inference-budget-v1"
+    },
+    "allocator_base_revision": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "action": {
+      "enum": [
+        "request_observation",
+        "allocate_inference",
+        "commit_now",
+        "require_fallback",
+        "deadline_missed"
+      ]
+    },
+    "reason": {
+      "enum": [
+        "stale_observation_requires_refresh",
+        "sensor_value_per_resource_unit_higher",
+        "inference_value_per_resource_unit_higher",
+        "sensor_only_eligible",
+        "inference_only_eligible",
+        "equal_ratio_prefers_inference",
+        "no_eligible_positive_resource",
+        "no_fresh_observation_can_arrive_before_deadline",
+        "decision_deadline_passed"
+      ]
+    },
+    "planning_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_deadline_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "actuation_recovery_reserve_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_observation_age_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "current_observation_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "context_digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "resource_unit_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "resource_budget_units": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "resource_units_reserved_for_recovery": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "resource_units_discretionary_before": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "resource_units_committed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "resource_units_remaining": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "resource_units_discretionary_remaining": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "decision_value_unit_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "clock_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "completion_bound_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "deadline_slack_after_reserve_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sensor_rejection": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "empty_identity",
+            "identity_too_long",
+            "missing_source_digest",
+            "observation_context_mismatch",
+            "sensor_evidence_not_admitted",
+            "sensor_not_policy_visible",
+            "sam_evidence_not_admitted",
+            "sam_context_mismatch",
+            "resource_unit_mismatch",
+            "decision_value_unit_mismatch",
+            "clock_domain_mismatch",
+            "zero_decision_value",
+            "zero_resource_cost",
+            "zero_latency_bound",
+            "deadline_infeasible",
+            "resource_budget_insufficient",
+            "arithmetic_overflow"
+          ]
+        }
+      ]
+    },
+    "sensor_grant": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "request_id",
+            "sensor_profile_id",
+            "sensor_profile_digest",
+            "source_observation_digest",
+            "sensor_value_evidence_digest",
+            "latency_bound_digest",
+            "resource_cost_digest",
+            "expected_regret_reduction_microunits",
+            "resource_cost_units",
+            "acquisition_to_delivery_bound_ticks",
+            "completion_bound_tick"
+          ],
+          "properties": {
+            "request_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sensor_profile_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "sensor_profile_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "source_observation_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "sensor_value_evidence_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "latency_bound_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "resource_cost_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "expected_regret_reduction_microunits": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "resource_cost_units": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "acquisition_to_delivery_bound_ticks": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "completion_bound_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "sam_evidence_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          }
+        }
+      ]
+    },
+    "inference_grant": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "opportunity_id",
+            "opportunity_digest",
+            "context_digest",
+            "checkpoint_digest",
+            "observation_digest",
+            "model_digest",
+            "latency_bound_digest",
+            "compute_cost_digest",
+            "sam_evidence_digest",
+            "initial_rollout_count",
+            "additional_rollout_count",
+            "final_rollout_count",
+            "expected_regret_reduction_microunits",
+            "resource_cost_units",
+            "completion_bound_tick"
+          ],
+          "properties": {
+            "opportunity_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "opportunity_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "context_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "checkpoint_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "observation_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "model_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "latency_bound_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "compute_cost_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "sam_evidence_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "initial_rollout_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "additional_rollout_count": {
+              "const": 1
+            },
+            "final_rollout_count": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "expected_regret_reduction_microunits": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "resource_cost_units": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "completion_bound_tick": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      ]
+    },
+    "fallback_policy_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 256
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "request_observation"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sensor_grant": {
+            "type": "object"
+          },
+          "inference_grant": {
+            "type": "null"
+          },
+          "fallback_policy_id": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "allocate_inference"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sensor_grant": {
+            "type": "null"
+          },
+          "inference_grant": {
+            "type": "object"
+          },
+          "fallback_policy_id": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "require_fallback"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sensor_grant": {
+            "type": "null"
+          },
+          "inference_grant": {
+            "type": "null"
+          },
+          "fallback_policy_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "deadline_missed"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "sensor_grant": {
+            "type": "null"
+          },
+          "inference_grant": {
+            "type": "null"
+          },
+          "fallback_policy_id": {
+            "type": "string"
+          },
+          "resource_units_committed": {
+            "const": 0
+          },
+          "deadline_slack_after_reserve_ticks": {
+            "const": 0
+          }
+        }
+      }
+    }
+  ],
+  "x-invariants": [
+    "resource_units_remaining equals resource_budget_units minus resource_units_committed",
+    "resource_units_discretionary_before equals resource_budget_units minus resource_units_reserved_for_recovery",
+    "resource_units_discretionary_remaining equals resource_units_remaining minus resource_units_reserved_for_recovery",
+    "sensor and inference grants cannot consume resource_units_reserved_for_recovery",
+    "request_observation and allocate_inference grants fit their declared completion bound and actuation/recovery tick reserve",
+    "deadline_missed is an explicit denominator outcome; it is not commit_now and does not claim the fallback actually executed",
+    "commit_now authorizes no actuator; an independent runtime-assurance owner decides whether a candidate may be committed"
+  ]
+}
