@@ -111,6 +111,10 @@ Additional independent negative controls:
 
 For a generic SO(3) action, the independently transformed finite action preserved the transformed mass metric to approximately 2.1e-15 (family 2) and 3.8e-14 (family 0).
 
+For the canonical momentum one-form:
+- ‖p_y - S^T p_q‖: 7.86e-14 (family 0), 3.18e-14 (family 2);
+- |p_q^T S δy - p_y^T δy|: 1.64e-14 (family 0), 1.33e-14 (family 2).
+
 These are **independent equation-level NumPy results**, not output from the committed Rust tests, Rust compiler, Cargo, or CI.
 
 ## Authored Rust regressions
