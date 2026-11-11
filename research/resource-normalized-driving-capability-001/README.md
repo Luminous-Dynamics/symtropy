@@ -124,6 +124,12 @@ Camera dropout (including 20/60-tick burst faults), partial observation (50%/80%
 
 These thresholds are prospective research targets only. They are not safety requirements or existing results.
 
+## Paired deployment-fault evidence
+
+The paired fault campaign is now tracked separately in [#4681](https://github.com/Luminous-Dynamics/symtropy/issues/4681). It owns the typed clean/perturbed pairing contract, fault-event ledger and per-metric degradation evaluator. This benchmark protocol consumes its result format instead of duplicating pair validation.
+
+The critical comparison is not simply “score under a camera drop.” It is the delta against a **same-checkpoint, same-scenario, same-seed, same-actor, same-hardware clean run**, with only one declared fault changed. Each fault family and severity remains a separate row. A missing camera frame is an event, not a frozen pixel pretending to be a new observation. The report must preserve recovery, control age, deadline misses and fallback outcomes in addition to native route metrics.
+
 ## Benchmark ladder
 
 1. Analytic vehicle/control and camera projection fixtures.
