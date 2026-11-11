@@ -710,40 +710,58 @@ mod tests {
         ])
     }
 
+    fn skew3(vector: &SVector<f64, 3>) -> SMatrix<f64, 3, 3> {
+        SMatrix::new(
+            0.0, -vector[2], vector[1],
+            vector[2], 0.0, -vector[0],
+            -vector[1], vector[0], 0.0,
+        )
+    }
+
     fn rk4_euler_top_body(
         initial_omega: SVector<f64, 3>,
         principal_moments: [f64; 3],
         duration: f64,
         requested_dt: f64,
-    ) -> SVector<f64, 3> {
+    ) -> (SMatrix<f64, 3, 3>, SVector<f64, 3>) {
         let steps = (duration / requested_dt).round() as usize;
         let dt = duration / steps as f64;
+        let mut rotation = SMatrix::<f64, 3, 3>::identity();
         let mut omega = initial_omega;
         for _ in 0..steps {
-            let k1 = euler_top_body_derivative(&omega, principal_moments);
-            let k2 = euler_top_body_derivative(
-                &(omega + k1 * (0.5 * dt)),
-                principal_moments,
-            );
-            let k3 = euler_top_body_derivative(
-                &(omega + k2 * (0.5 * dt)),
-                principal_moments,
-            );
-            let k4 = euler_top_body_derivative(
-                &(omega + k3 * dt),
-                principal_moments,
-            );
-            omega += (k1 + k2 * 2.0 + k3 * 2.0 + k4) * (dt / 6.0);
+            let k1_rotation = rotation * skew3(&omega);
+            let k1_omega = euler_top_body_derivative(&omega, principal_moments);
+
+            let rotation_2 = rotation + k1_rotation * (0.5 * dt);
+            let omega_2 = omega + k1_omega * (0.5 * dt);
+            let k2_rotation = rotation_2 * skew3(&omega_2);
+            let k2_omega = euler_top_body_derivative(&omega_2, principal_moments);
+
+            let rotation_3 = rotation + k2_rotation * (0.5 * dt);
+            let omega_3 = omega + k2_omega * (0.5 * dt);
+            let k3_rotation = rotation_3 * skew3(&omega_3);
+            let k3_omega = euler_top_body_derivative(&omega_3, principal_moments);
+
+            let rotation_4 = rotation + k3_rotation * dt;
+            let omega_4 = omega + k3_omega * dt;
+            let k4_rotation = rotation_4 * skew3(&omega_4);
+            let k4_omega = euler_top_body_derivative(&omega_4, principal_moments);
+
+            rotation += (
+                k1_rotation + k2_rotation * 2.0 + k3_rotation * 2.0 + k4_rotation
+            ) * (dt / 6.0);
+            omega += (k1_omega + k2_omega * 2.0 + k3_omega * 2.0 + k4_omega)
+                * (dt / 6.0);
         }
-        omega
+        (rotation, omega)
     }
 
-    fn production_body_omega_after(
+    fn production_top_state_after(
         dt: f64,
         initial_body_omega: SVector<f64, 3>,
         inertia: PrincipalInertia3,
         duration: f64,
-    ) -> SVector<f64, 3> {
+    ) -> (SMatrix<f64, 3, 3>, SVector<f64, 3>) {
         let mut rotation = Rotor::<3>::identity();
         let mut angular_velocity = angular_vector_to_bivector(&initial_body_omega);
         let steps = (duration / dt).round() as usize;
@@ -759,9 +777,10 @@ mod tests {
             rotation = step.rotation;
             angular_velocity = step.angular_velocity;
         }
-        rotation
+        let omega_body = rotation
             .reverse()
-            .rotate_vector(&bivector_to_angular_vector(&angular_velocity))
+            .rotate_vector(&bivector_to_angular_vector(&angular_velocity));
+        (rotation.to_matrix(), omega_body)
     }
 
     #[test]
@@ -770,26 +789,45 @@ mod tests {
         let inertia = PrincipalInertia3::new(principal_moments).unwrap();
         let initial_omega = SVector::from([0.9, -0.6, 0.35]);
         let duration = 1.0;
-        let reference =
+        let (reference_rotation, reference_omega) =
             rk4_euler_top_body(initial_omega, principal_moments, duration, 1.0e-5);
-        let reference_half_step =
+        let (reference_rotation_half, reference_omega_half) =
             rk4_euler_top_body(initial_omega, principal_moments, duration, 5.0e-6);
-        let reference_self_error = (reference - reference_half_step).norm();
+        let reference_self_error =
+            (reference_rotation - reference_rotation_half).norm()
+                + (reference_omega - reference_omega_half).norm();
         assert!(
             reference_self_error < 1.0e-11,
             "RK4 reference must converge: error={reference_self_error:e}"
         );
 
-        let coarse = production_body_omega_after(1.0e-2, initial_omega, inertia, duration);
-        let fine = production_body_omega_after(2.5e-3, initial_omega, inertia, duration);
-        let coarse_error = (coarse - reference).norm();
-        let fine_error = (fine - reference).norm();
-        assert!(coarse_error < 5.0e-3, "coarse reference error={coarse_error:e}");
-        assert!(fine_error < 1.0e-3, "fine reference error={fine_error:e}");
+        let (coarse_rotation, coarse_omega) =
+            production_top_state_after(1.0e-2, initial_omega, inertia, duration);
+        let (fine_rotation, fine_omega) =
+            production_top_state_after(2.5e-3, initial_omega, inertia, duration);
+        let coarse_rotation_error = (coarse_rotation - reference_rotation).norm();
+        let fine_rotation_error = (fine_rotation - reference_rotation).norm();
+        let coarse_omega_error = (coarse_omega - reference_omega).norm();
+        let fine_omega_error = (fine_omega - reference_omega).norm();
+
         assert!(
-            coarse_error / fine_error.max(f64::MIN_POSITIVE) > 3.0,
-            "quarter-step refinement ratio too small: coarse={coarse_error:e}, fine={fine_error:e}"
+            coarse_rotation_error < 5.0e-3,
+            "coarse attitude reference error={coarse_rotation_error:e}"
         );
+        assert!(
+            fine_rotation_error < 1.0e-3,
+            "fine attitude reference error={fine_rotation_error:e}"
+        );
+        assert!(
+            coarse_omega_error < 5.0e-3,
+            "coarse angular-velocity reference error={coarse_omega_error:e}"
+        );
+        assert!(
+            fine_omega_error < 1.0e-3,
+            "fine angular-velocity reference error={fine_omega_error:e}"
+        );
+        assert!(coarse_rotation_error / fine_rotation_error.max(f64::MIN_POSITIVE) > 3.0);
+        assert!(coarse_omega_error / fine_omega_error.max(f64::MIN_POSITIVE) > 3.0);
     }
 
     #[test]
