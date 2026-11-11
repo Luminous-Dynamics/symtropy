@@ -291,6 +291,27 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
         decode_hex::<32>(&key.public_key_hex, "trusted public key")?;
     }
 
+    let mut admitted_boots = BTreeSet::new();
+    for admission in &corpus.policy.admitted_boot_epochs {
+        if admission.evidence_ref.trim().is_empty()
+            || admission.producer_id.trim().is_empty()
+            || admission.boot_epoch_id.trim().is_empty()
+            || admission.vehicle_ref.trim().is_empty()
+            || admission.pack_ref.trim().is_empty()
+            || !is_sha256(&admission.firmware_sha256)
+            || !is_sha256(&admission.configuration_sha256)
+        {
+            return Err("admitted boot epoch contains incomplete identity or malformed digest".to_owned());
+        }
+        if !admitted_boots.insert((
+            admission.evidence_ref.clone(),
+            admission.producer_id.clone(),
+            admission.boot_epoch_id.clone(),
+        )) {
+            return Err("duplicate admitted boot epoch reference".to_owned());
+        }
+    }
+
     let mut asset_bindings = BTreeSet::new();
     for binding in &corpus.asset_bindings {
         if binding.vehicle_ref.trim().is_empty()
@@ -673,4 +694,30 @@ mod tests {
         assert_eq!(row(&report, "evt-missing-signature-011").authenticity_state, "UNATTESTED");
         assert_eq!(row(&report, "evt-valid-after-unsigned-012").authenticity_state, "AUTHENTICATED_AND_AUTHORIZED");
     }
+    #[test]
+    fn expired_and_unknown_keys_are_never_authenticated() {
+        let report = report();
+        assert_eq!(
+            row(&report, "evt-expired-key-013").authenticity_state,
+            "REJECTED_KEY_OUTSIDE_VALIDITY"
+        );
+        assert_eq!(
+            row(&report, "evt-unknown-key-014").authenticity_state,
+            "REJECTED_UNKNOWN_KEY"
+        );
+    }
+
+    #[test]
+    fn boot_epoch_reference_must_match_the_external_admission_binding() {
+        let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus JSON");
+        corpus["policy"]["admitted_boot_epochs"][0]["firmware_sha256"] =
+            Value::String("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".into());
+        let bytes = serde_json::to_vec(&corpus).expect("mutated corpus");
+        let report = audit_corpus(SCHEMA, &bytes).expect("mismatch quarantines the row");
+        assert_eq!(
+            row(&report, "evt-valid-001").authenticity_state,
+            "QUARANTINED_BOOT_EPOCH_UNKNOWN"
+        );
+    }
+
 }
