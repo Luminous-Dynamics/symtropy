@@ -20,7 +20,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -31,7 +33,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -43,7 +47,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -55,7 +61,10 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -66,9 +75,18 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "rack-transducer-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
-      "expected_disposition": "RESPONSE_CONSISTENT"
+      "expected_disposition": "RESPONSE_CONSISTENT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "same_command_low_load",
@@ -85,7 +103,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -96,7 +116,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -108,7 +130,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -120,10 +144,20 @@
         "lower": 545,
         "mean": 550,
         "upper": 555,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "RESPONSE_CONSISTENT"
+      "expected_disposition": "RESPONSE_CONSISTENT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "same_command_high_load",
@@ -140,7 +174,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -151,7 +187,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -163,7 +201,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -175,10 +215,20 @@
         "lower": 645,
         "mean": 650,
         "upper": 655,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "RESPONSE_CONSISTENT"
+      "expected_disposition": "RESPONSE_CONSISTENT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "different_command_same_response_a",
@@ -195,7 +245,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -206,7 +258,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -218,7 +272,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -230,10 +286,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "RESPONSE_CONSISTENT"
+      "expected_disposition": "RESPONSE_CONSISTENT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "different_command_same_response_b",
@@ -250,7 +316,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -261,7 +329,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -273,7 +343,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -285,10 +357,20 @@
         "lower": 595,
         "mean": 600.5,
         "upper": 606,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "RESPONSE_CONSISTENT"
+      "expected_disposition": "RESPONSE_CONSISTENT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "physical_response_outside_envelope",
@@ -305,7 +387,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -316,7 +400,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -328,7 +414,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -340,10 +428,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "RESPONSE_MISMATCH_UNISOLATED"
+      "expected_disposition": "RESPONSE_MISMATCH_UNISOLATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "stale_physical_response",
@@ -360,7 +458,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -371,7 +471,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -383,7 +485,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -395,10 +499,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "NOT_EVALUATED"
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "future_command_leakage",
@@ -415,7 +529,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -426,7 +542,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -438,7 +556,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -450,10 +570,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "INVALID_CONTRACT"
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "configuration_mismatch",
@@ -470,7 +600,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -481,7 +613,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -493,7 +627,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -505,10 +641,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "NOT_EVALUATED"
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "unsupported_maneuvering_regime",
@@ -525,7 +671,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -536,7 +684,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -548,7 +698,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -560,10 +712,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "NOT_EVALUATED"
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "common_gateway_dependency",
@@ -580,7 +742,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "shared-gateway"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -591,7 +755,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -603,7 +769,9 @@
         "dependency_groups": [
           "shared-gateway"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -615,10 +783,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "NOT_EVALUATED"
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "response_derived_from_command",
@@ -635,7 +813,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -646,7 +826,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -660,7 +842,9 @@
         ],
         "derived_from_signal_ids": [
           "fuel_index_command"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -672,10 +856,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "NOT_EVALUATED"
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "future_trained_response_model",
@@ -692,7 +886,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -703,7 +899,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -715,7 +913,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -727,10 +927,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "INVALID_CONTRACT"
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "setpoint_promoted_to_physical_response",
@@ -747,7 +957,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -758,7 +970,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -770,7 +984,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -782,10 +998,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "INVALID_CONTRACT"
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "response_outside_prediction_horizon",
@@ -802,7 +1028,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -813,7 +1041,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -825,7 +1055,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -837,10 +1069,20 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "INVALID_CONTRACT"
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
     },
     {
       "case_id": "unqualified_response_model",
@@ -857,7 +1099,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "controller-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -868,7 +1112,9 @@
         "quality": "CURRENT",
         "dependency_groups": [
           "load-sensor-power"
-        ]
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -880,7 +1126,9 @@
         "dependency_groups": [
           "tachometer-power"
         ],
-        "derived_from_signal_ids": []
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -892,10 +1140,767 @@
         "lower": 595,
         "mean": 600,
         "upper": 605,
-        "unit": "rpm"
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
       },
       "actuator_feedback": null,
-      "expected_disposition": "NOT_EVALUATED"
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
+    },
+    {
+      "case_id": "command_prediction_uncertainty_overlap",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 999,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 2
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 1
+    },
+    {
+      "case_id": "response_prediction_uncertainty_overlap",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 1001,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 2
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 1
+    },
+    {
+      "case_id": "unmapped_context_timebase",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "unmapped-controller-clock",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
+    },
+    {
+      "case_id": "command_staleness_hidden_by_timestamp_uncertainty",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 3000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 1500,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 600
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 2950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 4000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 2990,
+        "trained_through_ms": 2800,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
+    },
+    {
+      "case_id": "response_horizon_unproven_by_timestamp_uncertainty",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 6000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 1000
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
+    },
+    {
+      "case_id": "future_command_definitely_after_prediction",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 1005,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 1
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 1
+    },
+    {
+      "case_id": "unqualified_timebase",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "UNQUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 0
+    },
+    {
+      "case_id": "prediction_timestamp_interval_overflow",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 18446744073709551615,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 1
+    },
+    {
+      "case_id": "boundary_timestamp_order_proven",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 998,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 1
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 1
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0
+      },
+      "expected_disposition": "RESPONSE_CONSISTENT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "prediction_timestamp_uncertainty_ms": 1
     }
   ],
   "counterfactual_pairs": [
@@ -930,5 +1935,6 @@
     "mode_transition": false,
     "restriction_clearance": false
   },
-  "claim_ceiling": "Synthetic contract evaluation only. It does not validate a learned response model, physical engine behaviour, actuator delivery, engine diagnosis, shipboard safety, class approval, maintenance authority or permission to operate."
+  "claim_ceiling": "Synthetic contract evaluation only. It does not validate a learned response model, physical engine behaviour, clock synchronization installation, actuator delivery, engine diagnosis, shipboard safety, class approval, maintenance authority or permission to operate.",
+  "temporal_contract_version": "bounded-time-interval-v0.1"
 }

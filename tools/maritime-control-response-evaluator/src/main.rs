@@ -57,19 +57,22 @@ fn quality(v: &Value, at: &str) -> Check<&'static str> {
 #[derive(Debug)]
 struct Signal {
     role: String, value: f64, unit: String, observed_at_ms: u64,
+    timebase_id: String, timestamp_uncertainty_ms: u64,
     quality: String, dependencies: BTreeSet<String>, derived_from: BTreeSet<String>,
 }
 fn signal(v: &Value, at: &str, response: bool) -> Check<Signal> {
     let _signal_id = string(v, "signal_id", at)?;
     if response {
-        exact_keys(v, &["signal_id","role","value","unit","observed_at_ms","quality","dependency_groups","derived_from_signal_ids"], at)?;
+        exact_keys(v, &["signal_id","role","value","unit","observed_at_ms","timebase_id","timestamp_uncertainty_ms","quality","dependency_groups","derived_from_signal_ids"], at)?;
     } else {
-        exact_keys(v, &["signal_id","role","value","unit","observed_at_ms","quality","dependency_groups"], at)?;
+        exact_keys(v, &["signal_id","role","value","unit","observed_at_ms","timebase_id","timestamp_uncertainty_ms","quality","dependency_groups"], at)?;
     }
     let derived = if response { string_set(v,"derived_from_signal_ids",at)? } else { BTreeSet::new() };
     Ok(Signal {
         role: string(v,"role",at)?.to_owned(), value: number(v,"value",at)?,
         unit: string(v,"unit",at)?.to_owned(), observed_at_ms: unsigned(v,"observed_at_ms",at)?,
+        timebase_id: string(v,"timebase_id",at)?.to_owned(),
+        timestamp_uncertainty_ms: unsigned(v,"timestamp_uncertainty_ms",at)?,
         quality: quality(v,at)?.to_owned(), dependencies: string_set(v,"dependency_groups",at)?,
         derived_from: derived,
     })
@@ -77,18 +80,43 @@ fn signal(v: &Value, at: &str, response: bool) -> Check<Signal> {
 fn overlaps(a: &BTreeSet<String>, b: &BTreeSet<String>) -> bool {
     a.iter().any(|item| b.contains(item))
 }
+/// Inclusive event-time interval after mapping to the declared qualified
+/// common timebase. Overflow/underflow is invalid; it is never clamped.
+fn time_bounds(timestamp_ms: u64, uncertainty_ms: u64) -> Option<(u64, u64)> {
+    Some((
+        timestamp_ms.checked_sub(uncertainty_ms)?,
+        timestamp_ms.checked_add(uncertainty_ms)?,
+    ))
+}
 fn result(disposition: &str, reasons: &[&str], feedback: &str) -> Value {
     json!({"disposition":disposition,"reason_codes":reasons,"fault_isolation":"NOT_ATTEMPTED",
         "actuator_delivery_confirmation":"NOT_ESTABLISHED","actuator_feedback_state":feedback})
 }
 fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String, Value)> {
     let at = "$.cases[]";
-    exact_keys(case,&["case_id","asset_configuration_id","regime_id","regime_qualified","prediction_time_ms","command","context","response","response_envelope","actuator_feedback","expected_disposition"],at)?;
+    exact_keys(case,&["case_id","asset_configuration_id","regime_id","regime_qualified","timebase","prediction_time_ms","prediction_timestamp_uncertainty_ms","command","context","response","response_envelope","actuator_feedback","expected_disposition"],at)?;
     let id = string(case,"case_id",at)?.to_owned();
     let prediction = unsigned(case,"prediction_time_ms",at)?;
     let configuration = string(case,"asset_configuration_id",at)?;
     let regime = string(case,"regime_id",at)?;
     let regime_qualified = boolean(case,"regime_qualified",at)?;
+    let timebase = field(case,"timebase",at)?;
+    exact_keys(timebase,&["timebase_id","qualification_state","qualification_id","qualification_sha256"],&format!("{at}.timebase"))?;
+    let timebase_id = string(timebase,"timebase_id",&format!("{at}.timebase"))?;
+    let clock_state = string(timebase,"qualification_state",&format!("{at}.timebase"))?;
+    let clock_qualification_id = string(timebase,"qualification_id",&format!("{at}.timebase"))?;
+    let clock_qualification_sha256 = string(timebase,"qualification_sha256",&format!("{at}.timebase"))?;
+    if !valid_hex(clock_qualification_sha256,64) {
+        return Ok((id,result("INVALID_CONTRACT",&["INVALID_CLOCK_QUALIFICATION_DIGEST"],"NOT_ASSESSED")));
+    }
+    if clock_state != "QUALIFIED" {
+        return Ok((id,result("NOT_EVALUATED",&["CLOCK_QUALIFICATION_UNAVAILABLE"],"NOT_ASSESSED")));
+    }
+    let prediction_uncertainty = unsigned(case,"prediction_timestamp_uncertainty_ms",at)?;
+    let prediction_bounds = match time_bounds(prediction,prediction_uncertainty) {
+        Some(bounds) => bounds,
+        None => return Ok((id,result("INVALID_CONTRACT",&["PREDICTION_TIMESTAMP_INTERVAL_OVERFLOW"],"NOT_ASSESSED"))),
+    };
     let command = signal(field(case,"command",at)?,&format!("{at}.command"),false)?;
     let context = signal(field(case,"context",at)?,&format!("{at}.context"),false)?;
     let response = signal(field(case,"response",at)?,&format!("{at}.response"),true)?;
@@ -101,18 +129,22 @@ fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String,
         if fb.role != "ACTUATOR_FEEDBACK" {
             return Ok((id,result("INVALID_CONTRACT",&["ACTUATOR_FEEDBACK_ROLE_MISMATCH"],"FEEDBACK_ROLE_INVALID")));
         }
-        if fb.observed_at_ms > response.observed_at_ms {
-            return Ok((id,result("INVALID_CONTRACT",&["FUTURE_ACTUATOR_FEEDBACK"],"FEEDBACK_TIMESTAMP_INVALID")));
-        }
-        if fb.quality == "CURRENT" { "FEEDBACK_PRESENT_NOT_DELIVERY_PROOF" } else { "FEEDBACK_NOT_CURRENT" }
+        if fb.timebase_id != timebase_id {
+            "FEEDBACK_TIMEBASE_UNQUALIFIED"
+        } else if fb.quality == "CURRENT" {
+            "FEEDBACK_PRESENT_NOT_DELIVERY_PROOF"
+        } else { "FEEDBACK_NOT_CURRENT" }
     };
     let envelope = field(case,"response_envelope",at)?;
-    exact_keys(envelope,&["model_id","configuration_id","regime_id","issued_at_ms","trained_through_ms","qualified","lower","mean","upper","unit"],&format!("{at}.response_envelope"))?;
+    exact_keys(envelope,&["model_id","configuration_id","regime_id","timebase_id","issued_at_ms","issued_at_uncertainty_ms","trained_through_ms","trained_through_uncertainty_ms","qualified","lower","mean","upper","unit"],&format!("{at}.response_envelope"))?;
     let model_id = string(envelope,"model_id",at)?;
     let envelope_config = string(envelope,"configuration_id",at)?;
     let envelope_regime = string(envelope,"regime_id",at)?;
+    let envelope_timebase_id = string(envelope,"timebase_id",at)?;
     let issued = unsigned(envelope,"issued_at_ms",at)?;
+    let issued_uncertainty = unsigned(envelope,"issued_at_uncertainty_ms",at)?;
     let trained = unsigned(envelope,"trained_through_ms",at)?;
+    let trained_uncertainty = unsigned(envelope,"trained_through_uncertainty_ms",at)?;
     let model_qualified = boolean(envelope,"qualified",at)?;
     let lower = number(envelope,"lower",at)?;
     let mean = number(envelope,"mean",at)?;
@@ -121,14 +153,67 @@ fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String,
     if lower > mean || mean > upper {
         return Ok((id,result("INVALID_CONTRACT",&["INVALID_RESPONSE_INTERVAL"],feedback_state)));
     }
-    if issued > prediction || trained > prediction {
+    if envelope_timebase_id != timebase_id
+        || command.timebase_id != timebase_id
+        || context.timebase_id != timebase_id
+        || response.timebase_id != timebase_id {
+        return Ok((id,result("NOT_EVALUATED",&["TIMEBASE_MAPPING_NOT_QUALIFIED"],feedback_state)));
+    }
+    let command_bounds = match time_bounds(command.observed_at_ms,command.timestamp_uncertainty_ms) {
+        Some(bounds) => bounds,
+        None => return Ok((id,result("INVALID_CONTRACT",&["COMMAND_TIMESTAMP_INTERVAL_OVERFLOW"],feedback_state))),
+    };
+    let context_bounds = match time_bounds(context.observed_at_ms,context.timestamp_uncertainty_ms) {
+        Some(bounds) => bounds,
+        None => return Ok((id,result("INVALID_CONTRACT",&["CONTEXT_TIMESTAMP_INTERVAL_OVERFLOW"],feedback_state))),
+    };
+    let response_bounds = match time_bounds(response.observed_at_ms,response.timestamp_uncertainty_ms) {
+        Some(bounds) => bounds,
+        None => return Ok((id,result("INVALID_CONTRACT",&["RESPONSE_TIMESTAMP_INTERVAL_OVERFLOW"],feedback_state))),
+    };
+    let issued_bounds = match time_bounds(issued,issued_uncertainty) {
+        Some(bounds) => bounds,
+        None => return Ok((id,result("INVALID_CONTRACT",&["MODEL_ISSUE_INTERVAL_OVERFLOW"],feedback_state))),
+    };
+    let trained_bounds = match time_bounds(trained,trained_uncertainty) {
+        Some(bounds) => bounds,
+        None => return Ok((id,result("INVALID_CONTRACT",&["MODEL_TRAINING_INTERVAL_OVERFLOW"],feedback_state))),
+    };
+    for (bounds, label) in [(command_bounds,"COMMAND"),(context_bounds,"CONTEXT")] {
+        if bounds.0 > prediction_bounds.1 {
+            return Ok((id,result("INVALID_CONTRACT",&[if label=="COMMAND" {"FUTURE_COMMAND_INFORMATION"} else {"FUTURE_CONTEXT_INFORMATION"}],feedback_state)));
+        }
+        if bounds.1 > prediction_bounds.0 {
+            return Ok((id,result("NOT_EVALUATED",&[if label=="COMMAND" {"COMMAND_PREDICTION_ORDER_UNPROVEN"} else {"CONTEXT_PREDICTION_ORDER_UNPROVEN"}],feedback_state)));
+        }
+    }
+    if issued_bounds.0 > prediction_bounds.1 || trained_bounds.0 > prediction_bounds.1 {
         return Ok((id,result("INVALID_CONTRACT",&["FUTURE_MODEL_INFORMATION"],feedback_state)));
     }
-    if command.observed_at_ms > prediction || context.observed_at_ms > prediction {
-        return Ok((id,result("INVALID_CONTRACT",&["FUTURE_COMMAND_OR_CONTEXT_LEAKAGE"],feedback_state)));
+    if issued_bounds.1 > prediction_bounds.0 || trained_bounds.1 > prediction_bounds.0 {
+        return Ok((id,result("NOT_EVALUATED",&["MODEL_PREDICTION_ORDER_UNPROVEN"],feedback_state)));
     }
-    if response.observed_at_ms < prediction || response.observed_at_ms - prediction > max_horizon {
-        return Ok((id,result("INVALID_CONTRACT",&["RESPONSE_OUTSIDE_PREDICTION_HORIZON"],feedback_state)));
+    if trained_bounds.0 > issued_bounds.1 {
+        return Ok((id,result("INVALID_CONTRACT",&["MODEL_ISSUED_BEFORE_TRAINING_DATA"],feedback_state)));
+    }
+    if trained_bounds.1 > issued_bounds.0 {
+        return Ok((id,result("NOT_EVALUATED",&["MODEL_TRAINING_ISSUE_ORDER_UNPROVEN"],feedback_state)));
+    }
+    if response_bounds.1 <= prediction_bounds.0 {
+        return Ok((id,result("INVALID_CONTRACT",&["RESPONSE_PRECEDES_PREDICTION"],feedback_state)));
+    }
+    if response_bounds.0 <= prediction_bounds.1 {
+        return Ok((id,result("NOT_EVALUATED",&["RESPONSE_PREDICTION_ORDER_UNPROVEN"],feedback_state)));
+    }
+    if prediction_bounds.1 - command_bounds.0 > max_age
+        || prediction_bounds.1 - context_bounds.0 > max_age {
+        return Ok((id,result("NOT_EVALUATED",&["INPUT_FRESHNESS_NOT_PROVEN"],feedback_state)));
+    }
+    if response_bounds.1 - prediction_bounds.0 > max_horizon {
+        if response_bounds.0 - prediction_bounds.1 > max_horizon {
+            return Ok((id,result("INVALID_CONTRACT",&["RESPONSE_OUTSIDE_PREDICTION_HORIZON"],feedback_state)));
+        }
+        return Ok((id,result("NOT_EVALUATED",&["RESPONSE_HORIZON_NOT_PROVEN"],feedback_state)));
     }
     if response.unit != envelope_unit {
         return Ok((id,result("INVALID_CONTRACT",&["RESPONSE_ENVELOPE_UNIT_MISMATCH"],feedback_state)));
@@ -160,6 +245,18 @@ fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String,
     let reasons: &[&str] = if disposition == "RESPONSE_CONSISTENT" { &[] }
         else { &["OBSERVED_RESPONSE_OUTSIDE_CONDITIONED_ENVELOPE"] };
     let mut out = result(disposition,reasons,feedback_state);
+    out["timebase_id"] = json!(timebase_id);
+    out["timebase_qualification_id"] = json!(clock_qualification_id);
+    out["timebase_qualification_sha256"] = json!(clock_qualification_sha256);
+    out["temporal_intervals_ms"] = json!({
+        "command_available": [command_bounds.0,command_bounds.1],
+        "context_observed": [context_bounds.0,context_bounds.1],
+        "prediction_issued": [prediction_bounds.0,prediction_bounds.1],
+        "response_observed": [response_bounds.0,response_bounds.1],
+        "command_age_worst_case": prediction_bounds.1 - command_bounds.0,
+        "response_lag_minimum": response_bounds.0 - prediction_bounds.1,
+        "response_lag_maximum": response_bounds.1 - prediction_bounds.0
+    });
     out["response_envelope_model_id"] = json!(model_id);
     out["observed_response"] = json!(response.value);
     out["expected_response_mean"] = json!(mean);
@@ -216,9 +313,11 @@ fn run(path:&str,source:&str,digest:&str)->Check<Value> {
     if !valid_hex(source,40)||!valid_hex(digest,64) { return Err("invalid source commit or corpus digest".to_owned()); }
     let raw=fs::read_to_string(path).map_err(|e|format!("read corpus: {e}"))?;
     let corpus:Value=serde_json::from_str(&raw).map_err(|e|format!("parse corpus: {e}"))?;
-    exact_keys(&corpus,&["schema_version","corpus_id","evidence_class","max_input_age_ms","max_response_horizon_ms","cases","counterfactual_pairs","authority_boundary","claim_ceiling"],"$")?;
-    if string(&corpus,"schema_version","$")? != VERSION || string(&corpus,"evidence_class","$")? != "SYNTHETIC_KNOWN_TRUTH" {
-        return Err("wrong schema version or evidence class".to_owned());
+    exact_keys(&corpus,&["schema_version","temporal_contract_version","corpus_id","evidence_class","max_input_age_ms","max_response_horizon_ms","cases","counterfactual_pairs","authority_boundary","claim_ceiling"],"$")?;
+    if string(&corpus,"schema_version","$")? != VERSION
+        || string(&corpus,"temporal_contract_version","$")? != "bounded-time-interval-v0.1"
+        || string(&corpus,"evidence_class","$")? != "SYNTHETIC_KNOWN_TRUTH" {
+        return Err("wrong schema version, temporal contract or evidence class".to_owned());
     }
     let authority=field(&corpus,"authority_boundary","$")?;
     exact_keys(authority,&["read_only","controller_write","actuation","maintenance_authorization","mode_transition","restriction_clearance"],"$.authority_boundary")?;
@@ -246,7 +345,9 @@ fn run(path:&str,source:&str,digest:&str)->Check<Value> {
         pair_receipts.push(pair_check(pair,&outcomes,&case_map)?);
     }
     let case_results:Vec<Value>=outcomes.iter().map(|(id,out)|json!({"case_id":id,"result":out})).collect();
-    Ok(json!({"result":"pass","validator_version":VERSION,"corpus_id":string(&corpus,"corpus_id","$")?,
+    Ok(json!({"result":"pass","validator_version":VERSION,
+        "temporal_contract_version":string(&corpus,"temporal_contract_version","$")?,
+        "corpus_id":string(&corpus,"corpus_id","$")?,
         "source_commit":source,"corpus_sha256":digest,"scenario_count":items.len(),
         "counterfactual_pair_count":pair_receipts.len(),"cases":case_results,
         "counterfactual_pairs":pair_receipts,"claim_ceiling":string(&corpus,"claim_ceiling","$")?}))
@@ -267,8 +368,8 @@ mod tests {
     use super::*;
     fn corpus()->Value { serde_json::from_str(FROZEN).expect("frozen fixture JSON") }
     #[test]
-    fn all_sixteen_synthetic_cases_match_known_truth() {
-        let c=corpus(); let items=c["cases"].as_array().expect("cases"); assert_eq!(items.len(),16);
+    fn all_twenty_five_synthetic_cases_match_known_truth() {
+        let c=corpus(); let items=c["cases"].as_array().expect("cases"); assert_eq!(items.len(),25);
         for case in items {
             let (id,out)=evaluate_case(case,2000,5000).expect("case evaluates");
             assert_eq!(out["disposition"],case["expected_disposition"],"{id}");
@@ -289,6 +390,33 @@ mod tests {
         assert_eq!(evaluate_case(&c["cases"][0],2000,5000).unwrap().1["disposition"],"INVALID_CONTRACT");
         c=corpus(); c["cases"][0]["command"]["observed_at_ms"]=json!(2000);
         assert_eq!(evaluate_case(&c["cases"][0],2000,5000).unwrap().1["disposition"],"INVALID_CONTRACT");
+    }
+    #[test]
+    fn timestamp_uncertainty_and_timebase_fail_closed() {
+        let c=corpus();
+        for index in 16..25 {
+            let (_,out)=evaluate_case(&c["cases"][index],2000,5000).unwrap();
+            assert_eq!(out["disposition"],c["cases"][index]["expected_disposition"],"case {index}");
+        }
+        let (_,out)=evaluate_case(&c["cases"][24],2000,5000).unwrap();
+        assert_eq!(out["disposition"],"RESPONSE_CONSISTENT");
+        assert_eq!(out["temporal_intervals_ms"]["command_available"],json!([997,999]));
+    }
+    #[test]
+    fn timestamp_uncertainty_overflow_is_invalid_not_clamped() {
+        let mut c=corpus();
+        c["cases"][0]["prediction_time_ms"]=json!(u64::MAX);
+        c["cases"][0]["prediction_timestamp_uncertainty_ms"]=json!(1);
+        let (_,out)=evaluate_case(&c["cases"][0],2000,5000).unwrap();
+        assert_eq!(out["disposition"],"INVALID_CONTRACT");
+    }
+    #[test]
+    fn unqualified_clock_never_proves_temporal_order() {
+        let mut c=corpus();
+        c["cases"][0]["timebase"]["qualification_state"]=json!("UNKNOWN");
+        let (_,out)=evaluate_case(&c["cases"][0],2000,5000).unwrap();
+        assert_eq!(out["disposition"],"NOT_EVALUATED");
+        assert_eq!(out["reason_codes"][0],"CLOCK_QUALIFICATION_UNAVAILABLE");
     }
     #[test]
     fn role_promotion_fails_closed() {

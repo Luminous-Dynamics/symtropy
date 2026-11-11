@@ -207,3 +207,25 @@ These are known-truth software fixtures, not engine recordings or empirical mode
 The standalone workspace package uses the existing serde_json dependency and introduces no new external crate. The focused workflow pins Rust 1.96.0, runs tests and strict Clippy, executes the frozen corpus, binds the receipt to exact source-commit and corpus digests, and uploads the JSON receipt.
 
 P0 validates only software handling of this synthetic contract. It does not validate a trained response model, physical engine dynamics, controller/actuator behaviour, engine diagnosis, shipboard safety, class/statutory compliance, MASS Code compliance, maintenance authority or permission to operate.
+
+
+## Bounded temporal evidence — P0.2
+
+Point timestamps are insufficient to prove causal ordering when sensor/controller clocks have non-zero offset, drift, timestamping latency or synchronization uncertainty. The evaluator uses conservative inclusive event-time intervals:
+
+`[timestamp_ms - uncertainty_ms, timestamp_ms + uncertainty_ms]`
+
+All command, context, response and model timestamps must be mapped to one explicitly identified, independently qualified common timebase. The case binds the timebase qualification ID and SHA-256 receipt. An unqualified clock or unmapped timebase is NOT_EVALUATED.
+
+The evaluator proves, rather than assumes, temporal order:
+
+- latest possible command/context availability must be no later than the earliest possible prediction time;
+- latest possible model training/issue time must be no later than the earliest possible prediction time;
+- earliest possible physical response time must be strictly later than the latest possible prediction time;
+- worst-case input age and response horizon must remain inside declared bounds.
+
+If uncertainty intervals overlap a causal boundary, the result is NOT_EVALUATED. If intervals prove future leakage or impossible ordering, the contract is INVALID_CONTRACT. Timestamp underflow/overflow is invalid and is never clamped. Successful receipts include exact temporal intervals and worst-case freshness/lag calculations.
+
+This software contract does not implement PTP or prove a vessel's clock network. IEEE 1588 defines precise synchronization for heterogeneous networked measurement/control clocks, but installation-specific offset, drift, path asymmetry, timestamp location and end-to-end latency still require measured qualification: https://standards.ieee.org/ieee/1588/6825/. See also the 2026 review of IRIG-B, SNTP and PTP for industrial facilities: https://doi.org/10.1109/MIAS.2026.3682180.
+
+The frozen evaluator corpus now contains 25 synthetic cases, including overlapping command/prediction intervals, overlapping response/prediction intervals, unqualified/unmapped timebases, stale input hidden by timestamp uncertainty, response-horizon ambiguity, definitely future commands, arithmetic overflow and a boundary case where order remains provable. These fixtures are fabricated conformance cases, not clock measurements from a vessel.
