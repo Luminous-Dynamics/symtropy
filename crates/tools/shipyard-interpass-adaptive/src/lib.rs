@@ -101,6 +101,7 @@ pub enum AbstainReason {
     ScanCoverageBelowMinimum,
     ScanOcclusionAboveMaximum,
     ScanRegistrationErrorTooLarge,
+    UncertaintyNotBounded,
     StalePredecessorState,
     ObservationFromFuture,
     ObservationTooOld,
@@ -249,6 +250,9 @@ fn validate_observation(input: &PlannerInput) -> Result<(), AbstainReason> {
         return Err(AbstainReason::InvalidProcedureEnvelope);
     }
 
+    if state.uncertainty_bound_units == 0 {
+        return Err(AbstainReason::UncertaintyNotBounded);
+    }
     state
         .residual_fill_area_units
         .checked_add(state.uncertainty_bound_units)
@@ -283,7 +287,8 @@ fn exclusion_for(
     candidate: &PassCandidate,
 ) -> Option<CandidateExclusion> {
     let state = &input.observed_state;
-    if candidate.workpiece_id != state.workpiece_id
+    if is_empty(&candidate.candidate_id)
+        || candidate.workpiece_id != state.workpiece_id
         || candidate.joint_revision != state.joint_revision
         || candidate.layer_id != state.layer_id
         || candidate.predecessor_pass_id != state.after_pass_id
@@ -433,10 +438,6 @@ pub fn recommend_next_pass(input: &PlannerInput) -> Decision {
 mod tests {
     use super::*;
 
-    fn digest_seed(seed: u8) -> [u8; 32] {
-        [seed; 32]
-    }
-
     fn base_input() -> PlannerInput {
         let state = ObservedState {
             evidence_class: EvidenceClass::SyntheticContractOnly,
@@ -493,7 +494,6 @@ mod tests {
             make_candidate("FILL-MID", 100, 15, 100, 80, 2),
             make_candidate("FILL-OVER", 130, 10, 130, 60, 1),
         ];
-        let _ = digest_seed(1); // Digest shape is exercised by adapter contracts, not raw input here.
         PlannerInput {
             observed_state: state,
             active_workpiece_id: "WID-SYNTH-01".to_owned(),
@@ -510,18 +510,6 @@ mod tests {
         }
     }
 
-    fn abstention(input: &PlannerInput, expected: AbstainReason) {
-        assert_eq!(
-            recommend_next_pass(input),
-            Decision::Abstain {
-                reason: expected,
-                excluded: match &recommend_next_pass(input) {
-                    Decision::Abstain { excluded, .. } => excluded.clone(),
-                    Decision::ParetoRecommendations { .. } => unreachable!(),
-                },
-            }
-        );
-    }
 
     #[test]
     fn returns_a_pareto_set_without_automatically_picking_a_pass() {
@@ -739,6 +727,28 @@ mod tests {
             recommend_next_pass(&input),
             Decision::Abstain { reason: AbstainReason::ProcedureScopeNotAdmitted, .. }
         ));
+    }
+
+    #[test]
+    fn zero_uncertainty_is_not_admitted_as_a_measured_bound() {
+        let mut input = base_input();
+        input.observed_state.uncertainty_bound_units = 0;
+        assert!(matches!(
+            recommend_next_pass(&input),
+            Decision::Abstain { reason: AbstainReason::UncertaintyNotBounded, .. }
+        ));
+    }
+
+    #[test]
+    fn empty_candidate_identity_is_excluded() {
+        let mut input = base_input();
+        input.candidates[0].candidate_id.clear();
+        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
+            recommend_next_pass(&input) else {
+                panic!("remaining candidates should remain feasible");
+            };
+        assert_eq!(feasible_candidate_count, 2);
+        assert_eq!(excluded[0].reason, CandidateExclusion::IdentityMismatch);
     }
 
     #[test]
