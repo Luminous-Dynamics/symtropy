@@ -293,7 +293,7 @@ impl<const D: usize> BivectorInertia<D> {
             if !offset.iter().all(|value| value.is_finite()) {
                 return Err(RotationalInertiaError::NonFinite);
             }
-            second_moment += (offset * offset.transpose()) * mass;
+            second_moment += checked_mass_weighted_outer(mass, &offset)?;
         }
 
         Self::from_second_moment(second_moment)
@@ -713,6 +713,31 @@ mod tests {
             )
             .unwrap_err(),
             RotationalInertiaError::OffsetsNotCentered
+        );
+    }
+
+    #[test]
+    fn point_mass_constructor_handles_large_offsets_with_tiny_masses() {
+        let mass = 1.0e-310;
+        let samples = [
+            (SVector::<f64, 3>::new(-1.0e155, 0.0, 0.0), mass),
+            (SVector::<f64, 3>::new(1.0e155, 0.0, 0.0), mass),
+        ];
+        let inertia = BivectorInertia::<3>::from_point_masses(samples).unwrap();
+        assert!((inertia.second_moment()[(0, 0)] - 2.0).abs() < 1.0e-10);
+        assert!(inertia.second_moment().iter().all(|value| value.is_finite()));
+    }
+
+    #[test]
+    fn point_mass_constructor_rejects_underflowed_nonzero_mass_terms() {
+        let mass = 1.0e-300;
+        let samples = [
+            (SVector::<f64, 3>::new(-1.0e-100, 0.0, 0.0), mass),
+            (SVector::<f64, 3>::new(1.0e-100, 0.0, 0.0), mass),
+        ];
+        assert_eq!(
+            BivectorInertia::<3>::from_point_masses(samples).unwrap_err(),
+            RotationalInertiaError::NonFinite
         );
     }
 
