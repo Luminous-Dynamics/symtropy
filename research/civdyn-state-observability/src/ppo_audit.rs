@@ -123,7 +123,7 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
         {
             return Err(format!("PPO group identity mismatch in {}", group.id));
         }
-        if run.id == 0 || !ids.insert(run.id) {
+        if run.id == 0 || run.id > group.expected_runs as u64 || !ids.insert(run.id) {
             return Err(format!("invalid or duplicate PPO run id in {}", group.id));
         }
         if run.seed == 0 {
@@ -153,7 +153,7 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
     let seed_coverage = seeds.len();
 
     Ok(format!(
-        "{},{},{},{},{},{},{},{},{},{},{},{},{:.9},{:.9},{:.9},{:.9},{},{},{},{}",
+        "{},{},{},{},{},{},{},{},{},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{},{},{},{}",
         group.id,
         group.stacked,
         group.model,
@@ -174,6 +174,7 @@ fn summarize(group: ExpectedGroup, runs: &[PpoRun]) -> Result<String, String> {
         hparams.len(),
         *frames.iter().next_back().unwrap_or(&0),
         *layers.iter().next_back().unwrap_or(&0),
+        *hidden.iter().next_back().unwrap_or(&0),
     ))
 }
 
@@ -198,7 +199,7 @@ fn run_audit(input: &str) -> Result<String, String> {
         return Err(format!("PPO artifact total mismatch: {actual_total}, expected {expected_total}"));
     }
 
-    let mut output = String::from("group,is_stacked,model,pattern,run_count,unique_run_ids,unique_seeds,minimum_seed,maximum_seed,minimum_frames,minimum_layers,minimum_hidden,mean_return,median_return,minimum_return,maximum_return,mean_reported_return_std,unique_hyperparameter_sets,maximum_frames,maximum_layers\n");
+    let mut output = String::from("group,is_stacked,model,pattern,run_count,unique_run_ids,unique_seeds,minimum_seed,maximum_seed,minimum_frames,minimum_layers,minimum_hidden,mean_return,median_return,minimum_return,maximum_return,mean_reported_return_std,unique_hyperparameter_sets,maximum_frames,maximum_layers,maximum_hidden\n");
     for group in EXPECTED_GROUPS {
         let runs = grouped
             .get(group.id)
@@ -208,18 +209,13 @@ fn run_audit(input: &str) -> Result<String, String> {
         output.push('\n');
     }
     let all: Vec<&PpoRun> = grouped.values().flat_map(|runs| runs.iter()).collect();
-    let means: Vec<f64> = all.iter().map(|run| run.return_mean).collect();
-    let mut sorted_means = means.clone();
-    let median_all = median(&mut sorted_means);
-    let mean_all = means.iter().sum::<f64>() / means.len() as f64;
+    let unique_seeds = all.iter().map(|run| run.seed).collect::<BTreeSet<_>>().len();
+    let minimum_seed = all.iter().map(|run| run.seed).min().unwrap_or(0);
+    let maximum_seed = all.iter().map(|run| run.seed).max().unwrap_or(0);
+    // ICU and Predator returns have different task semantics/scales; do not
+    // pool them into a cross-environment headline value.
     output.push_str(&format!(
-        "TOTAL,all,all,all,{actual_total},{actual_total},{},{},{},NA,NA,NA,{mean_all:.9},{median_all:.9},{:.9},{:.9},{:.9},NA,NA,NA\n",
-        all.iter().map(|run| run.seed).collect::<BTreeSet<_>>().len(),
-        all.iter().map(|run| run.seed).min().unwrap_or(0),
-        all.iter().map(|run| run.seed).max().unwrap_or(0),
-        means.iter().copied().fold(f64::INFINITY, f64::min),
-        means.iter().copied().fold(f64::NEG_INFINITY, f64::max),
-        all.iter().map(|run| run.return_std).sum::<f64>() / all.len() as f64,
+        "TOTAL,all,all,all,{actual_total},{actual_total},{unique_seeds},{minimum_seed},{maximum_seed},NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA\\n"
     ));
     Ok(output)
 }
