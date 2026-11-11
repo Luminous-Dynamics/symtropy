@@ -37,3 +37,7 @@ path = "src/bin/model_adequacy_sweep.rs"
 [[bin]]
 name = "source-passport-sweep"
 path = "src/bin/source_passport_sweep.rs"
+
+[[bin]]
+name = "measurement-equivalence-sweep"
+path = "src/bin/measurement_equivalence_sweep.rs"
