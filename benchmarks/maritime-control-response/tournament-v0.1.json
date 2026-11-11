@@ -195,7 +195,11 @@
     "the two anomaly-only injection-nozzle recordings are excluded from onset-latency metrics unless an independent injection-time source exists",
     "the five runs with empty Compressor Filter Loss or Turbine Back Pressure values preserve missingness and do not impute zero",
     "the three-row CSV header and baseline-versus-scenario 70/73-column schema are validated against the published variable dictionary before parsing",
-    "CC BY 4.0 metadata is recorded, but actual archive bytes, file inventory and license notices are audited before repackaging or redistribution"
+    "CC BY 4.0 metadata is recorded, but actual archive bytes, file inventory and license notices are audited before repackaging or redistribution",
+    "a diagnostic-evidence candidate is ineligible until its likelihood calibration has an independently reviewed receipt reference",
+    "the selector distinguishes multi-scenario assessment from independent calibration review; scenario count does not qualify a likelihood model",
+    "qualified decision-support runs bind the likelihood-calibration catalogue and upstream independent-review verification digest",
+    "upstream trust verifies calibration reviewer identity, independence, competence, signed report, scope and revocation"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -372,7 +376,7 @@
   },
   "active_evidence_selection": {
     "path": "active-evidence-selection-v0.1.json",
-    "schema_version": "liu-ice-active-evidence-selection-v0.2",
+    "schema_version": "liu-ice-active-evidence-selection-v0.3",
     "status": "protocol_only_not_executed",
     "selector": "read_only_value_of_information_with_likelihood_scenario_robustness",
     "utility": "minimum scenario-specific expected information gain / (1 + normalized cost + normalized delay + normalized risk)",
@@ -385,7 +389,7 @@
       "risk_adjusted_worst_case_eig"
     ],
     "eligibility": "Hard authority and safety eligibility first; require worst-case EIG above the frozen policy floor.",
-    "epistemic_rule": "Point-estimate candidates are not robust-qualified; multiple calibrated likelihood scenarios use identical hypothesis and outcome spaces, positive weights summing to one, and worst-case EIG.",
+    "epistemic_rule": "Multiple scenario likelihoods are required for multi_scenario_assessed; independently reviewed likelihood calibration and worst-case EIG are both required for eligibility. Signer identity and calibration validity remain upstream trust duties.",
     "execution_performed": false,
     "actuation_authorized": false,
     "controlled_perturbations_recommended": 0,
@@ -395,7 +399,10 @@
       "required_reference": "risk_assessment_sha256 per candidate",
       "qualification": "upstream owner review, authority scope, signer, expiry and revocation checks must be evidenced before a qualified decision-support run",
       "selector_authorizes_action": false
-    }
+    },
+    "multi_scenario_assessed": "Reports whether multiple likelihood scenarios were assessed; this is not itself a calibration qualification.",
+    "likelihood_calibration_reviewed_by_independent_validator": true,
+    "calibration_review_requirement": "Every eligible candidate binds an independent calibration-review receipt; the independent review state is caller-supplied and must be authenticated upstream."
   },
   "streaming_contract": {
     "path": "streaming-contract-v0.1.json",
