@@ -125,6 +125,7 @@ pub struct BodySnapshot<const D: usize> {
     pub rotational_inertia_operator_bits: Vec<u64>,
     pub rotational_inertia_model: RotationalInertiaModel,
     pub rotational_inertia_operator_invalidated: bool,
+    pub rotational_inertia_operator_mass_bits: Option<u64>,
     pub rotational_inertia_approximate: bool,
     pub sleeping: bool,
     pub sleep_counter: u32,
@@ -160,6 +161,7 @@ impl<const D: usize> BodySnapshot<D> {
                 .unwrap_or_default(),
             rotational_inertia_model: body.rotational_inertia_model(),
             rotational_inertia_operator_invalidated: body.rotational_inertia_operator_invalidated,
+            rotational_inertia_operator_mass_bits: body.rotational_inertia_operator_mass_bits,
             rotational_inertia_approximate: body.rotational_inertia_approximate,
             sleeping: body.sleeping,
             sleep_counter: body.sleep_counter,
@@ -254,6 +256,29 @@ mod rotational_mass_property_replay_tests {
             snapshot_b.rotational_inertia_operator_bits
         );
         assert_ne!(snapshot_a, snapshot_b);
+    }
+
+    #[test]
+    fn body_snapshot_records_mass_operator_provenance_mismatch() {
+        let operator = RotationalInertiaOperator::<3>::isotropic(1.0).unwrap();
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(9),
+            Point::origin(),
+            0.1,
+            1.0,
+        ).with_rotational_inertia_operator(operator);
+        let valid = BodySnapshot::from_body(&body);
+
+        body.mass = 1.25;
+        let stale = BodySnapshot::from_body(&body);
+        assert_eq!(valid.rotational_inertia_operator_mass_bits, Some(1.0_f64.to_bits()));
+        assert_eq!(stale.rotational_inertia_operator_mass_bits, Some(1.0_f64.to_bits()));
+        assert_eq!(stale.mass_kg_bits, 1.25_f64.to_bits());
+        assert_eq!(
+            stale.rotational_inertia_model,
+            RotationalInertiaModel::InvalidPrincipalMoments
+        );
+        assert_ne!(valid, stale);
     }
 
     #[test]
