@@ -297,6 +297,21 @@ fn bench_spatial_inertia_frame_reexpression(c: &mut Criterion) {
     });
 }
 
+fn bench_spatial_inertia_contact_effective_mass(c: &mut Criterion) {
+    let inertia = bench_spatial_inertia_sample();
+    let offset = SVector::new(0.7, -0.25, 0.4);
+    let normal = SVector::new(-0.2, 0.9, 0.35);
+    c.bench_function("spatial_inertia_3d_contact_inverse_effective_mass", |bench| {
+        bench.iter(|| {
+            black_box(
+                inertia
+                    .contact_inverse_effective_mass(&offset, &normal, 1.0e-12)
+                    .unwrap(),
+            );
+        });
+    });
+}
+
 fn bench_spatial_inertia_composition(c: &mut Criterion) {
     let first = bench_spatial_inertia_sample();
     let second = SpatialInertia3::new(
@@ -342,5 +357,6 @@ criterion_group!(
     bench_spatial_inertia_reference_shift,
     bench_spatial_inertia_frame_reexpression,
     bench_spatial_inertia_composition,
+    bench_spatial_inertia_contact_effective_mass,
 );
 criterion_main!(benches);
