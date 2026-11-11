@@ -32,5 +32,5 @@ The contact field should be used as a continuous interaction observation alongsi
     cargo test --locked --manifest-path research/phri-continuous-coupling-001/Cargo.toml
     cargo clippy --locked --manifest-path research/phri-continuous-coupling-001/Cargo.toml --all-targets -- -D warnings
 
-The 10 authored tests use synthetic known answers and rejection fixtures. They do not qualify an actual tactile sensor or human-contact system.
+The 13 authored tests use synthetic known answers and rejection fixtures, including rotated surface registration, incomplete/saturated data and arithmetic-overflow rejection. They do not qualify an actual tactile sensor or human-contact system.
 
