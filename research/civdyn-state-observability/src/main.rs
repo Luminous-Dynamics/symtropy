@@ -38,6 +38,8 @@ struct Contract {
     learning_rows: usize,
     finished_rows: usize,
     exception_rows: usize,
+    exception_classes: Vec<String>,
+    known_belief_collapse_rows: usize,
     baseline_count: usize,
     baseline_failed: usize,
     mconst_count: usize,
@@ -57,6 +59,8 @@ struct Run {
     algorithm: String,
     finished: bool,
     exception: bool,
+    exception_kind: String,
+    failure_reason_known: bool,
     mean_present: bool,
     atv_present: bool,
     wtv_present: bool,
@@ -82,12 +86,12 @@ fn parse_usize(value: &str, field: &str) -> Result<usize, String> {
 }
 
 fn parse_contract(fields: &[&str]) -> Result<Contract, String> {
-    if fields.len() != 19 || fields[0] != "contract" {
-        return Err(format!("contract row must have 19 fields, got {}", fields.len()));
+    if fields.len() != 21 || fields[0] != "contract" {
+        return Err(format!("contract row must have 21 fields, got {}", fields.len()));
     }
-    let mut baseline_ids: Vec<String> = fields[17].split(';').map(str::to_owned).collect();
+    let mut baseline_ids: Vec<String> = fields[19].split(';').map(str::to_owned).collect();
     baseline_ids.sort();
-    let mut algorithms: Vec<String> = fields[18].split(';').map(str::to_owned).collect();
+    let mut algorithms: Vec<String> = fields[20].split(';').map(str::to_owned).collect();
     algorithms.sort();
     Ok(Contract {
         id: fields[1].to_owned(),
@@ -100,12 +104,14 @@ fn parse_contract(fields: &[&str]) -> Result<Contract, String> {
         learning_rows: parse_usize(fields[8], "learning row count")?,
         finished_rows: parse_usize(fields[9], "finished row count")?,
         exception_rows: parse_usize(fields[10], "exception row count")?,
-        baseline_count: parse_usize(fields[11], "baseline count")?,
-        baseline_failed: parse_usize(fields[12], "failed baseline count")?,
-        mconst_count: parse_usize(fields[13], "M-constant count")?,
-        mconst_failed: parse_usize(fields[14], "failed M-constant count")?,
-        pomcp_count: parse_usize(fields[15], "POMCP count")?,
-        pomcp_failed: parse_usize(fields[16], "failed POMCP count")?,
+        exception_classes: fields[11].split(';').filter(|value| !value.is_empty()).map(str::to_owned).collect(),
+        known_belief_collapse_rows: parse_usize(fields[12], "belief-collapse exception count")?,
+        baseline_count: parse_usize(fields[13], "baseline count")?,
+        baseline_failed: parse_usize(fields[14], "failed baseline count")?,
+        mconst_count: parse_usize(fields[15], "M-constant count")?,
+        mconst_failed: parse_usize(fields[16], "failed M-constant count")?,
+        pomcp_count: parse_usize(fields[17], "POMCP count")?,
+        pomcp_failed: parse_usize(fields[18], "failed POMCP count")?,
         baseline_ids,
         algorithms,
     })
@@ -121,8 +127,8 @@ fn algorithm_for(class: &str) -> Option<&'static str> {
 }
 
 fn parse_run(fields: &[&str]) -> Result<Run, String> {
-    if fields.len() != 14 || fields[0] != "run" {
-        return Err(format!("run row must have 14 fields, got {}", fields.len()));
+    if fields.len() != 16 || fields[0] != "run" {
+        return Err(format!("run row must have 16 fields, got {}", fields.len()));
     }
     let mean = if fields[13].is_empty() {
         None
@@ -150,6 +156,8 @@ fn parse_run(fields: &[&str]) -> Result<Run, String> {
         algorithm: fields[5].to_owned(),
         finished: parse_bool(fields[6])?,
         exception: parse_bool(fields[7])?,
+        exception_kind: fields[14].to_owned(),
+        failure_reason_known: parse_bool(fields[15])?,
         mean_present: parse_bool(fields[8])?,
         atv_present: parse_bool(fields[9])?,
         wtv_present: parse_bool(fields[10])?,
@@ -180,6 +188,15 @@ fn validate_contract(contract: &Contract, expected: ExpectedExperiment) -> Resul
         || contract.baseline_ids != ["random".to_owned(), "upper".to_owned()]
     {
         return Err(format!("baseline contract mismatch for {}", contract.id));
+    }
+    if contract.exception_rows > 0 {
+        if contract.exception_classes != ["RemoteException".to_owned()]
+            || contract.known_belief_collapse_rows != contract.exception_rows
+        {
+            return Err(format!("exception taxonomy mismatch for {}", contract.id));
+        }
+    } else if !contract.exception_classes.is_empty() || contract.known_belief_collapse_rows != 0 {
+        return Err(format!("unexpected exception taxonomy in {}", contract.id));
     }
     if contract.mconst_count != 1 || contract.mconst_failed != 0 {
         return Err(format!("M-constant contract mismatch for {}", contract.id));
@@ -228,13 +245,17 @@ fn validate_runs(contract: &Contract, runs: &[Run]) -> Result<(usize, usize), St
             return Err(format!("average TV exceeds worst TV for {} / seed {}", contract.id, run.seed));
         }
         if run.finished {
-            if run.exception || !run.mean_present || run.mean.is_none() {
-                return Err("finished learning row lacks a valid mean or carries exception".to_owned());
+            if run.exception || !run.mean_present || run.mean.is_none()
+                || !run.exception_kind.is_empty() || run.failure_reason_known
+            {
+                return Err("finished learning row lacks a valid mean or carries exception metadata".to_owned());
             }
             finished += 1;
         } else {
-            if !run.exception || run.mean_present || run.mean.is_some() {
-                return Err("unfinished learning row must retain its exception and omit policy mean".to_owned());
+            if !run.exception || run.mean_present || run.mean.is_some()
+                || run.exception_kind != "RemoteException" || !run.failure_reason_known
+            {
+                return Err("unfinished learning row must retain the known RemoteException and omit policy mean".to_owned());
             }
             exceptions += 1;
         }
@@ -339,7 +360,9 @@ fn run_audit(input: &str) -> Result<String, String> {
             exceptions_n50,
             exceptions_other,
             contract.baseline_count,
-            contract.pomcp_count
+            contract.pomcp_count,
+            contract.exception_classes.len(),
+            contract.known_belief_collapse_rows
         ));
     }
 
