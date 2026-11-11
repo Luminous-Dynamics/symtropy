@@ -9,6 +9,8 @@
 //! score, run-level split-conformal calibration, and command-conditioned
 //! residual evaluation. A mismatch is not an actuator-fault diagnosis.
 
+pub mod event_metrics;
+
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
