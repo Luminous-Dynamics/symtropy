@@ -61,6 +61,7 @@ The module exports:
 - local-order coverage fraction, preventing isolated particles' trivial self-alignment from appearing as collective local order;
 - mean neighbour count excluding self;
 - neighbour-count variance;
+- mean and variance of per-particle local polar order (each local neighbourhood includes its focal particle);
 - mean and variance of per-particle local polar order;
 - connected-component count in the metric-neighbour graph;
 - largest connected-component fraction;
