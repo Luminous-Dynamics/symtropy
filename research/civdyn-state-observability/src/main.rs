@@ -519,7 +519,7 @@ fn run_policy_summary(input: &str) -> Result<String, String> {
 fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let policy_summary = args.first().is_some_and(|argument| argument == "--policy-summary");
-    let path_index = usize::from(policy_summary);
+    let path_index = if policy_summary { 1 } else { 0 };
     let path = args.get(path_index).unwrap_or_else(|| {
         eprintln!("usage: miss-mdp-audit [--policy-summary] <normalized-upstream-results.tsv>");
         process::exit(2);
