@@ -42,6 +42,7 @@ pub struct FrameIdentityV1 {
     pub initial_state_sha256: String,
     pub simulation_state_sha256: String,
     pub model_profile_sha256: String,
+    pub observable_set_sha256: String,
     pub adapter_version: String,
     pub simulation_tick: u64,
 }
@@ -263,6 +264,7 @@ fn validate_frame(input: &ObservationFrameInputV1) -> Result<(), FrameError> {
     require_sha256(&identity.initial_state_sha256, "initial_state_sha256")?;
     require_sha256(&identity.simulation_state_sha256, "simulation_state_sha256")?;
     require_sha256(&identity.model_profile_sha256, "model_profile_sha256")?;
+    require_sha256(&identity.observable_set_sha256, "observable_set_sha256")?;
     require_text(&identity.adapter_version, "adapter_version")?;
     require_text(&input.model_time.clock_id, "model_time.clock_id")?;
     require_text(&input.model_time.timebase_id, "model_time.timebase_id")?;
@@ -829,6 +831,16 @@ mod tests {
             compile_observation_frame(input),
             Err(FrameError::ClaimBearingSubjectMissing(_))
         ));
+    }
+
+    #[test]
+    fn changed_observable_set_profile_changes_frame_identity() {
+        let input = fixture();
+        let original = compile_observation_frame(input.clone()).expect("original");
+        let mut changed = input;
+        changed.identity.observable_set_sha256 = "7".repeat(64);
+        let next = compile_observation_frame(changed).expect("changed observable set");
+        assert_ne!(original.frame_sha256, next.frame_sha256);
     }
 
     #[test]
