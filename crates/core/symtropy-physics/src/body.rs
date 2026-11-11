@@ -125,6 +125,7 @@ impl<const D: usize> RigidBody<D> {
     }
 
     /// Accumulate a world-space force on the body.
+    pub fn apply_force(&mut self, force: SVector<f64, D>) {
         if self.is_dynamic() {
             self.force_accumulator += force;
             self.wake();
@@ -132,6 +133,7 @@ impl<const D: usize> RigidBody<D> {
     }
 
     /// Accumulate a world-space torque about the body's current reference COM.
+    pub fn apply_torque(&mut self, torque: Bivector<D>) {
         if self.is_dynamic() {
             // Need to implement AddAssign for Bivector or do manually
             let mut current = self.torque_accumulator;
