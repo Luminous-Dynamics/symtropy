@@ -135,10 +135,7 @@ pub fn multiply6(left: &Matrix6, right: &Matrix6) -> Matrix6 {
     result
 }
 
-pub fn multiply_constraint_by_basis(
-    map: &ConstraintMap,
-    basis: &Matrix6,
-) -> ConstraintMap {
+pub fn multiply_constraint_by_basis(map: &ConstraintMap, basis: &Matrix6) -> ConstraintMap {
     let mut result = [[0.0; 6]; 3];
     for row in 0..3 {
         for column in 0..6 {
@@ -242,11 +239,15 @@ pub fn dot3(left: &Vector3, right: &Vector3) -> f64 {
 }
 
 pub fn norm6(vector: &Vector6) -> f64 {
-    vector.iter().fold(0.0_f64, |norm, value| norm.hypot(*value))
+    vector
+        .iter()
+        .fold(0.0_f64, |norm, value| norm.hypot(*value))
 }
 
 pub fn norm3(vector: &Vector3) -> f64 {
-    vector.iter().fold(0.0_f64, |norm, value| norm.hypot(*value))
+    vector
+        .iter()
+        .fold(0.0_f64, |norm, value| norm.hypot(*value))
 }
 
 pub fn norm_matrix6(matrix: &Matrix6) -> f64 {
@@ -299,9 +300,7 @@ pub fn solve6(
                 pivot_row = candidate;
             }
         }
-        if !pivot_magnitude.is_finite()
-            || pivot_magnitude <= relative_pivot_tolerance * scale
-        {
+        if !pivot_magnitude.is_finite() || pivot_magnitude <= relative_pivot_tolerance * scale {
             return Err(CovarianceError::SingularMatrix);
         }
         if pivot_row != pivot_column {
@@ -368,9 +367,7 @@ fn solve3(
                 pivot_row = candidate;
             }
         }
-        if !pivot_magnitude.is_finite()
-            || pivot_magnitude <= relative_pivot_tolerance * scale
-        {
+        if !pivot_magnitude.is_finite() || pivot_magnitude <= relative_pivot_tolerance * scale {
             return Err(CovarianceError::SingularMatrix);
         }
         if pivot_row != pivot_column {
@@ -476,9 +473,7 @@ pub fn canonical_state() -> PhysicalStateV1 {
     ];
 
     PhysicalStateV1 {
-        position: [
-            q1[0], q1[1], q1[2], q2[0], q2[1], q2[2],
-        ],
+        position: [q1[0], q1[1], q1[2], q2[0], q2[1], q2[2]],
         velocity: [
             first_velocity[0],
             first_velocity[1],
@@ -519,28 +514,18 @@ fn multiply3_vector(matrix: &Matrix3, vector: &Vector3) -> Vector3 {
 }
 
 fn add3(left: &Vector3, right: &Vector3) -> Vector3 {
-    [
-        left[0] + right[0],
-        left[1] + right[1],
-        left[2] + right[2],
-    ]
+    [left[0] + right[0], left[1] + right[1], left[2] + right[2]]
 }
 
 fn scale3(vector: &Vector3, scale: f64) -> Vector3 {
     [vector[0] * scale, vector[1] * scale, vector[2] * scale]
 }
 
-fn constraint_matrix_times(
-    map: &ConstraintMap,
-    vector: &Vector6,
-) -> Vector3 {
+fn constraint_matrix_times(map: &ConstraintMap, vector: &Vector6) -> Vector3 {
     apply_constraint_map(map, vector)
 }
 
-fn constraint_gram(
-    map: &ConstraintMap,
-    inverse_mass_map: &[[f64; 3]; 6],
-) -> Matrix3 {
+fn constraint_gram(map: &ConstraintMap, inverse_mass_map: &[[f64; 3]; 6]) -> Matrix3 {
     let mut result = [[0.0; 3]; 3];
     for row in 0..3 {
         for column in 0..3 {
@@ -589,8 +574,7 @@ fn evaluate_multiplier(
     for row in 0..6 {
         for axis in 0..3 {
             inverse_mass_times_constraint[row] +=
-                inverse_mass_constraint_transpose[row][axis]
-                    * midpoint_relative_position[axis];
+                inverse_mass_constraint_transpose[row][axis] * midpoint_relative_position[axis];
         }
     }
     let midpoint_velocity = add6(
@@ -602,7 +586,11 @@ fn evaluate_multiplier(
     // This helper only forms the derivative workspace for r_bar(lambda).
     let delassus_times_relative = multiply3_vector(delassus, &midpoint_relative_position);
     let midpoint_relative_prime = scale3(
-        &solve3(&system, &delassus_times_relative, profile.relative_pivot_tolerance)?,
+        &solve3(
+            &system,
+            &delassus_times_relative,
+            profile.relative_pivot_tolerance,
+        )?,
         coefficient,
     );
 
@@ -622,13 +610,16 @@ fn evaluate_multiplier(
     let derivative = dot3(&midpoint_relative_prime, &mapped_midpoint_velocity)
         + dot3(&midpoint_relative_position, &mapped_midpoint_velocity_prime);
     let residual_scale = (norm3(initial_relative_position)
-        * norm3(&scale3(&[
-            relative_position_after_free_step[0] - initial_relative_position[0],
-            relative_position_after_free_step[1] - initial_relative_position[1],
-            relative_position_after_free_step[2] - initial_relative_position[2],
-        ], 2.0 / h)))
-        .max(norm3(initial_relative_position).powi(2) / h)
-        .max(1.0e-300);
+        * norm3(&scale3(
+            &[
+                relative_position_after_free_step[0] - initial_relative_position[0],
+                relative_position_after_free_step[1] - initial_relative_position[1],
+                relative_position_after_free_step[2] - initial_relative_position[2],
+            ],
+            2.0 / h,
+        )))
+    .max(norm3(initial_relative_position).powi(2) / h)
+    .max(1.0e-300);
 
     Ok(LambdaEvaluation {
         midpoint_velocity,
@@ -670,7 +661,10 @@ pub fn constrained_dumbbell_step(
         || velocity.iter().any(|value| !value.is_finite())
         || generalized_force.iter().any(|value| !value.is_finite())
         || mass_metric.iter().flatten().any(|value| !value.is_finite())
-        || constraint_map.iter().flatten().any(|value| !value.is_finite())
+        || constraint_map
+            .iter()
+            .flatten()
+            .any(|value| !value.is_finite())
     {
         return Err(CovarianceError::NonFiniteInput("step arguments"));
     }
@@ -688,8 +682,7 @@ pub fn constrained_dumbbell_step(
         generalized_force,
         profile.relative_pivot_tolerance,
     )?;
-    let free_midpoint_velocity =
-        add6(velocity, &scale6(&inverse_mass_force, time_step / 2.0));
+    let free_midpoint_velocity = add6(velocity, &scale6(&inverse_mass_force, time_step / 2.0));
 
     let mut inverse_mass_constraint_transpose = [[0.0; 3]; 6];
     for axis in 0..3 {
@@ -706,8 +699,7 @@ pub fn constrained_dumbbell_step(
             inverse_mass_constraint_transpose[row][axis] = solution[row];
         }
     }
-    let delassus =
-        constraint_gram(constraint_map, &inverse_mass_constraint_transpose);
+    let delassus = constraint_gram(constraint_map, &inverse_mass_constraint_transpose);
     let initial_relative_position = apply_constraint_map(constraint_map, position);
     let relative_position_after_free_step = add3(
         &initial_relative_position,
@@ -733,8 +725,7 @@ pub fn constrained_dumbbell_step(
 
     for iteration in 0..profile.maximum_newton_iterations {
         iterations = iteration + 1;
-        let normalized_residual =
-            final_evaluation.residual.abs() / final_evaluation.residual_scale;
+        let normalized_residual = final_evaluation.residual.abs() / final_evaluation.residual_scale;
         if normalized_residual <= profile.normalized_constraint_tolerance {
             converged = true;
             break;
@@ -762,8 +753,7 @@ pub fn constrained_dumbbell_step(
                 &delassus,
                 profile,
             ) {
-                let candidate_norm =
-                    candidate.residual.abs() / candidate.residual_scale;
+                let candidate_norm = candidate.residual.abs() / candidate.residual_scale;
                 if candidate_norm.is_finite() && candidate_norm < current_norm {
                     multiplier = candidate_multiplier;
                     final_evaluation = candidate;
@@ -780,8 +770,7 @@ pub fn constrained_dumbbell_step(
     }
 
     if !converged {
-        let normalized_residual =
-            final_evaluation.residual.abs() / final_evaluation.residual_scale;
+        let normalized_residual = final_evaluation.residual.abs() / final_evaluation.residual_scale;
         if normalized_residual <= profile.normalized_constraint_tolerance {
             converged = true;
         }
@@ -792,10 +781,7 @@ pub fn constrained_dumbbell_step(
 
     let midpoint_velocity = final_evaluation.midpoint_velocity;
     let position_next = add6(position, &scale6(&midpoint_velocity, time_step));
-    let velocity_next = subtract6(
-        &scale6(&midpoint_velocity, 2.0),
-        &scale6(velocity, 1.0),
-    );
+    let velocity_next = subtract6(&scale6(&midpoint_velocity, 2.0), &scale6(velocity, 1.0));
 
     let initial_relative = apply_constraint_map(constraint_map, position);
     let final_relative = apply_constraint_map(constraint_map, &position_next);
@@ -804,10 +790,12 @@ pub fn constrained_dumbbell_step(
     let discrete_constraint_identity_residual =
         position_constraint_change - time_step * final_evaluation.residual;
 
-    let initial_energy =
-        0.5 * dot6(velocity, &apply6(&effective_mass_metric, velocity));
-    let final_energy =
-        0.5 * dot6(&velocity_next, &apply6(&effective_mass_metric, &velocity_next));
+    let initial_energy = 0.5 * dot6(velocity, &apply6(&effective_mass_metric, velocity));
+    let final_energy = 0.5
+        * dot6(
+            &velocity_next,
+            &apply6(&effective_mass_metric, &velocity_next),
+        );
     let energy_change = final_energy - initial_energy;
     let external_work = time_step * dot6(generalized_force, &midpoint_velocity);
     let energy_work_defect = energy_change - external_work;
@@ -847,8 +835,7 @@ fn admit_mass_metric(
         for column in 0..6 {
             let normalized = (supplied[row][column] - supplied[column][row]).abs() / scale;
             defect = defect.max(normalized);
-            effective[row][column] =
-                0.5 * supplied[row][column] + 0.5 * supplied[column][row];
+            effective[row][column] = 0.5 * supplied[row][column] + 0.5 * supplied[column][row];
         }
     }
     if defect > profile.metric_symmetry_tolerance {
@@ -857,10 +844,7 @@ fn admit_mass_metric(
     Ok((effective, defect))
 }
 
-fn cholesky6(
-    matrix: &Matrix6,
-    relative_pivot_tolerance: f64,
-) -> Result<Matrix6, CovarianceError> {
+fn cholesky6(matrix: &Matrix6, relative_pivot_tolerance: f64) -> Result<Matrix6, CovarianceError> {
     let scale = maximum_absolute_matrix6(matrix);
     if !scale.is_finite() || scale == 0.0 {
         return Err(CovarianceError::NonPositiveMassMetric);
@@ -905,10 +889,7 @@ pub fn transform_state_to_basis(
     }
 }
 
-pub fn lift_state_from_basis(
-    state: PhysicalStateV1,
-    basis: &Matrix6,
-) -> PhysicalStateV1 {
+pub fn lift_state_from_basis(state: PhysicalStateV1, basis: &Matrix6) -> PhysicalStateV1 {
     PhysicalStateV1 {
         position: apply6(basis, &state.position),
         velocity: apply6(basis, &state.velocity),
@@ -919,10 +900,7 @@ pub fn transform_force_covector(basis: &Matrix6, force: &Vector6) -> Vector6 {
     transpose6_times_vector(basis, force)
 }
 
-pub fn linear_momentum(
-    velocity: &Vector6,
-    masses: DumbbellMassesV1,
-) -> Vector3 {
+pub fn linear_momentum(velocity: &Vector6, masses: DumbbellMassesV1) -> Vector3 {
     [
         masses.first * velocity[0] + masses.second * velocity[3],
         masses.first * velocity[1] + masses.second * velocity[4],
@@ -993,10 +971,7 @@ pub fn block_rotation3(rotation: &Matrix3) -> Matrix6 {
     result
 }
 
-pub fn metric_skew_relative_defect(
-    metric: &Matrix6,
-    generator: &Matrix6,
-) -> f64 {
+pub fn metric_skew_relative_defect(metric: &Matrix6, generator: &Matrix6) -> f64 {
     let metric_generator = multiply6(metric, generator);
     let generator_transpose_metric = multiply6(&transpose6(generator), metric);
     let mut defect = [[0.0; 6]; 6];
@@ -1006,14 +981,10 @@ pub fn metric_skew_relative_defect(
                 metric_generator[row][column] + generator_transpose_metric[row][column];
         }
     }
-    norm_matrix6(&defect)
-        / (2.0 * norm_matrix6(&metric_generator)).max(1.0e-300)
+    norm_matrix6(&defect) / (2.0 * norm_matrix6(&metric_generator)).max(1.0e-300)
 }
 
-pub fn metric_isometry_relative_defect(
-    metric: &Matrix6,
-    transformation: &Matrix6,
-) -> f64 {
+pub fn metric_isometry_relative_defect(metric: &Matrix6, transformation: &Matrix6) -> f64 {
     let transformed = multiply6(
         &transpose6(transformation),
         &multiply6(metric, transformation),
@@ -1037,10 +1008,7 @@ pub fn transform_finite_action(
     transform_generator(basis, basis_inverse, action)
 }
 
-pub fn apply_rotation_to_force_covector(
-    action_inverse: &Matrix6,
-    force: &Vector6,
-) -> Vector6 {
+pub fn apply_rotation_to_force_covector(action_inverse: &Matrix6, force: &Vector6) -> Vector6 {
     transpose6_times_vector(action_inverse, force)
 }
 
@@ -1058,11 +1026,7 @@ mod tests {
         );
     }
 
-    fn run_canonical(
-        state: PhysicalStateV1,
-        force: Vector6,
-        h: f64,
-    ) -> StepResultV1 {
+    fn run_canonical(state: PhysicalStateV1, force: Vector6, h: f64) -> StepResultV1 {
         let masses = DumbbellMassesV1 {
             first: 1.3,
             second: 2.1,
@@ -1092,18 +1056,12 @@ mod tests {
         let canonical_mass = mass_metric(masses);
         let canonical_map = relative_position_map();
         let basis = frozen_dense_basis(basis_family);
-        let basis_inverse = inverse6(
-            &basis,
-            StepProfileV1::default().relative_pivot_tolerance,
-        )
-        .expect("frozen basis must be invertible");
-        let transformed_state =
-            transform_state_to_basis(state, &basis_inverse);
+        let basis_inverse = inverse6(&basis, StepProfileV1::default().relative_pivot_tolerance)
+            .expect("frozen basis must be invertible");
+        let transformed_state = transform_state_to_basis(state, &basis_inverse);
         let transformed_force = transform_force_covector(&basis, &force);
-        let transformed_mass =
-            transformed_mass_metric(&canonical_mass, &basis);
-        let transformed_map =
-            multiply_constraint_by_basis(&canonical_map, &basis);
+        let transformed_mass = transformed_mass_metric(&canonical_mass, &basis);
+        let transformed_map = multiply_constraint_by_basis(&canonical_map, &basis);
         let result = constrained_dumbbell_step(
             &transformed_state.position,
             &transformed_state.velocity,
@@ -1124,8 +1082,7 @@ mod tests {
         let canonical = run_canonical(state, force, 0.02);
 
         for family in [0, 2] {
-            let (transformed, basis, _) =
-                run_in_dense_basis(state, force, family, 0.02);
+            let (transformed, basis, _) = run_in_dense_basis(state, force, family, 0.02);
             let lifted = lift_state_from_basis(
                 PhysicalStateV1 {
                     position: transformed.position_next,
@@ -1140,24 +1097,20 @@ mod tests {
                 "the fixture must exercise a nonzero constraint multiplier"
             );
             assert!(
-                (transformed.diagnostics.multiplier
-                    - canonical.diagnostics.multiplier)
-                    .abs()
+                (transformed.diagnostics.multiplier - canonical.diagnostics.multiplier).abs()
                     < 5.0e-10
             );
             assert!(
-                (transformed.diagnostics.external_work
-                    - canonical.diagnostics.external_work)
-                    .abs()
+                (transformed.diagnostics.external_work - canonical.diagnostics.external_work).abs()
                     < 5.0e-11
             );
             assert!(
-                transformed.diagnostics.normalized_midpoint_constraint_residual
+                transformed
+                    .diagnostics
+                    .normalized_midpoint_constraint_residual
                     < 1.0e-11
             );
-            assert!(
-                transformed.diagnostics.energy_work_defect.abs() < 1.0e-10
-            );
+            assert!(transformed.diagnostics.energy_work_defect.abs() < 1.0e-10);
 
             let lifted_momentum = linear_momentum(
                 &lifted.velocity,
@@ -1173,11 +1126,13 @@ mod tests {
                     second: 2.1,
                 },
             );
-            assert!(norm3(&[
-                lifted_momentum[0] - canonical_momentum[0],
-                lifted_momentum[1] - canonical_momentum[1],
-                lifted_momentum[2] - canonical_momentum[2],
-            ]) < 5.0e-11);
+            assert!(
+                norm3(&[
+                    lifted_momentum[0] - canonical_momentum[0],
+                    lifted_momentum[1] - canonical_momentum[1],
+                    lifted_momentum[2] - canonical_momentum[2],
+                ]) < 5.0e-11
+            );
 
             let lifted_angular = angular_momentum(
                 &lifted.position,
@@ -1195,11 +1150,13 @@ mod tests {
                     second: 2.1,
                 },
             );
-            assert!(norm3(&[
-                lifted_angular[0] - canonical_angular[0],
-                lifted_angular[1] - canonical_angular[1],
-                lifted_angular[2] - canonical_angular[2],
-            ]) < 5.0e-11);
+            assert!(
+                norm3(&[
+                    lifted_angular[0] - canonical_angular[0],
+                    lifted_angular[1] - canonical_angular[1],
+                    lifted_angular[2] - canonical_angular[2],
+                ]) < 5.0e-11
+            );
         }
     }
 
@@ -1251,20 +1208,14 @@ mod tests {
         let force = asymmetric_force();
         let canonical = run_canonical(state, force, 0.02);
         let basis = frozen_dense_basis(2);
-        let basis_inverse = inverse6(
-            &basis,
-            StepProfileV1::default().relative_pivot_tolerance,
-        )
-        .unwrap();
+        let basis_inverse =
+            inverse6(&basis, StepProfileV1::default().relative_pivot_tolerance).unwrap();
         let transformed_state = transform_state_to_basis(state, &basis_inverse);
         let wrong_metric = multiply6(
             &basis_inverse,
             &multiply6(&mass_metric(masses), &transpose6(&basis_inverse)),
         );
-        let transformed_map = multiply_constraint_by_basis(
-            &relative_position_map(),
-            &basis,
-        );
+        let transformed_map = multiply_constraint_by_basis(&relative_position_map(), &basis);
         let transformed_force = transform_force_covector(&basis, &force);
         let wrong = constrained_dumbbell_step(
             &transformed_state.position,
@@ -1283,9 +1234,7 @@ mod tests {
             },
             &basis,
         );
-        assert!(
-            norm6(&subtract6(&lifted.position, &canonical.position_next)) > 1.0e-4
-        );
+        assert!(norm6(&subtract6(&lifted.position, &canonical.position_next)) > 1.0e-4);
     }
 
     #[test]
@@ -1297,13 +1246,10 @@ mod tests {
         };
         let force = asymmetric_force();
         let canonical = run_canonical(state, force, 0.02);
-        let (transformed, basis, _) =
-            run_in_dense_basis(state, force, 2, 0.02);
+        let (transformed, basis, _) = run_in_dense_basis(state, force, 2, 0.02);
 
         assert!(
-            (transformed.diagnostics.external_work
-                - canonical.diagnostics.external_work)
-                .abs()
+            (transformed.diagnostics.external_work - canonical.diagnostics.external_work).abs()
                 < 5.0e-11
         );
 
@@ -1313,12 +1259,9 @@ mod tests {
         );
         let basis_inverse =
             inverse6(&basis, StepProfileV1::default().relative_pivot_tolerance).unwrap();
-        let transformed_state =
-            transform_state_to_basis(state, &basis_inverse);
-        let transformed_mass =
-            transformed_mass_metric(&mass_metric(masses), &basis);
-        let transformed_map =
-            multiply_constraint_by_basis(&relative_position_map(), &basis);
+        let transformed_state = transform_state_to_basis(state, &basis_inverse);
+        let transformed_mass = transformed_mass_metric(&mass_metric(masses), &basis);
+        let transformed_map = multiply_constraint_by_basis(&relative_position_map(), &basis);
         let wrong = constrained_dumbbell_step(
             &transformed_state.position,
             &transformed_state.velocity,
@@ -1336,10 +1279,7 @@ mod tests {
             },
             &basis,
         );
-        assert!(
-            norm6(&subtract6(&wrong_lift.position, &canonical.position_next))
-                > 1.0e-5
-        );
+        assert!(norm6(&subtract6(&wrong_lift.position, &canonical.position_next)) > 1.0e-5);
     }
 
     #[test]
@@ -1350,11 +1290,7 @@ mod tests {
         };
         let metric = mass_metric(masses);
         let basis = frozen_dense_basis(2);
-        let inverse = inverse6(
-            &basis,
-            StepProfileV1::default().relative_pivot_tolerance,
-        )
-        .unwrap();
+        let inverse = inverse6(&basis, StepProfileV1::default().relative_pivot_tolerance).unwrap();
         let transformed_metric = transformed_mass_metric(&metric, &basis);
 
         let axis = [0.3, -0.4, 0.8];
@@ -1363,27 +1299,18 @@ mod tests {
         for block in 0..2 {
             for row in 0..3 {
                 for column in 0..3 {
-                    generator6[block * 3 + row][block * 3 + column] =
-                        generator3[row][column];
+                    generator6[block * 3 + row][block * 3 + column] = generator3[row][column];
                 }
             }
         }
-        let transformed_generator =
-            transform_generator(&basis, &inverse, &generator6);
-        assert!(
-            metric_skew_relative_defect(&transformed_metric, &transformed_generator)
-                < 1.0e-11
-        );
+        let transformed_generator = transform_generator(&basis, &inverse, &generator6);
+        assert!(metric_skew_relative_defect(&transformed_metric, &transformed_generator) < 1.0e-11);
 
         let rotation = rotation3(axis, 0.73);
         let physical_action = block_rotation3(&rotation);
-        let transformed_action =
-            transform_finite_action(&basis, &inverse, &physical_action);
+        let transformed_action = transform_finite_action(&basis, &inverse, &physical_action);
         assert!(
-            metric_isometry_relative_defect(
-                &transformed_metric,
-                &transformed_action
-            ) < 1.0e-10
+            metric_isometry_relative_defect(&transformed_metric, &transformed_action) < 1.0e-10
         );
     }
 
@@ -1394,21 +1321,14 @@ mod tests {
             first: 1.3,
             second: 2.1,
         };
-        let force = common_acceleration_force(masses);
         let basis = frozen_dense_basis(2);
-        let basis_inverse = inverse6(
-            &basis,
-            StepProfileV1::default().relative_pivot_tolerance,
-        )
-        .unwrap();
-        let transformed_state =
-            transform_state_to_basis(state, &basis_inverse);
+        let basis_inverse =
+            inverse6(&basis, StepProfileV1::default().relative_pivot_tolerance).unwrap();
+        let transformed_state = transform_state_to_basis(state, &basis_inverse);
         let force = asymmetric_force();
         let transformed_force = transform_force_covector(&basis, &force);
-        let transformed_metric =
-            transformed_mass_metric(&mass_metric(masses), &basis);
-        let transformed_map =
-            multiply_constraint_by_basis(&relative_position_map(), &basis);
+        let transformed_metric = transformed_mass_metric(&mass_metric(masses), &basis);
+        let transformed_map = multiply_constraint_by_basis(&relative_position_map(), &basis);
 
         let base_step = constrained_dumbbell_step(
             &transformed_state.position,
@@ -1424,23 +1344,16 @@ mod tests {
 
         let rotation3 = rotation3([0.3, -0.4, 0.8], 0.73);
         let physical_action = block_rotation3(&rotation3);
-        let transformed_action =
-            transform_finite_action(&basis, &basis_inverse, &physical_action);
-        let transformed_action_inverse =
-            inverse6(&transformed_action, StepProfileV1::default().relative_pivot_tolerance)
-                .unwrap();
-        let rotated_position = apply6(
+        let transformed_action = transform_finite_action(&basis, &basis_inverse, &physical_action);
+        let transformed_action_inverse = inverse6(
             &transformed_action,
-            &transformed_state.position,
-        );
-        let rotated_velocity = apply6(
-            &transformed_action,
-            &transformed_state.velocity,
-        );
-        let rotated_force = apply_rotation_to_force_covector(
-            &transformed_action_inverse,
-            &transformed_force,
-        );
+            StepProfileV1::default().relative_pivot_tolerance,
+        )
+        .unwrap();
+        let rotated_position = apply6(&transformed_action, &transformed_state.position);
+        let rotated_velocity = apply6(&transformed_action, &transformed_state.velocity);
+        let rotated_force =
+            apply_rotation_to_force_covector(&transformed_action_inverse, &transformed_force);
 
         let rotated_step = constrained_dumbbell_step(
             &rotated_position,
@@ -1487,8 +1400,7 @@ mod tests {
         let transformed_state = transform_state_to_basis(state, &basis_inverse);
         let transformed_mass = transformed_mass_metric(&mass_metric(masses), &basis);
         let transformed_force = transform_force_covector(&basis, &force);
-        let wrong_map =
-            multiply_constraint_by_basis(&relative_position_map(), &basis_inverse);
+        let wrong_map = multiply_constraint_by_basis(&relative_position_map(), &basis_inverse);
         let wrong = constrained_dumbbell_step(
             &transformed_state.position,
             &transformed_state.velocity,
@@ -1506,9 +1418,7 @@ mod tests {
             },
             &basis,
         );
-        assert!(
-            norm6(&subtract6(&lifted.position, &canonical.position_next)) > 1.0e-4
-        );
+        assert!(norm6(&subtract6(&lifted.position, &canonical.position_next)) > 1.0e-4);
     }
 
     #[test]
@@ -1519,31 +1429,22 @@ mod tests {
         };
         let metric = mass_metric(masses);
         let basis = frozen_dense_basis(2);
-        let inverse = inverse6(
-            &basis,
-            StepProfileV1::default().relative_pivot_tolerance,
-        )
-        .unwrap();
+        let inverse = inverse6(&basis, StepProfileV1::default().relative_pivot_tolerance).unwrap();
         let transformed_metric = transformed_mass_metric(&metric, &basis);
         let generator3 = cross_matrix(&[0.3, -0.4, 0.8]);
         let mut generator6 = [[0.0; 6]; 6];
         for block in 0..2 {
             for row in 0..3 {
                 for column in 0..3 {
-                    generator6[block * 3 + row][block * 3 + column] =
-                        generator3[row][column];
+                    generator6[block * 3 + row][block * 3 + column] = generator3[row][column];
                 }
             }
         }
 
         let correct = transform_generator(&basis, &inverse, &generator6);
         let wrong = multiply6(&basis, &multiply6(&generator6, &inverse));
-        assert!(
-            metric_skew_relative_defect(&transformed_metric, &correct) < 1.0e-11
-        );
-        assert!(
-            metric_skew_relative_defect(&transformed_metric, &wrong) > 1.0e-4
-        );
+        assert!(metric_skew_relative_defect(&transformed_metric, &correct) < 1.0e-11);
+        assert!(metric_skew_relative_defect(&transformed_metric, &wrong) > 1.0e-4);
     }
 
     #[test]
