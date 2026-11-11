@@ -633,6 +633,7 @@ mod tests {
             original,
             compute_observable_set_sha256(&input.entities).expect("unavailable channel profile")
         );
+        assert!(compile_observation_frame(input).is_ok());
     }
 
     #[test]
@@ -987,11 +988,13 @@ mod tests {
     #[test]
     fn same_numeric_net_id_in_a_new_generation_is_distinct() {
         let mut input = fixture();
+        let original = compile_observation_frame(input.clone()).expect("original frame");
         let mut subject = input.entities[0].runtime_subject.clone().expect("subject");
         subject.world_generation_id = "world-generation-2".to_string();
         input.entities[1].binding_receipt_sha256 = Some("c".repeat(64));
         input.entities[1].runtime_subject = Some(subject);
-        assert!(compile_observation_frame(input).is_ok());
+        let next = compile_observation_frame(input).expect("new generation frame");
+        assert_ne!(original.frame_sha256, next.frame_sha256);
     }
 
     #[test]
