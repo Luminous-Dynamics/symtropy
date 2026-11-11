@@ -685,8 +685,8 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_dispositions_and_reason_codes() {
         let report = evaluate_corpus(FIXTURE.as_bytes()).expect("fixture parses");
-        assert_eq!(report.case_count, 28);
-        assert_eq!(report.matched_expected_cases, 28);
+        assert_eq!(report.case_count, 34);
+        assert_eq!(report.matched_expected_cases, 34);
         assert_eq!(report.mismatched_cases, 0);
         assert!(report.passed);
     }
