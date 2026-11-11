@@ -223,51 +223,71 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             let rel_angular_vel =
                 body_b.angular_velocity.get(pa, pb) - body_a.angular_velocity.get(pa, pb);
 
-            // Velocity-only PD controller: this crate does not track a running
-            // joint angle for hinges, so true PD position control (as used by
-            // PrismaticJoint's `MotorDrive::calculate_impulse`, which needs a
-            // `current_pos`) isn't available here without integrating one —
-            // left as a future improvement (would need a persisted relative
-            // angle, e.g. extracted each step from the two bodies' rotors in
-            // the (pa, pb) plane).
+            // Velocity-only drive: HingeJoint does not yet maintain a
+            // continuous relative angle, so the position term (kp * position
+            // error) is unavailable and target_pos/kp are intentionally not
+            // consumed here. Use MotorDrive's velocity-error gain (kd) only.
+            // This makes zero torque the equilibrium at target_vel; adding an
+            // extra -kd*current_velocity term would incorrectly brake a joint
+            // even after it reached a nonzero target speed.
             //
-            // Bug fix: this previously read
-            // `motor.kp * (motor.target_pos - rel_angular_vel)`, subtracting
-            // an angular *velocity* from a position/angle *target* — a unit
-            // mismatch (the doc comment above already claimed this computed
-            // `kp*(target_vel - current_vel)`; the code just used the wrong
-            // field). Fixed to use `motor.target_vel`, matching the intent:
-            // impulse = kp*(target_vel - current_vel) * dt, plus an extra
-            // kd*current_vel damping term.
-            let torque = (motor.kp * (motor.target_vel - rel_angular_vel)
-                - rel_angular_vel * motor.kd)
+            // Position mode remains unsupported until an unwrapped relative
+            // angle, reference-frame convention and limit interaction are
+            // implemented. Keep this API claim ceiling explicit.
+            let torque = (motor.kd * (motor.target_vel - rel_angular_vel))
                 .clamp(-motor.max_force, motor.max_force);
 
-            // METABOLIC HEARTBEAT: Calculate Work and Energy Recovery
-            // Work (Power) = Torque * AngularVelocity
-            // Positive = Consuming, Negative = Regenerating
-            let power = torque * rel_angular_vel;
-            let work_joules = power * _dt;
-
-            if let Some(ref mut cb) = callback {
-                // Charge/Drain from the thermodynamic ledger
-                cb.record_work(self.body_b, work_joules);
-            }
-
+            // Apply the motor's angular impulse through the integrator's
+            // declared inertia model. The integrator currently uses a scalar
+            // mean inverse inertia (exact for isotropic bodies, approximate
+            // for asymmetric bodies); unlike a fixed half-split, this handles
+            // static endpoints and unequal endpoint inertias consistently
+            // within that declared approximation.
             let impulse = torque * _dt;
+            let mut angular_impulse = symtropy_math::Bivector::<D>::zero();
+            angular_impulse.set(pa, pb, impulse);
+
+            // Compute endpoint responses with the same world-space inertia
+            // operator used by the integrator. This keeps motor work and
+            // angular velocity updates consistent for rotated asymmetric links.
+            let impulse_a = angular_impulse.scale(-1.0);
+            let delta_omega_a = body_a
+                .apply_inverse_angular_inertia(&impulse_a)
+                .get(pa, pb);
+            let delta_omega_b = body_b
+                .apply_inverse_angular_inertia(&angular_impulse)
+                .get(pa, pb);
+
+            // Capture endpoint velocities before applying the equal-and-
+            // opposite motor impulses so the energy ledger can attribute
+            // signed work to each dynamic body.
+            let omega_a_before = body_a.angular_velocity.get(pa, pb);
+            let omega_b_before = body_b.angular_velocity.get(pa, pb);
+
             if body_a.is_dynamic() {
-                body_a.angular_velocity.set(
-                    pa,
-                    pb,
-                    body_a.angular_velocity.get(pa, pb) - impulse * 0.5,
+                crate::integrator::apply_angular_impulse(
+                    body_a,
+                    &angular_impulse.scale(-1.0),
                 );
             }
             if body_b.is_dynamic() {
-                body_b.angular_velocity.set(
-                    pa,
-                    pb,
-                    body_b.angular_velocity.get(pa, pb) + impulse * 0.5,
-                );
+                crate::integrator::apply_angular_impulse(body_b, &angular_impulse);
+            }
+
+            // Record signed mechanical work per dynamic endpoint using
+            // midpoint angular velocity. Summing the two entries equals the
+            // relative motor work and the kinetic-energy change in the
+            // engine's declared scalar-inertia model. This is not measured
+            // electrical input or evidence of regenerative battery return.
+            if let Some(ref mut cb) = callback {
+                if body_a.is_dynamic() {
+                    let midpoint_omega_a = omega_a_before + 0.5 * delta_omega_a;
+                    cb.record_work(self.body_a, -impulse * midpoint_omega_a);
+                }
+                if body_b.is_dynamic() {
+                    let midpoint_omega_b = omega_b_before + 0.5 * delta_omega_b;
+                    cb.record_work(self.body_b, impulse * midpoint_omega_b);
+                }
             }
         }
     }
@@ -329,6 +349,391 @@ mod tests {
             xz_after.abs() < 3.0,
             "XZ rotation should be reduced from 3.0, got {xz_after}"
         );
+    }
+
+    #[test]
+    fn hinge_velocity_motor_has_zero_effort_at_nonzero_target_velocity() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        b.angular_velocity.set(0, 1, 1.0);
+        let before = b.angular_velocity.get(0, 1);
+        let motor = super::super::MotorDrive {
+            target_pos: -2.0,
+            target_vel: 1.0,
+            kp: 100.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+
+        joint.solve_velocity(&mut a, &mut b, 0.1, None);
+
+        assert!(
+            (b.angular_velocity.get(0, 1) - before).abs() < 1e-12,
+            "a velocity drive must not brake or accelerate when target velocity is met"
+        );
+    }
+
+    #[test]
+    fn hinge_velocity_motor_respects_torque_saturation() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 100.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 3.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+        let dt = 0.1;
+        let expected_delta = 3.0 * dt * (b.inv_inertia.sum() / 3.0);
+
+        joint.solve_velocity(&mut a, &mut b, dt, None);
+
+        assert!(
+            (b.angular_velocity.get(0, 1) - expected_delta).abs() < 1e-12,
+            "velocity motor impulse must respect max_force"
+        );
+    }
+
+    #[test]
+    fn hinge_motor_impulse_uses_inverse_inertia_with_static_base() {
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+        let dt = 0.1;
+        let expected_impulse = 10.0 * dt;
+        let expected_delta = expected_impulse * (b.inv_inertia.sum() / 3.0);
+
+        joint.solve_velocity(&mut a, &mut b, dt, None);
+
+        let actual_delta = b.angular_velocity.get(0, 1);
+        assert!(
+            (actual_delta - expected_delta).abs() < 1e-12,
+            "static-base hinge motor must apply the full inverse-inertia-scaled impulse: expected {expected_delta}, got {actual_delta}"
+        );
+    }
+
+    #[test]
+    fn hinge_motor_impulse_respects_unequal_endpoint_inertias() {
+        let mut a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            0.5,
+            1.0,
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        let inv_i_a = a.inv_inertia.sum() / 3.0;
+        let inv_i_b = b.inv_inertia.sum() / 3.0;
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+        let dt = 0.1;
+        let expected_impulse = 10.0 * dt;
+
+        joint.solve_velocity(&mut a, &mut b, dt, None);
+
+        let delta_a = a.angular_velocity.get(0, 1);
+        let delta_b = b.angular_velocity.get(0, 1);
+        assert!((delta_a + expected_impulse * inv_i_a).abs() < 1e-12);
+        assert!((delta_b - expected_impulse * inv_i_b).abs() < 1e-12);
+        assert!(
+            (delta_b - delta_a - expected_impulse * (inv_i_a + inv_i_b)).abs() < 1e-12
+        );
+    }
+
+    #[test]
+    fn hinge_motor_records_midpoint_mechanical_work() {
+        struct WorkRecorder {
+            work_joules: f64,
+        }
+
+        impl crate::world::PhysicsCallback<3> for WorkRecorder {
+            fn modulate_force(
+                &self,
+                _body: BodyHandle,
+                force: &SVector<f64, 3>,
+            ) -> SVector<f64, 3> {
+                *force
+            }
+            fn modulate_impulse(
+                &self,
+                impulse: f64,
+                _contact: &SVector<f64, 3>,
+            ) -> f64 {
+                impulse
+            }
+            fn friction_multiplier(
+                &self,
+                _contact: &SVector<f64, 3>,
+                _body: BodyHandle,
+            ) -> f64 {
+                1.0
+            }
+            fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+            fn record_dissipation(&mut self, _energy: f64) {}
+            fn record_work(&mut self, _body: BodyHandle, work_joules: f64) {
+                self.work_joules += work_joules;
+            }
+            fn apply_trauma(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+        }
+
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        b.angular_velocity.set(0, 1, 0.5);
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+        let dt = 0.1;
+        let inv_i = b.inv_inertia.sum() / 3.0;
+        let impulse = 5.0 * dt;
+        let omega_before = b.angular_velocity.get(0, 1);
+        let delta_omega = impulse * inv_i;
+        let expected_work =
+            impulse * (omega_before + 0.5 * delta_omega);
+        let mut recorder = WorkRecorder { work_joules: 0.0 };
+
+        joint.solve_velocity(&mut a, &mut b, dt, Some(&mut recorder));
+
+        let delta_kinetic_energy = 0.5 / inv_i
+            * (b.angular_velocity.get(0, 1).powi(2) - omega_before.powi(2));
+        assert!((recorder.work_joules - expected_work).abs() < 1e-12);
+        assert!((recorder.work_joules - delta_kinetic_energy).abs() < 1e-12);
+    }
+
+    #[test]
+    fn hinge_motor_attributes_work_to_each_dynamic_endpoint() {
+        use std::collections::HashMap;
+
+        struct PerBodyWorkRecorder {
+            work_by_body: HashMap<BodyHandle, f64>,
+        }
+
+        impl crate::world::PhysicsCallback<3> for PerBodyWorkRecorder {
+            fn modulate_force(
+                &self,
+                _body: BodyHandle,
+                force: &SVector<f64, 3>,
+            ) -> SVector<f64, 3> {
+                *force
+            }
+            fn modulate_impulse(
+                &self,
+                impulse: f64,
+                _contact: &SVector<f64, 3>,
+            ) -> f64 {
+                impulse
+            }
+            fn friction_multiplier(
+                &self,
+                _contact: &SVector<f64, 3>,
+                _body: BodyHandle,
+            ) -> f64 {
+                1.0
+            }
+            fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+            fn record_dissipation(&mut self, _energy: f64) {}
+            fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
+                *self.work_by_body.entry(body).or_default() += work_joules;
+            }
+            fn apply_trauma(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+        }
+
+        let mut a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            0.5,
+            1.0,
+        );
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        a.angular_velocity.set(0, 1, -0.2);
+        b.angular_velocity.set(0, 1, 0.6);
+
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+        let dt = 0.1;
+        let inv_i_a = a.inv_inertia.sum() / 3.0;
+        let inv_i_b = b.inv_inertia.sum() / 3.0;
+        let omega_a_before = a.angular_velocity.get(0, 1);
+        let omega_b_before = b.angular_velocity.get(0, 1);
+        let relative_before = omega_b_before - omega_a_before;
+        let torque = (10.0 * (1.0 - relative_before)).clamp(-100.0, 100.0);
+        let impulse = torque * dt;
+        let expected_a = -impulse * (omega_a_before - 0.5 * impulse * inv_i_a);
+        let expected_b = impulse * (omega_b_before + 0.5 * impulse * inv_i_b);
+
+        let mut recorder = PerBodyWorkRecorder {
+            work_by_body: HashMap::new(),
+        };
+        joint.solve_velocity(&mut a, &mut b, dt, Some(&mut recorder));
+
+        let work_a = *recorder.work_by_body.get(&BodyHandle(0)).unwrap();
+        let work_b = *recorder.work_by_body.get(&BodyHandle(1)).unwrap();
+        let total_work = work_a + work_b;
+        let delta_kinetic_energy = 0.5 / inv_i_a
+            * (a.angular_velocity.get(0, 1).powi(2) - omega_a_before.powi(2))
+            + 0.5 / inv_i_b
+                * (b.angular_velocity.get(0, 1).powi(2) - omega_b_before.powi(2));
+
+        assert!((work_a - expected_a).abs() < 1e-12);
+        assert!((work_b - expected_b).abs() < 1e-12);
+        assert!((total_work - delta_kinetic_energy).abs() < 1e-12);
+    }
+
+    #[test]
+    fn hinge_motor_attributes_work_to_dynamic_a_when_b_is_static() {
+        use std::collections::HashMap;
+
+        struct PerBodyWorkRecorder {
+            work_by_body: HashMap<BodyHandle, f64>,
+        }
+
+        impl crate::world::PhysicsCallback<3> for PerBodyWorkRecorder {
+            fn modulate_force(
+                &self,
+                _body: BodyHandle,
+                force: &SVector<f64, 3>,
+            ) -> SVector<f64, 3> {
+                *force
+            }
+            fn modulate_impulse(
+                &self,
+                impulse: f64,
+                _contact: &SVector<f64, 3>,
+            ) -> f64 {
+                impulse
+            }
+            fn friction_multiplier(
+                &self,
+                _contact: &SVector<f64, 3>,
+                _body: BodyHandle,
+            ) -> f64 {
+                1.0
+            }
+            fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+            fn record_dissipation(&mut self, _energy: f64) {}
+            fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
+                *self.work_by_body.entry(body).or_default() += work_joules;
+            }
+            fn apply_trauma(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+        }
+
+        let mut a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(0),
+            Point::origin(),
+            0.5,
+            1.0,
+        );
+        let mut b = RigidBody::<3>::static_body(
+            BodyHandle(1),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        a.angular_velocity.set(0, 1, -0.2);
+
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+        let dt = 0.1;
+        let inv_i_a = a.inv_inertia.sum() / 3.0;
+        let omega_a_before = a.angular_velocity.get(0, 1);
+        let impulse = 10.0 * (1.0 - (0.0 - omega_a_before)) * dt;
+        let expected_work_a =
+            -impulse * (omega_a_before - 0.5 * impulse * inv_i_a);
+        let mut recorder = PerBodyWorkRecorder {
+            work_by_body: HashMap::new(),
+        };
+
+        joint.solve_velocity(&mut a, &mut b, dt, Some(&mut recorder));
+
+        let work_a = *recorder.work_by_body.get(&BodyHandle(0)).unwrap();
+        let delta_kinetic_energy = 0.5 / inv_i_a
+            * (a.angular_velocity.get(0, 1).powi(2) - omega_a_before.powi(2));
+        assert!(!recorder.work_by_body.contains_key(&BodyHandle(1)));
+        assert!((work_a - expected_work_a).abs() < 1e-12);
+        assert!((work_a - delta_kinetic_energy).abs() < 1e-12);
     }
 
     #[test]
