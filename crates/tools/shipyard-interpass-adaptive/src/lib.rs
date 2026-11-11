@@ -90,6 +90,7 @@ pub struct PlannerInput {
     pub expected_predecessor_pass_id: String,
     pub decision_at_tick: u64,
     pub maximum_observation_age_ticks: u64,
+    pub maximum_accepted_uncertainty_units: u64,
     pub future_information_used: bool,
     pub model_domain_supported: bool,
     pub live_execution_requested: bool,
@@ -108,6 +109,7 @@ pub enum AbstainReason {
     ScanOcclusionAboveMaximum,
     ScanRegistrationErrorTooLarge,
     UncertaintyNotBounded,
+    UncertaintyExceedsDecisionLimit,
     StalePredecessorState,
     ObservationFromFuture,
     ObservationTooOld,
@@ -268,6 +270,9 @@ fn validate_observation(input: &PlannerInput) -> Result<(), AbstainReason> {
 
     if state.uncertainty_bound_units == 0 {
         return Err(AbstainReason::UncertaintyNotBounded);
+    }
+    if state.uncertainty_bound_units > input.maximum_accepted_uncertainty_units {
+        return Err(AbstainReason::UncertaintyExceedsDecisionLimit);
     }
     state
         .residual_fill_area_units
@@ -526,6 +531,7 @@ mod tests {
             expected_predecessor_pass_id: "PASS-02".to_owned(),
             decision_at_tick: 100,
             maximum_observation_age_ticks: 10,
+            maximum_accepted_uncertainty_units: 30,
             future_information_used: false,
             model_domain_supported: true,
             live_execution_requested: false,
@@ -905,6 +911,19 @@ mod tests {
             };
         assert_eq!(feasible_candidate_count, 2);
         assert_eq!(excluded[0].reason, CandidateExclusion::IdentityMismatch);
+    }
+
+    #[test]
+    fn uncertainty_above_decision_limit_causes_abstention() {
+        let mut input = base_input();
+        input.observed_state.uncertainty_bound_units = 31;
+        assert!(matches!(
+            recommend_next_pass(&input),
+            Decision::Abstain {
+                reason: AbstainReason::UncertaintyExceedsDecisionLimit,
+                ..
+            }
+        ));
     }
 
     #[test]
