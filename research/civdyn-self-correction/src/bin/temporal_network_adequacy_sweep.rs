@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::joint_adequacy::{
-    assess_joint_predictive_draws, JointComponentSpec, JointMetricConfig, JointObservation,
-    JointPredictiveDraw, JointStatisticSpec,
+    JointComponentSpec, JointMetricConfig, JointObservation, JointPredictiveDraw,
+    JointStatisticSpec, assess_joint_predictive_draws,
 };
 use civdyn_self_correction::model_adequacy::{IndependentUnitKind, SplitManifest, SplitRole};
 use civdyn_self_correction::network_adequacy::{
@@ -63,10 +63,7 @@ fn sequence(reversed: bool) -> Result<TemporalNetworkSequence, Box<dyn std::erro
     if reversed {
         snapshots.reverse();
     }
-    Ok(TemporalNetworkSequence::new(
-        vec![10, 20, 30],
-        snapshots,
-    )?)
+    Ok(TemporalNetworkSequence::new(vec![10, 20, 30], snapshots)?)
 }
 
 fn schema() -> JointStatisticSpec {
@@ -79,8 +76,18 @@ fn schema() -> JointStatisticSpec {
         ("transitivity-trend", "ratio_per_tick", 0.0, 1.0),
         ("mean-edge-jaccard", "ratio", 11.0 / 28.0, 1.0),
         ("mean-edge-turnover", "ratio", 17.0 / 28.0, 1.0),
-        ("mean-edge-addition-rate", "dyad_fraction_per_transition", 0.1, 1.0),
-        ("mean-edge-removal-rate", "dyad_fraction_per_transition", 0.2, 1.0),
+        (
+            "mean-edge-addition-rate",
+            "dyad_fraction_per_transition",
+            0.1,
+            1.0,
+        ),
+        (
+            "mean-edge-removal-rate",
+            "dyad_fraction_per_transition",
+            0.2,
+            1.0,
+        ),
     ]
     .into_iter()
     .map(|(id, unit, center, scale)| JointComponentSpec {
