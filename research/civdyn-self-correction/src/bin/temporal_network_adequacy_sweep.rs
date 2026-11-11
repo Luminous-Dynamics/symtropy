@@ -6,9 +6,7 @@ use civdyn_self_correction::joint_adequacy::{
     JointStatisticSpec, assess_joint_predictive_draws,
 };
 use civdyn_self_correction::model_adequacy::{IndependentUnitKind, SplitManifest, SplitRole};
-use civdyn_self_correction::network_adequacy::{
-    TemporalNetworkSequence, UndirectedNetwork,
-};
+use civdyn_self_correction::network_adequacy::{TemporalNetworkSequence, UndirectedNetwork};
 
 const DRAW_COUNT: usize = 20;
 const CSV_COLUMNS: usize = 26;
