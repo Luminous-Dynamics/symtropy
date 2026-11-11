@@ -660,7 +660,7 @@ mod tests {
 
     #[test]
     fn pre_onset_alarm_is_false_and_cannot_be_reused_as_an_early_fault_detection() {
-        let observations = stream(&[196, 197], 1);
+        let observations = stream(&[194, 195, 196], 1);
         let summary =
             evaluate_event_metrics(&[window()], &[event()], &observations, &config()).unwrap();
         assert_eq!(summary.detected_event_count, 0);
@@ -743,5 +743,41 @@ mod tests {
         assert_eq!(summary.event_recall, Some(1.0));
         assert_eq!(summary.event_outcomes[0].predicted_isolation_index, Some(4));
         assert_eq!(summary.event_outcomes[0].isolation_top1_correct, Some(true));
+    }
+
+    #[test]
+    fn event_protocol_is_frozen_in_tournament_and_run_schema() {
+        let tournament: serde_json::Value =
+            serde_json::from_str(include_str!("../tournament-v0.1.json")).unwrap();
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../benchmark-run-manifest.schema.json")).unwrap();
+
+        assert_eq!(
+            tournament["event_evaluation"]["schema_version"],
+            "liu-ice-event-metrics-v0.1"
+        );
+        assert_eq!(
+            tournament["event_evaluation"]["status"],
+            "protocol_only_not_executed"
+        );
+        assert_eq!(
+            tournament["event_evaluation"]["alarm_debounce"]["minimum_positive_samples"],
+            3
+        );
+        assert!(tournament["research_targets_not_achieved"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|target| target["status"] == "aspirational"));
+        assert!(schema["properties"]["protocol"]["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "event_evaluation"));
+        assert!(schema["properties"]["metrics"]["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "false_alarms_per_observed_normal_hour"));
     }
 }
