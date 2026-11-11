@@ -396,6 +396,60 @@ mod tests {
     }
 
     #[test]
+    fn compound_center_and_tensor_are_covariant_under_global_rotation() {
+        let cuboid = MassProperties3::solid_cuboid(12.0, [1.0, 2.0, 3.0]).unwrap();
+        let sphere = MassProperties3::solid_sphere(2.0, 0.35).unwrap();
+        let mut first_generator = Bivector::<3>::zero();
+        first_generator.set(0, 1, 0.27);
+        first_generator.set(1, 2, -0.18);
+        let mut second_generator = Bivector::<3>::zero();
+        second_generator.set(0, 2, -0.41);
+        let parts = vec![
+            part(
+                10,
+                [0.8, -0.3, 0.5],
+                Rotor::from_bivector(&first_generator),
+                cuboid,
+            ),
+            part(
+                20,
+                [-0.6, 1.1, -0.2],
+                Rotor::from_bivector(&second_generator),
+                sphere,
+            ),
+        ];
+        let reference = CompoundMassProperties3::compose(&parts).unwrap();
+
+        let mut global_generator = Bivector::<3>::zero();
+        global_generator.set(0, 1, -0.33);
+        global_generator.set(0, 2, 0.24);
+        global_generator.set(1, 2, 0.19);
+        let global = Rotor::from_bivector(&global_generator);
+        let rotated_parts = parts
+            .iter()
+            .map(|part| {
+                let mut transformed = part.clone();
+                transformed.local_transform.translation = Point(
+                    global.rotate_vector(&part.local_transform.translation.0),
+                );
+                transformed.local_transform.rotation =
+                    global.compose(&part.local_transform.rotation);
+                transformed
+            })
+            .collect::<Vec<_>>();
+        let rotated = CompoundMassProperties3::compose(&rotated_parts).unwrap();
+
+        let expected_center = global.rotate_vector(&reference.center_of_mass);
+        assert!((rotated.center_of_mass - expected_center).norm() < 2.0e-11);
+        let expected_tensor =
+            global.to_matrix() * reference.inertia_tensor_body * global.to_matrix().transpose();
+        assert!(
+            (rotated.inertia_tensor_body - expected_tensor).norm() < 2.0e-10,
+            "global-frame tensor covariance failed"
+        );
+    }
+
+    #[test]
     fn duplicate_part_identity_is_rejected() {
         let sphere = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
         let parts = vec![
