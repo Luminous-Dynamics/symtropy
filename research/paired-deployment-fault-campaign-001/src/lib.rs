@@ -209,13 +209,16 @@ impl FaultSpec {
                 ..
             } => {
                 if !occlusion_fraction.is_finite()
-                    || !matches!(*occlusion_fraction, 0.5 | 0.8)
+                    || ((*occlusion_fraction - 0.5).abs() > f64::EPSILON
+                        && (*occlusion_fraction - 0.8).abs() > f64::EPSILON)
                 {
                     findings.push(Finding::UnsupportedFaultSeverity);
                 }
             }
             Self::GpsLocalizationNoise { sigma_m, .. } => {
-                if !sigma_m.is_finite() || !matches!(*sigma_m, 5.0 | 15.0) {
+                if !sigma_m.is_finite()
+                    || ((*sigma_m - 5.0).abs() > f64::EPSILON
+                        && (*sigma_m - 15.0).abs() > f64::EPSILON) {
                     findings.push(Finding::UnsupportedFaultSeverity);
                 }
             }
@@ -225,7 +228,8 @@ impl FaultSpec {
                 ..
             } => {
                 if !multiplier_mean.is_finite()
-                    || !matches!(*multiplier_mean, 0.2 | 0.5)
+                    || ((*multiplier_mean - 0.2).abs() > f64::EPSILON
+                        && (*multiplier_mean - 0.5).abs() > f64::EPSILON)
                     || !multiplier_std_dev.is_finite()
                     || (*multiplier_std_dev - 0.2).abs() > f64::EPSILON
                 {
