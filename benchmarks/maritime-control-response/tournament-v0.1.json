@@ -86,6 +86,14 @@
       "family": "physics_based_inverse_model",
       "role": "Calibrated physical engine model that evaluates multiple fault/degradation parameter hypotheses against the measured response. Preserve every admissible solution and report ambiguity rather than selecting a single minimum without identifiability evidence.",
       "status": "research_candidate_requires_model_and_parameter_validation"
+    },
+    {
+      "id": "published_six_solution_liu_ice_reference_suite",
+      "family": "multi_method_reference_suite",
+      "role": "Reproduce the six LiU-ICE solutions reported from IFAC Safeprocess 2024 and documented in the 2025 Control Engineering Practice benchmark paper. Recover the exact architectures, channel use, splits and hyperparameters before matched comparison.",
+      "status": "reproduction_required",
+      "source": "https://doi.org/10.1016/j.conengprac.2025.106427",
+      "comparison_rule": "Same audited recordings, same permitted data access, same sample-wise streaming interface, same official metric implementation and compute disclosure."
     }
   ],
   "primary_metrics": [
@@ -134,7 +142,17 @@
     "transient_burst_count",
     "observed_normal_exposure_seconds",
     "isolation_top1_accuracy",
-    "mean_true_class_probability"
+    "mean_true_class_probability",
+    "p50_per_sample_inference_plus_receipt_latency_ms",
+    "p95_per_sample_inference_plus_receipt_latency_ms",
+    "p99_per_sample_inference_plus_receipt_latency_ms",
+    "streaming_input_output_cardinality_mismatch_count",
+    "streaming_sample_sequence_gap_count",
+    "streaming_historical_output_mutation_count",
+    "streaming_receipt_chain_validation_rate",
+    "worst_case_expected_information_gain_nats",
+    "likelihood_scenario_count",
+    "risk_evidence_unreviewed_candidate_count"
   ],
   "hard_evidence_gates": [
     "model, source data, evaluator, feature map and split manifests are content-addressed",
@@ -166,7 +184,11 @@
     "previous output values cannot be revised through the streaming API",
     "per-sample receipts bind frozen model identity, input/output digests and previous receipt",
     "Python/MATLAB adapter parity and no-retroactive-update checks are separate from Rust-core tests",
-    "active evidence eligibility is based on worst-case EIG across the complete frozen scenario set, not only a weighted average"
+    "active evidence eligibility is based on worst-case EIG across the complete frozen scenario set, not only a weighted average",
+    "reproduce the six published LiU-ICE reference solutions under the same audited protocol wherever their method/configuration details are recoverable",
+    "do not treat the 2026 control-aware marine simulation paper as a matched LiU-ICE or real-engine baseline",
+    "risk_score_ppm is a policy score rather than a probability and each candidate binds its risk assessment evidence",
+    "a qualified active evidence decision requires an upstream authority-owner review of the candidate risk-assessment catalogue"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -350,7 +372,13 @@
     "execution_performed": false,
     "actuation_authorized": false,
     "controlled_perturbations_recommended": 0,
-    "claim_ceiling": "caller-supplied calibrated scenario tables and synthetic mathematical contracts only; no field acquisition or active intervention"
+    "claim_ceiling": "caller-supplied calibrated scenario tables and synthetic mathematical contracts only; no field acquisition or active intervention",
+    "risk_evidence": {
+      "risk_score_ppm": "caller-supplied policy score, not a calibrated probability",
+      "required_reference": "risk_assessment_sha256 per candidate",
+      "qualification": "upstream owner review, authority scope, signer, expiry and revocation checks must be evidenced before a qualified decision-support run",
+      "selector_authorizes_action": false
+    }
   },
   "streaming_contract": {
     "path": "streaming-contract-v0.1.json",
@@ -370,5 +398,11 @@
     "rust_core_direct_submission_compatible": false,
     "adapter_status": "not_implemented",
     "claim_ceiling": "append-only Rust source contract and synthetic tests only"
+  },
+  "literature_comparators": {
+    "same_benchmark": "Jung et al., A fault diagnosis benchmark of technical systems with incomplete data — six solutions, Control Engineering Practice 164 (2025), 106427. https://doi.org/10.1016/j.conengprac.2025.106427",
+    "adjacent_marine_research": "Lin et al., Fault diagnosis of marine diesel engine via control-aware domain-adversarial network (2026). The published abstract reports thermodynamic simulation results and explicitly notes absence of real-engine validation. https://doi.org/10.1177/01423312261487500",
+    "deployment_assessment": "The 2026 industrial CPS/ICS deployability survey finds that accuracy is much more commonly assessed than other deployment criteria; use a wider readiness matrix rather than accuracy-only comparisons. https://doi.org/10.1007/s10207-026-01330-1",
+    "standards_alignment": "ISO 13379-1:2025 diagnostic guidance is contextual alignment, not certification. https://www.iso.org/standard/88027.html"
   }
 }
