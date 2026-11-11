@@ -5,10 +5,9 @@ on:
     branches: ["main"]
     paths:
       - "crates/tools/shipyard-weld-physics-vvuq/**"
+      - "crates/tools/shipyard-weld-physics-vvuq/Cargo.lock"
       - "benchmarks/shipyard/weld-physics/**"
       - "docs/tech/SHIPYARD_WELD_PHYSICS_VVUQ_V0_1*"
-      - "Cargo.toml"
-      - "Cargo.lock"
       - "rust-toolchain.toml"
       - ".github/workflows/shipyard-weld-physics-vvuq.yml"
   workflow_dispatch:
@@ -37,16 +36,16 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Check formatting
-        run: cargo fmt --all -- --check
+        run: cargo fmt --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml --all -- --check
 
       - name: Run independent manifest verifier tests
-        run: cargo test --locked -p shipyard-weld-physics-vvuq
+        run: cargo test --locked --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml
 
       - name: Run Clippy with warnings denied
-        run: cargo clippy --locked -p shipyard-weld-physics-vvuq --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml --all-targets -- -D warnings
 
       - name: Verify exact frozen source/case manifest
-        run: cargo run --locked -p shipyard-weld-physics-vvuq -- benchmarks/shipyard/weld-physics/vvuq-corpus-v0.1.json
+        run: cargo run --locked --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml -- benchmarks/shipyard/weld-physics/vvuq-corpus-v0.1.json
 
       - name: Confirm verifier did not modify tracked inputs
         run: git diff --exit-code
