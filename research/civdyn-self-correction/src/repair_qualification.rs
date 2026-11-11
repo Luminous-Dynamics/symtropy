@@ -554,14 +554,14 @@ pub fn qualify_repair_on_fresh_challenge(
             );
         }
 
-        if let Some(observation_digest) = baseline_row.observation_digest.as_deref() {
-            if diagnostic_observations.contains(observation_digest) {
+        if let Some(observation_digest) = baseline_row.observation_digest.as_deref()
+            && diagnostic_observations.contains(observation_digest)
+        {
                 return Err(
                     RepairQualificationError::ChallengeObservationWasUsedForRepair {
                         observation_digest: observation_digest.to_string(),
                     },
                 );
-            }
         }
         let spec = input
             .challenge_registry
