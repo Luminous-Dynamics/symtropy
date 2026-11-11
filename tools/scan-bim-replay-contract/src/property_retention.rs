@@ -922,6 +922,55 @@ mod tests {
     }
 
     #[test]
+    fn project_criticality_is_not_inferred_from_property_name() {
+        let mut value = fixture_value();
+        value["requirements"][0]["property_name"] =
+            serde_json::json!("ProjectSpecificAttributeA");
+        value["comparisons"][0]["target_state"] = serde_json::json!("absent");
+        value["comparisons"][0]["target_value_sha256"] = Value::Null;
+        value["comparisons"][0]["disposition"] = serde_json::json!("lost");
+        value["comparisons"][0]["semantic_finding_id"] = serde_json::json!("DIFF-LOSS-PROFILE-001");
+        value["comparisons"][0]["reason"] = serde_json::json!("project-required attribute was dropped");
+        let report = audit_value(&value).expect("project profile controls criticality");
+        assert_eq!(report.preservation_state, "blocked");
+        assert_eq!(report.critical_loss_count, 1);
+        assert_eq!(report.findings[0].property_name, "ProjectSpecificAttributeA");
+    }
+
+    #[test]
+    fn unknown_source_replaced_by_default_zero_remains_unresolved() {
+        let mut value = fixture_value();
+        value["comparisons"][0]["source_state"] = serde_json::json!("unknown");
+        value["comparisons"][0]["source_value_sha256"] = Value::Null;
+        value["comparisons"][0]["target_value_sha256"] = serde_json::json!("0".repeat(64));
+        value["comparisons"][0]["disposition"] = serde_json::json!("unresolved");
+        value["comparisons"][0]["reason"] =
+            serde_json::json!("source value was unknown; target zero may be a default");
+        let report = audit_value(&value).expect("unknown-to-default must remain unresolved");
+        assert_eq!(report.preservation_state, "unresolved");
+        assert_eq!(report.critical_unresolved_count, 1);
+        assert_eq!(report.preserved_required_count, 2);
+    }
+
+    #[test]
+    fn target_only_property_is_added_not_counted_as_source_retention() {
+        let mut value = fixture_value();
+        value["comparisons"][2]["source_state"] = serde_json::json!("absent");
+        value["comparisons"][2]["source_value_sha256"] = Value::Null;
+        value["comparisons"][2]["target_state"] = serde_json::json!("present");
+        value["comparisons"][2]["target_value_sha256"] = serde_json::json!("7".repeat(64));
+        value["comparisons"][2]["disposition"] = serde_json::json!("added");
+        value["comparisons"][2]["semantic_finding_id"] = serde_json::json!("DIFF-ADDED-001");
+        value["comparisons"][2]["reason"] = serde_json::json!("target adds an acoustic field");
+        let report = audit_value(&value).expect("target-only attribute is reported as added");
+        assert_eq!(report.added_property_count, 1);
+        assert_eq!(report.source_present_required_count, 2);
+        assert_eq!(report.preserved_required_count, 2);
+        assert_eq!(report.required_property_retention_ratio, Some(1.0));
+        assert_eq!(report.preservation_state, "preserved");
+    }
+
+    #[test]
     fn critical_importance_must_be_project_required() {
         let mut value = fixture_value();
         value["requirements"][0]["required"] = serde_json::json!(false);
