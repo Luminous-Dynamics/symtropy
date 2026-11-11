@@ -412,6 +412,10 @@ pub fn commission_twin(input: &CommissioningInput) -> CommissioningReport {
             capability != "read_only_telemetry"
                 || !permitted.contains(capability.as_str())
         })
+        || input
+            .permitted_capabilities
+            .iter()
+            .any(|capability| capability != "read_only_telemetry")
     {
         add_twin(&mut twin_violations, TwinViolationCode::AuthorityEscalation);
     }
@@ -420,6 +424,16 @@ pub fn commission_twin(input: &CommissioningInput) -> CommissioningReport {
     for required in &input.required_streams {
         if !required_ids.insert(required.stream_id.as_str()) {
             add_twin(&mut twin_violations, TwinViolationCode::DuplicateRequiredStream);
+        }
+        if required.stream_id.trim().is_empty()
+            || required.owner_twin_id.trim().is_empty()
+            || required.schema_id.trim().is_empty()
+            || required.schema_version.trim().is_empty()
+            || required.clock_id.trim().is_empty()
+            || required.expected_interval_ticks == 0
+            || required.minimum_coverage_permille > 1_000
+        {
+            add_twin(&mut twin_violations, TwinViolationCode::InvalidRequirement);
         }
     }
 
@@ -831,6 +845,14 @@ mod tests {
         input.observations[0].ingestion_clock_id = "INGESTION-HOST-CLOCK".to_owned();
         let report = commission_twin(&input);
         assert!(has_stream_violation(&report, StreamViolationCode::ClockMismatch));
+    }
+
+    #[test]
+    fn a_policy_manifest_cannot_declare_higher_authority_than_the_evaluator() {
+        let mut input = base_input();
+        input.permitted_capabilities.push("wps_change".to_owned());
+        let report = commission_twin(&input);
+        assert!(report.twin_violations.contains(&TwinViolationCode::AuthorityEscalation));
     }
 
     #[test]
