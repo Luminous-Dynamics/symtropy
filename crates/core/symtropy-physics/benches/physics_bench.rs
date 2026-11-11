@@ -257,6 +257,7 @@ fn make_action_horizon_request(
 
     ActionHorizonRequest {
         bounds,
+        evaluation_time_ns: 1_000_000,
         controller_period_ns: 1_000_000,
         p99_total_latency_ns: p99_latency_ns,
         latency_profile_id: "criterion-fixed-target-latency-profile".to_owned(),
