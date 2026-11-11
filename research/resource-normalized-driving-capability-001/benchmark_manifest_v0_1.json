@@ -147,41 +147,26 @@
         "backbone_parameters_billions": 2.45,
         "action_expert_parameters_billions": 0.2,
         "closed_loop_km_per_at_fault_incident_mean": 15.15,
-        "closed_loop_km_per_at_fault_incident_std": 0.04,
-        "closed_loop_scenario_count": 875,
-        "closed_loop_rollout_sets": 3,
-        "open_loop_minADE6_m_at_5s": 0.52,
+        "closed_loop_km_per_at_fault_incident_sd": 0.04,
+        "alpasim_scenarios": 875,
+        "alpasim_rollout_sets": 3,
+        "open_loop_minADE_6_at_5s_m": 0.52,
         "lingo_judge_score": 75.2,
         "training_multicamera_video_hours": 115000,
-        "chain_of_causation_trace_count": 3700000,
-        "pixel_to_trajectory_latency_ms_min": 160,
-        "pixel_to_trajectory_latency_ms_max": 190,
-        "closed_loop_rl_relative_improvement_percent": 48.9,
-        "total_parameters_billions": 2.65,
-        "h100_measured_peak_gpu_memory_gib": 12.06,
-        "recommended_gpu_memory_gib": 16,
-        "training_image_count_minimum_billions": 1,
-        "training_video_hours_approx": 115000,
-        "input_camera_count": 6,
-        "input_frames_per_driving_observation": 22,
-        "historical_ego_pose_count": 20,
-        "deployment_latency_min_ms": 160,
-        "deployment_latency_max_ms": 190,
-        "alpagym_closed_loop_rl_improvement_percent": 48.9
+        "training_chain_of_causation_traces": 3700000,
+        "h100_peak_gpu_process_memory_gib": 12.06
       },
       "capabilities": [
-        "Model-card breakdown: 2.45B backbone + 0.20B diffusion action expert = 2.65B combined components; the NVIDIA blog headline rounds to 2B",
-        "BF16 checkpoint; model card reports an H100 80GB validation setup and recommends at least 16GB GPU memory for the measured configuration; other GPU architectures are marked unvalidated",
-        "six-camera, 22-frame driving observation plus navigation text and 20 historical ego poses",
-        "model card lists approximately 115,000 hours multi-camera driving video, 3.7M CoC traces and more than 1B images",
-        "adaptive reasoning can emit a <NOMINAL> token rather than a full reasoning trace during routine driving",
-        "AlpaGym closed-loop RL; NVIDIA reports 48.9% improvement over the best checkpoint without closed-loop RL",
-        "NVIDIA Thor-X deployment recipe, DRIVE OS 7.2.7.0, CUDA 13.4, TensorRT 11.3.1.9 and DFlash2 report 160–190 ms pixel-to-trajectory latency",
-        "AlpaJudge supplies reference-based/reference-free reasoning assessment; rationale quality remains distinct from trajectory and safety outcomes"
+        "2.45B parameter backbone (1.96B language model + 0.41B SigLIP2 vision encoder + 0.08B projector)",
+        "0.2B diffusion action expert; model card identifies BF16 weights",
+        "six-camera, 22-image multi-time-step trajectory input plus navigation text and 20 historical ego poses",
+        "64 future trajectory waypoints from 0.1 to 6.4 seconds",
+        "115,000 hours of multi-camera driving video and approximately 3.7 million Chain-of-Causation traces",
+        "AlpaGym closed-loop RL and adaptive reasoning; model card reports Lingo-Judge 75.2"
       ],
       "source": "https://huggingface.co/nvidia/Alpamayo2-Edge",
       "independent_symtropy_reproduction": false,
-      "protocol": "Model-card AlpaSim: mean 15.15 ± 0.04 km per at-fault incident across 875 PhysicalAI-AV-NuRec scenarios and three rollout sets; separate 1,392-sample open-loop minADE6 at 5 seconds; separate LingoQA Lingo-Judge score 75.2. NVIDIA Thor-X deployment recipe reports 160–190 ms pixel-to-trajectory with specified software/board. Do not pool any metrics. Model card says 80GB H100 was tested and recommends >=16GB; Thor deployment recipe is separately described."
+      "protocol": "Keep native metrics distinct: AlpaSim closed-loop distance per at-fault incident (875 scenarios, 3 rollout sets), PhysicalAI-AV open-loop minADE_6 at 5s (1,392 samples), and Lingo-Judge reasoning score. Model-card hardware reference is H100 80GB with 22 images, 3,236 prompt tokens, BF16, FlashAttention 2, batch 1 and six trajectory candidates; it reports 12.06 GiB peak GPU-process memory and recommends at least 16 GB. Metrics are NVIDIA-published and not independently reproduced by Symtropy."
     },
     {
       "id": "alpamayo_2_super_2026",
@@ -280,6 +265,18 @@
       ],
       "protocol": "Separate speed-conditioned protocol; pin exact repository commit, speed command distribution, scenario list and native speed-adherence metrics. Do not pool with standard Bench2Drive Driving Score.",
       "source": "https://github.com/Thinklab-SJTU/Bench2Drive-Speed",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "alpamayo_2_edge_drive_agx_thor_latency_2026_11_10",
+      "class": "industry_deployment_measurement",
+      "name": "NVIDIA Alpamayo 2 Edge optimized DRIVE AGX Thor deployment recipe",
+      "metric_values": {
+        "pixel_to_trajectory_latency_min_ms": 160,
+        "pixel_to_trajectory_latency_max_ms": 190
+      },
+      "protocol": "NVIDIA deployment recipe reports 160–190 ms depending on reasoning amount. Reference hardware: DRIVE AGX Thor-X; DRIVE OS 7.2.7.0; CUDA 13.4; TensorRT 11.3.1.9; TensorRT Edge-LLM/DFlash2 accelerated workflow. This is a vendor-declared deployment measurement, not an independently reproduced result. Do not compare to other hardware or incomplete stage timings.",
+      "source": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
       "independent_symtropy_reproduction": false
     }
   ],
@@ -586,6 +583,18 @@
       "url": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test",
       "published": "2026-05",
       "source_type": "third-party leaderboard snapshot; not primary organizer source"
+    },
+    {
+      "id": "alpamayo_2_edge_model_card_2026_11_10",
+      "url": "https://huggingface.co/nvidia/Alpamayo2-Edge",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA Hugging Face model card"
+    },
+    {
+      "id": "alpamayo_2_edge_deployment_blog_2026_11_10",
+      "url": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA deployment technical blog"
     }
   ],
   "statistical_method": {
