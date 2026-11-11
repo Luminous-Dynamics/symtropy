@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: ["main"]
     paths:
+      - "Cargo.toml"
       - "crates/tools/shipyard-interpass-adaptive/**"
       - "docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1*"
       - ".github/workflows/shipyard-interpass-adaptive.yml"
