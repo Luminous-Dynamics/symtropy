@@ -171,6 +171,9 @@ No outcome in this benchmark grants structural acceptance, legal survey status, 
 
 Begin with bounded room/panel scenes and deterministic point samples. Keep the first oracle independent of point-cloud learning and full IFC authoring.
 
+**Current executable P0 contract (11 November 2026):** the frozen admission corpus contains 37 synthetic cases, evaluated by a standalone Rust oracle with 13 unit tests. Its upstream survey binding requires a survey-product digest, asset/model/frame scope, change-estimate receipt, registration-stability receipt and independent-checkpoint receipt. Each receipt carries its own survey-product / asset / model / frame scope, which must match the enclosing survey evidence and candidate before its status can be used. This is a contract/schema gate: the synthetic digests do not authenticate #1607 producer bytes or establish real checkpoint independence. Exact-head Rust/CI validation remains a separate gate.
+
+
 ### Geometry and visibility
 - plane, wall, floor, ceiling, corner, opening, door, window, panel, frame and fastener;
 - exact/near-exact geometry, sparse points, nonuniform density, missing surfaces and self-occlusion;
