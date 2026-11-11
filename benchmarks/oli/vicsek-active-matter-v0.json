@@ -167,7 +167,7 @@
         "VicsekModel.fast_metrics"
       ],
       "exactness": "The index only prunes impossible distant candidates; final visibility still uses the same exact minimum-image radius and visual-sector predicate.",
-      "fallback": "For zero radius, extremely small radii requiring more than 1,000,000 cells per axis, or invalid index geometry, use the brute-force all-pairs candidate list.",
+      "fallback": "Brute-force candidate scan is used when interaction_radius <= 0, when floor(box_size / interaction_radius) exceeds 1,000,000 cells per axis, or when the resulting cell width would be smaller than the interaction radius. The fallback is exercised by tests for zero radius, extremely small radius and radius larger than the box.",
       "complexity": "Expected near O(N + total local candidate work) for bounded density and local range; worst case remains O(N^2). Full shortest-path/clustering metrics remain checkpoint-only and more expensive.",
       "reproducibility": "Sorted candidate indices preserve the same floating-point heading-summation order as the brute-force reference.",
       "measured_speedup_status": "NOT_MEASURED; no performance claim is made until matched benchmark runs."
@@ -570,7 +570,8 @@
     "visual_sector_code_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
     "visual_field_source_profile": "benchmarks/oli/visual-field-offset-source-profile-v0.json",
     "directional_intervention_control": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
-    "spatial_index_status": "IMPLEMENTED_IN_STEP_AND_FAST_METRICS_WITH_BRUTE_FORCE_PARITY_TESTS_AWAITING_RUST_VALIDATION"
+    "spatial_index_status": "IMPLEMENTED_IN_STEP_AND_FAST_METRICS_WITH_BRUTE_FORCE_PARITY_TESTS_AWAITING_RUST_VALIDATION",
+    "spatial_index_fallback_controls": "TESTED_IN_SOURCE_CASES_AWAITING_RUST_VALIDATION"
   },
   "acceptance": {
     "intervention_sham_counterfactual_parity_required": true,
@@ -588,6 +589,7 @@
     "spatial_index_must_match_bruteforce_candidate_sets": true,
     "indexed_trajectory_must_match_bruteforce_metric_and_visual_updates": true,
     "indexed_metric_degree_reciprocity_and_local_order_must_match_bruteforce": true,
-    "performance_claim_requires_matched_wall_clock_benchmark": false
+    "performance_claim_requires_matched_wall_clock_benchmark": false,
+    "spatial_index_fallback_regimes_required": true
   }
 }
