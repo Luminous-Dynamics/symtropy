@@ -18,6 +18,7 @@ pub const MAX_EVENTS: usize = 1_000_000;
 const FRAME_HASH_DOMAIN: &[u8] = b"symtropy-observation-frame-reference-v1\0";
 const EVENT_HASH_DOMAIN: &[u8] = b"symtropy-observation-event-stream-v1\0";
 const OBSERVABLE_SET_HASH_DOMAIN: &[u8] = b"symtropy-observable-set-profile-v1\0";
+const CLAIM_CEILING: &str = "Finite structural validation and canonical identity of the supplied reference representation only; no source authentication, sensor calibration, freshness, numerical health, model credibility, physical truth, engineering acceptance, safety, certification, or actuation authority.";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -247,7 +248,7 @@ pub fn compile_observation_frame(
         observable_count,
         event_count,
         findings,
-        claim_ceiling: "Finite structural validation and canonical identity of the supplied reference representation only; no source authentication, sensor calibration, freshness, numerical health, model credibility, physical truth, engineering acceptance, safety, certification, or actuation authority.".to_string(),
+        claim_ceiling: CLAIM_CEILING.to_string(),
     })
 }
 
@@ -730,8 +731,10 @@ mod tests {
         input.entities[0].observables[0].source_class = ObservationSourceClass::Unavailable;
         input.entities[0].observables[0].value = None;
         input.entities[0].observables[0].source_ref_sha256 = None;
-        input.entities[0].observables[0].unavailable_reason = Some("sensor not present".to_string());
-        let unavailable = compile_observation_frame(input.clone()).expect("unavailable observation");
+        input.entities[0].observables[0].unavailable_reason =
+            Some("sensor not present".to_string());
+        let unavailable =
+            compile_observation_frame(input.clone()).expect("unavailable observation");
         input.entities[0].observables[0].source_class = ObservationSourceClass::Synthetic;
         input.entities[0].observables[0].value = Some(ObservationValueV1::Binary64Bits(
             "0000000000000000".to_string(),
