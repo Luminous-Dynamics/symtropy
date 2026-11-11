@@ -632,6 +632,24 @@ mod tests {
     }
 
     #[test]
+    fn computed_risk_endpoints_obey_both_category_likelihood_ratio_constraints() {
+        for source_risk in [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9, 0.99] {
+            for lambda in [1.0, 1.1, 1.25, 2.0, 4.0, 8.0] {
+                let (lower, upper) =
+                    bernoulli_outcome_shift_bounds(source_risk, lambda).unwrap();
+                for target_risk in [lower, upper] {
+                    let outcome_one_ratio = target_risk / source_risk;
+                    let outcome_zero_ratio = (1.0 - target_risk) / (1.0 - source_risk);
+                    assert!(outcome_one_ratio >= 1.0 / lambda - 1e-12);
+                    assert!(outcome_one_ratio <= lambda + 1e-12);
+                    assert!(outcome_zero_ratio >= 1.0 / lambda - 1e-12);
+                    assert!(outcome_zero_ratio <= lambda + 1e-12);
+                }
+            }
+        }
+    }
+
+    #[test]
     fn lambda_one_reproduces_target_standardization() {
         let result = assess_bernoulli_outcome_shift_transport(
             &input(full_support_target()),
