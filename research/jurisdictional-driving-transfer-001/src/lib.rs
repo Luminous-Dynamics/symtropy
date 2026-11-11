@@ -210,6 +210,9 @@ fn validate_date_pair(
 }
 
 fn unique_non_empty(values: &[String]) -> bool {
+    if values.is_empty() {
+        return true;
+    }
     if values.iter().any(|value| value.trim().is_empty()) {
         return false;
     }
@@ -538,9 +541,9 @@ mod tests {
             alternate_jurisdiction: "US".to_string(),
             base_traffic_side: TrafficSide::Left,
             alternate_traffic_side: TrafficSide::Right,
-            task_intent_id: "approach-junction-and-turn-left-v1".to_string(),
-            base_task_intent_id: "approach-junction-and-turn-left-v1".to_string(),
-            alternate_task_intent_id: "approach-junction-and-turn-left-v1".to_string(),
+            task_intent_id: "approach-junction-and-take-corresponding-mirrored-exit-v1".to_string(),
+            base_task_intent_id: "approach-junction-and-take-corresponding-mirrored-exit-v1".to_string(),
+            alternate_task_intent_id: "approach-junction-and-take-corresponding-mirrored-exit-v1".to_string(),
             base_rule_bundle_sha256: "a".repeat(64),
             alternate_rule_bundle_sha256: "b".repeat(64),
             base_maneuver: Maneuver::LeftTurn,
