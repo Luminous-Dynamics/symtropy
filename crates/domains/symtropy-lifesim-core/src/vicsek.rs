@@ -888,10 +888,12 @@ mod tests {
         let next_metrics = next_rule.step().unwrap();
 
         // The pair is 2 units apart at t (outside R=1.5), but their predicted positions
-        // are within R after moving with their old headings.
-        assert_eq!(current_metrics.cluster_count, 2);
-        assert!(current_metrics.polar_order < 0.8);
+        // are within R after moving with their old headings. Both post-update snapshots
+        // therefore have one connected component at t+dt; only NextPositionAlignment
+        // uses that newly formed edge to calculate the current heading update.
+        assert_eq!(current_metrics.cluster_count, 1);
         assert_eq!(next_metrics.cluster_count, 1);
+        assert!((current_metrics.polar_order - std::f64::consts::FRAC_1_SQRT_2).abs() < 1.0e-12);
         assert!((next_metrics.polar_order - 1.0).abs() < 1.0e-12);
         assert!((next_metrics.mean_cluster_polar_order - 1.0).abs() < 1.0e-12);
     }
