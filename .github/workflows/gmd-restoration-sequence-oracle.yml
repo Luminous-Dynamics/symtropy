@@ -1,0 +1,154 @@
+name: GMD restoration-sequence oracle
+
+on:
+  pull_request:
+    paths:
+      - "tools/gmd-restoration-sequence-oracle/**"
+      - "docs/research/gmd-restoration-sequence/**"
+      - ".github/workflows/gmd-restoration-sequence-oracle.yml"
+  push:
+    paths:
+      - "tools/gmd-restoration-sequence-oracle/**"
+      - "docs/research/gmd-restoration-sequence/**"
+      - ".github/workflows/gmd-restoration-sequence-oracle.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gmd-restoration-sequence-oracle-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  oracle:
+    name: GMD restoration-sequence oracle
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Validate and independently recompute fixture
+        run: |
+          python3 - <<'PY'
+          import json
+          import math
+          import pathlib
+          import re
+
+          root = pathlib.Path("docs/research/gmd-restoration-sequence")
+          schema = json.loads((root / "GMD_RESTORATION_SEQUENCE_INPUT_V0.1.schema.json").read_text())
+          data = json.loads((root / "GMD_RESTORATION_SEQUENCE_SYNTHETIC_CASE_V0.1.json").read_text())
+          expected = json.loads((root / "GMD_RESTORATION_SEQUENCE_SYNTHETIC_RESULT_V0.1.json").read_text())
+
+          assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+          assert data["scenario_id"] == expected["scenario_id"]
+          assert re.fullmatch(r"[0-9a-f]{64}", data["topology_sha256"])
+          assert re.fullmatch(r"[0-9a-f]{64}", data["procedure_sha256"])
+          capability = data["capability"]
+          assert re.fullmatch(r"[0-9a-f]{64}", capability["source_sha256"])
+          assert capability["evidence_state"] == "Qualified"
+          assert data["horizon_seconds"] > 0
+
+          resources = [item["resource_id"] for item in data["exclusive_resources"]]
+          assert len(resources) == len(set(resources))
+          steps = data["steps"]
+          ids = [item["step_id"] for item in steps]
+          assert len(ids) == len(set(ids))
+          by_id = {item["step_id"]: item for item in steps}
+          for item in steps:
+              assert item["duration_seconds"] > 0
+              assert item["start_offset_seconds"] + item["duration_seconds"] <= data["horizon_seconds"]
+              assert len(item["prerequisite_step_ids"]) == len(set(item["prerequisite_step_ids"]))
+              assert len(item["exclusive_resource_ids"]) == len(set(item["exclusive_resource_ids"]))
+              assert set(item["exclusive_resource_ids"]) <= set(resources)
+              for dependency in item["prerequisite_step_ids"]:
+                  assert dependency in by_id
+                  parent = by_id[dependency]
+                  assert parent["start_offset_seconds"] + parent["duration_seconds"] <= item["start_offset_seconds"]
+
+          boundaries = {0, data["horizon_seconds"]}
+          for item in steps:
+              boundaries.add(item["start_offset_seconds"])
+              boundaries.add(item["start_offset_seconds"] + item["duration_seconds"])
+          ordered = sorted(boundaries)
+          cumulative = 0.0
+          intervals = []
+          max_p = data["baseline_load"]["active_kw"]
+          max_q = data["baseline_load"]["reactive_kvar_magnitude"]
+          max_s = math.hypot(max_p, max_q)
+          reserve_min = capability["available_energy_kwh"]
+          for start, end in zip(ordered, ordered[1:]):
+              p = data["baseline_load"]["active_kw"]
+              q = data["baseline_load"]["reactive_kvar_magnitude"]
+              for item in steps:
+                  finish = item["start_offset_seconds"] + item["duration_seconds"]
+                  if finish <= start:
+                      p += item["steady_active_kw"]
+                      q += item["steady_reactive_kvar_magnitude"]
+                  elif item["start_offset_seconds"] <= start < finish:
+                      p += item["transient_active_kw"]
+                      q += item["transient_reactive_kvar_magnitude"]
+              s = math.hypot(p, q)
+              energy = p * (end - start) / 3600.0
+              cumulative += energy
+              remaining = capability["available_energy_kwh"] - cumulative
+              assert p <= capability["maximum_active_kw"]
+              assert q <= capability["maximum_reactive_kvar"]
+              assert s <= capability["maximum_apparent_kva"]
+              assert remaining >= capability["reserve_floor_kwh"] - 1e-12
+              max_p = max(max_p, p)
+              max_q = max(max_q, q)
+              max_s = max(max_s, s)
+              reserve_min = min(reserve_min, remaining)
+              intervals.append({
+                  "start_offset_seconds": start,
+                  "end_offset_seconds": end,
+                  "active_kw": p,
+                  "reactive_kvar_magnitude": q,
+                  "apparent_kva": s,
+                  "interval_energy_kwh": energy,
+                  "cumulative_energy_kwh": cumulative,
+                  "remaining_energy_kwh": remaining,
+              })
+
+          pickups = {}
+          for item in steps:
+              finish = item["start_offset_seconds"] + item["duration_seconds"]
+              pickups[item["service_id"]] = min(pickups.get(item["service_id"], finish), finish)
+          actual = {
+              "maximum_active_kw": max_p,
+              "maximum_reactive_kvar_magnitude": max_q,
+              "maximum_apparent_kva": max_s,
+              "total_energy_used_kwh": cumulative,
+              "minimum_remaining_energy_kwh": reserve_min,
+              "reserve_floor_kwh": capability["reserve_floor_kwh"],
+              "violation_count": 0,
+              "execution_authorized": False,
+          }
+          for key, value in actual.items():
+              expected_value = expected[key]
+              if isinstance(value, float):
+                  assert math.isclose(expected_value, value, rel_tol=1e-12, abs_tol=1e-12), (key, expected_value, value)
+              else:
+                  assert expected_value == value, (key, expected_value, value)
+
+          assert expected["feasibility"] == "FeasibleAgainstQualifiedEnvelope"
+          assert expected["operator_readiness"] == "ReadyForOperatorReview"
+          assert len(expected["intervals"]) == len(intervals)
+          for recorded, computed in zip(expected["intervals"], intervals):
+              for key, value in computed.items():
+                  assert math.isclose(recorded[key], value, rel_tol=1e-12, abs_tol=1e-12), (key, recorded[key], value)
+          recorded_pickups = {entry["service_id"]: entry["first_planned_pickup_after_seconds"] for entry in expected["service_pickups"]}
+          assert recorded_pickups == pickups
+          print(f"independently recomputed {len(intervals)} intervals and {len(pickups)} service pickup milestones")
+          PY
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/gmd-restoration-sequence-oracle/Cargo.toml -- --check
+      - name: Run offline tests
+        run: cargo test --manifest-path tools/gmd-restoration-sequence-oracle/Cargo.toml --locked --offline
+      - name: Run Clippy
+        run: cargo clippy --manifest-path tools/gmd-restoration-sequence-oracle/Cargo.toml --locked --offline --all-targets -- -D warnings
