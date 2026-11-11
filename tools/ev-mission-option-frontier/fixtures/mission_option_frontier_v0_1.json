@@ -105,7 +105,7 @@
     },
     {
       "report_ref": "synthetic-mission-report:wasteful",
-      "report_sha256": "5422a6ba1b521ea697fb1f772f65260dd1c65797e41e3b906cdd475b3dd7eb90",
+      "report_sha256": "894fa965cab87d7ed29798f88431846d5705f762c8426e314559fe369afc7613",
       "report": {
         "schema_version": "0.2.0",
         "catalog_id": "EV-PLATFORM-001",
@@ -122,7 +122,7 @@
             "peak_power_margin_kw": 25,
             "energy_margin_vs_usable_capacity_kwh": 5,
             "total_unserved_energy_kwh": 0,
-            "net_battery_energy_demand_kwh": 26,
+            "net_battery_energy_demand_kwh": 23.2,
             "total_travel_hours": 1.21,
             "total_stationary_segment_hours": 0.05,
             "nontravel_duration_hours": 0.05,
@@ -379,9 +379,9 @@
       "label": "Slower high-energy route",
       "strategy_class": "route_profile",
       "source_report_ref": "synthetic-mission-report:wasteful",
-      "source_report_sha256": "5422a6ba1b521ea697fb1f772f65260dd1c65797e41e3b906cdd475b3dd7eb90",
+      "source_report_sha256": "894fa965cab87d7ed29798f88431846d5705f762c8426e314559fe369afc7613",
       "scenario_id": "wasteful",
-      "source_result_sha256": "3b503f19c1e9585efcc28130bf11b35bd3397a5f7af2ecc0e36c4eb722c9873d",
+      "source_result_sha256": "f786dfb419a6c09857c5991e9ee44efe77dc6b4ff2f8e4751403639a1fc24b0a",
       "service_delivery": {
         "lower": 1190,
         "upper": 1210,
