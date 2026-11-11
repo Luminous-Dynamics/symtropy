@@ -1170,7 +1170,10 @@ fn observation_identity_digest(receipt: &PolicyObservationReceipt) -> String {
     );
     append_string(
         &mut bytes,
-        receipt.applied_action_receipt_sha256.as_deref().unwrap_or(""),
+        receipt
+            .applied_action_receipt_sha256
+            .as_deref()
+            .unwrap_or(""),
     );
     append_string(&mut bytes, &receipt.frame_sha256);
     sha256_hex(&bytes)
@@ -1188,7 +1191,10 @@ fn policy_receipt_digest(receipt: &PolicyObservationReceipt) -> String {
     bytes.extend_from_slice(&receipt.sequence.to_le_bytes());
     for value in [
         receipt.applied_action_receipt_id.as_deref().unwrap_or(""),
-        receipt.applied_action_receipt_sha256.as_deref().unwrap_or(""),
+        receipt
+            .applied_action_receipt_sha256
+            .as_deref()
+            .unwrap_or(""),
         receipt.applied_action_command_id.as_deref().unwrap_or(""),
         receipt.camera_id.as_str(),
         receipt.camera_calibration_sha256.as_str(),
@@ -1469,17 +1475,21 @@ mod tests {
         .unwrap();
 
         assert_eq!(policy["properties"]["schema_version"]["const"], 1);
-        assert!(policy["required"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|field| field == "frame_sha256"));
+        assert!(
+            policy["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|field| field == "frame_sha256")
+        );
         assert!(policy["properties"].get("world_snapshot_sha256").is_none());
-        assert!(audit["required"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|field| field == "world_snapshot_sha256"));
+        assert!(
+            audit["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|field| field == "world_snapshot_sha256")
+        );
         assert_eq!(missing["properties"]["reason"]["enum"][0], "camera_drop");
     }
 
@@ -1565,13 +1575,16 @@ mod tests {
 
             let first = SoftwareCameraRenderer::render(&world, tick, clocks).unwrap();
             let encoded_world = serde_json::to_vec(&world).unwrap();
-            let decoded_world: WorldRenderSnapshot = serde_json::from_slice(&encoded_world).unwrap();
+            let decoded_world: WorldRenderSnapshot =
+                serde_json::from_slice(&encoded_world).unwrap();
             let replay = SoftwareCameraRenderer::render(&decoded_world, tick, clocks).unwrap();
 
-            assert_eq!(first.pixels_rgb, replay.pixels_rgb, "pixel mismatch at tick {tick}");
             assert_eq!(
-                first.policy_receipt,
-                replay.policy_receipt,
+                first.pixels_rgb, replay.pixels_rgb,
+                "pixel mismatch at tick {tick}"
+            );
+            assert_eq!(
+                first.policy_receipt, replay.policy_receipt,
                 "policy receipt mismatch at tick {tick}"
             );
             assert_eq!(
@@ -1583,24 +1596,34 @@ mod tests {
         }
 
         assert_eq!(episode_frame_digests.len(), 20);
-        assert!(episode_frame_digests.windows(2).all(|pair| pair[0] != pair[1]));
+        assert!(
+            episode_frame_digests
+                .windows(2)
+                .all(|pair| pair[0] != pair[1])
+        );
     }
 
     #[test]
     fn frame_contains_road_and_actor_geometry() {
         let result = SoftwareCameraRenderer::render(&snapshot(), 1, clocks()).unwrap();
-        assert!(result
-            .pixels_rgb
-            .chunks_exact(3)
-            .any(|pixel| pixel == [236, 236, 224]));
-        assert!(result
-            .pixels_rgb
-            .chunks_exact(3)
-            .any(|pixel| pixel == [214, 72, 58]));
-        assert!(result
-            .pixels_rgb
-            .chunks_exact(3)
-            .any(|pixel| pixel == [65, 134, 226]));
+        assert!(
+            result
+                .pixels_rgb
+                .chunks_exact(3)
+                .any(|pixel| pixel == [236, 236, 224])
+        );
+        assert!(
+            result
+                .pixels_rgb
+                .chunks_exact(3)
+                .any(|pixel| pixel == [214, 72, 58])
+        );
+        assert!(
+            result
+                .pixels_rgb
+                .chunks_exact(3)
+                .any(|pixel| pixel == [65, 134, 226])
+        );
     }
 
     #[test]
@@ -1709,10 +1732,12 @@ mod tests {
             points_world_mm: vec![[-100, 50, 1_400], [-100, 1_000, 1_400]],
         }];
         let rendered = SoftwareCameraRenderer::render(&world, 1, clocks()).unwrap();
-        assert!(rendered
-            .pixels_rgb
-            .chunks_exact(3)
-            .any(|pixel| pixel == [236, 236, 224]));
+        assert!(
+            rendered
+                .pixels_rgb
+                .chunks_exact(3)
+                .any(|pixel| pixel == [236, 236, 224])
+        );
     }
 
     #[test]
@@ -1839,9 +1864,18 @@ mod tests {
             .receipt_sha256 = "b".repeat(64);
         let first = SoftwareCameraRenderer::render(&first_snapshot, 1, clocks()).unwrap();
         let second = SoftwareCameraRenderer::render(&second_snapshot, 1, clocks()).unwrap();
-        assert_eq!(first.policy_receipt.frame_sha256, second.policy_receipt.frame_sha256);
-        assert_ne!(first.policy_receipt.observation_id, second.policy_receipt.observation_id);
-        assert_ne!(first.policy_receipt.receipt_sha256, second.policy_receipt.receipt_sha256);
+        assert_eq!(
+            first.policy_receipt.frame_sha256,
+            second.policy_receipt.frame_sha256
+        );
+        assert_ne!(
+            first.policy_receipt.observation_id,
+            second.policy_receipt.observation_id
+        );
+        assert_ne!(
+            first.policy_receipt.receipt_sha256,
+            second.policy_receipt.receipt_sha256
+        );
     }
 
     #[test]
@@ -2165,8 +2199,7 @@ mod tests {
         ));
         let input_path = base.with_extension("input.json");
         let output_path = base.with_extension("output.json");
-        let encoded_input =
-            serde_json::to_vec(&input).expect("parent must encode replay input");
+        let encoded_input = serde_json::to_vec(&input).expect("parent must encode replay input");
         std::fs::write(&input_path, encoded_input).expect("parent must write replay input");
         let _ = std::fs::remove_file(&output_path);
 
