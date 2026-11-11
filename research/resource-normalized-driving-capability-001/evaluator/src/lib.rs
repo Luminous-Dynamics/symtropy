@@ -403,6 +403,207 @@ pub enum ComparisonClass {
 }
 
 #[derive(Debug, Clone, Serialize)]
+pub struct PairedBootstrapSummary {
+    pub paired_episode_count: usize,
+    pub scenario_cluster_count: usize,
+    pub scenario_family_count: usize,
+    pub bootstrap_replicates: usize,
+    pub bootstrap_seed: u64,
+    pub point_estimate_candidate_minus_baseline: f64,
+    pub confidence_level: f64,
+    pub confidence_interval_lower: f64,
+    pub confidence_interval_upper: f64,
+    /// True only when the two-sided percentile interval lies entirely in the
+    /// candidate-favorable direction. This is not a multiplicity-adjusted claim.
+    pub interval_supports_candidate_advantage: bool,
+}
+
+#[derive(Debug, Clone)]
+struct PairedCluster {
+    family: String,
+    cluster_id: String,
+    differences: Vec<f64>,
+}
+
+fn splitmix64_next(state: &mut u64) -> u64 {
+    *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    let mut value = *state;
+    value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    value ^ (value >> 31)
+}
+
+fn bounded_index(state: &mut u64, upper: usize) -> usize {
+    (((splitmix64_next(state) as u128) * (upper as u128)) >> 64) as usize
+}
+
+fn mean(values: &[f64]) -> f64 {
+    values.iter().sum::<f64>() / values.len() as f64
+}
+
+fn percentile(sorted_values: &[f64], probability: f64) -> f64 {
+    if sorted_values.len() == 1 {
+        return sorted_values[0];
+    }
+    let position = probability * (sorted_values.len() - 1) as f64;
+    let lower = position.floor() as usize;
+    let upper = position.ceil() as usize;
+    let fraction = position - lower as f64;
+    sorted_values[lower] * (1.0 - fraction) + sorted_values[upper] * fraction
+}
+
+fn bootstrap_seed_from_manifest(digest: &str) -> Result<u64, String> {
+    if !is_sha256_hex(digest) {
+        return Err("paired bootstrap requires a lowercase SHA-256 seed manifest".into());
+    }
+    u64::from_str_radix(&digest[..16], 16)
+        .map_err(|error| format!("cannot derive bootstrap seed from manifest: {error}"))
+}
+
+/// Paired, scenario-family-stratified cluster bootstrap of a native metric.
+///
+/// - Both runs must contain exactly the same episode IDs, scenario families,
+///   cluster IDs and dispositions.
+/// - Each paired episode must have an explicit finite value for the metric.
+/// - Repeated rollouts/seeds from one scenario are averaged inside their
+///   scenario cluster before resampling, avoiding frame/rollout pseudoreplication.
+/// - Clusters are sampled with replacement within each scenario family.
+/// - No missing, failed, censored or null outcome is silently converted to zero.
+pub fn paired_stratified_cluster_bootstrap(
+    baseline: &ResultCard,
+    candidate: &ResultCard,
+    metric_name: &str,
+    direction: MetricDirection,
+    replicates: usize,
+    seed: u64,
+) -> Result<PairedBootstrapSummary, String> {
+    validate_complete(baseline)?;
+    validate_complete(candidate)?;
+    if baseline.run_id == candidate.run_id {
+        return Err("baseline and candidate must have distinct run_id values".into());
+    }
+    let protocol_differences = evaluation_differences(baseline, candidate);
+    if !protocol_differences.is_empty() {
+        return Err(format!(
+            "paired bootstrap requires one evaluation protocol: {}",
+            protocol_differences.join(", ")
+        ));
+    }
+    if !(1_000..=200_000).contains(&replicates) {
+        return Err("bootstrap replicates must be in 1,000..=200,000".into());
+    }
+
+    let baseline_by_id = baseline.outcomes.episode_outcomes
+        .iter()
+        .map(|episode| (episode.episode_id.as_str(), episode))
+        .collect::<BTreeMap<_, _>>();
+    let candidate_by_id = candidate.outcomes.episode_outcomes
+        .iter()
+        .map(|episode| (episode.episode_id.as_str(), episode))
+        .collect::<BTreeMap<_, _>>();
+    if baseline_by_id.len() != baseline.outcomes.episode_outcomes.len()
+        || candidate_by_id.len() != candidate.outcomes.episode_outcomes.len()
+    {
+        return Err("paired bootstrap found duplicate episode IDs".into());
+    }
+    if baseline_by_id.keys().ne(candidate_by_id.keys()) {
+        return Err("paired bootstrap requires identical episode ID denominators".into());
+    }
+
+    let mut grouped = BTreeMap::<(String, String), Vec<f64>>::new();
+    for (episode_id, baseline_episode) in &baseline_by_id {
+        let candidate_episode = candidate_by_id
+            .get(episode_id)
+            .ok_or_else(|| format!("candidate lacks paired episode {episode_id:?}"))?;
+        if baseline_episode.scenario_family != candidate_episode.scenario_family {
+            return Err(format!("scenario family mismatch for episode {episode_id:?}"));
+        }
+        if baseline_episode.scenario_cluster_id != candidate_episode.scenario_cluster_id {
+            return Err(format!("scenario cluster mismatch for episode {episode_id:?}"));
+        }
+        if baseline_episode.disposition != candidate_episode.disposition {
+            return Err(format!("episode disposition mismatch for episode {episode_id:?}"));
+        }
+        let baseline_value = baseline_episode.native_metrics
+            .get(metric_name)
+            .copied()
+            .flatten()
+            .ok_or_else(|| format!("baseline episode {episode_id:?} lacks metric {metric_name:?}"))?;
+        let candidate_value = candidate_episode.native_metrics
+            .get(metric_name)
+            .copied()
+            .flatten()
+            .ok_or_else(|| format!("candidate episode {episode_id:?} lacks metric {metric_name:?}"))?;
+        if !baseline_value.is_finite() || !candidate_value.is_finite() {
+            return Err(format!("non-finite paired metric at episode {episode_id:?}"));
+        }
+        let group = (
+            baseline_episode.scenario_family.clone(),
+            baseline_episode.scenario_cluster_id.clone(),
+        );
+        grouped.entry(group).or_default().push(candidate_value - baseline_value);
+    }
+
+    let mut families = BTreeMap::<String, Vec<Vec<f64>>>::new();
+    let mut all_episode_differences = Vec::new();
+    for ((family, _cluster_id), differences) in grouped {
+        all_episode_differences.extend(differences.iter().copied());
+        families.entry(family).or_default().push(differences);
+    }
+    if families.is_empty() {
+        return Err("paired bootstrap has no episodes".into());
+    }
+    for (family, clusters) in &families {
+        if clusters.len() < 2 {
+            return Err(format!(
+                "scenario family {family:?} has fewer than two independent clusters"
+            ));
+        }
+    }
+
+    let mut point_cluster_means = Vec::new();
+    for clusters in families.values() {
+        for cluster in clusters {
+            point_cluster_means.push(mean(cluster));
+        }
+    }
+    let point_estimate = mean(&point_cluster_means);
+
+    let mut state = seed;
+    let mut bootstrap_values = Vec::with_capacity(replicates);
+    for _ in 0..replicates {
+        let mut resampled_cluster_means = Vec::with_capacity(point_cluster_means.len());
+        for clusters in families.values() {
+            for _ in 0..clusters.len() {
+                let selected = bounded_index(&mut state, clusters.len());
+                resampled_cluster_means.push(mean(&clusters[selected]));
+            }
+        }
+        bootstrap_values.push(mean(&resampled_cluster_means));
+    }
+    bootstrap_values.sort_by(f64::total_cmp);
+    let lower = percentile(&bootstrap_values, 0.025);
+    let upper = percentile(&bootstrap_values, 0.975);
+    let advantage = match direction {
+        MetricDirection::HigherIsBetter => lower > 0.0,
+        MetricDirection::LowerIsBetter => upper < 0.0,
+    };
+
+    Ok(PairedBootstrapSummary {
+        paired_episode_count: all_episode_differences.len(),
+        scenario_cluster_count: point_cluster_means.len(),
+        scenario_family_count: families.len(),
+        bootstrap_replicates: replicates,
+        bootstrap_seed: seed,
+        point_estimate_candidate_minus_baseline: point_estimate,
+        confidence_level: 0.95,
+        confidence_interval_lower: lower,
+        confidence_interval_upper: upper,
+        interval_supports_candidate_advantage: advantage,
+    })
+}
+
+#[derive(Debug, Clone, Serialize)]
 pub struct PairComparison {
     pub baseline_run_id: String,
     pub candidate_run_id: String,
@@ -415,6 +616,7 @@ pub struct PairComparison {
     pub budget_differences: Vec<String>,
     pub candidate_to_baseline_inference_energy_ratio: Option<f64>,
     pub candidate_to_baseline_p99_latency_ratio: Option<f64>,
+    pub paired_bootstrap: PairedBootstrapSummary,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -450,6 +652,17 @@ pub fn compare_metric(
         .ok_or_else(|| format!("candidate metric {metric_name:?} is missing or null"))?;
 
     let budget_differences = budget_differences(baseline, candidate);
+    let bootstrap_seed = bootstrap_seed_from_manifest(
+        baseline.seed_manifest_sha256.as_deref().ok_or("bootstrap seed manifest is missing")?
+    )?;
+    let paired_bootstrap = paired_stratified_cluster_bootstrap(
+        baseline,
+        candidate,
+        metric_name,
+        direction,
+        10_000,
+        bootstrap_seed,
+    )?;
     let class = if budget_differences.is_empty() {
         ComparisonClass::MatchedCapability
     } else {
@@ -479,6 +692,7 @@ pub fn compare_metric(
         budget_differences,
         candidate_to_baseline_inference_energy_ratio: energy_ratio,
         candidate_to_baseline_p99_latency_ratio: latency_ratio,
+        paired_bootstrap,
     })
 }
 
