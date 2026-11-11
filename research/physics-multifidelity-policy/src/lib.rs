@@ -13,13 +13,13 @@ use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
-pub const SCHEMA_VERSION: u32 = 2;
+pub const SCHEMA_VERSION: u32 = 3;
 const CLAIM_CEILING: &str =
     "finite-input-policy-conformance-only;does-not-qualify-a-physical-model-or-authorize-actuation";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct PolicyInputV2 {
+pub struct PolicyInputV3 {
     pub schema_version: u32,
     pub decision_risk: DecisionRisk,
     pub scenario_id: String,
@@ -27,6 +27,30 @@ pub struct PolicyInputV2 {
     pub requirement: QuantityRequirement,
     pub budget: ResourceBudget,
     pub candidates: Vec<ModelCandidate>,
+}
+
+/// Conservative bounds for independent sources of physical model discrepancy.
+/// All components use the associated quantity's unit and reference frame.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct PhysicalModelErrorBudget {
+    /// Error caused by governing-equation or constitutive-model choice.
+    pub model_form_error_upper_bound: f64,
+    /// Error caused by geometry, mesh/particle/contact or mass-property representation.
+    pub geometry_representation_error_upper_bound: f64,
+    /// Error caused by temporal/spatial discretization and integration resolution.
+    pub discretization_error_upper_bound: f64,
+}
+
+/// Independent per-source limits and a conservative sum bound.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct PhysicalModelErrorLimits {
+    pub max_model_form_error_upper_bound: f64,
+    pub max_geometry_representation_error_upper_bound: f64,
+    pub max_discretization_error_upper_bound: f64,
+    /// Limit on the sum of the three non-negative component bounds.
+    pub max_total_error_upper_bound: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -37,6 +61,8 @@ pub struct QuantityRequirement {
     pub reference_frame: String,
     pub max_residual_upper_bound: f64,
     pub max_uncertainty_upper_bound: f64,
+    /// Source-separated physical model error limits in this quantity's unit/frame.
+    pub physical_model_error_limits: PhysicalModelErrorLimits,
     /// Optional engineering decision threshold. Candidates must provide an
     /// output interval separated from this threshold by the declared margin.
     pub decision_boundary: Option<DecisionBoundary>,
@@ -103,8 +129,11 @@ pub struct ModelCandidate {
     pub validity: ValidityDisposition,
     pub horizon_covered: bool,
     pub hard_constraints: HardConstraintDisposition,
+    /// Numerical constraint/solver residual for the requested physical quantity.
     pub residual_upper_bound: f64,
     pub uncertainty_upper_bound: f64,
+    /// Conservative source-separated physical model error bounds.
+    pub physical_model_error_budget: PhysicalModelErrorBudget,
     pub p95_wall_time_us: u64,
     pub peak_memory_bytes: u64,
 }
@@ -154,6 +183,10 @@ pub enum RejectionReason {
     DecisionEstimateMissing,
     DecisionEstimateQuantityMismatch,
     DecisionBoundaryUnresolved,
+    ModelFormErrorBoundExceeded,
+    GeometryRepresentationErrorBoundExceeded,
+    DiscretizationErrorBoundExceeded,
+    TotalPhysicalModelErrorBoundExceeded,
     EvidenceSyntheticOnly,
     EvidenceUnqualified,
     ValidityOutsideEnvelope,
@@ -167,13 +200,16 @@ pub enum RejectionReason {
     MemoryBudgetExceeded,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct CandidateEvaluation {
     pub model_id: String,
     pub admissible: bool,
     pub rejection_reasons: Vec<RejectionReason>,
     pub decision_class: Option<DecisionClass>,
+    /// Exact source-separated bound vector admitted/rejected for this candidate.
+    pub physical_model_error_budget: PhysicalModelErrorBudget,
+    pub total_physical_model_error_upper_bound: f64,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -201,9 +237,9 @@ pub enum AbstentionReason {
     ObservedDecisionClassChanged,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(deny_unknown_fields)]
-pub struct PolicyReceiptV2 {
+pub struct PolicyReceiptV3 {
     pub schema_version: u32,
     pub input_sha256: String,
     pub scenario_id: String,
@@ -331,7 +367,7 @@ impl std::error::Error for PolicyError {}
 /// Selection is lexicographic: p95 wall time, peak memory, then model id.
 /// No weighted score can compensate for a failed semantic, evidence,
 /// applicability, hard-constraint, error-bound, or resource gate.
-pub fn evaluate(input: &PolicyInputV2) -> Result<PolicyReceiptV2, PolicyError> {
+pub fn evaluate(input: &PolicyInputV3) -> Result<PolicyReceiptV3, PolicyError> {
     validate_input(input)?;
     let input_sha256 = canonical_input_sha256(input)?;
     let mut candidates = input.candidates.clone();
@@ -352,6 +388,8 @@ pub fn evaluate(input: &PolicyInputV2) -> Result<PolicyReceiptV2, PolicyError> {
             admissible: accepted,
             rejection_reasons: reasons,
             decision_class,
+            physical_model_error_budget: candidate.physical_model_error_budget.clone(),
+            total_physical_model_error_upper_bound: total_physical_model_error(candidate),
         });
     }
 
@@ -375,7 +413,7 @@ pub fn evaluate(input: &PolicyInputV2) -> Result<PolicyReceiptV2, PolicyError> {
             },
         });
 
-    Ok(PolicyReceiptV2 {
+    Ok(PolicyReceiptV3 {
         schema_version: SCHEMA_VERSION,
         input_sha256,
         scenario_id: input.scenario_id.clone(),
@@ -390,8 +428,8 @@ pub fn evaluate(input: &PolicyInputV2) -> Result<PolicyReceiptV2, PolicyError> {
 /// independently admissible candidate, or abstention. Tolerances are never
 /// relaxed during escalation.
 pub fn monitor(
-    input: &PolicyInputV2,
-    receipt: &PolicyReceiptV2,
+    input: &PolicyInputV3,
+    receipt: &PolicyReceiptV3,
     observation: &RunObservation,
 ) -> Result<MonitoringDecision, PolicyError> {
     validate_input(input)?;
@@ -596,7 +634,7 @@ pub fn monitor(
     }
 }
 
-fn validate_input(input: &PolicyInputV2) -> Result<(), PolicyError> {
+fn validate_input(input: &PolicyInputV3) -> Result<(), PolicyError> {
     if input.schema_version != SCHEMA_VERSION {
         return Err(PolicyError::UnsupportedSchema(input.schema_version));
     }
@@ -612,7 +650,22 @@ fn validate_input(input: &PolicyInputV2) -> Result<(), PolicyError> {
     validate_nonnegative_finite(
         input.requirement.max_uncertainty_upper_bound,
         "max_uncertainty_upper_bound",
+    )?;    validate_nonnegative_finite(
+        input.requirement.physical_model_error_limits.max_model_form_error_upper_bound,
+        "max_model_form_error_upper_bound",
     )?;
+    validate_nonnegative_finite(
+        input.requirement.physical_model_error_limits.max_geometry_representation_error_upper_bound,
+        "max_geometry_representation_error_upper_bound",
+    )?;
+    validate_nonnegative_finite(
+        input.requirement.physical_model_error_limits.max_discretization_error_upper_bound,
+        "max_discretization_error_upper_bound",
+    )?;
+    validate_nonnegative_finite(
+        input.requirement.physical_model_error_limits.max_total_error_upper_bound,
+        "max_total_error_upper_bound",
+    )?
     if let Some(boundary) = &input.requirement.decision_boundary {
         if !boundary.threshold.is_finite() {
             return Err(PolicyError::NonFinite("requirement.decision_boundary.threshold"));
@@ -658,7 +711,21 @@ fn validate_input(input: &PolicyInputV2) -> Result<(), PolicyError> {
         validate_nonnegative_finite(
             candidate.uncertainty_upper_bound,
             "uncertainty_upper_bound",
+        )?;        validate_nonnegative_finite(
+            candidate.physical_model_error_budget.model_form_error_upper_bound,
+            "candidate.model_form_error_upper_bound",
         )?;
+        validate_nonnegative_finite(
+            candidate.physical_model_error_budget.geometry_representation_error_upper_bound,
+            "candidate.geometry_representation_error_upper_bound",
+        )?;
+        validate_nonnegative_finite(
+            candidate.physical_model_error_budget.discretization_error_upper_bound,
+            "candidate.discretization_error_upper_bound",
+        )?;
+        if !total_physical_model_error(candidate).is_finite() {
+            return Err(PolicyError::NonFinite("candidate.total_physical_model_error_upper_bound"));
+        }
         if let Some(estimate) = &candidate.decision_estimate {
             validate_nonempty(&estimate.quantity_id, "candidate.decision_estimate.quantity_id")?;
             validate_nonempty(&estimate.unit, "candidate.decision_estimate.unit")?;
@@ -709,7 +776,7 @@ fn classify_decision_estimate(
 }
 
 fn decision_class(
-    input: &PolicyInputV2,
+    input: &PolicyInputV3,
     candidate: &ModelCandidate,
 ) -> Option<DecisionClass> {
     let boundary = input.requirement.decision_boundary.as_ref()?;
@@ -726,7 +793,7 @@ fn decision_class(
 }
 
 fn rejection_reasons(
-    input: &PolicyInputV2,
+    input: &PolicyInputV3,
     candidate: &ModelCandidate,
     decision_class: Option<DecisionClass>,
 ) -> Vec<RejectionReason> {
@@ -822,6 +889,21 @@ fn rejection_reasons(
 
     if candidate.residual_upper_bound > input.requirement.max_residual_upper_bound {
         reasons.push(RejectionReason::ResidualBoundExceeded);
+    }    let error_budget = &candidate.physical_model_error_budget;
+    let error_limits = &input.requirement.physical_model_error_limits;
+    if error_budget.model_form_error_upper_bound > error_limits.max_model_form_error_upper_bound {
+        reasons.push(RejectionReason::ModelFormErrorBoundExceeded);
+    }
+    if error_budget.geometry_representation_error_upper_bound
+        > error_limits.max_geometry_representation_error_upper_bound
+    {
+        reasons.push(RejectionReason::GeometryRepresentationErrorBoundExceeded);
+    }
+    if error_budget.discretization_error_upper_bound > error_limits.max_discretization_error_upper_bound {
+        reasons.push(RejectionReason::DiscretizationErrorBoundExceeded);
+    }
+    if total_physical_model_error(candidate) > error_limits.max_total_error_upper_bound {
+        reasons.push(RejectionReason::TotalPhysicalModelErrorBoundExceeded);
     }
     if candidate.uncertainty_upper_bound > input.requirement.max_uncertainty_upper_bound {
         reasons.push(RejectionReason::UncertaintyBoundExceeded);
@@ -837,7 +919,15 @@ fn rejection_reasons(
     reasons
 }
 
-fn canonical_input_sha256(input: &PolicyInputV2) -> Result<String, PolicyError> {
+/// Sum conservative, non-negative model-form, geometry and discretization bounds.
+/// These bounds are never weighted or allowed to cancel one another.
+fn total_physical_model_error(candidate: &ModelCandidate) -> f64 {
+    candidate.physical_model_error_budget.model_form_error_upper_bound
+        + candidate.physical_model_error_budget.geometry_representation_error_upper_bound
+        + candidate.physical_model_error_budget.discretization_error_upper_bound
+}
+
+fn canonical_input_sha256(input: &PolicyInputV3) -> Result<String, PolicyError> {
     let mut canonical = input.clone();
     canonical
         .candidates
@@ -909,13 +999,18 @@ mod tests {
             hard_constraints: HardConstraintDisposition::WithinBounds,
             residual_upper_bound: 0.01,
             uncertainty_upper_bound: 0.02,
+            physical_model_error_budget: PhysicalModelErrorBudget {
+                model_form_error_upper_bound: 0.02,
+                geometry_representation_error_upper_bound: 0.03,
+                discretization_error_upper_bound: 0.01,
+            },
             p95_wall_time_us: runtime,
             peak_memory_bytes: memory,
         }
     }
 
-    fn input() -> PolicyInputV2 {
-        PolicyInputV2 {
+    fn input() -> PolicyInputV3 {
+        PolicyInputV3 {
             schema_version: SCHEMA_VERSION,
             decision_risk: DecisionRisk::EngineeringDecision,
             scenario_id: "rigid-contact-known-answer-01".to_owned(),
@@ -926,6 +1021,12 @@ mod tests {
                 reference_frame: "world".to_owned(),
                 max_residual_upper_bound: 0.1,
                 max_uncertainty_upper_bound: 0.1,
+                physical_model_error_limits: PhysicalModelErrorLimits {
+                    max_model_form_error_upper_bound: 0.05,
+                    max_geometry_representation_error_upper_bound: 0.05,
+                    max_discretization_error_upper_bound: 0.05,
+                    max_total_error_upper_bound: 0.15,
+                },
                 decision_boundary: None,
             },
             budget: ResourceBudget {
@@ -971,6 +1072,56 @@ mod tests {
         reduced.candidates.pop();
         let partial = evaluate(&reduced).expect("partial");
         assert_ne!(full.input_sha256, partial.input_sha256);
+    }
+
+    #[test]
+    fn each_physical_error_source_is_an_independent_hard_gate() {
+        let mut data = input();
+        data.candidates[0].physical_model_error_budget.model_form_error_upper_bound = 0.06;
+        data.candidates[1].physical_model_error_budget.geometry_representation_error_upper_bound = 0.06;
+        let receipt = evaluate(&data).expect("well-formed source-error bounds");
+        let slow = receipt.evaluations.iter().find(|item| item.model_id == "slow-qualified").unwrap();
+        let fast = receipt.evaluations.iter().find(|item| item.model_id == "fast-qualified").unwrap();
+        assert!(slow.rejection_reasons.contains(&RejectionReason::ModelFormErrorBoundExceeded));
+        assert!(fast.rejection_reasons.contains(&RejectionReason::GeometryRepresentationErrorBoundExceeded));
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Abstain { reason: AbstentionReason::NoAdmissibleCandidate }
+        );
+    }
+
+    #[test]
+    fn total_physical_error_is_a_conservative_sum_not_a_weighted_score() {
+        let mut data = input();
+        data.candidates.truncate(1);
+        data.candidates[0].physical_model_error_budget = PhysicalModelErrorBudget {
+            model_form_error_upper_bound: 0.04,
+            geometry_representation_error_upper_bound: 0.04,
+            discretization_error_upper_bound: 0.04,
+        };
+        data.requirement.physical_model_error_limits.max_total_error_upper_bound = 0.11;
+        let receipt = evaluate(&data).expect("well-formed error budget");
+        assert_eq!(
+            receipt.decision,
+            PolicyDecision::Abstain { reason: AbstentionReason::NoAdmissibleCandidate }
+        );
+        let evaluation = &receipt.evaluations[0];
+        assert!((evaluation.total_physical_model_error_upper_bound - 0.12).abs() < 1.0e-12);
+        assert!(evaluation.rejection_reasons.contains(&RejectionReason::TotalPhysicalModelErrorBoundExceeded));
+
+        data.requirement.physical_model_error_limits.max_total_error_upper_bound = 0.12;
+        let admitted = evaluate(&data).expect("exact conservative total budget");
+        assert!(matches!(admitted.decision, PolicyDecision::Selected { .. }));
+        assert!((admitted.evaluations[0].total_physical_model_error_upper_bound - 0.12).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn discretization_error_has_its_own_rejection_reason() {
+        let mut data = input();
+        data.candidates.truncate(1);
+        data.candidates[0].physical_model_error_budget.discretization_error_upper_bound = 0.06;
+        let receipt = evaluate(&data).expect("well-formed discretization bound");
+        assert!(receipt.evaluations[0].rejection_reasons.contains(&RejectionReason::DiscretizationErrorBoundExceeded));
     }
 
     #[test]
@@ -1278,7 +1429,7 @@ mod tests {
         }
     }
 
-    fn decision_boundary_input() -> PolicyInputV2 {
+    fn decision_boundary_input() -> PolicyInputV3 {
         let mut data = input();
         data.requirement.decision_boundary = Some(DecisionBoundary {
             threshold: 10.0,
@@ -1464,7 +1615,7 @@ mod tests {
                 to_model_id: "slow-qualified".to_owned(),
                 trigger: MonitorTrigger::ResidualExceeded,
                 observation_receipt_sha256: H3.to_owned(),
-                next_input_sha256: evaluate(&PolicyInputV2 {
+                next_input_sha256: evaluate(&PolicyInputV3 {
                     candidates: vec![candidate("slow-qualified", 900, 2_000)],
                     ..data.clone()
                 })
@@ -1666,7 +1817,7 @@ mod tests {
                 to_model_id: "slow-qualified".to_owned(),
                 trigger: MonitorTrigger::ResidualExceeded,
                 observation_receipt_sha256: H3.to_owned(),
-                next_input_sha256: evaluate(&PolicyInputV2 {
+                next_input_sha256: evaluate(&PolicyInputV3 {
                     candidates: vec![candidate("slow-qualified", 900, 2_000)],
                     ..data.clone()
                 })
