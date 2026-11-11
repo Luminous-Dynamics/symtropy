@@ -16,11 +16,10 @@
 
 pub mod angular_dynamics;
 pub mod articulation;
-pub mod compound_inertia_3d;
-pub mod mass_properties_3d;
 pub mod body;
 pub mod broadphase;
 pub mod ccd;
+pub mod compound_inertia_3d;
 pub mod constraint;
 pub mod contact;
 pub mod diagnostics;
@@ -30,6 +29,7 @@ pub mod integrator;
 pub mod island;
 pub mod joints;
 pub mod manifold_gen;
+pub mod mass_properties_3d;
 pub mod raycast;
 pub mod replay;
 pub mod support_map;
