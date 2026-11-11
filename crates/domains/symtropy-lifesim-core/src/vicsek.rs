@@ -352,6 +352,7 @@ pub struct PairedInterventionStep {
 pub struct PairedInterventionResult {
     pub intervention: HeadingIntervention,
     pub update_rule: VicsekUpdateRule,
+    pub perception: VicsekPerception,
     pub initial_sham_metrics: VicsekMetrics,
     pub initial_treatment_metrics: VicsekMetrics,
     pub common_random_numbers: bool,
@@ -495,6 +496,42 @@ impl VicsekModel {
         &self.particles
     }
 
+    /// Whether a focal particle sees a target at the supplied positions.
+    ///
+    /// The target position is already selected under the configured neighbour-time rule.
+    /// Visual-sector perception uses the focal heading at the beginning of the update.
+    fn perceives(
+        &self,
+        focal_position: (f64, f64),
+        focal_heading_rad: f64,
+        target_position: (f64, f64),
+    ) -> bool {
+        let (dx, dy) = periodic_displacement(
+            focal_position.0,
+            focal_position.1,
+            target_position.0,
+            target_position.1,
+            self.config.box_size,
+        );
+        if dx.hypot(dy) > self.config.interaction_radius {
+            return false;
+        }
+        match self.perception {
+            VicsekPerception::MetricRadius => true,
+            VicsekPerception::VisualSector {
+                half_aperture_rad,
+                offset_rad,
+            } => {
+                if dx.abs() <= f64::EPSILON && dy.abs() <= f64::EPSILON {
+                    return true;
+                }
+                let bearing = dy.atan2(dx);
+                let visual_axis = wrap_angle(focal_heading_rad + offset_rad);
+                wrap_signed_angle(bearing - visual_axis).abs() <= half_aperture_rad
+            }
+        }
+    }
+
     /// Directly set one particle's heading as a controlled intervention.
     ///
     /// The method returns a receipt with the previous and imposed headings and does not
@@ -593,16 +630,16 @@ impl VicsekModel {
             let mut sum_sin = 0.0;
             for (neighbor_index, neighbor) in previous.iter().enumerate() {
                 let (neighbor_x, neighbor_y) = neighbour_positions[neighbor_index];
-                let (dx, dy) = periodic_displacement(
-                    neighbour_positions[index].0,
-                    neighbour_positions[index].1,
-                    neighbor_x,
-                    neighbor_y,
-                    self.config.box_size,
-                );
-                if dx.hypot(dy) <= self.config.interaction_radius {
-                    // In either convention, the interaction graph is selected according
-                    // to the configured position time, while alignment uses headings from t.
+                if neighbor_index == index
+                    || self.perceives(
+                        neighbour_positions[index],
+                        particle.heading_rad,
+                        (neighbor_x, neighbor_y),
+                    )
+                {
+                    // Visibility is focal-agent-specific. In visual-sector mode, A may see
+                    // B without B seeing A; each focal agent still aligns on neighbour
+                    // headings from the frozen previous state.
                     sum_cos += neighbor.heading_rad.cos();
                     sum_sin += neighbor.heading_rad.sin();
                 }
@@ -700,24 +737,28 @@ impl VicsekModel {
             for right in (left + 1)..count {
                 let a = self.particles[left];
                 let b = self.particles[right];
-                let (dx, dy) = periodic_displacement(
-                    a.x,
-                    a.y,
-                    b.x,
-                    b.y,
-                    self.config.box_size,
-                );
-                if dx.hypot(dy) <= self.config.interaction_radius {
+                let left_sees_right = self.perceives((a.x, a.y), a.heading_rad, (b.x, b.y));
+                let right_sees_left = self.perceives((b.x, b.y), b.heading_rad, (a.x, a.y));
+
+                if left_sees_right {
                     neighbor_counts[left] += 1;
+                    local_sum_cos[left] += b.heading_rad.cos();
+                    local_sum_sin[left] += b.heading_rad.sin();
+                }
+                if right_sees_left {
                     neighbor_counts[right] += 1;
+                    local_sum_cos[right] += a.heading_rad.cos();
+                    local_sum_sin[right] += a.heading_rad.sin();
+                }
+
+                // Topology statistics use the weakly connected projection for visual-sector
+                // perception: an undirected graph edge exists if either directed visibility
+                // relation exists. Out-degree and local order remain focal-agent-specific.
+                if left_sees_right || right_sees_left {
                     if let Some(graph) = &mut adjacency {
                         graph[left].push(right);
                         graph[right].push(left);
                     }
-                    local_sum_cos[left] += b.heading_rad.cos();
-                    local_sum_cos[right] += a.heading_rad.cos();
-                    local_sum_sin[left] += b.heading_rad.sin();
-                    local_sum_sin[right] += a.heading_rad.sin();
                     union(&mut parents, left, right);
                 }
             }
@@ -912,6 +953,13 @@ impl VicsekModel {
         VicsekMetrics {
             tick: self.tick,
             update_rule: self.config.update_rule,
+            perception: self.perception,
+            graph_semantics: match self.perception {
+                VicsekPerception::MetricRadius => VicsekGraphSemantics::UndirectedMetric,
+                VicsekPerception::VisualSector { .. } => {
+                    VicsekGraphSemantics::WeaklyConnectedProjectionOfDirectedVisibility
+                }
+            },
             particle_count: count,
             polar_order,
             mean_neighbors_excluding_self: mean_neighbors,
@@ -960,6 +1008,7 @@ pub fn run_paired_heading_intervention(
     let intervention = treatment.intervene_heading(particle_index, imposed_heading_rad)?;
     let initial_treatment_metrics = treatment.fast_metrics();
     let update_rule = baseline.config.update_rule;
+    let perception = baseline.perception;
     let untreated_count = baseline.particles.len().saturating_sub(1);
     let mut response_rows = Vec::with_capacity(steps);
 
@@ -1026,6 +1075,7 @@ pub fn run_paired_heading_intervention(
     Ok(PairedInterventionResult {
         intervention,
         update_rule,
+        perception,
         initial_sham_metrics,
         initial_treatment_metrics,
         common_random_numbers: true,
