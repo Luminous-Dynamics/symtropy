@@ -14,7 +14,7 @@ const REPAIRED_MODEL: &str = "sha256-civdyn-repaired-network-model";
 const CALIBRATION: &str = "sha256-civdyn-repair-calibration";
 const SOURCE: &str = "sha256-civdyn-fresh-network-source";
 const DRAW_COUNT: usize = 5;
-const CSV_COLUMNS: usize = 29;
+const CSV_COLUMNS: usize = 36;
 
 fn csv_field(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
@@ -154,6 +154,7 @@ fn repair_input(
         ],
         challenge_registry: registry(),
         challenge_manifest: manifest(),
+        maximum_interval_width_ratio: 1.0,
         baseline_assessment: baseline,
         repaired_assessment: repaired,
     }
@@ -191,13 +192,29 @@ fn emit_report(scenario: &str, report: &RepairQualificationReport) {
             report.primary_baseline_discrepancy_count.to_string(),
             report.primary_repaired_discrepancy_count.to_string(),
             report.challenge_unit_count.to_string(),
+            format!("{:.6}", report.maximum_interval_width_ratio),
+            transition
+                .baseline_interval_width
+                .map(|width| format!("{width:.6}"))
+                .unwrap_or_default(),
+            transition
+                .repaired_interval_width
+                .map(|width| format!("{width:.6}"))
+                .unwrap_or_default(),
+            transition
+                .interval_width_ratio
+                .map(|ratio| format!("{ratio:.6}"))
+                .unwrap_or_default(),
+            transition.width_budget_exceeded.to_string(),
+            report.width_budget_exceeded_count.to_string(),
+            report.primary_width_budget_exceeded_count.to_string(),
         ]);
     }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
-        "scenario,statistic_id,independent_unit_id,primary,required,baseline_status,repaired_status,transition,observation_digest,source_digest,sample_size,baseline_draw_count,repaired_draw_count,baseline_model_digest,repaired_model_digest,repair_plan_digest,diagnostic_manifest_digest,challenge_manifest_id,challenge_manifest_digest,calibration_data_digest,central_mass,evidence_complete,overall_status,primary_improvement_count,primary_regression_count,primary_persistent_discrepancy_count,primary_baseline_discrepancy_count,primary_repaired_discrepancy_count,challenge_unit_count"
+        "scenario,statistic_id,independent_unit_id,primary,required,baseline_status,repaired_status,transition,observation_digest,source_digest,sample_size,baseline_draw_count,repaired_draw_count,baseline_model_digest,repaired_model_digest,repair_plan_digest,diagnostic_manifest_digest,challenge_manifest_id,challenge_manifest_digest,calibration_data_digest,central_mass,evidence_complete,overall_status,primary_improvement_count,primary_regression_count,primary_persistent_discrepancy_count,primary_baseline_discrepancy_count,primary_repaired_discrepancy_count,challenge_unit_count,maximum_interval_width_ratio,baseline_interval_width,repaired_interval_width,interval_width_ratio,width_budget_exceeded,width_budget_exceeded_count,primary_width_budget_exceeded_count"
     );
 
     let baseline_failing = assessment(
@@ -246,6 +263,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         regressed,
     ))?;
     emit_report("regression_detected", &regression_report);
+
+    let width_limited_baseline = assessment(
+        BASELINE_MODEL,
+        [0.1, 0.2, 0.2, 0.3, 0.4],
+        [0.6, 0.7, 0.75, 0.8, 0.9],
+    )?;
+    let width_inflated_repair = assessment(
+        REPAIRED_MODEL,
+        [0.0, 0.2, 0.4, 0.8, 1.0],
+        [0.6, 0.7, 0.75, 0.8, 0.9],
+    )?;
+    let width_limited_report = qualify_repair_on_fresh_challenge(&repair_input(
+        "sha256-repair-plan-width-inflation",
+        width_limited_baseline,
+        width_inflated_repair,
+    ))?;
+    emit_report("width_budget_exceeded", &width_limited_report);
 
     Ok(())
 }
