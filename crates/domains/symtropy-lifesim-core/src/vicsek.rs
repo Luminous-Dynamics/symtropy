@@ -144,6 +144,7 @@ pub enum VicsekError {
         box_size: f64,
     },
     NonFiniteHeading { particle: usize },
+    ParticleIndexOutOfBounds { particle: usize, particle_count: usize },
     TickOverflow,
 }
 
@@ -170,6 +171,13 @@ impl fmt::Display for VicsekError {
             Self::NonFiniteHeading { particle } => {
                 write!(f, "particle {particle} has a non-finite heading")
             }
+            Self::ParticleIndexOutOfBounds {
+                particle,
+                particle_count,
+            } => write!(
+                f,
+                "intervention particle index {particle} is outside population size {particle_count}"
+            ),
             Self::TickOverflow => write!(f, "Vicsek tick counter overflow"),
         }
     }
@@ -219,6 +227,16 @@ pub struct VicsekMetrics {
     pub cluster_count: usize,
     /// Fraction of all particles in the largest connected component.
     pub largest_cluster_fraction: f64,
+}
+
+/// Receipt for a direct heading intervention applied at the current model tick.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HeadingIntervention {
+    /// Model tick at which the intervention was imposed, before the next update.
+    pub tick: u64,
+    pub particle_index: usize,
+    pub previous_heading_rad: f64,
+    pub imposed_heading_rad: f64,
 }
 
 /// Periodic two-dimensional Vicsek active-particle reference model.
@@ -317,6 +335,39 @@ impl VicsekModel {
 
     pub fn particles(&self) -> &[VicsekParticle] {
         &self.particles
+    }
+
+    /// Directly set one particle's heading as a controlled intervention.
+    ///
+    /// The method returns a receipt with the previous and imposed headings and does not
+    /// advance or reset the PRNG stream. Clone the pre-intervention model to construct a
+    /// matched sham control with identical state and future noise draws.
+    pub fn intervene_heading(
+        &mut self,
+        particle_index: usize,
+        imposed_heading_rad: f64,
+    ) -> Result<HeadingIntervention, VicsekError> {
+        if !imposed_heading_rad.is_finite() {
+            return Err(VicsekError::NonFiniteHeading {
+                particle: particle_index,
+            });
+        }
+        let particle_count = self.particles.len();
+        let Some(particle) = self.particles.get_mut(particle_index) else {
+            return Err(VicsekError::ParticleIndexOutOfBounds {
+                particle: particle_index,
+                particle_count,
+            });
+        };
+        let previous_heading_rad = particle.heading_rad;
+        let imposed_heading_rad = wrap_angle(imposed_heading_rad);
+        particle.heading_rad = imposed_heading_rad;
+        Ok(HeadingIntervention {
+            tick: self.tick,
+            particle_index,
+            previous_heading_rad,
+            imposed_heading_rad,
+        })
     }
 
     /// Advance one synchronous Vicsek update under the configured neighbour-time rule.
@@ -939,6 +990,90 @@ mod tests {
         assert_eq!(metrics.mean_shortest_path_length, Some(4.0 / 3.0));
         assert_eq!(metrics.mean_clustering_coefficient, 0.0);
         assert_eq!(metrics.connected_pair_fraction, 1.0);
+    }
+
+    #[test]
+    fn all_to_all_heading_intervention_changes_untreated_particles_vs_sham() {
+        let particles = (0..6)
+            .map(|index| VicsekParticle {
+                x: (index as f64 + 0.5) * 10.0 / 6.0,
+                y: 5.0,
+                heading_rad: 0.0,
+            })
+            .collect();
+        let config = VicsekConfig {
+            box_size: 10.0,
+            interaction_radius: 8.0,
+            speed: 0.0,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::NextPositionAlignment,
+        };
+        let baseline = VicsekModel::new(particles, config, 31).unwrap();
+        let mut sham = baseline.clone();
+        let mut treated = baseline;
+
+        let receipt = treated.intervene_heading(0, std::f64::consts::FRAC_PI_2).unwrap();
+        assert_eq!(receipt.tick, 0);
+        assert_eq!(receipt.particle_index, 0);
+        assert_eq!(receipt.previous_heading_rad, 0.0);
+        assert_eq!(receipt.imposed_heading_rad, std::f64::consts::FRAC_PI_2);
+
+        sham.step().unwrap();
+        treated.step().unwrap();
+
+        // Five unperturbed headings point along +x and one imposed heading points +y.
+        // The all-to-all alignment rule makes every particle adopt atan2(1, 5).
+        let expected = 1.0_f64.atan2(5.0);
+        assert!((treated.particles()[1].heading_rad - expected).abs() < 1.0e-12);
+        assert_eq!(sham.particles()[1].heading_rad, 0.0);
+        assert!(treated.particles()[1].heading_rad > sham.particles()[1].heading_rad);
+    }
+
+    #[test]
+    fn self_only_heading_intervention_does_not_change_other_particles() {
+        let particles = vec![
+            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle { x: 5.0, y: 5.0, heading_rad: 1.0 },
+            VicsekParticle { x: 9.0, y: 9.0, heading_rad: 2.0 },
+        ];
+        let config = VicsekConfig {
+            box_size: 12.0,
+            interaction_radius: 0.0,
+            speed: 0.0,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let baseline = VicsekModel::new(particles, config, 37).unwrap();
+        let mut sham = baseline.clone();
+        let mut treated = baseline;
+        treated
+            .intervene_heading(0, std::f64::consts::FRAC_PI_2)
+            .unwrap();
+
+        sham.step().unwrap();
+        treated.step().unwrap();
+
+        assert_eq!(treated.particles()[0].heading_rad, std::f64::consts::FRAC_PI_2);
+        assert_eq!(treated.particles()[1].heading_rad, sham.particles()[1].heading_rad);
+        assert_eq!(treated.particles()[2].heading_rad, sham.particles()[2].heading_rad);
+    }
+
+    #[test]
+    fn heading_intervention_rejects_nonfinite_and_out_of_range_inputs() {
+        let mut model = VicsekModel::random_uniform(2, VicsekConfig::default(), 41).unwrap();
+        assert!(matches!(
+            model.intervene_heading(0, f64::NAN),
+            Err(VicsekError::NonFiniteHeading { particle: 0 })
+        ));
+        assert!(matches!(
+            model.intervene_heading(2, 0.0),
+            Err(VicsekError::ParticleIndexOutOfBounds {
+                particle: 2,
+                particle_count: 2
+            })
+        ));
     }
 
     #[test]
