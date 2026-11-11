@@ -324,7 +324,17 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             continue;
         }
 
-            let residual = metric_equation_residual(
+        let scaled_metric_residual = metric_equation_relative_residual(
+            &metric,
+            &next_velocity,
+            &rhs,
+            &input.contact_jacobian,
+            &impulse,
+        );
+        if scaled_metric_residual > 1.0e-8 {
+            continue;
+        }
+        let residual = metric_equation_residual(
             &metric,
             &next_velocity,
             &rhs,
