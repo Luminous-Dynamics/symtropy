@@ -97,17 +97,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "9d84916f491b4edcb85e4e36975ace6a7f230e0971d74572ed0d0c05ec90d93e4d2e9307c959ac060516b04e0742875ea9f3f3177442accb59afeded3c35f204"
+      "signature_hex": "f3fe3eb6364b5b4f661fcf2411fd8d612cbe7af6fd055105b4758a1d48d099446e857186d3c7f38facb80e414555828fbf6e4b23d6f81399fb83b39c023aa00b"
     },
     {
       "claims": {
@@ -129,17 +132,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "6cc34d0afb9b7a72eed30f97c2e72191ca53a4a3fe06deb88fc16417c46d247d9503fd7bb8f8a8fd0a36b2a9939780832a3358472b47a432f24e0d624954ad08"
+      "signature_hex": "3d997555d1f25ac1117460b3b3c855fb51e257e37b5cadeb02f1f9e9c95a3ab8729b08d166e1226ce9fd1f09c00be69e201ef62974bad1f7c3520d7b06ca6504"
     },
     {
       "claims": {
@@ -161,17 +167,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "07e86098a5d6896bdc4d6282a2d033e186041fb871d49e5d142ec27c2c064f0516c557e7b6f682f34efed505dc8e00dac913357230298953479af8742cb96604"
+      "signature_hex": "c7e957397b09addffcfb906afe9ab4e7ec7d458f4a4314792f4712999138508f2e2a9cf121d57a6fe75ae7b61e50593c7b2c8e6ded1b8254f9139e3bf1f6c004"
     },
     {
       "claims": {
@@ -193,17 +202,20 @@
         "payload": {
           "event_type": "service_completion",
           "channel": "service_completion",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": null,
           "unit": null,
           "evidence_class": "service_attestation",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "f833f0ea55b1b7397a1d6603de743f99e9cd9f3574d533e80f957b347ee7dce79ca9da3f026bf47c2b966a0eafae7330cc3cfca43d0411c92517caeefa2abb0e"
+      "signature_hex": "226cb3ed8cf49054a4b62fcbc8ba5f1a8f3ef18250de77eb50111ce0b497ebc982402bdfa82f3e3396d445a4748f87077e81df3ee1b339e2781b3c519f04f207"
     },
     {
       "claims": {
@@ -225,17 +237,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "f3f3ccef1a9bf14855253489853b13b45c4814c3a9fe79468188acc15c2c7f6f5c0453e67f2a0ae2f321b052cb22e6306ee3d0d6f7597927ae0aeb45d22f4904"
+      "signature_hex": "6658bd6f33128f52b2d503365c0efcd9c2bbbf3586b6c484174ffd10466a846ce16538c5e1577b13c2804c7b9a5ce5bbbfa40f124ad2c4c9e53c11b91499a40c"
     },
     {
       "claims": {
@@ -257,17 +272,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "5866c5da29c0e3662558c0507384808c7c3e0c85deaaeed0e45ebf256ac316abf9209208be36deafdaa9a55e527366d9802ab40ab6700f989d597c2373f8c709"
+      "signature_hex": "2eacd02124c494b26845a2ec844e5175cb5014dc5414d735922d0bbe5db369659ca9d4db9341505476d6c69ebc4d816f150ec794ca9bbe9a9c554d68994bb207"
     },
     {
       "claims": {
@@ -289,17 +307,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "c9f39227ff816c4a277e25b6767412cac3881e611f89968f60ad1224fccc84e5e78d147e97adb7ffe756ca5fef0efd932ecd742267fa694cefa92faeebcba201"
+      "signature_hex": "81c88943212ad460c1764bdd8bb6c96abf1bfa23eef88371c49d715af404242175ee4795bc2feef4ab5eaf851e94133a3f7a7a437b7d593396775f52e93c4e08"
     },
     {
       "claims": {
@@ -321,17 +342,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "806ea5fe759400c7faaab10834b18e0414aadba27a031ddb56a1a32fca0d8c3b11179caae0563ca761d5e612c06a9c7c2e5b7d05b96cf7cf5c1291573fb0ed02"
+      "signature_hex": "f1dbc1763336700c0f4c4a64353c3b1e91fa02f567f7704cc791cc40ee0b0b8efb3aaac7bf5febf7716487522c00688da04b544daf5fd3867e4b95f0eef05e0b"
     },
     {
       "claims": {
@@ -353,17 +377,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "expired",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "a4d805f5e7d1ea91861ba1b5c97ff1679cb51207ab731a68127b0ac83ddacde749817f6fddce5482dfc0a20e17a574553e278e637cb9f75d13c20e33e5fbea00"
+      "signature_hex": "e68bc2f494bb69d1fd8d76be89ba6722aec1cc8eee2ffcb460ab2e16ea581071b18f991f45ee3159b307808191cde7fd01e25a6e22a34eb9a7365cecca2de108"
     },
     {
       "claims": {
@@ -385,17 +412,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": false,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "b6475af83e1da0a78f559228bda1f255cb5ff48c651f9aa3ae56f85674ae6a90ce6d0fa3a4ad2a54e265b8c3b3f06ffc71f08d65e1f6fbb18b0bfc48fa1ffe0c"
+      "signature_hex": "ef2466b0b44a34a16bc5a23b186a13b9eb0e9e579408216adff272e98bdc45c44e64d7b1952a2a58282fd417517e9c3a0b482e781a73e180acc2171739080603"
     },
     {
       "claims": {
@@ -417,10 +447,13 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
@@ -449,17 +482,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "f0e853d2f9d5e65b3b3870aea24aafb49902b25eba282ef301847be999e61383ad177dae6ca835bdd5514a3aecc616940a7e25a6c15583ac25a5c3d9d682e203"
+      "signature_hex": "7080cedf2c139cd56cbfb8fb22c12fe55575a41ef041d64d9fd629717901e71219c7535e94dcd19ccf0549d5abc1c11b8ab35911aec0ad799ebe8b8abfe66600"
     },
     {
       "claims": {
@@ -481,17 +517,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "94e51eab473f1458df6a3077904493c5c37b0d6ad1d6daaef0296445507b36ca0e36184bd72d7bfb8a21c335f34de6bb02a45fb9c40e865d26c8f7ee73997905"
+      "signature_hex": "844604610be96114ec5ce4679848460eb0bc9511643746e7d65df123425f3651b642f7da381e6bb896d64df23ecc95936f99bce0fde7c197d20876a261bb6404"
     },
     {
       "claims": {
@@ -513,17 +552,20 @@
         "payload": {
           "event_type": "soc_snapshot",
           "channel": "pack_soc",
+          "sensor_ref": "synthetic-sensor-pack-soc-001",
           "value": 72.5,
           "unit": "percent",
           "evidence_class": "bms_reported",
           "calibration_status": "current",
+          "calibration_ref": "synthetic-calibration-pack-soc-001",
+          "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
           "sensor_valid": true,
           "out_of_domain": false,
           "protocol_ref": null,
           "observation_digest": null
         }
       },
-      "signature_hex": "51cde3c9aa1b3e6b03c0063b4a2f21ce0d19a532d3d9e4205006ada053bd514afe35b4590e5e552e1ed826f6bee26c8f0525e107f004882de9a4f5bf9a9c2f0a"
+      "signature_hex": "ac0f10267625b00a6b90c35e937f6739652327dda2e2ade8048f15ba85d39030c8352518449ce143e5027a2832ce480bbeba51087522468243c70b3b7e7b410b"
     }
   ]
 }
