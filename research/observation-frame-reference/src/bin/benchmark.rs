@@ -84,6 +84,7 @@ fn synthetic_frame(entity_count: usize, event_count: usize) -> ObservationFrameI
             initial_state_sha256: digest('e'),
             simulation_state_sha256: digest('f'),
             model_profile_sha256: digest('1'),
+            observable_set_sha256: digest('2'),
             adapter_version: "reference-oracle-bench-v1".to_string(),
             simulation_tick: 1,
         },
