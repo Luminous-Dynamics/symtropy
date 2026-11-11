@@ -1,0 +1,252 @@
+{
+  "twin_id": "SHIPYARD-WELD-CELL-01",
+  "twin_revision": "CELL-R7",
+  "declared_operational_purpose": "offline_state_visualization_and_recommendation",
+  "configuration_sha256": "0808080808080808080808080808080808080808080808080808080808080808",
+  "now_tick": 4205,
+  "requested_capabilities": [
+    "read_only_telemetry"
+  ],
+  "permitted_capabilities": [
+    "read_only_telemetry"
+  ],
+  "required_streams": [
+    {
+      "stream_id": "process-current-voltage",
+      "owner_twin_id": "OWNER-process-current-voltage",
+      "schema_id": "urn:luminous:process-current-voltage",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "expected_interval_ticks": 1,
+      "maximum_jitter_ticks": 0,
+      "maximum_latency_ticks": 5,
+      "maximum_age_ticks": 10,
+      "maximum_clock_offset_ticks": 5,
+      "maximum_clock_drift_ppm": 10,
+      "maximum_fidelity_residual_units": 5,
+      "minimum_coverage_permille": 990
+    },
+    {
+      "stream_id": "robot-tcp",
+      "owner_twin_id": "OWNER-robot-tcp",
+      "schema_id": "urn:luminous:robot-tcp",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "expected_interval_ticks": 80,
+      "maximum_jitter_ticks": 0,
+      "maximum_latency_ticks": 5,
+      "maximum_age_ticks": 100,
+      "maximum_clock_offset_ticks": 5,
+      "maximum_clock_drift_ppm": 10,
+      "maximum_fidelity_residual_units": 5,
+      "minimum_coverage_permille": 990
+    },
+    {
+      "stream_id": "power-source-opcua",
+      "owner_twin_id": "OWNER-power-source-opcua",
+      "schema_id": "urn:luminous:power-source-opcua",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "expected_interval_ticks": 1000,
+      "maximum_jitter_ticks": 0,
+      "maximum_latency_ticks": 10,
+      "maximum_age_ticks": 1100,
+      "maximum_clock_offset_ticks": 5,
+      "maximum_clock_drift_ppm": 10,
+      "maximum_fidelity_residual_units": 5,
+      "minimum_coverage_permille": 990
+    },
+    {
+      "stream_id": "scan-profiles",
+      "owner_twin_id": "OWNER-scan-profiles",
+      "schema_id": "urn:luminous:scan-profiles",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "expected_interval_ticks": 200,
+      "maximum_jitter_ticks": 0,
+      "maximum_latency_ticks": 10,
+      "maximum_age_ticks": 250,
+      "maximum_clock_offset_ticks": 5,
+      "maximum_clock_drift_ppm": 10,
+      "maximum_fidelity_residual_units": 5,
+      "minimum_coverage_permille": 990
+    },
+    {
+      "stream_id": "video-triggers",
+      "owner_twin_id": "OWNER-video-triggers",
+      "schema_id": "urn:luminous:video-triggers",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "expected_interval_ticks": 250,
+      "maximum_jitter_ticks": 0,
+      "maximum_latency_ticks": 20,
+      "maximum_age_ticks": 300,
+      "maximum_clock_offset_ticks": 5,
+      "maximum_clock_drift_ppm": 10,
+      "maximum_fidelity_residual_units": 5,
+      "minimum_coverage_permille": 990
+    }
+  ],
+  "observations": [
+    {
+      "stream_id": "process-current-voltage",
+      "owner_twin_id": "OWNER-process-current-voltage",
+      "schema_id": "urn:luminous:process-current-voltage",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "evidence_class": "synthetic",
+      "source_timestamps_ticks": [
+        4196,
+        4197,
+        4198,
+        4199,
+        4200
+      ],
+      "ingestion_timestamps_ticks": [
+        4197,
+        4198,
+        4199,
+        4200,
+        4201
+      ],
+      "measured_clock_offset_ticks": 2,
+      "measured_clock_drift_ppm": 2,
+      "calibration_id": "CAL-process-current-voltage",
+      "calibration_revision": "R1",
+      "calibration_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+      "calibration_expires_at_tick": 5000,
+      "source_sha256": "0101010101010101010101010101010101010101010101010101010101010101",
+      "transformation_receipt_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+      "fidelity_residual_units": 3,
+      "coverage_permille": 995
+    },
+    {
+      "stream_id": "robot-tcp",
+      "owner_twin_id": "OWNER-robot-tcp",
+      "schema_id": "urn:luminous:robot-tcp",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "evidence_class": "synthetic",
+      "source_timestamps_ticks": [
+        3880,
+        3960,
+        4040,
+        4120,
+        4200
+      ],
+      "ingestion_timestamps_ticks": [
+        3882,
+        3962,
+        4042,
+        4122,
+        4202
+      ],
+      "measured_clock_offset_ticks": 2,
+      "measured_clock_drift_ppm": 2,
+      "calibration_id": "CAL-robot-tcp",
+      "calibration_revision": "R1",
+      "calibration_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+      "calibration_expires_at_tick": 5000,
+      "source_sha256": "0101010101010101010101010101010101010101010101010101010101010101",
+      "transformation_receipt_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+      "fidelity_residual_units": 3,
+      "coverage_permille": 995
+    },
+    {
+      "stream_id": "power-source-opcua",
+      "owner_twin_id": "OWNER-power-source-opcua",
+      "schema_id": "urn:luminous:power-source-opcua",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "evidence_class": "synthetic",
+      "source_timestamps_ticks": [
+        200,
+        1200,
+        2200,
+        3200,
+        4200
+      ],
+      "ingestion_timestamps_ticks": [
+        205,
+        1205,
+        2205,
+        3205,
+        4205
+      ],
+      "measured_clock_offset_ticks": 2,
+      "measured_clock_drift_ppm": 2,
+      "calibration_id": "CAL-power-source-opcua",
+      "calibration_revision": "R1",
+      "calibration_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+      "calibration_expires_at_tick": 5000,
+      "source_sha256": "0101010101010101010101010101010101010101010101010101010101010101",
+      "transformation_receipt_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+      "fidelity_residual_units": 3,
+      "coverage_permille": 995
+    },
+    {
+      "stream_id": "scan-profiles",
+      "owner_twin_id": "OWNER-scan-profiles",
+      "schema_id": "urn:luminous:scan-profiles",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "evidence_class": "synthetic",
+      "source_timestamps_ticks": [
+        3400,
+        3600,
+        3800,
+        4000,
+        4200
+      ],
+      "ingestion_timestamps_ticks": [
+        3403,
+        3603,
+        3803,
+        4003,
+        4203
+      ],
+      "measured_clock_offset_ticks": 2,
+      "measured_clock_drift_ppm": 2,
+      "calibration_id": "CAL-scan-profiles",
+      "calibration_revision": "R1",
+      "calibration_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+      "calibration_expires_at_tick": 5000,
+      "source_sha256": "0101010101010101010101010101010101010101010101010101010101010101",
+      "transformation_receipt_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+      "fidelity_residual_units": 3,
+      "coverage_permille": 995
+    },
+    {
+      "stream_id": "video-triggers",
+      "owner_twin_id": "OWNER-video-triggers",
+      "schema_id": "urn:luminous:video-triggers",
+      "schema_version": "1.0.0",
+      "clock_id": "CELL-MASTER",
+      "evidence_class": "synthetic",
+      "source_timestamps_ticks": [
+        3200,
+        3450,
+        3700,
+        3950,
+        4200
+      ],
+      "ingestion_timestamps_ticks": [
+        3210,
+        3460,
+        3710,
+        3960,
+        4210
+      ],
+      "measured_clock_offset_ticks": 2,
+      "measured_clock_drift_ppm": 2,
+      "calibration_id": "CAL-video-triggers",
+      "calibration_revision": "R1",
+      "calibration_sha256": "0303030303030303030303030303030303030303030303030303030303030303",
+      "calibration_expires_at_tick": 5000,
+      "source_sha256": "0101010101010101010101010101010101010101010101010101010101010101",
+      "transformation_receipt_sha256": "0202020202020202020202020202020202020202020202020202020202020202",
+      "fidelity_residual_units": 3,
+      "coverage_permille": 995
+    }
+  ]
+}
