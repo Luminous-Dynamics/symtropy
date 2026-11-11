@@ -22,13 +22,15 @@
       "minItems": 2,
       "items": {
         "$ref": "#/$defs/domain"
-      }
+      },
+      "maxItems": 7
     },
     "bridge_edges": {
       "type": "array",
       "items": {
         "$ref": "#/$defs/bridge_edge"
-      }
+      },
+      "maxItems": 12
     },
     "request": {
       "$ref": "#/$defs/request"
