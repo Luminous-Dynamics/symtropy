@@ -28,8 +28,9 @@ pub enum ColonyInformationMode {
     /// Decentralized stigmergic mode: agents use only locally sampled pheromone/danger
     /// gradients and direct contact with food; no path search over hidden food locations.
     StigmergicFieldOnly,
-    /// Independent local-search control: no pheromone emission or sensing; agents use
-    /// deterministic local exploration and a declared nest landmark when returning.
+    /// Independent local-search control: no shared food/home trail emission or sensing;
+    /// agents use deterministic local exploration, direct food contact, local obstacle/
+    /// danger perception, and a declared nest landmark when returning.
     IndependentLocalSearch,
 }
 
