@@ -118,6 +118,29 @@ The module currently covers:
 12. A deterministic 48-case rotated-positive-second-moment sweep checks 6×6 spatial-matrix symmetry, positive semidefiniteness and positive finite kinetic energy.
 13. A nonzero point shift cannot retain the original point identity.
 14. A non-identity frame rotation cannot retain the original frame identity.
+15. Contact effective mass matches analytic sphere and anisotropic values, survives frame re-expression and point shift, and is invariant to extreme finite normal scaling.
+16. A contact wrench that excites an idealized zero-inertia rotational mode rejects as singular.
+
+## Contact inverse effective mass
+
+`contact_inverse_effective_mass(r, n, tolerance)` extends the spatial-inertia reference into the same one-row contact response used by a Delassus operator. The offset `r` is from reference point P to the contact, and `n` is normalized internally. The unit normal impulse generates the spatial wrench:
+
+`w = [r × n; n]`
+
+The checked 6×6 reference solves `M_P * delta_twist = w`, then reconstructs the point-velocity change:
+
+`delta_v_contact = delta_v_P + delta_omega × r`
+
+The returned normal inverse effective mass is:
+
+`k_n^-1 = n · delta_v_contact`
+
+Invalid/non-finite contact inputs reject. A scale-relative eigenspace pseudoinverse supports physically singular mass models only when the contact wrench has no material component in an unobservable spatial mode; an excited singular mode rejects instead of generating an arbitrary response. Material negative effective mass rejects. The normal direction is normalized after component scaling, so its magnitude and very large finite scale do not change the result.
+
+Tests cover analytic sphere and anisotropic diagonal contact responses, zero torque for a normal impulse through the COM, covariance under frame re-expression, invariance under reference-point shift, extreme finite normal scaling, and a degenerate-rod singular-mode negative control.
+
+This API is a reference-only 6×6 solve. It is not yet production Delassus assembly, a multi-contact solver, or a Coulomb friction solver. The existing small-island oracle in #2998 remains the owner of multi-row contact assembly and LCP feasibility. Compare the one-row scalar against it only after matching its generalized impulse sign and point/frame conventions.
+
 
 ## Criterion reference-cost measurements
 
