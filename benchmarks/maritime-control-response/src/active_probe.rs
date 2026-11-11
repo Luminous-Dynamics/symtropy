@@ -68,6 +68,8 @@ pub struct DiagnosticProbeCandidate {
     pub likelihood_calibration_sha256: String,
     /// Digest of the independently reviewed risk assessment backing risk_score_ppm.
     pub risk_assessment_sha256: String,
+    /// Caller-supplied review flag; issuer identity and signature are verified upstream.
+    pub risk_assessment_reviewed_by_authority_owner: bool,
     pub hypothesis_manifest_sha256: String,
     pub expected_cost_seconds: f64,
     pub expected_delay_seconds: f64,
@@ -140,6 +142,7 @@ pub enum ProbeRejectionReason {
     CostBudgetExceeded,
     DelayBudgetExceeded,
     RiskBudgetExceeded,
+    RiskEvidenceNotReviewed,
     InformationGainBelowMinimum,
 }
 
@@ -188,6 +191,7 @@ pub struct ProbeBaselineSelection {
     pub baseline: ProbeBaseline,
     pub selected_candidate_id: Option<String>,
     pub eligible_candidate_count: usize,
+    pub candidate_catalogue_sha256: String,
     pub eligible_catalogue_sha256: String,
     pub seed_manifest_sha256: Option<String>,
 }
@@ -196,6 +200,9 @@ pub struct ProbeBaselineSelection {
 pub struct ProbePortfolio {
     pub hypothesis_manifest_sha256: String,
     pub policy_sha256: String,
+    pub candidate_catalogue_sha256: String,
+    pub risk_assessment_catalogue_sha256: String,
+    pub risk_evidence_reviewed_by_authority_owner: bool,
     pub prior_entropy_nats: f64,
     pub ranked_recommendations: Vec<RankedDiagnosticProbe>,
     /// Retains eligible and rejected candidates so exclusion is inspectable.
@@ -271,6 +278,7 @@ pub fn candidate_manifest_sha256(
         candidate.likelihood_model_sha256.as_str(),
         candidate.likelihood_calibration_sha256.as_str(),
         candidate.risk_assessment_sha256.as_str(),
+        candidate.risk_assessment_reviewed_by_authority_owner,
         candidate.hypothesis_manifest_sha256.as_str(),
         candidate.expected_cost_seconds,
         candidate.expected_delay_seconds,
@@ -310,6 +318,36 @@ pub fn rank_diagnostic_probes(
     let policy_digest =
         sha256_serializable(b"symtropy-diagnostic-probe-policy-v1\0", policy)?;
     let prior_entropy = entropy(&prior);
+    let mut candidate_catalogue = candidates
+        .iter()
+        .map(|candidate| (
+            candidate.candidate_id.clone(),
+            candidate.candidate_manifest_sha256.clone(),
+        ))
+        .collect::<Vec<_>>();
+    candidate_catalogue.sort_by(|left, right| left.0.cmp(&right.0));
+    let candidate_catalogue_sha256 = sha256_serializable(
+        b"symtropy-diagnostic-candidate-catalogue-v1\0",
+        &candidate_catalogue,
+    )?;
+    let mut risk_assessment_catalogue = candidates
+        .iter()
+        .map(|candidate| (
+            candidate.candidate_id.clone(),
+            candidate.risk_assessment_sha256.clone(),
+            candidate.risk_assessment_reviewed_by_authority_owner,
+            candidate.risk_score_ppm,
+        ))
+        .collect::<Vec<_>>();
+    risk_assessment_catalogue.sort_by(|left, right| left.0.cmp(&right.0));
+    let risk_assessment_catalogue_sha256 = sha256_serializable(
+        b"symtropy-diagnostic-risk-assessment-catalogue-v1\0",
+        &risk_assessment_catalogue,
+    )?;
+    let risk_evidence_reviewed_by_authority_owner = !candidates.is_empty()
+        && candidates
+            .iter()
+            .all(|candidate| candidate.risk_assessment_reviewed_by_authority_owner);
 
     let mut candidate_ids = BTreeSet::new();
     let mut assessments = Vec::with_capacity(candidates.len());
@@ -398,6 +436,9 @@ pub fn rank_diagnostic_probes(
         {
             rejection_reasons.push(ProbeRejectionReason::RiskBudgetExceeded);
         }
+        if !candidate.risk_assessment_reviewed_by_authority_owner {
+            rejection_reasons.push(ProbeRejectionReason::RiskEvidenceNotReviewed);
+        }
         if worst_case_information_gain < policy.minimum_expected_information_gain_nats {
             rejection_reasons.push(ProbeRejectionReason::InformationGainBelowMinimum);
         }
@@ -458,6 +499,9 @@ pub fn rank_diagnostic_probes(
     Ok(ProbePortfolio {
         hypothesis_manifest_sha256: hypothesis_digest,
         policy_sha256: policy_digest,
+        candidate_catalogue_sha256,
+        risk_assessment_catalogue_sha256,
+        risk_evidence_reviewed_by_authority_owner,
         prior_entropy_nats: prior_entropy,
         ranked_recommendations: ranked,
         assessments,
@@ -494,19 +538,51 @@ pub fn select_probe_baseline(
     {
         return Err(ProbeError::CandidateCatalogMismatch);
     }
+    let mut catalogue_entries = Vec::with_capacity(candidates.len());
+    for candidate in candidates {
+        if !is_sha256_hex(&candidate.candidate_manifest_sha256)
+            || candidate_manifest_sha256(candidate)? != candidate.candidate_manifest_sha256
+        {
+            return Err(ProbeError::InvalidCandidateDigest(candidate.candidate_id.clone()));
+        }
+        catalogue_entries.push((
+            candidate.candidate_id.clone(),
+            candidate.candidate_manifest_sha256.clone(),
+        ));
+    }
+    catalogue_entries.sort_by(|left, right| left.0.cmp(&right.0));
+    let candidate_catalogue_sha256 = sha256_serializable(
+        b"symtropy-diagnostic-candidate-catalogue-v1\0",
+        &catalogue_entries,
+    )?;
+    if candidate_catalogue_sha256 != portfolio.candidate_catalogue_sha256 {
+        return Err(ProbeError::CandidateCatalogMismatch);
+    }
 
     let eligible_assessments = portfolio
         .assessments
         .iter()
         .filter(|assessment| assessment.eligible)
         .collect::<Vec<_>>();
-    let eligible_ids = eligible_assessments
+    let eligible_entries = eligible_assessments
         .iter()
-        .map(|assessment| assessment.candidate_id.clone())
+        .filter_map(|assessment| {
+            let candidate = candidates
+                .iter()
+                .find(|candidate| candidate.candidate_id == assessment.candidate_id)?;
+            Some((
+                candidate.candidate_id.clone(),
+                candidate.candidate_manifest_sha256.clone(),
+            ))
+        })
+        .collect::<Vec<_>>();
+    let eligible_ids = eligible_entries
+        .iter()
+        .map(|(candidate_id, _)| candidate_id.clone())
         .collect::<Vec<_>>();
     let eligible_catalogue_sha256 = sha256_serializable(
         b"symtropy-diagnostic-eligible-probe-catalogue-v1\0",
-        &eligible_ids,
+        &eligible_entries,
     )?;
     let eligible_candidates = candidates
         .iter()
@@ -559,13 +635,19 @@ pub fn select_probe_baseline(
             if eligible_ids.is_empty() {
                 None
             } else {
-                let random_digest = sha256_serializable(
-                    b"symtropy-diagnostic-random-baseline-v1\0",
-                    &(seed, &eligible_ids),
-                )?;
-                let draw = u64::from_str_radix(&random_digest[..16], 16)
-                    .map_err(|_| ProbeError::InvalidSeedDigest)?;
-                Some(eligible_ids[(draw % eligible_ids.len() as u64) as usize].clone())
+                eligible_entries
+                    .iter()
+                    .map(|(candidate_id, candidate_sha256)| {
+                        let draw = sha256_serializable(
+                            b"symtropy-diagnostic-random-baseline-v1\0",
+                            &(seed, candidate_id, candidate_sha256),
+                        )?;
+                        Ok((draw, candidate_id.clone()))
+                    })
+                    .collect::<Result<Vec<_>, ProbeError>>()?
+                    .into_iter()
+                    .min_by(|left, right| left.0.cmp(&right.0))
+                    .map(|(_, candidate_id)| candidate_id)
             }
         }
         ProbeBaseline::RiskAdjustedWorstCaseInformationGain => portfolio
@@ -577,6 +659,7 @@ pub fn select_probe_baseline(
         baseline,
         selected_candidate_id,
         eligible_candidate_count: eligible_ids.len(),
+        candidate_catalogue_sha256,
         eligible_catalogue_sha256,
         seed_manifest_sha256: if baseline == ProbeBaseline::SeededRandomEligible {
             seed_manifest_sha256.map(str::to_owned)
@@ -848,6 +931,7 @@ mod tests {
             likelihood_model_sha256: digest('a'),
             likelihood_calibration_sha256: digest('b'),
             risk_assessment_sha256: digest('c'),
+            risk_assessment_reviewed_by_authority_owner: true,
             hypothesis_manifest_sha256,
             expected_cost_seconds: 30.0,
             expected_delay_seconds: 10.0,
