@@ -256,6 +256,13 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         .map(|gap| -gap / input.dt)
         .collect::<Vec<_>>();
 
+    let free_normal_velocity = mat_vec(&input.contact_jacobian, &unconstrained);
+    let contact_rhs = target_velocity
+        .iter()
+        .zip(&free_normal_velocity)
+        .map(|(target, free)| target - free)
+        .collect::<Vec<_>>();
+
     let mut selected: Option<(Vec<f64>, Vec<f64>, Vec<f64>, Vec<bool>, f64)> = None;
     let subset_count = 1_u64 << m;
 
@@ -274,13 +281,7 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             let mut active_rhs = vec![0.0; active_count];
 
             for (active_row, &contact_row) in active_indices.iter().enumerate() {
-                let free_normal_velocity = dot(
-                    &(0..n)
-                        .map(|dof| input.contact_jacobian[(contact_row, dof)])
-                        .collect::<Vec<_>>(),
-                    &unconstrained,
-                );
-                active_rhs[active_row] = target_velocity[contact_row] - free_normal_velocity;
+                active_rhs[active_row] = contact_rhs[contact_row];
                 for (active_col, &contact_col) in active_indices.iter().enumerate() {
                     active_matrix[(active_row, active_col)] = delassus[(contact_row, contact_col)];
                 }
@@ -289,7 +290,7 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             let Some(active_impulse) = solve_spd(&active_matrix, &active_rhs) else {
                 continue;
             };
-            if relative_negative_residual(&active_impulse) > SOLVE_TOLERANCE {
+            if relative_negative_residual(&active_impulse, &active_matrix, &active_rhs) > SOLVE_TOLERANCE {
                 continue;
             }
             for (active_index, &contact_index) in active_indices.iter().enumerate() {
@@ -312,7 +313,7 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
 
         let primal_residual =
             relative_primal_feasibility(&normal_velocity, &target_velocity, &slack);
-        if relative_negative_residual(&impulse) > SOLVE_TOLERANCE
+        if relative_negative_residual(&impulse, &delassus, &contact_rhs) > SOLVE_TOLERANCE
             || primal_residual > SOLVE_TOLERANCE
         {
             continue;
@@ -386,7 +387,7 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         &contact_impulse,
     );
     let max_scaled_dual_feasibility_residual =
-        relative_negative_residual(&contact_impulse);
+        relative_negative_residual(&contact_impulse, &delassus, &contact_rhs);
     let max_scaled_primal_feasibility_residual = relative_primal_feasibility(
         &normal_velocity,
         &target_velocity,
@@ -585,22 +586,41 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
     left.iter().zip(right).map(|(a, b)| a * b).sum()
 }
 
-/// Return max negative violation divided by the vector's own infinity norm.
-/// This is invariant under uniform unit changes; the all-zero vector has no
-/// violation and therefore returns zero.
-fn relative_negative_residual(values: &[f64]) -> f64 {
-    let scale = values.iter().map(|value| value.abs()).fold(0.0_f64, f64::max);
-    let violation = values
+/// Return the maximum dimensionless unilateral impulse violation, normalized
+/// by a contact-local impulse scale derived from that Delassus row.
+///
+/// For row i, the characteristic impulse is based on the local free velocity
+/// residual and the absolute coupled impulse contribution divided by W_ii.
+/// This prevents a large impulse at an unrelated contact from masking a
+/// negative impulse at a much smaller contact scale.
+fn relative_negative_residual(values: &[f64], delassus: &Matrix, contact_rhs: &[f64]) -> f64 {
+    values
         .iter()
-        .map(|value| (-value).max(0.0))
-        .fold(0.0_f64, f64::max);
-    if violation == 0.0 {
-        0.0
-    } else if scale > 0.0 {
-        violation / scale
-    } else {
-        f64::INFINITY
-    }
+        .enumerate()
+        .map(|(row, value)| {
+            let violation = (-value).max(0.0);
+            if violation == 0.0 {
+                return 0.0;
+            }
+
+            let diagonal = delassus[(row, row)].abs();
+            let coupled_velocity_scale = contact_rhs[row].abs()
+                + (0..values.len())
+                    .map(|col| delassus[(row, col)].abs() * values[col].abs())
+                    .sum::<f64>();
+            let local_impulse_scale = if diagonal > 0.0 {
+                coupled_velocity_scale / diagonal
+            } else {
+                0.0
+            };
+            let scale = value.abs().max(local_impulse_scale);
+            if scale > 0.0 && scale.is_finite() {
+                violation / scale
+            } else {
+                f64::INFINITY
+            }
+        })
+        .fold(0.0_f64, f64::max)
 }
 
 /// Dimensionless unilateral feasibility residual, normalized per contact row
@@ -894,7 +914,7 @@ mod tests {
         let target_velocity = [0.25, 0.0];
         let slack = [0.02, -1.0];
         let reference = (
-            relative_negative_residual(&impulse),
+            relative_negative_residual(&impulse, &Matrix::identity(2), &impulse),
             relative_primal_feasibility(&normal_velocity, &target_velocity, &slack),
             relative_complementarity_residual(
                 &impulse,
@@ -910,7 +930,7 @@ mod tests {
             let scaled_target = target_velocity.map(|value| value * scale);
             let scaled_slack = slack.map(|value| value * scale);
             let observed = (
-                relative_negative_residual(&scaled_impulse),
+                relative_negative_residual(&scaled_impulse, &Matrix::identity(2), &scaled_impulse),
                 relative_primal_feasibility(&scaled_normal, &scaled_target, &scaled_slack),
                 relative_complementarity_residual(
                     &scaled_impulse,
@@ -921,6 +941,18 @@ mod tests {
             );
             assert_eq!(observed, reference, "velocity/impulse scale={scale:e}");
         }
+    }
+
+    #[test]
+    fn local_dual_violation_cannot_be_hidden_by_larger_contact_impulse() {
+        let delassus = Matrix::identity(2);
+        let impulse = [1.0e8, -1.0e-8];
+        let contact_rhs = [1.0e8, -1.0e-8];
+
+        // A single global infinity norm would report 1e-16 here and accept
+        // the second contact's 100% local dual-feasibility violation.
+        let residual = relative_negative_residual(&impulse, &delassus, &contact_rhs);
+        assert_eq!(residual, 1.0);
     }
 
     #[test]
