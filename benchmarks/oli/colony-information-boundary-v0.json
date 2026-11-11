@@ -1,0 +1,120 @@
+{
+  "schema_version": "oli-collective-information-boundary-v0.1",
+  "case_id": "OLI-COLONY-FOOD-DISCOVERY-INFORMATION-BOUNDARY-001",
+  "status": "INFORMATION_MODES_IMPLEMENTED_FIXTURE_SPECIFIED_RUST_VALIDATION_PENDING",
+  "evidence_class": "SYNTHETIC_SIMULATION",
+  "claim_ceiling": "Controlled comparison of an oracle-assisted foraging model, local stigmergic field use, and independent local exploration; no general collective-intelligence or biological-life claim",
+  "source_implementation": {
+    "repository": "https://github.com/Luminous-Dynamics/symtropy",
+    "crate": "symtropy-colony",
+    "source_file": "crates/domains/symtropy-colony/src/lib.rs",
+    "baseline_revision": "main@26ac25651bb2ac9e54c321b845df54673429f3f8",
+    "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4578",
+    "source_audit_finding": "The existing food_score performed a shortest-path search over the complete hidden food_sources map for every candidate move. home_score also used global shortest-path and Manhattan hints. The legacy mode is retained and explicitly tagged as an oracle-assisted upper bound."
+  },
+  "information_modes": [
+    {
+      "id": "ORACLE_PATH_ASSISTED",
+      "implementation": "ColonyInformationMode::OraclePathAssisted",
+      "semantics": "Preserves the legacy behavior. Each agent's candidate-cell food score includes a shortest-path hint to any actual food source in the complete world map. Return scoring includes shortest path to the nest plus its global Manhattan coordinate. Agents also read locally sampled pheromone/danger fields.",
+      "information_access": "Global food coordinates and global obstacle-map path search, plus local field values.",
+      "interpretation": "Omniscient upper-bound/debug baseline, not a decentralized collective.",
+      "legacy_default": true
+    },
+    {
+      "id": "STIGMERGIC_FIELD_ONLY",
+      "implementation": "ColonyInformationMode::StigmergicFieldOnly",
+      "semantics": "Agents score candidate neighbour cells using food/home pheromone values at those cells and locally sampled danger. Food sources emit a food field; returning agents deposit food trails; outbound agents deposit home trails. Food is acquired only through direct cell contact. No path search over hidden food coordinates or global shortest-path hint to the nest is used in agent movement.",
+      "information_access": "Local neighbouring field cells, obstacle/danger sensing, and direct contact. The global world/telemetry still records state but is not consulted by food/home movement scoring.",
+      "interpretation": "Decentralized stigmergic/environmental-memory comparison."
+    },
+    {
+      "id": "INDEPENDENT_LOCAL_SEARCH",
+      "implementation": "ColonyInformationMode::IndependentLocalSearch",
+      "semantics": "Agents do not read or write shared food/home trails and do not receive food-source path hints. Each uses deterministic local exploration, local obstacle/danger perception, direct food contact, and a declared nest landmark (Manhattan distance) for return navigation. Shared environment fields continue to be updated for observational parity, but food/home fields do not affect agent choices.",
+      "information_access": "Local obstacle/danger sensing, direct cell contact, deterministic local exploration, and known nest landmark; no food/home pheromone channel.",
+      "interpretation": "Matched independent-agent baseline without inter-agent environmental memory."
+    }
+  ],
+  "source_audit": {
+    "confirmed_global_food_hint": "food_score called shortest_path_distance((x,y), goal) where goal inspected self.food_sources at arbitrary coordinates.",
+    "confirmed_global_home_hint": "home_score combined shortest_path_distance to the nest with global Manhattan distance.",
+    "consequence": "The legacy default was not a pure local stigmergic model despite pheromone fields. It was an oracle-assisted planner with environmental fields as additional inputs.",
+    "correction": "The legacy mode remains available but is now named and tagged. StigmergicFieldOnly and IndependentLocalSearch explicitly suppress the hidden food-map hint. Tests verify the score invariance under changed hidden food coordinates when field observations are held fixed."
+  },
+  "frozen_scenario": {
+    "width": 32,
+    "height": 16,
+    "nest": [
+      2,
+      8
+    ],
+    "ants": 64,
+    "food_sources": [
+      {
+        "position": [
+          28,
+          8
+        ],
+        "initial_amount": 5000
+      }
+    ],
+    "steps": 180,
+    "obstacles": [],
+    "external_danger_fields": [],
+    "neighbourhood": "four orthogonal adjacent cells plus stay; grid boundaries are non-periodic",
+    "movement": "one cell per ant per tick, maximum",
+    "food_collection": "one food unit per ant on direct contact with a nonempty source cell",
+    "delivery": "one food unit per ant reaching nest while carrying"
+  },
+  "matched_comparison_contract": {
+    "identical_world": true,
+    "same_initial_ant_positions_roles_and_attributes": true,
+    "same_number_of_agents": true,
+    "same_food_inventory": true,
+    "same_obstacles_and_external_hazards": true,
+    "same_tick_and_move_budget": true,
+    "same_direct_contact_rule": true,
+    "same_danger_and_obstacle_sensing": true,
+    "information_budget_is_intentionally_varied": true,
+    "random_seed_policy": "The current colony reference uses deterministic jitter from (x,y,ant_index,tick), not a seeded stochastic PRNG. Do not report seed ensembles until independent initial-condition/scenario generation is added.",
+    "telemetry_note": "ColonyMind metrics are global evaluator telemetry. scout_ratio is currently diagnostic and does not dynamically change the AntRole composition. It must not be treated as an agent-level local observation."
+  },
+  "required_metrics": [
+    "food_reserve_at_tick_180",
+    "first_delivery_tick",
+    "deliveries_per_1000_ant_ticks",
+    "fraction_of_agents_that_delivered",
+    "remaining_food_at_source",
+    "food_trail_total",
+    "home_trail_total",
+    "danger_exposure_by_agent",
+    "mean_path_length_per_delivered_unit",
+    "information_mode"
+  ],
+  "qualification_rules": [
+    "Do not label OraclePathAssisted as a decentralized collective.",
+    "Do not claim a collective advantage unless StigmergicFieldOnly exceeds the matched IndependentLocalSearch baseline on a pre-registered task metric with repeated independent scenarios.",
+    "Report OraclePathAssisted only as an omniscient upper-bound baseline.",
+    "Pheromone coherence, trail entropy and food reserve are separate observations, not universal intelligence scores.",
+    "The deterministic jitter and all trajectory frames from one scenario are not independent samples.",
+    "Add mirrored/rotated source placements, obstacle layouts, hazard fields and multiple map geometries before a broad claim."
+  ],
+  "ablations": [
+    "food pheromone source reinforcement disabled",
+    "ant food-trail deposition disabled",
+    "ant home-trail deposition disabled",
+    "food/home fields randomized while preserving marginal distributions",
+    "obstacle/hazard perception held constant across modes",
+    "food source coordinate moved while all local field observations are held fixed",
+    "oracle path hints enabled versus suppressed"
+  ],
+  "reproducibility": {
+    "exact_rust_test_status": "NOT_RUN_IN_AUTHORING_ENVIRONMENT",
+    "cargo_fmt_status": "NOT_RUN",
+    "cargo_test_status": "NOT_RUN",
+    "data_digest_sha256": null,
+    "output_digest_status": "PENDING_EXACT_HEAD_EXECUTION",
+    "claim_status": "IMPLEMENTATION_AND_STRUCTURAL_TESTS_ONLY_UNTIL_CI"
+  }
+}
