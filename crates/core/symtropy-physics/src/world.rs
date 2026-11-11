@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use nalgebra::SVector;
-use symtropy_math::{Bivector, Capsule, HalfSpace, HyperBox, Point, Sphere, Transform};
+use symtropy_math::{Capsule, HalfSpace, HyperBox, Point, Sphere, Transform};
 
 use crate::body::{BodyHandle, NetId, RigidBody};
 use crate::broadphase;
