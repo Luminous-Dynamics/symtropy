@@ -1252,8 +1252,8 @@ mod tests {
     #[test]
     fn published_diagonal_vic_qp_enforces_parameter_decay_barriers() {
         let mut request = passivity_qp_request(
-            [0.0; 6],
-            [0.0; 6],
+            [-10.0; 6],
+            [-10.0; 6],
             [1.0; 6],
             [1.0; 6],
             [0.0; 6],
@@ -1266,8 +1266,48 @@ mod tests {
         request.stiffness_decay_rate[1] = 0.5;
 
         let result = solve_diagonal_passivity_rate_qp(request).unwrap();
-        assert!(result.inertia_rate[0] >= -0.5);
-        assert!(result.stiffness_rate[1] >= -1.5);
+        assert!((result.inertia_rate[0] + 0.5).abs() < 1.0e-12);
+        assert!((result.stiffness_rate[1] + 1.5).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn published_diagonal_vic_qp_uses_positive_objective_weights() {
+        let mut request = passivity_qp_request(
+            [4.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [4.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [10.0; 6],
+            [10.0; 6],
+            [2.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        );
+        request.objective_weights[0] = 2.0;
+        request.objective_weights[6] = 1.0;
+        let result = solve_diagonal_passivity_rate_qp(request).unwrap();
+
+        let rhs = 2.0 * (4.0_f64 * 1.0 * 2.0).sqrt();
+        let excess = 12.0 - rhs;
+        let denominator = 1.0 / 2.0 + 4.0 / 1.0;
+        let lambda = excess / denominator;
+        assert!((result.inertia_rate[0] - (4.0 - lambda / 2.0)).abs() < 1.0e-8);
+        assert!((result.stiffness_rate[0] - (4.0 - 2.0 * lambda)).abs() < 1.0e-8);
+        assert!(result.passivity_lhs_w <= result.damping_power_rhs_w + 1.0e-9);
+    }
+
+    #[test]
+    fn published_diagonal_vic_qp_clamps_reference_to_additional_upper_rate_limits() {
+        let result = solve_diagonal_passivity_rate_qp(passivity_qp_request(
+            [5.0; 6],
+            [7.0; 6],
+            [0.25; 6],
+            [0.5; 6],
+            [0.0; 6],
+            [0.0; 6],
+        ))
+        .unwrap();
+
+        assert_eq!(result.inertia_rate, [0.25; 6]);
+        assert_eq!(result.stiffness_rate, [0.5; 6]);
+        assert!(!result.projection_active);
     }
 
     #[test]
