@@ -76,6 +76,23 @@ It also pins 640×360 RGB geometry, an initial 33,333 µs frame interval, a 66,6
 
 5. Create a dedicated empty output directory. The harness rejects non-empty directories to avoid stale artifacts.
 
+## Actual bridge fail-closed negative controls
+
+After a successful fresh-process replay, the harness invokes the real Symthaea bridge binary against eight negative controls:
+
+- stale-frame reuse: tick 1 RGB bytes are supplied under tick 2's otherwise valid receipt;
+- pixel corruption: one RGB byte is flipped while the original receipt is retained;
+- camera-calibration digest mismatch against the expected calibration pinned in BridgeConfig;
+- capture timestamp/receipt mismatch;
+- zero sequence;
+- upstream policy-receipt commitment tampering;
+- true observation-sequence rollback: world tick advances but the observation sequence drops from 2 to 1, with a newly rendered and internally consistent receipt;
+- true capture-clock regression: world tick and sequence advance while capture time moves behind the preceding capture, again with a newly rendered and internally consistent receipt.
+
+Each control requires the expected bridge error name, a non-zero exit status, no receipts JSON and zero HDC artifact files. The multi-observation rollback specifically proves that the first valid vector is staged but not committed when a later observation rejects.
+
+The Symthaea bridge CLI now stages all HDC vectors and writes neither the receipt file nor policy-input artifacts until the full episode has passed validation. The output receipt path must be unused and the policy-input directory absent or empty before a run. This is output atomicity for validation failures, not a claim of crash-safe multi-file storage transactions.
+
 ## Run
 
 From the Symtropy repository root, assuming the Symtropy and Symthaea working trees are sibling directories named `symtropy` and `symthaea`:
@@ -106,6 +123,7 @@ The output directory must be empty or new. Reusing a non-empty directory is reje
 - `symthaea-bridge/policy-inputs/`: first-process 16,384D dimension-prefixed little-endian f32 vectors; each binary SHA-256 equals its receipt's `fused_policy_input_sha256`.
 - `symthaea-bridge/fresh-process-replay/`: second independent bridge process receipts and HDC vectors; the harness requires receipt JSON and every HDC artifact byte to match the first process exactly.
 - `symthaea-bridge/fresh-process-replay-comparison.json`: exact bridge receipt/vector replay result;
+- `bridge-negative-controls/negative-control-results.json`: eight exact-error fail-closed checks, each recording exit code, receipts-file presence and number of HDC artifact files.
 - `fresh-process-replay-comparison.json`: exact renderer frame, audit, missing-event and disposition-ledger replay result.
 - `fresh-process-replay-input.json`, `fresh-process-replay-output.json`: serialized snapshots and OS-process replay results.
 - `counterfactual-branch/` and `counterfactual-branch-record.json`: changed-action/changed-actor-pose branch fixture.
