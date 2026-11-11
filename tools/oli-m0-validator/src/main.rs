@@ -619,10 +619,13 @@ fn validate_fixture(value: &Value) -> Vec<String> {
                         .to_owned(),
                 );
             }
-            if let (Some(cadence), Some(process_scale)) = (cadence, process_scale) {
-                if cadence <= process_scale {
-                    errors.push("temporal false-negative control must sample more slowly than its target process timescale".to_owned());
-                }
+            if let (Some(cadence), Some(process_scale)) = (cadence, process_scale)
+                && cadence <= process_scale
+            {
+                errors.push(
+                    "temporal false-negative control must sample more slowly than its target process timescale"
+                        .to_owned(),
+                );
             }
             if get_f64(value, &["measurement", "temporal", "coverage_fraction"])
                 .is_none_or(|fraction| fraction >= 0.5)
