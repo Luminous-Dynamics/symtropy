@@ -67,9 +67,9 @@
     "topology": "periodic_square_torus",
     "update": "synchronous_from_previous_state",
     "neighbour_rule": "all particles with minimum-image Euclidean distance <= interaction_radius; self is included in heading alignment",
-    "heading_update": "atan2(sum(sin(theta_neighbor)), sum(cos(theta_neighbor))) + uniform angular noise",
+    "heading_update": "CurrentPositionAlignment: neighbours at t, headings from t, then move along new heading. NextPositionAlignment: predict positions at t+dt using headings at t, select neighbours at t+dt, compute new headings from headings at t, and retain predicted positions.",
     "angular_noise": "uniform[-eta/2,+eta/2], eta is full interval width in radians",
-    "motion": "constant_speed * dt along the updated heading",
+    "motion": "Constant speed times dt; displacement uses updated heading in CurrentPositionAlignment and prior heading in NextPositionAlignment, as required by the erratum-aligned forward update.",
     "boundary": "periodic modulo box_size",
     "numerical_arithmetic": "IEEE754_f64",
     "implementation_complexity": "O(N^2) CPU reference",
@@ -179,38 +179,44 @@
     },
     {
       "id": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE",
-      "purpose": "Detect whether the implementation selects neighbours at t or at t+dt",
+      "purpose": "Show that current-position versus next-position neighbour selection is a substantive model choice, not an innocuous implementation detail",
       "particle_count": 2,
       "box_size": 10,
       "interaction_radius": 1.5,
       "speed": 0.8,
       "dt": 1,
       "angular_noise_width_rad": 0,
-      "initial_positions": [
-        [
-          1,
-          1
-        ],
-        [
-          3,
-          1
-        ]
-      ],
-      "initial_headings_rad": [
-        0,
-        1.5707963267948966
-      ],
-      "update_rule_comparison": {
-        "CurrentPositionAlignment": {
-          "expected_cluster_count": 2,
-          "expected_polar_order": "sqrt(1/2)"
+      "seed": 23,
+      "initial_particles": [
+        {
+          "x": 1,
+          "y": 1,
+          "heading_rad": 0
         },
-        "NextPositionAlignment": {
-          "expected_cluster_count": 1,
-          "expected_polar_order": 1
+        {
+          "x": 3,
+          "y": 1,
+          "heading_rad": 1.5707963267948966
+        }
+      ],
+      "execution_steps": 1,
+      "compare_update_rules": [
+        "CurrentPositionAlignment",
+        "NextPositionAlignment"
+      ],
+      "expected": {
+        "current_position_alignment": {
+          "cluster_count": 2,
+          "polar_order": "<0.8"
+        },
+        "next_position_alignment": {
+          "cluster_count": 1,
+          "polar_order": 1,
+          "mean_cluster_polar_order": 1
         }
       },
-      "update_rule": "CompareBoth"
+      "interpretation": "The current-position pair is outside the radius, while their predicted next positions are inside it. Under the corrected next-position-neighbour rule, the particles align using headings at t.",
+      "update_rule": "CurrentPositionAlignment"
     },
     {
       "id": "OPPOSED_LOCAL_FLOCKS_GLOBAL_CANCELLATION",
@@ -262,47 +268,6 @@
         "cluster_count": 2,
         "largest_cluster_fraction": 0.5
       },
-      "update_rule": "CurrentPositionAlignment"
-    },
-    {
-      "id": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE",
-      "purpose": "Show that current-position versus next-position neighbour selection is a substantive model choice, not an innocuous implementation detail",
-      "particle_count": 2,
-      "box_size": 10,
-      "interaction_radius": 1.5,
-      "speed": 0.8,
-      "dt": 1,
-      "angular_noise_width_rad": 0,
-      "seed": 23,
-      "initial_particles": [
-        {
-          "x": 1,
-          "y": 1,
-          "heading_rad": 0
-        },
-        {
-          "x": 3,
-          "y": 1,
-          "heading_rad": 1.5707963267948966
-        }
-      ],
-      "execution_steps": 1,
-      "compare_update_rules": [
-        "CurrentPositionAlignment",
-        "NextPositionAlignment"
-      ],
-      "expected": {
-        "current_position_alignment": {
-          "cluster_count": 2,
-          "polar_order": "<0.8"
-        },
-        "next_position_alignment": {
-          "cluster_count": 1,
-          "polar_order": 1,
-          "mean_cluster_polar_order": 1
-        }
-      },
-      "interpretation": "The current-position pair is outside the radius, while their predicted next positions are inside it. Under the corrected next-position-neighbour rule, the particles align using headings at t.",
       "update_rule": "CurrentPositionAlignment"
     },
     {
@@ -385,9 +350,9 @@
     "cluster_size_variance": "Population variance of connected-component sizes",
     "mean_cluster_polar_order": "Unweighted mean polar order calculated within each connected component; distinguishes aligned opposing clusters from global disorder",
     "cluster_polar_order_variance": "Population variance of per-component polar order",
-    "mean_clustering_coefficient_status": "NOT_IMPLEMENTED; required for parity with 2026 topology/geometry paper",
-    "mean_shortest_path_length_status": "NOT_IMPLEMENTED; required for parity with 2026 topology/geometry paper",
-    "cluster_area_perimeter_scaling_status": "NOT_IMPLEMENTED; research extension",
+    "mean_clustering_coefficient_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "mean_shortest_path_length_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "cluster_area_perimeter_scaling_status": "NOT_IMPLEMENTED; future geometry extension",
     "local_order_coverage_fraction": "Fraction of particles with at least one other particle within the interaction radius",
     "mean_clustering_coefficient": "Mean Watts–Strogatz local clustering coefficient across all particles; degree 0 or 1 contributes zero",
     "mean_shortest_path_length": "Mean unweighted shortest-path distance over connected unordered pairs only; null if there are no connected pairs",
@@ -435,7 +400,10 @@
     "erratum_comparison_pending": true,
     "source_code_parity_status": "NOT_ESTABLISHED",
     "exact_head_update_rule_required": true,
-    "update_rule_test": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE"
+    "update_rule_test": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE",
+    "graph_topology_metrics_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "causal_intervention_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "update_rule_erratum_status": "IMPLEMENTED_AS_EXPLICIT_NEXT_POSITION_ALIGNMENT_MODE; source reproduction not yet run"
   },
   "acceptance": {
     "intervention_sham_counterfactual_parity_required": true,
