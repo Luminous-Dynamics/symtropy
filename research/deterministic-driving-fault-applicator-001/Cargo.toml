@@ -1,0 +1,15 @@
+[package]
+name = "deterministic-driving-fault-applicator"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic provenance-preserving sensor and control fault transformations"
+
+[workspace]
+
+[dependencies]
+action-conditioned-offscreen-camera = { path = "../action-conditioned-offscreen-camera-001" }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
