@@ -57,7 +57,7 @@ where `T` is the stored-bivector representation of the physical applied torque. 
 - Off-centre impulse from rest: direct point-velocity response agrees with the scalar rotational inverse effective mass, and rotational kinetic-energy increase equals half the impulse dotted with the contact-point velocity change. A separate 32-case deterministic sweep compares the bivector angular response, point velocity and inverse effective mass against the conventional 3D spatial tensor `I = tr(S) 1 - S` solved through an independent LU factorization.
 - Torque-free momentum/energy derivative and instantaneous applied-torque balance.
 - Parallel-axis composition and point-cloud accumulation with scale-safe huge-offset/tiny-mass controls, explicit underflow rejection, point-mass translation invariance (including small geometry far from world origin), canonical point-cloud input-order invariance, and offset-centering negative control.
-- Invalid dimensions outside `2 <= D <= 9`, asymmetric/indefinite/zero-mass/degenerate inputs, invalid tolerance, singular rotation planes, zero impulse direction, improper Rotor, non-finite intermediates and overflow controls.
+- Invalid dimensions outside `2 <= D <= 9`, asymmetric/indefinite/zero-mass/degenerate inputs, invalid tolerance, singular rotation planes, zero impulse direction, improper Rotor, non-finite intermediates and overflow controls. Symmetric-matrix averaging preserves equal `f64::MAX` and minimum-subnormal entries, keeps exact cancellation, and rejects a nonzero average below the representable range; the 3D inertia-tensor adapter checks both representable and unrepresentable subnormal moments.
 
 ## Executable CSV qualification campaign
 
