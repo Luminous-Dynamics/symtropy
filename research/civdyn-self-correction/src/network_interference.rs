@@ -695,6 +695,20 @@ mod tests {
         let distinct: std::collections::BTreeSet<Vec<bool>> =
             draws.iter().map(|draw| draw.treated.clone()).collect();
         assert_eq!(distinct.len(), 16);
+
+        let probability_of = |target: &[bool]| {
+            draws
+                .iter()
+                .find(|assignment| assignment.treated == target)
+                .map(|assignment| assignment.probability)
+                .unwrap()
+        };
+        let all_zero = [false, false, false, false];
+        let all_one = [true, true, true, true];
+        let one_treated_per_cluster = [true, false, true, false];
+        assert!((probability_of(&all_zero) - 25.0 / 144.0).abs() < 1.0e-12);
+        assert!((probability_of(&all_one) - 25.0 / 144.0).abs() < 1.0e-12);
+        assert!((probability_of(&one_treated_per_cluster) - 1.0 / 144.0).abs() < 1.0e-12);
     }
 
     #[test]
