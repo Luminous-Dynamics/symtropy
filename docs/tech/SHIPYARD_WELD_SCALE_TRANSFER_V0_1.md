@@ -24,9 +24,11 @@ Distortion, released free-state deformation, thermal history and residual stress
 - Conservative additive uncertainty composition (no unjustified cancellation).
 - Best admissible path selected by lowest cumulative uncertainty, then path length and stable ID order.
 - 30 frozen synthetic controls (2 positives / 28 negatives).
+- Exact reference manifest for D0→D1→D2→D3 with 3 bridge edges, 45 symbolic uncertainty units and a frozen independent-known-answer CLI check.
+- 31 Rust unit/mutation tests, including strict unknown-field rejection, cross-edge specimen-independence, reverse/skip-scale rejection, path oracle bounds and a checked-in reference bridge chain.
 - Focused Rust 1.96 format, test, Clippy and corpus-check workflow.
 
-The path oracle is intentionally bounded to small test graphs. It is not a physical transfer experiment or a model solver.
+The path oracle is intentionally bounded to at most 7 domain nodes and 12 candidate edges. It is not a physical transfer experiment or a model solver. The checked-in three-edge reference chain must return exactly E01/E12/E23, D0/D1/D2/D3, cumulative uncertainty 45 and minimum empirical coverage 960‰; the CLI checks this known answer independently of the case inventory.
 
 ## Metrics and benchmark targets
 
