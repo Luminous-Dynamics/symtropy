@@ -34,6 +34,8 @@ fn main() {
     failures += bivector_roundtrip_campaign::<4>("D4");
     failures += bivector_roundtrip_campaign::<9>("D9");
     failures += mass_scaling_campaign();
+    failures += body_frame_contact_campaign();
+    failures += scale_safe_mass_properties_campaign();
 
     if failures != 0 {
         eprintln!("{failures} anisotropic reference campaign gate(s) failed");
@@ -289,6 +291,119 @@ fn bivector_roundtrip_campaign<const D: usize>(name: &str) -> usize {
         0.0,
         2.0e-11,
     )
+}
+
+fn body_frame_contact_campaign() -> usize {
+    let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+        2.0,
+        SVector::new(1.4, 0.9, 0.5),
+    )
+    .expect("valid body-frame ellipsoid");
+    let mut generator = Bivector::<3>::zero();
+    generator.set(0, 1, 0.31);
+    generator.set(0, 2, -0.22);
+    generator.set(1, 2, 0.43);
+    let body_to_world = Rotor::from_bivector(&generator);
+    let offset_body = SVector::new(0.7, -0.25, 0.4);
+    let direction_body = SVector::new(-0.2, 0.9, 0.35).normalize();
+    let offset_world = body_to_world.rotate_vector(&offset_body);
+    let direction_world = body_to_world.rotate_vector(&direction_body);
+    let body_result = body_inertia
+        .rotational_inverse_effective_mass(&offset_body, &direction_body, 1.0e-12)
+        .expect("body-frame contact response");
+    let world_result = body_inertia
+        .rotational_inverse_effective_mass_world(
+            &body_to_world,
+            &offset_world,
+            &direction_world,
+            1.0e-12,
+        )
+        .expect("world-frame contact response through body inertia");
+    let explicit_world = body_inertia
+        .rotated_by(&body_to_world)
+        .expect("validated world inertia")
+        .rotational_inverse_effective_mass(
+            &offset_world,
+            &direction_world,
+            1.0e-12,
+        )
+        .expect("explicit world-frame contact response");
+    let mut failures = 0;
+    failures += report(
+        "body_frame_contact_query_error",
+        "rotated_anisotropic_ellipsoid",
+        (world_result - body_result).abs(),
+        0.0,
+        2.0e-11,
+    );
+    failures += report(
+        "body_frame_vs_explicit_world_contact_error",
+        "rotated_anisotropic_ellipsoid",
+        (world_result - explicit_world).abs(),
+        0.0,
+        2.0e-11,
+    );
+    failures
+}
+
+fn scale_safe_mass_properties_campaign() -> usize {
+    let tiny_mass = 1.0e-310;
+    let samples = [
+        (SVector::<f64, 3>::new(-1.0e155, 0.0, 0.0), tiny_mass),
+        (SVector::<f64, 3>::new(1.0e155, 0.0, 0.0), tiny_mass),
+    ];
+    let forward = BivectorInertia::<3>::from_point_masses(samples)
+        .expect("large-offset tiny-mass point cloud");
+    let reversed = BivectorInertia::<3>::from_point_masses(samples.into_iter().rev())
+        .expect("reversed point cloud");
+    let mut failures = 0;
+    failures += report(
+        "point_cloud_large_offset_tiny_mass_sxx",
+        "mass_1e-310_offset_1e155",
+        forward.second_moment()[(0, 0)],
+        2.0,
+        1.0e-10,
+    );
+    failures += report(
+        "point_cloud_order_invariance",
+        "forward_vs_reverse",
+        (forward.second_moment() - reversed.second_moment()).norm(),
+        0.0,
+        0.0,
+    );
+
+    let underflow_samples = [
+        (SVector::<f64, 3>::new(-1.0e-100, 0.0, 0.0), 1.0e-300),
+        (SVector::<f64, 3>::new(1.0e-100, 0.0, 0.0), 1.0e-300),
+    ];
+    let rejected = BivectorInertia::<3>::from_point_masses(underflow_samples).is_err();
+    failures += report(
+        "point_cloud_underflow_rejected",
+        "nonzero_mass_moment_underflows_f64",
+        f64::from(!rejected),
+        0.0,
+        0.0,
+    );
+
+    let component = BivectorInertia::<3>::uniform_solid_ball(tiny_mass, 1.0)
+        .expect("tiny but positive component inertia");
+    let compound = BivectorInertia::<3>::combine_at_common_center(
+        tiny_mass,
+        &component,
+        &SVector::new(1.0e155, 0.0, 0.0),
+        tiny_mass,
+        &component,
+        &SVector::new(-1.0e155, 0.0, 0.0),
+    )
+    .expect("scale-safe parallel-axis composition");
+    failures += report(
+        "parallel_axis_large_offset_tiny_mass_sxx",
+        "mass_1e-310_offset_1e155",
+        compound.second_moment()[(0, 0)],
+        2.0,
+        1.0e-10,
+    );
+    failures
 }
 
 fn mass_scaling_campaign() -> usize {
