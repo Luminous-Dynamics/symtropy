@@ -180,7 +180,10 @@ impl FaultSpec {
 
     fn validate(&self) -> Vec<Finding> {
         let mut findings = Vec::new();
-        if self.onset_tick() == 0 || self.duration_ticks() == 0 {
+        if self.onset_tick() == 0
+            || self.duration_ticks() == 0
+            || self.onset_tick().checked_add(self.duration_ticks()).is_none()
+        {
             findings.push(Finding::InvalidFaultWindow);
         }
         if !is_sha256_hex(self.schedule_digest()) {
@@ -453,7 +456,18 @@ impl FaultCampaign {
             .iter()
             .filter(|event| event.fault_family == family)
             .collect::<Vec<_>>();
-        if matching_events.is_empty() {
+        let required_event_kind = match fault {
+            FaultSpec::CameraBurstDrop { .. } => FaultEventKind::ObservedMissingFrame,
+            FaultSpec::CameraPartialOcclusion { .. }
+            | FaultSpec::GpsLocalizationNoise { .. }
+            | FaultSpec::SpeedEstimateMultiplicativeNoise { .. } => FaultEventKind::Injected,
+            FaultSpec::InferenceControlDelay { .. } => FaultEventKind::ActionDelayed,
+        };
+        if matching_events.is_empty()
+            || !matching_events
+                .iter()
+                .any(|event| event.kind == required_event_kind)
+        {
             findings.push(Finding::MissingFaultEvent);
         }
         let mut event_ids = Vec::new();
@@ -485,7 +499,7 @@ impl FaultCampaign {
             ..
         } = fault
         {
-            let missing_ticks = pair
+            let missing_events = pair
                 .perturbed
                 .fault_events
                 .iter()
@@ -493,11 +507,16 @@ impl FaultCampaign {
                     event.fault_family == family
                         && event.kind == FaultEventKind::ObservedMissingFrame
                 })
+                .collect::<Vec<_>>();
+            let missing_ticks = missing_events
+                .iter()
                 .map(|event| event.tick)
                 .collect::<BTreeSet<_>>();
             let expected_missing_ticks = (*onset_tick..(*onset_tick).saturating_add(*duration_ticks))
                 .collect::<BTreeSet<_>>();
-            if missing_ticks != expected_missing_ticks {
+            if missing_events.len() != *duration_ticks as usize
+                || missing_ticks != expected_missing_ticks
+            {
                 findings.push(Finding::CameraDropDenominatorMismatch);
             }
         }
@@ -527,11 +546,23 @@ impl FaultCampaign {
         if run.expected_episodes == 0 {
             findings.push(Finding::ZeroEpisodeDenominator);
         }
-        if run.disposition == RunDisposition::Completed && run.completed_episodes == 0 {
-            findings.push(Finding::CompletedRunHasNoCompletedEpisodes);
-        }
-        if run.disposition != RunDisposition::Completed && run.completed_episodes == run.expected_episodes {
-            findings.push(Finding::RunDispositionMismatch);
+        match run.disposition {
+            RunDisposition::Completed if run.completed_episodes == 0 => {
+                findings.push(Finding::CompletedRunHasNoCompletedEpisodes);
+            }
+            RunDisposition::Failed if run.failed_episodes == 0 => {
+                findings.push(Finding::RunDispositionMismatch);
+            }
+            RunDisposition::Incomplete if run.incomplete_episodes == 0 => {
+                findings.push(Finding::RunDispositionMismatch);
+            }
+            RunDisposition::Censored if run.censored_episodes == 0 => {
+                findings.push(Finding::RunDispositionMismatch);
+            }
+            RunDisposition::TimedOut if run.timed_out_episodes == 0 => {
+                findings.push(Finding::RunDispositionMismatch);
+            }
+            _ => {}
         }
         let keys = run.metrics.keys().cloned().collect::<Vec<_>>();
         if keys != metric_ids {
