@@ -690,7 +690,10 @@ mod tests {
             .expect("reference fixture parses")
     }
 
-    fn buffer_identity(frame_sha256: &str, observable_set_sha256: &str) -> ObservationBufferIdentityV1 {
+    fn buffer_identity(
+        frame_sha256: &str,
+        observable_set_sha256: &str,
+    ) -> ObservationBufferIdentityV1 {
         ObservationBufferIdentityV1 {
             world_instance_id: "machine-test-01-world-instance".to_string(),
             world_generation_id: "generation-0001".to_string(),
@@ -794,7 +797,10 @@ mod tests {
         rebuilt.rebuild_epoch += 1;
         rebuilt.world_generation_id = "generation-0002".to_string();
         // Owned receipt is a historical value: no live-buffer check is needed.
-        assert_eq!(owned.frame_sha256, "fc5f9e54c629e395ab764f683a73e2be8f99f4c3f9e456fe52f81ce4729863fd");
+        assert_eq!(
+            owned.frame_sha256,
+            "fc5f9e54c629e395ab764f683a73e2be8f99f4c3f9e456fe52f81ce4729863fd"
+        );
         assert_eq!(rebuilt.rebuild_epoch, 8);
     }
 
