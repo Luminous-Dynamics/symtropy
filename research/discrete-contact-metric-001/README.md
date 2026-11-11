@@ -81,7 +81,7 @@ Absolute residuals remain useful diagnostics, but they cannot decide physical ad
 
 - Effective-metric equation: for each generalized coordinate, divide `|M_hat v+ - M v - h f + h K q_error - J^T p|` by the largest absolute contributing term on that coordinate; report the maximum.
 - Dual feasibility: for each contact row i, divide `max(-p_i, 0)` by its own characteristic impulse scale `max(|p_i|, (|q_i| + Σ_{j ≠ i}|W_ij||p_j|)/|W_ii|)`, where `W = J M_hat^-1 J^T` and `q = target - J v_free`. Aggregate by the maximum row residual. This prevents a large unrelated contact impulse from hiding a smaller row's negative impulse.
-- Primal feasibility: per contact row, divide the negative part of `J_i v+ - target_i` by `max(|J_i v+|, |target_i|)`.
+- Primal feasibility: per contact row, divide the negative part of `J_i v+ - target_i` by `max(|J_i v+|, |target_i|, |J_i v_free|)`. The pre-contact free normal velocity supplies a characteristic scale when an active contact drives attained velocity to approximately zero.
 - Complementarity: for each row with positive impulse, divide `|p_i s_i|` by `|p_i| max(|J_i v+|, |target_i|, |J_i v_free|)`; zero-impulse rows satisfy complementarity by construction.
 
 Zero-scale handling is explicit: an exactly zero residual maps to zero; a nonzero violation with no nonzero reference scale maps to infinity and is rejected. The active-set candidate checks use these normalized criteria rather than absolute, dimensioned cutoffs. The dual scale is row-local, not the global impulse-vector infinity norm. Absolute residual outputs remain available and must not be interpreted as cross-unit acceptance scores.
