@@ -1,0 +1,223 @@
+{
+  "schema_version": "oli-scm-rust-reference-v0.1",
+  "case_id": "OLI-SCM-INDEPENDENT-RUST-REFERENCE-001",
+  "status": "RUST_REFERENCE_ADDED_TESTS_SOURCE_REVIEW_PENDING",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH_SIMULATION",
+  "claim_ceiling": "Independent CPU implementation of a consensus-coupled adaptive-noise swarm optimizer with explicit equation variants and numerical safeguards; not a source-faithful MATLAB reproduction, qualified optimizer, or physical swarm controller",
+  "source_profile": "benchmarks/oli/scm-collective-optimization-source-profile-v0.json",
+  "implementation": {
+    "repository": "https://github.com/Luminous-Dynamics/symtropy",
+    "crate": "symtropy-lifesim-core",
+    "module": "crates/domains/symtropy-lifesim-core/src/scm.rs",
+    "exported_from": "crates/domains/symtropy-lifesim-core/src/lib.rs",
+    "implementation_style": "independently authored Rust reference from published mathematical description",
+    "copied_source_code": false,
+    "arithmetic": "IEEE754_f64",
+    "rng": "xorshift64 + Box-Muller",
+    "rng_compatible_with_matlab": false,
+    "update_order": "synchronous; all agents update from a shared previous-state snapshot",
+    "function_evaluation_accounting": "initial observations are cached; first step counts initial plus successor observations; each subsequent step counts the newly observed successor positions"
+  },
+  "equation_variants": [
+    {
+      "id": "PUBLISHED_HTML_EQUATION",
+      "implementation": "ScmInteractionKernel::PublishedHtmlEquation",
+      "sine_argument_scale": "2/pi",
+      "source_interpretation": "Accessible Nature Communications HTML Equation (2) rendering.",
+      "status": "REQUIRES_AUTHORITATIVE_PDF_AND_SUPPLEMENTARY_CONFIRMATION"
+    },
+    {
+      "id": "REPOSITORY_MATLAB_SOURCE",
+      "implementation": "ScmInteractionKernel::RepositoryMatlabSource",
+      "sine_argument_scale": "pi/2",
+      "source_interpretation": "Inspected MATLAB SCM/tstep.m at pinned GitHub source commit.",
+      "status": "SOURCE_CODE_OBSERVED_BUT_SOFTWARE_LICENSE_UNRESOLVED"
+    }
+  ],
+  "numerical_assurance": {
+    "fitness_range": [
+      0,
+      1
+    ],
+    "zero_mean_gradient": "Use finite zero fitness-gradient gain and flag gradient_degenerate; avoid xi = 1/0.",
+    "zero_agent_spread": "Set all lambda weights to zero and flag swarm_spread_degenerate; avoid division by Dmax=0.",
+    "equal_fitness": "Use unweighted centroid fallback if shifted fitness weights sum below epsilon.",
+    "zero_consensus_trend": "Do not update sigma if I1-I2 is exactly zero; avoid 0/0.",
+    "out_of_domain": "Use declared conical barrier gradient with H=-0.5 and angle=20 degrees; outside observations carry zero fitness.",
+    "transaction": "Candidate positions, RNG state, observations, history and counters commit only if all successor observations succeed.",
+    "deterministic_replay": "Exact same seed, initial state, config, landscape and supported platform replay identically within this Rust implementation."
+  },
+  "unit_controls": [
+    {
+      "id": "KERNEL_VARIANT_DIVERGENCE",
+      "purpose": "Prove that the two source interpretations are not numerically interchangeable.",
+      "initial_positions": [
+        [
+          0.2,
+          0.2
+        ],
+        [
+          0.8,
+          0.2
+        ],
+        [
+          0.5,
+          0.8
+        ]
+      ],
+      "landscape": "constant fitness 0.5 with zero gradient",
+      "seed": 101,
+      "tau_steps": 4,
+      "expected": "one-step positions differ between PublishedHtmlEquation and RepositoryMatlabSource",
+      "test": "paper_and_repository_kernel_variants_change_the_social_trajectory"
+    },
+    {
+      "id": "DETERMINISTIC_REPLAY",
+      "purpose": "Ensure deterministic reproducibility of the independent Rust implementation.",
+      "initial_positions": [
+        [
+          0.2,
+          0.2
+        ],
+        [
+          0.8,
+          0.2
+        ],
+        [
+          0.5,
+          0.8
+        ]
+      ],
+      "landscape": "unit-bounded quadratic centered at [0.6,0.6]",
+      "seed": 42,
+      "steps": 20,
+      "expected": "complete ScmModel state and ScmStepReport sequence compare equal",
+      "test": "deterministic_seed_replays_the_rust_reference"
+    },
+    {
+      "id": "COINCIDENT_AGENT_ZERO_SPREAD",
+      "purpose": "Exercise Dmax=0 without NaN or infinite lambda weights.",
+      "initial_positions": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ]
+      ],
+      "landscape": "unit-bounded quadratic",
+      "expected": "swarm_spread_degenerate is true and positions/consensus remain finite",
+      "test": "coincident_agents_have_finite_zero_noise_weights"
+    },
+    {
+      "id": "ZERO_GRADIENT_FALLBACK",
+      "purpose": "Exercise xi=1/mean(||gradient||) at a zero-gradient state.",
+      "initial_positions": [
+        [
+          0.2,
+          0.2
+        ],
+        [
+          0.8,
+          0.2
+        ],
+        [
+          0.5,
+          0.8
+        ]
+      ],
+      "landscape": "constant fitness 0.5 with zero gradient",
+      "expected": "gradient_degenerate is true; finite zero-gain fallback is used",
+      "test": "zero_mean_gradient_uses_finite_gain_fallback"
+    },
+    {
+      "id": "FLAT_CONSENSUS_NOISE_ADAPTATION",
+      "purpose": "Exercise I1-I2=0 in the adaptive sigma update.",
+      "initial_positions": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ]
+      ],
+      "landscape": "constant fitness 0.5 with zero gradient",
+      "tau_steps": 4,
+      "steps": 8,
+      "expected": "sigma remains finite and at its initial value",
+      "test": "flat_consensus_window_does_not_generate_nan_noise_adaptation"
+    },
+    {
+      "id": "OUT_OF_DOMAIN_BARRIER",
+      "purpose": "Verify finite conical barrier observations for positions outside the unit domain.",
+      "initial_positions": [
+        [
+          1.1,
+          0.5
+        ],
+        [
+          1.2,
+          0.5
+        ]
+      ],
+      "landscape": "unit-bounded quadratic; not queried for out-of-domain points",
+      "expected": "both agents are recorded as outside-domain; state remains finite",
+      "test": "out_of_domain_agents_use_a_finite_conical_barrier_observation"
+    },
+    {
+      "id": "OBSERVATION_COST_ACCOUNTING",
+      "purpose": "Count initial and successor observations explicitly.",
+      "agent_count": 3,
+      "steps": 2,
+      "expected": {
+        "first_step_evaluations": 6,
+        "second_step_evaluations": 3,
+        "total_evaluations": 9
+      },
+      "test": "function_evaluations_are_explicitly_counted"
+    },
+    {
+      "id": "FAIL_CLOSED_TRANSACTION",
+      "purpose": "Inject a failure during successor observation and ensure no partial model-state commit.",
+      "agent_count": 3,
+      "injected_failure": "landscape evaluator fails on first successor observation after initial three-agent observation",
+      "expected": "ScmModel including positions, random stream, tick, observation cache and evaluation count is unchanged",
+      "test": "failed_successor_observation_does_not_commit_partial_state"
+    },
+    {
+      "id": "FITNESS_BOUNDS",
+      "purpose": "Prevent out-of-range dimensionless fitness from contaminating centroid/consensus calculations.",
+      "injected_input": "fitness=1.1",
+      "expected": "InvalidLandscapeObservation",
+      "test": "rejects_fitness_outside_dimensionless_unit_interval"
+    }
+  ],
+  "rust_source_tests": {
+    "count": 11,
+    "status": "ADDED_NOT_EXECUTED_IN_AUTHORING_ENVIRONMENT",
+    "rustfmt": "NOT_RUN",
+    "cargo_test": "NOT_RUN",
+    "exact_head_ci": "PENDING"
+  },
+  "source_reproduction": {
+    "matlab_source_copied": false,
+    "source_data_downloaded": false,
+    "bitwise_matlab_parity": false,
+    "paper_source_equation_resolved": false,
+    "static_benchmark_reproduced": false,
+    "dynamic_auv_simulation_reproduced": false,
+    "status": "NOT_A_SOURCE_REPRODUCTION"
+  },
+  "qualification_next_steps": [
+    "Run cargo fmt and cargo test for symtropy-lifesim-core at the exact PR head.",
+    "Have an independent reviewer compare the Rust update against both the article equations and the pinned tstep/consensus source.",
+    "Resolve the sine scaling with authoritative PDF/SI or author response.",
+    "Add normalized Ackley and Rastrigin landscapes and reproduce the SCM 100-replication source protocol.",
+    "Implement matched PSO and MIPA baselines with identical initial states, sensor/function-evaluation budgets and success criteria.",
+    "Add moving peak/advection scenarios and network constraints before comparing the AUV proof-of-concept."
+  ]
+}
