@@ -563,6 +563,51 @@ mod tests {
     }
 
     #[test]
+    fn intermediate_axis_spin_amplifies_small_asymmetric_top_perturbations() {
+        let inertia = PrincipalInertia3::new([1.0, 2.0, 3.0]).unwrap();
+        let mut rotation = Rotor::<3>::identity();
+        let initial_body_omega = SVector::from([0.01, 1.0, 0.02]);
+        let mut angular_velocity = angular_vector_to_bivector(&initial_body_omega);
+        let initial_transverse = (initial_body_omega[0].powi(2) + initial_body_omega[2].powi(2))
+            .sqrt();
+        let dt = 0.001;
+        let steps = 20_000;
+        let mut maximum_transverse = initial_transverse;
+
+        for _ in 0..steps {
+            let step = step_principal_inertia(
+                &rotation,
+                &angular_velocity,
+                inertia,
+                &SVector::zeros(),
+                dt,
+            )
+            .unwrap();
+            rotation = step.rotation;
+            angular_velocity = step.angular_velocity;
+
+            let omega_world = bivector_to_angular_vector(&angular_velocity);
+            let omega_body = rotation.reverse().rotate_vector(&omega_world);
+            let transverse = (omega_body[0].powi(2) + omega_body[2].powi(2)).sqrt();
+            maximum_transverse = maximum_transverse.max(transverse);
+        }
+
+        assert!(
+            maximum_transverse > initial_transverse * 20.0,
+            "middle-axis perturbation should grow strongly: initial={initial_transverse:e}, max={maximum_transverse:e}"
+        );
+        let final_momentum = world_angular_momentum(&rotation, &angular_velocity, inertia).unwrap();
+        let initial_momentum = world_angular_momentum(
+            &Rotor::<3>::identity(),
+            &angular_vector_to_bivector(&initial_body_omega),
+            inertia,
+        )
+        .unwrap();
+        assert!(vec_close(&final_momentum, &initial_momentum, 2.0e-9));
+        assert!(rotation.is_proper_rotation(1.0e-9));
+    }
+
+    #[test]
     fn torque_changes_world_momentum_by_exact_angular_impulse() {
         let inertia = PrincipalInertia3::new([1.2, 2.3, 3.4]).unwrap();
         let rotation = Rotor::<3>::identity();
