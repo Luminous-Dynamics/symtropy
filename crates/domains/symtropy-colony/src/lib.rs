@@ -653,6 +653,21 @@ mod tests {
     }
 
     #[test]
+    fn stigmergic_home_score_does_not_depend_on_hidden_nest_coordinates() {
+        let mut left = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::StigmergicFieldOnly,
+        );
+        let mut right = ColonyWorld::new_with_information_mode(
+            16, 8, (14, 4), 8, ColonyInformationMode::StigmergicFieldOnly,
+        );
+        left.fields.set(FieldLayer::HomePheromone, 5, 4, 12.0);
+        right.fields.set(FieldLayer::HomePheromone, 5, 4, 12.0);
+
+        assert_eq!(left.home_score(5, 4), right.home_score(5, 4));
+        assert_eq!(left.home_score(5, 4), 12.0);
+    }
+
+    #[test]
     fn oracle_mode_retains_global_path_hint_as_an_upper_bound() {
         let mut world = ColonyWorld::new(16, 8, (1, 4), 8);
         world.add_food_source(14, 4, 100);
