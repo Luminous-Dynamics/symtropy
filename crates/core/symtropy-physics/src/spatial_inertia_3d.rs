@@ -854,6 +854,39 @@ mod tests {
     }
 
     #[test]
+    fn contact_effective_mass_is_invariant_under_reference_point_shift() {
+        let inertia = sample();
+        let point_p_offset = SVector::new(0.7, -0.25, 0.4);
+        let normal = SVector::new(-0.2, 0.9, 0.35);
+        let p_to_q = SVector::new(-0.3, 0.5, 0.2);
+        let value_p = inertia
+            .contact_inverse_effective_mass(&point_p_offset, &normal, 1.0e-12)
+            .unwrap();
+        let shifted = inertia
+            .shift_reference_point(ReferencePointId(11), &p_to_q)
+            .unwrap();
+        let point_q_offset = point_p_offset - p_to_q;
+        let value_q = shifted
+            .contact_inverse_effective_mass(&point_q_offset, &normal, 1.0e-12)
+            .unwrap();
+        assert!((value_p - value_q).abs() < 2.0e-11);
+    }
+
+    #[test]
+    fn contact_effective_mass_normalizes_extreme_finite_normal_scale() {
+        let inertia = sample();
+        let offset = SVector::new(0.7, -0.25, 0.4);
+        let normal = SVector::new(-0.2, 0.9, 0.35);
+        let expected = inertia
+            .contact_inverse_effective_mass(&offset, &normal, 1.0e-12)
+            .unwrap();
+        let observed = inertia
+            .contact_inverse_effective_mass(&(offset), &(normal * 1.0e300), 1.0e-12)
+            .unwrap();
+        assert!((expected - observed).abs() < 2.0e-11);
+    }
+
+    #[test]
     fn contact_effective_mass_rejects_an_excited_singular_rotation_mode() {
         let rod = SpatialInertia3::new(
             FrameId(1),
