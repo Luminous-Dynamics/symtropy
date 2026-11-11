@@ -1,0 +1,215 @@
+{
+  "schema_version": "oli-collective-motion-baseline-matrix-v0.1",
+  "case_id": "OLI-COLLECTIVE-DYNAMICS-BASELINE-MATRIX-001",
+  "status": "LITERATURE_PINNED_METHODS_DATA_ADMISSION_AND_REPRODUCTION_PENDING",
+  "claim_ceiling": "Task-matched comparison plan for interaction-geometry inference, relational edge inference and closed-loop collective-motion prediction; not a composite life/intelligence detector",
+  "evaluation_principle": "Baselines must be matched to the inferential task they actually solve. Do not compare one method's scalar accuracy with another method's rollout error, or treat predictive dependence as interventional causation.",
+  "baselines": [
+    {
+      "id": "IGIC_2026",
+      "family": "lagged_circular_correlation_geometry_inference",
+      "citation": "McKinney & Roy, A correlation based framework for inferring interaction geometry in collective motion, Scientific Reports (2026-08-17)",
+      "doi": "10.1038/s41598-026-63720-8",
+      "url": "https://doi.org/10.1038/s41598-026-63720-8",
+      "primary_task": "Infer metric interaction radius and sensing angle from trajectory data.",
+      "reported_claim": "99.2% overall recovery accuracy on the paper's synthetic visual-Vicsek validation data; also tests topological Vicsek and empirical Golden Shiner trajectories.",
+      "comparative_metrics": [
+        "radius_absolute_error",
+        "sensing_angle_circular_error",
+        "geometry_recovery_accuracy",
+        "lag_sensitivity",
+        "risk_coverage"
+      ],
+      "data_source": {
+        "doi": "10.17632/jwkv3cf7fs.1",
+        "url": "https://datacommons.erau.edu/datasets/jwkv3cf7fs/1",
+        "licence": "CC BY 4.0 stated on dataset page",
+        "contents_reported": [
+          "MATLAB code",
+          "synthetic visual Vicsek trajectories",
+          "synthetic topological Vicsek trajectories",
+          "Golden Shiner trajectories",
+          "analysis results"
+        ],
+        "inventory_status": "NOT_FETCHED",
+        "hashes_status": "NOT_COMPUTED",
+        "reproduction_status": "NOT_RUN"
+      },
+      "limits": "The 99.2% result is specific to synthetic visual-Vicsek geometry recovery, not causal discovery, general group intelligence, or life detection. Data package file inventory and per-file provenance still need admission.",
+      "priority": "PRIMARY_GEOMETRY_BASELINE"
+    },
+    {
+      "id": "CRI_EVOLVING_CRI_2024",
+      "family": "joint_probabilistic_heterogeneous_edge_inference",
+      "citation": "Han, Fink & Kammer, Collective relational inference for learning heterogeneous interactions, Nature Communications 15, 3191 (2024-04-12)",
+      "doi": "10.1038/s41467-024-47098-7",
+      "url": "https://doi.org/10.1038/s41467-024-47098-7",
+      "primary_task": "Infer multiple interaction types jointly while accounting for correlations among incoming edges; Evolving-CRI updates edge posteriors for changing neighbourhood topology.",
+      "reported_claim": "The paper reports improved heterogeneous interaction inference against independently inferred-edge baselines including NRI, and tests interpolation/extrapolation on an evolving-topology crystallization system. In that particle-system experiment, the interaction cutoff radius is assumed known.",
+      "comparative_metrics": [
+        "edge_type_accuracy",
+        "pairwise_force_mae",
+        "acceleration_mae",
+        "interpolation_extrapolation_gap",
+        "dynamic_edge_recovery"
+      ],
+      "code_source": {
+        "url": "https://gitlab.ethz.ch/cmbm-public/toolboxes/cri",
+        "framework": "PyTorch",
+        "retrieval_status": "NOT_FETCHED"
+      },
+      "data_source": {
+        "repository": "ETH Research Collection",
+        "handle": "https://www.research-collection.ethz.ch/handle/20.500.11850/610139",
+        "access_status": "PAGE_FETCH_BLOCKED_403",
+        "files_inventory": "NOT_FETCHED",
+        "hashes_status": "NOT_COMPUTED"
+      },
+      "limits": "CRI addresses interaction-type inference and evolving topology, not by itself metric radius/sensing-angle estimation. The cited particle experiments assume the cutoff radius is known. Preserve that assumption in comparisons.",
+      "priority": "PRIMARY_HETEROGENEOUS_EDGE_BASELINE"
+    },
+    {
+      "id": "GDP_AAAI_2024",
+      "family": "graph_dynamics_prior_relational_inference",
+      "citation": "Pan, Shi & Dokmanic, A Graph Dynamics Prior for Relational Inference, AAAI 38(13), 14508–14516 (2024)",
+      "doi": "10.1609/aaai.v38i13.29366",
+      "url": "https://doi.org/10.1609/aaai.v38i13.29366",
+      "primary_task": "Infer direct interaction graphs from observed dynamics with a structural graph-dynamics prior; jointly fit shallow one-step and polynomial multi-step models.",
+      "reported_claim": "The paper reports improved graph reconstruction and robustness to under-sampling versus earlier relational-inference methods on its evaluated tasks.",
+      "comparative_metrics": [
+        "edge_precision_recall",
+        "structural_hamming_distance",
+        "graph_posterior_calibration",
+        "sampling_rate_sensitivity",
+        "multi_step_prediction_error"
+      ],
+      "code_source": {
+        "url": "https://github.com/DaDaCheng/GDP",
+        "retrieval_status": "NOT_FETCHED"
+      },
+      "data_source": {
+        "status": "REQUIRES_SOURCE_REVIEW",
+        "note": "Recover exact datasets, generator versions, sampling rules and splits from the paper and public repository before reproducing."
+      },
+      "limits": "This is a direct interaction graph recovery comparator, not a metric-radius/sensing-angle benchmark or an intervention-based causal oracle.",
+      "priority": "PRIMARY_UNDERSAMPLING_AND_GRAPH_BASELINE"
+    },
+    {
+      "id": "PR_GNN_2026",
+      "family": "physics_regularized_closed_loop_trajectory_prediction",
+      "citation": "Liu, Li, Wang et al., Learning collective motion dynamics from trajectory data with physics-regularized graph neural networks, Complex & Intelligent Systems (published 2026-10-26)",
+      "doi": "10.1007/s40747-026-02566-z",
+      "url": "https://doi.org/10.1007/s40747-026-02566-z",
+      "primary_task": "Predict long-horizon collective motion with dynamic focal-centred graphs, learned neighbour importance, physically motivated self-motion/alignment/spatial-interaction components, multi-step rollout loss and collective-behaviour regularization.",
+      "reported_claim": "On six self-propelled-particle datasets, PR-GNN reports lower closed-loop position errors than all five evaluated baselines while preserving macroscopic indicators including polarization, rotational organization, mean speed and spatial spread.",
+      "comparative_metrics": [
+        "one_step_position_error",
+        "multi_horizon_rollout_error",
+        "closed_loop_stability",
+        "polarization_error",
+        "rotational_order_error",
+        "mean_speed_error",
+        "spatial_spread_error"
+      ],
+      "supplementary_information": {
+        "publisher_lists": "32.315 MB PDF",
+        "retrieval_status": "NOT_DOWNLOADED"
+      },
+      "licence": "Article CC BY-NC-ND 4.0. Do not assume this grants rights to third-party data, code or adapted article material.",
+      "code_and_data_availability": "The accessible main article page examined does not provide a code/data availability statement. Treat implementation and dataset access as pending; do not claim source reproduction.",
+      "limits": "PR-GNN is a trajectory-prediction and collective-organization baseline. Its reported attention weights are post-hoc relational evidence, not by themselves causal edges or interventions.",
+      "priority": "PRIMARY_CLOSED_LOOP_ROLLOUT_BASELINE"
+    }
+  ],
+  "matched_task_tracks": [
+    {
+      "track": "GEOMETRY_RECOVERY",
+      "question": "Can the system infer metric radius, field of view and sensing angle?",
+      "primary_baseline": "IGIC_2026",
+      "metrics": [
+        "geometry_recovery_accuracy",
+        "radius_absolute_error",
+        "sensing_angle_circular_error"
+      ],
+      "rule": "Reproduce the exact IGIC benchmark before extending to unseen parameter/seed regimes."
+    },
+    {
+      "track": "HETEROGENEOUS_DYNAMIC_EDGES",
+      "question": "Can the system infer correlated edge types and changing neighbourhood structure?",
+      "primary_baseline": "CRI_EVOLVING_CRI_2024",
+      "metrics": [
+        "edge_type_accuracy",
+        "dynamic_edge_recovery",
+        "pairwise_force_mae",
+        "interpolation_extrapolation_gap"
+      ],
+      "rule": "Keep the known-cutoff assumption explicit where the source experiment uses it."
+    },
+    {
+      "track": "UNDERSAMPLED_GRAPH_RECONSTRUCTION",
+      "question": "Can the system recover direct interactions when observation cadence hides immediate neighbours?",
+      "primary_baseline": "GDP_AAAI_2024",
+      "metrics": [
+        "edge_precision_recall",
+        "structural_hamming_distance",
+        "sampling_rate_sensitivity"
+      ],
+      "rule": "Match sampling rates, observation noise, system size and split protocol."
+    },
+    {
+      "track": "CLOSED_LOOP_COLLECTIVE_PREDICTION",
+      "question": "Can the model preserve long-horizon individual trajectories and group-level organization?",
+      "primary_baseline": "PR_GNN_2026",
+      "metrics": [
+        "multi_horizon_rollout_error",
+        "closed_loop_stability",
+        "polarization_error",
+        "spatial_spread_error"
+      ],
+      "rule": "Compare on the same six source datasets and exact rollout protocol when those materials become available."
+    },
+    {
+      "track": "INTERVENTIONAL_CAUSAL_INFLUENCE",
+      "question": "Does changing one agent's state alter another agent's subsequent behaviour?",
+      "primary_baseline": "KNOWN_TRUTH_STRUCTURAL_INTERVENTION_ORACLE",
+      "metrics": [
+        "interventional_effect_error",
+        "edge_direction_accuracy",
+        "common_driver_false_edge_rate",
+        "treatment_sham_replay_parity"
+      ],
+      "rule": "Observational graph inference is not sufficient; require randomized/simulated intervention and matched sham controls."
+    }
+  ],
+  "oli_extensions": [
+    "Cross-track calibration: geometry, edge type, rollout prediction and causal effect must retain separate outputs and uncertainty.",
+    "Topology mismatch: distinguish a calibrated effective interaction scale from an asserted physical radius when the true graph is topological.",
+    "Common-driver confounding: two agents responding to one exogenous process must not be assigned a direct causal edge without intervention evidence.",
+    "Nonreciprocity: infer directed influence when A affects B but B does not affect A.",
+    "Temporal aliasing: quantify how downsampling changes inferred neighbours, edge recovery and lag estimates.",
+    "Closed-loop mechanism challenge: compare forecast fidelity with recovery of the correct mechanism; a model may predict well with a wrong graph.",
+    "Model inadequacy: withhold qualification where the true generator is outside the candidate model family."
+  ],
+  "qualification_targets": {
+    "note": "Research targets only; none are current results.",
+    "matched_source_reproduction": "Reproduce each baseline's original metric on its own exact data/splits before declaring comparative improvement.",
+    "closed_loop": "On matched data, target at least 10% lower multi-horizon normalized rollout error than the strongest reproduced baseline, while not degrading registered macroscopic observables beyond their declared uncertainty.",
+    "geometry": "Maintain IGIC-level performance on the original synthetic visual-Vicsek test distribution, then improve selective risk and calibration on whole-seed/whole-regime holdouts.",
+    "graph": "At least 90% edge-direction recovery on held-out asymmetric known-truth systems at a preregistered sampling envelope.",
+    "null_control": "Zero false causal edges on at least 299 independent common-driver/no-coupling systems to target a one-sided 95% exact upper false-positive bound below 1%.",
+    "adequacy": "Zero false model-adequacy passes on the public omitted-mechanism negative controls.",
+    "abstention": "Report risk-coverage curves and prefer abstention over high-confidence geometry/edge claims under topology mismatch or inadequate cadence."
+  },
+  "source_admission": {
+    "IGIC": "File inventory, exact seeds/splits, per-file hashes and rights must be verified.",
+    "CRI": "Verify GitLab source commit, ETH dataset file inventory and licences, and reproduce source splits.",
+    "GDP": "Pin GitHub commit, datasets and environment, then reproduce under-sampling cases.",
+    "PR_GNN": "Inspect supplementary PDF and contact authors for code/data where not stated; respect CC BY-NC-ND article licence and third-party data rights."
+  },
+  "results": {
+    "baseline_reproductions_completed": [],
+    "comparative_results": null,
+    "source_data_materialized": false,
+    "qualified_sota_improvement": false
+  }
+}
