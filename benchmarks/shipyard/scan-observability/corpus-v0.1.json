@@ -1,0 +1,131 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-SCAN-REGISTRATION-ASSURANCE-001",
+  "claim_ceiling": "SYNTHETIC_REGISTRATION_OBSERVABILITY_ONLY",
+  "twist_order": "omega_x,omega_y,omega_z,v_x,v_y,v_z",
+  "cases": [
+    {
+      "case_id": "OBS-001",
+      "geometry": "three_nonparallel_faces",
+      "expected_class": "FULLY_OBSERVABLE",
+      "expected_weak_dimension": 0,
+      "expected_note": "six independent rigid twist directions constrained"
+    },
+    {
+      "case_id": "OBS-002",
+      "geometry": "single_plane",
+      "expected_class": "PARTIALLY_OBSERVABLE",
+      "expected_weak_dimension": 3,
+      "expected_note": "two in-plane translations and rotation around the plane normal"
+    },
+    {
+      "case_id": "OBS-003",
+      "geometry": "circular_cylinder",
+      "expected_class": "PARTIALLY_OBSERVABLE",
+      "expected_weak_dimension": 2,
+      "expected_note": "axial translation and axial roll"
+    },
+    {
+      "case_id": "OBS-004",
+      "geometry": "collinear_points",
+      "expected_class": "REJECT_METRIC_RANK_DEFICIENT",
+      "expected_note": "point-displacement metric cannot determine a complete six-DOF twist"
+    },
+    {
+      "case_id": "OBS-005",
+      "geometry": "two_intersecting_planes",
+      "expected_class": "PARTIALLY_OBSERVABLE",
+      "expected_weak_dimension": 1,
+      "expected_note": "translation along the intersection line is unobservable"
+    }
+  ],
+  "metamorphic_controls": [
+    "SE3_FRAME_CONGRUENCE",
+    "BODY_ORIGIN_TRANSLATION",
+    "BODY_FRAME_ROTATION",
+    "METRE_MILLIMETRE_TWIST_REPARAMETERIZATION",
+    "UNIFORM_SCENE_SCALE",
+    "UNIFORM_CORRESPONDENCE_WEIGHT_SCALE",
+    "RESIDUAL_IS_NOT_OBSERVABILITY",
+    "PURE_BODY_ORIGIN_TRANSLATION",
+    "PURE_BODY_ROTATION",
+    "TASK_GRADIENT_PROJECTED_IN_WEAK_SUBSPACE",
+    "TASK_GRADIENT_IN_OBSERVED_SUBSPACE",
+    "TASK_SENSITIVITY_NORMALIZED_BY_DUAL_METRIC",
+    "TASK_GRADIENT_COVECTOR_TRANSFORM_UNDER_FRAME_CHANGE"
+  ],
+  "negative_controls": [
+    "LOW_RESIDUAL_DEGENERATE_GEOMETRY",
+    "HIGH_RESIDUAL_WELL_CONDITIONED_GEOMETRY",
+    "NON_UNIT_NORMAL",
+    "ZERO_WEIGHT",
+    "NAN_POINT",
+    "EMPTY_CORRESPONDENCE_SET",
+    "INVALID_WEAK_THRESHOLD",
+    "COLLINEAR_OR_COINCIDENT_METRIC",
+    "UNOBSERVABLE_SUBSPACE_REPORTED_AS_AXIS_FLAGS",
+    "METRIC_LAUNDERED_AS_COVARIANCE"
+  ],
+  "task_specific_decision_cases": [
+    {
+      "case_id": "OBS-TASK-001",
+      "geometry": "single_plane",
+      "decision": "in_plane_bead_offset",
+      "gradient_twist_order": [
+        "omega_x",
+        "omega_y",
+        "omega_z",
+        "v_x",
+        "v_y",
+        "v_z"
+      ],
+      "gradient": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "expected_normalized_weak_sensitivity": 1,
+      "expected_disposition": "EXCEEDS_LIMIT"
+    },
+    {
+      "case_id": "OBS-TASK-002",
+      "geometry": "single_plane",
+      "decision": "surface_normal_offset",
+      "gradient": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "expected_normalized_weak_sensitivity": 0,
+      "expected_disposition": "WITHIN_LIMIT"
+    },
+    {
+      "case_id": "OBS-TASK-003",
+      "geometry": "single_plane",
+      "decision": "zero_gradient_negative_control",
+      "gradient": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "expected_disposition": "REJECT_ZERO_GRADIENT"
+    },
+    {
+      "case_id": "OBS-TASK-004",
+      "geometry": "single_plane",
+      "decision": "in_plane_bead_offset_after_SE3_frame_change",
+      "gradient_rule": "g_new = B^T g_old when x_old = B x_new",
+      "expected_normalized_weak_sensitivity": 1,
+      "expected_disposition": "EXCEEDS_LIMIT"
+    }
+  ]
+}

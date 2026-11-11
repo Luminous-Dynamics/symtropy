@@ -1,0 +1,46 @@
+name: Shipyard Scan Registration Observability
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/shipyard-scan-observability/**"
+      - "docs/tech/SHIPYARD_SCAN_REGISTRATION_ASSURANCE_V0_1*"
+      - "benchmarks/shipyard/scan-observability/**"
+      - ".github/workflows/shipyard-scan-observability.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-scan-observability-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify frame-equivariant synthetic observability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-scan-observability/Cargo.toml --all -- --check
+
+      - name: Run observability contract tests
+        run: cargo test --locked --manifest-path crates/tools/shipyard-scan-observability/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-scan-observability/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run synthetic geometry demonstration
+        run: cargo run --locked --manifest-path crates/tools/shipyard-scan-observability/Cargo.toml
+
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
