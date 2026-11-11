@@ -387,7 +387,7 @@ mod tests {
             classify_target_effect_decision(&baseline, &threshold("0.30"))
                 .unwrap()
                 .decision,
-            TargetDecision::Indeterminate
+            TargetDecision::RecommendAgainstTreatment
         );
         assert_eq!(
             classify_target_effect_decision(&baseline, &threshold("0.50"))
@@ -436,7 +436,7 @@ mod tests {
         )
         .unwrap();
         assert_eq!(not_robust.status, DecisionFrontierStatus::NotRobustAtBaseline);
-        assert_eq!(not_robust.baseline_decision, TargetDecision::Indeterminate);
+        assert_eq!(not_robust.baseline_decision, TargetDecision::RecommendAgainstTreatment);
         assert_eq!(not_robust.tipping_point, None);
 
         let no_crossing = find_recommendation_tipping_point(
