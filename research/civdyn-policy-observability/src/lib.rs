@@ -181,6 +181,7 @@ pub enum EvaluationError {
     ZeroPopulationWeight,
     DuplicateUnit,
     OutcomeOutsideSupport,
+    ObservedOutcomeMismatch,
     InvalidObservationState,
     InvalidPropensity,
     MissingPropensity,
@@ -288,10 +289,16 @@ pub fn estimate_from_observations(
         }
     }
 
-    let complete_case_mean =
-        (observed_weight > 0.0).then(|| observed_total / observed_weight);
-    let missing_as_zero_mean =
-        support.contains(0).then(|| observed_total / total_weight);
+    let complete_case_mean = if observed_weight > 0.0 {
+        Some(observed_total / observed_weight)
+    } else {
+        None
+    };
+    let missing_as_zero_mean = if support.contains(0) {
+        Some(observed_total / total_weight)
+    } else {
+        None
+    };
     let identified_interval = IdentifiedInterval {
         lower: (observed_total + missing_weight * support.lower as f64) / total_weight,
         upper: (observed_total + missing_weight * support.upper as f64) / total_weight,
@@ -369,11 +376,15 @@ pub fn evaluate_policy(
     } else {
         MissingnessMechanism::Mixed
     };
-    if records
-        .iter()
-        .any(|record| !support.contains(record.latent_outcome))
-    {
-        return Err(EvaluationError::OutcomeOutsideSupport);
+    for record in records {
+        if !support.contains(record.latent_outcome) {
+            return Err(EvaluationError::OutcomeOutsideSupport);
+        }
+        if let Some(observed) = record.observation.observed_outcome {
+            if observed != record.latent_outcome {
+                return Err(EvaluationError::ObservedOutcomeMismatch);
+            }
+        }
     }
 
     let total_weight: f64 = records
@@ -703,6 +714,16 @@ mod tests {
         let result = evaluate_policy(&rows, SUPPORT).expect("mixed mechanism evaluation");
         assert_eq!(result.true_mechanism, MissingnessMechanism::Mixed);
         assert!(result.estimates.identified_interval.contains(result.true_mean));
+    }
+
+    #[test]
+    fn evaluator_rejects_observed_value_that_disagrees_with_latent_truth() {
+        let mut row = record("p", "u1", "a", 10, true, MissingnessMechanism::Complete);
+        row.observation.observed_outcome = Some(11);
+        assert_eq!(
+            evaluate_policy(&[row], SUPPORT),
+            Err(EvaluationError::ObservedOutcomeMismatch)
+        );
     }
 
     #[test]
