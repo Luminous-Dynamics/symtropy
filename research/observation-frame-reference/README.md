@@ -11,7 +11,7 @@ From this directory:
     cargo test --locked
     cargo clippy --locked --all-targets -- -D warnings
     cargo run --locked -- fixtures/machine-test-01.json
-    cargo run --release --locked --bin benchmark -- 10
+    cargo run --release --locked --bin benchmark -- 1000
 
 The package is isolated from the Bevy workspace and pins direct dependencies. Its lockfile is extracted from the same resolved dependency versions used by the isolated world-experiment-lease research package; Cargo --locked checks completeness in CI.
 
@@ -38,7 +38,7 @@ The CLI rejects files over 64 MiB before JSON decoding. The reference validator 
 
 ## Benchmarks
 
-The in-tree std::time benchmark binary (no Criterion or other benchmark-specific dependency) generates deterministic 1k, 10k and 100k claim-bearing entity frames with 1, 4 and 1 observables/entity respectively, plus ordered event streams. It reports two warm-up passes followed by nearest-rank p50/p95/p99 valid compile latency in nanoseconds, min/max, and p50/p95/p99 deep-rejection latency for a well-formed frame with a mismatched observable-set commitment. It also records pinned rustc version, CPU model, GitHub runner image identity, serialized input bytes, total input bytes per entity (including the ordered event stream), validated entities/second and event records/second. The workflow preserves the raw JSONL measurements as an artifact. These are reference-oracle costs, not Bevy extraction latency or physics/rendering throughput. Always compare results only with matching source head, Rust compiler version, CPU model/architecture, OS and runner-image version.
+The in-tree std::time benchmark binary (no Criterion or other benchmark-specific dependency) generates deterministic 1k, 10k and 100k claim-bearing entity frames with 1, 4 and 1 observables/entity respectively, plus ordered event streams. It reports two warm-up passes followed by 1,000 measured samples and nearest-rank p50/p95/p99 valid compile latency in nanoseconds, min/max, and p50/p95/p99 deep-rejection latency for a well-formed frame with a mismatched observable-set commitment. It also records pinned rustc version, CPU model, GitHub runner image identity, serialized input bytes, total input bytes per entity (including the ordered event stream), validated entities/second and event records/second. The workflow preserves the raw JSONL measurements as an artifact. These are reference-oracle costs, not Bevy extraction latency or physics/rendering throughput. With 1,000 samples, the empirical p99 uses ten upper-tail observations; always compare results only with matching source head, Rust compiler version, CPU model/architecture, OS and runner-image version.
 
 ## Tests
 
