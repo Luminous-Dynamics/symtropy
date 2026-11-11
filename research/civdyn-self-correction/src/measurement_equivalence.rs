@@ -199,6 +199,8 @@ pub struct BridgeStudyEvidence {
     pub protocol_digest: String,
     pub analysis_digest: String,
     pub design: BridgeDesign,
+    /// Required for paired designs; absent for randomized split-sample designs.
+    pub paired_sample_size: Option<u64>,
     pub minimum_group_sample_size: u64,
     pub groups: Vec<MeasurementGroup>,
     pub confidence_level: f64,
@@ -227,14 +229,37 @@ pub struct ClaimEquivalenceResult {
     pub reason: EquivalenceReason,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct MeasurementEquivalenceReport {
     pub left_measurement_id: String,
     pub right_measurement_id: String,
     pub construct_id: String,
     pub construct_version: String,
+    pub family: MeasurementFamily,
+    pub measurement_unit: String,
+    pub left_population_id: String,
+    pub right_population_id: String,
+    pub left_context_id: String,
+    pub right_context_id: String,
+    pub left_operationalization_digest: String,
+    pub right_operationalization_digest: String,
+    pub left_instrument_digest: String,
+    pub right_instrument_digest: String,
     pub evidence_digest: String,
+    pub data_digest: Option<String>,
+    pub protocol_digest: String,
+    pub analysis_digest: Option<String>,
+    pub calibration_receipt_digest: Option<String>,
     pub evidence_kind: &'static str,
+    pub groups: Vec<MeasurementGroup>,
+    pub bridge_design: Option<BridgeDesign>,
+    pub confidence_level: Option<f64>,
+    pub mean_bias_ci: Option<(f64, f64)>,
+    pub mean_equivalence_margin: Option<f64>,
+    pub slope_ci: Option<(f64, f64)>,
+    pub slope_equivalence_margin: Option<f64>,
+    pub individual_error_upper_bound: Option<f64>,
+    pub individual_score_margin: Option<f64>,
     pub achieved_invariance: Option<EvidenceDisposition>,
     pub anchor_item_ids: Vec<String>,
     pub non_invariant_item_ids: Vec<String>,
@@ -649,6 +674,19 @@ pub fn assess_measurement_equivalence(
                     right,
                     receipt.minimum_group_sample_size,
                 )?;
+                match (receipt.design, receipt.paired_sample_size) {
+                    (BridgeDesign::Paired, Some(paired_n))
+                        if paired_n >= receipt.minimum_group_sample_size
+                            && paired_n
+                                <= receipt
+                                    .groups
+                                    .iter()
+                                    .map(|group| group.sample_size)
+                                    .min()
+                                    .unwrap_or(0) => {}
+                    (BridgeDesign::RandomizedSplitSample, None) => {}
+                    _ => return Err(MeasurementEquivalenceError::InvalidGroupSet),
+                }
                 if receipt.mean_equivalence_margin <= 0.0
                     || !receipt.mean_equivalence_margin.is_finite()
                     || receipt.slope_equivalence_margin <= 0.0
@@ -709,13 +747,98 @@ pub fn assess_measurement_equivalence(
             }
         };
 
+    let (
+        data_digest,
+        protocol_digest,
+        analysis_digest,
+        calibration_receipt_digest,
+        groups,
+        bridge_design,
+        confidence_level,
+        mean_bias_ci,
+        mean_equivalence_margin,
+        slope_ci,
+        slope_equivalence_margin,
+        individual_error_upper_bound,
+        individual_score_margin,
+    ) = match evidence {
+        MeasurementEquivalenceEvidence::SameProtocol(receipt) => (
+            None,
+            receipt.protocol_digest.clone(),
+            None,
+            receipt.calibration_receipt_digest.clone(),
+            Vec::new(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ),
+        MeasurementEquivalenceEvidence::SurveyInvariance(receipt) => (
+            Some(receipt.data_digest.clone()),
+            receipt.protocol_digest.clone(),
+            Some(receipt.analysis_digest.clone()),
+            None,
+            receipt.groups.clone(),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ),
+        MeasurementEquivalenceEvidence::BridgeStudy(receipt) => (
+            Some(receipt.data_digest.clone()),
+            receipt.protocol_digest.clone(),
+            Some(receipt.analysis_digest.clone()),
+            None,
+            receipt.groups.clone(),
+            Some(receipt.design),
+            Some(receipt.confidence_level),
+            Some((receipt.mean_bias_ci_lower, receipt.mean_bias_ci_upper)),
+            Some(receipt.mean_equivalence_margin),
+            Some((receipt.slope_ci_lower, receipt.slope_ci_upper)),
+            Some(receipt.slope_equivalence_margin),
+            receipt.individual_error_upper_bound,
+            receipt.individual_score_margin,
+        ),
+    };
+
     Ok(MeasurementEquivalenceReport {
         left_measurement_id: left.measurement_id.clone(),
         right_measurement_id: right.measurement_id.clone(),
         construct_id: left.construct_id.clone(),
         construct_version: left.construct_version.clone(),
+        family: left.family,
+        measurement_unit: left.measurement_unit.clone(),
+        left_population_id: left.population_id.clone(),
+        right_population_id: right.population_id.clone(),
+        left_context_id: left.context_id.clone(),
+        right_context_id: right.context_id.clone(),
+        left_operationalization_digest: left.operationalization_digest.clone(),
+        right_operationalization_digest: right.operationalization_digest.clone(),
+        left_instrument_digest: left.instrument_digest.clone(),
+        right_instrument_digest: right.instrument_digest.clone(),
         evidence_digest,
+        data_digest,
+        protocol_digest,
+        analysis_digest,
+        calibration_receipt_digest,
         evidence_kind,
+        groups,
+        bridge_design,
+        confidence_level,
+        mean_bias_ci,
+        mean_equivalence_margin,
+        slope_ci,
+        slope_equivalence_margin,
+        individual_error_upper_bound,
+        individual_score_margin,
         achieved_invariance,
         anchor_item_ids,
         non_invariant_item_ids,
@@ -785,6 +908,7 @@ mod tests {
             protocol_digest: "sha256-bridge-protocol".to_string(),
             analysis_digest: "sha256-bridge-analysis".to_string(),
             design: BridgeDesign::Paired,
+            paired_sample_size: Some(200),
             minimum_group_sample_size: 100,
             groups: vec![group("population-a", 250), group("population-b", 240)],
             confidence_level: 0.95,
