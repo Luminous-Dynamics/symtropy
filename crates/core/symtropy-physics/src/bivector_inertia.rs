@@ -715,6 +715,39 @@ mod tests {
     }
 
     #[test]
+    fn off_center_angular_impulse_matches_contact_velocity_and_energy_identity() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            2.0,
+            SVector::new(1.4, 0.9, 0.5),
+        )
+        .unwrap();
+        let offset = SVector::new(0.7, -0.25, 0.4);
+        let impulse = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let angular_impulse = Bivector::from_wedge(&offset, &impulse);
+        let angular_response = inertia
+            .angular_velocity_from_momentum(&angular_impulse, 1e-12)
+            .unwrap();
+        let point_velocity_change = -angular_response.apply_to_vector(&offset);
+        let effective_mass = inertia
+            .rotational_inverse_effective_mass(&offset, &impulse, 1e-12)
+            .unwrap();
+        let rotational_energy = inertia.kinetic_energy(&angular_response).unwrap();
+        let impulse_work = 0.5 * impulse.dot(&point_velocity_change);
+
+        assert!(point_velocity_change.iter().all(|value| value.is_finite()));
+        assert!(impulse.dot(&point_velocity_change) > 0.0);
+        assert!(
+            (impulse.dot(&point_velocity_change) - effective_mass).abs() < 2.0e-11,
+            "contact-point response disagrees with effective mass"
+        );
+        assert!(
+            (rotational_energy - impulse_work).abs()
+                <= 2.0e-11 * rotational_energy.abs().max(1.0),
+            "rotational energy does not match half impulse-work: energy={rotational_energy:e}, work={impulse_work:e}"
+        );
+    }
+
+    #[test]
     fn rotational_inverse_effective_mass_is_covariant_under_global_rotation() {
         let body_inertia =
             BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
