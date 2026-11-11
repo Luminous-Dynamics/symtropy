@@ -501,7 +501,7 @@ pub fn select_probe_baseline(
         .map(|assessment| assessment.candidate_id.clone())
         .collect::<Vec<_>>();
     let eligible_catalogue_sha256 = sha256_serializable(
-        b"symtropy-diagnostic-eligible-probe-catalogue-v1\\0",
+        b"symtropy-diagnostic-eligible-probe-catalogue-v1\0",
         &eligible_ids,
     )?;
     let eligible_candidates = candidates
@@ -556,7 +556,7 @@ pub fn select_probe_baseline(
                 None
             } else {
                 let random_digest = sha256_serializable(
-                    b"symtropy-diagnostic-random-baseline-v1\\0",
+                    b"symtropy-diagnostic-random-baseline-v1\0",
                     &(seed, &eligible_ids),
                 )?;
                 let draw = u64::from_str_radix(&random_digest[..16], 16)
@@ -1229,7 +1229,10 @@ mod tests {
         assert_eq!(maximum_gain.selected_candidate_id.as_deref(), Some("expensive_high_gain"));
         assert!(per_cost.selected_candidate_id.is_some());
         assert_eq!(random_first.selected_candidate_id, random_second.selected_candidate_id);
-        assert_eq!(robust.selected_candidate_id, portfolio.ranked_recommendations[0].candidate_id.as_str().into());
+        assert_eq!(
+            robust.selected_candidate_id,
+            Some(portfolio.ranked_recommendations[0].candidate_id.clone())
+        );
         for selection in [&cheapest, &maximum_gain, &per_cost, &random_first, &robust] {
             assert_eq!(selection.eligible_candidate_count, 3);
             assert_eq!(selection.eligible_catalogue_sha256, cheapest.eligible_catalogue_sha256);
