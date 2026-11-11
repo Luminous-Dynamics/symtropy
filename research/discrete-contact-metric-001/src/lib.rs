@@ -313,15 +313,24 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             .map(|(velocity, target)| velocity - target)
             .collect::<Vec<_>>();
 
-        let primal_residual =
-            relative_primal_feasibility(&normal_velocity, &target_velocity, &slack);
+        let primal_residual = relative_primal_feasibility(
+            &normal_velocity,
+            &target_velocity,
+            &slack,
+            &free_normal_velocity,
+        );
         let dual_residual = relative_negative_residual(&impulse, &delassus, &contact_rhs);
         if dual_residual > SOLVE_TOLERANCE || primal_residual > SOLVE_TOLERANCE {
             continue;
         }
 
-        let complementarity =
-            relative_complementarity_residual(&impulse, &normal_velocity, &target_velocity, &slack);
+        let complementarity = relative_complementarity_residual(
+            &impulse,
+            &normal_velocity,
+            &target_velocity,
+            &slack,
+            &free_normal_velocity,
+        );
         if complementarity > 1.0e-8 {
             continue;
         }
@@ -393,12 +402,14 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         &normal_velocity,
         &target_velocity,
         &contact_slack,
+        &free_normal_velocity,
     );
     let max_scaled_complementarity_residual = relative_complementarity_residual(
         &contact_impulse,
         &normal_velocity,
         &target_velocity,
         &contact_slack,
+        &free_normal_velocity,
     );
 
     Ok(DiscreteStepResult {
@@ -630,19 +641,23 @@ fn relative_negative_residual(
 }
 
 /// Dimensionless unilateral feasibility residual, normalized per contact row
-/// by the larger of the attained and target normal velocities.
+/// by the largest attained, target, or pre-contact free normal velocity.
+/// The free velocity supplies a nonzero characteristic scale when an active
+/// contact correctly drives its attained normal velocity to (near) zero.
 fn relative_primal_feasibility(
     normal_velocity: &[f64],
     target_velocity: &[f64],
     slack: &[f64],
+    free_normal_velocity: &[f64],
 ) -> f64 {
     normal_velocity
         .iter()
         .zip(target_velocity)
         .zip(slack)
-        .map(|((normal, target), row_slack)| {
+        .zip(free_normal_velocity)
+        .map(|(((normal, target), row_slack), free)| {
             let violation = (-row_slack).max(0.0);
-            let scale = normal.abs().max(target.abs());
+            let scale = normal.abs().max(target.abs()).max(free.abs());
             if violation == 0.0 {
                 0.0
             } else if scale > 0.0 {
@@ -655,24 +670,27 @@ fn relative_primal_feasibility(
 }
 
 /// Dimensionless complementarity residual. For each positive impulse, divide
-/// |p_i s_i| by |p_i| times that row's normal-velocity scale. Zero-impulse rows
-/// satisfy complementarity by construction.
+/// the absolute slack by the row's attained, target, or pre-contact free
+/// normal-velocity scale. Zero-impulse rows satisfy complementarity by
+/// construction.
 fn relative_complementarity_residual(
     impulse: &[f64],
     normal_velocity: &[f64],
     target_velocity: &[f64],
     slack: &[f64],
+    free_normal_velocity: &[f64],
 ) -> f64 {
     impulse
         .iter()
         .zip(normal_velocity)
         .zip(target_velocity)
         .zip(slack)
-        .map(|(((p, normal), target), row_slack)| {
+        .zip(free_normal_velocity)
+        .map(|((((p, normal), target), row_slack), free)| {
             if *p <= 0.0 {
                 0.0
             } else {
-                let scale = normal.abs().max(target.abs());
+                let scale = normal.abs().max(target.abs()).max(free.abs());
                 if row_slack.abs() == 0.0 {
                     0.0
                 } else if scale > 0.0 {
@@ -919,14 +937,21 @@ mod tests {
         let normal_velocity = [0.27, -1.0];
         let target_velocity = [0.25, 0.0];
         let slack = [0.02, -1.0];
+        let free_normal_velocity = [0.1, -0.4];
         let reference = (
             relative_negative_residual(&impulse, &Matrix::identity(2), &impulse),
-            relative_primal_feasibility(&normal_velocity, &target_velocity, &slack),
+            relative_primal_feasibility(
+                &normal_velocity,
+                &target_velocity,
+                &slack,
+                &free_normal_velocity,
+            ),
             relative_complementarity_residual(
                 &impulse,
                 &normal_velocity,
                 &target_velocity,
                 &slack,
+                &free_normal_velocity,
             ),
         );
 
@@ -935,22 +960,55 @@ mod tests {
             let scaled_normal = normal_velocity.map(|value| value * scale);
             let scaled_target = target_velocity.map(|value| value * scale);
             let scaled_slack = slack.map(|value| value * scale);
+            let scaled_free_normal = free_normal_velocity.map(|value| value * scale);
             let observed = (
                 relative_negative_residual(
                     &scaled_impulse,
                     &Matrix::identity(2),
                     &scaled_impulse,
                 ),
-                relative_primal_feasibility(&scaled_normal, &scaled_target, &scaled_slack),
+                relative_primal_feasibility(
+                    &scaled_normal,
+                    &scaled_target,
+                    &scaled_slack,
+                    &scaled_free_normal,
+                ),
                 relative_complementarity_residual(
                     &scaled_impulse,
                     &scaled_normal,
                     &scaled_target,
                     &scaled_slack,
+                    &scaled_free_normal,
                 ),
             );
             assert_eq!(observed, reference, "velocity/impulse scale={scale:e}");
         }
+    }
+
+    #[test]
+    fn near_zero_active_contact_slack_is_scaled_by_free_velocity() {
+        let normal_velocity = [-9.0e-17];
+        let target_velocity = [0.0];
+        let slack = [-9.0e-17];
+        let free_normal_velocity = [-2.0];
+        let impulse = [4.0 / 3.0];
+
+        let primal = relative_primal_feasibility(
+            &normal_velocity,
+            &target_velocity,
+            &slack,
+            &free_normal_velocity,
+        );
+        let complementarity = relative_complementarity_residual(
+            &impulse,
+            &normal_velocity,
+            &target_velocity,
+            &slack,
+            &free_normal_velocity,
+        );
+
+        assert!(primal < 1.0e-15, "primal residual={primal:e}");
+        assert!(complementarity < 1.0e-15, "complementarity={complementarity:e}");
     }
 
     #[test]
