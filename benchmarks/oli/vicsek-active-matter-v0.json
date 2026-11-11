@@ -94,7 +94,28 @@
     "default_update_rule": "CurrentPositionAlignment",
     "trajectory_metric_mode": "VicsekModel.step and run_steps return fast_metrics (O(N^2) trajectory metrics, graph topology fields omitted)",
     "full_topology_mode": "VicsekModel.metrics computes exact graph clustering and shortest-path metrics; call at registered checkpoints, not every tick in large sweeps",
-    "metric_snapshot_provenance": "Every VicsekMetrics record carries tick, update_rule and topology_metrics_computed; aggregation must keep update_rule as a required group key."
+    "metric_snapshot_provenance": "Every VicsekMetrics record carries tick, update_rule and topology_metrics_computed; aggregation must keep update_rule as a required group key.",
+    "paired_counterfactual_runner": {
+      "function": "run_paired_heading_intervention",
+      "treatment_sham_protocol": "clone identical baseline twice; impose heading only in treatment; both copies retain identical PRNG state",
+      "common_random_numbers": true,
+      "intervention_consumes_random_draws": false,
+      "response_threshold": 1e-12,
+      "recorded_outputs": [
+        "intervention_receipt",
+        "update_rule",
+        "initial_sham_metrics",
+        "initial_treatment_metrics",
+        "per_tick_sham_metrics",
+        "per_tick_treatment_metrics",
+        "mean_untreated_heading_effect_rad",
+        "untreated_heading_response_fraction",
+        "mean_untreated_position_effect",
+        "untreated_position_response_fraction"
+      ],
+      "response_population": "all particles except the directly treated particle",
+      "claim_boundary": "Causal effects are established only inside the declared synthetic dynamics and intervention model."
+    }
   },
   "benchmark_regimes": [
     {
@@ -413,7 +434,11 @@
     "local_order_coverage_fraction": "Fraction of particles with at least one other particle within the interaction radius",
     "mean_clustering_coefficient": "Mean Watts–Strogatz local clustering coefficient across all particles; degree 0 or 1 contributes zero",
     "mean_shortest_path_length": "Mean unweighted shortest-path distance over connected unordered pairs only; null if there are no connected pairs",
-    "connected_pair_fraction": "Fraction of all unordered particle pairs belonging to the same connected component"
+    "connected_pair_fraction": "Fraction of all unordered particle pairs belonging to the same connected component",
+    "nontrivial_cluster_coverage_fraction": "Fraction of particles belonging to connected components with at least two members; isolates do not count as collective clusters.",
+    "mean_nontrivial_cluster_polar_order": "Mean per-component polar order over clusters of size >=2; null if all components are singletons.",
+    "nontrivial_cluster_polar_order_variance": "Population variance of the nontrivial-cluster polar-order values; null if all components are singletons.",
+    "singleton_warning": "The unweighted mean over all connected components assigns singleton components polar order 1 by construction. Report nontrivial_cluster_coverage_fraction and mean_nontrivial_cluster_polar_order alongside the all-component statistic."
   },
   "benchmark_tasks": [
     "Collective order versus independent-particle baseline",
@@ -435,7 +460,10 @@
     "Causal-null control: show zero downstream effects when interaction coupling is absent.",
     "Statistical information transfer versus causal influence: report observational transfer metrics separately from interventional response.",
     "Common-driver confounding: distinguish shared external forcing from direct agent-to-agent interaction.",
-    "Causal edge null: a single-particle intervention must have zero downstream effect in an isolated system even when common-driver correlations are present."
+    "Causal edge null: a single-particle intervention must have zero downstream effect in an isolated system even when common-driver correlations are present.",
+    "Paired intervention/sham replay with common random numbers and per-tick response curves",
+    "Interventional influence propagation measured on untreated particles, separately for heading and position",
+    "Nontrivial cluster coherence: singleton components must not contribute perfect-order evidence"
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
@@ -464,13 +492,18 @@
     "exact_head_update_rule_required": true,
     "update_rule_test": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE",
     "graph_topology_metrics_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
-    "causal_intervention_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "causal_intervention_status": "PAIRED_COUNTERFACTUAL_RUNNER_AND_COMMON_DRIVER_CONTROLS_IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
     "update_rule_erratum_status": "IMPLEMENTED_AS_EXPLICIT_NEXT_POSITION_ALIGNMENT_MODE; source reproduction not yet run",
-    "topology_checkpoint_schedule": "PENDING_BENCHMARK_RUNNER; initial proposal: tick 0, warm-up completion, then every 50 ticks and final tick"
+    "topology_checkpoint_schedule": "PENDING_BENCHMARK_RUNNER; initial proposal: tick 0, warm-up completion, then every 50 ticks and final tick",
+    "nontrivial_cluster_order_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION"
   },
   "acceptance": {
     "intervention_sham_counterfactual_parity_required": true,
     "zero_false_causal_attribution_on_self_only_negative_control": true,
-    "common_driver_zero_edge_fixture_required": true
+    "common_driver_zero_edge_fixture_required": true,
+    "paired_treatment_sham_replay_required": true,
+    "common_random_numbers_must_be_identical": true,
+    "single_particle_intervention_must_have_zero_untreated_effect_on_self_only_null": true,
+    "singleton_components_must_not_count_as_nontrivial_cluster_order": true
   }
 }
