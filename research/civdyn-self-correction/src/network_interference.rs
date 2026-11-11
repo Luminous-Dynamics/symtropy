@@ -153,17 +153,15 @@ pub fn enumerate_two_stage_saturation_design(
             let cluster_probability = SATURATION_LEVELS
                 .iter()
                 .map(|saturation| {
-                    let conditional_probability = members.iter().fold(
-                        1.0_f64,
-                        |probability, node| {
+                    let conditional_probability =
+                        members.iter().fold(1.0_f64, |probability, node| {
                             probability
                                 * if treated[*node] {
                                     *saturation
                                 } else {
                                     1.0 - *saturation
                                 }
-                        },
-                    );
+                        });
                     conditional_probability / SATURATION_LEVELS.len() as f64
                 })
                 .sum::<f64>();
@@ -252,10 +250,8 @@ impl InterferenceMechanism {
             let own_treatment = if assignment[node] { 1.0 } else { 0.0 };
             let outcome = baseline
                 + self.direct_effect * own_treatment
-                + self.within_cluster_spillover_per_treated_neighbor
-                    * within_treated as f64
-                + self.between_cluster_spillover_per_treated_neighbor
-                    * between_treated as f64;
+                + self.within_cluster_spillover_per_treated_neighbor * within_treated as f64
+                + self.between_cluster_spillover_per_treated_neighbor * between_treated as f64;
             if !outcome.is_finite() {
                 return Err(NetworkInterferenceError::InvalidMechanism);
             }
@@ -306,9 +302,7 @@ impl ExposureMapping {
             Self::WeightedNeighborMean {
                 within_weight,
                 between_weight,
-            } => format!(
-                "weighted_neighbor_mean_within_{within_weight}_between_{between_weight}"
-            ),
+            } => format!("weighted_neighbor_mean_within_{within_weight}_between_{between_weight}"),
             Self::Threshold {
                 minimum_treated_neighbors,
             } => format!("treated_neighbor_threshold_{minimum_treated_neighbors}"),
@@ -664,8 +658,7 @@ mod tests {
     use super::*;
 
     fn complete_network() -> ClusteredNetwork {
-        let graph =
-            UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 2), (1, 3)]).unwrap();
+        let graph = UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 2), (1, 3)]).unwrap();
         ClusteredNetwork::new(graph, vec![0, 0, 1, 1]).unwrap()
     }
 
@@ -818,10 +811,8 @@ mod tests {
     #[test]
     fn partial_graph_completions_return_an_interval_not_a_point_claim() {
         let observed = UndirectedNetwork::new(4, [(0, 1), (2, 3)]).unwrap();
-        let completion_a =
-            UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 2), (1, 3)]).unwrap();
-        let completion_b =
-            UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 3), (1, 2)]).unwrap();
+        let completion_a = UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 2), (1, 3)]).unwrap();
+        let completion_b = UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 3), (1, 2)]).unwrap();
         let policy = [true, false, false, false];
 
         let bounds = target_effect_bounds_over_completions(
@@ -853,7 +844,10 @@ mod tests {
             3,
         )
         .unwrap_err();
-        assert_eq!(error, NetworkInterferenceError::ObservedEdgeMissingFromCompletion);
+        assert_eq!(
+            error,
+            NetworkInterferenceError::ObservedEdgeMissingFromCompletion
+        );
     }
 
     #[test]
@@ -912,10 +906,10 @@ mod tests {
         let left_draws = assignments(&left);
         let right_draws = assignments(&right);
         for mapping in mappings() {
-            let first = assess_exposure_mapping(&left, &left_draws, &mechanism(0.6), &mapping)
-                .unwrap();
-            let second = assess_exposure_mapping(&right, &right_draws, &mechanism(0.6), &mapping)
-                .unwrap();
+            let first =
+                assess_exposure_mapping(&left, &left_draws, &mechanism(0.6), &mapping).unwrap();
+            let second =
+                assess_exposure_mapping(&right, &right_draws, &mechanism(0.6), &mapping).unwrap();
             assert_eq!(first, second);
         }
     }
