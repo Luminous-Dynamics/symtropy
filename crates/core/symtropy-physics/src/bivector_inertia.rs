@@ -167,16 +167,40 @@ impl<const D: usize> BivectorInertia<D> {
         if !total_mass.is_finite() || total_mass <= 0.0 {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
-        let center_residual = offset_a * mass_a + offset_b * mass_b;
-        let offset_scale = offset_a.norm().max(offset_b.norm()).max(f64::MIN_POSITIVE);
-        if center_residual.norm() > 1e-10 * total_mass * offset_scale {
-            return Err(RotationalInertiaError::OffsetsNotCentered);
+        // Check the weighted COM residual without multiplying huge
+        // coordinates by tiny/large masses or taking overflow-prone norms.
+        let mass_scale = mass_a.max(mass_b);
+        let normalized_mass_a = mass_a / mass_scale;
+        let normalized_mass_b = mass_b / mass_scale;
+        let normalized_total_mass = normalized_mass_a + normalized_mass_b;
+        let offset_scale = offset_a
+            .iter()
+            .chain(offset_b.iter())
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        if offset_scale > 0.0 {
+            let normalized_center_residual =
+                (offset_a / offset_scale) * normalized_mass_a
+                    + (offset_b / offset_scale) * normalized_mass_b;
+            if !normalized_center_residual.iter().all(|value| value.is_finite())
+                || normalized_center_residual.norm() > 1e-10 * normalized_total_mass
+            {
+                return Err(RotationalInertiaError::OffsetsNotCentered);
+            }
         }
 
-        let second_moment = inertia_a.second_moment
-            + (offset_a * offset_a.transpose()) * mass_a
-            + inertia_b.second_moment
-            + (offset_b * offset_b.transpose()) * mass_b;
+        // Form m*d*d^T as (sqrt(m)*d)(sqrt(m)*d)^T so an intermediate
+        // d*d^T cannot overflow when the mass-weighted tensor is finite.
+        let weighted_offset_a = offset_a * mass_a.sqrt();
+        let weighted_offset_b = offset_b * mass_b.sqrt();
+        if !weighted_offset_a.iter().all(|value| value.is_finite())
+            || !weighted_offset_b.iter().all(|value| value.is_finite())
+        {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        let parallel_axis_a = weighted_offset_a * weighted_offset_a.transpose();
+        let parallel_axis_b = weighted_offset_b * weighted_offset_b.transpose();
+        let second_moment =
+            inertia_a.second_moment + parallel_axis_a + inertia_b.second_moment + parallel_axis_b;
         Self::from_second_moment(second_moment)
     }
 
@@ -598,6 +622,35 @@ mod tests {
         assert!((combined.second_moment()[(2, 2)] - 0.4125).abs() < 1e-12);
         let plane_xy = Bivector::<3>::unit_plane(0, 1);
         assert!((combined.angular_momentum(&plane_xy).unwrap().get(0, 1) - 5.825).abs() < 1e-12);
+    }
+
+    #[test]
+    fn parallel_axis_combination_is_scale_safe_for_large_offsets_and_tiny_masses() {
+        let mass = 1.0e-310;
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(mass, 1.0).unwrap();
+        let offset_a = SVector::new(1.0e155, 0.0, 0.0);
+        let offset_b = SVector::new(-1.0e155, 0.0, 0.0);
+        let combined = BivectorInertia::<3>::combine_at_common_center(
+            mass,
+            &inertia,
+            &offset_a,
+            mass,
+            &inertia,
+            &offset_b,
+        )
+        .unwrap();
+        assert!((combined.second_moment()[(0, 0)] - 2.0).abs() < 1.0e-10);
+        assert!(combined.second_moment().iter().all(|value| value.is_finite()));
+
+        let bad = BivectorInertia::<3>::combine_at_common_center(
+            mass,
+            &inertia,
+            &offset_a,
+            mass,
+            &inertia,
+            &offset_a,
+        );
+        assert_eq!(bad.unwrap_err(), RotationalInertiaError::OffsetsNotCentered);
     }
 
     #[test]
