@@ -917,6 +917,13 @@ mod tests {
     }
 
     #[test]
+    fn typed_manifest_rejects_unknown_fields() {
+        let mut value = serde_json::to_value(base_manifest()).expect("serialize manifest");
+        value["unrecognized_authority_override"] = serde_json::Value::Bool(true);
+        assert!(serde_json::from_value::<TransferManifest>(value).is_err());
+    }
+
+    #[test]
     fn frozen_scale_transfer_corpus_is_valid() {
         let summary = validate_corpus(include_bytes!(
             "../../../../benchmarks/shipyard/scale-transfer/corpus-v0.1.json"
@@ -943,11 +950,16 @@ mod tests {
     #[test]
     fn reverse_scale_bridge_is_rejected() {
         let mut manifest = base_manifest();
-        manifest.bridge_edges[0].from_domain_id = "D1".to_owned();
-        manifest.bridge_edges[0].to_domain_id = "D0".to_owned();
-        manifest.bridge_edges[0].changed_factors = manifest.domains[1]
-            .signature
-            .changed_factors(&manifest.domains[0].signature);
+        let edge = edge(
+            "E10",
+            "D1",
+            "D0",
+            &manifest.domains[1].signature,
+            &manifest.domains[0].signature,
+        );
+        manifest.model.calibration_domain_id = "D1".to_owned();
+        manifest.request.target_domain_id = "D0".to_owned();
+        manifest.bridge_edges = vec![edge];
         let result = evaluate_transfer(&manifest);
         assert_eq!(result.reason, Some(TransferReason::BridgeEdgeNotAdjacentScale));
     }
