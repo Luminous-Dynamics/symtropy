@@ -13,7 +13,10 @@ A 2026 analysis revisits the original Vicsek model and relates polar order to in
 
 Sources:
 - Vicsek et al. (1995), *Physical Review Letters*, DOI [10.1103/PhysRevLett.75.1226](https://doi.org/10.1103/PhysRevLett.75.1226).
+- Rahman et al. (2026), *Physical Review Research*, [Topology and geometry of clusters in the Vicsek model across scales](https://doi.org/10.1103/hkrb-wpdr).
+- Rahman et al. (2026), [Erratum correcting the neighbor-set time index](https://doi.org/10.1103/b9yr-8wmv), published 27 October 2026.
 - Jin & Dong (2026), *Communications Physics*, [Quantitative relationship between coupled structural dynamics and collective order in the original Vicsek model](https://www.nature.com/articles/s42005-026-02933-9).
+- Pang & Wang (2026), *Physical Review E*, [Quantifying influence and information transfer in a modified Vicsek model with nonreciprocal interactions](https://doi.org/10.1103/rf2v-sy5d).
 
 ## Scientific boundary
 
@@ -60,7 +63,10 @@ The module exports:
 - neighbour-count variance;
 - mean and variance of per-particle local polar order;
 - connected-component count in the metric-neighbour graph;
-- largest connected-component fraction.
+- largest connected-component fraction;
+- mean local clustering coefficient;
+- mean shortest-path length over connected unordered pairs;
+- fraction of all unordered pairs that are connected.
 
 ## Exact positive and negative controls
 
