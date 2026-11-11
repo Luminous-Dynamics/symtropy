@@ -258,3 +258,46 @@ These are metadata-only synthetic passports mirroring public source acquisition 
 ### Claim boundary
 
 The passport checks the completeness and internal consistency of declared metadata. It does not hash/authenticate source bytes, determine legal sufficiency, prove source truth, correct survey bias, or qualify the resulting CIVDYN model. No empirical validation claim is made by the synthetic source-passport sweep.
+
+
+## Scenario Q: correlated uncertainty propagation through empirical transforms
+
+The first uncertainty propagation reference is in src/uncertainty_propagation.rs and the uncertainty-propagation-sweep binary. It advances [CIVDYN-UNCERTAINTY-PROP-001 #4652](https://github.com/Luminous-Dynamics/symtropy/issues/4652).
+
+The evaluator accepts an ordered input vector, one canonical measurement unit, a full covariance matrix and typed uncertainty-source receipts. It applies a declared linear/Jacobian transform:
+
+\`y = A x\`
+
+\`Sigma_y = A Sigma_x A^T\`
+
+The full covariance matrix is authoritative. Different source IDs or publishers do not imply zero covariance. A dependence-group ID is traceability metadata; the numerical relationship is in the off-diagonal covariance entries.
+
+### Preserved evidence
+
+- Exact input-state identity, input variable IDs, values, units and full covariance matrix.
+- Source IDs, kinds, source digests, affected variables and declared dependence groups.
+- Transform ID/digest, protocol digest and exact Jacobian.
+- Output-state identity, means, covariance, standard uncertainties and correlation matrix.
+- Original input source receipts and the source receipts remapped to the output variables affected by the transform.
+
+The propagated output state validates independently after remapping source lineage through the Jacobian.
+
+### Known-answer cases
+
+1. Correlated water/energy inputs with covariance \`[[4,3],[3,9]]\`, transformed to sum and difference. Output means are \`[180,20]\`; covariance is \`[[19,-5],[-5,7]]\`.
+2. Explicit zero covariance ablation, showing the difference between a registered zero-covariance assumption and a supplied nonzero covariance.
+3. Shared calibration error with covariance \`[[4,4],[4,4]]\`: uncertainty reinforces in the sum (variance 16) and cancels in the difference (variance 0).
+4. Explicit spatial-crosswalk adjustment as a second uncertain input, including covariance with the original sampled estimate. Output estimate is 102 with variance 6.
+
+### Claim boundaries
+
+- V0.1 is first-order linear/Jacobian propagation. It is not a general nonlinear distribution propagator.
+- Unit conversion and coordinate normalization remain separate source-passport transforms; the v0.1 vector uses one canonical unit.
+- Transform uncertainty must be represented as explicit input uncertainty variables and covariance. It is never silently assumed to be zero.
+- The covariance matrix must be finite, symmetric and positive semidefinite. Missing covariance is NotAssessed, not independence.
+- Source receipts preserve lineage but do not authenticate raw bytes or prove source truth.
+- Structural model discrepancy is not encoded as a covariance term. It remains a separate model-adequacy status.
+
+For nonlinear or strongly non-Gaussian transformations, use a separate distribution/Monte Carlo propagation protocol rather than silently stretching this first-order contract.
+
+Run uncertainty-propagation-sweep with the locked workspace manifest. CI checks exact correlated/shared-cause answers, explicit crosswalk uncertainty, source lineage and deterministic replay.
