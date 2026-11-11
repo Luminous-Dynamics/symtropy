@@ -152,3 +152,14 @@ Each method's `input_set_sha256` must equal this recomputed provenance digest. T
 
 Every `MethodEvidence` also links to an exact per-method execution manifest by `execution_manifest_id` and `execution_manifest_sha256`. That artifact should capture the reproduction command, implementation/build identity, dependency lock, runtime/toolchain, hardware and precision, solver settings, stopping criteria and relevant environment variables for that method. The study-level provenance environment remains useful for validating the manifest tool itself, but it no longer has to pretend that two different solver methods ran in one identical execution environment.
 
+
+## Per-method execution receipts — contract v1.0.0
+
+The companion crate at [`tools/bh-execution-manifest`](../bh-execution-manifest/README.md)
+defines the strict per-method execution-envelope schema and Rust validator.
+Each method's `execution_manifest_id` and `execution_manifest_sha256` bind
+the exact raw bytes of that receipt; its implementation and canonical input
+digests must also match the corresponding `MethodEvidence`. The two paired
+comparison examples are explicitly `illustrative_not_executed`, not solver
+runs or physical evidence. The companion tests verify these cross-manifest
+bindings. See the execution-manifest README for the contract and claim limits.
