@@ -47,3 +47,10 @@ The unit corpus covers entity/observable order invariance, ordered-event sensiti
 ## Claim ceiling
 
 Passing tests establish only structural validation and deterministic canonical identity of this supplied reference representation for its finite fixtures. They establish no physical truth, observation authenticity, source freshness, sensor calibration, numerical health, model credibility, rendering correctness, engineering acceptance, safety, certification, or actuation authority.
+
+
+## Borrowed-view generation fence
+
+The reference package includes a semantic guard for optional zero-copy/read-only live views. A borrowed view is accepted only while world-instance ID, world-generation ID, rebuild epoch, frame digest and observable-set digest all match the current buffer identity. It rejects world replacement, generation change, model rebuild, frame advance and channel-profile change. An owned observation receipt remains a historical value and is not invalidated by later world rebuilds.
+
+This guard is not a memory-safety primitive and does not extend a buffer's lifetime. A production adapter must use safe Rust ownership/borrowing or an independently qualified runtime handle, and call the guard before each boundary where the source may have rebuilt or advanced. The guard alone cannot prevent a concurrent rebuild between validation and dereference; production integration must serialize access or otherwise make the check-and-use atomic with respect to rebuild.
