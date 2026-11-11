@@ -201,22 +201,21 @@ pub enum HorizonDisposition {
 /// it is K_max. The caller still needs its independent safety authority.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ActionHorizonSelection<'a> {
-    pub disposition: HorizonDisposition,
-    pub bounds: [HorizonBoundReceipt<'a>; ACTION_HORIZON_CONSTRAINT_COUNT],
-    pub common_timebase_id: Option<&'a str>,
-    pub safe_horizon_ns: Option<u64>,
+    // Private fields prevent callers from fabricating or mutating an admissible
+    // selector result before it is bound into an ActionCommitment.
+    disposition: HorizonDisposition,
+    bounds: [HorizonBoundReceipt<'a>; ACTION_HORIZON_CONSTRAINT_COUNT],
+    common_timebase_id: Option<&'a str>,
+    safe_horizon_ns: Option<u64>,
     /// Active-minimum constraints in canonical order. Slots after count are None.
-    pub active_constraints: [Option<HorizonConstraint>; ACTION_HORIZON_CONSTRAINT_COUNT],
-    pub active_constraint_count: usize,
-    pub controller_period_ns: u64,
-    pub p99_total_latency_ns: u64,
-    pub latency_profile_id: &'a str,
-    /// ceil(p99 / controller period) for queued mode; None for split-timescale.
-    pub k_min_queue_cycles: Option<u64>,
-    /// floor(safe horizon / controller period) when all bounds qualify.
-    pub k_max_safe_cycles: Option<u64>,
-    /// Longest admissible whole-cycle prefix, when the mode is feasible.
-    pub selected_cycles: Option<u64>,
+    active_constraints: [Option<HorizonConstraint>; ACTION_HORIZON_CONSTRAINT_COUNT],
+    active_constraint_count: usize,
+    controller_period_ns: u64,
+    p99_total_latency_ns: u64,
+    latency_profile_id: &'a str,
+    k_min_queue_cycles: Option<u64>,
+    k_max_safe_cycles: Option<u64>,
+    selected_cycles: Option<u64>,
 }
 
 /// Compose the eight qualified bounds and return the longest admissible
@@ -371,6 +370,50 @@ pub fn select_action_horizon<'a>(
 }
 
 impl ActionHorizonSelection<'_> {
+    pub const fn disposition(&self) -> HorizonDisposition {
+        self.disposition
+    }
+
+    pub fn bounds(&self) -> &[HorizonBoundReceipt<'_>; ACTION_HORIZON_CONSTRAINT_COUNT] {
+        &self.bounds
+    }
+
+    pub const fn common_timebase_id(&self) -> Option<&str> {
+        self.common_timebase_id
+    }
+
+    pub const fn safe_horizon_ns(&self) -> Option<u64> {
+        self.safe_horizon_ns
+    }
+
+    pub const fn controller_period_ns(&self) -> u64 {
+        self.controller_period_ns
+    }
+
+    pub const fn p99_total_latency_ns(&self) -> u64 {
+        self.p99_total_latency_ns
+    }
+
+    pub const fn latency_profile_id(&self) -> &str {
+        self.latency_profile_id
+    }
+
+    pub const fn k_min_queue_cycles(&self) -> Option<u64> {
+        self.k_min_queue_cycles
+    }
+
+    pub const fn k_max_safe_cycles(&self) -> Option<u64> {
+        self.k_max_safe_cycles
+    }
+
+    pub const fn selected_cycles(&self) -> Option<u64> {
+        self.selected_cycles
+    }
+
+    pub const fn active_constraint_count(&self) -> usize {
+        self.active_constraint_count
+    }
+
     /// Iterate over every constraint tied for the active minimum.
     pub fn active_constraints_iter(&self) -> impl Iterator<Item = HorizonConstraint> + '_ {
         self.active_constraints
@@ -379,6 +422,7 @@ impl ActionHorizonSelection<'_> {
             .filter_map(|constraint| *constraint)
     }
 }
+
 
 #[inline]
 const fn div_ceil(numerator: u64, denominator: u64) -> u64 {
@@ -396,6 +440,7 @@ pub enum ActionCommitmentError {
     DurationOverflow,
     ExpiryOverflow,
     ExceedsSafeHorizon,
+    ZeroSequenceNumber,
 }
 
 impl core::fmt::Display for ActionCommitmentError {
@@ -407,6 +452,7 @@ impl core::fmt::Display for ActionCommitmentError {
             Self::DurationOverflow => write!(f, "selected action duration overflowed nanoseconds"),
             Self::ExpiryOverflow => write!(f, "action commitment expiry overflowed nanoseconds"),
             Self::ExceedsSafeHorizon => write!(f, "selected duration exceeds the safe horizon"),
+            Self::ZeroSequenceNumber => write!(f, "action commitment sequence number must be non-zero"),
         }
     }
 }
@@ -421,6 +467,7 @@ pub enum ActionCommitmentInvalidity {
     TimebaseMismatch,
     ProposalDigestMismatch,
     ConfigurationDigestMismatch,
+    SequenceReplay,
 }
 
 /// Evidence-carrying permission window for one exact proposed action prefix.
@@ -431,23 +478,16 @@ pub enum ActionCommitmentInvalidity {
 /// validate the command and atomically consume/replay-protect its sequence.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ActionCommitment<'a> {
-    /// SHA-256 digest of the canonical proposed action/prefix payload.
-    pub proposal_digest: [u8; 32],
-    /// SHA-256 digest of the exact robot/configuration/mass-property identity.
-    pub configuration_digest: [u8; 32],
-    /// Monotonic sequence number. The execution authority must reject reused
-    /// or out-of-order sequence numbers using its durable local state.
-    pub sequence_number: u64,
-    /// The exact horizon decision and eight source receipts.
-    pub selection: ActionHorizonSelection<'a>,
-    /// Common application-time basis of all qualified horizon inputs.
-    pub timebase_id: &'a str,
-    /// Time at which the upstream evidence was evaluated and this receipt issued.
-    pub committed_at_ns: u64,
-    /// Exclusive upper bound: the commitment is invalid when now >= this time.
-    pub expires_at_ns: u64,
-    /// Number of low-level control cycles covered by this commitment.
-    pub selected_cycles: u64,
+    // Private immutable fields prevent a caller from extending expiry, swapping
+    // the proposal/configuration identity, or altering the selected horizon.
+    proposal_digest: [u8; 32],
+    configuration_digest: [u8; 32],
+    sequence_number: u64,
+    selection: ActionHorizonSelection<'a>,
+    timebase_id: &'a str,
+    committed_at_ns: u64,
+    expires_at_ns: u64,
+    selected_cycles: u64,
 }
 
 /// Bind an admissible horizon selection to an exact proposal and configuration.
@@ -463,6 +503,9 @@ pub fn create_action_commitment<'a>(
     sequence_number: u64,
     committed_at_ns: u64,
 ) -> Result<ActionCommitment<'a>, ActionCommitmentError> {
+    if sequence_number == 0 {
+        return Err(ActionCommitmentError::ZeroSequenceNumber);
+    }
     if !matches!(
         selection.disposition,
         HorizonDisposition::AdmissibleQueuedOpenLoop
@@ -513,6 +556,7 @@ impl ActionCommitment<'_> {
         current_timebase_id: &str,
         proposal_digest: &[u8; 32],
         configuration_digest: &[u8; 32],
+        last_accepted_sequence: u64,
     ) -> Result<(), ActionCommitmentInvalidity> {
         if now_ns < self.committed_at_ns {
             return Err(ActionCommitmentInvalidity::NotYetValid);
@@ -529,7 +573,42 @@ impl ActionCommitment<'_> {
         if configuration_digest != &self.configuration_digest {
             return Err(ActionCommitmentInvalidity::ConfigurationDigestMismatch);
         }
+        if self.sequence_number <= last_accepted_sequence {
+            return Err(ActionCommitmentInvalidity::SequenceReplay);
+        }
         Ok(())
+    }
+
+    pub const fn proposal_digest(&self) -> &[u8; 32] {
+        &self.proposal_digest
+    }
+
+    pub const fn configuration_digest(&self) -> &[u8; 32] {
+        &self.configuration_digest
+    }
+
+    pub const fn sequence_number(&self) -> u64 {
+        self.sequence_number
+    }
+
+    pub const fn selection(&self) -> &ActionHorizonSelection<'_> {
+        &self.selection
+    }
+
+    pub const fn timebase_id(&self) -> &str {
+        self.timebase_id
+    }
+
+    pub const fn committed_at_ns(&self) -> u64 {
+        self.committed_at_ns
+    }
+
+    pub const fn expires_at_ns(&self) -> u64 {
+        self.expires_at_ns
+    }
+
+    pub const fn selected_cycles(&self) -> u64 {
+        self.selected_cycles
     }
 }
 
@@ -894,7 +973,7 @@ mod action_commitment_tests {
         assert_eq!(receipt.selected_cycles, 9);
         assert_eq!(receipt.expires_at_ns, 1_090);
         assert_eq!(
-            receipt.validate(1_089, "application-epoch-1", &[0x11; 32], &[0x22; 32]),
+            receipt.validate(1_089, "application-epoch-1", &[0x11; 32], &[0x22; 32], 6),
             Ok(())
         );
     }
@@ -903,7 +982,7 @@ mod action_commitment_tests {
     fn commitment_expires_at_exclusive_boundary() {
         let receipt = commitment();
         assert_eq!(
-            receipt.validate(1_090, "application-epoch-1", &[0x11; 32], &[0x22; 32]),
+            receipt.validate(1_090, "application-epoch-1", &[0x11; 32], &[0x22; 32], 6),
             Err(ActionCommitmentInvalidity::Expired)
         );
     }
@@ -912,7 +991,7 @@ mod action_commitment_tests {
     fn commitment_rejects_precommit_time() {
         let receipt = commitment();
         assert_eq!(
-            receipt.validate(999, "application-epoch-1", &[0x11; 32], &[0x22; 32]),
+            receipt.validate(999, "application-epoch-1", &[0x11; 32], &[0x22; 32], 6),
             Err(ActionCommitmentInvalidity::NotYetValid)
         );
     }
@@ -921,7 +1000,7 @@ mod action_commitment_tests {
     fn commitment_rejects_wrong_timebase() {
         let receipt = commitment();
         assert_eq!(
-            receipt.validate(1_010, "other-epoch", &[0x11; 32], &[0x22; 32]),
+            receipt.validate(1_010, "other-epoch", &[0x11; 32], &[0x22; 32], 6),
             Err(ActionCommitmentInvalidity::TimebaseMismatch)
         );
     }
@@ -930,7 +1009,7 @@ mod action_commitment_tests {
     fn commitment_rejects_changed_proposal_digest() {
         let receipt = commitment();
         assert_eq!(
-            receipt.validate(1_010, "application-epoch-1", &[0x33; 32], &[0x22; 32]),
+            receipt.validate(1_010, "application-epoch-1", &[0x33; 32], &[0x22; 32], 6),
             Err(ActionCommitmentInvalidity::ProposalDigestMismatch)
         );
     }
@@ -939,8 +1018,25 @@ mod action_commitment_tests {
     fn commitment_rejects_changed_robot_configuration_digest() {
         let receipt = commitment();
         assert_eq!(
-            receipt.validate(1_010, "application-epoch-1", &[0x11; 32], &[0x44; 32]),
+            receipt.validate(1_010, "application-epoch-1", &[0x11; 32], &[0x44; 32], 6),
             Err(ActionCommitmentInvalidity::ConfigurationDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn commitment_rejects_reused_or_out_of_order_sequence() {
+        let receipt = commitment();
+        assert_eq!(
+            receipt.validate(1_010, "application-epoch-1", &[0x11; 32], &[0x22; 32], 7),
+            Err(ActionCommitmentInvalidity::SequenceReplay)
+        );
+    }
+
+    #[test]
+    fn zero_sequence_number_cannot_be_committed() {
+        assert_eq!(
+            create_action_commitment(valid_selection(), [0; 32], [0; 32], 0, 0),
+            Err(ActionCommitmentError::ZeroSequenceNumber)
         );
     }
 
