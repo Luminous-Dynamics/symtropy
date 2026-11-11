@@ -392,8 +392,8 @@
         "evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       },
       "battery_energy": {
-        "lower": 25.8,
-        "upper": 26.2,
+        "lower": 23,
+        "upper": 23.4,
         "unit": "kWh",
         "boundary": "BATTERY_TERMINAL_NET",
         "bound_basis": "SCENARIO_ENVELOPE",
