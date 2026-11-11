@@ -205,9 +205,9 @@ pub struct DiscreteStepResult {
     pub max_complementarity_residual: f64,
     /// Dimensionless dual-feasibility residual, normalized by impulse scale.
     pub max_scaled_dual_feasibility_residual: f64,
-    /// Dimensionless primal-feasibility residual, normalized by row velocity scale.
+    /// Dimensionless primal-feasibility residual, normalized by attained, target, and free row velocity scales.
     pub max_scaled_primal_feasibility_residual: f64,
-    /// Dimensionless complementarity residual, normalized per active row.
+    /// Dimensionless complementarity residual, normalized per active row by attained, target, and free velocity scales.
     pub max_scaled_complementarity_residual: f64,
 }
 
