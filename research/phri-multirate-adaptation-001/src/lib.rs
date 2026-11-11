@@ -52,7 +52,7 @@ pub struct ProposalAdmissionReceipt {
 pub enum ProposalRejectReason {
     ZeroProposalId, ZeroProposalSequence, ZeroAgencyEpoch, ZeroClockIdentity,
     MissingStateRevisionDigest, MissingParameterDigest, MissingOptimizerReceiptDigest,
-    InvalidExpiry, InvalidObservationAge, ClockMismatch, AgencyEpochMismatch,
+    ZeroObservationSequence, ObservationSequenceFromFuture, InvalidExpiry, InvalidObservationAge, ClockMismatch, AgencyEpochMismatch,
     ProposalNotLatestIssued, ProposalAlreadyConsumed, ProposalIssuedInFuture,
     ProposalExpired, StateRevisionMismatch, ObservationFromFuture, ObservationStale,
     SequenceOverflow,
@@ -61,6 +61,17 @@ impl fmt::Display for ProposalRejectReason {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { write!(f, "{self:?}") }
 }
 impl std::error::Error for ProposalRejectReason {}
+
+impl ProposalAdmissionReceipt {
+    /// Read-only proposal identifier and result metadata for downstream receipts.
+    pub const fn proposal_id(&self) -> u64 { self.proposal_id }
+    pub const fn proposal_sequence(&self) -> u64 { self.proposal_sequence }
+    pub const fn agency_epoch_id(&self) -> u64 { self.agency_epoch }
+    pub const fn expires_at_ns(&self) -> u64 { self.expires_at_ns }
+    pub const fn parameter_digest(&self) -> &[u8; 32] { &self.parameter_digest }
+    pub const fn optimizer_receipt_digest(&self) -> &[u8; 32] { &self.optimizer_receipt_digest }
+
+}
 
 /// Single-owner fast-loop gate. Caller owns thread synchronization and stop-path integration.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -150,14 +161,6 @@ impl ProposalAdmissionGate {
             receipt.maximum_observation_age_ns, context.now_ns)
     }
 
-    /// Read-only proposal identifier and result metadata for downstream receipts.
-    pub const fn proposal_id(&self) -> u64 { self.proposal_id }
-    pub const fn proposal_sequence(&self) -> u64 { self.proposal_sequence }
-    pub const fn agency_epoch_id(&self) -> u64 { self.agency_epoch }
-    pub const fn expires_at_ns(&self) -> u64 { self.expires_at_ns }
-    pub const fn parameter_digest(&self) -> &[u8; 32] { &self.parameter_digest }
-    pub const fn optimizer_receipt_digest(&self) -> &[u8; 32] { &self.optimizer_receipt_digest }
-
     pub const fn agency_epoch(&self) -> u64 { self.agency_epoch }
     pub const fn last_admitted_sequence(&self) -> u64 { self.last_admitted_sequence }
 }
@@ -195,7 +198,7 @@ mod tests {
     fn clock() -> ProposalClock { ProposalClock { clock_id: 7, boot_epoch: 9 } }
     fn context(seq:u64) -> AdmissionContext {
         AdmissionContext { clock:clock(), now_ns:1000, latest_issued_proposal_sequence:seq,
-            current_state_revision_digest:STATE }
+            latest_observation_sequence:42, current_state_revision_digest:STATE }
     }
     fn proposal(seq:u64) -> AdaptationProposal {
         AdaptationProposal { proposal_id:seq+100, proposal_sequence:seq, agency_epoch:1,
