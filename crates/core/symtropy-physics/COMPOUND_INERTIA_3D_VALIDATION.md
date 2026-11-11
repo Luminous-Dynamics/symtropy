@@ -97,6 +97,12 @@ Finite inputs whose total mass, COM update, rotated tensor, parallel-axis term, 
 
 `CompoundMassProperties3` has public fields. Any serialized/manually mutated evidence must revalidate total mass, COM, exact tensor symmetry, and positive definiteness before energy or principal-frame decisions are trusted.
 
+## Scale-safe parallel-axis evaluation
+
+Compute each child contribution in mass-weighted coordinates `w = sqrt(m) * d`, then form `I_parallel = (w dot w) * 1 - w * w^T`. In 3D, evaluate each diagonal as the sum of the two other weighted component squares, avoiding a potentially catastrophic subtraction. Reject any nonzero weighted component or product that underflows to zero, and reject non-finite intermediates.
+
+A regression uses `m=1e300` and a COM offset of `1e-170`: the raw `d dot d` underflows to zero, but the physical mass-weighted transverse contribution is `1e-40` and must be retained. This ensures mass scaling occurs before geometric squaring.
+
 ## Positive-definiteness check
 
 The reference uses Sylvester's criterion on the tensor after division by its largest absolute element.
