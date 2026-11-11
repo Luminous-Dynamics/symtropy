@@ -187,7 +187,7 @@
       "purpose": "Inject a failure during successor observation and ensure no partial model-state commit.",
       "agent_count": 3,
       "injected_failure": "landscape evaluator fails on first successor observation after initial three-agent observation",
-      "expected": "On a successor observation error, agent positions, RNG and tick remain unchanged; the completed initial observations remain cached and exactly agent_count initial function evaluations remain in the cost ledger.",
+      "expected": "On a successor observation error, agent positions, RNG and tick remain unchanged; a completed initial batch remains cached and counted; every attempted successor observation up to and including the failed call is also counted.",
       "test": "failed_successor_observation_preserves_motion_but_accounts_initial_measurements"
     },
     {
@@ -207,16 +207,34 @@
         "repository_matlab_inclusive_endpoints_first_update_tick": 5
       },
       "test": "consensus_window_conventions_have_distinct_first_update_ticks"
+    },
+    {
+      "id": "EXTREME_FINITE_BARRIER_GRADIENT",
+      "purpose": "Ensure a finite but very large out-of-domain coordinate cannot overflow while normalizing the conical barrier gradient.",
+      "initial_positions": [
+        [
+          1.7976931348623157e+308,
+          0.5
+        ],
+        [
+          1.7976931348623157e+308,
+          0.5
+        ]
+      ],
+      "expected": "Barrier gradient and updated state remain finite; both agents remain explicitly outside the dimensionless domain.",
+      "test": "extreme_finite_out_of_domain_position_keeps_barrier_gradient_finite"
     }
   ],
   "rust_source_tests": {
-    "count": 12,
+    "count": 13,
     "status": "ADDED_NOT_EXECUTED_IN_AUTHORING_ENVIRONMENT",
     "rustfmt": "NOT_RUN",
     "cargo_test": "NOT_RUN",
     "exact_head_ci": "PENDING",
     "transactional_failure_injection_test": true,
-    "consensus_window_variant_test": true
+    "consensus_window_variant_test": true,
+    "partial_observation_attempt_accounting": true,
+    "extreme_finite_barrier_gradient": true
   },
   "source_reproduction": {
     "matlab_source_copied": false,
