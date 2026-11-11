@@ -662,6 +662,15 @@ mod tests {
     }
 
     #[test]
+    fn frame_digest_matches_fixed_known_answer() {
+        let receipt = compile_observation_frame(fixture()).expect("known-answer frame");
+        assert_eq!(
+            receipt.frame_sha256,
+            "fc5f9e54c629e395ab764f683a73e2be8f99f4c3f9e456fe52f81ce4729863fd"
+        );
+    }
+
+    #[test]
     fn entity_order_does_not_change_frame_identity() {
         let mut input = fixture();
         let expected = compile_observation_frame(input.clone()).expect("original").frame_sha256;
