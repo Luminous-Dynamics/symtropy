@@ -34,16 +34,19 @@ pub mod support_map;
 pub mod world;
 
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
-pub use body::{BodyHandle, BodyType, NetId, RigidBody};
+pub use body::{BodyHandle, BodyType, NetId, RigidBody, RotationalInertiaModel};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
 pub use contact::{CollisionEvent, ContactCache, ContactManifold, SensorEvent};
 pub use diagnostics::{InvariantDrift, InvariantSnapshot};
 pub use epa::EpaResult;
-pub use integrator::nan_zeroed_count;
+pub use integrator::{
+    angular_impulse_from_point, angular_point_velocity, nan_zeroed_count,
+};
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use mass_properties::{
-    MassProperties, MassPropertiesError, RotationalInertiaOperator, rotational_dof_count,
+    MassProperties, MassPropertiesError, RotationalInertiaOperator,
+    SpatialRotationalInertiaView, rotational_dof_count,
 };
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
