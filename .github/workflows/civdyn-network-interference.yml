@@ -63,7 +63,7 @@ jobs:
               assert math.isclose(float(row["probability_mass"]), 1.0, abs_tol=1e-12)
               assert row["source_id"] == "synthetic-network-interference-known-truth-v1"
               assert row["network_id"] == "four-node-two-cluster-cross-edge-v1"
-              assert row["design_id"] == "uniform-cluster-saturation-then-uniform-within-cluster-v1"
+              assert row["design_id"] == "uniform-saturation-levels-0-0p5-1-then-bernoulli-v1"
               assert row["split_id"] == "synthetic-reference-not-empirical-validation"
 
           oracle = mappings["full_network_within_between_counts"]
