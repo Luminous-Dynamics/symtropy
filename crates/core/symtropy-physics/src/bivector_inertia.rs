@@ -36,6 +36,11 @@ fn checked_mass_weighted_outer<const D: usize>(
     if !weighted_offset.iter().all(|value| value.is_finite()) {
         return Err(RotationalInertiaError::NonFinite);
     }
+    for axis in 0..D {
+        if offset[axis] != 0.0 && weighted_offset[axis] == 0.0 {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+    }
     let outer = weighted_offset * weighted_offset.transpose();
     for row in 0..D {
         for column in 0..D {
@@ -586,11 +591,20 @@ impl<const D: usize> BivectorInertia<D> {
         let response_scale = point_velocity_change
             .iter()
             .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
-        let response_norm =
-            (point_velocity_change / response_scale.max(f64::MIN_POSITIVE)).norm();
-        let effective_mass_tolerance =
-            1e-12 * response_scale * response_norm.max(f64::MIN_POSITIVE);
-        if effective_mass < -effective_mass_tolerance {
+        let normalized_response_norm = if response_scale == 0.0 {
+            0.0
+        } else {
+            (point_velocity_change / response_scale).norm()
+        };
+        let normalized_effective_mass = if response_scale == 0.0 {
+            effective_mass
+        } else {
+            effective_mass / response_scale
+        };
+        if !normalized_response_norm.is_finite() || !normalized_effective_mass.is_finite() {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        if normalized_effective_mass < -1e-12 * normalized_response_norm {
             return Err(RotationalInertiaError::NotPositiveSemidefinite);
         }
         Ok(effective_mass.max(0.0))
@@ -768,6 +782,19 @@ mod tests {
             &offset_b,
         );
         assert_eq!(result.unwrap_err(), RotationalInertiaError::NonFinite);
+    }
+
+    #[test]
+    fn point_mass_constructor_rejects_weighted_offset_underflow() {
+        let mass = f64::from_bits(1);
+        let samples = [
+            (SVector::<f64, 3>::new(-1.0e-200, 0.0, 0.0), mass),
+            (SVector::<f64, 3>::new(1.0e-200, 0.0, 0.0), mass),
+        ];
+        assert_eq!(
+            BivectorInertia::<3>::from_point_masses(samples).unwrap_err(),
+            RotationalInertiaError::NonFinite
+        );
     }
 
     #[test]
