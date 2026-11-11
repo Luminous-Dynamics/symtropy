@@ -16,6 +16,23 @@ pub enum AntRole {
     Forager,
 }
 
+/// Declares what information is available to colony agents.
+///
+/// The legacy constructor retains the oracle-assisted mode for compatibility. New
+/// collective-competence comparisons should construct all worlds with an explicit mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColonyInformationMode {
+    /// Legacy upper bound: agents receive hidden shortest-path hints to actual food sources
+    /// and the nest, in addition to environmental pheromone fields.
+    OraclePathAssisted,
+    /// Decentralized stigmergic mode: agents use only locally sampled pheromone/danger
+    /// gradients and direct contact with food; no path search over hidden food locations.
+    StigmergicFieldOnly,
+    /// Independent local-search control: no pheromone emission or sensing; agents use
+    /// deterministic local exploration and a declared nest landmark when returning.
+    IndependentLocalSearch,
+}
+
 #[derive(Debug, Clone)]
 pub struct AntCohort {
     pub x: usize,
@@ -51,6 +68,7 @@ impl Default for ColonyMind {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ColonyDebugMetrics {
     pub tick: u64,
+    pub information_mode: ColonyInformationMode,
     pub food_reserve: u32,
     pub trail_entropy: f32,
     pub pheromone_coherence: f32,
@@ -64,11 +82,34 @@ pub struct ColonyWorld {
     pub nest: (usize, usize),
     food_sources: HashMap<(usize, usize), u32>,
     ants: Vec<AntCohort>,
+    information_mode: ColonyInformationMode,
     tick: u64,
 }
 
 impl ColonyWorld {
+    /// Construct the legacy oracle-assisted colony for backwards compatibility.
+    ///
+    /// This mode uses shortest-path information over the complete food-source map. It is
+    /// an omniscient upper bound, not a decentralized stigmergic collective. Use
+    /// new_with_information_mode for controlled comparisons.
     pub fn new(width: usize, height: usize, nest: (usize, usize), ant_count: usize) -> Self {
+        Self::new_with_information_mode(
+            width,
+            height,
+            nest,
+            ant_count,
+            ColonyInformationMode::OraclePathAssisted,
+        )
+    }
+
+    /// Construct a colony with an explicit information/communication boundary.
+    pub fn new_with_information_mode(
+        width: usize,
+        height: usize,
+        nest: (usize, usize),
+        ant_count: usize,
+        information_mode: ColonyInformationMode,
+    ) -> Self {
         let mut fields = FieldGrid::new(width, height);
         fields.set(FieldLayer::HomePheromone, nest.0, nest.1, 500.0);
         let mut ants = Vec::with_capacity(ant_count);
@@ -94,8 +135,13 @@ impl ColonyWorld {
             nest,
             food_sources: HashMap::new(),
             ants,
+            information_mode,
             tick: 0,
         }
+    }
+
+    pub const fn information_mode(&self) -> ColonyInformationMode {
+        self.information_mode
     }
 
     pub fn ants(&self) -> &[AntCohort] {
@@ -109,6 +155,7 @@ impl ColonyWorld {
     pub fn debug_metrics(&self) -> ColonyDebugMetrics {
         ColonyDebugMetrics {
             tick: self.tick,
+            information_mode: self.information_mode,
             food_reserve: self.mind.food_reserve,
             trail_entropy: self.mind.trail_entropy,
             pheromone_coherence: self.mind.pheromone_coherence,
@@ -161,8 +208,11 @@ impl ColonyWorld {
 
     pub fn step(&mut self) {
         self.tick += 1;
-        self.reinforce_sources();
+        if self.information_mode != ColonyInformationMode::IndependentLocalSearch {
+            self.reinforce_sources();
+        }
 
+        let information_mode = self.information_mode;
         let params = DiffusionParams {
             diffusion: 0.08,
             decay: 0.035,
@@ -194,13 +244,17 @@ impl ColonyWorld {
                 if (ant.x, ant.y) == self.nest {
                     ant.carrying_food = false;
                     delivered += 1;
-                } else {
+                } else if information_mode != ColonyInformationMode::IndependentLocalSearch {
                     self.fields
                         .add(FieldLayer::FoodPheromone, ant.x, ant.y, 4.0);
                 }
             } else {
-                self.fields
-                    .add(FieldLayer::HomePheromone, ant.x, ant.y, 1.5);
+                if information_mode != ColonyInformationMode::IndependentLocalSearch {
+                    self.fields
+                        .add(FieldLayer::HomePheromone, ant.x, ant.y, 1.5);
+                }
+                // Food is only collected on direct cell contact. The source map is not
+                // queried for guidance outside OraclePathAssisted food_score().
                 if let Some(food) = self.food_sources.get_mut(&(ant.x, ant.y))
                     && *food > 0
                 {
@@ -315,27 +369,59 @@ impl ColonyWorld {
     }
 
     fn food_score(&self, x: usize, y: usize, role: AntRole, ant_index: usize) -> f32 {
-        let field = self.fields.get(FieldLayer::FoodPheromone, x, y);
+        let field = match self.information_mode {
+            ColonyInformationMode::OraclePathAssisted
+            | ColonyInformationMode::StigmergicFieldOnly => {
+                self.fields.get(FieldLayer::FoodPheromone, x, y)
+            }
+            ColonyInformationMode::IndependentLocalSearch => 0.0,
+        };
+
         let mut score = field;
-        if let Some(path) = self.shortest_path_distance((x, y), |p| {
-            self.food_sources.get(&p).copied().unwrap_or(0) > 0
-        }) {
-            score += 160.0 / (path as f32 + 1.0);
+        if self.information_mode == ColonyInformationMode::OraclePathAssisted {
+            if let Some(path) = self.shortest_path_distance((x, y), |p| {
+                self.food_sources.get(&p).copied().unwrap_or(0) > 0
+            }) {
+                score += 160.0 / (path as f32 + 1.0);
+            }
         }
-        if role == AntRole::Scout {
-            score += self.deterministic_jitter(x, y, ant_index) * 0.1;
+
+        let explore = match self.information_mode {
+            ColonyInformationMode::OraclePathAssisted
+            | ColonyInformationMode::StigmergicFieldOnly => role == AntRole::Scout,
+            ColonyInformationMode::IndependentLocalSearch => true,
+        };
+        if explore {
+            let scale = if self.information_mode == ColonyInformationMode::IndependentLocalSearch {
+                1.0
+            } else {
+                0.1
+            };
+            score += self.deterministic_jitter(x, y, ant_index) * scale;
         }
         score
     }
 
     fn home_score(&self, x: usize, y: usize) -> f32 {
-        let home_field = self.fields.get(FieldLayer::HomePheromone, x, y);
+        let home_field = match self.information_mode {
+            ColonyInformationMode::OraclePathAssisted
+            | ColonyInformationMode::StigmergicFieldOnly => {
+                self.fields.get(FieldLayer::HomePheromone, x, y)
+            }
+            ColonyInformationMode::IndependentLocalSearch => 0.0,
+        };
         let distance = x.abs_diff(self.nest.0) + y.abs_diff(self.nest.1);
-        let path_bonus = self
-            .shortest_path_distance((x, y), |p| p == self.nest)
-            .map(|path| 180.0 / (path as f32 + 1.0))
-            .unwrap_or(0.0);
-        home_field + path_bonus + 20.0 / (distance as f32 + 1.0)
+        match self.information_mode {
+            ColonyInformationMode::OraclePathAssisted => {
+                let path_bonus = self
+                    .shortest_path_distance((x, y), |p| p == self.nest)
+                    .map(|path| 180.0 / (path as f32 + 1.0))
+                    .unwrap_or(0.0);
+                home_field + path_bonus + 20.0 / (distance as f32 + 1.0)
+            }
+            ColonyInformationMode::StigmergicFieldOnly => home_field,
+            ColonyInformationMode::IndependentLocalSearch => -(distance as f32),
+        }
     }
 
     fn update_mind(&mut self) {
@@ -531,6 +617,82 @@ mod tests {
         assert!(ppm.contains("70 130 255"));
         assert!(ppm.contains("40 220 80"));
         assert!(ppm.contains("12 12 12"));
+    }
+
+    #[test]
+    fn legacy_constructor_is_explicitly_tagged_as_oracle_assisted() {
+        let world = ColonyWorld::new(12, 8, (1, 4), 8);
+        assert_eq!(
+            world.information_mode(),
+            ColonyInformationMode::OraclePathAssisted
+        );
+        assert_eq!(
+            world.debug_metrics().information_mode,
+            ColonyInformationMode::OraclePathAssisted
+        );
+    }
+
+    #[test]
+    fn stigmergic_food_score_does_not_depend_on_hidden_food_coordinates() {
+        let mut left = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::StigmergicFieldOnly,
+        );
+        let mut right = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::StigmergicFieldOnly,
+        );
+        left.add_food_source(14, 4, 100);
+        right.add_food_source(8, 1, 100);
+        left.fields.set(FieldLayer::FoodPheromone, 3, 4, 0.0);
+        right.fields.set(FieldLayer::FoodPheromone, 3, 4, 0.0);
+
+        let left_score = left.food_score(3, 4, AntRole::Forager, 1);
+        let right_score = right.food_score(3, 4, AntRole::Forager, 1);
+
+        assert_eq!(left_score, right_score);
+        assert_eq!(left_score, 0.0);
+    }
+
+    #[test]
+    fn oracle_mode_retains_global_path_hint_as_an_upper_bound() {
+        let mut world = ColonyWorld::new(16, 8, (1, 4), 8);
+        world.add_food_source(14, 4, 100);
+        world.fields.set(FieldLayer::FoodPheromone, 3, 4, 0.0);
+
+        let score = world.food_score(3, 4, AntRole::Forager, 1);
+        assert!(score > 0.0);
+    }
+
+    #[test]
+    fn independent_local_search_ignores_pheromone_fields() {
+        let mut left = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::IndependentLocalSearch,
+        );
+        let mut right = left.clone();
+        left.fields.set(FieldLayer::FoodPheromone, 2, 4, 100.0);
+        left.fields.set(FieldLayer::HomePheromone, 2, 4, 100.0);
+        right.fields.set(FieldLayer::FoodPheromone, 2, 4, 0.0);
+        right.fields.set(FieldLayer::HomePheromone, 2, 4, 0.0);
+
+        assert_eq!(
+            left.food_score(2, 4, AntRole::Forager, 3),
+            right.food_score(2, 4, AntRole::Forager, 3)
+        );
+        assert_eq!(left.home_score(2, 4), right.home_score(2, 4));
+    }
+
+    #[test]
+    fn independent_local_search_does_not_emit_shared_pheromones() {
+        let mut world = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 8, ColonyInformationMode::IndependentLocalSearch,
+        );
+        world.add_food_source(14, 4, 100);
+        world.run_steps(10);
+
+        assert_eq!(world.fields.channel_sum(FieldLayer::FoodPheromone), 0.0);
+        assert_eq!(
+            world.fields.channel_sum(FieldLayer::HomePheromone),
+            500.0
+        );
     }
 
     #[test]
