@@ -37,7 +37,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -73,9 +72,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "NO_CHANGE_SUPPORTED",
@@ -119,7 +135,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -157,9 +172,26 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "ADMIT_CANDIDATE_DELTA",
@@ -203,7 +235,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R0",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -241,9 +272,26 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R0",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "STALE_OR_INVALID_EVIDENCE",
@@ -287,7 +335,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -323,9 +370,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "PARTIAL_WITH_UNKNOWN",
@@ -369,7 +433,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -407,9 +470,26 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "REQUEST_ADDITIONAL_OBSERVATION",
@@ -453,7 +533,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": true,
         "elements": [
           {
@@ -489,9 +568,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "PARTIAL_WITH_UNKNOWN",
@@ -535,7 +631,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -571,9 +666,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "CONFLICTED_CORRESPONDENCE",
@@ -617,7 +729,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -647,9 +758,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "REJECTED_TOPOLOGY",
@@ -693,7 +821,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -730,9 +857,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "INSUFFICIENT_INDEPENDENT_EVIDENCE",
@@ -776,7 +920,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -812,9 +955,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -858,7 +1018,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -896,9 +1055,26 @@
             "DOOR-UNKNOWN"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "CONFLICTED_CORRESPONDENCE",
@@ -942,7 +1118,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": false,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -978,9 +1153,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "STALE_OR_INVALID_EVIDENCE",
@@ -1024,7 +1216,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "FRAME-OTHER",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1060,9 +1251,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "FRAME-OTHER",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "STALE_OR_INVALID_EVIDENCE",
@@ -1106,7 +1314,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1144,9 +1351,26 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "REAL_CHANGE_CANDIDATE",
@@ -1190,7 +1414,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1231,9 +1454,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "REJECTED_TOPOLOGY",
@@ -1277,7 +1517,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1315,9 +1554,26 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "NOT_EVALUATED",
@@ -1361,7 +1617,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1400,9 +1655,26 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -1446,7 +1718,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1492,9 +1763,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "CONFLICTED_CORRESPONDENCE",
@@ -1538,7 +1826,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1564,9 +1851,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "PARTIAL_WITH_UNKNOWN",
@@ -1610,7 +1914,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1646,9 +1949,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -1697,7 +2017,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1733,9 +2052,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -1779,7 +2115,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1820,9 +2155,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "REJECTED_TOPOLOGY",
@@ -1866,7 +2218,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1902,9 +2253,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "REAL_CHANGE_CANDIDATE",
@@ -1949,7 +2317,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -1987,9 +2354,26 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -2033,7 +2417,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -2074,9 +2457,26 @@
           "base_model_revision": "MODEL-R1",
           "target_ids": []
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "REJECTED_TOPOLOGY",
@@ -2119,7 +2519,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -2157,9 +2556,26 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "drift_suspected",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "REQUEST_ADDITIONAL_OBSERVATION",
@@ -2203,7 +2619,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -2241,9 +2656,26 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "unresolved",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "REQUEST_ADDITIONAL_OBSERVATION",
@@ -2287,7 +2719,6 @@
         "asset_id": "BLDG-SYNTH-01",
         "base_model_revision": "MODEL-R1",
         "frame_id": "LOCAL-ENU-01",
-        "survey_qualified": true,
         "claims_unobserved_geometry": false,
         "elements": [
           {
@@ -2325,14 +2756,631 @@
             "DOOR-A"
           ]
         },
-        "change_estimate_status": "qualified",
-        "registration_stability_status": "stable",
-        "independent_checkpoint_evidence_sha256": null
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
       },
       "expected": {
         "disposition": "STALE_OR_INVALID_EVIDENCE",
         "reason_codes": [
           "INDEPENDENT_CHECKPOINT_EVIDENCE_MISSING_OR_INVALID"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-029",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-STALE",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
+      },
+      "expected": {
+        "disposition": "STALE_OR_INVALID_EVIDENCE",
+        "reason_codes": [
+          "SURVEY_EVIDENCE_SCOPE_MISMATCH"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-030",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "survey_evidence": {
+          "survey_product_sha256": "not-a-sha256",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
+      },
+      "expected": {
+        "disposition": "STALE_OR_INVALID_EVIDENCE",
+        "reason_codes": [
+          "SURVEY_PRODUCT_DIGEST_INVALID"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-031",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": null
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
+      },
+      "expected": {
+        "disposition": "STALE_OR_INVALID_EVIDENCE",
+        "reason_codes": [
+          "CHANGE_ESTIMATE_RECEIPT_MISSING_OR_INVALID"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-032",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": null
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
+      },
+      "expected": {
+        "disposition": "STALE_OR_INVALID_EVIDENCE",
+        "reason_codes": [
+          "REGISTRATION_STABILITY_RECEIPT_MISSING_OR_INVALID"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-033",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "unresolved",
+            "receipt_sha256": null
+          }
+        }
+      },
+      "expected": {
+        "disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+        "reason_codes": [
+          "INDEPENDENT_CHECKPOINT_EVIDENCE_UNRESOLVED"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-034",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "unresolved",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+          }
+        }
+      },
+      "expected": {
+        "disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+        "reason_codes": [
+          "SURVEY_PRODUCT_UNRESOLVED"
         ]
       },
       "split_group_id": "synthetic-building-heldout-D"
