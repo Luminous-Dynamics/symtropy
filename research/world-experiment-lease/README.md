@@ -26,13 +26,14 @@ A lease binds:
 - one or more render policy/measurement references, each consuming the same observation digest;
 - a fixed snapshot scope and explicit view/frame/memory/VRAM/optional energy budgets.
 
-View declarations are treated as a set and canonicalized by view ID. Reordering them does not change the lease identity. Duplicate IDs, malformed digests, mismatched snapshots, and budgets wider than any declared profile envelope are rejected. Usage snapshots are also treated as a set of per-view records: `usage_snapshot_sha256` sorts them by `view_id`, hashes the complete cumulative snapshot with a separate domain, and returns that digest in both Continue and Stop decisions. Sequence 1 has no parent; each later snapshot must name the exact digest of the supplied previous snapshot.
+View declarations are treated as a set and canonicalized by view ID. Reordering them does not change the lease identity. Duplicate IDs, malformed digests, mismatched snapshots, and budgets wider than any declared profile envelope are rejected. Usage snapshots carry an explicit schema version and are treated as a set of per-view records: `usage_snapshot_sha256` sorts them by `view_id` with encoded-record tie-breaking, hashes the complete cumulative snapshot with a separate domain, and returns that digest in both Continue and Stop decisions. Duplicate view IDs remain invalid and are rejected by the evaluator. Sequence 1 has no parent; each later snapshot must name the exact digest of the supplied previous snapshot.
 
 The runtime guard checks:
 - exact lease/run/snapshot/tick identity;
 - only declared view IDs;
 - monotonic sequence and cumulative usage;
 - canonical, domain-separated usage digests that link each snapshot to its immediate predecessor;
+- explicit usage schema versioning and deterministic content tie-breaking for malformed duplicate-view digest inputs (which the evaluator still rejects);
 - view-event, frame, system-memory, VRAM and frame-time limits;
 - per-view runtime frame/VRAM measurements bound to their own receipts;
 - lease-wide integrated GPU-board energy bound to a separate receipt (never summed from potentially overlapping view windows);
@@ -59,7 +60,7 @@ Passing the finite tests establishes only that this package enforces its supplie
 
 Measure separately on exact source heads:
 - lease compilation and verification latency (p50/p95);
-- lease and usage digest throughput and receipt size;
+- lease and usage digest throughput and receipt size, including the malformed duplicate-view negative path;
 - runtime guard overhead per view event;
 - peak memory per active lease;
 - maximum accepted views and event volume;
