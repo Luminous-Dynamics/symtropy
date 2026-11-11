@@ -514,7 +514,7 @@ pub fn project_diagonal_virtual_parameter_update(
             desired.clamp(nonnegative_floor, upper)
         };
 
-        if coefficient > 0.0 && baseline[index] > nonnegative_floor {
+        if coefficient > 0.0 && *baseline_slot > nonnegative_floor {
             let threshold = (desired - nonnegative_floor).max(0.0) * weight / coefficient;
             if !threshold.is_finite() {
                 return Err(VirtualImpedanceError::ArithmeticOverflow);
