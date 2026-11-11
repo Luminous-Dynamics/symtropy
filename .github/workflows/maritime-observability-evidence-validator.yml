@@ -1,0 +1,61 @@
+name: Maritime observability evidence validator
+on:
+  push:
+    branches: ["research/maritime-fault-observability-v0-1"]
+    paths:
+      - "tools/maritime-observability-evidence-validator/**"
+      - "benchmarks/maritime-observability/**"
+      - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
+      - "docs/tech/MARITIME_FAULT_OBSERVABILITY_BENCHMARK_V0_1.md"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/maritime-observability-evidence-validator.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/maritime-observability-evidence-validator/**"
+      - "benchmarks/maritime-observability/**"
+      - "docs/tech/MARITIME_FAULT_OBSERVABILITY_REPORT_V0_1.schema.json"
+      - "docs/tech/MARITIME_FAULT_OBSERVABILITY_BENCHMARK_V0_1.md"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/maritime-observability-evidence-validator.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: maritime-observability-evidence-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy
+      - name: Test evidence validator
+        run: cargo test --locked -p maritime-observability-evidence-validator
+      - name: Strict Clippy
+        run: cargo clippy --locked -p maritime-observability-evidence-validator --all-targets -- -D warnings
+      - name: Execute synthetic report and bind receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          input="benchmarks/maritime-observability/synthetic-report-v0.1.json"
+          digest="$(sha256sum "$input" | awk '{print $1}')"
+          cargo run --quiet --locked -p maritime-observability-evidence-validator -- "$input" --source-commit "$source_commit" --report-sha256 "$digest" > maritime-observability-evidence-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '.result == "pass" and .source_commit == $source and .report_sha256 == $digest and .sensor_count == 6 and .fault_count == 3 and .pair_count == 3 and .measured_input_pairs_eligible_for_independent_review == 1 and (.pair_audits | length == 3)' maritime-observability-evidence-receipt.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: maritime-observability-evidence-receipt
+          path: maritime-observability-evidence-receipt.json
+          if-no-files-found: error
+          retention-days: 90

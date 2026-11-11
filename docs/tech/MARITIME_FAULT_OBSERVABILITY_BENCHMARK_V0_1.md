@@ -284,3 +284,24 @@ The competitive benchmark must be matched on actual data access, engines, faults
 
 ---
 A passing report qualifies only the exact asset/configuration, fault set, operating domain, measurement architecture, evidence, split, model and evaluator. It does not establish seaworthiness, class/flag approval, safe remaining life, maintenance authority, ODD clearance or permission to operate.
+
+
+## Temporal qualification and common timebase
+
+Clock-domain labels alone do not establish event-time comparability. Every channel record now carries a common `timebase_id`, a non-negative `timestamp_uncertainty_ms` bound (or null when unknown), the source of that bound, explicit timebase qualification state and a SHA-256 qualification artifact. The local `clock_domain` remains separately identified.
+
+A sensor with unknown/unqualified timebase, missing uncertainty, or no qualification digest cannot supply physically time-aligned evidence for a cross-channel isolability claim. Matching clock strings are not proof of synchronization. Qualification must include measured offset/drift and timestamp-path uncertainty over the stated validity interval; a PTP profile or vendor specification alone is not an installed-system measurement.
+
+Relevant current references: IEEE 1588 defines PTP for heterogeneous networked measurement/control clocks; a 2026 IEEE industrial-facilities review compares IRIG-B, SNTP and PTP; ITU-T G.8275 (01/2026) specifies common aspects of PTP timing profiles. These inform clock architecture but do not qualify a vessel installation.
+- IEEE 1588: https://standards.ieee.org/ieee/1588/6825/
+- IEEE industrial timing review (2026): https://doi.org/10.1109/MIAS.2026.3682180
+- ITU-T G.8275 (01/2026): https://www.itu.int/epublications/publication/itu-t-g-8275-2026-01-common-aspects-of-ptp-profiles-for-phase-time-synchronization
+
+## Evidence-admission preflight
+
+The maritime evidence validator performs identity, reference, derivation-DAG, calibration, source-role, common-timebase and authority-boundary checks before any downstream pair-separation algorithm is called. It emits pair-specific evidence eligibility; it does not compute pairwise separability or reinterpret the declared pair state.
+
+- `MEASURED_INPUTS_ELIGIBLE_FOR_INDEPENDENT_REVIEW`: all referenced channels are installed, directly measured, current, calibrated and timebase-qualified.
+- `NOT_PHYSICALLY_ELIGIBLE`: at least one evidence reference is derived, simulated, uninstalled, stale, uncalibrated, timebase-unknown or otherwise unsupported.
+
+Declared common dependencies and measurement principles are surfaced for independent review; the adapter does not assert independence from identifiers alone. Derived-channel lineage must resolve to known channels and form an acyclic graph. The synthetic six-channel fixture is fabricated software-conformance data only.
