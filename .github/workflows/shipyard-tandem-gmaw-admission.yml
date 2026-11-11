@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: ["main"]
     paths:
+      - "Cargo.toml"
       - "crates/tools/shipyard-tandem-gmaw-admission/**"
       - "crates/tools/shipyard-tandem-gmaw-admission/Cargo.lock"
       - "benchmarks/shipyard/tandem-gmaw/**"
