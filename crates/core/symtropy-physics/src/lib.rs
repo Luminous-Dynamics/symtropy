@@ -14,7 +14,10 @@
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 
+pub mod angular_dynamics;
 pub mod articulation;
+pub mod compound_inertia_3d;
+pub mod mass_properties_3d;
 pub mod body;
 pub mod broadphase;
 pub mod ccd;
@@ -32,6 +35,15 @@ pub mod replay;
 pub mod support_map;
 pub mod world;
 
+pub use angular_dynamics::{
+    AngularDynamicsError, AngularStep3, PrincipalInertia3, angular_velocity_at_offset,
+    angular_velocity_from_world_momentum, angular_vector_to_bivector, bivector_to_angular_vector,
+    rotational_kinetic_energy, step_principal_inertia, world_angular_momentum,
+};
+pub use compound_inertia_3d::{
+    CompoundInertia3Error, CompoundMassPart3, CompoundMassProperties3,
+};
+pub use mass_properties_3d::{MassProperties3, MassProperties3Error};
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
