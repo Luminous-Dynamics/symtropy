@@ -450,12 +450,27 @@ fn run_policy_summary(input: &str) -> Result<String, String> {
                 let algorithm = algorithm_for(class)
                     .ok_or_else(|| format!("unknown missingness class {class}"))?;
                 if finished.is_empty() {
-                    output.push_str(&format!(
-                        "{},{},{},{},{},{},,,,,,,{:.9},{:.9}\n",
-                        expected.id, size, class, algorithm, 0, exceptions,
-                        contract.oracle_mean, contract.random_mean
-                    ));
+                    let row = [
+                        expected.id.to_owned(),
+                        size.to_string(),
+                        class.to_owned(),
+                        algorithm.to_owned(),
+                        "0".to_owned(),
+                        exceptions.to_string(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        String::new(),
+                        format!("{:.9}", contract.oracle_mean),
+                        format!("{:.9}", contract.random_mean),
+                    ];
+                    output.push_str(&row.join(","));
+                    output.push('\n');
                     continue;
+                }
                 }
 
                 let mut returns: Vec<f64> = finished.iter().map(|run| run.mean.expect("finished row has mean")).collect();
@@ -502,15 +517,23 @@ fn run_policy_summary(input: &str) -> Result<String, String> {
 }
 
 fn main() {
-    let path = env::args().nth(1).unwrap_or_else(|| {
-        eprintln!("usage: miss-mdp-audit <normalized-upstream-results.tsv>");
+    let args: Vec<String> = env::args().skip(1).collect();
+    let policy_summary = args.first().is_some_and(|argument| argument == "--policy-summary");
+    let path_index = usize::from(policy_summary);
+    let path = args.get(path_index).unwrap_or_else(|| {
+        eprintln!("usage: miss-mdp-audit [--policy-summary] <normalized-upstream-results.tsv>");
         process::exit(2);
     });
     let input = fs::read_to_string(path).unwrap_or_else(|error| {
         eprintln!("failed to read audit input: {error}");
         process::exit(2);
     });
-    match run_audit(&input) {
+    let result = if policy_summary {
+        run_policy_summary(&input)
+    } else {
+        run_audit(&input)
+    };
+    match result {
         Ok(output) => print!("{output}"),
         Err(error) => {
             eprintln!("reference audit failed closed: {error}");
