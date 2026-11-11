@@ -1276,8 +1276,7 @@ mod tests {
         let mut value = valid_receipt();
         value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
             json!("lost");
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] =
-            json!([]);
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] = json!([]);
         value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
             json!("opening relation was dropped during mesh export");
         let report = audit(&value).expect("explicit relation loss is auditable");
