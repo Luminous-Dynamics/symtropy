@@ -34,9 +34,10 @@ pub mod support_map;
 pub mod world;
 
 pub use action_horizon::{
+    ActionCommitment, ActionCommitmentError, ActionCommitmentInvalidity,
     ActionExecutionMode, ActionHorizonRequest, ActionHorizonSelection, HorizonBoundReceipt,
     HorizonConstraint, HorizonDisposition, HorizonEvidence, HorizonInputError,
-    select_action_horizon,
+    create_action_commitment, select_action_horizon,
 };
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
