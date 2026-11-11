@@ -11,6 +11,7 @@ From this directory:
     cargo test --locked
     cargo clippy --locked --all-targets -- -D warnings
     cargo run --locked -- fixtures/machine-test-01.json
+    cargo run --release --locked --bin benchmark -- 10
 
 The package is isolated from the Bevy workspace and pins direct dependencies. Its lockfile is extracted from the same resolved dependency versions used by the isolated world-experiment-lease research package; Cargo --locked checks completeness in CI.
 
@@ -34,6 +35,10 @@ Unavailable observations require a reason and no value. PhysicalMeasurement and 
 ## Bounded inputs
 
 The CLI rejects files over 64 MiB before JSON decoding. The reference validator caps entity count, observables per entity, total observables, event count, and text/value lengths. These are prototype safety bounds for this reference package, not universal product limits.
+
+## Benchmarks
+
+The dependency-free benchmark binary generates deterministic 1k, 10k and 100k claim-bearing entity frames with ordered event streams. It reports nearest-rank p50/p95/p99 compile latency, min/max, serialized input bytes, bytes/entity and entities/second. The workflow preserves the raw JSONL measurements as an artifact. These are reference-oracle costs, not Bevy extraction latency or physics/rendering throughput. Always compare results only with matching source head, Rust version, CPU architecture, OS and runner/hardware profile.
 
 ## Tests
 
