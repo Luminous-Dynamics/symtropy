@@ -20,7 +20,8 @@
     "outcome_families",
     "prospective_targets",
     "required_negative_controls",
-    "sources"
+    "sources",
+    "statistical_method"
   ],
   "properties": {
     "schema_version": {
@@ -291,6 +292,97 @@
           "source_type": {
             "type": "string"
           }
+        }
+      }
+    },
+    "statistical_method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "paired_unit",
+        "cluster_unit",
+        "strata",
+        "pairing_requirements",
+        "estimator",
+        "resampling",
+        "confidence_level",
+        "random_seed",
+        "advantage_rule",
+        "non_inferiority_rule",
+        "claim_ceiling",
+        "missing_data"
+      ],
+      "properties": {
+        "paired_unit": {
+          "const": "episode_id"
+        },
+        "cluster_unit": {
+          "const": "scenario_cluster_id"
+        },
+        "strata": {
+          "const": "scenario_family"
+        },
+        "pairing_requirements": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "string"
+          }
+        },
+        "estimator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resampling": {
+          "type": "string",
+          "minLength": 1
+        },
+        "confidence_level": {
+          "const": 0.95
+        },
+        "random_seed": {
+          "type": "string",
+          "minLength": 1
+        },
+        "advantage_rule": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "higher_is_better",
+            "lower_is_better"
+          ],
+          "properties": {
+            "higher_is_better": {
+              "type": "string"
+            },
+            "lower_is_better": {
+              "type": "string"
+            }
+          }
+        },
+        "non_inferiority_rule": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "higher_is_better",
+            "lower_is_better"
+          ],
+          "properties": {
+            "higher_is_better": {
+              "type": "string"
+            },
+            "lower_is_better": {
+              "type": "string"
+            }
+          }
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 1
+        },
+        "missing_data": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
