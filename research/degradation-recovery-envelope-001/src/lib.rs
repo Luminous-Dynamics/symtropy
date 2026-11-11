@@ -92,6 +92,7 @@ pub struct Campaign {
     pub evaluator_revision: String,
     pub clock_id: String,
     pub policy_deadline_us: u64,
+    pub fault_schedule_visible_to_policy: bool,
     pub clean_control: RunTrace,
     pub faulted_run: RunTrace,
     pub events: Vec<FaultEvent>,
@@ -160,6 +161,7 @@ enum Finding {
     NoFaultEvents,
     InvalidPolicyDeadline,
     InvalidDigest,
+    FaultScheduleExposedToPolicy,
     RunNotComplete,
     ScenarioSeedMismatch,
     EnvironmentRandomnessMismatch,
@@ -199,6 +201,7 @@ impl Finding {
             Self::NoFaultEvents => "no_fault_events",
             Self::InvalidPolicyDeadline => "invalid_policy_deadline",
             Self::InvalidDigest => "invalid_digest",
+            Self::FaultScheduleExposedToPolicy => "fault_schedule_exposed_to_policy",
             Self::RunNotComplete => "run_not_complete",
             Self::ScenarioSeedMismatch => "scenario_seed_mismatch",
             Self::EnvironmentRandomnessMismatch => "environment_randomness_mismatch",
@@ -589,6 +592,9 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
     if campaign.policy_deadline_us == 0 {
         findings.insert(Finding::InvalidPolicyDeadline);
     }
+    if campaign.fault_schedule_visible_to_policy {
+        findings.insert(Finding::FaultScheduleExposedToPolicy);
+    }
     if campaign.clean_control.scenario_seed_sha256 != campaign.faulted_run.scenario_seed_sha256 {
         findings.insert(Finding::ScenarioSeedMismatch);
     }
@@ -816,6 +822,7 @@ mod tests {
             evaluator_revision: "auditor-v1".to_string(),
             clock_id: "monotonic-test-clock".to_string(),
             policy_deadline_us: 100_000,
+            fault_schedule_visible_to_policy: false,
             clean_control: RunTrace {
                 run_id: "clean-control".to_string(),
                 disposition: RunDisposition::Complete,
@@ -981,6 +988,14 @@ mod tests {
         input.faulted_run.environment_randomness_sha256 = "c".repeat(64);
         let report = audit_campaign(&input);
         assert!(has(&report, "environment_randomness_mismatch"));
+    }
+
+    #[test]
+    fn rejects_fault_schedule_leakage_to_policy() {
+        let mut input = campaign();
+        input.fault_schedule_visible_to_policy = true;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "fault_schedule_exposed_to_policy"));
     }
 
     #[test]
