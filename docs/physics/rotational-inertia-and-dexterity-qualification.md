@@ -163,6 +163,12 @@ These fixtures report latency only. They must be run in release mode on named ha
 
 Performance gate: no performance regression threshold is accepted until the physics parity suite passes. Then establish the current exact-head baseline and require any optimization to preserve all analytical/contact/trajectory gates. The aim is not "faster than one engine" in the abstract; it is lower time and energy per validated task at equivalent fidelity and failure behaviour.
 
+### Configuration provenance and replay
+
+The runtime operator records the body's mass value (bitwise) when it is attached. If a caller mutates the public mass field without re-deriving/re-attaching the operator, the model is invalid and angular response fails closed. Toolhead merging similarly invalidates a previously attached operator. Replay snapshots include the current mass, diagonal fallback moments, full operator coefficient bits, selected inertia model, original operator-mass bits and invalidation/approximation flags. Two worlds with identical pose/velocity but different inertia matrices therefore cannot pass a bitwise replay comparison as if they had the same physical configuration.
+
+This is a deliberately small provenance guard; it does not infer arbitrary collider geometry changes. Any application that mutates the collider, material density, centre of mass, link geometry or actuator mount must explicitly rebuild mass properties and attach the new validated operator. The lifecycle/configuration system must bind the operator to the exact geometry/material revision.
+
 ### Hinge motor constraint coupling
 
 A full off-diagonal inertia operator can cause an impulse commanded in the hinge's allowed plane to generate relative angular velocity in forbidden planes. A motor update that applies only the allowed-plane impulse therefore violates the hinge's own constraint. The current implementation now solves the fixed-size relative inverse-inertia system for a total impulse whose allowed component equals the motor command and whose reaction components cancel forbidden relative motion. It uses stack storage for up to 36 bivector degrees of freedom and fails closed for singular/non-finite systems.
