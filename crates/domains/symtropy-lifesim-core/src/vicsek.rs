@@ -2079,6 +2079,126 @@ mod tests {
     }
 
     #[test]
+    fn indexed_metrics_match_bruteforce_directed_visibility_statistics() {
+        let config = VicsekConfig {
+            box_size: 20.0,
+            interaction_radius: 3.2,
+            speed: 0.0,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let particles: Vec<VicsekParticle> = (0..97)
+            .map(|index| VicsekParticle {
+                x: ((index * 19 % 101) as f64 / 101.0) * config.box_size,
+                y: ((index * 37 % 103) as f64 / 103.0) * config.box_size,
+                heading_rad: ((index * 29 % 107) as f64 / 107.0) * TAU,
+            })
+            .collect();
+
+        for perception in [
+            VicsekPerception::MetricRadius,
+            VicsekPerception::VisualSector {
+                half_aperture_rad: std::f64::consts::FRAC_PI_5,
+                offset_rad: std::f64::consts::PI,
+            },
+        ] {
+            let model = VicsekModel::new_with_perception(
+                particles.clone(),
+                config,
+                0xA11CE,
+                perception,
+            )
+            .unwrap();
+            let indexed = model.fast_metrics();
+
+            let count = model.particles.len();
+            let mut degrees = vec![0usize; count];
+            let mut directed_edges = 0usize;
+            let mut reciprocal_pairs = 0usize;
+            let mut local_orders = Vec::new();
+            for left in 0..count {
+                for right in (left + 1)..count {
+                    let a = model.particles[left];
+                    let b = model.particles[right];
+                    let left_sees_right =
+                        model.perceives((a.x, a.y), a.heading_rad, (b.x, b.y));
+                    let right_sees_left =
+                        model.perceives((b.x, b.y), b.heading_rad, (a.x, a.y));
+                    if left_sees_right {
+                        degrees[left] += 1;
+                        directed_edges += 1;
+                    }
+                    if right_sees_left {
+                        degrees[right] += 1;
+                        directed_edges += 1;
+                    }
+                    if left_sees_right && right_sees_left {
+                        reciprocal_pairs += 1;
+                    }
+                }
+            }
+
+            for focal in 0..count {
+                if degrees[focal] == 0 {
+                    continue;
+                }
+                let a = model.particles[focal];
+                let mut sum_cos = a.heading_rad.cos();
+                let mut sum_sin = a.heading_rad.sin();
+                for target in 0..count {
+                    if target == focal {
+                        continue;
+                    }
+                    let b = model.particles[target];
+                    if model.perceives((a.x, a.y), a.heading_rad, (b.x, b.y)) {
+                        sum_cos += b.heading_rad.cos();
+                        sum_sin += b.heading_rad.sin();
+                    }
+                }
+                local_orders.push(
+                    (sum_cos.hypot(sum_sin) / (degrees[focal] + 1) as f64).clamp(0.0, 1.0),
+                );
+            }
+            let mean_degree = degrees.iter().sum::<usize>() as f64 / count as f64;
+            let degree_variance = degrees
+                .iter()
+                .map(|degree| {
+                    let delta = *degree as f64 - mean_degree;
+                    delta * delta
+                })
+                .sum::<f64>()
+                / count as f64;
+            let local_mean = if local_orders.is_empty() {
+                None
+            } else {
+                Some(local_orders.iter().sum::<f64>() / local_orders.len() as f64)
+            };
+            let local_variance = local_mean.map(|mean| {
+                local_orders
+                    .iter()
+                    .map(|order| {
+                        let delta = *order - mean;
+                        delta * delta
+                    })
+                    .sum::<f64>()
+                    / local_orders.len() as f64
+            });
+
+            assert_eq!(indexed.directed_interaction_edge_count, directed_edges);
+            assert_eq!(indexed.reciprocal_interaction_pair_count, reciprocal_pairs);
+            assert_eq!(indexed.mean_neighbors_excluding_self, mean_degree);
+            assert!((indexed.neighbor_count_variance - degree_variance).abs() < 1.0e-12);
+            assert_eq!(
+                indexed.local_order_coverage_fraction,
+                local_orders.len() as f64 / count as f64
+            );
+            assert_eq!(indexed.mean_local_polar_order, local_mean);
+            assert_eq!(indexed.local_polar_order_variance, local_variance);
+        }
+    }
+
+    #[test]
     fn indexed_step_matches_brute_force_for_metric_and_visual_perception() {
         let config = VicsekConfig {
             box_size: 12.0,
