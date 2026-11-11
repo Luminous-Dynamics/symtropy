@@ -1,0 +1,98 @@
+name: CIVDYN network interference reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-self-correction/**"
+      - ".github/workflows/civdyn-network-interference.yml"
+  push:
+    paths:
+      - "research/civdyn-self-correction/**"
+      - ".github/workflows/civdyn-network-interference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets -- -D warnings
+      - name: Compile
+        run: cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
+      - name: Run Rust tests
+        run: cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
+      - name: Verify network interference CSV and deterministic replay
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin network-interference-sweep > /tmp/civdyn-network-interference.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin network-interference-sweep > /tmp/civdyn-network-interference-replay.csv
+          cmp /tmp/civdyn-network-interference.csv /tmp/civdyn-network-interference-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          path = Path("/tmp/civdyn-network-interference.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              fields = reader.fieldnames
+              rows = list(reader)
+
+          assert fields is not None and len(fields) == 24
+          assert len(rows) == 6
+          mappings = {row["mapping_id"]: row for row in rows if row["record_type"] == "exposure_mapping"}
+          assert len(mappings) == 5
+          assert set(mappings) == {
+              "full_network_within_between_counts",
+              "within_cluster_only",
+              "weighted_neighbor_mean",
+              "treated_neighbor_threshold",
+              "truncated_canonical_neighbors",
+          }
+
+          for row in rows:
+              assert math.isclose(float(row["probability_mass"]), 1.0, abs_tol=1e-12)
+              assert row["source_id"] == "synthetic-network-interference-known-truth-v1"
+              assert row["network_id"] == "four-node-two-cluster-cross-edge-v1"
+              assert row["design_id"] == "uniform-cluster-saturation-then-uniform-within-cluster-v1"
+              assert row["split_id"] == "synthetic-reference-not-empirical-validation"
+
+          oracle = mappings["full_network_within_between_counts"]
+          assert oracle["assignment_count"] == "16"
+          assert oracle["nonconstant_exposure_cells"] == "0"
+          assert math.isclose(float(oracle["maximum_within_cell_outcome_range"]), 0.0, abs_tol=1e-12)
+
+          for mapping_id, row in mappings.items():
+              assert row["direct_effect_truth"] == "0.4000000000000000"
+              assert row["within_spillover_truth"] == "0.2000000000000000"
+              assert row["between_spillover_truth"] == "0.6000000000000000"
+              assert row["direct_supported_units"] == "4"
+              assert row["within_supported_units"] == "4"
+              assert row["between_supported_units"] == "4"
+              if mapping_id != "full_network_within_between_counts":
+                  assert int(row["nonconstant_exposure_cells"]) > 0
+                  assert float(row["maximum_within_cell_outcome_range"]) > 0.0
+
+          within_only = mappings["within_cluster_only"]
+          assert float(within_only["maximum_within_cell_outcome_range"]) >= 0.6
+
+          partial = [row for row in rows if row["record_type"] == "partial_network_bounds"]
+          assert len(partial) == 1
+          bounds = partial[0]
+          assert bounds["completion_count"] == "2"
+          assert bounds["target_unit"] == "3"
+          assert bounds["point_identified"] == "false"
+          assert math.isclose(float(bounds["effect_lower"]), 0.0, abs_tol=1e-12)
+          assert math.isclose(float(bounds["effect_upper"]), 0.6, abs_tol=1e-12)
+
+          print("Network-interference contract valid: exact two-stage design, five exposure maps, non-ID bounds across partial-network completions, provenance and byte-identical replay.")
+          PY
