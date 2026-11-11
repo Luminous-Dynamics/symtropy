@@ -210,7 +210,7 @@
           "expected_polar_order": 1
         }
       },
-      "update_rule": "CurrentPositionAlignment"
+      "update_rule": "CompareBoth"
     },
     {
       "id": "OPPOSED_LOCAL_FLOCKS_GLOBAL_CANCELLATION",
@@ -302,7 +302,74 @@
           "mean_cluster_polar_order": 1
         }
       },
-      "interpretation": "The current-position pair is outside the radius, while their predicted next positions are inside it. Under the corrected next-position-neighbour rule, the particles align using headings at t."
+      "interpretation": "The current-position pair is outside the radius, while their predicted next positions are inside it. Under the corrected next-position-neighbour rule, the particles align using headings at t.",
+      "update_rule": "CurrentPositionAlignment"
+    },
+    {
+      "id": "CAUSAL_INFLUENCE_ALL_TO_ALL_INTERVENTION",
+      "purpose": "Measure downstream causal influence of one particle's imposed heading change against a matched sham trajectory with the same RNG state",
+      "particle_count": 6,
+      "box_size": 10,
+      "interaction_radius": 8,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "update_rule": "NextPositionAlignment",
+      "seed": 31,
+      "initial_particles": "six equally spaced x positions at y=5; all headings 0",
+      "intervention": {
+        "particle_index": 0,
+        "imposed_heading_rad": 1.5707963267948966,
+        "intervention_tick": 0
+      },
+      "sham": "clone the exact pre-intervention state; apply no heading change; advance one step with identical RNG state",
+      "execution_steps": 1,
+      "expected": {
+        "treated_unperturbed_particle_heading_rad": "atan2(1,5) = 0.19739555984988078",
+        "sham_unperturbed_particle_heading_rad": 0,
+        "interpretation": "A direct intervention on one agent changes the next heading of otherwise unmodified agents through all-to-all alignment."
+      }
+    },
+    {
+      "id": "CAUSAL_INFLUENCE_SELF_ONLY_NEGATIVE_CONTROL",
+      "purpose": "Verify a heading intervention has no downstream effect without inter-particle coupling",
+      "particle_count": 3,
+      "box_size": 12,
+      "interaction_radius": 0,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "update_rule": "CurrentPositionAlignment",
+      "seed": 37,
+      "initial_particles": [
+        {
+          "x": 1,
+          "y": 1,
+          "heading_rad": 0
+        },
+        {
+          "x": 5,
+          "y": 5,
+          "heading_rad": 1
+        },
+        {
+          "x": 9,
+          "y": 9,
+          "heading_rad": 2
+        }
+      ],
+      "intervention": {
+        "particle_index": 0,
+        "imposed_heading_rad": 1.5707963267948966,
+        "intervention_tick": 0
+      },
+      "sham": "clone the exact pre-intervention state; apply no heading change; advance one step with identical RNG state",
+      "execution_steps": 1,
+      "expected": {
+        "treated_particle_0_heading_rad": 1.5707963267948966,
+        "particle_1_and_2_heading_difference_vs_sham": 0,
+        "interpretation": "The intervention changes only the treated particle when every particle has a self-only neighbourhood."
+      }
     }
   ],
   "observables": {
@@ -341,7 +408,10 @@
     "Finite-size and density-scaling analysis across independent seeds",
     "Causal coupling ablation: reduce or remove neighbour alignment while holding initial states and movement noise fixed",
     "Update-rule sensitivity: compare current-position and corrected next-position neighbour-time conventions with identical initial conditions.",
-    "Network topology: compare degree distributions, local clustering coefficient and mean shortest-path length across cluster sizes and density regimes."
+    "Network topology: compare degree distributions, local clustering coefficient and mean shortest-path length across cluster sizes and density regimes.",
+    "Causal influence: estimate downstream effects of controlled single-particle interventions against matched sham runs.",
+    "Causal-null control: show zero downstream effects when interaction coupling is absent.",
+    "Statistical information transfer versus causal influence: report observational transfer metrics separately from interventional response."
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
@@ -351,7 +421,9 @@
     "The local-order statistic is undefined (null) when no particle has another neighbour; do not replace null with zero or one.",
     "For all finite-size and parameter-sweep claims, independent seeds/trajectories—not frames—are the inferential units.",
     "Record the exact update_rule with every trajectory and benchmark receipt; do not pool CurrentPositionAlignment and NextPositionAlignment results.",
-    "Network paths are computed on the instantaneous interaction graph; report the observation/update time at which the graph was constructed."
+    "Network paths are computed on the instantaneous interaction graph; report the observation/update time at which the graph was constructed.",
+    "Intervention and sham trajectories must start from identical cloned state and PRNG state; the intervention itself must not consume random draws.",
+    "Report direct treatment effects, downstream effects and sham/null responses separately; transfer entropy alone is not a causal claim."
   ],
   "reproducibility": {
     "manifest_is_input_contract": true,
@@ -364,5 +436,9 @@
     "source_code_parity_status": "NOT_ESTABLISHED",
     "exact_head_update_rule_required": true,
     "update_rule_test": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE"
+  },
+  "acceptance": {
+    "intervention_sham_counterfactual_parity_required": true,
+    "zero_false_causal_attribution_on_self_only_negative_control": true
   }
 }
