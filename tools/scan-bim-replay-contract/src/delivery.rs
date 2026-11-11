@@ -777,7 +777,9 @@ mod tests {
     fn rejects_gate_subject_digest_mismatch() {
         let value = case_report("gate_subject_digest_mismatch");
         let error = audit_delivery_receipt_bytes(
-            serde_json::to_string(&value).expect("serialize fixture").as_bytes(),
+            serde_json::to_string(&value)
+                .expect("serialize fixture")
+                .as_bytes(),
         )
         .expect_err("gate subject must match exact IFC bytes");
         assert!(error.contains("IFC subject digest does not match"));
@@ -787,7 +789,9 @@ mod tests {
     fn rejects_supported_crosswalk_collision() {
         let value = case_report("duplicate_ifc_global_id");
         let error = audit_delivery_receipt_bytes(
-            serde_json::to_string(&value).expect("serialize fixture").as_bytes(),
+            serde_json::to_string(&value)
+                .expect("serialize fixture")
+                .as_bytes(),
         )
         .expect_err("duplicate supported GlobalId must fail closed");
         assert!(error.contains("duplicate IFC GlobalId"));
@@ -797,7 +801,9 @@ mod tests {
     fn rejects_missing_required_gate() {
         let value = case_report("missing_required_gate");
         let error = audit_delivery_receipt_bytes(
-            serde_json::to_string(&value).expect("serialize fixture").as_bytes(),
+            serde_json::to_string(&value)
+                .expect("serialize fixture")
+                .as_bytes(),
         )
         .expect_err("missing gates must fail closed");
         assert!(error.contains("exactly one row"));
