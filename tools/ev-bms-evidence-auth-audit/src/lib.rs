@@ -576,10 +576,10 @@ mod tests {
     #[test]
     fn frozen_corpus_separates_authentication_quarantine_rejection_and_unattested() {
         let report = report();
-        assert_eq!(report.event_count, 11);
+        assert_eq!(report.event_count, 14);
         assert_eq!(report.authenticated_count, 4);
         assert_eq!(report.quarantined_count, 2);
-        assert_eq!(report.rejected_count, 4);
+        assert_eq!(report.rejected_count, 7);
         assert_eq!(report.replay_rejected_count, 1);
         assert_eq!(report.unattested_count, 1);
     }
