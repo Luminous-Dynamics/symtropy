@@ -2293,6 +2293,35 @@ mod tests {
     }
 
     #[test]
+    fn locally_ordered_opposing_clusters_can_have_zero_global_order() {
+        let particles = vec![
+            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle { x: 1.2, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle { x: 10.0, y: 10.0, heading_rad: std::f64::consts::PI },
+            VicsekParticle { x: 10.2, y: 10.0, heading_rad: std::f64::consts::PI },
+        ];
+        let model = VicsekModel::new(
+            particles,
+            VicsekConfig {
+                box_size: 20.0,
+                interaction_radius: 0.5,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+            },
+            17,
+        )
+        .unwrap();
+
+        let metrics = model.metrics();
+        assert!(metrics.polar_order < 1.0e-12);
+        assert!((metrics.mean_local_polar_order - 1.0).abs() < 1.0e-12);
+        assert!(metrics.local_polar_order_variance < 1.0e-12);
+        assert_eq!(metrics.cluster_count, 2);
+        assert_eq!(metrics.largest_cluster_fraction, 0.5);
+    }
+
+    #[test]
     fn periodic_minimum_image_uses_short_path_across_box_boundary() {
         let (dx, dy) = periodic_displacement(0.1, 5.0, 9.9, 5.0, 10.0);
         assert!((dx + 0.2).abs() < 1.0e-12);
