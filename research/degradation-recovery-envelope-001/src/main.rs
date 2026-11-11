@@ -201,6 +201,8 @@ mod tests {
             "checkpoint_sha256",
             "hardware_id",
             "policy_visible_inputs",
+            "clean_control_disposition",
+            "faulted_run_disposition",
         ] {
             assert!(
                 report_schema["required"]
