@@ -238,3 +238,50 @@ This ledger validates recorded custody declarations; it cannot prove that a huma
 
 
 The challenge-custody evaluator treats exact replay of an already recorded (model, data, manifest, protocol) evaluation as an idempotent historical audit, even after a successor model becomes the current chain head. This does not reopen the challenge for a new candidate or permit additional development feedback. A fresh evaluation still requires the candidate to be the exact current chain head and the challenge evidence to be unused and unretired.
+
+
+## Scenario N: adaptive benchmark feedback budget
+
+The feedback-release evaluator is in src/feedback_budget.rs and the feedback-budget-sweep binary. It advances [CIVDYN-FEEDBACK-BUDGET-001 #4584](https://github.com/Luminous-Dynamics/symtropy/issues/4584).
+
+This is separate from model adequacy, repair qualification and challenge-data custody:
+- custody asks whether data/manifest evidence was consumed or disclosed;
+- repair qualification asks whether a repaired model improves on fresh paired challenge evidence;
+- feedback budgeting asks how much developer-visible information has already been released from one challenge, and whether another adaptive evaluation is permitted.
+
+### Frozen disclosure tiers
+
+The evaluator distinguishes six tiers and uses their documented order only for budget enforcement:
+1. sealed/no feedback;
+2. binary decision;
+3. aggregate score;
+4. multi-metric profile;
+5. per-statistic/per-domain/per-subgroup results;
+6. raw diagnostics, examples, traces or debugging outputs.
+
+Every nonsealed release is bound to an exact release-artifact digest and recipient/audience identity. Sealed events must not carry either field.
+
+### Policy and ledger identity
+
+A frozen policy binds the challenge data and manifest, evaluator protocol, metric registry, maximum number of nonsealed releases, maximum disclosure tier and preregistration/freeze receipts.
+
+The append-only event ledger binds event ID, evaluation receipt, model/revision, policy, challenge, evaluator and metric identities, tier, exact artifact, recipient, sequence and event digest. All release counts are derived from the historical ledger; caller-supplied remaining counts are not accepted.
+
+The evaluator:
+- allows exact same-event replay idempotently without spending another release;
+- rejects changed contents under an already used event ID;
+- rejects duplicate receipt IDs, artifact digests and event digests;
+- checks strictly increasing event sequence;
+- distinguishes count exhaustion from disclosure-tier violation;
+- preserves historical policy violations rather than allowing later requests to overwrite them;
+- returns NotAssessed for malformed/incomplete custody evidence through the status-oriented wrapper (the lower-level evaluator exposes the precise error).
+
+### Synthetic known answers
+
+The sweep covers sealed evaluation followed by binary feedback, within-budget aggregate feedback, count exhaustion, multi-metric disclosure above an aggregate-only tier, per-statistic/raw diagnostic disclosure, and exact idempotent replay. CI checks the frozen 27-column receipt and deterministic replay.
+
+### Claim boundary
+
+A passing result means only that the recorded event ledger satisfies the frozen release budget. It does not prove that the evaluator had no side channels, that the recipient inferred no additional information, or that the recipient did not copy content outside the declared release path. Digests are declared identities, not proof of an independent custodian or cryptographic access control. High-consequence benchmarks still need independent custody, access controls, challenge rotation and review.
+
+This protocol deliberately does not prescribe a universal safe release count. The budget and allowed tier must be preregistered for the statistical task, number of criteria, adaptive model-selection process and decision consequences.

@@ -37,3 +37,7 @@ path = "src/bin/model_adequacy_sweep.rs"
 [[bin]]
 name = "challenge-custody-sweep"
 path = "src/bin/challenge_custody_sweep.rs"
+
+[[bin]]
+name = "feedback-budget-sweep"
+path = "src/bin/feedback_budget_sweep.rs"
