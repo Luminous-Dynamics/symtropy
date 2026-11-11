@@ -784,6 +784,17 @@ mod tests {
     }
 
     #[test]
+    fn presentation_profile_and_capture_fields_are_not_observation_fields() {
+        let mut value: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/machine-test-01.json"))
+                .expect("fixture JSON");
+        value["render_profile_id"] = serde_json::json!("cinematic");
+        value["capture_path"] = serde_json::json!("/tmp/capture.png");
+        value["render_resolution"] = serde_json::json!([3840, 2160]);
+        assert!(serde_json::from_value::<ObservationFrameInputV1>(value).is_err());
+    }
+
+    #[test]
     fn unknown_transient_body_handle_field_is_rejected() {
         let mut value: serde_json::Value =
             serde_json::from_str(include_str!("../fixtures/machine-test-01.json"))
