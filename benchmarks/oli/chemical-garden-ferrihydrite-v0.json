@@ -1,0 +1,278 @@
+{
+  "schema_version": "oli-abiotic-challenge-v0.1",
+  "case_id": "OLI-ABIOTIC-CHEMICAL-GARDEN-FERRIHYDRITE-001",
+  "status": "SOURCE_PINNED_LAB_ABIOTIC_CONTROL_DATA_ACCESS_PENDING",
+  "evidence_class": "LABORATORY_EXPERIMENT_REFERENCE",
+  "claim_ceiling": "Abiotic laboratory-generated iron-mineralized chemical-garden structures and their artificial-maturation response; not evidence of natural occurrence or a universal morphology baseline",
+  "source": {
+    "title": "Tricks of Nature From the Ancient Earth and Early Mars: Chemical Gardens Generate Biomorphs With High Preservation Potential",
+    "authors": [
+      "Solomon Hirsch",
+      "Sean McMahon",
+      "Jens Najorka",
+      "Mark A. Sephton"
+    ],
+    "journal": "Geobiology",
+    "published": "2026-04-21",
+    "doi": "10.1111/gbi.70045",
+    "url": "https://doi.org/10.1111/gbi.70045",
+    "source_data_status": "AVAILABLE_FROM_CORRESPONDING_AUTHOR_UPON_REASONABLE_REQUEST",
+    "article_license_note": "The authors state that a CC BY license was applied to the Author Accepted Manuscript version. This does not automatically license unpublished raw images, measurement tables or derived data. Obtain and record artifact-specific terms.",
+    "supporting_information": "gbi70045-sup-0001-FigureS1-S4.docx; includes SEM photomicrographs and EDS/XRD supporting figures; obtain from publisher and verify file-level rights before redistribution."
+  },
+  "scientific_scope": {
+    "known_abiotic_preparation": true,
+    "natural_occurrence_demonstrated": false,
+    "natural_occurrence_statement": "The paper says iron-mineralized chemical-garden formation has not been directly observed in nature; occurrence is predicted in some far-from-equilibrium geological settings.",
+    "primary_lookalike": "Hollow iron-mineralized biomorphic filaments that resemble microbial extracellular sheaths and some putative microfossils.",
+    "not_established": [
+      "biological_life",
+      "self_maintenance",
+      "reproduction",
+      "heredity",
+      "agency",
+      "intelligence",
+      "sentience",
+      "consciousness"
+    ]
+  },
+  "preparation": {
+    "iron_precursor": {
+      "compound": "iron(II) sulfate heptahydrate",
+      "formula": "FeSO4·7H2O",
+      "purity_percent": 98,
+      "grain_size_upper_bound_micrometres": 63,
+      "morphology": "polycrystalline granules"
+    },
+    "silicate_solution": {
+      "compound": "sodium silicate",
+      "concentration_g_per_litre": 100,
+      "source_powder_composition_weight_percent": {
+        "SiO2": 53,
+        "Na2O": 26
+      },
+      "pH": 12.1,
+      "solution_volume_ml": null,
+      "volume_status": "NOT_SPECIFIED_IN_ARTICLE_METHOD_EXTRACT"
+    },
+    "reaction": {
+      "vessel": "Petri dish",
+      "stirring": "none",
+      "iron_granules": "submerged in sodium-silicate solution",
+      "reaction_duration_hours": 24,
+      "post_reaction_wash": "replace with distilled water by pipetting three times",
+      "drying": "room temperature and pressure; approximately 3 days"
+    }
+  },
+  "artificial_maturation": {
+    "technique": "hydrous_pyrolysis",
+    "sample_mass_mg": 5,
+    "sealed_tube": {
+      "material": "borosilicate glass",
+      "water_volume_ml": 0.4,
+      "water": "ultrasonically degassed deionized water",
+      "atmosphere": "anoxic; frozen with liquid nitrogen and flame-sealed under vacuum"
+    },
+    "pressure_vessel": {
+      "material": "stainless-steel reactor",
+      "nominal_volume_ml": 75,
+      "external_water_volume_ml": 30
+    },
+    "duration_hours": 72,
+    "temperature_pressure_pairs": [
+      {
+        "temperature_C": 50,
+        "estimated_pressure_MPa": null
+      },
+      {
+        "temperature_C": 100,
+        "estimated_pressure_MPa": 0.1
+      },
+      {
+        "temperature_C": 150,
+        "estimated_pressure_MPa": 0.5
+      },
+      {
+        "temperature_C": 200,
+        "estimated_pressure_MPa": 1.6
+      },
+      {
+        "temperature_C": 250,
+        "estimated_pressure_MPa": 4
+      },
+      {
+        "temperature_C": 300,
+        "estimated_pressure_MPa": 8.7
+      },
+      {
+        "temperature_C": 350,
+        "estimated_pressure_MPa": 16.6
+      }
+    ],
+    "pressure_note": "Estimated from water vapor pressure, assuming gas production from garden material is negligible."
+  },
+  "measurement_protocol": {
+    "sem": {
+      "instrument": "Hitachi TM4000 SEM",
+      "imaging": "backscattered electron",
+      "accelerating_voltage_kV": 15,
+      "average_working_distance_mm": 7,
+      "magnification_default": 500,
+      "images_per_sample_max": 50,
+      "measurement_units": [
+        "micrometre"
+      ],
+      "filament_measurement_count_per_sample": 300,
+      "measurement_rules": [
+        "If a filament exceeded the field of view, a lower magnification was used.",
+        "Only structures clearly exhibiting filamentous morphology were measured.",
+        "For branched structures, the longest branch length was measured.",
+        "For variable-width filaments, maximum width was measured."
+      ],
+      "primary_descriptors": [
+        "filament_length",
+        "maximum_filament_width",
+        "branch_presence",
+        "anastomosis_presence",
+        "cross_section_morphology",
+        "sinuosity",
+        "clustering"
+      ]
+    },
+    "eds": {
+      "instrument": "Oxford Instruments EDS integrated with SEM",
+      "primary_elements": [
+        "Fe",
+        "Si",
+        "O"
+      ],
+      "comparisons": [
+        "unheated garden material",
+        "300_C_matured material",
+        "350_C_matured material"
+      ]
+    },
+    "xrd": {
+      "instrument": "STOE STADI MP powder diffractometer",
+      "source": "molybdenum",
+      "voltage_kV": 50,
+      "current_mA": 40,
+      "geometry": "transmission",
+      "angle_range_degrees_2theta": [
+        2,
+        39.5
+      ],
+      "step_degrees_2theta": 0.015,
+      "collection_time_seconds_per_step": [
+        2300,
+        5000
+      ],
+      "reference_databases": [
+        "COD",
+        "PDF-5"
+      ]
+    }
+  },
+  "reported_observations": {
+    "unheated": [
+      "Dominated by tubular hollow filamentous material and globular seed-grain envelope remnants.",
+      "Some filaments show consistent external diameters and circular cross-sections.",
+      "Branching and anastomosis occur; some structures vary in diameter and have tapered ends."
+    ],
+    "after_maturation": [
+      "Filamentous material remains clearly discernible in most samples treated at temperatures up to and including 300_C.",
+      "At 300_C, roughly spheroidal 0.5-2.5 micrometre structures were observed, often coating filaments.",
+      "At 350_C, material is dominated by bulbous/botryoidal structures; traces remain but complete filaments are not clearly discernible.",
+      "The authors report relatively limited degradation compared with analogous biological material and inhibited transformation of ferrihydrite to crystalline iron oxides, likely influenced by silica."
+    ],
+    "biologic_comparator": {
+      "material": "Leptothrix ochracea iron-oxidising bacterial sheaths",
+      "limitation": "The authors explicitly state this comparator should not be considered representative of all biological microstructures."
+    }
+  },
+  "benchmark_tasks": [
+    {
+      "id": "MORPHOLOGY_ONLY_FALSE_POSITIVE",
+      "question": "Can a morphology-only detector distinguish the laboratory abiotic chemical gardens from the biological comparator?",
+      "required_inputs": [
+        "SEM images",
+        "filament-length-width measurements"
+      ],
+      "primary_metrics": [
+        "false_positive_rate",
+        "sensitivity",
+        "calibration",
+        "risk_coverage"
+      ],
+      "anti_leakage": "Split by preparation batch and sample, not by image crop or individual filament."
+    },
+    {
+      "id": "DIAGENETIC_PRESERVATION_ROBUSTNESS",
+      "question": "Can a detector distinguish abiotic chemical-garden filaments from biological material after matched maturation conditions?",
+      "required_inputs": [
+        "temperature",
+        "pressure",
+        "duration",
+        "SEM",
+        "EDS",
+        "XRD"
+      ],
+      "primary_metrics": [
+        "per_temperature_confusion_matrix",
+        "feature_retention",
+        "false_positive_rate",
+        "uncertainty"
+      ],
+      "anti_leakage": "Hold out entire maturation temperatures or independent maturation runs."
+    },
+    {
+      "id": "MULTIMODAL_DISCRIMINATION",
+      "question": "Do mineralogy and elemental maps add discriminating value beyond morphology?",
+      "required_inputs": [
+        "SEM morphology",
+        "Fe/Si EDS maps",
+        "XRD phase observations"
+      ],
+      "primary_metrics": [
+        "incremental_auc",
+        "calibration",
+        "ablation_delta",
+        "selective_risk"
+      ],
+      "anti_leakage": "Keep correlated fields of view and spectra from the same physical sample within one split."
+    },
+    {
+      "id": "PARTIAL_OBSERVABILITY",
+      "question": "How do limited field of view, magnification changes, image resolution and missing mineralogical measurements affect false-negative and false-positive rates?",
+      "required_inputs": [
+        "field_of_view",
+        "magnification",
+        "image_resolution",
+        "modality_availability"
+      ],
+      "primary_metrics": [
+        "risk_coverage",
+        "detection_probability_by_resolution",
+        "out_of_domain_abstention"
+      ]
+    }
+  ],
+  "data_admission": {
+    "raw_sem_images_materialized": false,
+    "morphology_measurement_tables_materialized": false,
+    "eds_raw_data_materialized": false,
+    "xrd_raw_data_materialized": false,
+    "checksums": null,
+    "access_action": "Request original data and measurement tables from corresponding author; record exact terms, file hashes and sample IDs before ingestion.",
+    "note": "Article methods and reported findings are source-pinned; underlying sample-level data have not been acquired."
+  },
+  "acceptance": {
+    "known_truth_abiotic_preparation_documented": true,
+    "separate_biological_comparator_required": true,
+    "sample_level_group_split_required": true,
+    "independent_replication_required": true,
+    "instrument_metadata_required": true,
+    "false_negative_observability_metadata_required": true,
+    "no_morphology_only_biogenicity_claim": true
+  }
+}
