@@ -1,0 +1,263 @@
+{
+  "schema_version": "oli-causal-control-v0.1",
+  "case_id": "OLI-CAUSAL-MAINTENANCE-001",
+  "status": "SYNTHETIC_KNOWN_MECHANISM_CONTROL_AWAITING_RUST_VALIDATION",
+  "evidence_class": "SIMULATION",
+  "claim_ceiling": "Minimal energy-budgeted integrity control distinguishing passive relaxation, fixed-rate repair and proportional feedback. No claim of biological life, autonomy in nature, intelligence or consciousness.",
+  "source_basis": {
+    "model_family": "first_order_dissipative_state_with_bounded_control_effort_and_energy_store",
+    "relation_to_control_theory": "Known-input single-state control system with exact passive exponential decay, bounded actuator and explicit work/energy accounting.",
+    "not_a_biophysical_model": true
+  },
+  "implementation": {
+    "crate": "symtropy-lifesim-core",
+    "module": "maintenance",
+    "arithmetic": "IEEE754_f64",
+    "update_order": [
+      "exact first-order passive decay",
+      "instantaneous disturbance damage",
+      "environmental energy harvest",
+      "controller effort request",
+      "energy-limited repair",
+      "state and energy ledger update"
+    ],
+    "energy_balance": "energy_before + gross_energy_harvested = energy_after + energy_used + energy_spilled",
+    "integrity_domain": [
+      0,
+      1
+    ],
+    "no_hidden_randomness": true
+  },
+  "common_config": {
+    "initial_integrity": 1,
+    "target_integrity": 1,
+    "passive_decay_rate_per_time": 0.005,
+    "max_repair_rate_per_time": 0.25,
+    "energy_capacity": 2,
+    "initial_energy": 0.5,
+    "energy_harvest_rate_at_full_availability_per_time": 0.1,
+    "energy_per_integrity_unit": 1,
+    "dt": 1
+  },
+  "controller_modes": [
+    {
+      "mode": "PASSIVE_RELAXATION",
+      "rule": "no repair actuator; exact passive exponential decay only"
+    },
+    {
+      "mode": "FIXED_RATE_REPAIR",
+      "rule": "constant repair rate independent of observed integrity error, bounded by max_repair_rate and target headroom"
+    },
+    {
+      "mode": "PROPORTIONAL_FEEDBACK",
+      "rule": "repair rate = gain_per_time * max(target_integrity - integrity_before_repair, 0), bounded by max_repair_rate and target headroom"
+    }
+  ],
+  "cases": [
+    {
+      "id": "SHAM_NO_DISTURBANCE",
+      "purpose": "Test whether the controller expends repair energy when no integrity deficit exists.",
+      "mode": {
+        "type": "PROPORTIONAL_FEEDBACK",
+        "gain_per_time": 2
+      },
+      "inputs": [
+        {
+          "disturbance_damage": 0,
+          "energy_availability": 1
+        }
+      ],
+      "expected": {
+        "repair_requested": 0,
+        "energy_used": 0,
+        "integrity_after": "less than or equal to initial; only passive decay applies"
+      }
+    },
+    {
+      "id": "PASSIVE_VS_FEEDBACK_PERTURBATION",
+      "purpose": "Compare passive persistence against energy-consuming error-feedback repair under the same disturbance.",
+      "modes": [
+        "PASSIVE_RELAXATION",
+        "PROPORTIONAL_FEEDBACK"
+      ],
+      "feedback_gain_per_time": 2,
+      "input_sequence": [
+        {
+          "disturbance_damage": 0.4,
+          "energy_availability": 1
+        },
+        {
+          "disturbance_damage": 0,
+          "energy_availability": 1
+        },
+        {
+          "disturbance_damage": 0,
+          "energy_availability": 1
+        },
+        {
+          "disturbance_damage": 0,
+          "energy_availability": 1
+        }
+      ],
+      "expected": {
+        "passive": "integrity remains below the target and continues passive decay; no repair or repair-energy use",
+        "feedback": "integrity returns to target if the available energy budget permits; restoration is accompanied by positive repair work and energy expenditure"
+      }
+    },
+    {
+      "id": "FIXED_RATE_VS_FEEDBACK_DOSE_RESPONSE",
+      "purpose": "Determine whether repair effort scales with perturbation magnitude or is merely a fixed scripted response.",
+      "mode_pairs": [
+        {
+          "mode": "FIXED_RATE_REPAIR",
+          "repair_rate_per_time": 0.1
+        },
+        {
+          "mode": "PROPORTIONAL_FEEDBACK",
+          "gain_per_time": 0.5
+        }
+      ],
+      "independent_replicates": [
+        "small_disturbance_0.1",
+        "large_disturbance_0.4"
+      ],
+      "expected": {
+        "fixed_rate": "same requested effort for both perturbation sizes, subject to target headroom",
+        "feedback": "requested effort scales with integrity error; for these values, the large-deficit request is four times the small-deficit request before common rate/energy clipping"
+      }
+    },
+    {
+      "id": "CONTROLLER_KNOCKOUT",
+      "purpose": "Test whether apparent recovery depends on the feedback controller.",
+      "mode": "PROPORTIONAL_FEEDBACK",
+      "sequence": [
+        {
+          "disturbance_damage": 0.3,
+          "energy_availability": 1
+        },
+        {
+          "intervention": "set_mode(PASSIVE_RELAXATION)"
+        },
+        {
+          "disturbance_damage": 0,
+          "energy_availability": 1
+        }
+      ],
+      "expected": "repair ceases after controller knockout; passive decay continues"
+    },
+    {
+      "id": "ENERGY_CUTOFF",
+      "purpose": "Test whether repair is actually energy constrained rather than a free state reset.",
+      "mode": "PROPORTIONAL_FEEDBACK",
+      "config_override": {
+        "initial_energy": 0,
+        "energy_harvest_rate": 0
+      },
+      "feedback_gain_per_time": 2,
+      "inputs": [
+        {
+          "disturbance_damage": 0.3,
+          "energy_availability": 0
+        }
+      ],
+      "expected": {
+        "repair_requested": "positive",
+        "repair_applied": 0,
+        "unmet_repair": "equals requested repair",
+        "integrity_after": "remains damaged"
+      }
+    },
+    {
+      "id": "ENERGY_DEPLETION_AND_RECOVERY",
+      "purpose": "Test the difference between finite stored reserve and sustained environmental energy intake.",
+      "mode": "PROPORTIONAL_FEEDBACK",
+      "config_override": {
+        "initial_energy": 0.25,
+        "energy_harvest_rate": 0
+      },
+      "feedback_gain_per_time": 2,
+      "input_sequence": [
+        {
+          "disturbance_damage": 0.4,
+          "energy_availability": 0
+        },
+        {
+          "disturbance_damage": 0,
+          "energy_availability": 0
+        },
+        {
+          "disturbance_damage": 0,
+          "energy_availability": 0
+        }
+      ],
+      "expected": "repair consumes only the finite initial reserve; once depleted, unmet repair grows and integrity cannot be restored"
+    },
+    {
+      "id": "UNSEEN_PERTURBATION_GENERALIZATION",
+      "purpose": "Test the controller against a pre-registered perturbation sequence not used to set its gain or fixed-rate baseline.",
+      "mode": "PROPORTIONAL_FEEDBACK",
+      "feedback_gain_per_time": 1.2,
+      "sequence_seed": 20261111,
+      "disturbances": [
+        0.08,
+        0,
+        0.31,
+        0.04,
+        0,
+        0.22,
+        0,
+        0,
+        0.15
+      ],
+      "energy_availability": [
+        1,
+        1,
+        0.75,
+        0.5,
+        0,
+        0,
+        1,
+        1,
+        1
+      ],
+      "expected": "report recovery, energy limitation and residual integrity for every step; do not infer learning from robust feedback under a fixed known control law"
+    }
+  ],
+  "metrics": [
+    "integrity_trajectory",
+    "recovery_time_to_pre_registered_tolerance",
+    "repair_work",
+    "gross_energy_harvested",
+    "energy_spilled",
+    "energy_used",
+    "unmet_repair",
+    "integrity_loss_per_unit_energy",
+    "controller_knockout_effect",
+    "energy_cutoff_effect",
+    "dose_response_of_repair_effort",
+    "prediction_error_under_unseen_perturbations"
+  ],
+  "anti_leakage": [
+    "All steps within one trajectory remain in one split.",
+    "All runs with the same parameter set and seed family remain grouped.",
+    "Report fixed-rate and feedback controllers on identical perturbation and energy-input sequences.",
+    "Do not treat time steps as independent experimental systems.",
+    "A successful controller does not establish learning, adaptation, life or agency unless those properties are independently operationalized."
+  ],
+  "acceptance_targets": {
+    "energy_ledger_absolute_error_lte": 1e-12,
+    "passive_mode_repair_count": 0,
+    "zero_deficit_feedback_repair_count": 0,
+    "controller_knockout_repair_after_intervention": 0,
+    "zero_energy_input_repair_from_empty_store": 0,
+    "replay_exact_same_platform": true,
+    "no_non_finite_state_or_report": true,
+    "all_cases_grouped_by_trajectory": true
+  },
+  "reproducibility": {
+    "seed": "only the unseen perturbation sequence uses sequence_seed; core state transitions are deterministic",
+    "output_digest_sha256": null,
+    "rust_validation_status": "NOT_RUN_IN_AUTHORING_ENVIRONMENT",
+    "exact_head_ci_status": "PENDING"
+  }
+}
