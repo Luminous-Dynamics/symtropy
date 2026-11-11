@@ -972,8 +972,11 @@ mod tests {
     #[test]
     fn rejects_replayed_actor_without_randomness_identity() {
         let mut campaign = valid_campaign();
-        campaign.branches[1].actor_responses[0] =
-            actor(ActorResponseOrigin::Replayed, "actor-input-1", "actor-action-1");
+        campaign.branches[1].actor_responses[0] = actor(
+            ActorResponseOrigin::Replayed,
+            "actor-input-1",
+            "actor-action-1",
+        );
         campaign.branches[1].actor_responses[0].randomness_digest = None;
         let report = validate_campaign(&campaign);
         assert!(has(&report, Finding::ReplayedActorRandomnessMissing));
