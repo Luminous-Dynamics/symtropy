@@ -609,7 +609,10 @@ fn conical_barrier_gradient(position: &[f64], config: ScmConfig) -> Vec<f64> {
     }
     let angle = config.barrier_angle_degrees.to_radians();
     let magnitude = config.barrier_height * (angle.cos() / angle.sin());
-    delta.into_iter().map(|value| magnitude * value / norm).collect()
+    delta
+        .into_iter()
+        .map(|value| magnitude * (value / norm))
+        .collect()
 }
 
 fn consensus_state(
@@ -874,6 +877,28 @@ mod tests {
         // Three initial readings and one successful successor reading plus the failed
         // second successor request are all counted as evaluation attempts.
         assert_eq!(model.total_function_evaluations, 5);
+    }
+
+    #[test]
+    fn extreme_finite_out_of_domain_position_keeps_barrier_gradient_finite() {
+        let agents = vec![
+            ScmAgent {
+                position: vec![f64::MAX, 0.5],
+            },
+            ScmAgent {
+                position: vec![f64::MAX, 0.5],
+            },
+        ];
+        let config = ScmConfig::default();
+        let gradient = conical_barrier_gradient(&agents[0].position, config);
+        assert!(gradient.iter().all(|value| value.is_finite()));
+
+        let mut model = ScmModel::new(agents, config, 37).unwrap();
+        let report = model.step(&Flat).unwrap();
+        assert_eq!(report.outside_domain_agents, 2);
+        assert!(model.agents().iter().all(|agent| {
+            agent.position.iter().all(|value| value.is_finite())
+        }));
     }
 
     #[test]
