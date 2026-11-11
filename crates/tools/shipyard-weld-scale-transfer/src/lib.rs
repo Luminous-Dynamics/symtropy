@@ -349,7 +349,7 @@ fn validate_edge(
     from: &DomainNode,
     to: &DomainNode,
     manifest: &TransferManifest,
-) -> Result<u64, TransferReason> {
+) -> Result<UncertaintyComponents, TransferReason> {
     if edge.edge_id.trim().is_empty()
         || edge.model_id != manifest.model.model_id
         || edge.model_revision != manifest.model.revision
