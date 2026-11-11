@@ -40,7 +40,7 @@ pub struct PortSample {
 /// become zero work.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum PassivityError {
-    InvalidInitialStorage,
+    InvalidInitialEnergyBudget,
     InvalidEnergyUncertainty,
     InvalidTolerance,
     InvalidMaximumSampleGap,
@@ -131,7 +131,7 @@ impl PassivityObserver {
         violation_tolerance_j: f64,
     ) -> Result<Self, PassivityError> {
         if !initial_energy_budget_j.is_finite() || initial_energy_budget_j < 0.0 {
-            return Err(PassivityError::InvalidInitialStorage);
+            return Err(PassivityError::InvalidInitialEnergyBudget);
         }
         if !energy_uncertainty_j.is_finite() || energy_uncertainty_j < 0.0 {
             return Err(PassivityError::InvalidEnergyUncertainty);
@@ -568,21 +568,21 @@ mod tests {
 
     #[test]
     fn zero_profile_digest_and_zero_maximum_gap_are_rejected() {
-        assert_eq!(
+        assert!(matches!(
             PassivityObserver::new(clock(), PORT_ID, FRAME_ID, [0; 32], MAX_GAP_NS, 1.0, 0.0, 0.0),
             Err(PassivityError::InvalidMeasurementProfileDigest)
-        );
-        assert_eq!(
+        ));
+        assert!(matches!(
             PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, 0, 1.0, 0.0, 0.0),
             Err(PassivityError::InvalidMaximumSampleGap)
-        );
+        ));
     }
 
     #[test]
     fn storage_uncertainty_and_tolerance_are_validated() {
         assert!(matches!(
             PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS, -1.0, 0.0, 0.0),
-            Err(PassivityError::InvalidInitialStorage)
+            Err(PassivityError::InvalidInitialEnergyBudget)
         ));
         assert!(matches!(
             PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS, 0.0, -0.1, 0.0),
@@ -601,6 +601,6 @@ mod tests {
         let result = subject.observe(sample(2, 1_000_000_000, -10.0, 0.1)).unwrap();
 
         assert!((result.passivity_deficit_j - 0.5).abs() < 1.0e-12);
-        assert_eq!(result.violation_sample_count, 0);
+        assert_eq!(result.violation_interval_count, 0);
     }
 }
