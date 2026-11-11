@@ -111,6 +111,15 @@ fn parse_contract(fields: &[&str]) -> Result<Contract, String> {
     })
 }
 
+fn algorithm_for(class: &str) -> Option<&'static str> {
+    match class {
+        "MCAR" => Some("AsMAR (MCAR)"),
+        "MAR" => Some("AsMAR (MAR)"),
+        "MNAR" => Some("AIMI"),
+        _ => None,
+    }
+}
+
 fn parse_run(fields: &[&str]) -> Result<Run, String> {
     if fields.len() != 14 || fields[0] != "run" {
         return Err(format!("run row must have 14 fields, got {}", fields.len()));
@@ -148,10 +157,6 @@ fn parse_run(fields: &[&str]) -> Result<Run, String> {
         wtv,
         mean,
     })
-}
-
-fn expected_for(id: &str) -> Option<ExpectedExperiment> {
-    EXPECTED.iter().copied().find(|expected| expected.id == id)
 }
 
 fn validate_contract(contract: &Contract, expected: ExpectedExperiment) -> Result<(), String> {
@@ -211,12 +216,8 @@ fn validate_runs(contract: &Contract, runs: &[Run]) -> Result<(usize, usize), St
         if !CLASSES.contains(&run.class.as_str()) {
             return Err(format!("unknown missingness class {}", run.class));
         }
-        let expected_algorithm = match run.class.as_str() {
-            "MCAR" => "AsMAR (MCAR)",
-            "MAR" => "AsMAR (MAR)",
-            "MNAR" => "AIMI",
-            _ => unreachable!(),
-        };
+        let expected_algorithm = algorithm_for(run.class.as_str())
+            .ok_or_else(|| format!("unknown missingness class {}", run.class))?;
         if run.algorithm != expected_algorithm {
             return Err(format!("algorithm/class mismatch: {} / {}", run.algorithm, run.class));
         }
@@ -232,8 +233,8 @@ fn validate_runs(contract: &Contract, runs: &[Run]) -> Result<(usize, usize), St
             }
             finished += 1;
         } else {
-            if !run.exception {
-                return Err("unfinished learning row has no recorded exception".to_owned());
+            if !run.exception || run.mean_present || run.mean.is_some() {
+                return Err("unfinished learning row must retain its exception and omit policy mean".to_owned());
             }
             exceptions += 1;
         }
@@ -397,8 +398,9 @@ mod tests {
 
     #[test]
     fn assumption_to_algorithm_mapping_is_explicit() {
-        assert_eq!(match "MCAR" { "MCAR" => "AsMAR (MCAR)", "MAR" => "AsMAR (MAR)", _ => "AIMI" }, "AsMAR (MCAR)");
-        assert_eq!(match "MAR" { "MCAR" => "AsMAR (MCAR)", "MAR" => "AsMAR (MAR)", _ => "AIMI" }, "AsMAR (MAR)");
-        assert_eq!(match "MNAR" { "MCAR" => "AsMAR (MCAR)", "MAR" => "AsMAR (MAR)", _ => "AIMI" }, "AIMI");
+        assert_eq!(algorithm_for("MCAR"), Some("AsMAR (MCAR)"));
+        assert_eq!(algorithm_for("MAR"), Some("AsMAR (MAR)"));
+        assert_eq!(algorithm_for("MNAR"), Some("AIMI"));
+        assert_eq!(algorithm_for("unknown"), None);
     }
 }
