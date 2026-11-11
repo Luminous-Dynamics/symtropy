@@ -1666,6 +1666,18 @@ mod tests {
     }
 
     #[test]
+    fn second_moment_symmetrization_rejects_unrepresentable_average() {
+        let minimum = f64::from_bits(1);
+        let mut matrix = SMatrix::<f64, 2, 2>::identity();
+        matrix[(0, 1)] = minimum;
+        matrix[(1, 0)] = 0.0;
+        assert_eq!(
+            BivectorInertia::<2>::from_second_moment(matrix).unwrap_err(),
+            RotationalInertiaError::NonFinite
+        );
+    }
+
+    #[test]
     fn inertia_tensor_adapter_rejects_unrepresentable_half_subnormal_moments() {
         let minimum = f64::from_bits(1);
         let tensor = SMatrix::<f64, 3, 3>::identity() * minimum;
