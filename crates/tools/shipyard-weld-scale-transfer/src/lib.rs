@@ -715,7 +715,7 @@ pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
         &mut visited,
         &mut Vec::new(),
         &mut paths,
-        256,
+        10_000,
     );
     if paths.is_empty() {
         let thickness_only_or_outside = source.signature.changed_factors(&target.signature);
