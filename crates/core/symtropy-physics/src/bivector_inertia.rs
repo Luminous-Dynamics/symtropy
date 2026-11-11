@@ -1100,6 +1100,7 @@ mod tests {
         );
         let operator = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let tensor = SMatrix::<f64, 3, 3>::identity() * second_moment.trace() - second_moment;
+        let spatial_inertia = tensor.lu();
 
         for sample in 1..=32 {
             let k = sample as f64;
@@ -1117,8 +1118,7 @@ mod tests {
                 angular_response.get(0, 1),
             ]);
             let torque = offset.cross(&direction);
-            let omega_from_tensor = tensor
-                .lu()
+            let omega_from_tensor = spatial_inertia
                 .solve(&torque)
                 .expect("positive-definite spatial inertia");
             let point_velocity_from_bivector = -angular_response.apply_to_vector(&offset);
@@ -1138,7 +1138,8 @@ mod tests {
             );
             assert!(
                 (observed_effective_mass - expected_effective_mass).abs() < 2.0e-11,
-                "effective-mass mismatch for sample {sample}: observed={observed_effective_mass:e}, expected={expected_effective_mass:e}"
+                "effective-mass mismatch for sample {sample}: \
+                 observed={observed_effective_mass:e}, expected={expected_effective_mass:e}"
             );
         }
     }
