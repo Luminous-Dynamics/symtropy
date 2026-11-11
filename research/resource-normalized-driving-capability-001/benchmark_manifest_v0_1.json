@@ -11,13 +11,18 @@
     "visual_input_bridge": "https://github.com/Luminous-Dynamics/symthaea/pull/11480",
     "experience_selection": "https://github.com/Luminous-Dynamics/symtropy/issues/4550",
     "paired_deployment_fault_campaign": "https://github.com/Luminous-Dynamics/symtropy/issues/4681",
-    "degradation_recovery_envelope": "https://github.com/Luminous-Dynamics/symtropy/issues/4657"
+    "degradation_recovery_envelope": "https://github.com/Luminous-Dynamics/symtropy/issues/4657",
+    "recoverable_experience_benchmark": "https://github.com/Luminous-Dynamics/symtropy/issues/4550",
+    "decision_sensitive_experience_selector": "https://github.com/Luminous-Dynamics/symtropy/pull/4575",
+    "anytime_imagination_allocator": "https://github.com/Luminous-Dynamics/symtropy/pull/4581"
   },
   "claim_ceiling": "Protocol only. No model, renderer, driving performance, safety or transfer result is claimed by this manifest.",
   "hypotheses": [
     "A learned visual front-end with structured HDC scene binding and continuous-time HDC-LTC/CfC memory can improve temporal irregularity, memory efficiency, missing-sensor robustness or adaptation cost versus matched compact recurrent and transformer baselines.",
     "Action-conditioned latent prediction can improve closed-loop decision quality only when trained/evaluated on action-observation transitions under matched data and compute.",
-    "Decision-sensitive experience selection can reach a frozen competence gate with fewer simulator transitions or human intervention minutes than uniform sampling without worsening worst-family constraints."
+    "Decision-sensitive experience selection can reach a frozen competence gate with fewer simulator transitions or human intervention minutes than uniform sampling without worsening worst-family constraints.",
+    "At matched experience and human-label budgets, decision-sensitive experience selection (#4575) can reduce transitions/interventions per frozen skill gate compared with uniform, rarity, entropy and prediction-error baselines.",
+    "At a fixed inference compute and deadline budget, anytime imagination allocation (#4581) can improve decision quality by spending additional rollouts only where marginal regret reduction is positive and the actuation/recovery reserve remains intact."
   ],
   "comparison_views": [
     {
@@ -428,6 +433,31 @@
         "per_fault_family_and_severity_tail",
         "measured_inference_energy_and_latency"
       ]
+    },
+    {
+      "id": "recoverable_experience_selection",
+      "priority": 13,
+      "task": "matched-budget sampler ablation using #4550/#4575, comparing uniform, rarity, entropy, prediction-error, decision-margin, SAM value-of-information and recoverability-directed sampling",
+      "metric_family": [
+        "transitions_per_skill_gate",
+        "human_intervention_minutes_per_skill_gate",
+        "held_out_worst_family_competence",
+        "calibration_and_recoverability_non_inferiority",
+        "decision_value_per_query"
+      ]
+    },
+    {
+      "id": "deadline_aware_anytime_imagination",
+      "priority": 14,
+      "task": "fixed-budget and fixed-latency allocation comparison using #4581: fixed rollout count vs deadline-aware marginal decision-regret allocation",
+      "metric_family": [
+        "marginal_regret_reduction",
+        "rollouts_per_opportunity",
+        "p95_p99_policy_latency",
+        "actuation_reserve_preserved",
+        "compute_and_energy_per_decision",
+        "quality_under_matched_compute_and_matched_latency"
+      ]
     }
   ],
   "budget_dimensions": [
@@ -461,7 +491,11 @@
     "training_compute_energy_and_gpu_hours",
     "fault_schedule_and_severity_manifest_sha256",
     "fault_injection_count_by_family_and_severity",
-    "recovery_quorum_ticks_and_platform_deadlines"
+    "recovery_quorum_ticks_and_platform_deadlines",
+    "active_sampler_query_count_and_acquisition_cost",
+    "decision_query_deadline_misses_and_actuation_reserve",
+    "world_model_rollout_count_by_decision_opportunity",
+    "counterfactual_rollout_gpu_time_and_energy"
   ],
   "outcome_families": [
     "native_benchmark_metrics",
@@ -491,7 +525,13 @@
     "fault_detection_and_containment_by_event_id",
     "degradation_area_and_duration_by_fault_severity",
     "recovery_latency_and_quorum_by_event",
-    "common_cause_and_cascaded_fault_response"
+    "common_cause_and_cascaded_fault_response",
+    "decision_value_per_human_intervention_minute",
+    "simulator_transitions_per_frozen_skill_gate",
+    "sampler_query_precision_and_decision_change_rate",
+    "marginal_decision_regret_reduction_per_rollout",
+    "inference_compute_allocated_vs_deadline_reserve",
+    "rollout_value_under_compute_matched_and_latency_matched_protocols"
   ],
   "prospective_targets": {
     "status": "not_measured",
@@ -519,7 +559,11 @@
     "common_cause_or_cascade_parentage_is_misdeclared",
     "fault_detection_or_containment_reference_precedes_fault_onset",
     "normal_mode_restored_before_healthy_observation_quorum",
-    "severity_sweep_omits_a_fault_family_or_reuses_duplicate_levels"
+    "severity_sweep_omits_a_fault_family_or_reuses_duplicate_levels",
+    "active_sampler_uses_future_outcomes_or_evaluator_only_privileges",
+    "entropy_or_rarity_is_claimed_as_decision_value_without_counterfactual_outcome_evidence",
+    "anytime_allocator_spends_reserved_actuation_or_recovery_budget",
+    "rollout_latency_bounds_are_stale_or_not_bound_to_model_checkpoint_and_hardware"
   ],
   "sources": [
     {
