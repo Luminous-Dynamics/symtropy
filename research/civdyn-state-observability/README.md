@@ -107,6 +107,12 @@ Each individual manifest includes its own seed, model/pattern, training budget, 
 
 **Important comparison boundary:** the audit does not pool ICU and Predator returns into a single headline mean because they are different tasks with different reward scales. Stacked and unstacked models are also kept as separate groups; their architecture and tuned hyperparameters differ, so their raw returns are not by themselves a controlled causal comparison. The separate output is a provenance/coverage audit of the available reference artifacts, not a claim that all methods were matched in compute or evaluation.
 
+### Producer provenance finding (important limitation)
+
+The exact producer code was inspected and pinned. `experiments/PPO_baseline.jl` declares `RUNS = 0`, `N_FRAMES = 1` and `SEED = 1500` at this commit. Its unmodified execution therefore generates no PPO training runs and cannot generate the stacked records with `n_frames = 149`. The training implementation exists in `src/PPO.jl` (`train_PPO_agent` and `sample_ppo_hparams`), and the shared frame-stacking module exists, but the pinned experiment tree contains no dedicated stacked-PPO experiment entrypoint. The artifact normalizer now verifies exact Git blob IDs for the producer implementation, frame-stacking module, logger, missingness model and Julia project, and asserts the disabled producer state.
+
+The result JSON files themselves record the seed, hyperparameters, training steps, evaluation episode count and aggregate return mean/std, but they do not record the generating source commit, environment-lock digest, raw episode returns or an immutable run receipt. Thus the 242 files are **pinned result artifacts**, not a fully reproducible baseline run matrix. The checked-in baseline entrypoint is not sufficient to regenerate them. A faithful reproduction requires a versioned, executable runner with non-zero run count, explicit stacked configuration, source/environment digests, seed schedule, raw evaluation episode outputs and an independently checked run manifest.
+
 ## Next step beyond the paper
 
 After paper-faithful reproduction and separate PPO artifact auditing:
