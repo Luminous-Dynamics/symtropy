@@ -652,7 +652,17 @@ mod tests {
         CausalTransportResult {
             estimand: "target_average_treatment_effect_risk_difference",
             identification_status: status,
-            identification_reason: TransportIdentificationReason::FullSupportAndAssumptionsSupported,
+            identification_reason: match status {
+                TransportIdentificationStatus::Identified => {
+                    TransportIdentificationReason::FullSupportAndAssumptionsSupported
+                }
+                TransportIdentificationStatus::PartiallyIdentified => {
+                    TransportIdentificationReason::TargetSupportViolation
+                }
+                TransportIdentificationStatus::NotIdentified => {
+                    TransportIdentificationReason::AssumptionViolationOrUnknown
+                }
+            },
             source_ate: 0.2,
             target_ate_point: point,
             target_ate_lower: lower,
