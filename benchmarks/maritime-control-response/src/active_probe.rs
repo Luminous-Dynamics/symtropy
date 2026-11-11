@@ -254,6 +254,8 @@ pub enum ProbeError {
     CandidateCatalogMismatch,
     InvalidSeedDigest,
     ObservationCandidateMismatch,
+    CandidateNotEligibleOrSelected,
+    SelectionReplayMismatch,
     InvalidObservationReceiptDigest,
     ObservedOutcomeNotFound(String),
     ObservedOutcomeImpossible(String),
@@ -279,6 +281,8 @@ impl fmt::Display for ProbeError {
             Self::CandidateCatalogMismatch => write!(formatter, "baseline candidates do not match the scored probe catalogue"),
             Self::InvalidSeedDigest => write!(formatter, "seed manifest must be a lowercase SHA-256 digest"),
             Self::ObservationCandidateMismatch => write!(formatter, "observed result belongs to a different probe candidate manifest"),
+            Self::CandidateNotEligibleOrSelected => write!(formatter, "observation candidate was not eligible and selected by the frozen evidence portfolio"),
+            Self::SelectionReplayMismatch => write!(formatter, "selection portfolio or baseline does not replay from its frozen inputs"),
             Self::InvalidObservationReceiptDigest => write!(formatter, "observation receipt must be a lowercase SHA-256 digest"),
             Self::ObservedOutcomeNotFound(id) => write!(formatter, "observed outcome is not declared by the candidate likelihood model: {id}"),
             Self::ObservedOutcomeImpossible(id) => write!(formatter, "observed outcome has zero probability under the frozen prior and likelihood model: {id}"),
@@ -711,6 +715,10 @@ pub fn select_probe_baseline(
 /// upstream verification duties.
 pub fn realize_probe_observation(
     hypotheses: &[HypothesisPrior],
+    candidates: &[DiagnosticProbeCandidate],
+    policy: &ProbeSelectionPolicy,
+    portfolio: &ProbePortfolio,
+    selection: &ProbeBaselineSelection,
     candidate: &DiagnosticProbeCandidate,
     expected_candidate_manifest_sha256: &str,
     observed_outcome_id: &str,
@@ -730,6 +738,32 @@ pub fn realize_probe_observation(
         || !is_sha256_hex(&candidate.risk_assessment_sha256)
     {
         return Err(ProbeError::ObservationCandidateMismatch);
+    }
+
+    let replayed_portfolio = rank_diagnostic_probes(hypotheses, candidates, policy)?;
+    if &replayed_portfolio != portfolio {
+        return Err(ProbeError::SelectionReplayMismatch);
+    }
+    let replayed_selection = select_probe_baseline(
+        &replayed_portfolio,
+        candidates,
+        selection.baseline,
+        selection.seed_manifest_sha256.as_deref(),
+        policy.cost_penalty_scale_seconds,
+    )?;
+    if &replayed_selection != selection {
+        return Err(ProbeError::SelectionReplayMismatch);
+    }
+    if selection.selected_candidate_id.as_deref() != Some(candidate.candidate_id.as_str())
+        || !portfolio.assessments.iter().any(|assessment| {
+            assessment.candidate_id == candidate.candidate_id && assessment.eligible
+        })
+        || !candidates.iter().any(|item| {
+            item.candidate_id == candidate.candidate_id
+                && item.candidate_manifest_sha256 == expected_candidate_manifest_sha256
+        })
+    {
+        return Err(ProbeError::CandidateNotEligibleOrSelected);
     }
 
     let canonical_hypotheses = canonical_hypotheses(hypotheses)?;
