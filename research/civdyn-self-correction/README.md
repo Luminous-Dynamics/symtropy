@@ -242,3 +242,40 @@ A second target contains 20% population mass in a modifier stratum absent from t
 - A synthetic known-answer pass validates the code path, not real-world causal transportability.
 
 Run causal-transport-sweep with the locked workspace manifest. CI checks exact source/target effects, positivity bounds, assumption dispositions, provenance and deterministic replay.
+
+
+## Scenario L: Bernoulli outcome-shift sensitivity for causal transport
+
+The sensitivity extension is in src/causal_transport_sensitivity.rs and the causal-transport-sensitivity-sweep binary. It advances [CIVDYN-CAUSAL-TRANSPORT-SENSITIVITY-001 #4499](https://github.com/Luminous-Dynamics/symtropy/issues/4499), building on the standardization and positivity reference in [#4422](https://github.com/Luminous-Dynamics/symtropy/pull/4422).
+
+For a supported measured-modifier stratum and each treatment arm separately, it bounds the target Bernoulli risk q given source risk p under the pointwise likelihood-ratio envelope:
+
+1/Lambda <= q(y) / p(y) <= Lambda for y in {0,1}, with target probabilities normalized.
+
+The exact Bernoulli specialization is:
+
+q_lower = max(p/Lambda, 1 - Lambda*(1-p), 0)
+q_upper = min(Lambda*p, 1 - (1-p)/Lambda, 1)
+
+Treatment-effect lower/upper bounds are formed arm-wise (treatment lower minus control upper; treatment upper minus control lower), then standardized using exact target modifier-population counts. A target-only modifier stratum remains [-1,1] for its risk difference; Lambda does not manufacture source support.
+
+### Known answers
+
+With the existing source fixture and full target modifier support (0.2 low / 0.8 high):
+- Lambda 1: target ATE point = 0.28, exactly the #4422 standardization result.
+- Lambda 2: target ATE bounds = [-0.13, 0.63].
+- Lambda 4: target ATE bounds = [-0.605, 0.82].
+
+The null tipping point is computed by deterministic bisection over the bound function, not a lookup over the Lambda report grid. For this full-support fixture it is sqrt(23/9), approximately 1.5986. The 20% unsupported-mass sweep fixture reaches zero at approximately Lambda 1.04117. A separate 30% unsupported-mass negative-control fixture already contains zero at Lambda 1, so its tipping point is 1.
+
+### Assumptions
+
+The conditional outcome-invariance equality is replaced by the declared likelihood-ratio sensitivity envelope. The envelope itself requires a supported, versioned evidence receipt. Source internal validity, no relevant interference and treatment-version invariance remain required. The selection-exchangeability disposition stays visible but is not treated as a proven equality under this sensitivity lane.
+
+A target-only modifier stratum contributes its full [-1,1] effect range separately from the Lambda-bounded supported strata. If required source/interference/treatment-version assumptions are not supported, the report is NotIdentified and emits no effect bounds.
+
+### Claim ceiling
+
+This is an exact binary-outcome specialization of the CLeaR 2026 bounded outcome likelihood-ratio idea, not the paper's general outcome-density algorithm. It does not estimate Lambda, fit target outcome densities, account for sampling uncertainty, or produce confidence intervals. The Lambda envelope is a sensitivity assumption, not something proved by its evidence digest. No real-world transportability claim follows from synthetic known answers.
+
+The CI sweep tests Lambda = 1, 2 and 4, monotone interval widening, the target-support partial-identification combination, the independently computed null tipping point, source/target provenance and byte-identical replay.
