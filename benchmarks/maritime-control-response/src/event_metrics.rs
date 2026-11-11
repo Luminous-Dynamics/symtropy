@@ -347,6 +347,15 @@ pub fn evaluate_event_metrics(
         let mut current: Option<PositiveRun> = None;
         for row in rows {
             if !row.detection {
+                if let Some(completed) = current.take() {
+                    if let Some(alarm) =
+                        completed.to_alarm(config.minimum_positive_samples)
+                    {
+                        all_alarms.push(alarm);
+                    } else {
+                        transient_burst_count += 1;
+                    }
+                }
                 continue;
             }
             let can_merge = current.as_ref().is_some_and(|run| {
@@ -684,6 +693,17 @@ mod tests {
         .unwrap();
         assert_eq!(summary.detected_event_count, 0);
         assert_eq!(summary.late_alarm_count_during_missed_events, 1);
+        assert_eq!(summary.false_alarm_count, 0);
+    }
+
+    #[test]
+    fn explicit_negative_sample_resets_alarm_debounce_even_when_timestamps_are_close() {
+        let observations = stream(&[202, 203, 205], 1);
+        let summary =
+            evaluate_event_metrics(&[window()], &[event()], &observations, &config()).unwrap();
+        assert_eq!(summary.detected_event_count, 0);
+        assert_eq!(summary.missed_event_count, 1);
+        assert_eq!(summary.transient_burst_count, 2);
         assert_eq!(summary.false_alarm_count, 0);
     }
 
