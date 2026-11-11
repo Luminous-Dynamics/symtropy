@@ -865,6 +865,113 @@ mod tests {
         );
     }
 
+    fn scenario(
+        scenario_id: &str,
+        scenario_weight: f64,
+        probability: f64,
+    ) -> ProbeLikelihoodScenario {
+        let other = 1.0 - probability;
+        ProbeLikelihoodScenario {
+            scenario_id: scenario_id.into(),
+            scenario_weight,
+            outcomes: vec![
+                ProbeOutcomeLikelihood {
+                    outcome_id: "bearing_signature".into(),
+                    likelihood_by_hypothesis: vec![probability, other],
+                },
+                ProbeOutcomeLikelihood {
+                    outcome_id: "fuel_signature".into(),
+                    likelihood_by_hypothesis: vec![other, probability],
+                },
+            ],
+        }
+    }
+
+    #[test]
+    fn robust_selector_rejects_optimistic_measurement_with_uninformative_plausible_scenario() {
+        let mut uncertain = candidate(
+            "uncertain_sensor",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        uncertain.outcomes.clear();
+        uncertain.uncertainty_scenarios = vec![
+            scenario("nominal", 0.5, 0.95),
+            scenario("degraded_calibration", 0.5, 0.5),
+        ];
+        uncertain.candidate_manifest_sha256 = candidate_manifest_sha256(&uncertain).unwrap();
+
+        let result = rank_diagnostic_probes(
+            &hypotheses(),
+            &[uncertain],
+            &ProbeSelectionPolicy::conservative_read_only(),
+        )
+        .unwrap();
+        assert!(result.ranked_recommendations.is_empty());
+        let assessment = &result.assessments[0];
+        assert!(assessment.expected_information_gain_nats > 0.0);
+        assert_eq!(assessment.worst_case_information_gain_nats, 0.0);
+        assert_eq!(assessment.scenario_count, 2);
+        assert!(assessment.epistemic_robustness_qualified);
+        assert!(assessment
+            .rejection_reasons
+            .contains(&ProbeRejectionReason::InformationGainBelowMinimum));
+    }
+
+    #[test]
+    fn robust_selector_accepts_only_when_all_calibrated_scenarios_are_informative() {
+        let mut robust = candidate(
+            "stable_pressure_sensor",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        robust.outcomes.clear();
+        robust.uncertainty_scenarios = vec![
+            scenario("nominal", 0.6, 0.95),
+            scenario("high_noise", 0.4, 0.90),
+        ];
+        robust.candidate_manifest_sha256 = candidate_manifest_sha256(&robust).unwrap();
+
+        let result = rank_diagnostic_probes(
+            &hypotheses(),
+            &[robust],
+            &ProbeSelectionPolicy::conservative_read_only(),
+        )
+        .unwrap();
+        assert_eq!(result.ranked_recommendations.len(), 1);
+        let ranked = &result.ranked_recommendations[0];
+        assert!(ranked.worst_case_information_gain_nats > 0.0);
+        assert!(ranked.expected_information_gain_nats >= ranked.worst_case_information_gain_nats);
+        assert_eq!(ranked.scenario_count, 2);
+        assert!(ranked.epistemic_robustness_qualified);
+    }
+
+    #[test]
+    fn likelihood_uncertainty_scenario_weights_must_sum_to_one() {
+        let mut invalid = candidate(
+            "bad_scenario_weights",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        invalid.outcomes.clear();
+        invalid.uncertainty_scenarios = vec![
+            scenario("nominal", 0.4, 0.95),
+            scenario("drift", 0.4, 0.90),
+        ];
+        invalid.candidate_manifest_sha256 = candidate_manifest_sha256(&invalid).unwrap();
+        assert!(matches!(
+            rank_diagnostic_probes(
+                &hypotheses(),
+                &[invalid],
+                &ProbeSelectionPolicy::conservative_read_only()
+            ),
+            Err(ProbeError::InvalidScenarioSet(_))
+        ));
+    }
+
     #[test]
     fn hypothesis_manifest_is_independent_of_input_order() {
         let forward = hypotheses();
