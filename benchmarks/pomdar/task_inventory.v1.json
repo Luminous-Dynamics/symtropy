@@ -126,5 +126,26 @@
       "category": "pure_grasping",
       "source_fragment": "sim/tasks/G6_Cylinder_Large.xml"
     }
-  ]
+  ],
+  "human_reference": {
+    "paper_reported_participants": 6,
+    "paper_reported_handedness": {
+      "right_handed_participants": 5,
+      "participants": 6,
+      "evaluated_hand_side": "right"
+    },
+    "paper_reported_trials_per_task_per_participant": 3,
+    "benchmark_named_task_count": 18,
+    "paper_reported_total_trajectories": 54,
+    "reported_trajectory_unit": "unresolved_in_paper_text",
+    "implied_participant_task_trials_if_all_participants_completed_all_tasks": 324,
+    "denominator_reconciliation_status": "unresolved",
+    "reconciliation_note": "The paper states six participants completed all tasks and each participant completed three trials per task, but reports 54 trajectories. If one trajectory means one participant-task trial across all 18 named tasks, the implied count is 324. The paper text does not specify whether 54 counts a different unit, a subset, or a subset of participants/tasks. Preserve the reported 54 without interpreting it as per-task N or independent observation count until raw task-level records or author clarification resolve the sampling unit.",
+    "usage_constraints": [
+      "Do not silently replace the published reference with the implied 324 count.",
+      "Do not derive per-task sample counts, confidence intervals, independent observations, or population variance from the reported 54 until the unit is reconciled.",
+      "Preserve the published POMDAR baseline values for exact score reproduction; collect any expanded Luminous human reference as a separate versioned dataset."
+    ],
+    "source": "https://doi.org/10.1109/LRA.2026.3735899"
+  }
 }
