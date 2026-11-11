@@ -372,7 +372,7 @@ mod compound_com_tests {
         };
         let expected_local_com = tool_transform.translation.0 / 3.0;
         let old_translation = body.transform.translation.0;
-        let old_rotation = body.transform.rotation;
+        let old_rotation = body.transform.rotation.clone();
 
         body.merge_toolhead(
             tool_transform,
@@ -388,7 +388,6 @@ mod compound_com_tests {
         );
         assert_original_geometry_preserved(&before, &body);
     }
-
 
     #[test]
     fn merge_toolhead_preserves_velocity_at_new_com_reference() {
