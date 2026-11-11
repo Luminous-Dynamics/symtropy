@@ -238,7 +238,14 @@ pub fn validate_challenge_eligibility(
         let same_data = receipt.challenge_data_digest == request.challenge_data_digest;
         let same_manifest =
             receipt.challenge_manifest_digest == request.challenge_manifest_digest;
-        if receipt.result_disclosed_to_developers && (same_data || same_manifest) {
+        let exact_replay = receipt.model_digest == request.candidate_model_digest
+            && same_data
+            && same_manifest
+            && receipt.evaluation_protocol_digest == request.evaluation_protocol_digest;
+        if receipt.result_disclosed_to_developers
+            && (same_data || same_manifest)
+            && !exact_replay
+        {
             return Err(ChallengeCustodyError::DisclosedChallengeRetired);
         }
         if !revisions
@@ -258,10 +265,6 @@ pub fn validate_challenge_eligibility(
         if !evaluation_identities.insert(identity) {
             return Err(ChallengeCustodyError::DuplicateChallengeEvaluationIdentity);
         }
-        let exact_replay = receipt.model_digest == request.candidate_model_digest
-            && same_data
-            && same_manifest
-            && receipt.evaluation_protocol_digest == request.evaluation_protocol_digest;
         if exact_replay {
             exact_replay_receipt_count += 1;
         }
