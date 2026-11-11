@@ -526,6 +526,7 @@ fn validate_comparison_disposition(
                 || target != PropertyValueState::Present
                 || source_hash != target_hash
                 || comparison.canonical_value_sha256.is_some()
+                || comparison.semantic_finding_id.is_some()
                 || comparison.unit_comparison_finding_id.is_some()
                 || reason.is_some()
             {
@@ -550,6 +551,7 @@ fn validate_comparison_disposition(
                 || target != PropertyValueState::Present
                 || source_hash == target_hash
                 || scope.unit_comparison_report_sha256.is_none()
+                || comparison.semantic_finding_id.is_some()
                 || comparison
                     .unit_comparison_finding_id
                     .as_deref()
@@ -812,6 +814,30 @@ mod tests {
         assert_eq!(report.preservation_state, "blocked");
         assert_eq!(report.critical_requirement_gap_count, 1);
         assert_eq!(report.critical_loss_count, 0);
+    }
+
+    #[test]
+    fn preserved_rows_reject_conflicting_semantic_findings() {
+        let mut exact = fixture_value();
+        exact["comparisons"][0]["semantic_finding_id"] =
+            serde_json::json!("DIFF-CONTRADICTS-EXACT");
+        let error = audit_value(&exact).expect_err("exact preservation cannot carry a semantic diff");
+        assert!(error.contains("preserved_exact"));
+
+        let mut normalized = fixture_value();
+        normalized["comparisons"][1]["semantic_finding_id"] =
+            serde_json::json!("DIFF-CONTRADICTS-NORMALIZED");
+        let error = audit_value(&normalized)
+            .expect_err("normalized equivalence cannot carry a semantic difference finding");
+        assert!(error.contains("preserved_normalized"));
+    }
+
+    #[test]
+    fn invalid_upstream_report_digest_is_rejected() {
+        let mut value = fixture_value();
+        value["scope"]["semantic_diff_report_sha256"] = serde_json::json!("not-a-digest");
+        let error = audit_value(&value).expect_err("producer report identity must be digest-shaped");
+        assert!(error.contains("semantic_diff_report_sha256"));
     }
 
     #[test]
