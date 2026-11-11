@@ -1284,6 +1284,39 @@ mod tests {
         assert!(result.stiffness_rate.yz.is_finite());
     }
 
+
+    #[test]
+    fn optimizer_is_equivariant_under_orthogonal_task_coordinate_rotation() {
+        let mut base_request = optimizer_request();
+        base_request.epsilon = 1.0;
+        base_request.epsilon_min = 0.0;
+        let base = optimize_basis_free_compliance_rate(base_request).unwrap();
+
+        let angle: f64 = 0.37;
+        let cosine = angle.cos();
+        let sine = angle.sin();
+        let rotated_error = [cosine, sine, 0.0];
+        let rotated_reference = Symmetric3 {
+            xx: 2.0 * cosine * cosine,
+            yy: 2.0 * sine * sine,
+            zz: 0.0,
+            xy: 2.0 * cosine * sine,
+            xz: 0.0,
+            yz: 0.0,
+        };
+        let mut rotated_request = optimizer_request();
+        rotated_request.task_error = rotated_error;
+        rotated_request.task_error_velocity = rotated_error;
+        rotated_request.stiffness_rate_reference = rotated_reference;
+        let rotated = optimize_basis_free_compliance_rate(rotated_request).unwrap();
+
+        assert!((base.epsilon_rate - rotated.epsilon_rate).abs() < 1.0e-8);
+        assert!((rotated.stiffness_rate.xx - 0.5 * cosine * cosine).abs() < 1.0e-8);
+        assert!((rotated.stiffness_rate.yy - 0.5 * sine * sine).abs() < 1.0e-8);
+        assert!((rotated.stiffness_rate.xy - 0.5 * cosine * sine).abs() < 1.0e-8);
+        assert!(rotated.passivity_residual_w <= rotated_request.passivity_tolerance_w);
+    }
+
     #[test]
     fn optimizer_rejects_nonpositive_objective_weights_and_bad_references() {
         let mut request = optimizer_request();
