@@ -340,9 +340,11 @@ pub fn evaluate_feedback_budget(
         .find(|event| event.event_id == next_request.event_id)
     {
         if existing != next_request {
-            return Err(FeedbackBudgetError::EventAlreadyExistsWithDifferentContents {
-                event_id: next_request.event_id.clone(),
-            });
+            return Err(
+                FeedbackBudgetError::EventAlreadyExistsWithDifferentContents {
+                    event_id: next_request.event_id.clone(),
+                },
+            );
         }
         if historical_tier_violation {
             return Ok(report(
@@ -445,9 +447,7 @@ pub fn evaluate_feedback_budget(
     }
 
     let consumes_release = next_request.disclosure_tier.is_developer_visible();
-    if consumes_release
-        && historical_nonsealed_releases >= policy.maximum_nonsealed_releases
-    {
+    if consumes_release && historical_nonsealed_releases >= policy.maximum_nonsealed_releases {
         return Ok(report(
             policy,
             historical_nonsealed_releases,
@@ -521,11 +521,7 @@ mod tests {
         }
     }
 
-    fn event(
-        id: &str,
-        sequence: u64,
-        tier: FeedbackDisclosureTier,
-    ) -> FeedbackReleaseEvent {
+    fn event(id: &str, sequence: u64, tier: FeedbackDisclosureTier) -> FeedbackReleaseEvent {
         let visible = tier.is_developer_visible();
         FeedbackReleaseEvent {
             event_id: id.to_string(),
@@ -593,7 +589,11 @@ mod tests {
 
     #[test]
     fn multi_metric_profile_exceeds_an_aggregate_only_disclosure_budget() {
-        let history = [event("aggregate-1", 1, FeedbackDisclosureTier::AggregateScore)];
+        let history = [event(
+            "aggregate-1",
+            1,
+            FeedbackDisclosureTier::AggregateScore,
+        )];
         let next = event("profile-2", 2, FeedbackDisclosureTier::MultiMetricProfile);
         let report = evaluate_feedback_budget(&policy(), &history, &next)
             .expect("higher disclosure level is a reportable denial");
@@ -609,8 +609,8 @@ mod tests {
             ("raw", FeedbackDisclosureTier::RawDiagnostics),
         ] {
             let next = event(id, 1, tier);
-            let report = evaluate_feedback_budget(&policy(), &[], &next)
-                .expect("detail tier denial");
+            let report =
+                evaluate_feedback_budget(&policy(), &[], &next).expect("detail tier denial");
             assert_eq!(report.status, FeedbackBudgetStatus::DisclosureTierExceeded);
         }
     }
@@ -670,12 +670,7 @@ mod tests {
         let mut sealed = event("sealed-1", 1, FeedbackDisclosureTier::SealedNoFeedback);
         sealed.release_artifact_digest = Some("sha256-leaked-artifact".to_string());
         assert_eq!(
-            evaluate_feedback_budget(
-                &policy(),
-                &[],
-                &sealed
-            )
-            .unwrap_err(),
+            evaluate_feedback_budget(&policy(), &[], &sealed).unwrap_err(),
             FeedbackBudgetError::SealedEventHasReleaseArtifact
         );
 
@@ -692,26 +687,42 @@ mod tests {
         let first = event("binary-1", 1, FeedbackDisclosureTier::BinaryDecision);
         let mut duplicate = event("binary-1", 2, FeedbackDisclosureTier::BinaryDecision);
         assert!(matches!(
-            evaluate_feedback_budget(&policy(), &[first.clone(), duplicate.clone()], &event("next", 3, FeedbackDisclosureTier::BinaryDecision)),
+            evaluate_feedback_budget(
+                &policy(),
+                &[first.clone(), duplicate.clone()],
+                &event("next", 3, FeedbackDisclosureTier::BinaryDecision)
+            ),
             Err(FeedbackBudgetError::DuplicateEventId { .. })
         ));
         duplicate.event_id = "binary-2".to_string();
         duplicate.sequence = 2;
         duplicate.receipt_id = first.receipt_id.clone();
         assert!(matches!(
-            evaluate_feedback_budget(&policy(), &[first.clone(), duplicate.clone()], &event("next", 3, FeedbackDisclosureTier::BinaryDecision)),
+            evaluate_feedback_budget(
+                &policy(),
+                &[first.clone(), duplicate.clone()],
+                &event("next", 3, FeedbackDisclosureTier::BinaryDecision)
+            ),
             Err(FeedbackBudgetError::DuplicateReceiptId { .. })
         ));
         duplicate.receipt_id = "receipt-binary-2".to_string();
         duplicate.release_artifact_digest = first.release_artifact_digest.clone();
         assert!(matches!(
-            evaluate_feedback_budget(&policy(), &[first.clone(), duplicate.clone()], &event("next", 3, FeedbackDisclosureTier::BinaryDecision)),
+            evaluate_feedback_budget(
+                &policy(),
+                &[first.clone(), duplicate.clone()],
+                &event("next", 3, FeedbackDisclosureTier::BinaryDecision)
+            ),
             Err(FeedbackBudgetError::DuplicateReleaseArtifact { .. })
         ));
         duplicate.release_artifact_digest = Some("sha256-other-release".to_string());
         duplicate.event_digest = first.event_digest.clone();
         assert!(matches!(
-            evaluate_feedback_budget(&policy(), &[first, duplicate], &event("next", 3, FeedbackDisclosureTier::BinaryDecision)),
+            evaluate_feedback_budget(
+                &policy(),
+                &[first, duplicate],
+                &event("next", 3, FeedbackDisclosureTier::BinaryDecision)
+            ),
             Err(FeedbackBudgetError::DuplicateEventDigest { .. })
         ));
     }
@@ -721,7 +732,12 @@ mod tests {
         let first = event("binary-1", 2, FeedbackDisclosureTier::BinaryDecision);
         let out_of_order = event("binary-2", 1, FeedbackDisclosureTier::BinaryDecision);
         assert_eq!(
-            evaluate_feedback_budget(&policy(), &[first.clone(), out_of_order], &event("next", 3, FeedbackDisclosureTier::BinaryDecision)).unwrap_err(),
+            evaluate_feedback_budget(
+                &policy(),
+                &[first.clone(), out_of_order],
+                &event("next", 3, FeedbackDisclosureTier::BinaryDecision)
+            )
+            .unwrap_err(),
             FeedbackBudgetError::EventSequenceNotIncreasing
         );
 
@@ -738,12 +754,19 @@ mod tests {
     fn historical_policy_violations_remain_visible_and_do_not_authorize_more_feedback() {
         let mut restricted = policy();
         restricted.maximum_disclosure_tier = FeedbackDisclosureTier::BinaryDecision;
-        let history = [event("profile-1", 1, FeedbackDisclosureTier::MultiMetricProfile)];
+        let history = [event(
+            "profile-1",
+            1,
+            FeedbackDisclosureTier::MultiMetricProfile,
+        )];
         let next = event("binary-2", 2, FeedbackDisclosureTier::BinaryDecision);
         let report = evaluate_feedback_budget(&restricted, &history, &next)
             .expect("historical release violation is reportable");
         assert_eq!(report.status, FeedbackBudgetStatus::DisclosureTierExceeded);
-        assert_eq!(report.reason, FeedbackBudgetReason::HistoricalDisclosureTierViolation);
+        assert_eq!(
+            report.reason,
+            FeedbackBudgetReason::HistoricalDisclosureTierViolation
+        );
     }
 
     #[test]

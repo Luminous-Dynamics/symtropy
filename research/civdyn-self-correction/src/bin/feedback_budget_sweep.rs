@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::feedback_budget::{
-    evaluate_feedback_budget, FeedbackBudgetPolicy, FeedbackBudgetReport,
-    FeedbackDisclosureTier, FeedbackReleaseEvent,
+    FeedbackBudgetPolicy, FeedbackBudgetReport, FeedbackDisclosureTier, FeedbackReleaseEvent,
+    evaluate_feedback_budget,
 };
 
 const CSV_COLUMNS: usize = 27;
@@ -47,11 +47,7 @@ fn policy() -> FeedbackBudgetPolicy {
     }
 }
 
-fn event(
-    id: &str,
-    sequence: u64,
-    tier: FeedbackDisclosureTier,
-) -> FeedbackReleaseEvent {
+fn event(id: &str, sequence: u64, tier: FeedbackDisclosureTier) -> FeedbackReleaseEvent {
     let visible = tier != FeedbackDisclosureTier::SealedNoFeedback;
     FeedbackReleaseEvent {
         event_id: id.to_string(),
@@ -129,7 +125,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     emit_case(
         "sealed_then_binary",
         &policy,
-        &[event("sealed-1", 1, FeedbackDisclosureTier::SealedNoFeedback)],
+        &[event(
+            "sealed-1",
+            1,
+            FeedbackDisclosureTier::SealedNoFeedback,
+        )],
         &event("binary-2", 2, FeedbackDisclosureTier::BinaryDecision),
     )?;
     emit_case(
@@ -150,14 +150,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     emit_case(
         "multi_metric_tier_exceeded",
         &policy,
-        &[event("aggregate-1", 1, FeedbackDisclosureTier::AggregateScore)],
+        &[event(
+            "aggregate-1",
+            1,
+            FeedbackDisclosureTier::AggregateScore,
+        )],
         &event("profile-2", 2, FeedbackDisclosureTier::MultiMetricProfile),
     )?;
     emit_case(
         "per_statistic_tier_exceeded",
         &policy,
         &[],
-        &event("per-statistic-1", 1, FeedbackDisclosureTier::PerStatisticResults),
+        &event(
+            "per-statistic-1",
+            1,
+            FeedbackDisclosureTier::PerStatisticResults,
+        ),
     )?;
     emit_case(
         "raw_diagnostics_tier_exceeded",
@@ -167,7 +175,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     let first = event("binary-replay-1", 1, FeedbackDisclosureTier::BinaryDecision);
-    let second = event("aggregate-replay-2", 2, FeedbackDisclosureTier::AggregateScore);
+    let second = event(
+        "aggregate-replay-2",
+        2,
+        FeedbackDisclosureTier::AggregateScore,
+    );
     emit_case(
         "exact_idempotent_replay",
         &policy,

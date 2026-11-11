@@ -72,20 +72,41 @@ pub struct ChallengeEligibilityReport {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ChallengeCustodyError {
     EmptyRevisionChain,
-    EmptyIdentity { field: &'static str },
+    EmptyIdentity {
+        field: &'static str,
+    },
     InvalidRootParent,
-    ParentDigestMismatch { revision_id: String },
-    DuplicateRevisionId { revision_id: String },
-    DuplicateModelDigest { model_digest: String },
-    DuplicateUpdateEventDigest { update_event_digest: String },
-    DuplicateConsumedEvidence { revision_id: String, evidence_digest: String },
+    ParentDigestMismatch {
+        revision_id: String,
+    },
+    DuplicateRevisionId {
+        revision_id: String,
+    },
+    DuplicateModelDigest {
+        model_digest: String,
+    },
+    DuplicateUpdateEventDigest {
+        update_event_digest: String,
+    },
+    DuplicateConsumedEvidence {
+        revision_id: String,
+        evidence_digest: String,
+    },
     CandidateNotChainHead,
     ReplayModelNotInRevisionChain,
     DuplicateChallengeEvaluationIdentity,
-    ChallengeDataConsumedByRevision { revision_id: String },
-    ChallengeManifestConsumedByRevision { revision_id: String },
-    ReceiptModelOutsideRevisionChain { model_digest: String },
-    DuplicateReceiptId { receipt_id: String },
+    ChallengeDataConsumedByRevision {
+        revision_id: String,
+    },
+    ChallengeManifestConsumedByRevision {
+        revision_id: String,
+    },
+    ReceiptModelOutsideRevisionChain {
+        model_digest: String,
+    },
+    DuplicateReceiptId {
+        receipt_id: String,
+    },
     DisclosedChallengeRetired,
 }
 
@@ -175,8 +196,14 @@ pub fn validate_challenge_eligibility(
 ) -> Result<ChallengeEligibilityReport, ChallengeCustodyError> {
     nonempty(&request.candidate_model_digest, "candidate_model_digest")?;
     nonempty(&request.challenge_data_digest, "challenge_data_digest")?;
-    nonempty(&request.challenge_manifest_digest, "challenge_manifest_digest")?;
-    nonempty(&request.evaluation_protocol_digest, "evaluation_protocol_digest")?;
+    nonempty(
+        &request.challenge_manifest_digest,
+        "challenge_manifest_digest",
+    )?;
+    nonempty(
+        &request.evaluation_protocol_digest,
+        "evaluation_protocol_digest",
+    )?;
 
     let consumed_evidence_digests = validate_revision_chain(revisions)?;
     let model_is_in_chain = revisions
@@ -189,9 +216,18 @@ pub fn validate_challenge_eligibility(
     for receipt in prior_receipts {
         nonempty(&receipt.receipt_id, "receipt_id")?;
         nonempty(&receipt.model_digest, "receipt_model_digest")?;
-        nonempty(&receipt.challenge_data_digest, "receipt_challenge_data_digest")?;
-        nonempty(&receipt.challenge_manifest_digest, "receipt_challenge_manifest_digest")?;
-        nonempty(&receipt.evaluation_protocol_digest, "receipt_evaluation_protocol_digest")?;
+        nonempty(
+            &receipt.challenge_data_digest,
+            "receipt_challenge_data_digest",
+        )?;
+        nonempty(
+            &receipt.challenge_manifest_digest,
+            "receipt_challenge_manifest_digest",
+        )?;
+        nonempty(
+            &receipt.evaluation_protocol_digest,
+            "receipt_evaluation_protocol_digest",
+        )?;
         nonempty(&receipt.result_digest, "receipt_result_digest")?;
 
         if !receipt_ids.insert(receipt.receipt_id.as_str()) {
@@ -251,7 +287,9 @@ pub fn validate_challenge_eligibility(
         });
     }
 
-    if revisions.last().map(|revision| revision.model_digest.as_str())
+    if revisions
+        .last()
+        .map(|revision| revision.model_digest.as_str())
         != Some(request.candidate_model_digest.as_str())
     {
         return Err(ChallengeCustodyError::CandidateNotChainHead);
@@ -375,7 +413,12 @@ mod tests {
     #[test]
     fn challenge_used_in_ancestor_training_or_repair_is_rejected() {
         let revisions = vec![
-            revision("revision-0", "sha256-model-0", None, &["sha256-challenge-0"]),
+            revision(
+                "revision-0",
+                "sha256-model-0",
+                None,
+                &["sha256-challenge-0"],
+            ),
             revision(
                 "revision-1",
                 "sha256-model-1",
@@ -515,7 +558,10 @@ mod tests {
             ),
         )
         .expect("historical exact replay must remain idempotent");
-        assert_eq!(report.decision, ChallengeEligibilityDecision::ExactIdempotentReplay);
+        assert_eq!(
+            report.decision,
+            ChallengeEligibilityDecision::ExactIdempotentReplay
+        );
         assert_eq!(report.candidate_model_digest, "sha256-model-0");
         assert_eq!(report.revision_count, 2);
     }
@@ -655,12 +701,7 @@ mod tests {
     fn rejects_duplicate_revision_receipt_and_consumed_evidence_identities() {
         let duplicate_revision = vec![
             revision("revision-0", "sha256-model-0", None, &[]),
-            revision(
-                "revision-0",
-                "sha256-model-1",
-                Some("sha256-model-0"),
-                &[],
-            ),
+            revision("revision-0", "sha256-model-1", Some("sha256-model-0"), &[]),
         ];
         assert!(matches!(
             validate_challenge_eligibility(
