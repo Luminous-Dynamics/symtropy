@@ -133,6 +133,39 @@ pub fn actuation_aoi_by_source(
 }
 
 
+
+/// Measurement receipt binding exact source ages to one actuator command.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActuationAoiReceipt {
+    pub actuator_id: u16,
+    pub command_id: u64,
+    pub decision_id: u64,
+    pub application_event_id: u64,
+    pub applied_at: MonotonicNs,
+    pub clock: ClockDomain,
+    pub source_ages: Vec<SourceAge>,
+}
+
+/// Computes and returns a source-age vector bound to its actuator command.
+///
+/// The receipt is measurement evidence only. It does not grant permission
+/// to dispatch or continue the command.
+pub fn actuation_aoi_receipt(
+    application: ActuatorApplication,
+    sources: &[SourceObservation],
+) -> Result<ActuationAoiReceipt, AoiError> {
+    let source_ages = actuation_aoi_by_source(application, sources)?;
+    Ok(ActuationAoiReceipt {
+        actuator_id: application.actuator_id,
+        command_id: application.command_id,
+        decision_id: application.decision_id,
+        application_event_id: application.time.event_id,
+        applied_at: application.time.at,
+        clock: application.time.clock,
+        source_ages,
+    })
+}
+
 /// A bounded timestamp on one declared monotonic clock and boot epoch.
 ///
 /// The interval represents timestamp uncertainty from capture/exposure,
@@ -261,6 +294,47 @@ pub fn actuation_aoi_bounds_by_source(
         bounds.push(source_age_bounds_at_event(source, application)?);
     }
     Ok(bounds)
+}
+
+
+/// Actuator command application identity with bounded event time.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ActuatorApplicationBounds {
+    pub actuator_id: u16,
+    pub command_id: u64,
+    pub decision_id: u64,
+    pub application_event_id: u64,
+    pub applied: MonotonicTimeInterval,
+}
+
+/// Measurement receipt binding bounded source ages to the actuator command.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActuationAoiBoundsReceipt {
+    pub actuator_id: u16,
+    pub command_id: u64,
+    pub decision_id: u64,
+    pub application_event_id: u64,
+    pub applied: MonotonicTimeInterval,
+    pub source_age_bounds: Vec<SourceAgeBounds>,
+}
+
+/// Computes bounded source ages and binds them to an actuator application event.
+///
+/// This is a lineage/measurement receipt only. Local projection, certificate
+/// validity, controller dispatch and actuation authority remain independent.
+pub fn actuation_aoi_bounds_receipt(
+    application: ActuatorApplicationBounds,
+    sources: &[SourceObservationInterval],
+) -> Result<ActuationAoiBoundsReceipt, AoiError> {
+    let source_age_bounds = actuation_aoi_bounds_by_source(application.applied, sources)?;
+    Ok(ActuationAoiBoundsReceipt {
+        actuator_id: application.actuator_id,
+        command_id: application.command_id,
+        decision_id: application.decision_id,
+        application_event_id: application.application_event_id,
+        applied: application.applied,
+        source_age_bounds,
+    })
 }
 
 /// One interval during which a command remains applied and AoI grows at 1 ns/ns.
@@ -812,6 +886,30 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn exact_receipt_binds_ages_to_the_actuator_command_identity() {
+        let application = ActuatorApplication {
+            actuator_id: 9,
+            command_id: 101,
+            decision_id: 202,
+            time: RobotEventTime {
+                event_id: 303,
+                at: MonotonicNs(1_050),
+                clock: clock(),
+            },
+        };
+        let sources = [source(1, 44, 1_000)];
+
+        let receipt = actuation_aoi_receipt(application, &sources).unwrap();
+
+        assert_eq!(receipt.actuator_id, 9);
+        assert_eq!(receipt.command_id, 101);
+        assert_eq!(receipt.decision_id, 202);
+        assert_eq!(receipt.application_event_id, 303);
+        assert_eq!(receipt.source_ages[0].age_ns, 50);
+    }
+
     #[test]
     fn time_weighted_summary_preserves_age_uncertainty_bounds() {
         let segment = AoiHoldSegmentBounds::new(
@@ -829,6 +927,43 @@ mod tests {
         assert_eq!(summary.upper_bound.p95_ns, 74_000_000);
         assert_eq!(summary.upper_bound.p99_ns, 74_800_000);
         assert!((summary.upper_bound.mean_aoi_ns() - 65_000_000.0).abs() < 0.5);
+    }
+
+
+    #[test]
+    fn bounded_receipt_binds_age_intervals_to_the_actuator_command() {
+        let application = ActuatorApplicationBounds {
+            actuator_id: 10,
+            command_id: 401,
+            decision_id: 402,
+            application_event_id: 403,
+            applied: MonotonicTimeInterval::new(
+                MonotonicNs(1_050),
+                MonotonicNs(1_060),
+                clock(),
+            )
+            .unwrap(),
+        };
+        let sources = [SourceObservationInterval {
+            modality_id: 2,
+            observation_id: 404,
+            sequence: 404,
+            generated: MonotonicTimeInterval::new(
+                MonotonicNs(1_000),
+                MonotonicNs(1_010),
+                clock(),
+            )
+            .unwrap(),
+        }];
+
+        let receipt = actuation_aoi_bounds_receipt(application, &sources).unwrap();
+
+        assert_eq!(receipt.actuator_id, 10);
+        assert_eq!(receipt.command_id, 401);
+        assert_eq!(receipt.decision_id, 402);
+        assert_eq!(receipt.application_event_id, 403);
+        assert_eq!(receipt.source_age_bounds[0].minimum_age_ns, 40);
+        assert_eq!(receipt.source_age_bounds[0].maximum_age_ns, 60);
     }
 
     #[test]
