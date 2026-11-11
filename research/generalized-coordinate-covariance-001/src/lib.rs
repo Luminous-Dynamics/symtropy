@@ -500,6 +500,12 @@ pub fn common_acceleration_force(masses: DumbbellMassesV1) -> Vector6 {
     ]
 }
 
+/// A force applied only to the first mass. Unlike a common acceleration,
+/// this excites the constraint multiplier and checks the coupled solve.
+pub fn asymmetric_force() -> Vector6 {
+    [0.18, -0.07, 0.11, 0.0, 0.0, 0.0]
+}
+
 fn multiply3_vector(matrix: &Matrix3, vector: &Vector3) -> Vector3 {
     let mut result = [0.0; 3];
     for row in 0..3 {
@@ -1111,10 +1117,7 @@ mod tests {
     #[test]
     fn dense_unimodular_step_is_representation_covariant() {
         let state = canonical_state();
-        let force = common_acceleration_force(DumbbellMassesV1 {
-            first: 1.3,
-            second: 2.1,
-        });
+        let force = asymmetric_force();
         let canonical = run_canonical(state, force, 0.02);
 
         for family in [0, 2] {
@@ -1129,6 +1132,10 @@ mod tests {
             );
             close6(&lifted.position, &canonical.position_next, 5.0e-11);
             close6(&lifted.velocity, &canonical.velocity_next, 5.0e-11);
+            assert!(
+                canonical.diagnostics.multiplier.abs() > 1.0e-2,
+                "the fixture must exercise a nonzero constraint multiplier"
+            );
             assert!(
                 (transformed.diagnostics.multiplier
                     - canonical.diagnostics.multiplier)
@@ -1168,7 +1175,114 @@ mod tests {
                 lifted_momentum[1] - canonical_momentum[1],
                 lifted_momentum[2] - canonical_momentum[2],
             ]) < 5.0e-11);
+
+            let lifted_angular = angular_momentum(
+                &lifted.position,
+                &lifted.velocity,
+                DumbbellMassesV1 {
+                    first: 1.3,
+                    second: 2.1,
+                },
+            );
+            let canonical_angular = angular_momentum(
+                &canonical.position_next,
+                &canonical.velocity_next,
+                DumbbellMassesV1 {
+                    first: 1.3,
+                    second: 2.1,
+                },
+            );
+            assert!(norm3(&[
+                lifted_angular[0] - canonical_angular[0],
+                lifted_angular[1] - canonical_angular[1],
+                lifted_angular[2] - canonical_angular[2],
+            ]) < 5.0e-11);
         }
+    }
+
+    #[test]
+    fn tolerated_metric_noise_is_canonicalized_before_solve_and_energy() {
+        let state = canonical_state();
+        let masses = DumbbellMassesV1 {
+            first: 1.3,
+            second: 2.1,
+        };
+        let mut noisy_metric = mass_metric(masses);
+        noisy_metric[0][1] = 2.0e-13;
+        let result = constrained_dumbbell_step(
+            &state.position,
+            &state.velocity,
+            &noisy_metric,
+            &relative_position_map(),
+            &asymmetric_force(),
+            0.02,
+            StepProfileV1::default(),
+        )
+        .unwrap();
+        assert!(result.diagnostics.mass_metric_symmetry_defect > 0.0);
+        assert!(result.diagnostics.mass_metric_symmetry_defect < 1.0e-12);
+        assert!(result.diagnostics.energy_work_defect.abs() < 1.0e-10);
+
+        noisy_metric[0][1] = 2.0e-5;
+        assert!(matches!(
+            constrained_dumbbell_step(
+                &state.position,
+                &state.velocity,
+                &noisy_metric,
+                &relative_position_map(),
+                &asymmetric_force(),
+                0.02,
+                StepProfileV1::default(),
+            ),
+            Err(CovarianceError::MassMetricNotSymmetric)
+        ));
+    }
+
+    #[test]
+    fn wrong_metric_congruence_is_detected_by_independent_step_oracle() {
+        let state = canonical_state();
+        let masses = DumbbellMassesV1 {
+            first: 1.3,
+            second: 2.1,
+        };
+        let force = asymmetric_force();
+        let canonical = run_canonical(state, force, 0.02);
+        let basis = frozen_dense_basis(2);
+        let basis_inverse = inverse6(
+            &basis,
+            StepProfileV1::default().relative_pivot_tolerance,
+        )
+        .unwrap();
+        let transformed_state = transform_state_to_basis(state, &basis_inverse);
+        let wrong_metric = multiply6(
+            &basis_inverse,
+            &multiply6(&mass_metric(masses), &transpose6(&basis_inverse)),
+        );
+        let transformed_map = multiply_constraint_by_basis(
+            &relative_position_map(),
+            &basis,
+        );
+        let transformed_force = transform_force_covector(&basis, &force);
+        let wrong = constrained_dumbbell_step(
+            &transformed_state.position,
+            &transformed_state.velocity,
+            &wrong_metric,
+            &transformed_map,
+            &transformed_force,
+            0.02,
+            StepProfileV1::default(),
+        )
+        .expect("wrong congruence control remains a finite SPD solve");
+        let lifted = lift_state_from_basis(
+            PhysicalStateV1 {
+                position: wrong.position_next,
+                velocity: wrong.velocity_next,
+            },
+            &basis,
+        );
+        assert!(
+            norm6(&subtract6(&lifted.position, &canonical.position_next)) > 1.0e-4
+        );
     }
 
     #[test]
@@ -1178,7 +1292,7 @@ mod tests {
             first: 1.3,
             second: 2.1,
         };
-        let force = common_acceleration_force(masses);
+        let force = asymmetric_force();
         let canonical = run_canonical(state, force, 0.02);
         let (transformed, basis, _) =
             run_in_dense_basis(state, force, 2, 0.02);
