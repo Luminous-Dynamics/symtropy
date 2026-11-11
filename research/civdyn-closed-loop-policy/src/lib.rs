@@ -243,21 +243,27 @@ pub fn advance(
             );
             next.energy_maintenance_debt = (next.energy_maintenance_debt - 3).max(0);
             next.maintenance_credits -= 1;
-            next.energy_reserve -= 2;
+            next.energy_reserve = next.energy_reserve.checked_sub(2).ok_or(BenchmarkError::ArithmeticOverflow)?;
         }
     }
 
-    let water_debt_decay = next.water_maintenance_debt / 4;
-    let energy_debt_decay = next.energy_maintenance_debt / 4;
+    let water_loss = params
+        .water_decay
+        .checked_add(next.water_maintenance_debt / 4)
+        .ok_or(BenchmarkError::ArithmeticOverflow)?;
+    let energy_loss = params
+        .energy_decay
+        .checked_add(next.energy_maintenance_debt / 4)
+        .ok_or(BenchmarkError::ArithmeticOverflow)?;
     next.water_service = clamp_service(
         next.water_service
-            - params.water_decay
-            - water_debt_decay,
+            .checked_sub(water_loss)
+            .ok_or(BenchmarkError::ArithmeticOverflow)?,
     );
     next.energy_service = clamp_service(
         next.energy_service
-            - params.energy_decay
-            - energy_debt_decay,
+            .checked_sub(energy_loss)
+            .ok_or(BenchmarkError::ArithmeticOverflow)?,
     );
 
     next.water_maintenance_debt = next
@@ -768,6 +774,28 @@ mod tests {
         )
         .unwrap();
         assert_eq!(selected, Action::NoOp);
+    }
+
+    #[test]
+    fn model_without_a_feasible_plan_abstains_explicitly() {
+        let impossible_model = CandidateModel {
+            id: "overly_degrading_model",
+            digest: "sha256-civdyn-model-no-feasible-plan",
+            params: TransitionParams {
+                water_decay: 10,
+                energy_decay: 10,
+                water_repair: 1,
+                energy_repair: 1,
+            },
+        };
+        let outcome = run_policy(
+            WATER_DEGRADATION_WORLD,
+            PolicyKind::ActionConditionedModel,
+            Some(impossible_model),
+        )
+        .unwrap();
+        assert_eq!(outcome.abstention_ticks, HORIZON);
+        assert_eq!(outcome.replan_count, HORIZON);
     }
 
     #[test]
