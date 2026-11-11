@@ -452,7 +452,7 @@ jobs:
           for delta in (0.3, 0.5):
               row = by_key[(delta, 1.0)]
               assert row["frontier_status"] == "not_robust_at_baseline"
-              assert row["frontier_baseline_decision"] == "recommend_against_treatment"
+              assert row["baseline_decision"] == "recommend_against_treatment"
               assert row["frontier_tipping_lambda"] == ""
 
           radii = [float(by_key[(delta, 1.0)]["frontier_tipping_lambda"]) for delta in (0.0, 0.1, 0.2)]
@@ -462,7 +462,7 @@ jobs:
               assert row["effect_unit"] == "risk_difference"
               assert row["threshold_rationale"]
               assert row["threshold_source_digest"] == f"sha256-minimum-benefit-threshold-{float(row['threshold']):.2f}"
-              assert row["sensitivity_scenario_digest"] == "sha256-sensitivity-envelope"
+              assert row["sensitivity_scenario_digest"] == "sha256-predeclared-bernoulli-lambda-scenario"
               assert row["source_data_digest"] == "sha256-causal-transport-source-rct"
               assert row["target_population_digest"] == "sha256-causal-transport-target-population"
               assert row["protocol_digest"] == "sha256-causal-transport-protocol-v0.1"
