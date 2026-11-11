@@ -8,6 +8,9 @@
 //!
 //! This is a reference-quality campaign, not a production PhysicsWorld benchmark.
 //! Its CSV output is intended to seed independent MuJoCo/Chrono differential runs.
+//! The `symmetric_relative_error` column divides by max(|observed|, |reference|),
+//! making it invariant under uniform unit scaling and defined as zero when both
+//! compared values are zero. Absolute error remains alongside it.
 //! Cross-engine comparison still requires a semantic-equivalence manifest for
 //! frames, inertia reference points, timestep, integrator and contact law.
 
@@ -21,7 +24,7 @@ use symtropy_physics::{
 
 fn main() {
     println!(
-        "case,parameter,observed,reference,absolute_error,relative_error,pass"
+        "case,parameter,observed,reference,absolute_error,symmetric_relative_error,pass"
     );
     let mut failures = 0usize;
 
@@ -47,10 +50,25 @@ fn main() {
     }
 }
 
+/// Symmetric, dimensionless comparison error. Unlike a unit floor, this
+/// remains invariant when both operands are expressed in uniformly rescaled
+/// units. Two exact zeros produce zero; non-finite values fail closed.
+fn symmetric_relative_error(observed: f64, reference: f64) -> f64 {
+    if !observed.is_finite() || !reference.is_finite() {
+        return f64::INFINITY;
+    }
+    let scale = observed.abs().max(reference.abs());
+    if scale == 0.0 {
+        0.0
+    } else {
+        (observed - reference).abs() / scale
+    }
+}
+
 fn report(case: &str, parameter: &str, observed: f64, reference: f64, tolerance: f64) -> usize {
     let error = (observed - reference).abs();
-    let relative = error / reference.abs().max(1.0);
-    let pass = error <= tolerance;
+    let relative = symmetric_relative_error(observed, reference);
+    let pass = error <= tolerance && observed.is_finite() && reference.is_finite();
     println!(
         "{case},{parameter},{observed:.17},{reference:.17},{error:.17},{relative:.17},{pass}"
     );
@@ -59,11 +77,11 @@ fn report(case: &str, parameter: &str, observed: f64, reference: f64, tolerance:
 
 fn report_minimum(case: &str, parameter: &str, observed: f64, minimum: f64) -> usize {
     let margin = observed - minimum;
-    let pass = observed >= minimum;
+    let pass = observed.is_finite() && minimum.is_finite() && observed >= minimum;
+    let relative = symmetric_relative_error(observed, minimum);
     println!(
-        "{case},{parameter},{observed:.17},{minimum:.17},{:.17},{:.17},{pass}",
+        "{case},{parameter},{observed:.17},{minimum:.17},{:.17},{relative:.17},{pass}",
         margin.abs(),
-        margin.abs() / minimum.abs().max(1.0)
     );
     usize::from(!pass)
 }
@@ -629,4 +647,30 @@ fn mass_scaling_campaign() -> usize {
         );
     }
     failures
+}
+
+#[cfg(test)]
+mod tests {
+    use super::symmetric_relative_error;
+
+    #[test]
+    fn symmetric_relative_error_is_unit_scale_invariant() {
+        let reference = symmetric_relative_error(0.75, 1.0);
+        for scale in [1.0e-12, 1.0, 1.0e12] {
+            let observed = symmetric_relative_error(0.75 * scale, 1.0 * scale);
+            assert!(
+                (observed - reference).abs() < 1.0e-15,
+                "relative error changed at uniform scale {scale:e}: {observed:e}"
+            );
+        }
+        assert!((reference - 0.25).abs() < 1.0e-15);
+    }
+
+    #[test]
+    fn symmetric_relative_error_handles_zero_and_non_finite_inputs() {
+        assert_eq!(symmetric_relative_error(0.0, 0.0), 0.0);
+        assert_eq!(symmetric_relative_error(1.0e-12, 0.0), 1.0);
+        assert_eq!(symmetric_relative_error(f64::NAN, 0.0), f64::INFINITY);
+        assert_eq!(symmetric_relative_error(0.0, f64::INFINITY), f64::INFINITY);
+    }
 }
