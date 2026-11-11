@@ -81,7 +81,7 @@ impl RepairQualificationStatus {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct RepairStatisticTransition {
     pub statistic_id: String,
     pub independent_unit_id: String,
