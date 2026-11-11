@@ -204,7 +204,8 @@
         "layout_profile_ref",
         "state_taxonomy_ref",
         "required_pair_set_ref",
-        "minimum_independent_principles_for_critical_pairs"
+        "minimum_independent_principles_for_critical_pairs",
+        "reference_state_id"
       ],
       "properties": {
         "layout_profile_ref": {
@@ -219,6 +220,9 @@
         "minimum_independent_principles_for_critical_pairs": {
           "type": "integer",
           "minimum": 1
+        },
+        "reference_state_id": {
+          "$ref": "#/$defs/ref"
         }
       }
     },

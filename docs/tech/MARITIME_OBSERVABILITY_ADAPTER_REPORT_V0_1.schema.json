@@ -238,7 +238,95 @@
     },
     "fault_assessments": {
       "type": "array",
-      "maxItems": 0
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fault_id",
+          "state",
+          "ambiguity_class_id",
+          "candidate_fault_ids",
+          "signature_evidence",
+          "review_state"
+        ],
+        "properties": {
+          "fault_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "state": {
+            "enum": [
+              "observable_and_isolable",
+              "detectable_not_isolable",
+              "ambiguity_class",
+              "unobservable",
+              "unsupported_regime",
+              "evidence_conflict",
+              "not_evaluated"
+            ]
+          },
+          "ambiguity_class_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "candidate_fault_ids": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "signature_evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "artifact_id",
+                "sha256",
+                "evidence_role",
+                "channel_ids"
+              ],
+              "properties": {
+                "artifact_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                "evidence_role": {
+                  "enum": [
+                    "measured",
+                    "synthetic",
+                    "derived",
+                    "reconstructed",
+                    "simulated",
+                    "expert_authored",
+                    "operator_reported"
+                  ]
+                },
+                "channel_ids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "$ref": "#/$defs/ref"
+                  }
+                }
+              }
+            }
+          },
+          "review_state": {
+            "enum": [
+              "not_reviewed",
+              "human_review_required",
+              "independently_reviewed"
+            ]
+          }
+        }
+      }
     },
     "pair_assessments": {
       "type": "array",
@@ -293,8 +381,10 @@
                     "measured",
                     "synthetic",
                     "derived",
+                    "reconstructed",
                     "simulated",
-                    "expert_authored"
+                    "expert_authored",
+                    "operator_reported"
                   ]
                 },
                 "channel_ids": {

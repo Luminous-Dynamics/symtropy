@@ -32,7 +32,8 @@
     "layout_profile_ref": "layout:marine-engine-a-r1",
     "state_taxonomy_ref": "taxonomy:marine-diesel-faults-v0.1",
     "required_pair_set_ref": "pairs:marine-engine-core-v0.1",
-    "minimum_independent_principles_for_critical_pairs": 2
+    "minimum_independent_principles_for_critical_pairs": 2,
+    "reference_state_id": "ENGINE_NORMAL_STEADY"
   },
   "sensors": [
     {
@@ -208,6 +209,48 @@
       "pair_id": "normal-vs-ood",
       "fault_a": "ENGINE_NORMAL_STEADY",
       "fault_b": "ENGINE_UNKNOWN_OUT_OF_DOMAIN",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_fuel_injection_fault-vs-engine_turbocharger_degradation",
+      "fault_a": "ENGINE_FUEL_INJECTION_FAULT",
+      "fault_b": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_fuel_injection_fault-vs-engine_cooling_restriction",
+      "fault_a": "ENGINE_FUEL_INJECTION_FAULT",
+      "fault_b": "ENGINE_COOLING_RESTRICTION",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_fuel_injection_fault-vs-fuel_pressure_sensor_fault",
+      "fault_a": "ENGINE_FUEL_INJECTION_FAULT",
+      "fault_b": "FUEL_PRESSURE_SENSOR_FAULT",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_turbocharger_degradation-vs-engine_cooling_restriction",
+      "fault_a": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "fault_b": "ENGINE_COOLING_RESTRICTION",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_turbocharger_degradation-vs-fuel_pressure_sensor_fault",
+      "fault_a": "ENGINE_TURBOCHARGER_DEGRADATION",
+      "fault_b": "FUEL_PRESSURE_SENSOR_FAULT",
+      "critical": false,
+      "minimum_independent_principles": 1
+    },
+    {
+      "pair_id": "engine_cooling_restriction-vs-fuel_pressure_sensor_fault",
+      "fault_a": "ENGINE_COOLING_RESTRICTION",
+      "fault_b": "FUEL_PRESSURE_SENSOR_FAULT",
       "critical": false,
       "minimum_independent_principles": 1
     }
@@ -442,8 +485,8 @@
       "state_id": "ENGINE_COOLING_RESTRICTION",
       "channel_id": "shaft-speed",
       "availability": "VALID",
-      "value_lower": 750,
-      "value_upper": 760,
+      "value_lower": 700,
+      "value_upper": 710,
       "unit": "rpm",
       "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
       "measurement_window_ref": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
@@ -456,8 +499,8 @@
       "state_id": "ENGINE_COOLING_RESTRICTION",
       "channel_id": "exhaust-temperature",
       "availability": "VALID",
-      "value_lower": 420,
-      "value_upper": 430,
+      "value_lower": 380,
+      "value_upper": 390,
       "unit": "degC",
       "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
       "measurement_window_ref": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
@@ -470,8 +513,8 @@
       "state_id": "ENGINE_COOLING_RESTRICTION",
       "channel_id": "rack-position",
       "availability": "VALID",
-      "value_lower": 45,
-      "value_upper": 46,
+      "value_lower": 50,
+      "value_upper": 51,
       "unit": "percent",
       "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
       "measurement_window_ref": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
@@ -484,8 +527,8 @@
       "state_id": "ENGINE_COOLING_RESTRICTION",
       "channel_id": "vibration-rms",
       "availability": "VALID",
-      "value_lower": 2,
-      "value_upper": 2.2,
+      "value_lower": 3,
+      "value_upper": 3.2,
       "unit": "mm/s",
       "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
       "measurement_window_ref": "window:ENGINE_COOLING_RESTRICTION:synthetic-01",
