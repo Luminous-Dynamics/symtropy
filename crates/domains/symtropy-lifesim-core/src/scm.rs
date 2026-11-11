@@ -194,7 +194,7 @@ pub struct ScmStepReport {
     pub centroid: Vec<f64>,
     pub mean_agent_distance: f64,
     pub maximum_pairwise_distance: f64,
-    pub mean_gradient_norm: f64,
+    pub mean_gradient_norm_before_update: f64,
     pub gradient_degenerate: bool,
     pub swarm_spread_degenerate: bool,
     pub outside_domain_agents: usize,
@@ -286,28 +286,25 @@ impl ScmModel {
     /// the previous observation and evaluate only the newly advanced agent positions.
     pub fn step<L: ScmLandscape>(&mut self, landscape: &L) -> Result<ScmStepReport, ScmError> {
         let next_tick = self.tick.checked_add(1).ok_or(ScmError::TickOverflow)?;
-        let mut evaluations_this_step = 0usize;
-
-        if self.observations.is_none() {
-            let initial = self.observe_all(landscape)?;
-            self.total_function_evaluations = self
-                .total_function_evaluations
-                .checked_add(initial.len() as u64)
-                .ok_or(ScmError::EvaluationCounterOverflow)?;
-            evaluations_this_step += initial.len();
-            self.observations = Some(initial);
-        }
+        let mut initial_evaluations = 0usize;
+        let current_observations = match &self.observations {
+            Some(observations) => observations.clone(),
+            None => {
+                let observations = self.observe_agents(&self.agents, landscape)?;
+                initial_evaluations = observations.len();
+                observations
+            }
+        };
 
         let previous_positions: Vec<Vec<f64>> = self
             .agents
             .iter()
             .map(|agent| agent.position.clone())
             .collect();
-        let observations = self.observations.as_ref().expect("observations initialized");
-        let (centroid, distances, max_distance, consensus, lambdas, spread_degenerate) =
-            consensus_state(&previous_positions, observations, self.config.numerical_epsilon);
+        let (_, _, _, _, lambdas, spread_degenerate) =
+            consensus_state(&previous_positions, &current_observations, self.config.numerical_epsilon);
 
-        let gradient_norms: Vec<f64> = observations
+        let gradient_norms: Vec<f64> = current_observations
             .iter()
             .map(|observation| l2_norm(&observation.gradient))
             .collect();
@@ -325,13 +322,16 @@ impl ScmModel {
             1.0 / mean_gradient_norm
         };
 
+        // Work against cloned random state and candidate positions. If the next landscape
+        // observation fails, no agent/RNG/tick/cost state is committed by this update.
+        let mut next_rng = self.rng;
         let dimension = previous_positions[0].len();
         let kernel_scale = self.config.kernel.argument_scale();
         let noise_scale = (2.0 / PI) * self.sigma;
         let social_scale = 2.0 / PI;
         let fitness_scale = fitness_gradient_gain * 4.0 / (PI * PI);
         let sqrt_dt = self.config.dt.sqrt();
-        let mut next_positions = Vec::with_capacity(self.agents.len());
+        let mut next_agents = Vec::with_capacity(self.agents.len());
 
         for agent_index in 0..previous_positions.len() {
             let mut next = vec![0.0; dimension];
@@ -347,11 +347,11 @@ impl ScmModel {
                 }
                 let social_gradient =
                     -social_sum / (previous_positions.len().saturating_sub(1) as f64);
-                let fitness_gradient = observations[agent_index].gradient[coordinate];
+                let fitness_gradient = current_observations[agent_index].gradient[coordinate];
                 let noise = noise_scale
                     * lambdas[agent_index]
                     * sqrt_dt
-                    * self.rng.next_normal();
+                    * next_rng.next_normal();
                 next[coordinate] = previous_positions[agent_index][coordinate]
                     + self.config.dt
                         * (social_scale * social_gradient + fitness_scale * fitness_gradient)
@@ -363,70 +363,64 @@ impl ScmModel {
                     });
                 }
             }
-            next_positions.push(next);
+            next_agents.push(ScmAgent { position: next });
         }
 
-        for (agent, position) in self.agents.iter_mut().zip(next_positions) {
-            agent.position = position;
-        }
-
-        let updated_observations = self.observe_all(landscape)?;
-        evaluations_this_step += updated_observations.len();
-        self.total_function_evaluations = self
+        let updated_observations = self.observe_agents(&next_agents, landscape)?;
+        let evaluations_this_step = initial_evaluations + updated_observations.len();
+        let new_total_function_evaluations = self
             .total_function_evaluations
-            .checked_add(updated_observations.len() as u64)
+            .checked_add(
+                u64::try_from(evaluations_this_step)
+                    .map_err(|_| ScmError::EvaluationCounterOverflow)?,
+            )
             .ok_or(ScmError::EvaluationCounterOverflow)?;
-        self.observations = Some(updated_observations.clone());
 
-        let updated_positions: Vec<Vec<f64>> = self
-            .agents
+        let updated_positions: Vec<Vec<f64>> = next_agents
             .iter()
             .map(|agent| agent.position.clone())
             .collect();
-        let (updated_centroid, updated_distances, updated_max_distance, updated_consensus, _, updated_spread_degenerate) =
-            consensus_state(
-                &updated_positions,
-                &updated_observations,
-                self.config.numerical_epsilon,
-            );
+        let (
+            updated_centroid,
+            updated_distances,
+            updated_max_distance,
+            updated_consensus,
+            _,
+            updated_spread_degenerate,
+        ) = consensus_state(
+            &updated_positions,
+            &updated_observations,
+            self.config.numerical_epsilon,
+        );
 
-        self.tick = next_tick;
-        self.consensus_history.push_back(updated_consensus);
-        while self.consensus_history.len() > self.config.tau_steps {
-            self.consensus_history.pop_front();
+        let mut next_history = self.consensus_history.clone();
+        next_history.push_back(updated_consensus);
+        while next_history.len() > self.config.tau_steps {
+            next_history.pop_front();
         }
 
         let sigma_before_update = self.sigma;
+        let mut next_sigma = self.sigma;
         let mut consensus_window_delta = None;
         let mut convergence_window_satisfied = false;
         let tau_steps = self.config.tau_steps as u64;
 
-        if self.tick % tau_steps == 0 && self.consensus_history.len() == self.config.tau_steps {
+        if next_tick % tau_steps == 0 && next_history.len() == self.config.tau_steps {
             let half = self.config.tau_steps / 2;
-            let early = self
-                .consensus_history
-                .iter()
-                .take(half)
-                .sum::<f64>()
-                * self.config.dt;
-            let late = self
-                .consensus_history
-                .iter()
-                .skip(half)
-                .sum::<f64>()
-                * self.config.dt;
+            let early = next_history.iter().take(half).sum::<f64>() * self.config.dt;
+            let late = next_history.iter().skip(half).sum::<f64>() * self.config.dt;
             let delta = late - early;
             consensus_window_delta = Some(delta);
 
             // Source rule: increase sigma by omega*dt only when consensus flattens/declines.
             // A zero delta is handled explicitly rather than evaluating 0/0.
             if delta < 0.0 {
-                self.sigma += self.config.dt * self.config.omega;
-                if self.sigma >= self.config.sigma_limit {
-                    self.sigma = self.config.sigma_initial;
+                next_sigma += self.config.dt * self.config.omega;
+                if next_sigma >= self.config.sigma_limit {
+                    next_sigma = self.config.sigma_initial;
                 }
             }
-            let gamma = (1.0 - (self.agents.len() as f64 / 100.0).tanh()) / 20.0 + 0.9;
+            let gamma = (1.0 - (next_agents.len() as f64 / 100.0).tanh()) / 20.0 + 0.9;
             convergence_window_satisfied = late + early > gamma * self.config.tau();
         }
 
@@ -434,26 +428,36 @@ impl ScmModel {
             .iter()
             .filter(|observation| observation.outside_domain)
             .count();
-
-        Ok(ScmStepReport {
-            tick: self.tick,
+        let report = ScmStepReport {
+            tick: next_tick,
             interaction_kernel: self.config.kernel,
             consensus: updated_consensus,
             sigma_before_update,
-            sigma_after_update: self.sigma,
+            sigma_after_update: next_sigma,
             centroid: updated_centroid,
             mean_agent_distance: updated_distances.iter().sum::<f64>()
                 / updated_distances.len() as f64,
             maximum_pairwise_distance: updated_max_distance,
-            mean_gradient_norm,
+            mean_gradient_norm_before_update: mean_gradient_norm,
             gradient_degenerate,
             swarm_spread_degenerate: spread_degenerate || updated_spread_degenerate,
             outside_domain_agents,
             consensus_window_delta,
             convergence_window_satisfied,
             function_evaluations_this_step: evaluations_this_step,
-            total_function_evaluations: self.total_function_evaluations,
-        })
+            total_function_evaluations: new_total_function_evaluations,
+        };
+
+        // Commit the complete state transition only after the successor observation succeeds.
+        self.agents = next_agents;
+        self.rng = next_rng;
+        self.observations = Some(updated_observations);
+        self.total_function_evaluations = new_total_function_evaluations;
+        self.consensus_history = next_history;
+        self.sigma = next_sigma;
+        self.tick = next_tick;
+
+        Ok(report)
     }
 
     pub fn run_steps<L: ScmLandscape>(
@@ -468,9 +472,13 @@ impl ScmModel {
         Ok(reports)
     }
 
-    fn observe_all<L: ScmLandscape>(&self, landscape: &L) -> Result<Vec<ScmObservation>, ScmError> {
-        let mut observations = Vec::with_capacity(self.agents.len());
-        for (agent_index, agent) in self.agents.iter().enumerate() {
+    fn observe_agents<L: ScmLandscape>(
+        &self,
+        agents: &[ScmAgent],
+        landscape: &L,
+    ) -> Result<Vec<ScmObservation>, ScmError> {
+        let mut observations = Vec::with_capacity(agents.len());
+        for (agent_index, agent) in agents.iter().enumerate() {
             if agent.position.iter().any(|value| !(0.0..=1.0).contains(value)) {
                 observations.push(ScmObservation {
                     fitness: 0.0,
@@ -644,7 +652,7 @@ mod tests {
     impl ScmLandscape for Quadratic {
         fn fitness_and_gradient(&self, position: &[f64]) -> Result<(f64, Vec<f64>), String> {
             let delta: Vec<f64> = position.iter().map(|value| value - 0.6).collect();
-            let fitness = -delta.iter().map(|value| value * value).sum::<f64>();
+            let fitness = 1.0 - delta.iter().map(|value| value * value).sum::<f64>();
             let gradient = delta.iter().map(|value| -2.0 * value).collect();
             Ok((fitness, gradient))
         }
@@ -705,7 +713,7 @@ mod tests {
         let mut model = ScmModel::new(small_agents(), ScmConfig::default(), 11).unwrap();
         let report = model.step(&Flat).unwrap();
         assert!(report.gradient_degenerate);
-        assert_eq!(report.mean_gradient_norm, 0.0);
+        assert_eq!(report.mean_gradient_norm_before_update, 0.0);
         assert!(report.consensus.is_finite());
     }
 
@@ -732,6 +740,41 @@ mod tests {
         let report = model.step(&Quadratic).unwrap();
         assert_eq!(report.outside_domain_agents, 2);
         assert!(model.agents().iter().all(|agent| agent.position.iter().all(|x| x.is_finite())));
+    }
+
+    struct FailOnNextObservationBatch {
+        calls: std::cell::Cell<usize>,
+        successful_calls: usize,
+    }
+
+    impl ScmLandscape for FailOnNextObservationBatch {
+        fn fitness_and_gradient(&self, position: &[f64]) -> Result<(f64, Vec<f64>), String> {
+            let call = self.calls.get();
+            self.calls.set(call + 1);
+            if call >= self.successful_calls {
+                return Err("injected observation failure".to_owned());
+            }
+            Ok((
+                0.5,
+                vec![0.0; position.len()],
+            ))
+        }
+    }
+
+    #[test]
+    fn failed_successor_observation_does_not_commit_partial_state() {
+        let mut model = ScmModel::new(small_agents(), ScmConfig::default(), 31).unwrap();
+        let before = model.clone();
+        let failure = FailOnNextObservationBatch {
+            calls: std::cell::Cell::new(0),
+            successful_calls: 3,
+        };
+
+        assert!(matches!(
+            model.step(&failure),
+            Err(ScmError::LandscapeFailure { .. })
+        ));
+        assert_eq!(model, before);
     }
 
     #[test]
