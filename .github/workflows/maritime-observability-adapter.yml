@@ -1,0 +1,58 @@
+name: Maritime observability adapter
+on:
+  push:
+    branches: ["research/maritime-observability-adapter-v0-1"]
+    paths:
+      - "crates/domains/symtropy-maritime-observability-bench/**"
+      - "crates/domains/symtropy-sensor-observability-bench/**"
+      - "benchmarks/maritime-observability/**"
+      - "docs/tech/MARITIME_OBSERVABILITY_ADAPTER_*"
+      - ".github/workflows/maritime-observability-adapter.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "crates/domains/symtropy-maritime-observability-bench/**"
+      - "crates/domains/symtropy-sensor-observability-bench/**"
+      - "benchmarks/maritime-observability/**"
+      - "docs/tech/MARITIME_OBSERVABILITY_ADAPTER_*"
+      - ".github/workflows/maritime-observability-adapter.yml"
+permissions:
+  contents: read
+concurrency:
+  group: maritime-observability-adapter-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy
+      - name: Run adapter tests
+        run: cargo test --manifest-path crates/domains/symtropy-maritime-observability-bench/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path crates/domains/symtropy-maritime-observability-bench/Cargo.toml --all-targets -- -D warnings
+      - name: Execute frozen fixture and verify receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          case_file="benchmarks/maritime-observability/maritime-observability-case-v0.1.json"
+          case_sha256="$(sha256sum "$case_file" | awk '{print $1}')"
+          cargo run --quiet --manifest-path crates/domains/symtropy-maritime-observability-bench/Cargo.toml -- "$case_file" --source-commit "$source_commit" --case-sha256 "$case_sha256" > maritime-observability-adapter-report.json
+          jq -e --arg source "$source_commit" --arg digest "$case_sha256" '.execution.source_commit == $source and .execution.case_sha256 == $digest and .authority_boundary.read_only == true and .authority_boundary.actuation == false and (.pair_assessments | length == 5) and (.sensor_loss_scenarios | length == 2) and ([.pair_assessments[].state] | sort == ["isolable","isolable","non_isolable","non_isolable","not_evaluated"])' maritime-observability-adapter-report.json
+      - name: Upload deterministic report
+        uses: actions/upload-artifact@v4
+        with:
+          name: maritime-observability-adapter-report
+          path: maritime-observability-adapter-report.json
+          if-no-files-found: error
+          retention-days: 90
