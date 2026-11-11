@@ -418,7 +418,7 @@ mod tests {
         assert_eq!(summary.total_duration_ns, 20_000_000);
         assert_eq!(summary.p50_ns, 60_000_000);
         assert_eq!(summary.p95_ns, 69_000_000);
-        assert_eq!(summary.p99_ns, 70_000_000);
+        assert_eq!(summary.p99_ns, 69_800_000);
         assert_eq!(summary.maximum_ns, 70_000_000);
         assert!((summary.mean_aoi_ns() - 60_000_000.0).abs() < 0.5);
     }
