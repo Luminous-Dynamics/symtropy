@@ -156,7 +156,11 @@ fn run_profile(
         let reject_start = Instant::now();
         match compile_observation_frame(hostile_candidate) {
             Err(symtropy_observation_frame_reference::FrameError::ObservableSetDigestMismatch) => {}
-            _ => return Err("deep hostile fixture was not rejected by observable-set commitment".into()),
+            _ => {
+                return Err(
+                    "deep hostile fixture was not rejected by observable-set commitment".into(),
+                );
+            }
         }
         reject_timings.push(reject_start.elapsed().as_nanos().max(1));
     }
@@ -170,8 +174,10 @@ fn run_profile(
         profile: format!("entities-{entity_count}-events-{event_count}"),
         architecture: std::env::consts::ARCH.to_string(),
         target_os: std::env::consts::OS.to_string(),
-        runner_image_os: std::env::var("RUNNER_IMAGE_OS").unwrap_or_else(|_| "unrecorded".to_string()),
-        runner_image_version: std::env::var("RUNNER_IMAGE_VERSION").unwrap_or_else(|_| "unrecorded".to_string()),
+        runner_image_os: std::env::var("RUNNER_IMAGE_OS")
+            .unwrap_or_else(|_| "unrecorded".to_string()),
+        runner_image_version: std::env::var("RUNNER_IMAGE_VERSION")
+            .unwrap_or_else(|_| "unrecorded".to_string()),
         cpu_model: std::env::var("CPU_MODEL").unwrap_or_else(|_| "unrecorded".to_string()),
         rustc_version: std::env::var("RUSTC_VERSION").unwrap_or_else(|_| "unrecorded".to_string()),
         github_sha: std::env::var("GITHUB_SHA")
