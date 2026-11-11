@@ -1,0 +1,110 @@
+{
+  "schema_version": "liu-ice-active-evidence-selection-v0.1",
+  "status": "protocol_only_not_executed",
+  "purpose": "Rank additional passive observations and explicitly authorized operator inspections by expected reduction in diagnostic hypothesis uncertainty, subject to declared cost, delay, risk and authority gates. This module is a read-only selector.",
+  "method": {
+    "objective": "Expected information gain in nats: I(H;O) = H(H) - sum_o P(o) H(H|o).",
+    "utility": "EIG / (1 + expected_cost_seconds/cost_penalty_scale_seconds + expected_delay_seconds/delay_penalty_scale_seconds + risk_score_ppm/risk_penalty_scale_ppm).",
+    "likelihood_contract": "For every hypothesis, conditional probabilities across all declared outcomes sum to one; each likelihood table binds the exact sorted hypothesis/prior manifest.",
+    "prior_contract": "Prior probabilities are finite, non-negative and sum to one; priors and the hypothesis label space are content-addressed.",
+    "calibration_contract": "Likelihood model and calibration digests must be present. Their statistical calibration and signer/source trust are established upstream; digest shape alone does not prove model validity."
+  },
+  "candidate_classes": {
+    "passive_measurement": {
+      "eligible_when": "Read-only access is approved and an authority-evidence digest is attached.",
+      "execution_by_selector": false
+    },
+    "operator_inspection": {
+      "eligible_when": "Policy permits inspection, an upstream authorization state is human_authorized, and an authority-evidence digest is attached.",
+      "execution_by_selector": false
+    },
+    "controlled_perturbation": {
+      "eligible_when": false,
+      "disposition": "Always excluded by this selector. A separate safety case, hazard analysis, system owner and explicit control authority are required; this ranking module cannot authorize or execute one."
+    }
+  },
+  "comparators": [
+    {
+      "id": "no_additional_evidence",
+      "method": "Keep current posterior and stop evidence acquisition."
+    },
+    {
+      "id": "cheapest_eligible",
+      "method": "Choose the eligible candidate with minimum declared cost; tie-break by candidate ID."
+    },
+    {
+      "id": "maximum_eig_only",
+      "method": "Choose the eligible candidate with greatest expected information gain, ignoring cost/delay/risk only after hard gates."
+    },
+    {
+      "id": "eig_per_cost",
+      "method": "Choose eligible candidate with greatest EIG divided by one plus normalized cost."
+    },
+    {
+      "id": "seeded_random_eligible",
+      "method": "Choose among the exact same eligible set using a frozen seed manifest."
+    },
+    {
+      "id": "risk_adjusted_eig",
+      "method": "Proposed selector: information gain adjusted by frozen cost, delay and risk scales, after hard authority and safety gates."
+    }
+  ],
+  "required_metrics": [
+    "prior_entropy_nats",
+    "expected_information_gain_nats",
+    "expected_posterior_entropy_nats",
+    "realized_posterior_entropy_nats_when_outcome_observed",
+    "diagnostic_decision_change_rate",
+    "cost_to_identification_seconds",
+    "elapsed_time_to_identification_seconds",
+    "operator_inspection_time_seconds",
+    "number_of_eligible_candidates",
+    "number_of_rejected_candidates_by_reason",
+    "authority_gate_violations",
+    "controlled_perturbations_recommended",
+    "unsafe_probe_recommendations",
+    "false_unique_root_cause_rate"
+  ],
+  "hard_gates": [
+    "hypothesis IDs, prior and label-space digest are fixed for the selection decision",
+    "candidate likelihood tables are calibrated on data disjoint from confirmatory evaluation",
+    "candidate manifests bind the evidence model, calibration, outcome likelihoods, cost, delay, risk and authority reference",
+    "an authority reference digest is not treated as cryptographic signer verification; upstream trust and permission checks remain mandatory",
+    "controlled perturbations are never eligible or recommended by this selector",
+    "read-only measurement candidates require upstream approved-read-only authority",
+    "operator inspections require upstream human authorization and an explicit policy enabling inspection",
+    "unknown, missing or denied authority fails closed",
+    "zero expected-information-gain candidates are not recommended by default",
+    "no sensor read, inspection, actuation, maintenance order or controller write is performed by the selector",
+    "all baselines use the identical candidate catalogue, likelihood tables and hard eligibility set",
+    "random baseline seed and comparator configuration are frozen before confirmatory outcomes"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "information_efficiency",
+      "target": "At least 10% lower median cost-to-identification than the cheapest-eligible baseline at equal or better final diagnostic decision quality, on matched independent cases.",
+      "status": "aspirational"
+    },
+    {
+      "id": "decision_value",
+      "target": "Higher realized posterior entropy reduction than seeded-random and cost-only baselines, with confidence intervals clustered by independent recording/engine run.",
+      "status": "aspirational"
+    },
+    {
+      "id": "authority_safety",
+      "target": "Zero unauthorized or controlled perturbations recommended; zero read-only selector execution or actuation.",
+      "status": "aspirational"
+    },
+    {
+      "id": "epistemic_honesty",
+      "target": "No unique root-cause output when multiple hypotheses remain admissible after the selected evidence.",
+      "status": "aspirational"
+    }
+  ],
+  "evidence_boundaries": {
+    "data_status": "No physical observation likelihoods or benchmark-selected actions have been evaluated in this workstream.",
+    "simulation_status": "Synthetic contract tests verify entropy ranking and hard exclusions only; they do not establish real diagnostic utility or safety.",
+    "authority_status": "Authorization enum and digest are caller-supplied references. Signature verification, identity, scope, expiry, issuer authority and revocation are external mandatory checks.",
+    "claim_ceiling": "Read-only ranking contract and synthetic numerical behavior only; no evidence-acquisition execution, active-control result or physical validation claim."
+  }
+}
