@@ -822,6 +822,13 @@ mod tests {
     }
 
     #[test]
+    fn deterministic_portfolio_replays_identically() {
+        let first = run_reference_portfolio().unwrap();
+        let second = run_reference_portfolio().unwrap();
+        assert_eq!(first, second);
+    }
+
+    #[test]
     fn transition_costs_and_stock_accounting_are_exact() {
         let next = advance(
             &INITIAL_STATE,
