@@ -756,6 +756,42 @@ mod tests {
     }
 
     #[test]
+    fn parameterized_mapping_ids_do_not_collide() {
+        assert_ne!(
+            ExposureMapping::WeightedNeighborMean {
+                within_weight: 1,
+                between_weight: 1
+            }
+            .id(),
+            ExposureMapping::WeightedNeighborMean {
+                within_weight: 2,
+                between_weight: 1
+            }
+            .id()
+        );
+        assert_ne!(
+            ExposureMapping::Threshold {
+                minimum_treated_neighbors: 1
+            }
+            .id(),
+            ExposureMapping::Threshold {
+                minimum_treated_neighbors: 2
+            }
+            .id()
+        );
+        assert_ne!(
+            ExposureMapping::TruncatedCanonicalNeighbors {
+                maximum_neighbors: 1
+            }
+            .id(),
+            ExposureMapping::TruncatedCanonicalNeighbors {
+                maximum_neighbors: 2
+            }
+            .id()
+        );
+    }
+
+    #[test]
     fn direct_within_and_between_contrasts_have_design_support() {
         let network = complete_network();
         let support = assess_contrast_support(&network, &assignments(&network)).unwrap();
