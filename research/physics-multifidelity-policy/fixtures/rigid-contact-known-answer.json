@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "scenario_id": "rigid-contact-known-answer-01",
   "scenario_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
   "requirement": {
@@ -8,6 +8,12 @@
     "reference_frame": "world",
     "max_residual_upper_bound": 0.1,
     "max_uncertainty_upper_bound": 0.1,
+    "physical_model_error_limits": {
+      "max_model_form_error_upper_bound": 0.05,
+      "max_geometry_representation_error_upper_bound": 0.05,
+      "max_discretization_error_upper_bound": 0.05,
+      "max_total_error_upper_bound": 0.15
+    },
     "decision_boundary": null
   },
   "budget": {
@@ -29,6 +35,11 @@
       "hard_constraints": "within_bounds",
       "residual_upper_bound": 0.03,
       "uncertainty_upper_bound": 0.04,
+      "physical_model_error_budget": {
+        "model_form_error_upper_bound": 0.01,
+        "geometry_representation_error_upper_bound": 0.01,
+        "discretization_error_upper_bound": 0.01
+      },
       "p95_wall_time_us": 400,
       "peak_memory_bytes": 4000000,
       "analytic_anchor_sha256": null,
@@ -49,6 +60,11 @@
       "hard_constraints": "within_bounds",
       "residual_upper_bound": 0.001,
       "uncertainty_upper_bound": 0.001,
+      "physical_model_error_budget": {
+        "model_form_error_upper_bound": 0.001,
+        "geometry_representation_error_upper_bound": 0.001,
+        "discretization_error_upper_bound": 0.002
+      },
       "p95_wall_time_us": 1200,
       "peak_memory_bytes": 8000000,
       "analytic_anchor_sha256": null,
