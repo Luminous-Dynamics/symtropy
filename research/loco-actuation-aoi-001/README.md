@@ -56,3 +56,22 @@ V0.2 adds bounded AoI hold segments and a time-weighted lower/upper summary. Eac
 This prevents timestamp uncertainty from being collapsed when a mission-level AoI distribution is constructed. Summaries should still be computed per actuator/control stream; callers should not pool different actuator rates or modalities into one scalar unless the benchmark explicitly defines that aggregation.
 
 Two additional deterministic tests cover interval-summary propagation and invalid/overflowing bounds. The crate now has fifteen authored tests.
+
+
+## Command-bound measurement receipts
+
+The exact and interval-valued APIs now return receipts that bind the source-age vector to:
+- actuator ID;
+- command ID;
+- decision ID;
+- actuator-application event ID;
+- application timestamp / bounded application interval;
+- exact per-source observation identity and modality ages.
+
+This keeps the measurement attached to the command it describes. It remains a measurement receipt, not a controller permit or RTA certificate.
+
+## Mission-summary duration assumption
+
+The interval-valued time-weighted summary propagates lower/upper starting AoI for each held-command segment while treating that segment's elapsed duration as a measured fixed nanosecond value. It does not yet bound uncertainty in segment duration itself. A deployment with uncertain hold duration must preserve a bounded duration trace or report the mission percentile bound as Unknown; it must not treat the point-duration result as a complete timing uncertainty bound.
+
+The summary must be computed per actuator/control stream. Do not pool different actuator loops or sensor modalities unless a benchmark explicitly defines the aggregation.
