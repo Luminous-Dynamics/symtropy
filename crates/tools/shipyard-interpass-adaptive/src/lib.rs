@@ -672,8 +672,13 @@ fn append_canonical_event(output: &mut Vec<u8>, event: &TemporalEvidenceEvent) {
     output.extend_from_slice(&event.valid_from_tick.to_le_bytes());
     output.extend_from_slice(&event.valid_until_tick.unwrap_or(u64::MAX).to_le_bytes());
     output.extend_from_slice(&event.timestamp_precision_ticks.to_le_bytes());
+    for allowed in event.purpose_authorized {
+        output.push(u8::from(allowed));
+    }
     output.extend_from_slice(&event.source_sha256);
     output.extend_from_slice(&event.transform_receipt_sha256);
+    append_canonical_string(output, event.supersedes_event_id.as_deref().unwrap_or(""));
+    append_canonical_string(output, event.revokes_event_id.as_deref().unwrap_or(""));
     output.extend_from_slice(&event.model_training_cutoff_tick.unwrap_or(u64::MAX).to_le_bytes());
 }
 
@@ -899,6 +904,7 @@ pub fn build_point_in_time_snapshot(
     );
     append_canonical_string(&mut canonical, &decision.clock_id);
     append_canonical_string(&mut canonical, &decision.policy_revision);
+    canonical.extend_from_slice(&decision.maximum_timestamp_precision_ticks.to_le_bytes());
     for event in &included {
         append_canonical_event(&mut canonical, event);
     }
@@ -995,6 +1001,356 @@ mod tests {
         }
     }
 
+
+
+    fn temporal_test_event(
+        event_id: &str,
+        kind: TemporalEvidenceKind,
+        measurement_tick: u64,
+        first_received_tick: u64,
+    ) -> TemporalEvidenceEvent {
+        TemporalEvidenceEvent {
+            event_id: event_id.to_owned(),
+            kind,
+            role: TemporalEvidenceRole::Feature,
+            workpiece_id: "WID-SYNTH-01".to_owned(),
+            joint_revision: "JOINT-R1".to_owned(),
+            layer_id: Some("LAYER-03".to_owned()),
+            pass_id: Some("PASS-02".to_owned()),
+            clock_id: "UTC-MASTER".to_owned(),
+            measurement_tick,
+            first_received_tick,
+            valid_from_tick: 0,
+            valid_until_tick: None,
+            timestamp_precision_ticks: 1,
+            purpose_authorized: [true, true, true],
+            source_sha256: [0x11; 32],
+            transform_receipt_sha256: [0x22; 32],
+            supersedes_event_id: None,
+            revokes_event_id: None,
+            model_training_cutoff_tick: None,
+        }
+    }
+
+    fn temporal_test_decision(
+        purpose: TemporalDecisionPurpose,
+        decision_tick: u64,
+    ) -> TemporalDecisionContext {
+        TemporalDecisionContext {
+            purpose,
+            decision_tick,
+            workpiece_id: "WID-SYNTH-01".to_owned(),
+            joint_revision: "JOINT-R1".to_owned(),
+            layer_id: Some("LAYER-03".to_owned()),
+            predecessor_pass_id: Some("PASS-02".to_owned()),
+            clock_id: "UTC-MASTER".to_owned(),
+            maximum_timestamp_precision_ticks: 5,
+            policy_revision: "TEMPORAL-POLICY-R1".to_owned(),
+        }
+    }
+
+    #[test]
+    fn point_in_time_sha256_matches_the_standard_abc_known_answer() {
+        assert_eq!(
+            sha256(b"abc"),
+            [
+                0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea,
+                0x41, 0x41, 0x40, 0xde, 0x5d, 0xae, 0x22, 0x23,
+                0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c,
+                0xb4, 0x10, 0xff, 0x61, 0xf2, 0x00, 0x15, 0xad,
+            ]
+        );
+    }
+
+    #[test]
+    fn evidence_measured_and_received_at_cutoff_is_eligible() {
+        let event = temporal_test_event(
+            "EV-PROCESS-01",
+            TemporalEvidenceKind::ProcessObservation,
+            100,
+            100,
+        );
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("valid point-in-time snapshot");
+        assert_eq!(snapshot.included.len(), 1);
+        assert!(snapshot.excluded.is_empty());
+    }
+
+    #[test]
+    fn late_arriving_measurement_is_not_backfilled_into_history() {
+        let event = temporal_test_event(
+            "EV-LATE-01",
+            TemporalEvidenceKind::ProcessObservation,
+            90,
+            101,
+        );
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("late event is excluded, not fatal");
+        assert!(snapshot.included.is_empty());
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::LateArrival
+        );
+    }
+
+    #[test]
+    fn future_measurement_is_excluded_even_when_received() {
+        let event = temporal_test_event(
+            "EV-FUTURE-01",
+            TemporalEvidenceKind::GeometryScan,
+            101,
+            102,
+        );
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("future measurement is excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::FutureMeasurement
+        );
+    }
+
+    #[test]
+    fn ndt_label_is_not_a_medium_loop_feature() {
+        let mut event = temporal_test_event(
+            "EV-NDT-01",
+            TemporalEvidenceKind::NdtOutcome,
+            90,
+            91,
+        );
+        event.role = TemporalEvidenceRole::OutcomeLabel;
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("NDT label is quarantined from medium loop");
+        assert!(snapshot.included.is_empty());
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::OutcomeLabelLeakage
+        );
+    }
+
+    #[test]
+    fn later_ndt_outcome_is_available_to_later_quality_requalification() {
+        let mut event = temporal_test_event(
+            "EV-NDT-02",
+            TemporalEvidenceKind::NdtOutcome,
+            101,
+            102,
+        );
+        event.role = TemporalEvidenceRole::OutcomeLabel;
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::SlowQualityRequalification, 110),
+        )
+        .expect("later quality view may use the recorded NDT outcome");
+        assert_eq!(snapshot.included.len(), 1);
+    }
+
+    #[test]
+    fn superseding_scan_known_by_cutoff_replaces_prior_scan() {
+        let old = temporal_test_event("SCAN-OLD", TemporalEvidenceKind::GeometryScan, 80, 81);
+        let mut new = temporal_test_event("SCAN-NEW", TemporalEvidenceKind::GeometryScan, 90, 91);
+        new.supersedes_event_id = Some("SCAN-OLD".to_owned());
+        let snapshot = build_point_in_time_snapshot(
+            &[old, new],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("valid supersession");
+        assert_eq!(
+            snapshot.included.iter().map(|e| e.event_id.as_str()).collect::<Vec<_>>(),
+            vec!["SCAN-NEW"]
+        );
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::Superseded
+        );
+    }
+
+    #[test]
+    fn late_superseding_scan_does_not_rewrite_earlier_snapshot() {
+        let old = temporal_test_event("SCAN-OLD", TemporalEvidenceKind::GeometryScan, 80, 81);
+        let mut new = temporal_test_event("SCAN-NEW", TemporalEvidenceKind::GeometryScan, 90, 101);
+        new.supersedes_event_id = Some("SCAN-OLD".to_owned());
+        let snapshot = build_point_in_time_snapshot(
+            &[new, old],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("late supersession does not alter prior view");
+        assert!(snapshot.included.iter().any(|event| event.event_id == "SCAN-OLD"));
+        assert!(snapshot.excluded.iter().any(|event| {
+            event.event_id == "SCAN-NEW"
+                && event.reason == TemporalExclusionReason::LateArrival
+        }));
+    }
+
+    #[test]
+    fn revocation_known_by_cutoff_removes_evidence() {
+        let old = temporal_test_event("CAL-OLD", TemporalEvidenceKind::ModelCalibration, 80, 81);
+        let mut revocation =
+            temporal_test_event("REV-01", TemporalEvidenceKind::RegistrationReceipt, 90, 91);
+        revocation.revokes_event_id = Some("CAL-OLD".to_owned());
+        let snapshot = build_point_in_time_snapshot(
+            &[old, revocation],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("valid revocation");
+        assert!(!snapshot.included.iter().any(|event| event.event_id == "CAL-OLD"));
+        assert!(snapshot.excluded.iter().any(|event| {
+            event.event_id == "CAL-OLD" && event.reason == TemporalExclusionReason::Revoked
+        }));
+    }
+
+    #[test]
+    fn late_revocation_does_not_rewrite_historical_snapshot() {
+        let old = temporal_test_event("CAL-OLD", TemporalEvidenceKind::ModelCalibration, 80, 81);
+        let mut revocation =
+            temporal_test_event("REV-02", TemporalEvidenceKind::RegistrationReceipt, 90, 101);
+        revocation.revokes_event_id = Some("CAL-OLD".to_owned());
+        let snapshot = build_point_in_time_snapshot(
+            &[revocation, old],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("late revocation does not rewrite history");
+        assert!(snapshot.included.iter().any(|event| event.event_id == "CAL-OLD"));
+    }
+
+    #[test]
+    fn duplicate_temporal_event_identity_rejects_the_ledger() {
+        let event = temporal_test_event("EV-DUP", TemporalEvidenceKind::GeometryScan, 80, 81);
+        assert_eq!(
+            build_point_in_time_snapshot(
+                &[event.clone(), event],
+                &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+            ),
+            Err(TemporalSnapshotError::DuplicateEventId("EV-DUP".to_owned()))
+        );
+    }
+
+    #[test]
+    fn receipt_before_measurement_rejects_the_ledger() {
+        let event = temporal_test_event("EV-CLOCK", TemporalEvidenceKind::ProcessObservation, 90, 80);
+        assert_eq!(
+            build_point_in_time_snapshot(
+                &[event],
+                &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+            ),
+            Err(TemporalSnapshotError::ReceiptBeforeMeasurement("EV-CLOCK".to_owned()))
+        );
+    }
+
+    #[test]
+    fn missing_source_digest_is_excluded() {
+        let mut event =
+            temporal_test_event("EV-NO-SOURCE-HASH", TemporalEvidenceKind::GeometryScan, 80, 81);
+        event.source_sha256 = [0; 32];
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("missing digest is quarantined");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::MissingSourceDigest
+        );
+    }
+
+    #[test]
+    fn timestamp_precision_too_coarse_is_excluded() {
+        let mut event =
+            temporal_test_event("EV-COARSE", TemporalEvidenceKind::ProcessObservation, 80, 81);
+        event.timestamp_precision_ticks = 10;
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::FastProcess, 100),
+        )
+        .expect("coarse timestamp is excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::TimestampPrecisionTooCoarse
+        );
+    }
+
+    #[test]
+    fn snapshot_digest_is_invariant_to_event_input_permutation() {
+        let first = temporal_test_event("EV-A", TemporalEvidenceKind::ProcessObservation, 80, 81);
+        let second = temporal_test_event("EV-B", TemporalEvidenceKind::GeometryScan, 90, 91);
+        let decision = temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100);
+        let a = build_point_in_time_snapshot(&[first.clone(), second.clone()], &decision)
+            .expect("first snapshot");
+        let b = build_point_in_time_snapshot(&[second, first], &decision)
+            .expect("permuted snapshot");
+        assert_eq!(a.snapshot_sha256, b.snapshot_sha256);
+        assert_eq!(a.included, b.included);
+    }
+
+    #[test]
+    fn late_event_does_not_change_historical_snapshot_digest() {
+        let event = temporal_test_event("EV-BASE", TemporalEvidenceKind::GeometryScan, 80, 81);
+        let late = temporal_test_event("EV-LATE", TemporalEvidenceKind::ProcessObservation, 90, 101);
+        let decision = temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100);
+        let a = build_point_in_time_snapshot(std::slice::from_ref(&event), &decision)
+            .expect("base snapshot");
+        let b = build_point_in_time_snapshot(&[event, late], &decision)
+            .expect("snapshot with late arrival");
+        assert_eq!(a.snapshot_sha256, b.snapshot_sha256);
+    }
+
+    #[test]
+    fn model_trained_after_cutoff_is_excluded_from_historical_replay() {
+        let mut event =
+            temporal_test_event("MODEL-NEW", TemporalEvidenceKind::ModelVersion, 90, 91);
+        event.role = TemporalEvidenceRole::ModelArtifact;
+        event.model_training_cutoff_tick = Some(101);
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("future-trained model excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::ModelTrainedAfterDecisionCutoff
+        );
+    }
+
+    #[test]
+    fn mismatched_workpiece_is_excluded_from_snapshot() {
+        let mut event =
+            temporal_test_event("EV-OTHER-WID", TemporalEvidenceKind::GeometryScan, 80, 81);
+        event.workpiece_id = "WID-OTHER".to_owned();
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("wrong WID excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::WorkpieceMismatch
+        );
+    }
+
+    #[test]
+    fn missing_supersession_target_rejects_the_ledger() {
+        let mut event =
+            temporal_test_event("EV-ORPHAN", TemporalEvidenceKind::GeometryScan, 90, 91);
+        event.supersedes_event_id = Some("DOES-NOT-EXIST".to_owned());
+        assert!(matches!(
+            build_point_in_time_snapshot(
+                &[event],
+                &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100)
+            ),
+            Err(TemporalSnapshotError::MissingSupersessionTarget { .. })
+        ));
+    }
 
     #[test]
     fn returns_a_pareto_set_without_automatically_picking_a_pass() {
