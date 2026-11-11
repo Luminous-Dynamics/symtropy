@@ -980,6 +980,45 @@ mod tests {
     }
 
     #[test]
+    fn checked_in_valid_campaign_fixture_passes_the_typed_auditor() {
+        let input = include_str!("../examples/paired-camera-burst-valid.json");
+        let campaign = FaultCampaign::from_json(input).unwrap();
+        let report = campaign.audit();
+        assert_eq!(report.disposition, AuditDisposition::Valid);
+        assert_eq!(report.expected_pair_count, 1);
+        assert_eq!(report.observed_pair_count, 1);
+        assert_eq!(
+            report.pair_results[0].metric_results[0].relative_degradation,
+            Some(0.2)
+        );
+    }
+
+    #[test]
+    fn checked_in_mismatched_checkpoint_negative_control_is_rejected() {
+        let input = include_str!("../examples/mismatched-checkpoint-negative-control.json");
+        let campaign = FaultCampaign::from_json(input).unwrap();
+        let report = campaign.audit();
+        assert_eq!(report.disposition, AuditDisposition::Rejected);
+        assert!(report.findings.contains(&Finding::MatchedContextMismatch));
+    }
+
+    #[test]
+    fn campaign_schema_is_parseable_and_pins_protocol_bounds() {
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/fault-campaign-v1.schema.json"))
+                .unwrap();
+        assert_eq!(
+            schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(
+            schema["properties"]["schema_version"]["const"],
+            1
+        );
+        assert!(schema["$defs"]["fault_spec"]["oneOf"].as_array().unwrap().len() >= 5);
+    }
+
+    #[test]
     fn accepts_complete_matched_clean_and_camera_drop_pair() {
         let report = campaign().audit();
         assert_eq!(report.disposition, AuditDisposition::Valid);
