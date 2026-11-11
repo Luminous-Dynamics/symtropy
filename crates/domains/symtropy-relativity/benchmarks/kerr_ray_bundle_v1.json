@@ -5,7 +5,7 @@
   "status": "planned_replication_manifest",
   "created_utc": "2026-11-10",
   "objective": "Qualify Kerr null-geodesic screen-to-source maps, ray-bundle Jacobi fields, caustic locations, image multiplicity, magnification, and time-delay distributions using independent formulations and external references.",
-  "claim_ceiling": "This file is a frozen benchmark specification. It contains no numerical ray results, no caustic detections, no magnification measurements, no EHT fit, and no Kerr local-smoothing theorem. A formula audit on 2026-11-10 corrected the separated polar potential to the null-geodesic Carter convention; the prior draft's expression was the massive-particle form and must not be used for null rays.",
+  "claim_ceiling": "This file is a frozen benchmark specification. It contains no numerical ray results, no caustic detections, no magnification measurements, no EHT fit, and no Kerr local-smoothing theorem. A formula audit on 2026-11-10 corrected the separated polar potential to the null-geodesic Carter convention; the prior draft's expression was the massive-particle form and must not be used for null rays. The companion Jacobi-map audit tool validates screen-map numerics and synthetic controls only; it does not integrate Kerr rays or qualify physical caustics.",
   "ownership": {
     "physics": "Symtropy #4519",
     "projection": "Sol-Atlas #701",
@@ -335,6 +335,19 @@
       "input_digest",
       "output_digest",
       "reproduction_command"
+    ],
+    "jacobi_audit": [
+      "canonical_branch_id",
+      "source_observer_area_normalization_id",
+      "screen_projected_2x2_variational_map",
+      "screen_projected_2x2_finite_difference_map",
+      "componentwise_map_error_bound",
+      "singular_values_and_log_condition_number",
+      "resolved_determinant_sign_and_parity",
+      "typed_map_condition_status",
+      "signed_determinant_caustic_bracket",
+      "screen_rotation_covariance_diagnostics",
+      "variational_finite_difference_frobenius_discrepancy"
     ]
   },
   "jacobi_map_contract": {
@@ -464,5 +477,14 @@
     "expected_commands": [],
     "no_results_claimed": true,
     "evidence_contract": "Reuse the versioned tools/bh-response-manifest contract and the per-method tools/bh-execution-manifest v1.0.0 contract proposed in draft PR #4621. The latter is not yet merged; until then, report execution-envelope evidence using the current accepted repository contract. This benchmark manifest remains input/expectation metadata, not a run receipt or evidence ledger."
+  },
+  "jacobi_audit_tool": {
+    "path": "tools/jacobi-map-audit",
+    "version": "0.1.0",
+    "role": "Solver-agnostic qualification of 2x2 screen-projected Jacobi-map artifacts; does not integrate rays or assert physical caustics",
+    "schema": "tools/jacobi-map-audit/schema/jacobi-map-evidence-0.1.0.schema.json",
+    "synthetic_fixture": "tools/jacobi-map-audit/examples/synthetic-screen-map-atlas-v0.1.json",
+    "acceptance_policy": "Magnification is emitted only for a resolved map; uncertain determinant sign, singularity, branch mismatch and source/observer normalization mismatch fail closed",
+    "test_status": "source_and_synthetic_fixture_authored; exact_head_rust_checks_pending"
   }
 }
