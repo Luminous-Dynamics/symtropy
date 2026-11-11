@@ -109,7 +109,17 @@ jobs:
               k_max = h_safe // inputs["period_ms"]
               if expected["h_safe_ms"] != h_safe or expected["k_max"] != k_max:
                   raise SystemExit(f"H_safe/K_max arithmetic mismatch: {case['case_id']}")
-              if expected["limiting_bound"] != limiting.replace("_ms", ""):
+              limit_labels = {
+                  "observation_freshness_ms": "observation_freshness",
+                  "chunk_expiry_ms": "chunk_expiry",
+                  "task_deadline_ms": "task_deadline",
+                  "certificate_validity_ms": "certificate_validity",
+                  "contact_model_validity_ms": "contact_model_validity",
+                  "actuator_model_validity_ms": "actuator_model_validity",
+                  "thermal_to_limit_ms": "thermal_to_limit",
+                  "safe_stop_reserve_horizon_ms": "safe_stop_reserve",
+              }
+              if expected["limiting_bound"] != limit_labels[limiting]:
                   raise SystemExit(f"Limiting horizon mismatch: {case['case_id']}")
 
               if inputs["execution_mode"] == "queued_open_loop":
