@@ -481,6 +481,8 @@ mod tests {
         let report = system.step(MaintenanceInput::default()).unwrap();
         assert_eq!(report.repair_requested, 0.0);
         assert_eq!(report.repair_applied, 0.0);
+        assert_eq!(report.mode, MaintenanceMode::PassiveRelaxation);
+        assert_eq!(report.energy_availability, 1.0);
     }
 
     #[test]
