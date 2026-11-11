@@ -244,11 +244,16 @@ impl ResultCard {
             }
         }
 
-        if self.experience_selection.queries_issued
-            != self.experience_selection.queries_accepted
-                .saturating_add(self.experience_selection.queries_rejected)
+        match self
+            .experience_selection
+            .queries_accepted
+            .checked_add(self.experience_selection.queries_rejected)
         {
-            errors.push("experience_selection queries_issued must equal accepted + rejected".into());
+            Some(total) if total == self.experience_selection.queries_issued => {}
+            Some(_) => errors.push(
+                "experience_selection queries_issued must equal accepted + rejected".into(),
+            ),
+            None => errors.push("experience_selection query count overflow".into()),
         }
         if self.experience_selection.candidates_scored
             < self.experience_selection.queries_issued
@@ -460,6 +465,9 @@ impl ResultCard {
                 || self.inference_allocation.rollout_compute_units_used.is_none()
             {
                 errors.push("complete result requires inference rollout compute budget and used units".into());
+            }
+            if self.experience_selection.query_compute_gpu_hours.is_none() {
+                errors.push("complete result requires experience-selection compute attribution".into());
             }
             if self.evidence.expected_episode_count == 0 {
                 errors.push("complete result must declare a non-zero expected denominator".into());
@@ -753,6 +761,7 @@ pub struct PairComparison {
     pub budget_differences: Vec<String>,
     pub candidate_to_baseline_inference_energy_ratio: Option<f64>,
     pub candidate_to_baseline_p99_latency_ratio: Option<f64>,
+    pub candidate_to_baseline_rollout_compute_units_ratio: Option<f64>,
     pub paired_bootstrap: PairedBootstrapSummary,
 }
 
@@ -813,6 +822,10 @@ pub fn compare_metric(
         candidate.compute.inference_p99_ms,
         baseline.compute.inference_p99_ms,
     );
+    let rollout_compute_ratio = ratio(
+        candidate.inference_allocation.rollout_compute_units_used.map(|value| value as f64),
+        baseline.inference_allocation.rollout_compute_units_used.map(|value| value as f64),
+    );
 
     Ok(PairComparison {
         baseline_run_id: baseline.run_id.clone(),
@@ -829,6 +842,7 @@ pub fn compare_metric(
         budget_differences,
         candidate_to_baseline_inference_energy_ratio: energy_ratio,
         candidate_to_baseline_p99_latency_ratio: latency_ratio,
+        candidate_to_baseline_rollout_compute_units_ratio: rollout_compute_ratio,
         paired_bootstrap,
     })
 }
@@ -960,6 +974,18 @@ fn budget_differences(baseline: &ResultCard, candidate: &ResultCard) -> Vec<Stri
     if baseline.compute.measurement_method != candidate.compute.measurement_method {
         differences.push("measurement_method".to_string());
     }
+    match (
+        baseline.inference_allocation.rollout_compute_units_budgeted,
+        candidate.inference_allocation.rollout_compute_units_budgeted,
+    ) {
+        (Some(left), Some(right)) if left == right => {}
+        _ => differences.push("rollout_compute_budget_unmatched_or_unreported".to_string()),
+    }
+    if baseline.inference_allocation.actuation_reserve_required_us
+        != candidate.inference_allocation.actuation_reserve_required_us
+    {
+        differences.push("actuation_reserve_unmatched".to_string());
+    }
     differences
 }
 
@@ -992,7 +1018,10 @@ struct FrontierPoint {
     trainable_parameters: u64,
     training_gpu_hours: f64,
     training_energy_kwh: f64,
+    simulator_transitions: u64,
+    human_intervention_minutes: f64,
     inference_energy: f64,
+    rollout_compute_units_used: u64,
     p99_latency: f64,
     peak_memory: u64,
 }
@@ -1036,7 +1065,10 @@ pub fn pareto_frontier(
             card.model.trainable_parameters,
             card.compute.training_gpu_hours,
             card.compute.training_energy_kwh,
+            Some(card.data.simulator_transitions),
+            Some(card.data.human_intervention_minutes),
             card.compute.inference_energy_joules_per_frame,
+            card.inference_allocation.rollout_compute_units_used,
             card.compute.inference_p99_ms,
             card.compute.peak_memory_bytes,
         ) {
@@ -1045,7 +1077,10 @@ pub fn pareto_frontier(
                 Some(trainable_parameters),
                 Some(training_gpu_hours),
                 Some(training_energy_kwh),
+                Some(simulator_transitions),
+                Some(human_intervention_minutes),
                 Some(inference_energy),
+                Some(rollout_compute_units_used),
                 Some(p99_latency),
                 Some(peak_memory),
             ) => {
@@ -1054,7 +1089,10 @@ pub fn pareto_frontier(
                     trainable_parameters,
                     training_gpu_hours,
                     training_energy_kwh,
+                    simulator_transitions,
+                    human_intervention_minutes,
                     inference_energy,
+                    rollout_compute_units_used,
                     p99_latency,
                     peak_memory,
                 })
@@ -1109,14 +1147,22 @@ fn dominates(
     let params_no_worse = candidate.trainable_parameters <= other.trainable_parameters;
     let training_gpu_no_worse = candidate.training_gpu_hours <= other.training_gpu_hours;
     let training_energy_no_worse = candidate.training_energy_kwh <= other.training_energy_kwh;
+    let transitions_no_worse = candidate.simulator_transitions <= other.simulator_transitions;
+    let intervention_no_worse =
+        candidate.human_intervention_minutes <= other.human_intervention_minutes;
     let energy_no_worse = candidate.inference_energy <= other.inference_energy;
+    let rollout_compute_no_worse =
+        candidate.rollout_compute_units_used <= other.rollout_compute_units_used;
     let latency_no_worse = candidate.p99_latency <= other.p99_latency;
     let memory_no_worse = candidate.peak_memory <= other.peak_memory;
     let strictly_better = primary_better
         || candidate.trainable_parameters < other.trainable_parameters
         || candidate.training_gpu_hours < other.training_gpu_hours
         || candidate.training_energy_kwh < other.training_energy_kwh
+        || candidate.simulator_transitions < other.simulator_transitions
+        || candidate.human_intervention_minutes < other.human_intervention_minutes
         || candidate.inference_energy < other.inference_energy
+        || candidate.rollout_compute_units_used < other.rollout_compute_units_used
         || candidate.p99_latency < other.p99_latency
         || candidate.peak_memory < other.peak_memory;
 
@@ -1124,7 +1170,10 @@ fn dominates(
         && params_no_worse
         && training_gpu_no_worse
         && training_energy_no_worse
+        && transitions_no_worse
+        && intervention_no_worse
         && energy_no_worse
+        && rollout_compute_no_worse
         && latency_no_worse
         && memory_no_worse
         && strictly_better
@@ -1144,7 +1193,7 @@ mod tests {
         let mut native_metrics = BTreeMap::new();
         native_metrics.insert("driving_score".to_string(), Some(score));
         ResultCard {
-            schema_version: "0.1.0".into(),
+            schema_version: "0.2.0".into(),
             run_id: run_id.into(),
             status: RunStatus::Complete,
             model_arm_id: "E".into(),
