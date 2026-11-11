@@ -151,12 +151,12 @@ impl std::error::Error for HorizonInputError {}
 /// Auditable copy of one input bound. Included in every result so the active
 /// minimum can be traced to its owner and evidence source.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct HorizonBoundReceipt {
+pub struct HorizonBoundReceipt<'a> {
     pub constraint: HorizonConstraint,
     pub remaining_ns: Option<u64>,
-    pub source_id: Option<String>,
-    pub timebase_id: Option<String>,
-    pub unknown_reason: Option<String>,
+    pub source_id: Option<&'a str>,
+    pub timebase_id: Option<&'a str>,
+    pub unknown_reason: Option<&'a str>,
 }
 
 /// Why the requested horizon was or was not admissible.
@@ -182,13 +182,14 @@ pub enum HorizonDisposition {
 /// execution it is the longest chunk in [K_min, K_max]; for split-timescale
 /// it is K_max. The caller still needs its independent safety authority.
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct ActionHorizonSelection {
+pub struct ActionHorizonSelection<'a> {
     pub disposition: HorizonDisposition,
-    pub bounds: Vec<HorizonBoundReceipt>,
-    pub common_timebase_id: Option<String>,
+    pub bounds: [HorizonBoundReceipt<'a>; ACTION_HORIZON_CONSTRAINT_COUNT],
+    pub common_timebase_id: Option<&'a str>,
     pub safe_horizon_ns: Option<u64>,
-    /// All constraints tied for the active minimum, in canonical order.
-    pub active_constraints: Vec<HorizonConstraint>,
+    /// Active-minimum constraints in canonical order. Slots after count are None.
+    pub active_constraints: [Option<HorizonConstraint>; ACTION_HORIZON_CONSTRAINT_COUNT],
+    pub active_constraint_count: usize,
     pub controller_period_ns: u64,
     pub p99_total_latency_ns: u64,
     /// ceil(p99 / controller period) for queued mode; None for split-timescale.
@@ -206,52 +207,52 @@ pub struct ActionHorizonSelection {
 /// horizons shorter than one controller period, and infeasible queued
 /// coverage all prevent a selected action chunk. This function does not
 /// dispatch, schedule, or authorize actions.
-pub fn select_action_horizon(
-    request: &ActionHorizonRequest,
-) -> Result<ActionHorizonSelection, HorizonInputError> {
+pub fn select_action_horizon<'a>(
+    request: &'a ActionHorizonRequest,
+) -> Result<ActionHorizonSelection<'a>, HorizonInputError> {
     if request.controller_period_ns == 0 {
         return Err(HorizonInputError::ZeroControllerPeriod);
     }
 
-    let mut receipts = Vec::with_capacity(ACTION_HORIZON_CONSTRAINT_COUNT);
     let mut unknown_count = 0usize;
-    let mut common_timebase: Option<String> = None;
+    let mut common_timebase: Option<&'a str> = None;
     let mut timebase_mismatch = false;
     let mut safe_horizon_ns = u64::MAX;
 
-    for (constraint, evidence) in HorizonConstraint::ALL.iter().copied().zip(request.bounds.iter()) {
-        match evidence {
+    let receipts = core::array::from_fn(|index| {
+        let constraint = HorizonConstraint::ALL[index];
+        match &request.bounds[index] {
             HorizonEvidence::Qualified {
                 remaining_ns,
                 source_id,
                 timebase_id,
             } => {
-                match &common_timebase {
-                    None => common_timebase = Some(timebase_id.clone()),
+                match common_timebase {
+                    None => common_timebase = Some(timebase_id.as_str()),
                     Some(existing) if existing != timebase_id => timebase_mismatch = true,
                     Some(_) => {}
                 }
                 safe_horizon_ns = safe_horizon_ns.min(*remaining_ns);
-                receipts.push(HorizonBoundReceipt {
+                HorizonBoundReceipt {
                     constraint,
                     remaining_ns: Some(*remaining_ns),
-                    source_id: Some(source_id.clone()),
-                    timebase_id: Some(timebase_id.clone()),
+                    source_id: Some(source_id.as_str()),
+                    timebase_id: Some(timebase_id.as_str()),
                     unknown_reason: None,
-                });
+                }
             }
             HorizonEvidence::Unknown { reason } => {
                 unknown_count += 1;
-                receipts.push(HorizonBoundReceipt {
+                HorizonBoundReceipt {
                     constraint,
                     remaining_ns: None,
                     source_id: None,
                     timebase_id: None,
-                    unknown_reason: Some(reason.clone()),
-                });
+                    unknown_reason: Some(reason.as_str()),
+                }
             }
         }
-    }
+    });
 
     let k_min_queue_cycles = match request.execution_mode {
         ActionExecutionMode::QueuedOpenLoop => Some(div_ceil(
@@ -266,7 +267,8 @@ pub fn select_action_horizon(
         bounds: receipts,
         common_timebase_id: common_timebase,
         safe_horizon_ns: None,
-        active_constraints: Vec::new(),
+        active_constraints: [None; ACTION_HORIZON_CONSTRAINT_COUNT],
+        active_constraint_count: 0,
         controller_period_ns: request.controller_period_ns,
         p99_total_latency_ns: request.p99_total_latency_ns,
         k_min_queue_cycles,
@@ -283,19 +285,15 @@ pub fn select_action_horizon(
     }
 
     selection.safe_horizon_ns = Some(safe_horizon_ns);
-    selection.active_constraints = HorizonConstraint::ALL
-        .iter()
-        .copied()
-        .zip(request.bounds.iter())
-        .filter_map(|(constraint, evidence)| match evidence {
-            HorizonEvidence::Qualified { remaining_ns, .. }
-                if *remaining_ns == safe_horizon_ns =>
-            {
-                Some(constraint)
+    for (index, evidence) in request.bounds.iter().enumerate() {
+        if let HorizonEvidence::Qualified { remaining_ns, .. } = evidence {
+            if *remaining_ns == safe_horizon_ns {
+                selection.active_constraints[selection.active_constraint_count] =
+                    Some(HorizonConstraint::ALL[index]);
+                selection.active_constraint_count += 1;
             }
-            _ => None,
-        })
-        .collect();
+        }
+    }
 
     let k_max_safe_cycles = safe_horizon_ns / request.controller_period_ns;
     selection.k_max_safe_cycles = Some(k_max_safe_cycles);
@@ -322,6 +320,16 @@ pub fn select_action_horizon(
     }
 
     Ok(selection)
+}
+
+impl ActionHorizonSelection<'_> {
+    /// Iterate over every constraint tied for the active minimum.
+    pub fn active_constraints_iter(&self) -> impl Iterator<Item = HorizonConstraint> + '_ {
+        self.active_constraints
+            .iter()
+            .take(self.active_constraint_count)
+            .filter_map(|constraint| *constraint)
+    }
 }
 
 #[inline]
@@ -373,7 +381,10 @@ mod tests {
         .unwrap();
 
         assert_eq!(result.safe_horizon_ns, Some(45));
-        assert_eq!(result.active_constraints, vec![HorizonConstraint::RecoveryReserve]);
+        assert_eq!(
+            result.active_constraints_iter().collect::<Vec<_>>(),
+            vec![HorizonConstraint::RecoveryReserve]
+        );
         assert_eq!(result.k_max_safe_cycles, Some(4));
         assert_eq!(result.k_min_queue_cycles, Some(3));
         assert_eq!(result.selected_cycles, Some(4));
@@ -390,7 +401,10 @@ mod tests {
         ))
         .unwrap();
 
-        assert_eq!(result.active_constraints, HorizonConstraint::ALL);
+        assert_eq!(
+            result.active_constraints_iter().collect::<Vec<_>>(),
+            HorizonConstraint::ALL.to_vec()
+        );
         assert_eq!(result.selected_cycles, Some(4));
         assert_eq!(result.k_min_queue_cycles, None);
         assert_eq!(result.disposition, HorizonDisposition::AdmissibleSplitTimescale);
@@ -565,6 +579,9 @@ mod tests {
         .unwrap();
         let receipt_constraints: Vec<_> = result.bounds.iter().map(|r| r.constraint).collect();
         assert_eq!(receipt_constraints, HorizonConstraint::ALL);
-        assert_eq!(result.active_constraints, vec![HorizonConstraint::RecoveryReserve]);
+        assert_eq!(
+            result.active_constraints_iter().collect::<Vec<_>>(),
+            vec![HorizonConstraint::RecoveryReserve]
+        );
     }
 }
