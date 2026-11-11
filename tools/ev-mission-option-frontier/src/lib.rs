@@ -207,17 +207,16 @@ fn report_result<'a>(report: &'a Value, scenario_id: &str) -> Result<&'a Value, 
         .get("results")
         .and_then(Value::as_array)
         .ok_or_else(|| "source mission report has no results array".to_owned())?;
-    let found: Vec<&Value> = results
+    let mut found = results
         .iter()
-        .filter(|result| result.get("scenario_id").and_then(Value::as_str) == Some(scenario_id))
-        .collect();
-    if found.len() != 1 {
-        return Err(format!(
-            "expected exactly one scenario result for {scenario_id}, found {}",
-            found.len()
-        ));
+        .filter(|result| result.get("scenario_id").and_then(Value::as_str) == Some(scenario_id));
+    let result = found
+        .next()
+        .ok_or_else(|| format!("no scenario result found for {scenario_id}"))?;
+    if found.next().is_some() {
+        return Err(format!("multiple scenario results found for {scenario_id}"));
     }
-    Ok(found[0])
+    Ok(result)
 }
 
 fn number(value: &Value, field: &str) -> Result<f64, String> {
