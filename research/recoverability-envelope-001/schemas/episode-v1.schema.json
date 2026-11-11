@@ -85,9 +85,10 @@
         "pair_id",
         "baseline_run_id",
         "world_seed_sha256",
-        "model_checkpoint_sha256",
         "simulator_revision",
-        "evaluator_revision"
+        "evaluator_revision",
+        "baseline_checkpoint_sha256",
+        "candidate_checkpoint_sha256"
       ],
       "properties": {
         "pair_id": {
@@ -101,9 +102,6 @@
         "world_seed_sha256": {
           "$ref": "#/$defs/sha256"
         },
-        "model_checkpoint_sha256": {
-          "$ref": "#/$defs/sha256"
-        },
         "simulator_revision": {
           "type": "string",
           "minLength": 1
@@ -111,6 +109,12 @@
         "evaluator_revision": {
           "type": "string",
           "minLength": 1
+        },
+        "baseline_checkpoint_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "candidate_checkpoint_sha256": {
+          "$ref": "#/$defs/sha256"
         }
       }
     },
@@ -124,7 +128,8 @@
         "min_stable_nominal_ticks",
         "max_camera_age_us",
         "max_vehicle_state_age_us",
-        "max_fault_concurrency"
+        "max_fault_concurrency",
+        "max_deadline_miss_ticks_during_fault"
       ],
       "properties": {
         "max_detection_delay_ticks": {
@@ -155,6 +160,10 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 4096
+        },
+        "max_deadline_miss_ticks_during_fault": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
