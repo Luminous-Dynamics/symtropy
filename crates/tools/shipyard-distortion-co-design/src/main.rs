@@ -197,7 +197,6 @@ fn evaluate_case(case: &Value) -> &'static str {
     "SYNTHETIC_PLAN_CONTRACT_VALID"
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct OraclePlan {
     plan_id: String,
@@ -284,7 +283,9 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
         .and_then(Value::as_array)
         .ok_or_else(|| format!("{case_id}: tasks must be an array"))?;
     if !(2..=4).contains(&task_values.len()) {
-        return Err(format!("{case_id}: exact oracle supports two to four tasks"));
+        return Err(format!(
+            "{case_id}: exact oracle supports two to four tasks"
+        ));
     }
 
     let mut task_ids = Vec::new();
@@ -346,7 +347,10 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
             nonnegative_number(transition, "time_penalty_units")?,
             nonnegative_number(transition, "risk_penalty_units")?,
         );
-        if transition_metrics.insert((before, after), metrics).is_some() {
+        if transition_metrics
+            .insert((before, after), metrics)
+            .is_some()
+        {
             return Err(format!("{case_id}: duplicate transition penalty"));
         }
     }
@@ -390,8 +394,9 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
         }
         let cooling_complete = bool_at(release, "cooling_complete")
             .ok_or_else(|| format!("{case_id}: release cooling_complete must be a boolean"))?;
-        let fully_released = bool_at(release, "all_restraints_removed")
-            .ok_or_else(|| format!("{case_id}: release all_restraints_removed must be a boolean"))?;
+        let fully_released = bool_at(release, "all_restraints_removed").ok_or_else(|| {
+            format!("{case_id}: release all_restraints_removed must be a boolean")
+        })?;
         let geometry = nonnegative_number(release, "geometry_penalty_units")?;
         let time = nonnegative_number(release, "time_units")?;
         let risk = nonnegative_number(release, "risk_units")?;
@@ -412,9 +417,10 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
             .enumerate()
             .map(|(index, task_id)| (task_id.as_str(), index))
             .collect();
-        if precedence.iter().any(|(before, after)| {
-            positions.get(before.as_str()) >= positions.get(after.as_str())
-        }) {
+        if precedence
+            .iter()
+            .any(|(before, after)| positions.get(before.as_str()) >= positions.get(after.as_str()))
+        {
             continue;
         }
 
@@ -444,9 +450,7 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
             }
         }
 
-        for (fixture_id, fixture_geometry, fixture_setup, fixture_cost, fixture_risk)
-            in &fixtures
-        {
+        for (fixture_id, fixture_geometry, fixture_setup, fixture_cost, fixture_risk) in &fixtures {
             for (release_id, release_geometry, release_time, release_risk) in &releases {
                 let final_geometry_units = add_checked(
                     add_checked(
@@ -456,10 +460,7 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
                     *release_geometry,
                 )?;
                 let production_time_units = add_checked(
-                    add_checked(
-                        add_checked(task_duration, transition_time)?,
-                        *fixture_setup,
-                    )?,
+                    add_checked(add_checked(task_duration, transition_time)?, *fixture_setup)?,
                     *release_time,
                 )?;
                 let robustness_risk_units = add_checked(
@@ -467,10 +468,7 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
                     *release_risk,
                 )?;
                 plans.push(OraclePlan {
-                    plan_id: format!(
-                        "{case_id}|{}|{fixture_id}|{release_id}",
-                        sequence.join(">")
-                    ),
+                    plan_id: format!("{case_id}|{}|{fixture_id}|{release_id}", sequence.join(">")),
                     final_geometry_units,
                     production_time_units,
                     fixture_cost_units: *fixture_cost,
@@ -484,9 +482,9 @@ fn enumerate_oracle_case(case: &Value) -> Result<(usize, Vec<String>), String> {
     let mut pareto_ids: Vec<String> = plans
         .iter()
         .filter(|candidate| {
-            !plans.iter().any(|other| {
-                other.plan_id != candidate.plan_id && plan_dominates(other, candidate)
-            })
+            !plans
+                .iter()
+                .any(|other| other.plan_id != candidate.plan_id && plan_dominates(other, candidate))
         })
         .map(|plan| plan.plan_id.clone())
         .collect();
@@ -531,7 +529,10 @@ fn validate_enumerable_oracle(
         return Err(vec!["enumerable oracle cases must be an array".to_owned()]);
     };
     if cases.len() != 4 {
-        errors.push(format!("enumerable oracle requires four cases, found {}", cases.len()));
+        errors.push(format!(
+            "enumerable oracle requires four cases, found {}",
+            cases.len()
+        ));
     }
 
     let mut case_ids = HashSet::new();
@@ -693,22 +694,22 @@ fn main() -> ExitCode {
     let first_arg = args.next();
     let is_oracle_mode = first_arg.as_deref() == Some("--oracle");
     let corpus_path = if is_oracle_mode {
-        args.next().unwrap_or_else(|| DEFAULT_ENUMERABLE_CORPUS.to_owned())
+        args.next()
+            .unwrap_or_else(|| DEFAULT_ENUMERABLE_CORPUS.to_owned())
     } else {
         first_arg.unwrap_or_else(|| DEFAULT_CORPUS.to_owned())
     };
     let schema_path = if is_oracle_mode {
-        args.next().unwrap_or_else(|| DEFAULT_ENUMERABLE_SCHEMA.to_owned())
+        args.next()
+            .unwrap_or_else(|| DEFAULT_ENUMERABLE_SCHEMA.to_owned())
     } else {
         args.next().unwrap_or_else(|| DEFAULT_SCHEMA.to_owned())
     };
     if args.next().is_some() {
-        eprintln!(
-            concat!(
-                "usage: shipyard-distortion-co-design [CORPUS_PATH] [SCHEMA_PATH] | ",
-                "--oracle [ORACLE_CORPUS] [ORACLE_SCHEMA]"
-            )
-        );
+        eprintln!(concat!(
+            "usage: shipyard-distortion-co-design [CORPUS_PATH] [SCHEMA_PATH] | ",
+            "--oracle [ORACLE_CORPUS] [ORACLE_SCHEMA]"
+        ));
         return ExitCode::from(2);
     }
 
@@ -743,7 +744,10 @@ fn main() -> ExitCode {
                 ExitCode::SUCCESS
             }
             Err(errors) => {
-                eprintln!("ORACLE FAIL: {} discrepancy/contract error(s)", errors.len());
+                eprintln!(
+                    "ORACLE FAIL: {} discrepancy/contract error(s)",
+                    errors.len()
+                );
                 for error in errors {
                     eprintln!("- {error}");
                 }
@@ -845,7 +849,10 @@ mod tests {
     fn in_fixture_measurement_cannot_replace_final_free_state() {
         let mut corpus = corpus_value();
         corpus["cases"][0]["final_measurement"]["phase"] = Value::String("in_fixture".to_owned());
-        assert_eq!(evaluate_case(&corpus["cases"][0]), "BLOCK_FINAL_MEASUREMENT");
+        assert_eq!(
+            evaluate_case(&corpus["cases"][0]),
+            "BLOCK_FINAL_MEASUREMENT"
+        );
     }
 
     #[test]
