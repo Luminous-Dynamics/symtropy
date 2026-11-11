@@ -302,7 +302,11 @@ mod tests {
             let q_plus = map_y_to_q(plus, amplitude).unwrap();
             let q_minus = map_y_to_q(minus, amplitude).unwrap();
             for row in 0..DIMENSION {
-                close(analytic[row][column], (q_plus[row] - q_minus[row]) / (2.0 * h), 2.0e-10);
+                close(
+                    analytic[row][column],
+                    (q_plus[row] - q_minus[row]) / (2.0 * h),
+                    2.0e-10,
+                );
             }
         }
     }
@@ -355,7 +359,11 @@ mod tests {
             }
         }
         assert!(quadratic(metric_y, ydot) > 0.0);
-        close(quadratic(metric_y, ydot), quadratic(metric_q, mat_vec(j, ydot)), 1.0e-12);
+        close(
+            quadratic(metric_y, ydot),
+            quadratic(metric_q, mat_vec(j, ydot)),
+            1.0e-12,
+        );
     }
 
     #[test]
@@ -393,7 +401,11 @@ mod tests {
             for row in 0..DIMENSION {
                 let h_plus = dot(jacobian_q[row], q_plus);
                 let h_minus = dot(jacobian_q[row], q_minus);
-                close(expected[row][column], (h_plus - h_minus) / (2.0 * h), 2.0e-10);
+                close(
+                    expected[row][column],
+                    (h_plus - h_minus) / (2.0 * h),
+                    2.0e-10,
+                );
             }
         }
     }
@@ -414,10 +426,16 @@ mod tests {
         y[2] = f64::NAN;
         assert_eq!(map_y_to_q(y, 0.5), Err(ChartError::NonFiniteVector));
         let (y, _, _) = sample_state();
-        assert_eq!(jacobian(y, f64::INFINITY), Err(ChartError::NonFiniteAmplitude));
+        assert_eq!(
+            jacobian(y, f64::INFINITY),
+            Err(ChartError::NonFiniteAmplitude)
+        );
         let mut metric = identity6();
         metric[0][0] = f64::NAN;
-        assert_eq!(pullback_metric(y, 0.5, metric), Err(ChartError::NonFiniteMatrix));
+        assert_eq!(
+            pullback_metric(y, 0.5, metric),
+            Err(ChartError::NonFiniteMatrix)
+        );
         let mut bad_velocity = ydot;
         bad_velocity[1] = f64::INFINITY;
         assert_eq!(
@@ -432,7 +450,10 @@ mod tests {
         let (y, ydot, yddot) = sample_state();
         assert_eq!(map_y_to_q(y, 0.0).unwrap(), y);
         assert_eq!(jacobian(y, 0.0).unwrap(), identity6());
-        assert_eq!(hessian_velocity_contraction(y, ydot, 0.0).unwrap(), [0.0; DIMENSION]);
+        assert_eq!(
+            hessian_velocity_contraction(y, ydot, 0.0).unwrap(),
+            [0.0; DIMENSION]
+        );
         assert_eq!(transform_acceleration(y, ydot, yddot, 0.0).unwrap(), yddot);
     }
 }
