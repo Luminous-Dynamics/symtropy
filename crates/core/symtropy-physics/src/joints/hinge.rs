@@ -247,24 +247,22 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             let mut angular_impulse = symtropy_math::Bivector::<D>::zero();
             angular_impulse.set(pa, pb, impulse);
 
-            let inv_i_a = if body_a.is_dynamic() {
-                body_a.inv_inertia.sum() / D as f64
-            } else {
-                0.0
-            };
-            let inv_i_b = if body_b.is_dynamic() {
-                body_b.inv_inertia.sum() / D as f64
-            } else {
-                0.0
-            };
+            // Compute endpoint responses with the same world-space inertia
+            // operator used by the integrator. This keeps motor work and
+            // angular velocity updates consistent for rotated asymmetric links.
+            let impulse_a = angular_impulse.scale(-1.0);
+            let delta_omega_a = body_a
+                .apply_inverse_angular_inertia(&impulse_a)
+                .get(pa, pb);
+            let delta_omega_b = body_b
+                .apply_inverse_angular_inertia(&angular_impulse)
+                .get(pa, pb);
 
             // Capture endpoint velocities before applying the equal-and-
             // opposite motor impulses so the energy ledger can attribute
             // signed work to each dynamic body.
             let omega_a_before = body_a.angular_velocity.get(pa, pb);
             let omega_b_before = body_b.angular_velocity.get(pa, pb);
-            let delta_omega_a = -impulse * inv_i_a;
-            let delta_omega_b = impulse * inv_i_b;
 
             if body_a.is_dynamic() {
                 crate::integrator::apply_angular_impulse(
