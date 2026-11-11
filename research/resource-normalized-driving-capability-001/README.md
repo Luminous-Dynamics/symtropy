@@ -34,6 +34,34 @@ These results are not pooled into one ranking. Bench2Drive Driving Score, NAVSIM
 
 Sources are linked in `benchmark_manifest_v0_1.json`. Model-card figures and vendor deployment measurements are reported claims, not independent Symtropy reproductions. NVIDIA's 160–190ms latency is meaningful only with its named Thor-X / DRIVE OS / CUDA / TensorRT configuration; it is not compared to laptop or desktop CPU timing.
 
+## New benchmark tracks: deployment robustness and speed-conditioned control
+
+### Bench2Drive-Robust
+
+The standard closed-loop score is not enough for a deployable system. Bench2Drive-Robust is a model-agnostic extension that holds a policy fixed and injects deployment perturbations into the closed-loop feedback loop. Its published settings include:
+
+| Fault family | Published severities | What to record |
+|---|---|---|
+| Camera stream | 20- or 60-tick burst frame drops | stale-frame exposure, missing-event accounting, recovery time, success |
+| Partial observation | 50% or 80% camera occlusion | degradation by mask severity, calibration, fallback behaviour |
+| Localization | 5 m or 15 m GPS noise | route and interaction degradation, estimator residuals |
+| Speed estimate | multiplicative noise with means 0.5 or 0.2 and standard deviation 0.2 | speed-adherence and control error |
+| Compute/control | 100 ms, 200 ms or 500 ms action delay | p95/p99 control age, missed deadlines, fallback and task success |
+
+Source: [Bench2Drive-Robust repository](https://github.com/Thinklab-SJTU/Bench2Drive-Robust) and [paper](https://arxiv.org/abs/2605.18059). These are benchmark perturbation settings, not universal real-world fault distributions.
+
+Our extension requires **paired clean and perturbed episodes**: same checkpoint, initial scenario, route, actor policies, seed manifest and data permissions; only the explicitly declared fault injection changes. Report native task metrics and relative degradation per fault family/severity, plus recovery time, control age, fallback outcomes and worst-family tails. Never combine different fault families into one robustness number without predeclared weights.
+
+### Bench2Drive-Speed
+
+[Bench2Drive-Speed](https://github.com/Thinklab-SJTU/Bench2Drive-Speed) adds desired-speed-conditioned driving, follow/overtake intent and speed adherence over a 2,100-scenario CARLA suite. It is a separate capability track: report speed command adherence, tracking error, comfort/jerk, overtake/follow success and route success independently. It must not be pooled into the ordinary Bench2Drive Driving Score.
+
+### NAVSIM v2 leaderboard snapshot
+
+A third-party SOTA2 page currently lists NTR 2026.05 at 99.4 NC / 90.9 EPDMS for the NAVSIM v2 end-to-end test track. The page was marked updated five months before this 11 November 2026 snapshot. Treat it as a **third-party, stale-at-snapshot leaderboard reference**, not an official organizer result and not a reproducible target until the benchmark owner, evaluator revision, test access and current ranking are independently re-verified. It is deliberately separate from the DriveWorld-VLA paper's NAVSIMv2 EPDMS 86.8 result; different entries and provenance, same broad metric label, not an apples-to-apples comparison without exact protocol alignment.
+
+Source: [SOTA2 NAVSIM v2 E2E test snapshot](https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test).
+
 ## Symthaea's competitive hypothesis
 
 Test a hybrid rather than assume HDC/LTC replaces visual representation learning:
@@ -70,7 +98,7 @@ Action-conditioned next-state error, calibration/coverage, actor response predic
 Trainable parameters; training GPU-hours; measured kWh; simulator transitions; frame exposure; human labels and intervention minutes; inference FLOPs/tokens when available; p50/p95/p99 inference and recovery latency; deadline misses; peak memory; energy per frame and energy per successful episode.
 
 ### Robustness and assurance
-Camera dropout, delayed/stale frames, calibration error, occlusion, lighting/weather, sensor asynchrony, actor-policy change, localization perturbation, compute overload, safe fallback, option preservation, recoverability, replay integrity and evidence completeness.
+Camera dropout (including 20/60-tick burst faults), partial observation (50%/80% occlusion), GPS noise (5m/15m), multiplicative speed-estimation noise and inference/control delay (100/200/500ms) under paired clean/perturbed closed-loop episodes; also calibration error, lighting/weather, sensor asynchrony, actor-policy change, compute overload, safe fallback, option preservation, recoverability, replay integrity and evidence completeness. These published perturbation levels form a reproducible test matrix, not a claim about real-world fault prevalence.
 
 ## Fair-comparison controls
 
@@ -104,10 +132,11 @@ These thresholds are prospective research targets only. They are not safety requ
 4. Internal held-out virtual apprenticeship with all model arms.
 5. Bench2Drive v0.0.4 closed loop.
 6. Bench2Drive-Robust perturbation suite.
-7. NAVSIM v2, keeping each task/leaderboard track separate.
-8. World-In-World action-conditioned closed-loop world-model evaluation.
-9. Staged HIL and closed-course validation under independent safety authority.
-10. Operational mileage and incident-rate evidence only after a separately governed safety case.
+7. Bench2Drive-Speed desired-speed/follow/overtake-conditioned control, with native speed metrics kept separate.
+8. NAVSIM v2, keeping each task/leaderboard track separate and independently verifying current evaluator access.
+9. World-In-World action-conditioned closed-loop world-model evaluation.
+10. Staged HIL and closed-course validation under independent safety authority.
+11. Operational mileage and incident-rate evidence only after a separately governed safety case.
 
 ## Files
 
