@@ -772,6 +772,9 @@ mod tests {
         assert_eq!(grant.resource_cost_units, 15);
         assert_eq!(grant.sam_evidence_digest, sensor().sam.evidence_digest);
         assert_eq!(result.resource_units_remaining, 85);
+        assert_eq!(result.resource_units_reserved_for_recovery, 10);
+        assert_eq!(result.resource_units_discretionary_before, 90);
+        assert_eq!(result.resource_units_discretionary_remaining, 75);
     }
 
     #[test]
@@ -783,6 +786,9 @@ mod tests {
         assert_eq!(result.reason, DecisionReason::InferenceValuePerResourceUnitHigher);
         assert_eq!(result.inference_grant.unwrap().additional_rollout_count, 1);
         assert_eq!(result.resource_units_remaining, 80);
+        assert_eq!(result.resource_units_reserved_for_recovery, 10);
+        assert_eq!(result.resource_units_discretionary_before, 90);
+        assert_eq!(result.resource_units_discretionary_remaining, 70);
     }
 
     #[test]
@@ -910,6 +916,10 @@ mod tests {
         assert_eq!(receipt.fallback_policy_id.as_deref(), Some("fallback-v1"));
         assert_eq!(receipt.resource_units_committed, 0);
         assert_eq!(receipt.deadline_slack_after_reserve_ticks, 0);
+        let receipt_json = serde_json::to_string(&receipt).unwrap();
+        let decoded: JointDecisionReceipt = serde_json::from_str(&receipt_json).unwrap();
+        assert_eq!(decoded.action, DecisionAction::DeadlineMissed);
+        assert_eq!(decoded.resource_units_committed, 0);
 
         budget.planning_tick += 1;
         let late = schedule(
@@ -1077,13 +1087,20 @@ mod tests {
     }
 
     #[test]
-    fn budget_deadline_inversion_is_rejected() {
+    fn budget_deadline_inversion_emits_deadline_missed_receipt() {
         let mut budget = budget();
         budget.decision_deadline_tick = 99;
-        assert!(matches!(
-            schedule(&budget, &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", None),
-            Err(SchedulerError::InvalidBudget(_))
-        ));
+        let receipt = schedule(
+            &budget,
+            &inference(),
+            "measured_uj_v1",
+            "micro_loss_v1",
+            "sim_tick_200hz_v1",
+            None,
+        ).unwrap();
+        assert_eq!(receipt.action, DecisionAction::DeadlineMissed);
+        assert_eq!(receipt.reason, DecisionReason::DecisionDeadlinePassed);
+        assert_eq!(receipt.fallback_policy_id.as_deref(), Some("fallback-v1"));
     }
 
     #[test]
@@ -1116,6 +1133,9 @@ mod tests {
         assert!(required.iter().any(|field| field == "decision_value_unit_id"));
         assert!(required.iter().any(|field| field == "clock_id"));
         assert!(required.iter().any(|field| field == "fallback_policy_id"));
+        assert!(required.iter().any(|field| field == "resource_units_reserved_for_recovery"));
+        assert!(schema["properties"]["action"]["enum"]
+            .as_array().unwrap().iter().any(|value| value == "deadline_missed"));
         assert!(schema["properties"].get("world_snapshot_sha256").is_none());
     }
 
