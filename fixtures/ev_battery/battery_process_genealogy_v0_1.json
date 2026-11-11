@@ -1,0 +1,18 @@
+{
+  "schema_version":"0.1.0",
+  "manifest_id":"SYNTH-BATTERY-GENEALOGY-001",
+  "evidence_class":"synthetic_fixture",
+  "material_lots":[{"lot_id":"LOT-CATHODE-A","material_family":"synthetic-LFP","source_ref":"SYNTHETIC-MATERIAL-DECLARATION","disposition":"synthetic_only"},{"lot_id":"LOT-ANODE-B","material_family":"synthetic-graphite","source_ref":"SYNTHETIC-MATERIAL-DECLARATION","disposition":"synthetic_only"},{"lot_id":"LOT-BINDER-C","material_family":"synthetic-binder","source_ref":"SYNTHETIC-MATERIAL-DECLARATION","disposition":"synthetic_only"}],
+  "process_events":[
+    {"event_id":"EVT-SLURRY-1","stage":"slurry_preparation","recipe_revision":"SYNTH-RECIPE-1","equipment_id":"SYNTH-MIXER-1","timestamp":"2026-01-01T08:00:00Z","parent_ids":["LOT-CATHODE-A","LOT-BINDER-C"],"child_ids":["SLURRY-1"],"field_records":[{"field":"batch_mass_g","value":1000,"unit":"g","kind":"synthetic_fixture","evidence_ref":"E-SYN-1"}]},
+    {"event_id":"EVT-COAT-1","stage":"coating","recipe_revision":"SYNTH-RECIPE-1","equipment_id":"SYNTH-COATER-1","timestamp":"2026-01-01T09:00:00Z","parent_ids":["SLURRY-1"],"child_ids":["WEB-1"],"field_records":[{"field":"loading_mg_cm2","value":18,"unit":"mg/cm2","kind":"synthetic_fixture","evidence_ref":"E-SYN-1"}]},
+    {"event_id":"EVT-DRY-1","stage":"drying","recipe_revision":"SYNTH-RECIPE-1","equipment_id":"SYNTH-DRYER-1","timestamp":"2026-01-01T10:00:00Z","parent_ids":["WEB-1"],"child_ids":["DRIED-WEB-1"],"field_records":[{"field":"residual_moisture_ppm","value":250,"unit":"ppm","kind":"synthetic_fixture","evidence_ref":"E-SYN-1"}]},
+    {"event_id":"EVT-CAL-1","stage":"calendering","recipe_revision":"SYNTH-RECIPE-1","equipment_id":"SYNTH-CALENDER-1","timestamp":"2026-01-01T11:00:00Z","parent_ids":["DRIED-WEB-1"],"child_ids":["ELECTRODE-1"],"field_records":[{"field":"porosity_fraction","value":0.31,"unit":"1","kind":"synthetic_fixture","evidence_ref":"E-SYN-1"}]},
+    {"event_id":"EVT-ASSEMBLY-1","stage":"cell_assembly","recipe_revision":"SYNTH-CELL-1","equipment_id":"SYNTH-ASSEMBLY-1","timestamp":"2026-01-02T08:00:00Z","parent_ids":["ELECTRODE-1","LOT-ANODE-B"],"child_ids":["CELL-1"],"field_records":[{"field":"assembly_record","value":"synthetic","unit":"none","kind":"synthetic_fixture","evidence_ref":"E-SYN-1"}]},
+    {"event_id":"EVT-FORMATION-1","stage":"formation","recipe_revision":"SYNTH-FORMATION-1","equipment_id":"SYNTH-CYCLER-1","timestamp":"2026-01-02T09:00:00Z","parent_ids":["CELL-1"],"child_ids":["FORMED-CELL-1"],"field_records":[{"field":"formation_record","value":"synthetic","unit":"none","kind":"synthetic_fixture","evidence_ref":"E-SYN-1"}]}
+  ],
+  "specimens":[{"specimen_id":"SLURRY-1","specimen_type":"slurry_batch","parent_ids":["LOT-CATHODE-A","LOT-BINDER-C"]},{"specimen_id":"WEB-1","specimen_type":"coated_web_segment","parent_ids":["SLURRY-1"]},{"specimen_id":"DRIED-WEB-1","specimen_type":"dried_electrode_web","parent_ids":["WEB-1"]},{"specimen_id":"ELECTRODE-1","specimen_type":"electrode_specimen","parent_ids":["DRIED-WEB-1"]}],
+  "cell_builds":[{"cell_id":"CELL-1","configuration_ref":"SYNTH-CELL-CONFIG-1","electrode_specimen_ids":["ELECTRODE-1"],"assembly_event_id":"EVT-ASSEMBLY-1","formation_event_id":"EVT-FORMATION-1"}],
+  "test_links":[{"test_id":"TEST-1","cell_id":"CELL-1","protocol_evidence_ref":"SYNTH-TEST-PROTOCOL-1","metrology_evidence_ref":"SYNTH-METROLOGY-1","raw_data_digest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","result_evidence_class":"synthetic_fixture"}],
+  "claim_ceiling":"synthetic genealogy structure only; no physical process, yield, or battery performance claim"
+}
