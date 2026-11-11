@@ -9,3 +9,5 @@ description = "Independent dense-coordinate covariance reference for a constrain
 
 [lib]
 path = "src/lib.rs"
+
+[workspace]
