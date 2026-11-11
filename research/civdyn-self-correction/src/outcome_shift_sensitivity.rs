@@ -232,7 +232,14 @@ fn normalize_arm<'a>(
         });
     }
 
-    let max_weight = observations
+    // Canonicalize before summation so every receipt is invariant to caller
+    // row order, including floating-point normalization order.
+    let mut ordered_observations = observations.to_vec();
+    ordered_observations.sort_by(|left, right| {
+        left.observation_id.cmp(&right.observation_id)
+    });
+
+    let max_weight = ordered_observations
         .iter()
         .map(|observation| observation.generalization_weight)
         .fold(0.0_f64, f64::max);
@@ -241,7 +248,7 @@ fn normalize_arm<'a>(
     }
 
     // Scale before summing so valid large finite weights cannot overflow.
-    let scaled_weights: Vec<f64> = observations
+    let scaled_weights: Vec<f64> = ordered_observations
         .iter()
         .map(|observation| observation.generalization_weight / max_weight)
         .collect();
@@ -250,7 +257,7 @@ fn normalize_arm<'a>(
         return Err(OutcomeShiftError::WeightNormalizationFailed { arm });
     }
 
-    let normalized: Vec<NormalizedObservation<'a>> = observations
+    let normalized: Vec<NormalizedObservation<'a>> = ordered_observations
         .iter()
         .zip(scaled_weights)
         .map(|(observation, scaled_weight)| NormalizedObservation {
