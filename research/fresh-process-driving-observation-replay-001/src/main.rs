@@ -680,12 +680,22 @@ fn run_bridge_negative_controls(
 
     let mut controls: Vec<(String, String, Value)> = Vec::new();
 
+    // Reuse tick 1's actual pixel bytes under tick 2's receipt. The second
+    // observation must be rejected, and the episode CLI must commit no HDC files.
     let mut stale_replay = base_request.clone();
-    stale_replay["observations"][0]["pixels_file"] = json!("frames/frame_0002.rgb");
+    stale_replay["observations"][1]["pixels_file"] = json!("frames/frame_0001.rgb");
     controls.push((
         "stale-frame-reuse".to_string(),
         "UpstreamFrameMismatch".to_string(),
-        stale_replay,
+        json!({
+            "schema_version": 1,
+            "bridge_config": base_request["bridge_config"].clone(),
+            "vision_config": base_request["vision_config"].clone(),
+            "observations": [
+                base_request["observations"][0].clone(),
+                stale_replay["observations"][1].clone()
+            ]
+        }),
     ));
 
     let mut pixel_corruption = base_request.clone();
@@ -729,6 +739,68 @@ fn run_bridge_negative_controls(
         "receipt-commitment-tamper".to_string(),
         "UpstreamReceiptCommitmentMismatch".to_string(),
         receipt_tamper,
+    ));
+
+    // Produce a valid renderer receipt for a sequence rollback: the upstream
+    // world tick advances from 2 to 3, while its observation sequence falls
+    // from 2 to 1. Upstream receipt identity remains internally consistent.
+    let rollback_snapshot = snapshot(3, false);
+    let rollback_clocks = clocks(3);
+    let rollback_render =
+        SoftwareCameraRenderer::render(&rollback_snapshot, 1, rollback_clocks)?;
+    fs::write(
+        negative_root.join("sequence-rollback.rgb"),
+        &rollback_render.pixels_rgb,
+    )?;
+    let mut rollback_observation = base_request["observations"][2].clone();
+    rollback_observation["sequence"] = json!(1);
+    rollback_observation["pixels_file"] = json!("bridge-negative-controls/sequence-rollback.rgb");
+    rollback_observation["upstream"] = serde_json::to_value(rollback_render.policy_receipt)?;
+    let mut sequence_rollback = base_request.clone();
+    sequence_rollback["observations"] = json!([
+        base_request["observations"][1].clone(),
+        rollback_observation
+    ]);
+    controls.push((
+        "sequence-rollback".to_string(),
+        "SequenceRegression".to_string(),
+        sequence_rollback,
+    ));
+
+    // Keep the upstream clock receipt valid while moving tick 3's capture
+    // timestamp behind tick 2. The bridge must reject before any output commit.
+    let mut regressed_world = snapshot(3, false);
+    regressed_world.world_timestamp_us = world_timestamp(2) - 1;
+    let regressed_capture = regressed_world.world_timestamp_us;
+    let regressed_clocks = RenderClocks {
+        capture_timestamp_us: regressed_capture,
+        render_completed_timestamp_us: regressed_capture + 800,
+        delivered_timestamp_us: regressed_capture + 1_000,
+    };
+    let regressed_render =
+        SoftwareCameraRenderer::render(&regressed_world, 3, regressed_clocks)?;
+    fs::write(
+        negative_root.join("capture-clock-regression.rgb"),
+        &regressed_render.pixels_rgb,
+    )?;
+    let mut regressed_observation = base_request["observations"][2].clone();
+    regressed_observation["sequence"] = json!(3);
+    regressed_observation["timestamp_us"] = json!(regressed_capture);
+    regressed_observation["vehicle_state_timestamp_us"] = json!(regressed_capture);
+    regressed_observation["vehicle_state"]["timestamp"] =
+        json!(regressed_capture as f64 / 1_000_000.0);
+    regressed_observation["pixels_file"] =
+        json!("bridge-negative-controls/capture-clock-regression.rgb");
+    regressed_observation["upstream"] = serde_json::to_value(regressed_render.policy_receipt)?;
+    let mut clock_regression = base_request.clone();
+    clock_regression["observations"] = json!([
+        base_request["observations"][1].clone(),
+        regressed_observation
+    ]);
+    controls.push((
+        "capture-clock-regression".to_string(),
+        "TimestampRegression".to_string(),
+        clock_regression,
     ));
 
     let mut records = Vec::with_capacity(controls.len());
