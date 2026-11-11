@@ -276,19 +276,28 @@ fn validate_profile_and_point_counts(observation: &SurfaceObservation, reasons: 
         push_reason(reasons, AbstainReason::InvalidProfileCounts);
         return;
     }
-    let computed_coverage = observation
+    let Some(computed_coverage) = observation
         .received_profile_count
-        .saturating_mul(1_000)
-        / observation.expected_profile_count;
+        .checked_mul(1_000)
+        .map(|value| value / observation.expected_profile_count)
+    else {
+        push_reason(reasons, AbstainReason::NumericOverflow);
+        return;
+    };
     if computed_coverage != observation.declared_profile_coverage_permille as u64 {
         push_reason(reasons, AbstainReason::ProfileCoverageMismatch);
     }
     if computed_coverage < observation.minimum_profile_coverage_permille as u64 {
         push_reason(reasons, AbstainReason::ProfileCoverageBelowMinimum);
     }
-    let dropped_permille = observation.dropped_profile_count
-        .saturating_mul(1_000)
-        / observation.expected_profile_count;
+    let Some(dropped_permille) = observation
+        .dropped_profile_count
+        .checked_mul(1_000)
+        .map(|value| value / observation.expected_profile_count)
+    else {
+        push_reason(reasons, AbstainReason::NumericOverflow);
+        return;
+    };
     if dropped_permille > observation.maximum_dropped_profile_permille as u64 {
         push_reason(reasons, AbstainReason::DroppedProfilesAboveLimit);
     }
@@ -305,9 +314,14 @@ fn validate_profile_and_point_counts(observation: &SurfaceObservation, reasons: 
     if observation.clipped_point_count > observation.invalid_point_count {
         push_reason(reasons, AbstainReason::ClippedPointCountInvalid);
     }
-    let invalid_permille = observation.invalid_point_count
-        .saturating_mul(1_000)
-        / observation.total_point_count;
+    let Some(invalid_permille) = observation
+        .invalid_point_count
+        .checked_mul(1_000)
+        .map(|value| value / observation.total_point_count)
+    else {
+        push_reason(reasons, AbstainReason::NumericOverflow);
+        return;
+    };
     if invalid_permille > observation.maximum_invalid_point_permille as u64 {
         push_reason(reasons, AbstainReason::InvalidPointFractionAboveLimit);
     }
@@ -391,7 +405,11 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
     if !evidence.registration.icp_converged {
         push_reason(&mut reasons, AbstainReason::IcpDidNotConverge);
     }
-    if (evidence.registration.rotation_determinant_milli - DETERMINANT_IDENTITY_MILLI).abs() > 10 {
+    if evidence
+            .registration
+            .rotation_determinant_milli
+            .abs_diff(DETERMINANT_IDENTITY_MILLI)
+            > 10 {
         push_reason(&mut reasons, AbstainReason::InvalidRigidTransform);
     }
     if evidence.registration.orthogonality_error_units
@@ -420,7 +438,7 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
     if !valid_sha256(&evidence.observation.occlusion_assessment_receipt_sha256) {
         push_reason(&mut reasons, AbstainReason::MissingOcclusionAssessmentReceipt);
     }
-    if evidence.observation.coordinate_unit != "um" {
+    if evidence.observation.coordinate_unit != "mm" {
         push_reason(&mut reasons, AbstainReason::InvalidCoordinateUnit);
     }
     validate_profile_and_point_counts(&evidence.observation, &mut reasons);
@@ -531,7 +549,7 @@ mod tests {
             },
             observation: SurfaceObservation {
                 coordinate_frame: "JOINT-FRAME".to_owned(),
-                coordinate_unit: "um".to_owned(),
+                coordinate_unit: "mm".to_owned(),
                 preparation: SurfacePreparation::DocumentedClean,
                 cleaning_receipt_sha256: digest('d'),
                 occlusion_assessment_receipt_sha256: digest('e'),
@@ -832,6 +850,26 @@ mod tests {
         let mut evidence = base_evidence();
         evidence.uncertainty.decision_tolerance_units = 0;
         abstains_with(&evidence, AbstainReason::InvalidDecisionTolerance);
+    }
+
+    #[test]
+    fn profile_count_arithmetic_overflow_abstains() {
+        let mut evidence = base_evidence();
+        evidence.observation.expected_profile_count = 1;
+        evidence.observation.received_profile_count = u64::MAX;
+        evidence.observation.dropped_profile_count = 0;
+        evidence.observation.declared_profile_coverage_permille = 990;
+        let ScanDecision::Abstain(reasons) = evaluate_scan(&evidence) else {
+            panic!("profile arithmetic overflow must abstain");
+        };
+        assert!(reasons.contains(&AbstainReason::NumericOverflow));
+    }
+
+    #[test]
+    fn determinant_minimum_signed_integer_is_rejected_without_panicking() {
+        let mut evidence = base_evidence();
+        evidence.registration.rotation_determinant_milli = i64::MIN;
+        abstains_with(&evidence, AbstainReason::InvalidRigidTransform);
     }
 
     #[test]
