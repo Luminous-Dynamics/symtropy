@@ -20,7 +20,7 @@ The inertia action is
 
 Because `B` is skew and `S` is symmetric, the result is skew and can be stored as a `Bivector<D>`. In principal coordinates, `S = Q diag(lambda) Q^T`, each plane `(i,j)` has inertia eigenvalue `lambda_i + lambda_j`. The inverse therefore rotates the bivector into principal coordinates, divides each plane by `lambda_i + lambda_j`, and rotates it back. A singular plane is accepted only when the requested momentum has no material component in that nullspace; otherwise the operation fails closed.
 
-This uses a `D x D` symmetric eigensolve plus plane-wise application rather than allocating a dense `D(D-1)/2` by `D(D-1)/2` inertia matrix. `Bivector` currently supports `2 <= D <= 9` (36 independent planes at D=9). This is a bounded research/reference contract, not a claim of arbitrary-D scalability.
+This uses a `D x D` symmetric eigensolve plus plane-wise application rather than allocating a dense `D(D-1)/2` by `D(D-1)/2` inertia matrix. `Bivector` defaults to compact `2 <= D <= 4` storage (six independent components maximum). Research builds opt into `nd-bivector-9` to enable `2 <= D <= 9` (36 independent planes at D=9). This avoids increasing every default production bivector's storage footprint. It is a bounded research/reference contract, not a claim of arbitrary-D scalability.
 
 ## Contact effective mass and signs
 
@@ -64,7 +64,7 @@ where `T` is the stored-bivector representation of the physical applied torque. 
 Run:
 
 ```bash
-cargo run --release --example anisotropic_reference_campaign -p symtropy-physics
+cargo run --release --example anisotropic_reference_campaign -p symtropy-physics --features nd-bivector-9
 ```
 
 The example emits deterministic CSV rows with `case`, `parameter`, `observed`, `reference`, absolute/relative error and a pass flag. It includes symmetric-top analytic precession/refinement, asymmetric-top energy convergence, intermediate-axis growth with world-momentum control, off-centre impulse/contact-effective-mass/energy identity, inverse round trips in D=2/3/4/9, mass scaling, body-frame vs explicit world-frame contact queries, point-cloud ordering, huge-offset/tiny-mass point-cloud and parallel-axis composition, and fail-closed underflow controls.
