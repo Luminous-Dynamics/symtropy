@@ -20,13 +20,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10100,
-        "inference_energy_uj": 41
+        "inference_energy_uj": 41,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 2,
@@ -36,13 +37,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10200,
-        "inference_energy_uj": 42
+        "inference_energy_uj": 42,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 3,
@@ -52,13 +54,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10300,
-        "inference_energy_uj": 43
+        "inference_energy_uj": 43,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 4,
@@ -68,13 +71,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10400,
-        "inference_energy_uj": 44
+        "inference_energy_uj": 44,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 5,
@@ -84,13 +88,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10500,
-        "inference_energy_uj": 45
+        "inference_energy_uj": 45,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 6,
@@ -100,13 +105,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10600,
-        "inference_energy_uj": 46
+        "inference_energy_uj": 46,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 7,
@@ -116,13 +122,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10700,
-        "inference_energy_uj": 47
+        "inference_energy_uj": 47,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 8,
@@ -132,13 +139,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10800,
-        "inference_energy_uj": 48
+        "inference_energy_uj": 48,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       }
     ]
   },
@@ -157,13 +165,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10100,
-        "inference_energy_uj": 41
+        "inference_energy_uj": 41,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 2,
@@ -173,13 +182,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10200,
-        "inference_energy_uj": 42
+        "inference_energy_uj": 42,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 3,
@@ -189,13 +199,18 @@
           "missing"
         ],
         "policy_input_accepted": false,
-        "fault_detected": true,
         "degraded_mode": true,
         "fallback_active": true,
         "safe_stop_complete": false,
         "normal_mode": false,
         "decision_latency_us": 10300,
-        "inference_energy_uj": 43
+        "inference_energy_uj": 43,
+        "fault_detection_event_ids": [
+          "camera-drop-001"
+        ],
+        "containment_event_ids": [
+          "camera-drop-001"
+        ]
       },
       {
         "tick": 4,
@@ -205,13 +220,16 @@
           "missing"
         ],
         "policy_input_accepted": false,
-        "fault_detected": false,
         "degraded_mode": true,
         "fallback_active": true,
         "safe_stop_complete": false,
         "normal_mode": false,
         "decision_latency_us": 10400,
-        "inference_energy_uj": 44
+        "inference_energy_uj": 44,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": [
+          "camera-drop-001"
+        ]
       },
       {
         "tick": 5,
@@ -221,13 +239,16 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": true,
         "fallback_active": true,
         "safe_stop_complete": false,
         "normal_mode": false,
         "decision_latency_us": 10500,
-        "inference_energy_uj": 45
+        "inference_energy_uj": 45,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": [
+          "camera-drop-001"
+        ]
       },
       {
         "tick": 6,
@@ -237,13 +258,16 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": true,
         "fallback_active": true,
         "safe_stop_complete": false,
         "normal_mode": false,
         "decision_latency_us": 10600,
-        "inference_energy_uj": 46
+        "inference_energy_uj": 46,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": [
+          "camera-drop-001"
+        ]
       },
       {
         "tick": 7,
@@ -253,13 +277,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10700,
-        "inference_energy_uj": 47
+        "inference_energy_uj": 47,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       },
       {
         "tick": 8,
@@ -269,13 +294,14 @@
           "clean"
         ],
         "policy_input_accepted": true,
-        "fault_detected": false,
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
         "normal_mode": true,
         "decision_latency_us": 10800,
-        "inference_energy_uj": 48
+        "inference_energy_uj": 48,
+        "fault_detection_event_ids": [],
+        "containment_event_ids": []
       }
     ]
   },
