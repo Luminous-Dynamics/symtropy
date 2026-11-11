@@ -1,0 +1,70 @@
+# N-dimensional bivector inertia reference and validation
+
+**Status:** independent reference/evidence API; not connected to `RigidBody` or `PhysicsWorld` production stepping.
+
+## Purpose
+
+Three principal moments are not a general rotational-inertia model once a mass distribution has off-diagonal second moments or when the rotation space has dimension greater than three. The natural generalized velocity state is a bivector in `Lambda^2(R^D)`, with `D(D-1)/2` independent planes. The reference in `src/bivector_inertia.rs` acts directly on that space without constructing a dense square matrix over all bivector coordinates.
+
+## Representation and operator
+
+Let the centered mass second-moment matrix be
+
+`S = integral (r r^T) dm`,
+
+with `S` symmetric positive semidefinite and expressed in the same frame as the stored angular bivector `B`. Symtropy's Rotor convention is `Rotor::from_bivector(B) = exp(-B)`, so physical point velocity is `v_rot(r) = -B r`.
+
+The inertia action is
+
+`I(B) = B S + S B`.
+
+Because `B` is skew and `S` is symmetric, the result is skew and can be stored as a `Bivector<D>`. In principal coordinates, `S = Q diag(lambda) Q^T`, each plane `(i,j)` has inertia eigenvalue `lambda_i + lambda_j`. The inverse therefore rotates the bivector into principal coordinates, divides each plane by `lambda_i + lambda_j`, and rotates it back. A singular plane is accepted only when the requested momentum has no material component in that nullspace; otherwise the operation fails closed.
+
+This uses a `D x D` symmetric eigensolve plus plane-wise application rather than allocating a dense `D(D-1)/2` by `D(D-1)/2` inertia matrix. `Bivector` currently supports `2 <= D <= 9` (36 independent planes at D=9). This is a bounded research/reference contract, not a claim of arbitrary-D scalability.
+
+## Contact effective mass and signs
+
+For a unit impulse direction `n` at COM offset `r`, the stored angular impulse uses the offset-first convention
+
+`delta_L = r wedge n`.
+
+The stored response is `delta_B = I^-1(delta_L)`. The physical contact-point velocity response is
+
+`delta_v_rot = -delta_B r`,
+
+and the rotational contribution to inverse effective mass is `n dot delta_v_rot`. This must be nonnegative for valid positive inertia. The reference rejects non-finite inputs, zero directions, singular excited planes and materially negative effective mass. A global rigid-rotation metamorphic test checks that the scalar response is invariant when inertia, lever arm and impulse direction rotate together.
+
+## Gyroscopic derivative
+
+For world/spatial-frame `B` and `S`, Rotor's `exp(-B)` convention gives
+
+`S_dot = -B S + S B`.
+
+With `L = B S + S B`, the stored angular momentum coordinates use the same physical axial-vector sign as the offset-first `r wedge j` torque. The reference derivative is therefore
+
+`I(B_dot) = [B, L] + T`,
+
+where `T` is the stored-bivector representation of the physical applied torque. `B`, `S`, and `T` must be expressed in one frame; use `rotated_by` before combining body properties with world-frame angular state. Tests check torque-free momentum/energy derivative, applied torque balance, and body/world covariance.
+
+## Executable test matrix
+
+- Analytical uniform D-ball plane moment for D=2,3,4 and anisotropic ellipsoid principal-plane moments in D=3.
+- Off-diagonal second moments coupling distinct rotation planes.
+- Forward/inverse round trips in D=3, D=4 (all six planes), and D=9 (all 36 planes).
+- Body-to-world inertia rotation, kinetic-energy covariance, gyroscopic acceleration covariance and rotational contact effective-mass covariance.
+- Analytical isotropic contact effective mass and anisotropic principal-plane contact response.
+- Torque-free momentum/energy derivative and instantaneous applied-torque balance.
+- Parallel-axis composition with centered offsets, point-mass translation invariance (including small geometry far from world origin), and offset-centering negative control.
+- Invalid dimension, asymmetric/indefinite/zero-mass/degenerate inputs, invalid tolerance, singular rotation planes, zero impulse direction, improper Rotor, non-finite intermediates and overflow controls.
+
+## Promotion boundaries
+
+Passing this reference's tests would establish an independently inspectable N-dimensional inertia operator, not production anisotropic rigid-body dynamics. Promotion still requires:
+
+1. independent analytical and manufactured-solution review of the operator and its signs;
+2. differential comparison with an independent mechanics implementation on equivalent 3D and, where supported, higher-D cases;
+3. a production state representation and serialization/replay migration;
+4. consistent use by integration, contact impulses, warm starting, friction, joints, CCD and energy/work accounting;
+5. measured conditioning, timestep-convergence, long-horizon drift and matched-accuracy cost curves.
+
+No production, SOTA, or performance claim follows merely from this reference API existing.
