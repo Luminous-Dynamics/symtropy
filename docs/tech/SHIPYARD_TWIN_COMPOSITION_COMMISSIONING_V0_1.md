@@ -29,7 +29,7 @@ The crate is isolated in a nested Cargo workspace with its own lockfile; root wo
 
 ## Synthetic test coverage
 
-The 23 tests cover all three composition topologies, receipt binding and expiry, member revision/source drift, workpiece mismatch, stale members, physical evidence rejection, missing interfaces, schema/unit/frame/clock mismatch, frequency/latency/jitter/fidelity budgets, end-to-end latency, authority capability escalation, unknown outcomes, lifecycle suspension/requalification and retirement.
+The 22 tests cover all three composition topologies, receipt binding and expiry, member revision/source drift, workpiece mismatch, stale members, physical evidence rejection, missing interfaces, schema/unit/frame/clock mismatch, frequency/latency/jitter/fidelity budgets, end-to-end latency, authority capability escalation, unknown outcomes, lifecycle suspension/requalification and retirement.
 
 All metrics are synthetic ticks and permille units. There is no connection to live equipment, no physical digital twin, and no operational commissioning authority.
 
