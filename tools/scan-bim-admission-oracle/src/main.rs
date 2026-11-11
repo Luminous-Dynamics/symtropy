@@ -83,9 +83,19 @@ enum RegistrationStabilityStatus {
 
 #[derive(Debug, Deserialize, Clone)]
 #[serde(deny_unknown_fields)]
+struct EvidenceScope {
+    survey_product_sha256: String,
+    asset_id: String,
+    base_model_revision: String,
+    frame_id: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
 struct EvidenceReceiptRef {
     status: EvidenceStatus,
     receipt_sha256: Option<String>,
+    scope: EvidenceScope,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -171,6 +181,14 @@ fn is_sha256(value: &str) -> bool {
             .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
 }
 
+fn receipt_scope_matches(receipt: &EvidenceReceiptRef, survey: &SurveyEvidenceBinding) -> bool {
+    let scope = &receipt.scope;
+    scope.survey_product_sha256 == survey.survey_product_sha256
+        && scope.asset_id == survey.asset_id
+        && scope.base_model_revision == survey.base_model_revision
+        && scope.frame_id == survey.frame_id
+}
+
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
@@ -216,6 +234,25 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
                 "STALE_OR_INVALID_EVIDENCE",
                 "UPSTREAM_SURVEY_PRODUCT_INVALID",
             );
+        }
+    }
+
+    for (receipt, reason) in [
+        (
+            &survey_evidence.change_estimate,
+            "CHANGE_ESTIMATE_RECEIPT_SCOPE_MISMATCH",
+        ),
+        (
+            &survey_evidence.registration_stability_receipt,
+            "REGISTRATION_STABILITY_RECEIPT_SCOPE_MISMATCH",
+        ),
+        (
+            &survey_evidence.independent_checkpoint,
+            "INDEPENDENT_CHECKPOINT_RECEIPT_SCOPE_MISMATCH",
+        ),
+    ] {
+        if !receipt_scope_matches(receipt, survey_evidence) {
+            return decision("STALE_OR_INVALID_EVIDENCE", reason);
         }
     }
 
@@ -890,6 +927,24 @@ mod tests {
                 .find(|item| item.case_id == case_id)
                 .expect("unresolved evidence fixture");
             assert_eq!(evaluate(case).0, "REQUEST_ADDITIONAL_OBSERVATION");
+            assert_eq!(evaluate(case).1, vec![reason.to_owned()]);
+        }
+    }
+
+    #[test]
+    fn each_upstream_receipt_must_match_the_exact_survey_scope() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
+        for (case_id, reason) in [
+            ("SB-035", "CHANGE_ESTIMATE_RECEIPT_SCOPE_MISMATCH"),
+            ("SB-036", "REGISTRATION_STABILITY_RECEIPT_SCOPE_MISMATCH"),
+            ("SB-037", "INDEPENDENT_CHECKPOINT_RECEIPT_SCOPE_MISMATCH"),
+        ] {
+            let case = corpus
+                .cases
+                .iter()
+                .find(|item| item.case_id == case_id)
+                .expect("receipt scope mismatch fixture");
+            assert_eq!(evaluate(case).0, "STALE_OR_INVALID_EVIDENCE");
             assert_eq!(evaluate(case).1, vec![reason.to_owned()]);
         }
     }
