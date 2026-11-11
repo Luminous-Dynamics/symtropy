@@ -1255,6 +1255,7 @@ mod tests {
         let result = evaluate_command_response(&response_pair(), Some(&threshold())).unwrap();
         assert_eq!(result.status, ResponseStatus::MismatchOutsideCalibratedEnvelope);
         assert_eq!(result.cause_claim, CauseClaim::NotIsolated);
+        assert_eq!(result.prediction_time_seconds, 0.45);
         assert!(result.standardized_absolute_residual.unwrap() > 2.0);
     }
 
