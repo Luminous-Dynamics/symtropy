@@ -43,6 +43,20 @@ const RESTITUTION_VELOCITY_THRESHOLD: f64 = 1.0;
 /// below what would let one bad frame launch a body across the scene.
 const MAX_BIAS_VELOCITY: f64 = 10.0;
 
+/// Rotational contribution to the normal contact effective mass for a unit
+/// normal impulse applied at the supplied center-of-mass lever arm.
+fn angular_contact_effective_mass<const D: usize>(
+    body: &RigidBody<D>,
+    lever_arm: &SVector<f64, D>,
+    normal: &SVector<f64, D>,
+) -> f64 {
+    let angular_impulse = Bivector::from_wedge(normal, lever_arm);
+    let delta_omega = body.apply_inverse_angular_inertia(&angular_impulse);
+    normal
+        .dot(&delta_omega.apply_to_vector(lever_arm))
+        .max(0.0)
+}
+
 /// Quantize a float to Q16.16 fixed-point (range ±32768, resolution 1/65536).
 ///
 /// Used by the `deterministic-net` feature to guarantee bit-identical simulation
@@ -1074,20 +1088,10 @@ impl<const D: usize> PhysicsWorld<D> {
             // project the resulting contact-point velocity change onto n.
             // This reduces to inv_I * |r_perp|² for isotropic bodies while
             // retaining world-space anisotropic coupling for rotated 3D links.
-            let angular_impulse_a = Bivector::from_wedge(&contact.normal, &r_a);
-            let angular_impulse_b = Bivector::from_wedge(&contact.normal, &r_b);
-            let delta_omega_a =
-                self.bodies[a].apply_inverse_angular_inertia(&angular_impulse_a);
-            let delta_omega_b =
-                self.bodies[b].apply_inverse_angular_inertia(&angular_impulse_b);
-            let ang_term_a = contact
-                .normal
-                .dot(&delta_omega_a.apply_to_vector(&r_a))
-                .max(0.0);
-            let ang_term_b = contact
-                .normal
-                .dot(&delta_omega_b.apply_to_vector(&r_b))
-                .max(0.0);
+            let ang_term_a =
+                angular_contact_effective_mass(&self.bodies[a], &r_a, &contact.normal);
+            let ang_term_b =
+                angular_contact_effective_mass(&self.bodies[b], &r_b, &contact.normal);
 
             // TGS Soft impulse: Δλ = (-v_rel·n + bias) / (w_a + w_b + I_a + I_b + α)
             let denom = total_inv_mass + alpha + ang_term_a + ang_term_b;
@@ -2564,5 +2568,64 @@ mod transformed_halfspace_tests {
             .rotation = Rotor::from_plane_angle(&Bivector::unit_plane(0, 1), FRAC_PI_2);
 
         assert!(world.static_tree_dirty);
+    }
+}
+
+
+#[cfg(test)]
+mod anisotropic_contact_inertia_tests {
+    use super::*;
+    use symtropy_math::{Point, Rotor};
+
+    #[test]
+    fn isotropic_contact_effective_mass_matches_scalar_reference() {
+        let body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            1.0,
+            1.0,
+        );
+        let lever = SVector::from([1.0, 0.0, 0.0]);
+        let normal = SVector::from([0.0, 1.0, 0.0]);
+
+        let expected = (body.inv_inertia.sum() / 3.0)
+            * (lever.norm_squared() - lever.dot(&normal).powi(2));
+        let actual = angular_contact_effective_mass(&body, &lever, &normal);
+        assert!((actual - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rotated_asymmetric_contact_uses_world_space_principal_inertia() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(2),
+            Point::origin(),
+            0.1,
+            1.0,
+        );
+        body.inertia = SVector::from([1.0, 2.0, 4.0]);
+        body.inv_inertia = SVector::from([1.0, 0.5, 0.25]);
+        body.transform.rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(1, 2),
+            std::f64::consts::FRAC_PI_2,
+        );
+        let lever = SVector::from([1.0, 0.0, 0.0]);
+        let normal = SVector::from([0.0, 1.0, 0.0]);
+
+        // The contact torque is about world Z; after the +90° X rotation,
+        // world Z aligns with the body's local Y principal axis (I = 2).
+        let actual = angular_contact_effective_mass(&body, &lever, &normal);
+        assert!((actual - 0.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn immovable_body_has_zero_rotational_contact_effective_mass() {
+        let body = RigidBody::<3>::static_body(
+            BodyHandle(3),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::unit()),
+        );
+        let lever = SVector::from([1.0, 0.0, 0.0]);
+        let normal = SVector::from([0.0, 1.0, 0.0]);
+        assert_eq!(angular_contact_effective_mass(&body, &lever, &normal), 0.0);
     }
 }
