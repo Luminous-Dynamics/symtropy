@@ -156,20 +156,32 @@
         "chain_of_causation_trace_count": 3700000,
         "pixel_to_trajectory_latency_ms_min": 160,
         "pixel_to_trajectory_latency_ms_max": 190,
-        "closed_loop_rl_relative_improvement_percent": 48.9
+        "closed_loop_rl_relative_improvement_percent": 48.9,
+        "total_parameters_billions": 2.65,
+        "h100_measured_peak_gpu_memory_gib": 12.06,
+        "recommended_gpu_memory_gib": 16,
+        "training_image_count_minimum_billions": 1,
+        "training_video_hours_approx": 115000,
+        "input_camera_count": 6,
+        "input_frames_per_driving_observation": 22,
+        "historical_ego_pose_count": 20,
+        "deployment_latency_min_ms": 160,
+        "deployment_latency_max_ms": 190,
+        "alpagym_closed_loop_rl_improvement_percent": 48.9
       },
       "capabilities": [
-        "2.45B reasoning backbone plus 0.2B diffusion action expert (model-card breakdown; NVIDIA blog headline rounds to 2B)",
-        "adaptive reasoning; <NOMINAL> output may skip routine reasoning traces",
-        "six-camera multi-timestep inputs plus navigation text and ego-motion history",
-        "Alpamayo 2 Super-generated Chain-of-Causation traces for distillation",
-        "AlpaGym closed-loop RL; NVIDIA reports 48.9% improvement over its best checkpoint without closed-loop RL",
-        "DRIVE AGX Thor deployment recipe with DFlash2/TensorRT acceleration",
-        "deployment latency figure is tied to DRIVE AGX Thor-X, DRIVE OS 7.2.7.0, CUDA 13.4 and TensorRT 11.3.1.9"
+        "Model-card breakdown: 2.45B backbone + 0.20B diffusion action expert = 2.65B combined components; the NVIDIA blog headline rounds to 2B",
+        "BF16 checkpoint; model card reports an H100 80GB validation setup and recommends at least 16GB GPU memory for the measured configuration; other GPU architectures are marked unvalidated",
+        "six-camera, 22-frame driving observation plus navigation text and 20 historical ego poses",
+        "model card lists approximately 115,000 hours multi-camera driving video, 3.7M CoC traces and more than 1B images",
+        "adaptive reasoning can emit a <NOMINAL> token rather than a full reasoning trace during routine driving",
+        "AlpaGym closed-loop RL; NVIDIA reports 48.9% improvement over the best checkpoint without closed-loop RL",
+        "NVIDIA Thor-X deployment recipe, DRIVE OS 7.2.7.0, CUDA 13.4, TensorRT 11.3.1.9 and DFlash2 report 160–190 ms pixel-to-trajectory latency",
+        "AlpaJudge supplies reference-based/reference-free reasoning assessment; rationale quality remains distinct from trajectory and safety outcomes"
       ],
       "source": "https://huggingface.co/nvidia/Alpamayo2-Edge",
       "independent_symtropy_reproduction": false,
-      "protocol": "Model-card closed-loop mean ± std over 875 AlpaSim scenarios and three rollout sets; separate 1,392-sample open-loop minADE6 at 5 seconds; separate LingoQA reasoning score; latency from NVIDIA's named Thor-X deployment recipe. Do not pool these measures."
+      "protocol": "Model-card AlpaSim: mean 15.15 ± 0.04 km per at-fault incident across 875 PhysicalAI-AV-NuRec scenarios and three rollout sets; separate 1,392-sample open-loop minADE6 at 5 seconds; separate LingoQA Lingo-Judge score 75.2. NVIDIA Thor-X deployment recipe reports 160–190 ms pixel-to-trajectory with specified software/board. Do not pool any metrics. Model card says 80GB H100 was tested and recommends >=16GB; Thor deployment recipe is separately described."
     },
     {
       "id": "alpamayo_2_super_2026",
@@ -251,7 +263,7 @@
         "nc": 99.4,
         "epdms": 90.9
       },
-      "protocol": "Third-party SOTA2 snapshot, marked updated five months before 2026-11-11. Native NAVSIM v2 end-to-end test track only. This is not an official NAVSIM organizer publication or an independent Symtropy reproduction; re-verify the active leaderboard and evaluator before using as a target.",
+      "protocol": "Third-party SOTA2 snapshot, updated approximately five months before 2026-11-11. NAVSIM v2 end-to-end test native metrics only: NTR 90.9 EPDMS, NC 99.4. Not an official organizer result or Symtropy reproduction; re-verify live leaderboard, task split, model inputs and evaluator before using as target.",
       "source": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test",
       "independent_symtropy_reproduction": false
     },
@@ -544,6 +556,30 @@
       "url": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test",
       "published": "2026-05 snapshot; rechecked 2026-11-11",
       "source_type": "third-party leaderboard aggregator"
+    },
+    {
+      "id": "alpamayo_edge_model_card",
+      "url": "https://huggingface.co/nvidia/Alpamayo2-Edge",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA model card with model architecture, evaluation, training-data and inference disclosures"
+    },
+    {
+      "id": "alpamayo_edge_deployment_blog",
+      "url": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA deployment recipe blog; 160–190ms Thor-X latency and 48.9% relative closed-loop RL improvement"
+    },
+    {
+      "id": "bench2drive_robust",
+      "url": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust",
+      "published": "2026-05-21",
+      "source_type": "closed-loop deployment robustness benchmark repository"
+    },
+    {
+      "id": "navsim_v2_e2e_test_snapshot",
+      "url": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test",
+      "published": "2026-05",
+      "source_type": "third-party leaderboard snapshot; not primary organizer source"
     }
   ]
 }
