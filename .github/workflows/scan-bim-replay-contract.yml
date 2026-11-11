@@ -114,6 +114,48 @@ jobs:
             (.incomplete_relation_inventory_count == 0) and
             (.continuity_state == "continuity_preserved")
           ' /tmp/scan-bim-continuity-report.json
+      - name: Check critical property-retention schema and fixture contract
+        run: |
+          jq -e '
+            (.$schema == "https://json-schema.org/draft/2020-12/schema") and
+            (.properties.scope.properties.requirement_completeness.enum == ["complete", "partial", "unknown"]) and
+            (.properties.requirements.minItems == 1) and
+            (.properties.comparisons.minItems == 1) and
+            (.properties.comparisons.items.properties.disposition.enum | index("preserved_normalized") != null)
+          ' research/scan-bim-critical-attribute-retention-001/schema/property-retention-receipt.schema.json
+          jq -e '
+            (.schema_version == "0.1") and
+            (.scope.requirement_completeness == "complete") and
+            ((.requirements | length) == 3) and
+            ((.comparisons | length) == 3) and
+            ([.requirements[] | select(.importance == "critical" and .required)] | length == 2) and
+            ([.comparisons[] | select(.disposition == "preserved_normalized")] | length == 1)
+          ' research/scan-bim-critical-attribute-retention-001/fixtures/known_answers_v0_1.json
+      - name: Execute critical property-retention audit
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            --bin scan_bim_property_retention_audit -- \
+            research/scan-bim-critical-attribute-retention-001/fixtures/known_answers_v0_1.json \
+            > /tmp/scan-bim-property-retention-report.json
+          jq -e '
+            (.schema_version == "0.1") and
+            (.receipt_id == "CRITICAL-ATTRIBUTE-RETENTION-SYNTHETIC-001") and
+            (.requirement_count == 3) and
+            (.comparison_count == 3) and
+            (.required_property_count == 3) and
+            (.source_present_required_count == 3) and
+            (.preserved_required_count == 3) and
+            (.required_property_retention_ratio == 1.0) and
+            (.critical_required_count == 2) and
+            (.critical_loss_count == 0) and
+            (.critical_unresolved_count == 0) and
+            (.preservation_state == "preserved") and
+            (.added_property_count == 0) and
+            (.changed_property_count == 0) and
+            (.lost_property_count == 0) and
+            (.unsupported_property_count == 0) and
+            (.unresolved_property_count == 0)
+          ' /tmp/scan-bim-property-retention-report.json
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
