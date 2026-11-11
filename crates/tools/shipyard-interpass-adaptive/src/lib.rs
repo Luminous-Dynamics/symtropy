@@ -562,6 +562,76 @@ mod tests {
     }
 
     #[test]
+    fn geometry_only_and_time_only_baselines_choose_different_passes() {
+        let Decision::ParetoRecommendations { recommendations, .. } =
+            recommend_next_pass(&base_input()) else {
+                panic!("valid synthetic observation should produce recommendations");
+            };
+        let geometry_only = recommendations
+            .iter()
+            .min_by_key(|item| (item.objectives.robust_geometry_error_units, &item.candidate_id))
+            .expect("geometry-only baseline candidate");
+        let time_only = recommendations
+            .iter()
+            .min_by_key(|item| (item.objectives.duration_units, &item.candidate_id))
+            .expect("time-only baseline candidate");
+        assert_eq!(geometry_only.candidate_id, "FILL-MID");
+        assert_eq!(time_only.candidate_id, "FILL-OVER");
+        assert_eq!(recommendations.len(), 3);
+    }
+
+    #[test]
+    fn receding_horizon_replans_from_the_new_after_pass_scan() {
+        let first = recommend_next_pass(&base_input());
+        let Decision::ParetoRecommendations { recommendations: first_frontier, .. } = first else {
+            panic!("first observation should produce recommendations");
+        };
+        let first_geometry_best = first_frontier
+            .iter()
+            .min_by_key(|item| item.objectives.robust_geometry_error_units)
+            .expect("first geometry baseline");
+        assert_eq!(first_geometry_best.candidate_id, "FILL-MID");
+
+        let mut second_input = base_input();
+        second_input.observed_state.after_pass_id = "PASS-03".to_owned();
+        second_input.observed_state.scan_id = "SCAN-AFTER-PASS-03".to_owned();
+        second_input.observed_state.scan_sha256 = [0x33; 32];
+        second_input.observed_state.registration_receipt_sha256 = [0x44; 32];
+        second_input.observed_state.residual_fill_area_units = 55;
+        second_input.observed_state.uncertainty_bound_units = 5;
+        second_input.observed_state.observed_at_tick = 110;
+        second_input.expected_predecessor_pass_id = "PASS-03".to_owned();
+        second_input.decision_at_tick = 110;
+
+        let next_actions = [
+            ("FILL-45", 45),
+            ("FILL-55", 55),
+            ("FILL-70", 70),
+        ];
+        for (candidate, (candidate_id, deposition)) in
+            second_input.candidates.iter_mut().zip(next_actions)
+        {
+            candidate.candidate_id = candidate_id.to_owned();
+            candidate.predecessor_pass_id = "PASS-03".to_owned();
+            candidate.source_scan_id = "SCAN-AFTER-PASS-03".to_owned();
+            candidate.source_scan_sha256 = [0x33; 32];
+            candidate.source_registration_receipt_sha256 = [0x44; 32];
+            candidate.deposition_area_units = deposition;
+        }
+
+        let second = recommend_next_pass(&second_input);
+        let Decision::ParetoRecommendations { recommendations: second_frontier, .. } = second else {
+            panic!("new observation should produce a new recommendation frontier");
+        };
+        let second_geometry_best = second_frontier
+            .iter()
+            .min_by_key(|item| item.objectives.robust_geometry_error_units)
+            .expect("second geometry baseline");
+        assert_eq!(second_geometry_best.candidate_id, "FILL-55");
+        assert_ne!(first_geometry_best.candidate_id, second_geometry_best.candidate_id);
+    }
+
+    #[test]
     fn stale_predecessor_scan_causes_abstention() {
         let mut input = base_input();
         input.observed_state.after_pass_id = "PASS-01".to_owned();
