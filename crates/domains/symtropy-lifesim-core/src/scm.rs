@@ -378,8 +378,14 @@ impl ScmModel {
             .iter()
             .map(|agent| agent.position.clone())
             .collect();
-        let (_, _, _, _, lambdas, spread_degenerate) =
-            consensus_state(&previous_positions, &current_observations, self.config.numerical_epsilon);
+        let communication_neighbors =
+            build_communication_neighbors(&previous_positions, self.config.communication_topology);
+        let current_network = communication_consensus_state(
+            &previous_positions,
+            &current_observations,
+            &communication_neighbors,
+            self.config.numerical_epsilon,
+        );
 
         let gradient_norms: Vec<f64> = current_observations
             .iter()
@@ -389,15 +395,25 @@ impl ScmModel {
             .iter()
             .map(|value| *value / gradient_norms.len() as f64)
             .sum::<f64>();
-        let gradient_degenerate = !mean_gradient_norm.is_finite()
-            || mean_gradient_norm <= self.config.numerical_epsilon;
-        // xi = 1/mean(||grad V||) is singular when every gradient is zero.
-        // The independent reference uses an explicit finite zero-gain fallback.
-        let fitness_gradient_gain = if gradient_degenerate {
-            0.0
-        } else {
-            1.0 / mean_gradient_norm
-        };
+        let mut gradient_gain_by_agent = vec![0.0; previous_positions.len()];
+        let mut gradient_degenerate_agents = 0usize;
+        for agent_index in 0..previous_positions.len() {
+            let local_indices = local_neighborhood_indices(agent_index, &communication_neighbors);
+            let local_mean_gradient_norm = local_indices
+                .iter()
+                .map(|index| gradient_norms[*index] / local_indices.len() as f64)
+                .sum::<f64>();
+            if !local_mean_gradient_norm.is_finite()
+                || local_mean_gradient_norm <= self.config.numerical_epsilon
+            {
+                gradient_degenerate_agents += 1;
+                gradient_gain_by_agent[agent_index] = 0.0;
+            } else {
+                gradient_gain_by_agent[agent_index] = 1.0 / local_mean_gradient_norm;
+            }
+        }
+        let gradient_degenerate = gradient_degenerate_agents == previous_positions.len();
+        let lambdas = &current_network.lambdas;
 
         // Work against cloned random state and candidate positions. If the next landscape
         // observation fails, no agent/RNG/tick/cost state is committed by this update.
@@ -413,18 +429,20 @@ impl ScmModel {
         for agent_index in 0..previous_positions.len() {
             let mut next = vec![0.0; dimension];
             for coordinate in 0..dimension {
+                let neighbor_indices = &communication_neighbors[agent_index];
                 let mut social_sum = 0.0;
-                for other_index in 0..previous_positions.len() {
-                    if other_index == agent_index {
-                        continue;
-                    }
+                for &other_index in neighbor_indices {
                     let delta = previous_positions[agent_index][coordinate]
                         - previous_positions[other_index][coordinate];
                     social_sum += (kernel_scale * delta).sin();
                 }
-                let social_gradient =
-                    -social_sum / (previous_positions.len().saturating_sub(1) as f64);
+                let social_gradient = if neighbor_indices.is_empty() {
+                    0.0
+                } else {
+                    -social_sum / neighbor_indices.len() as f64
+                };
                 let fitness_gradient = current_observations[agent_index].gradient[coordinate];
+                let fitness_scale = gradient_gain_by_agent[agent_index] * 4.0 / (PI * PI);
                 let noise = noise_scale
                     * lambdas[agent_index]
                     * sqrt_dt
@@ -464,18 +482,15 @@ impl ScmModel {
             .iter()
             .map(|agent| agent.position.clone())
             .collect();
-        let (
-            updated_centroid,
-            updated_distances,
-            updated_max_distance,
-            updated_consensus,
-            _,
-            updated_spread_degenerate,
-        ) = consensus_state(
+        let updated_neighbors =
+            build_communication_neighbors(&updated_positions, self.config.communication_topology);
+        let updated_network = communication_consensus_state(
             &updated_positions,
             &updated_observations,
+            &updated_neighbors,
             self.config.numerical_epsilon,
         );
+        let updated_consensus = updated_network.mean_consensus;
 
         let history_capacity = match self.config.consensus_window {
             ScmConsensusWindow::PublishedEqualHalfIntervals => self.config.tau_steps,
@@ -541,16 +556,25 @@ impl ScmModel {
             tick: next_tick,
             interaction_kernel: self.config.kernel,
             consensus_window: self.config.consensus_window,
+            communication_topology: self.config.communication_topology,
             consensus: updated_consensus,
             sigma_before_update,
             sigma_after_update: next_sigma,
-            centroid: updated_centroid,
-            mean_agent_distance: updated_distances.iter().sum::<f64>()
-                / updated_distances.len() as f64,
-            maximum_pairwise_distance: updated_max_distance,
+            centroid: updated_network.mean_local_centroid,
+            mean_agent_distance: updated_network
+                .distances_to_local_centroid
+                .iter()
+                .sum::<f64>()
+                / updated_network.distances_to_local_centroid.len() as f64,
+            maximum_pairwise_distance: updated_network.maximum_local_pairwise_distance,
             mean_gradient_norm_before_update: mean_gradient_norm,
             gradient_degenerate,
-            swarm_spread_degenerate: spread_degenerate || updated_spread_degenerate,
+            gradient_degenerate_agents,
+            swarm_spread_degenerate: updated_network.locally_degenerate_spread_agents
+                == next_agents.len(),
+            locally_degenerate_spread_agents: updated_network.locally_degenerate_spread_agents,
+            mean_communicating_neighbors: updated_network.mean_neighbor_count,
+            isolated_agents: updated_network.isolated_agents,
             outside_domain_agents,
             consensus_window_delta,
             convergence_window_satisfied,
@@ -656,7 +680,184 @@ fn conical_barrier_gradient(position: &[f64], config: ScmConfig) -> Vec<f64> {
         .collect()
 }
 
-fn consensus_state(
+#[derive(Debug, Clone, PartialEq)]
+struct ScmCommunicationState {
+    lambdas: Vec<f64>,
+    distances_to_local_centroid: Vec<f64>,
+    maximum_local_pairwise_distance: f64,
+    mean_local_centroid: Vec<f64>,
+    mean_consensus: f64,
+    locally_degenerate_spread_agents: usize,
+    mean_neighbor_count: f64,
+    isolated_agents: usize,
+}
+
+/// Build deterministic, sorted neighbor lists. Self is never included here; local
+/// consensus adds the focal agent explicitly. CompleteGraph is the published SCM baseline.
+fn build_communication_neighbors(
+    positions: &[Vec<f64>],
+    topology: ScmCommunicationTopology,
+) -> Vec<Vec<usize>> {
+    let count = positions.len();
+    let mut neighbors = vec![Vec::new(); count];
+    match topology {
+        ScmCommunicationTopology::CompleteGraph => {
+            for (focal, list) in neighbors.iter_mut().enumerate() {
+                list.extend((0..count).filter(|candidate| *candidate != focal));
+            }
+        }
+        ScmCommunicationTopology::Ring => {
+            for (focal, list) in neighbors.iter_mut().enumerate() {
+                if count > 1 {
+                    let previous = (focal + count - 1) % count;
+                    let next = (focal + 1) % count;
+                    if previous != focal {
+                        list.push(previous);
+                    }
+                    if next != focal && next != previous {
+                        list.push(next);
+                    }
+                    list.sort_unstable();
+                }
+            }
+        }
+        ScmCommunicationTopology::MetricRadius { radius } => {
+            for focal in 0..count {
+                for candidate in 0..count {
+                    if candidate == focal {
+                        continue;
+                    }
+                    let difference: Vec<f64> = positions[focal]
+                        .iter()
+                        .zip(positions[candidate].iter())
+                        .map(|(left, right)| left - right)
+                        .collect();
+                    if l2_norm(&difference) <= radius {
+                        neighbors[focal].push(candidate);
+                    }
+                }
+            }
+        }
+    }
+    neighbors
+}
+
+fn local_neighborhood_indices(
+    focal: usize,
+    neighbors: &[Vec<usize>],
+) -> Vec<usize> {
+    let mut indices = Vec::with_capacity(neighbors[focal].len() + 1);
+    indices.push(focal);
+    indices.extend(neighbors[focal].iter().copied());
+    indices.sort_unstable();
+    indices.dedup();
+    indices
+}
+
+fn communication_consensus_state(
+    positions: &[Vec<f64>],
+    observations: &[ScmObservation],
+    neighbors: &[Vec<usize>],
+    epsilon: f64,
+) -> ScmCommunicationState {
+    let count = positions.len();
+    let dimension = positions[0].len();
+    let mut lambdas = vec![0.0; count];
+    let mut distances_to_local_centroid = vec![0.0; count];
+    let mut mean_local_centroid = vec![0.0; dimension];
+    let mut consensus_sum = 0.0;
+    let mut maximum_local_pairwise_distance: f64 = 0.0;
+    let mut locally_degenerate_spread_agents = 0usize;
+    let total_neighbors = neighbors.iter().map(Vec::len).sum::<usize>();
+    let isolated_agents = neighbors.iter().filter(|list| list.is_empty()).count();
+
+    for focal in 0..count {
+        let local_indices = local_neighborhood_indices(focal, neighbors);
+        let local_count = local_indices.len();
+        let minimum_fitness = local_indices
+            .iter()
+            .map(|index| observations[*index].fitness)
+            .fold(f64::INFINITY, f64::min);
+        let weights: Vec<f64> = local_indices
+            .iter()
+            .map(|index| (observations[*index].fitness - minimum_fitness).max(0.0))
+            .collect();
+        let weight_sum = weights.iter().sum::<f64>();
+
+        let mut centroid = vec![0.0; dimension];
+        if weight_sum <= epsilon {
+            for index in &local_indices {
+                for coordinate in 0..dimension {
+                    centroid[coordinate] += positions[*index][coordinate] / local_count as f64;
+                }
+            }
+        } else {
+            for (index, weight) in local_indices.iter().zip(weights.iter()) {
+                for coordinate in 0..dimension {
+                    centroid[coordinate] += positions[*index][coordinate] * weight / weight_sum;
+                }
+            }
+        }
+
+        for coordinate in 0..dimension {
+            mean_local_centroid[coordinate] += centroid[coordinate] / count as f64;
+        }
+
+        let mut local_distances = Vec::with_capacity(local_count);
+        for index in &local_indices {
+            let difference: Vec<f64> = positions[*index]
+                .iter()
+                .zip(centroid.iter())
+                .map(|(left, right)| left - right)
+                .collect();
+            local_distances.push(l2_norm(&difference));
+        }
+        let focal_local_index = local_indices
+            .iter()
+            .position(|index| *index == focal)
+            .expect("focal agent is included in its local neighborhood");
+        let focal_distance = local_distances[focal_local_index];
+        distances_to_local_centroid[focal] = focal_distance;
+
+        let mut local_max_distance: f64 = 0.0;
+        for left in 0..local_count {
+            for right in (left + 1)..local_count {
+                let difference: Vec<f64> = positions[local_indices[left]]
+                    .iter()
+                    .zip(positions[local_indices[right]].iter())
+                    .map(|(a, b)| a - b)
+                    .collect();
+                local_max_distance = local_max_distance.max(l2_norm(&difference));
+            }
+        }
+        maximum_local_pairwise_distance =
+            maximum_local_pairwise_distance.max(local_max_distance);
+
+        let raw_consensus =
+            1.0 - (2.0 / local_count as f64) * local_distances.iter().sum::<f64>();
+        let local_consensus = raw_consensus.max(0.05);
+        consensus_sum += local_consensus / count as f64;
+
+        if local_max_distance <= epsilon {
+            locally_degenerate_spread_agents += 1;
+            lambdas[focal] = 0.0;
+        } else {
+            lambdas[focal] = focal_distance / (local_max_distance * local_consensus);
+        }
+    }
+
+    ScmCommunicationState {
+        lambdas,
+        distances_to_local_centroid,
+        maximum_local_pairwise_distance,
+        mean_local_centroid,
+        mean_consensus: consensus_sum,
+        locally_degenerate_spread_agents,
+        mean_neighbor_count: total_neighbors as f64 / count as f64,
+        isolated_agents,
+    }
+}
+
     positions: &[Vec<f64>],
     observations: &[ScmObservation],
     epsilon: f64,
