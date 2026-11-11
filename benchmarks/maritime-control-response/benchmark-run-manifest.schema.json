@@ -261,7 +261,8 @@
         "streaming_contract",
         "external_dataset_track",
         "deployability_matrix_sha256",
-        "deployability_assessment"
+        "deployability_assessment",
+        "behavioral_set_evaluation"
       ],
       "properties": {
         "protocol_sha256": {
@@ -1274,6 +1275,107 @@
               "const": false
             }
           }
+        },
+        "behavioral_set_evaluation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "envelope_catalogue_sha256",
+            "observation_manifest_sha256",
+            "evaluation_receipt_sha256",
+            "envelope_count",
+            "observation_count",
+            "admissible_hypothesis_set_size",
+            "ambiguous_status_count",
+            "unknown_out_of_support_count",
+            "not_evaluable_count",
+            "global_unique_physical_cause_claim_allowed"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "symtropy-behavioral-set-diagnosis-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "public_benchmark_executed",
+                "qualified"
+              ]
+            },
+            "envelope_catalogue_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "observation_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "evaluation_receipt_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "envelope_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "observation_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "admissible_hypothesis_set_size": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "ambiguous_status_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown_out_of_support_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not_evaluable_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unique_within_declared_catalogue_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "calibration_review_verified_upstream": {
+              "type": "boolean"
+            },
+            "catalogue_completeness_reviewed": {
+              "type": "boolean"
+            },
+            "global_unique_physical_cause_claim_allowed": {
+              "const": false
+            }
+          }
         }
       }
     },
@@ -1602,6 +1704,71 @@
         },
         "overall_deployability_claim_allowed": {
           "const": false
+        },
+        "admissible_hypothesis_set_size": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ambiguous_hypothesis_set_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unknown_out_of_support_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "behavioral_not_evaluable_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unique_within_catalogue_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "false_unique_within_catalogue_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "behavioral_envelope_coverage": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "worst_regime_admissible_set_size": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "global_unique_physical_cause_claim_allowed": {
+          "const": false
         }
       }
     },
@@ -1916,6 +2083,34 @@
                     "const": false
                   }
                 }
+              },
+              "behavioral_set_evaluation": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "envelope_count": {
+                    "const": 0
+                  },
+                  "observation_count": {
+                    "const": 0
+                  },
+                  "admissible_hypothesis_set_size": {
+                    "const": 0
+                  },
+                  "ambiguous_status_count": {
+                    "const": 0
+                  },
+                  "unknown_out_of_support_count": {
+                    "const": 0
+                  },
+                  "not_evaluable_count": {
+                    "const": 0
+                  },
+                  "global_unique_physical_cause_claim_allowed": {
+                    "const": false
+                  }
+                }
               }
             }
           }
@@ -2075,6 +2270,42 @@
                     "const": 9
                   },
                   "overall_deployability_claim_allowed": {
+                    "const": false
+                  }
+                }
+              },
+              "behavioral_set_evaluation": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "public_benchmark_executed",
+                      "qualified"
+                    ]
+                  },
+                  "envelope_catalogue_sha256": {
+                    "type": "string"
+                  },
+                  "observation_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "evaluation_receipt_sha256": {
+                    "type": "string"
+                  },
+                  "envelope_count": {
+                    "type": "integer",
+                    "minimum": 2
+                  },
+                  "observation_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "calibration_review_verified_upstream": {
+                    "const": true
+                  },
+                  "catalogue_completeness_reviewed": {
+                    "const": true
+                  },
+                  "global_unique_physical_cause_claim_allowed": {
                     "const": false
                   }
                 }
