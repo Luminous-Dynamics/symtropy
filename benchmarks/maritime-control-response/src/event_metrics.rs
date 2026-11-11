@@ -359,9 +359,10 @@ pub fn evaluate_event_metrics(
                 continue;
             }
             let can_merge = current.as_ref().is_some_and(|run| {
-                row.time_seconds
-                    - run.samples.last().expect("run has a sample").time_seconds
-                    <= config.alarm_merge_gap_seconds
+                let observation_gap = row.time_seconds
+                    - run.samples.last().expect("run has a sample").time_seconds;
+                observation_gap <= config.alarm_merge_gap_seconds
+                    && observation_gap <= config.maximum_observation_gap_seconds
             });
             if can_merge {
                 current
@@ -693,6 +694,17 @@ mod tests {
         .unwrap();
         assert_eq!(summary.detected_event_count, 0);
         assert_eq!(summary.late_alarm_count_during_missed_events, 1);
+        assert_eq!(summary.false_alarm_count, 0);
+    }
+
+    #[test]
+    fn alarm_episode_cannot_bridge_a_gap_that_is_not_valid_observation_exposure() {
+        let observations = stream(&[202, 205, 208], 1);
+        let summary =
+            evaluate_event_metrics(&[window()], &[event()], &observations, &config()).unwrap();
+        assert_eq!(summary.detected_event_count, 0);
+        assert_eq!(summary.missed_event_count, 1);
+        assert_eq!(summary.transient_burst_count, 3);
         assert_eq!(summary.false_alarm_count, 0);
     }
 
