@@ -430,14 +430,14 @@ pub fn frozen_dense_basis(family: usize) -> Matrix6 {
     let mut upper = identity6();
     for row in 0..6 {
         for column in 0..row {
-            lower[row][column] = if (row - column + family) % 3 != 0 {
+            lower[row][column] = if !(row - column + family).is_multiple_of(3) {
                 1.0
             } else {
                 -1.0
             };
         }
         for column in (row + 1)..6 {
-            upper[row][column] = if (column - row + family) % 3 != 0 {
+            upper[row][column] = if !(column - row + family).is_multiple_of(3) {
                 1.0
             } else {
                 -1.0
@@ -549,7 +549,6 @@ struct LambdaEvaluation {
     derivative: f64,
 }
 
-#[allow(clippy::too_many_arguments)]
 #[allow(clippy::too_many_arguments)]
 fn evaluate_multiplier(
     lambda: f64,
@@ -691,9 +690,7 @@ pub fn constrained_dumbbell_step(
     let mut inverse_mass_constraint_transpose = [[0.0; 3]; 6];
     for axis in 0..3 {
         let mut right_hand_side = [0.0; 6];
-        for row in 0..6 {
-            right_hand_side[row] = constraint_map[axis][row];
-        }
+        right_hand_side.copy_from_slice(&constraint_map[axis]);
         let solution = solve6(
             &effective_mass_metric,
             &right_hand_side,
@@ -1006,7 +1003,7 @@ pub fn transform_generator(
     basis_inverse: &Matrix6,
     generator: &Matrix6,
 ) -> Matrix6 {
-    multiply6(&basis_inverse, &multiply6(generator, basis))
+    multiply6(basis_inverse, &multiply6(generator, basis))
 }
 
 pub fn transform_finite_action(
