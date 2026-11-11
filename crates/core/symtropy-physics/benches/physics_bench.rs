@@ -6,7 +6,7 @@ use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
 use symtropy_physics::action_horizon::{
     ActionExecutionMode, ActionHorizonRequest, HorizonConstraint, HorizonEvidence,
-    select_action_horizon,
+    create_action_commitment, select_action_horizon,
 };
 use symtropy_physics::PhysicsWorld;
 use symtropy_physics::gjk;
@@ -312,6 +312,57 @@ fn bench_action_horizon_unknown_rejection(c: &mut Criterion) {
     });
 }
 
+fn bench_action_commitment_creation(c: &mut Criterion) {
+    let request = make_action_horizon_request(
+        ActionExecutionMode::QueuedOpenLoop,
+        10_500_000,
+        false,
+    );
+    let selection = select_action_horizon(&request)
+        .expect("fixture period and latency profile are valid");
+    c.bench_function("action_commitment_create_immutable_receipt", |bench| {
+        bench.iter(|| {
+            black_box(create_action_commitment(
+                black_box(selection.clone()),
+                [0x11; 32],
+                [0x22; 32],
+                42,
+                1_000_000,
+            ))
+        });
+    });
+}
+
+fn bench_action_commitment_validation(c: &mut Criterion) {
+    let request = make_action_horizon_request(
+        ActionExecutionMode::QueuedOpenLoop,
+        10_500_000,
+        false,
+    );
+    let selection = select_action_horizon(&request)
+        .expect("fixture period and latency profile are valid");
+    let commitment = create_action_commitment(
+        selection,
+        [0x11; 32],
+        [0x22; 32],
+        42,
+        1_000_000,
+    )
+    .expect("selector fixture is admissible");
+
+    c.bench_function("action_commitment_validate_exact_proposal_config_and_sequence", |bench| {
+        bench.iter(|| {
+            black_box(commitment.validate(
+                1_001_000,
+                "criterion-application-monotonic-epoch",
+                &[0x11; 32],
+                &[0x22; 32],
+                41,
+            ))
+        });
+    });
+}
+
 criterion_group!(
     benches,
     // GJK per shape
@@ -329,6 +380,9 @@ criterion_group!(
     bench_action_horizon_queued_feasible,
     bench_action_horizon_split_timescale,
     bench_action_horizon_unknown_rejection,
+    // Immutable action-commitment issue/validation paths
+    bench_action_commitment_creation,
+    bench_action_commitment_validation,
     // Physics step at scale
     bench_physics_step_10_bodies,
     bench_physics_step_100_bodies,
