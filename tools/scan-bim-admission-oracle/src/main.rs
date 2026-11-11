@@ -65,6 +65,22 @@ struct TopologyEdge {
     relation: String,
 }
 
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum ChangeEstimateStatus {
+    Qualified,
+    Unresolved,
+    Invalid,
+}
+
+#[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum RegistrationStabilityStatus {
+    Stable,
+    DriftSuspected,
+    Unknown,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Candidate {
@@ -72,6 +88,9 @@ struct Candidate {
     base_model_revision: String,
     frame_id: String,
     survey_qualified: bool,
+    change_estimate_status: ChangeEstimateStatus,
+    registration_stability_status: RegistrationStabilityStatus,
+    independent_checkpoint_evidence_sha256: Option<String>,
     claims_unobserved_geometry: bool,
     elements: Vec<ObservedElement>,
     topology: Vec<TopologyEdge>,
@@ -127,6 +146,13 @@ struct CorpusResult {
     cases: Vec<CaseResult>,
 }
 
+fn is_sha256(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+}
+
 fn sha256_hex(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
@@ -144,6 +170,49 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
         return decision(
             "STALE_OR_INVALID_EVIDENCE",
             "UPSTREAM_SURVEY_PRODUCT_NOT_QUALIFIED",
+        );
+    }
+    // #1607 owns the survey/change-estimate computation. Admission only
+    // consumes its disposition and independent-checkpoint receipt; it must
+    // not reinterpret common-mode registration motion as physical change.
+    match candidate.change_estimate_status {
+        ChangeEstimateStatus::Qualified => {}
+        ChangeEstimateStatus::Unresolved => {
+            return decision(
+                "REQUEST_ADDITIONAL_OBSERVATION",
+                "SURVEY_CHANGE_ESTIMATE_UNRESOLVED",
+            );
+        }
+        ChangeEstimateStatus::Invalid => {
+            return decision(
+                "STALE_OR_INVALID_EVIDENCE",
+                "SURVEY_CHANGE_ESTIMATE_INVALID",
+            );
+        }
+    }
+    match candidate.registration_stability_status {
+        RegistrationStabilityStatus::Stable => {}
+        RegistrationStabilityStatus::DriftSuspected => {
+            return decision(
+                "REQUEST_ADDITIONAL_OBSERVATION",
+                "REGISTRATION_DRIFT_OR_COMMON_MODE_SHIFT_UNRESOLVED",
+            );
+        }
+        RegistrationStabilityStatus::Unknown => {
+            return decision(
+                "REQUEST_ADDITIONAL_OBSERVATION",
+                "REGISTRATION_STABILITY_UNRESOLVED",
+            );
+        }
+    }
+    if !candidate
+        .independent_checkpoint_evidence_sha256
+        .as_deref()
+        .is_some_and(is_sha256)
+    {
+        return decision(
+            "STALE_OR_INVALID_EVIDENCE",
+            "INDEPENDENT_CHECKPOINT_EVIDENCE_MISSING_OR_INVALID",
         );
     }
     if candidate.asset_id != reference.asset_id {
@@ -532,6 +601,12 @@ mod tests {
             base_model_revision: case.candidate.base_model_revision.clone(),
             frame_id: case.candidate.frame_id.clone(),
             survey_qualified: case.candidate.survey_qualified,
+            change_estimate_status: case.candidate.change_estimate_status,
+            registration_stability_status: case.candidate.registration_stability_status,
+            independent_checkpoint_evidence_sha256: case
+                .candidate
+                .independent_checkpoint_evidence_sha256
+                .clone(),
             claims_unobserved_geometry: case.candidate.claims_unobserved_geometry,
             elements: case
                 .candidate
@@ -631,6 +706,36 @@ mod tests {
             Value::String("synthetic-building-train-A".to_owned());
         let bytes = serde_json::to_vec(&corpus).expect("fixture serializes");
         assert!(evaluate_corpus(&bytes).is_err());
+    }
+
+    #[test]
+    fn common_mode_registration_drift_blocks_physical_change_admission() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
+        let case = corpus
+            .cases
+            .iter()
+            .find(|item| item.case_id == "SB-026")
+            .expect("common-mode drift fixture");
+        assert_eq!(evaluate(case).0, "REQUEST_ADDITIONAL_OBSERVATION");
+        assert_eq!(
+            evaluate(case).1,
+            vec!["REGISTRATION_DRIFT_OR_COMMON_MODE_SHIFT_UNRESOLVED".to_owned()]
+        );
+    }
+
+    #[test]
+    fn missing_independent_checkpoint_receipt_blocks_change_admission() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
+        let case = corpus
+            .cases
+            .iter()
+            .find(|item| item.case_id == "SB-028")
+            .expect("missing checkpoint fixture");
+        assert_eq!(evaluate(case).0, "STALE_OR_INVALID_EVIDENCE");
+        assert_eq!(
+            evaluate(case).1,
+            vec!["INDEPENDENT_CHECKPOINT_EVIDENCE_MISSING_OR_INVALID".to_owned()]
+        );
     }
 
     #[test]
