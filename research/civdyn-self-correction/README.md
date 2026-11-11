@@ -258,3 +258,33 @@ A sequence has a stable node universe, two or more graph snapshots, and strictly
 The observed path is C6 -> 2K3 -> 3K2. The counterexample reverses it. Both contain the same three snapshots, with identical snapshot-marginal distributions and identical average component count/degree. Their component-count and mean-degree trends have opposite signs, so the joint temporal evaluator penalizes the reversed path.
 
 The ten-component temporal vector is normalized by frozen, declared reference centers/scales; none is estimated from the held-out path. Energy and variogram scores remain separate. These known-answer values qualify the temporal evaluation contract only; they do not establish empirical dynamic-network fidelity.
+
+
+## Scenario N: network interference and exposure-map misspecification
+
+The first exact-known-truth reference for [CIVDYN-INTERFERENCE-ROBUST-001 #4483](https://github.com/Luminous-Dynamics/symtropy/issues/4483) is implemented in src/network_interference.rs and the network-interference-sweep binary.
+
+The four-node fixture has two two-node clusters and both within-cluster and cross-cluster edges. Its known-truth outcome mechanism keeps three effects separate: direct treatment, per-treated-neighbor within-cluster spillover, and per-treated-neighbor between-cluster spillover. The finite two-stage design first chooses a cluster saturation count uniformly from all feasible counts, then uniformly chooses the treated subset conditional on that count. Every assignment is enumerated and its exact design probability is retained; the implementation rejects more than 16 nodes rather than silently approximating the design.
+
+Five exposure mappings are challenged:
+- Full network with separate within- and between-cluster treated-neighbor counts.
+- Within-cluster-only exposure.
+- Weighted-neighbor mean.
+- Threshold exposure.
+- Truncated canonical-neighbor exposure.
+
+For each unit and mapped exposure cell, the evaluator checks whether assignments sharing that declared exposure imply the same known-truth potential outcome. A non-zero within-cell outcome range is evidence that the mapping is insufficient for this fixture. This is a diagnostic against the registered outcome mechanism, not a general statistical test.
+
+The contrast-support receipt separately reports whether direct, within-cluster and between-cluster contrasts occur in the finite design. For partial network data, two admissible graph completions are evaluated under the same declared policy assignment and the target-unit effect is returned as a lower/upper identified set. Completion counts are not treated as probabilities.
+
+### Known-answer controls and claim ceiling
+
+- The exact design contains 16 distinct assignments and total design probability one.
+- The full exposure mapping is sufficient for the declared mechanism; deliberately reduced mappings exhibit within-cell outcome variation when the between-cluster effect is non-zero.
+- With the between-cluster effect set to zero, the within-only mapping is not falsely rejected by this mechanism.
+- A missing edge in an asserted network completion is rejected.
+- The partial graph's two admissible completions produce target-unit effect bounds [0.0, 0.6], not an invented point estimate.
+- Edge-order and endpoint-orientation permutations leave mapping summaries unchanged.
+- CSV replay is checked byte-for-byte by .github/workflows/civdyn-network-interference.yml.
+
+This is a deterministic synthetic reference only. It does not yet provide a general interference estimator, finite-sample confidence intervals, coverage or power evidence, endogenous network formation, treatment noncompliance, field-data validity, or policy effectiveness. It does not assign probabilities to plausible network completions. The existing two-node interference-identifiability scenario remains a separate minimal observational-equivalence control.
