@@ -900,6 +900,11 @@ pub fn transform_force_covector(basis: &Matrix6, force: &Vector6) -> Vector6 {
     transpose6_times_vector(basis, force)
 }
 
+/// Transform a canonical momentum covector under q = S y.
+pub fn transform_momentum_covector(basis: &Matrix6, momentum: &Vector6) -> Vector6 {
+    transpose6_times_vector(basis, momentum)
+}
+
 pub fn linear_momentum(velocity: &Vector6, masses: DumbbellMassesV1) -> Vector3 {
     [
         masses.first * velocity[0] + masses.second * velocity[3],
@@ -1235,6 +1240,45 @@ mod tests {
             &basis,
         );
         assert!(norm6(&subtract6(&lifted.position, &canonical.position_next)) > 1.0e-4);
+    }
+
+    #[test]
+    fn canonical_momentum_one_form_is_preserved_under_dense_rebasis() {
+        let state = canonical_state();
+        let masses = DumbbellMassesV1 {
+            first: 1.3,
+            second: 2.1,
+        };
+        let basis = frozen_dense_basis(2);
+        let basis_inverse = inverse6(
+            &basis,
+            StepProfileV1::default().relative_pivot_tolerance,
+        )
+        .unwrap();
+        let transformed_state = transform_state_to_basis(state, &basis_inverse);
+        let canonical_metric = mass_metric(masses);
+        let transformed_metric = transformed_mass_metric(&canonical_metric, &basis);
+
+        let canonical_momentum = apply6(&canonical_metric, &state.velocity);
+        let transformed_momentum = apply6(&transformed_metric, &transformed_state.velocity);
+        let expected_transformed_momentum =
+            transform_momentum_covector(&basis, &canonical_momentum);
+
+        close6(
+            &transformed_momentum,
+            &expected_transformed_momentum,
+            5.0e-11,
+        );
+
+        // Test the canonical one-form on a generic generalized-coordinate
+        // tangent increment, not only on the state velocity.
+        let delta_y = [
+            0.3, -0.7, 0.2, 0.5, -0.1, 0.9,
+        ];
+        let delta_q = apply6(&basis, &delta_y);
+        let lhs = dot6(&canonical_momentum, &delta_q);
+        let rhs = dot6(&transformed_momentum, &delta_y);
+        assert!((lhs - rhs).abs() < 5.0e-11);
     }
 
     #[test]
