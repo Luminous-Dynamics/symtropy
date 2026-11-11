@@ -224,7 +224,7 @@ pub fn evaluate_behavioral_hypothesis_set(
     let mut assessments = Vec::with_capacity(envelopes.len());
     let mut unavailable_signal_ids = Vec::new();
 
-    let mut unsupported_regime = observation.regime_id != regime_id;
+    let unsupported_regime = observation.regime_id != regime_id;
     for signal_id in &required_signals {
         match observation.signals.get(signal_id) {
             None => unavailable_signal_ids.push(signal_id.clone()),
@@ -264,6 +264,9 @@ pub fn evaluate_behavioral_hypothesis_set(
                 channel_gaps,
             });
         }
+        assessments.sort_by(|left, right| {
+            left.hypothesis_id.cmp(&right.hypothesis_id)
+        });
         let admissible = assessments
             .iter()
             .filter(|assessment| assessment.admissible)
@@ -376,6 +379,11 @@ fn validate_behavioral_envelope_catalogue(
         }
         if !envelope.calibration_reviewed_by_independent_validator {
             return Err(BehavioralSetError::CalibrationNotIndependentlyReviewed(
+                envelope.hypothesis_id.clone(),
+            ));
+        }
+        if envelope.target_coverage_ppm == 0 || envelope.target_coverage_ppm >= 1_000_000 {
+            return Err(BehavioralSetError::InvalidEnvelopeBounds(
                 envelope.hypothesis_id.clone(),
             ));
         }
