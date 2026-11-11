@@ -62,7 +62,8 @@ pub struct TickTrace {
     pub delivered_timestamp_us: u64,
     pub conditions: Vec<ObservationCondition>,
     pub policy_input_accepted: bool,
-    pub fault_detected: bool,
+    pub fault_detection_event_ids: Vec<String>,
+    pub containment_event_ids: Vec<String>,
     pub degraded_mode: bool,
     pub fallback_active: bool,
     pub safe_stop_complete: bool,
@@ -179,6 +180,8 @@ enum Finding {
     DelayedFrameAcceptedTooOld,
     NormalModeDuringFault,
     FaultUndetected,
+    UnknownEventReference,
+    DuplicateEventReference,
     DetectionDeadlineMissed,
     ContainmentDeadlineMissed,
     RecoveryNotObserved,
@@ -216,6 +219,8 @@ impl Finding {
             Self::DelayedFrameAcceptedTooOld => "delayed_frame_accepted_too_old",
             Self::NormalModeDuringFault => "normal_mode_during_fault",
             Self::FaultUndetected => "fault_undetected",
+            Self::UnknownEventReference => "unknown_event_reference",
+            Self::DuplicateEventReference => "duplicate_event_reference",
             Self::DetectionDeadlineMissed => "detection_deadline_missed",
             Self::ContainmentDeadlineMissed => "containment_deadline_missed",
             Self::RecoveryNotObserved => "recovery_not_observed",
@@ -264,7 +269,7 @@ fn contains_forbidden_input(conditions: &[ObservationCondition]) -> bool {
 
 fn is_healthy_tick(tick: &TickTrace) -> bool {
     tick.conditions.as_slice() == [ObservationCondition::Clean]
-        && !tick.fault_detected
+        && tick.fault_detection_event_ids.is_empty()
         && !contains_any(
             &tick.conditions,
             &[
@@ -277,10 +282,6 @@ fn is_healthy_tick(tick: &TickTrace) -> bool {
                 ObservationCondition::ComputeOverrun,
             ],
         )
-}
-
-fn containment_active(tick: &TickTrace) -> bool {
-    tick.degraded_mode || tick.fallback_active || tick.safe_stop_complete
 }
 
 fn percentile_nearest_rank(values: &[u64], percentile: usize) -> Option<u64> {
@@ -386,10 +387,22 @@ fn event_metrics(
 
     let detection_tick = run_ticks
         .range(event.start_tick..=event.end_tick.saturating_add(event.detection_deadline_ticks))
-        .find_map(|(tick, record)| record.fault_detected.then_some(*tick));
+        .find_map(|(tick, record)| {
+            record
+                .fault_detection_event_ids
+                .iter()
+                .any(|id| id == &event.event_id)
+                .then_some(*tick)
+        });
     let containment_tick = run_ticks
         .range(event.start_tick..=event.end_tick.saturating_add(event.containment_deadline_ticks))
-        .find_map(|(tick, record)| containment_active(record).then_some(*tick));
+        .find_map(|(tick, record)| {
+            record
+                .containment_event_ids
+                .iter()
+                .any(|id| id == &event.event_id)
+                .then_some(*tick)
+        });
 
     let detection_latency = detection_tick.map(|tick| tick.saturating_sub(event.start_tick));
     let containment_latency = containment_tick.map(|tick| tick.saturating_sub(event.start_tick));
@@ -515,7 +528,10 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         .ticks
         .iter()
         .filter(|tick| {
-            tick.fault_detected || tick.degraded_mode || tick.fallback_active || tick.safe_stop_complete
+            !tick.fault_detection_event_ids.is_empty()
+                || tick.degraded_mode
+                || tick.fallback_active
+                || tick.safe_stop_complete
         })
         .count() as u64;
     if control_false_positive_ticks > 0 {
@@ -576,6 +592,26 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
             findings.insert(Finding::ZeroRecoveryQuorum);
         }
         events.push(event_metrics(event, &faulted_tick_map, &mut findings));
+    }
+
+    let known_event_ids = campaign.events.iter().map(|event| event.event_id.as_str()).collect::<BTreeSet<_>>();
+    for tick in campaign
+        .clean_control
+        .ticks
+        .iter()
+        .chain(campaign.faulted_run.ticks.iter())
+    {
+        for references in [&tick.fault_detection_event_ids, &tick.containment_event_ids] {
+            let mut seen_references = BTreeSet::new();
+            for reference in references {
+                if !seen_references.insert(reference.as_str()) {
+                    findings.insert(Finding::DuplicateEventReference);
+                }
+                if !known_event_ids.contains(reference.as_str()) {
+                    findings.insert(Finding::UnknownEventReference);
+                }
+            }
+        }
     }
 
     let stale_or_corrupt_acceptances = campaign
@@ -646,7 +682,16 @@ mod tests {
             delivered_timestamp_us: capture + 100,
             conditions,
             policy_input_accepted: accepted,
-            fault_detected,
+            fault_detection_event_ids: if fault_detected {
+                vec!["camera-drop-1".to_string()]
+            } else {
+                Vec::new()
+            },
+            containment_event_ids: if degraded {
+                vec!["camera-drop-1".to_string()]
+            } else {
+                Vec::new()
+            },
             degraded_mode: degraded,
             fallback_active: fallback,
             safe_stop_complete: false,
@@ -774,7 +819,8 @@ mod tests {
     fn rejects_unobserved_fault_detection_and_containment() {
         let mut input = campaign();
         for record in &mut input.faulted_run.ticks[2..4] {
-            record.fault_detected = false;
+            record.fault_detection_event_ids.clear();
+            record.containment_event_ids.clear();
             record.degraded_mode = false;
             record.fallback_active = false;
         }
