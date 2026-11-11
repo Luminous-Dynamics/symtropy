@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1.0",
   "protocol_id": "RESOURCE-NORMALIZED-DRIVING-CAPABILITY-001",
-  "as_of": "2026-11-10",
+  "as_of": "2026-11-11",
   "status": "specification_only_no_model_runs",
   "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4639",
   "related_owners": {
@@ -140,20 +140,35 @@
     },
     {
       "id": "alpamayo_2_edge_2026_11_10",
-      "class": "industry_platform_capability",
-      "name": "NVIDIA Alpamayo 2 Edge",
-      "metric_values": null,
+      "class": "industry_model_card_and_deployment_recipe",
+      "name": "NVIDIA Alpamayo 2 Edge (model card released 2026-11-10)",
+      "metric_values": {
+        "backbone_parameters_billions": 2.45,
+        "action_expert_parameters_billions": 0.2,
+        "closed_loop_km_per_at_fault_incident_mean": 15.15,
+        "closed_loop_km_per_at_fault_incident_std": 0.04,
+        "closed_loop_scenario_count": 875,
+        "closed_loop_rollout_sets": 3,
+        "open_loop_minADE6_m_at_5s": 0.52,
+        "lingo_judge_score": 75.2,
+        "training_multicamera_video_hours": 115000,
+        "chain_of_causation_trace_count": 3700000,
+        "pixel_to_trajectory_latency_ms_min": 160,
+        "pixel_to_trajectory_latency_ms_max": 190,
+        "closed_loop_rl_relative_improvement_percent": 48.9
+      },
       "capabilities": [
-        "2B reasoning VLA",
-        "adaptive reasoning",
-        "surround-camera temporal context and navigation inputs",
-        "Super-generated reasoning distillation labels",
-        "AlpaGym closed-loop RL",
-        "DRIVE AGX Thor target",
-        "TensorRT and speculative decoding acceleration"
+        "2.45B reasoning backbone plus 0.2B diffusion action expert (model-card breakdown; NVIDIA blog headline rounds to 2B)",
+        "adaptive reasoning; <NOMINAL> output may skip routine reasoning traces",
+        "six-camera multi-timestep inputs plus navigation text and ego-motion history",
+        "Alpamayo 2 Super-generated Chain-of-Causation traces for distillation",
+        "AlpaGym closed-loop RL; NVIDIA reports 48.9% improvement over its best checkpoint without closed-loop RL",
+        "DRIVE AGX Thor deployment recipe with DFlash2/TensorRT acceleration",
+        "deployment latency figure is tied to DRIVE AGX Thor-X, DRIVE OS 7.2.7.0, CUDA 13.4 and TensorRT 11.3.1.9"
       ],
-      "source": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
-      "independent_symtropy_reproduction": false
+      "source": "https://huggingface.co/nvidia/Alpamayo2-Edge",
+      "independent_symtropy_reproduction": false,
+      "protocol": "Model-card closed-loop mean ± std over 875 AlpaSim scenarios and three rollout sets; separate 1,392-sample open-loop minADE6 at 5 seconds; separate LingoQA reasoning score; latency from NVIDIA's named Thor-X deployment recipe. Do not pool these measures."
     },
     {
       "id": "alpamayo_2_super_2026",
@@ -180,6 +195,33 @@
       },
       "protocol": "company-published retrospective, location-adjusted human crash benchmark; separate from formal pre-deployment safety case",
       "source": "https://waymo.com/safety/impact/",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "wod_e2e_cvpr_2026",
+      "class": "long_tail_dataset_benchmark",
+      "name": "Waymo Open Dataset for End-to-End Driving (WOD-E2E, CVPR 2026)",
+      "metric_values": {
+        "segment_count": 4021,
+        "recording_hours_approx": 12,
+        "long_tail_scenario_occurrence_prevalence_upper_percent": 0.03
+      },
+      "protocol": "4,021 segments curated for challenging long-tail E2E driving scenarios; offline dataset/evaluation resource, not a closed-loop recovery score.",
+      "source": "https://openaccess.thecvf.com/content/CVPR2026/html/Xu_WOD-E2E_Waymo_Open_Dataset_for_End-to-End_Driving_in_Challenging_Long-tail_CVPR_2026_paper.html",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "carla_leaderboard_2_historical",
+      "class": "historical_evaluator_protocol",
+      "name": "CARLA Leaderboard 2.0",
+      "metric_values": null,
+      "capabilities": [
+        "separate SENSORS and MAP tracks",
+        "route completion and infraction penalty are reported separately",
+        "official challenge submissions and evaluation servers are permanently closed"
+      ],
+      "protocol": "Historical protocol reference only; no current hosted submission path.",
+      "source": "https://leaderboard.carla.org/evaluation_v2_0/",
       "independent_symtropy_reproduction": false
     }
   ],
@@ -383,6 +425,30 @@
       "url": "https://waymo.com/safety/impact/",
       "published": "live dashboard through 2026-06",
       "source_type": "company operational safety dashboard"
+    },
+    {
+      "id": "alpamayo_edge_model_card",
+      "url": "https://huggingface.co/nvidia/Alpamayo2-Edge",
+      "published": "2026-11-10",
+      "source_type": "NVIDIA Hugging Face model card"
+    },
+    {
+      "id": "wod_e2e_cvpr_2026",
+      "url": "https://openaccess.thecvf.com/content/CVPR2026/html/Xu_WOD-E2E_Waymo_Open_Dataset_for_End-to-End_Driving_in_Challenging_Long-tail_CVPR_2026_paper.html",
+      "published": "2026-06",
+      "source_type": "CVPR 2026 proceedings"
+    },
+    {
+      "id": "carla_leaderboard_2",
+      "url": "https://leaderboard.carla.org/evaluation_v2_0/",
+      "published": "historical; status verified 2026-11-11",
+      "source_type": "official CARLA benchmark documentation"
+    },
+    {
+      "id": "waymo_open_challenges_2026",
+      "url": "https://www.waymo.com/open/challenges/",
+      "published": "status checked 2026-11-11",
+      "source_type": "official dataset challenge status"
     }
   ]
 }
