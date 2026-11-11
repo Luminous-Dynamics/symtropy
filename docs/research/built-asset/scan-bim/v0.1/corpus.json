@@ -3051,7 +3051,7 @@
           "REGISTRATION_DRIFT_OR_COMMON_MODE_SHIFT_UNRESOLVED"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-027",
@@ -3169,7 +3169,7 @@
           "SURVEY_CHANGE_ESTIMATE_UNRESOLVED"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-028",
@@ -3287,7 +3287,7 @@
           "INDEPENDENT_CHECKPOINT_EVIDENCE_MISSING_OR_INVALID"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-029",
@@ -3405,7 +3405,7 @@
           "SURVEY_EVIDENCE_SCOPE_MISMATCH"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-030",
@@ -3523,7 +3523,7 @@
           "SURVEY_PRODUCT_DIGEST_INVALID"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-031",
@@ -3641,7 +3641,7 @@
           "CHANGE_ESTIMATE_RECEIPT_MISSING_OR_INVALID"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-032",
@@ -3759,7 +3759,7 @@
           "REGISTRATION_STABILITY_RECEIPT_MISSING_OR_INVALID"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-033",
@@ -3877,7 +3877,7 @@
           "INDEPENDENT_CHECKPOINT_EVIDENCE_UNRESOLVED"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-034",
@@ -3995,7 +3995,7 @@
           "SURVEY_PRODUCT_UNRESOLVED"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-035",
@@ -4113,7 +4113,7 @@
           "CHANGE_ESTIMATE_RECEIPT_SCOPE_MISMATCH"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-036",
@@ -4231,7 +4231,7 @@
           "REGISTRATION_STABILITY_RECEIPT_SCOPE_MISMATCH"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     },
     {
       "case_id": "SB-037",
@@ -4349,7 +4349,7 @@
           "INDEPENDENT_CHECKPOINT_RECEIPT_SCOPE_MISMATCH"
         ]
       },
-      "split_group_id": "synthetic-building-heldout-D"
+      "split_group_id": "synthetic-building-heldout-C"
     }
   ],
   "split_guard": {
@@ -4358,8 +4358,7 @@
       "synthetic-building-train-B"
     ],
     "evaluation_group_ids": [
-      "synthetic-building-heldout-C",
-      "synthetic-building-heldout-D"
+      "synthetic-building-heldout-C"
     ],
     "candidate_input_fields": [
       "observed_points",
