@@ -26,7 +26,7 @@ The observable-set profile digest is recomputed from the canonical set of (Scena
 - optional source clock/time, provenance and uncertainty;
 - optional ordered source event stream.
 
-Entities and observables are semantic sets, canonicalized by stable IDs. The source event stream is an ordered sequence and is never sorted. If absent, the receipt leaves event-order identity absent and emits EventOrderUnavailable.
+Entities and observables are semantic sets, canonicalized by stable IDs. SHA-256 hashes are computed by streaming serde_json serialization directly into the hasher, avoiding a second frame-sized JSON byte buffer. The source event stream is an ordered sequence and is never sorted. If absent, the receipt leaves event-order identity absent and emits EventOrderUnavailable.
 
 Binary64 values are represented as exactly 16 lowercase hexadecimal digits of IEEE-754 bits. This preserves signed zero and NaN payloads rather than normalizing through JSON decimal numbers. Non-finite values remain visible in the receipt findings; malformed or reversed uncertainty intervals reject.
 
@@ -42,7 +42,7 @@ The in-tree std::time benchmark binary (no Criterion or other benchmark-specific
 
 ## Tests
 
-The 46-test corpus covers entity/observable order invariance, ordered-event sensitivity, absent event identity, source-class preservation, unavailable-versus-zero semantics, observable-set and full-frame known-answer digests, membership mismatch, value-independent channel identity, unavailable-channel retention, malformed values/uncertainty, duplicate identities, stable NetId generation scope, borrowed-view lifetime rejection, non-finite IEEE values, presentation-field rejection and source-clock round-trip.
+The 47-test corpus covers entity/observable order invariance, ordered-event sensitivity, absent event identity, source-class preservation, unavailable-versus-zero semantics, observable-set and full-frame known-answer digests, membership mismatch, value-independent channel identity, unavailable-channel retention, malformed values/uncertainty, duplicate identities, stable NetId generation scope, borrowed-view lifetime rejection, non-finite IEEE values, presentation-field rejection and source-clock round-trip.
 
 ## Claim ceiling
 
