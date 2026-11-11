@@ -1177,7 +1177,7 @@
       "expected": {
         "disposition": "STALE_OR_INVALID_EVIDENCE",
         "reason_codes": [
-          "UPSTREAM_SURVEY_PRODUCT_NOT_QUALIFIED"
+          "UPSTREAM_SURVEY_PRODUCT_INVALID"
         ]
       },
       "split_group_id": "synthetic-building-heldout-C"
