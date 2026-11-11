@@ -6,6 +6,8 @@
 
 A central 3×3 rotational-inertia tensor is not a complete rigid-body mass model unless its reference point and expressed-in frame are carried with it. Reference-point changes also change the represented linear velocity, angular momentum, and spatial mass matrix. Treating these as unrelated fields is a common source of COM migration and compound-body errors.
 
+This reference stores exactly ten physical scalar degrees of freedom: mass (1), COM offset (3), and central symmetric inertia (6). The six independent tensor components are packed as `[Ixx, Iyy, Izz, Ixy, Ixz, Iyz]`; matrix views are reconstructed on demand. Frame/point identifiers are metadata, not additional physical degrees of freedom.
+
 This reference packages:
 - stable `FrameId` and `ReferencePointId` identities;
 - positive total mass;
@@ -112,6 +114,7 @@ The module currently covers:
 8. A huge-offset/tiny-mass fixture whose spatial mass matrix remains finite.
 9. Shift-then-inverse-shift restores the original point identity, COM offset and central inertia.
 10. Uniform mass scaling by `1e-12` and `1e12` scales the 6×6 matrix, spatial momentum and kinetic energy linearly without changing geometry.
+11. Six-component central-inertia packing/reconstruction preserves exact matrix symmetry.
 
 ## Criterion reference-cost measurements
 
