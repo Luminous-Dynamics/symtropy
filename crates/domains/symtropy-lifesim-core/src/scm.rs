@@ -41,6 +41,18 @@ impl ScmInteractionKernel {
     }
 }
 
+/// Consensus-window discretization. The paper describes two equal half-intervals;
+/// the inspected MATLAB loop uses inclusive array endpoints that produce one extra
+/// older sample and schedules the first update at tick tau_steps + 1.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ScmConsensusWindow {
+    /// Equal, disjoint half-windows over exactly tau_steps consensus values.
+    PublishedEqualHalfIntervals,
+    /// Reproduces the inspected MATLAB replication script's inclusive index endpoints:
+    /// early window has tau_steps/2 + 1 values, late window tau_steps/2 values.
+    RepositoryMatlabInclusiveEndpoints,
+}
+
 /// Model configuration. Positions and landscape values are dimensionless and bounded.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ScmConfig {
@@ -56,6 +68,7 @@ pub struct ScmConfig {
     /// Values below this threshold are treated as degenerate numerical quantities.
     pub numerical_epsilon: f64,
     pub kernel: ScmInteractionKernel,
+    pub consensus_window: ScmConsensusWindow,
 }
 
 impl Default for ScmConfig {
@@ -72,6 +85,7 @@ impl Default for ScmConfig {
             // Explicitly choose the publication-rendered variant, not the repository
             // source variant. The profile requires this choice to be recorded.
             kernel: ScmInteractionKernel::PublishedHtmlEquation,
+            consensus_window: ScmConsensusWindow::PublishedEqualHalfIntervals,
         }
     }
 }
@@ -188,6 +202,7 @@ struct ScmObservation {
 pub struct ScmStepReport {
     pub tick: u64,
     pub interaction_kernel: ScmInteractionKernel,
+    pub consensus_window: ScmConsensusWindow,
     pub consensus: f64,
     pub sigma_before_update: f64,
     pub sigma_after_update: f64,
@@ -256,7 +271,7 @@ impl ScmModel {
             tick: 0,
             total_function_evaluations: 0,
             observations: None,
-            consensus_history: VecDeque::with_capacity(config.tau_steps),
+            consensus_history: VecDeque::with_capacity(config.tau_steps + 1),
         })
     }
 
@@ -393,9 +408,13 @@ impl ScmModel {
             self.config.numerical_epsilon,
         );
 
+        let history_capacity = match self.config.consensus_window {
+            ScmConsensusWindow::PublishedEqualHalfIntervals => self.config.tau_steps,
+            ScmConsensusWindow::RepositoryMatlabInclusiveEndpoints => self.config.tau_steps + 1,
+        };
         let mut next_history = self.consensus_history.clone();
         next_history.push_back(updated_consensus);
-        while next_history.len() > self.config.tau_steps {
+        while next_history.len() > history_capacity {
             next_history.pop_front();
         }
 
@@ -404,11 +423,32 @@ impl ScmModel {
         let mut consensus_window_delta = None;
         let mut convergence_window_satisfied = false;
         let tau_steps = self.config.tau_steps as u64;
+        let window_ready = match self.config.consensus_window {
+            ScmConsensusWindow::PublishedEqualHalfIntervals => {
+                next_tick % tau_steps == 0 && next_history.len() == self.config.tau_steps
+            }
+            ScmConsensusWindow::RepositoryMatlabInclusiveEndpoints => {
+                next_tick > tau_steps
+                    && (next_tick - 1) % tau_steps == 0
+                    && next_history.len() == self.config.tau_steps + 1
+            }
+        };
 
-        if next_tick % tau_steps == 0 && next_history.len() == self.config.tau_steps {
+        if window_ready {
             let half = self.config.tau_steps / 2;
-            let early = next_history.iter().take(half).sum::<f64>() * self.config.dt;
-            let late = next_history.iter().skip(half).sum::<f64>() * self.config.dt;
+            let (early, late) = match self.config.consensus_window {
+                ScmConsensusWindow::PublishedEqualHalfIntervals => {
+                    let early = next_history.iter().take(half).sum::<f64>() * self.config.dt;
+                    let late = next_history.iter().skip(half).sum::<f64>() * self.config.dt;
+                    (early, late)
+                }
+                ScmConsensusWindow::RepositoryMatlabInclusiveEndpoints => {
+                    let early_count = half + 1;
+                    let early = next_history.iter().take(early_count).sum::<f64>() * self.config.dt;
+                    let late = next_history.iter().skip(early_count).sum::<f64>() * self.config.dt;
+                    (early, late)
+                }
+            };
             let delta = late - early;
             consensus_window_delta = Some(delta);
 
@@ -431,6 +471,7 @@ impl ScmModel {
         let report = ScmStepReport {
             tick: next_tick,
             interaction_kernel: self.config.kernel,
+            consensus_window: self.config.consensus_window,
             consensus: updated_consensus,
             sigma_before_update,
             sigma_after_update: next_sigma,
@@ -825,6 +866,38 @@ mod tests {
             model.step(&UnboundedFitness),
             Err(ScmError::InvalidLandscapeObservation { .. })
         ));
+    }
+
+    #[test]
+    fn consensus_window_conventions_have_distinct_first_update_ticks() {
+        let mut published = ScmModel::new(
+            small_agents(),
+            ScmConfig {
+                tau_steps: 4,
+                consensus_window: ScmConsensusWindow::PublishedEqualHalfIntervals,
+                ..ScmConfig::default()
+            },
+            107,
+        )
+        .unwrap();
+        let mut repository = ScmModel::new(
+            small_agents(),
+            ScmConfig {
+                tau_steps: 4,
+                consensus_window: ScmConsensusWindow::RepositoryMatlabInclusiveEndpoints,
+                ..ScmConfig::default()
+            },
+            107,
+        )
+        .unwrap();
+
+        let published_reports = published.run_steps(&Flat, 5).unwrap();
+        let repository_reports = repository.run_steps(&Flat, 5).unwrap();
+
+        assert!(published_reports[3].consensus_window_delta.is_some());
+        assert!(published_reports[4].consensus_window_delta.is_none());
+        assert!(repository_reports[3].consensus_window_delta.is_none());
+        assert!(repository_reports[4].consensus_window_delta.is_some());
     }
 
     #[test]
