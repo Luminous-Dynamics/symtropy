@@ -85,8 +85,18 @@ jobs:
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/marine-engine-fault-extracted"
+          archive="${{ steps.archive.outputs.archive }}"
+          # Reject absolute paths, traversal components, and Windows-style paths
+          # before extraction. Never execute files from the archive.
+          unzip -Z1 "$archive" | awk '
+            /^\\// || /^[A-Za-z]:/ || /\\/ { exit 1 }
+            {
+              n = split($0, component, "/")
+              for (i = 1; i <= n; i++) if (component[i] == "..") exit 1
+            }
+          '
           mkdir -p "$root"
-          unzip -q -o "${{ steps.archive.outputs.archive }}" -d "$root"
+          unzip -q -o "$archive" -d "$root"
           csv_count="$(find "$root" -type f -iname '*.csv' | wc -l | tr -d ' ')"
           test "$csv_count" = "16"
           echo "DATASET_ROOT=$root" >> "$GITHUB_ENV"
@@ -131,6 +141,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: marine-engine-fault-audit-${{ github.run_id }}
-          path: $RUNNER_TEMP/marine-engine-fault-audit.json
+          path: ${{ runner.temp }}/marine-engine-fault-audit.json
           if-no-files-found: error
           retention-days: 90
