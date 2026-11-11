@@ -233,7 +233,7 @@ pub fn advance(
             );
             next.water_maintenance_debt = (next.water_maintenance_debt - 3).max(0);
             next.maintenance_credits -= 1;
-            next.energy_reserve -= 2;
+            next.energy_reserve = next.energy_reserve.checked_sub(2).ok_or(BenchmarkError::ArithmeticOverflow)?;
         }
         Action::RepairEnergy => {
             next.energy_service = clamp_service(
@@ -268,8 +268,8 @@ pub fn advance(
         .energy_maintenance_debt
         .checked_add(params.energy_decay)
         .ok_or(BenchmarkError::ArithmeticOverflow)?;
-    next.water_reserve -= 2;
-    next.energy_reserve -= 1;
+    next.water_reserve = next.water_reserve.checked_sub(2).ok_or(BenchmarkError::ArithmeticOverflow)?;
+    next.energy_reserve = next.energy_reserve.checked_sub(1).ok_or(BenchmarkError::ArithmeticOverflow)?;
 
     next.validate()?;
     Ok(next)
@@ -482,6 +482,7 @@ pub struct PolicyOutcome {
     pub action_ranking_matches: usize,
     pub decision_count: usize,
     pub replan_count: usize,
+    pub abstention_ticks: usize,
     pub forecast_errors: Option<[f64; 6]>,
     pub scenario_manifest_digest: &'static str,
     pub split_manifest_digest: &'static str,
@@ -516,6 +517,7 @@ pub fn run_policy(
     let mut worst_energy_shortfall = 0_i32;
     let mut action_ranking_matches = 0_usize;
     let mut forecast_errors = ForecastErrors::default();
+    let mut abstention_ticks = 0_usize;
 
     for tick in 0..HORIZON {
         let steps_remaining = HORIZON - tick;
@@ -526,7 +528,13 @@ pub fn run_policy(
             PolicyKind::FixedOpenLoop => fixed_open_loop_action(tick, &state),
             PolicyKind::ActionConditionedModel => {
                 let model = candidate_model.ok_or(BenchmarkError::MissingModelIdentity)?;
-                choose_model_action(&state, model, steps_remaining).unwrap_or(Action::NoOp)
+                match choose_model_action(&state, model, steps_remaining) {
+                    Some(action) => action,
+                    None => {
+                        abstention_ticks += 1;
+                        Action::NoOp
+                    }
+                }
             }
             PolicyKind::EvaluatorOnlyOracle => reference_action.unwrap_or(Action::NoOp),
         };
@@ -601,6 +609,7 @@ pub fn run_policy(
         } else {
             0
         },
+        abstention_ticks,
         forecast_errors: forecast_errors.mean_absolute_errors(),
         scenario_manifest_digest: SCENARIO_MANIFEST_DIGEST,
         split_manifest_digest: SPLIT_MANIFEST_DIGEST,
