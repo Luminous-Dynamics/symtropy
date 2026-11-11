@@ -58,7 +58,7 @@ The report keeps separate denominators and counts. It does not collapse schema c
 
 The frozen known-answer fixture contains three required properties: FireRating (critical), ThermalTransmittance (critical, normalized by a synthetic external receipt), and AcousticRating (important). All three are preserved in the positive case.
 
-The 18 module unit tests cover exact and normalized preservation, critical loss/change, critical unsupported and absent-both states, important/advisory degradation, missing unit evidence, wrong entity identity, missing/duplicate comparison rows, duplicate requirements, incomplete profiles, unknown-to-default promotion, critical/required consistency and input-order invariance.
+The 21 module unit tests cover exact and normalized preservation, critical loss/change, critical unsupported and absent-both states, important/advisory degradation, missing unit evidence, wrong entity identity, missing/duplicate comparison rows, duplicate requirements, incomplete profiles, unknown-to-default promotion, criticality independent of property naming, target-only additions, critical/required consistency and input-order invariance.
 
 The exact-input SHA-256 is intentionally byte-sensitive; findings are canonicalized by requirement ID.
 
