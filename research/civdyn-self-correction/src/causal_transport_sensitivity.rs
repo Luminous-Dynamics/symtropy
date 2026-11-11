@@ -405,12 +405,13 @@ pub fn assess_bernoulli_outcome_shift_transport(
                     Some(upper),
                 )
             } else if lambda == 1.0 {
+                let point = lower + (upper - lower) / 2.0;
                 (
                     SensitivityIdentificationStatus::Identified,
                     SensitivityIdentificationReason::ConditionalInvarianceAtLambdaOne,
-                    Some(lower),
-                    Some(lower),
-                    Some(upper),
+                    Some(point),
+                    Some(point),
+                    Some(point),
                 )
             } else {
                 (
@@ -642,6 +643,7 @@ mod tests {
         assert!((result.target_ate_point.unwrap() - 0.28).abs() < 1e-12);
         assert!((result.target_ate_lower.unwrap() - 0.28).abs() < 1e-12);
         assert!((result.target_ate_upper.unwrap() - 0.28).abs() < 1e-12);
+        assert_eq!(result.sensitivity_interval_width, Some(0.0));
     }
 
     #[test]
