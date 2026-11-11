@@ -37,7 +37,7 @@ The pinned upstream result JSON files contain 3,000 learning records in total. T
 | Predator unidentifiable MNAR | 561 / 600 | 39 | 6.50% |
 | **Total** | **2,877 / 3,000** | **123** | **4.10%** |
 
-The 123 exception rows are not silently filtered. Exactly 120 occur at dataset size 10 and 3 at size 50; none occur at larger sizes. The status is sourced from the upstream `finished` and `exception` fields, not inferred from absence of summary metrics.
+The 123 exception rows are not silently filtered. All 123 are reported as `RemoteException` with the same failure fingerprint: `Failed discrete belief update: new probabilities sum to zero.` Exactly 120 occur at dataset size 10 and 3 at size 50; none occur at larger sizes. The normalizer and Rust auditor retain the exception type and check that every failed row has this fingerprint while every finished row has no exception metadata. The status is sourced from the upstream `finished` and `exception` fields, not inferred from absence of summary metrics.
 
 This is an **artifact audit**, not a conclusion that the paper's aggregate plots are wrong. It establishes that the public pinned result JSON contains explicit failed learning tasks and that these should remain part of the reproducibility denominator. The reported mean/TV summaries for successfully completed rows must be read alongside failure rates and the original paper's aggregation procedure.
 
