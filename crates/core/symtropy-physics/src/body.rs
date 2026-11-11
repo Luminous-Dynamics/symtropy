@@ -64,6 +64,8 @@ pub struct RigidBody<const D: usize> {
     /// Mass value (f64 bits) when the full inertia operator was attached.
     /// Detects direct public mass mutation that bypasses the replacement API.
     pub rotational_inertia_operator_mass_bits: Option<u64>,
+    /// Mass value against which the legacy diagonal inertia was derived.
+    mass_properties_mass_bits: Option<u64>,
     /// True when compound mass properties use the legacy approximation.
     pub rotational_inertia_approximate: bool,
     pub collider: Box<dyn Shape<D>>,
@@ -113,6 +115,7 @@ impl<const D: usize> RigidBody<D> {
             rotational_inertia_operator: None,
             rotational_inertia_operator_invalidated: false,
             rotational_inertia_operator_mass_bits: None,
+            mass_properties_mass_bits: Some(mass.to_bits()),
             rotational_inertia_approximate: false,
             collider,
             friction: 0.5,
@@ -228,7 +231,9 @@ impl<const D: usize> RigidBody<D> {
         if !self.is_dynamic() {
             return RotationalInertiaModel::StaticOrKinematic;
         }
-        if self.rotational_inertia_operator_invalidated {
+        if self.mass_properties_mass_bits != Some(self.mass.to_bits())
+            || self.rotational_inertia_operator_invalidated
+        {
             return RotationalInertiaModel::InvalidPrincipalMoments;
         }
         if self.rotational_inertia_operator.is_some() {
@@ -261,8 +266,42 @@ impl<const D: usize> RigidBody<D> {
         self.rotational_inertia_operator = Some(operator);
         self.rotational_inertia_operator_invalidated = false;
         self.rotational_inertia_operator_mass_bits = Some(self.mass.to_bits());
+        self.mass_properties_mass_bits = Some(self.mass.to_bits());
         self.rotational_inertia_approximate = false;
         self
+    }
+
+    /// Replace legacy diagonal mass properties as one provenance-bearing update.
+    ///
+    /// This is the supported way to change mass and retain the diagonal
+    /// compatibility path. D != 3 remains an explicitly approximate model.
+    /// The caller owns the geometry/material/centre-of-mass evidence used to
+    /// derive the supplied inertia vector.
+    pub fn replace_principal_mass_properties(
+        &mut self,
+        mass: f64,
+        inertia: SVector<f64, D>,
+    ) -> bool {
+        if !mass.is_finite() || mass <= 0.0 {
+            return false;
+        }
+        self.mass = mass;
+        self.inv_mass = 1.0 / mass;
+        self.inertia = inertia;
+        self.inv_inertia = inertia.map(|moment| {
+            if moment.is_finite() && moment > 0.0 {
+                1.0 / moment
+            } else {
+                0.0
+            }
+        });
+        self.mass_properties_mass_bits = Some(mass.to_bits());
+        self.rotational_inertia_operator = None;
+        self.rotational_inertia_operator_invalidated = false;
+        self.rotational_inertia_operator_mass_bits = None;
+        self.rotational_inertia_approximate = false;
+        self.wake();
+        true
     }
 
     /// Replace the attached operator after recomputing mass properties.
@@ -273,6 +312,7 @@ impl<const D: usize> RigidBody<D> {
         self.rotational_inertia_operator = Some(operator);
         self.rotational_inertia_operator_invalidated = false;
         self.rotational_inertia_operator_mass_bits = Some(self.mass.to_bits());
+        self.mass_properties_mass_bits = Some(self.mass.to_bits());
         self.rotational_inertia_approximate = false;
         self.wake();
     }
@@ -281,6 +321,7 @@ impl<const D: usize> RigidBody<D> {
         &self,
     ) -> Option<crate::mass_properties::SpatialRotationalInertiaView<'_, D>> {
         if self.rotational_inertia_operator_mass_bits != Some(self.mass.to_bits())
+            || self.mass_properties_mass_bits != Some(self.mass.to_bits())
             || self.rotational_inertia_operator_invalidated
         {
             return None;
@@ -329,7 +370,10 @@ impl<const D: usize> RigidBody<D> {
         &self,
         angular_impulse: &Bivector<D>,
     ) -> Bivector<D> {
-        if !self.is_dynamic() || self.rotational_inertia_operator_invalidated {
+        if !self.is_dynamic()
+            || self.rotational_inertia_operator_invalidated
+            || self.mass_properties_mass_bits != Some(self.mass.to_bits())
+        {
             return Bivector::zero();
         }
         if self.rotational_inertia_operator.is_some() {
@@ -389,7 +433,10 @@ impl<const D: usize> RigidBody<D> {
         &self,
         torque_world_bivector: &Bivector<D>,
     ) -> Bivector<D> {
-        if !self.is_dynamic() || self.rotational_inertia_operator_invalidated {
+        if !self.is_dynamic()
+            || self.rotational_inertia_operator_invalidated
+            || self.mass_properties_mass_bits != Some(self.mass.to_bits())
+        {
             return Bivector::zero();
         }
         if self.rotational_inertia_operator.is_some() {
@@ -456,7 +503,10 @@ impl<const D: usize> RigidBody<D> {
     /// Rotational kinetic energy using the same inertia operator as integration.
     /// Invalid 3D principal moments fail closed to zero rotational energy.
     pub fn rotational_kinetic_energy(&self) -> f64 {
-        if !self.is_dynamic() || self.rotational_inertia_operator_invalidated {
+        if !self.is_dynamic()
+            || self.rotational_inertia_operator_invalidated
+            || self.mass_properties_mass_bits != Some(self.mass.to_bits())
+        {
             return 0.0;
         }
         if self.rotational_inertia_operator.is_some() {
@@ -544,6 +594,7 @@ impl<const D: usize> RigidBody<D> {
         // approximation even when the resulting three stored moments happen
         // to be equal.
         self.rotational_inertia_approximate = true;
+        self.mass_properties_mass_bits = Some(self.mass.to_bits());
 
         // Toolhead mass changes invalidate any previously certified full
         // inertia operator. Do not silently keep using stale mass properties.
@@ -718,6 +769,33 @@ mod rotational_inertia_tests {
             (rotated_delta.add(&baseline_delta.scale(-1.0))).norm() > 1.0e-4,
             "changing body pose should rotate the anisotropic operator in spatial coordinates"
         );
+    }
+
+    #[test]
+    fn direct_mass_mutation_invalidates_diagonal_inertia_until_replaced() {
+        let mut body = anisotropic_body();
+        let original_mass = body.mass;
+        body.mass += 0.25;
+
+        assert_eq!(
+            body.rotational_inertia_model(),
+            RotationalInertiaModel::InvalidPrincipalMoments
+        );
+        assert_eq!(
+            body.apply_inverse_angular_inertia(&Bivector::<3>::unit_plane(0, 1)),
+            Bivector::zero()
+        );
+        assert_eq!(body.rotational_kinetic_energy(), 0.0);
+
+        assert!(body.replace_principal_mass_properties(
+            original_mass + 0.25,
+            SVector::from([2.0, 3.0, 4.0]),
+        ));
+        assert_eq!(
+            body.rotational_inertia_model(),
+            RotationalInertiaModel::PrincipalAxesWorldSpace3D
+        );
+        assert!(!body.replace_principal_mass_properties(f64::NAN, SVector::from([1.0, 1.0, 1.0])));
     }
 
     #[test]
