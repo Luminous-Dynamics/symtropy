@@ -197,6 +197,15 @@ struct ScmObservation {
     outside_domain: bool,
 }
 
+/// A failed batch retains how many per-agent evaluation attempts were already made,
+/// including the call that failed. This supports cost accounting without committing
+/// partially updated agent state.
+#[derive(Debug, Clone, PartialEq)]
+struct ScmObservationFailure {
+    error: ScmError,
+    attempted_agent_evaluations: usize,
+}
+
 /// One synchronous SCM update report.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ScmStepReport {
@@ -305,17 +314,17 @@ impl ScmModel {
         if self.observations.is_none() {
             // A completed initial observation is an acquired measurement. Retain its cost
             // and cache even if a later successor observation fails.
-            let initial = self.observe_agents(&self.agents, landscape)?;
-            let new_total = self
-                .total_function_evaluations
-                .checked_add(
-                    u64::try_from(initial.len())
-                        .map_err(|_| ScmError::EvaluationCounterOverflow)?,
-                )
-                .ok_or(ScmError::EvaluationCounterOverflow)?;
-            initial_evaluations_this_call = initial.len();
+            let initial = match self.observe_agents(&self.agents, landscape) {
+                Ok(observations) => observations,
+                Err(failure) => {
+                    self.record_evaluation_attempts(failure.attempted_agent_evaluations)?;
+                    return Err(failure.error);
+                }
+            };
+            let initial_count = self.agents.len();
+            self.record_evaluation_attempts(initial_count)?;
+            initial_evaluations_this_call = initial_count;
             self.observations = Some(initial);
-            self.total_function_evaluations = new_total;
         }
         let current_observations = self
             .observations
@@ -393,12 +402,19 @@ impl ScmModel {
             next_agents.push(ScmAgent { position: next });
         }
 
-        let updated_observations = self.observe_agents(&next_agents, landscape)?;
-        let evaluations_this_step = initial_evaluations_this_call + updated_observations.len();
+        let updated_observations = match self.observe_agents(&next_agents, landscape) {
+            Ok(observations) => observations,
+            Err(failure) => {
+                self.record_evaluation_attempts(failure.attempted_agent_evaluations)?;
+                return Err(failure.error);
+            }
+        };
+        let successor_evaluations = next_agents.len();
+        let evaluations_this_step = initial_evaluations_this_call + successor_evaluations;
         let new_total_function_evaluations = self
             .total_function_evaluations
             .checked_add(
-                u64::try_from(evaluations_this_step)
+                u64::try_from(successor_evaluations)
                     .map_err(|_| ScmError::EvaluationCounterOverflow)?,
             )
             .ok_or(ScmError::EvaluationCounterOverflow)?;
@@ -525,13 +541,26 @@ impl ScmModel {
         Ok(reports)
     }
 
+    fn record_evaluation_attempts(&mut self, count: usize) -> Result<(), ScmError> {
+        let new_total = self
+            .total_function_evaluations
+            .checked_add(u64::try_from(count).map_err(|_| ScmError::EvaluationCounterOverflow)?)
+            .ok_or(ScmError::EvaluationCounterOverflow)?;
+        self.total_function_evaluations = new_total;
+        Ok(())
+    }
+
     fn observe_agents<L: ScmLandscape>(
         &self,
         agents: &[ScmAgent],
         landscape: &L,
-    ) -> Result<Vec<ScmObservation>, ScmError> {
+    ) -> Result<Vec<ScmObservation>, ScmObservationFailure> {
         let mut observations = Vec::with_capacity(agents.len());
+        let mut attempted_agent_evaluations = 0usize;
         for (agent_index, agent) in agents.iter().enumerate() {
+            // Count one agent observation request, including the failing request. This
+            // matches the source protocol's per-agent function-evaluation accounting.
+            attempted_agent_evaluations += 1;
             if agent.position.iter().any(|value| !(0.0..=1.0).contains(value)) {
                 observations.push(ScmObservation {
                     fitness: 0.0,
@@ -540,18 +569,27 @@ impl ScmModel {
                 });
                 continue;
             }
-            let (fitness, gradient) = landscape
-                .fitness_and_gradient(&agent.position)
-                .map_err(|reason| ScmError::LandscapeFailure {
-                    agent: agent_index,
-                    reason,
-                })?;
+            let (fitness, gradient) = match landscape.fitness_and_gradient(&agent.position) {
+                Ok(result) => result,
+                Err(reason) => {
+                    return Err(ScmObservationFailure {
+                        error: ScmError::LandscapeFailure {
+                            agent: agent_index,
+                            reason,
+                        },
+                        attempted_agent_evaluations,
+                    });
+                }
+            };
             if !fitness.is_finite()
                 || !(0.0..=1.0).contains(&fitness)
                 || gradient.len() != agent.position.len()
                 || gradient.iter().any(|value| !value.is_finite())
             {
-                return Err(ScmError::InvalidLandscapeObservation { agent: agent_index });
+                return Err(ScmObservationFailure {
+                    error: ScmError::InvalidLandscapeObservation { agent: agent_index },
+                    attempted_agent_evaluations,
+                });
             }
             observations.push(ScmObservation {
                 fitness,
@@ -822,7 +860,7 @@ mod tests {
         let before_tick = model.tick;
         let failure = FailOnNextObservationBatch {
             calls: std::cell::Cell::new(0),
-            successful_calls: 3,
+            successful_calls: 4,
         };
 
         assert!(matches!(
@@ -833,7 +871,9 @@ mod tests {
         assert_eq!(model.rng, before_rng);
         assert_eq!(model.tick, before_tick);
         assert!(model.observations.is_some());
-        assert_eq!(model.total_function_evaluations, 3);
+        // Three initial readings and one successful successor reading plus the failed
+        // second successor request are all counted as evaluation attempts.
+        assert_eq!(model.total_function_evaluations, 5);
     }
 
     #[test]
