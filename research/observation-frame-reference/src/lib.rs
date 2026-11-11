@@ -653,6 +653,15 @@ mod tests {
     }
 
     #[test]
+    fn unknown_transient_body_handle_field_is_rejected() {
+        let mut value: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/machine-test-01.json"))
+                .expect("fixture JSON");
+        value["entities"][0]["body_handle"] = serde_json::json!(42);
+        assert!(serde_json::from_value::<ObservationFrameInputV1>(value).is_err());
+    }
+
+    #[test]
     fn duplicate_entity_ids_reject() {
         let mut input = fixture();
         input.entities[1].scenario_entity_id = input.entities[0].scenario_entity_id.clone();
