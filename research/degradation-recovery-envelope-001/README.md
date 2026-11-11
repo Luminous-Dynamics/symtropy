@@ -128,6 +128,19 @@ cargo run --locked \
 
 Arguments are first start tick, spacing ticks, exposure duration, detection deadline, containment deadline and healthy-recovery quorum. The generator rejects a spacing that cannot accommodate the full exposure plus the recovery quorum. It returns an event schedule only; a simulator/injector must still execute each intervention and record the actual trace.
 
+### Generate a deterministic severity sweep
+
+Exercise every fault family at several predeclared severities. The generator emits independent, non-overlapping event windows and reserves the full exposure plus the healthy-recovery quorum before the next event:
+
+```sh
+cargo run --locked \
+  --manifest-path research/degradation-recovery-envelope-001/Cargo.toml -- \
+  generate-severity-sweep 10 5 3 1 1 2 100000,250000,500000,750000,1000000 \
+  research/degradation-recovery-envelope-001/fixtures/severity-sweep.json
+```
+
+The five severity levels are 10%, 25%, 50%, 75% and 100% of the declared fault-family-specific severity scale. These values are control parameters, not calibrated physical equivalences across fault families. With five levels, the schedule contains 35 events (seven fault families × five severities). It does not inject the faults; an environment adapter must execute the interventions and record their observed effects.
+
 ### Audit a paired campaign
 
 ```sh
@@ -154,6 +167,7 @@ Schemas:
 Fixture:
 - `fixtures/camera-drop-paired-v1.json` — eight paired ticks, camera drop on ticks 3–4, event-attributed detection and containment, two healthy observations before normal mode resumes on tick 7.
 - `fixtures/compound-common-cause-camera-clock-v1.json` — the same paired eight-tick episode with simultaneous camera-drop and clock-drift faults attributed to one declared power/clock-domain common cause; the auditor reports both event latencies independently.
+- `fixtures/severity-sweep.json` — generated schedule only; do not audit it as an observed trace or present it as a fault-injection result.
 
 ## Prospective target ladder (not measured results)
 
