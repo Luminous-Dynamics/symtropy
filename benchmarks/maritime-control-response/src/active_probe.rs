@@ -54,6 +54,7 @@ pub struct DiagnosticProbeCandidate {
     pub candidate_id: String,
     pub probe_class: ProbeClass,
     pub authorization: ProbeAuthorization,
+    /// Digest reference only; signer identity and authority must be verified upstream.
     pub authorization_receipt_sha256: Option<String>,
     pub likelihood_model_sha256: String,
     pub likelihood_calibration_sha256: String,
@@ -87,7 +88,7 @@ impl ProbeSelectionPolicy {
             maximum_cost_seconds: 3_600.0,
             maximum_delay_seconds: 86_400.0,
             maximum_risk_ppm: 10_000,
-            minimum_expected_information_gain_nats: 0.0,
+            minimum_expected_information_gain_nats: 1e-6,
             cost_penalty_scale_seconds: 300.0,
             delay_penalty_scale_seconds: 3_600.0,
             risk_penalty_scale_ppm: 10_000.0,
@@ -643,11 +644,17 @@ mod tests {
             &ProbeSelectionPolicy::conservative_read_only(),
         )
         .unwrap();
+        assert_eq!(result.ranked_recommendations.len(), 1);
         assert_eq!(result.ranked_recommendations[0].candidate_id, "discriminating_probe");
-        assert!(
-            result.ranked_recommendations[0].expected_information_gain_nats
-                > result.ranked_recommendations[1].expected_information_gain_nats
-        );
+        assert!(result.ranked_recommendations[0].expected_information_gain_nats > 0.0);
+        let weak = result
+            .assessments
+            .iter()
+            .find(|assessment| assessment.candidate_id == "weak_probe")
+            .unwrap();
+        assert!(weak
+            .rejection_reasons
+            .contains(&ProbeRejectionReason::InformationGainBelowMinimum));
         assert!(!result.execution_performed);
         assert!(!result.actuation_authorized);
     }
