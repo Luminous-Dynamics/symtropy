@@ -18,7 +18,7 @@ The observer accumulates the residual and records the maximum positive prefix:
     cumulative_residual_n = sum(residual_k, k=0..n)
     maximum_prefix_deficit = max(0, cumulative_residual_1, ..., cumulative_residual_n)
 
-A non-positive cumulative residual is consistent with the declared discrete storage/port-work inequality over the observed prefix. A positive residual is a measured/accounting discrepancy relative to the caller-supplied work lower bound and allowance.
+A non-positive cumulative residual is consistent with the declared discrete storage/port-work inequality over the observed prefix. A positive residual is a measured/accounting discrepancy relative to the caller-supplied work lower bound and allowance. The historical prefix flag remains false after any positive prefix deficit, even if later surplus makes the current cumulative residual negative.
 
 ## Provenance and fail-closed behaviour
 
