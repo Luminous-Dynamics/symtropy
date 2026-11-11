@@ -554,13 +554,12 @@ pub fn run_policy(
             action_ranking_matches += 1;
         }
 
-        if let Some(model) = candidate_model.filter(|_| {
-            policy == PolicyKind::ActionConditionedModel
-        }) {
-            if let Ok(predicted) = advance(&state, action, model.params) {
-                let actual = advance(&state, action, true_world.params)?;
-                forecast_errors.add(&predicted, &actual);
-            }
+        if let Some(model) = candidate_model
+            .filter(|_| policy == PolicyKind::ActionConditionedModel)
+        {
+            let predicted = advance(&state, action, model.params)?;
+            let actual = advance(&state, action, true_world.params)?;
+            forecast_errors.add(&predicted, &actual);
         }
 
         state = advance(&state, action, true_world.params)?;
