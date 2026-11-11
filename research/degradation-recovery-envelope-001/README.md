@@ -53,6 +53,13 @@ The deterministic schedule generator supports:
 
 The typed protocol permits concurrent events, provided each tick explicitly identifies every active condition and each detection/containment record references the exact fault-event ID. A generic `fault_detected=true` flag is intentionally insufficient: it could otherwise credit one fault's detection to another.
 
+Each event also declares its causal relationship:
+- `independent`: no common-cause group and no parent event;
+- `common_cause`: a non-empty `causal_group_id` shared by at least two fault events;
+- `cascaded`: a `parent_event_id` that identifies an earlier or same-tick declared event.
+
+The validator rejects singleton common-cause groups, missing parents, parents that start after their children, and causal cycles. These fields record the campaign's declared causal model; they do not prove that the physical common cause or cascade is true.
+
 ## Metrics (never collapse these axes)
 
 Per fault event:
@@ -146,6 +153,7 @@ Schemas:
 
 Fixture:
 - `fixtures/camera-drop-paired-v1.json` — eight paired ticks, camera drop on ticks 3–4, event-attributed detection and containment, two healthy observations before normal mode resumes on tick 7.
+- `fixtures/compound-common-cause-camera-clock-v1.json` — the same paired eight-tick episode with simultaneous camera-drop and clock-drift faults attributed to one declared power/clock-domain common cause; the auditor reports both event latencies independently.
 
 ## Prospective target ladder (not measured results)
 
