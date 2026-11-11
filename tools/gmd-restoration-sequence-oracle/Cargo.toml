@@ -1,0 +1,10 @@
+[package]
+name = "gmd-restoration-sequence-oracle"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Deterministic resource- and envelope-constrained black-start restoration schedule verifier"
+
+[dependencies]
+
+[workspace]
