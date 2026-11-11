@@ -10,7 +10,7 @@
     "initial_state_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
     "simulation_state_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
     "model_profile_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-    "observable_set_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "observable_set_sha256": "49f7e8d90e39e2913f695e64e59c4a6c5ee0ffd3137d0a5b7c5a892b46fa4ae4",
     "adapter_version": "reference-oracle-0.1.0",
     "simulation_tick": 120
   },
