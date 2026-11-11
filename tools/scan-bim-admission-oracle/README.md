@@ -15,10 +15,10 @@ The CLI emits a deterministic JSON report with the fixture byte digest and case-
 
 ## Scope
 
-The v0.1 oracle evaluates a small, declared admission contract over candidate geometry summaries, element identity/class, visibility, uncertainty, evidence lineage, topology and revision-bound modify proposals. It does not compute geometric deviation from raw point clouds: the deviation and uncertainty are typed upstream measurements supplied to the decision oracle and must be independently qualified by their producing pipeline. It also rejects duplicate IDs/edges/targets, unknown schema fields, stale model revisions, incomplete visibility, unsupported identity changes and uncertainty intervals crossing the declared tolerance. It does not register point clouds, fit geometry, infer semantic labels, write IFC, certify surveys or authorize physical work.
+The v0.1 oracle evaluates a small, declared admission contract over candidate geometry summaries, element identity/class, visibility, uncertainty, evidence lineage, topology, upstream change-estimate disposition, registration stability, independent-checkpoint receipt and revision-bound modify proposals. It does not compute geometric deviation from raw point clouds: the deviation and uncertainty are typed upstream measurements supplied to the decision oracle and must be independently qualified by their producing pipeline. It also rejects duplicate IDs/edges/targets, unknown schema fields, stale model revisions, incomplete visibility, unsupported identity changes and uncertainty intervals crossing the declared tolerance, unresolved change-estimate or registration stability, and missing independent-checkpoint evidence. It does not register point clouds, fit geometry, infer semantic labels, write IFC, certify surveys or authorize physical work.
 
 Expected labels are used only to compare the oracle output after candidate evaluation. The evaluator does not read expected outcomes as inference inputs.
 
 ## Claim ceiling
 
-A passing suite proves only agreement with 25 hand-authored synthetic fixtures and their explicit rules. It does not establish real scan accuracy, sensor performance, generalization, building safety, structural adequacy, code compliance, legal survey status, or operational productivity.
+A passing suite proves only agreement with 28 hand-authored synthetic fixtures and their explicit rules. It does not establish real scan accuracy, sensor performance, generalization, building safety, structural adequacy, code compliance, legal survey status, or operational productivity.
