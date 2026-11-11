@@ -64,7 +64,9 @@ impl fmt::Display for DragError {
             Self::NonPositiveDragCoefficient => "drag coefficient must be greater than zero",
             Self::NonPositiveArea => "reference area must be greater than zero",
             Self::NonPositiveMass => "spacecraft mass must be greater than zero",
-            Self::NonPositiveBallisticCoefficient => "ballistic coefficient must be greater than zero",
+            Self::NonPositiveBallisticCoefficient => {
+                "ballistic coefficient must be greater than zero"
+            }
             Self::InvalidEnvelopeOrdering => "envelope minima must not exceed maxima",
             Self::NumericalOverflow => "drag calculation produced a non-finite result",
         };
@@ -168,9 +170,7 @@ pub fn evaluate_drag(input: DragInput) -> Result<DragResult, DragError> {
 /// Minimum acceleration uses minimum density and maximum ballistic
 /// coefficient. Maximum acceleration uses maximum density and minimum
 /// ballistic coefficient.
-pub fn evaluate_drag_envelope(
-    input: DragEnvelopeInput,
-) -> Result<DragEnvelope, DragError> {
+pub fn evaluate_drag_envelope(input: DragEnvelopeInput) -> Result<DragEnvelope, DragError> {
     let values = [
         input.density_min_kg_m3,
         input.density_max_kg_m3,
@@ -197,19 +197,12 @@ pub fn evaluate_drag_envelope(
 
     let speed = norm(input.relative_velocity_m_s);
     let speed_squared = speed * speed;
-    let min_acceleration = 0.5
-        * input.density_min_kg_m3
-        * speed_squared
-        / input.ballistic_coefficient_max_kg_m2;
-    let max_acceleration = 0.5
-        * input.density_max_kg_m3
-        * speed_squared
-        / input.ballistic_coefficient_min_kg_m2;
+    let min_acceleration =
+        0.5 * input.density_min_kg_m3 * speed_squared / input.ballistic_coefficient_max_kg_m2;
+    let max_acceleration =
+        0.5 * input.density_max_kg_m3 * speed_squared / input.ballistic_coefficient_min_kg_m2;
 
-    if !speed.is_finite()
-        || !min_acceleration.is_finite()
-        || !max_acceleration.is_finite()
-    {
+    if !speed.is_finite() || !min_acceleration.is_finite() || !max_acceleration.is_finite() {
         return Err(DragError::NumericalOverflow);
     }
 
@@ -225,11 +218,7 @@ fn norm(vector: [f64; 3]) -> f64 {
 }
 
 fn scale(vector: [f64; 3], scalar: f64) -> [f64; 3] {
-    [
-        vector[0] * scalar,
-        vector[1] * scalar,
-        vector[2] * scalar,
-    ]
+    [vector[0] * scalar, vector[1] * scalar, vector[2] * scalar]
 }
 
 fn dot(lhs: [f64; 3], rhs: [f64; 3]) -> f64 {
@@ -272,7 +261,11 @@ mod tests {
 
         close(result.ballistic_coefficient_kg_m2, 100.0 / 22.0, 1.0e-14);
         close(result.relative_speed_m_s, KNOWN_SPEED, 1.0e-14);
-        close(result.acceleration_magnitude_m_s2, expected_acceleration, 1.0e-14);
+        close(
+            result.acceleration_magnitude_m_s2,
+            expected_acceleration,
+            1.0e-14,
+        );
         close(result.acceleration_m_s2[0], -expected_acceleration, 1.0e-14);
         close(result.force_n[0], -expected_force, 1.0e-14);
     }
