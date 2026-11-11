@@ -18,12 +18,12 @@ fn main() -> ExitCode {
     match validate_corpus(&bytes) {
         Ok(summary) => {
             println!(
-                "PASS {}: {} cases ({} positive, {} negative), sha256={}",
+                "PASS {}: {} cases ({} positive, {} negative), fnv1a64={}",
                 summary.benchmark_id,
                 summary.cases,
                 summary.positive,
                 summary.negative,
-                summary.corpus_digest
+                summary.corpus_fingerprint_fnv1a64
             );
             ExitCode::SUCCESS
         }
