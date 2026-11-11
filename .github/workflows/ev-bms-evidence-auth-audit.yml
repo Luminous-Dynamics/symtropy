@@ -23,6 +23,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: 1.96.0
+          components: rustfmt
 
       - name: Check formatting
         run: cargo fmt --manifest-path tools/ev-bms-evidence-auth-audit/Cargo.toml -- --check
