@@ -46,7 +46,7 @@ For measured p99 total observation-cutoff-to-controller-admission latency L_p99:
 
     K_min = ceil(L_p99 / Δt)
 
-The queued open-loop mode is feasible only when K_min <= K_max. The selected prefix is the longest whole-cycle prefix K_max within that interval.
+The queued open-loop mode is feasible only when K_min <= K_req <= K_max. The selector accepts the exact requested K_req or rejects it; it never silently clamps or rewrites a policy action. A requested prefix above K_max is rejected. A prefix below K_min cannot cover measured queued deliberation latency. The same exact-K rule applies to split-timescale mode, except that its lower bound is supplied by the continuously active local expert rather than slow world-context latency.
 
 A split-timescale architecture is different: a continuously running local action expert keeps control responsive to fresh observations while the slower world model updates context. The slow deliberation latency does not become an open-loop minimum queue requirement; the local expert remains bounded by K_max and its independent control/safety contract.
 
@@ -66,6 +66,12 @@ Unknown is not infinity. A missing thermal horizon cannot be dropped because the
 
 Every decision carries a fixed-size receipt containing all eight bounds, source identities, timebase IDs, unknown reasons, the active minimum constraint(s), p99 latency profile, K_min and K_max. The selector is fixed-size and allocation-free; it does not authorize or dispatch an action.
 
+### Cross-language fixture parity
+
+The Rust selector includes a table-driven conformance test mirroring all 12 cases in #4704's independent JSON corpus: AH01 through AH12. The crosswalk checks the disposition, safe horizon, K_min, K_max, exact selected K and active limiting bound. The JSON/schema/semantic validator remains the independent reference owner; the Rust test ensures the runtime selector implements the same published fixture semantics.
+
+The policy-requested prefix is explicit. The selector does not return K_max unconditionally and does not clip an oversized request. It accepts the exact K_req only when the required execution-mode interval is satisfied.
+
 ## Immutable action commitment receipt
 
 The selector output can be consumed into an immutable `ActionCommitment` bound to:
@@ -84,8 +90,8 @@ The caller must persist and atomically advance the last accepted sequence in its
 
 The Rust module is `crates/core/symtropy-physics/src/action_horizon.rs` and is exported from the crate.
 
-It includes 27 authored deterministic tests for:
-- exact minimum and floor arithmetic;
+It includes 34 authored deterministic tests for:
+- exact minimum/floor arithmetic and preservation/rejection of policy-requested K;
 - tied active constraints;
 - Unknown rejection for every required constraint;
 - incompatible timebases;
@@ -93,7 +99,7 @@ It includes 27 authored deterministic tests for:
 - K_min > K_max rejection without horizon extension;
 - split-timescale operation despite remote deliberation latency;
 - exact and fractional p99 cycle rounding;
-- zero safe horizon and zero controller period;
+- zero safe horizon, zero controller period and zero requested K;
 - empty source/timebase/reason/latency-profile identities, including direct enum-construction bypass attempts;
 - canonical receipt order.
 
