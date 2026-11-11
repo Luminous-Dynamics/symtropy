@@ -22,6 +22,19 @@ use symtropy_math::{Bivector, Rotor};
 
 const ROTATION_VALIDITY_TOLERANCE: f64 = 1.0e-8;
 
+/// Average symmetric entries without overflowing equal large values or
+/// erasing equal subnormal values by halving each operand first.
+#[inline]
+fn symmetric_average(left: f64, right: f64) -> f64 {
+    if left == right {
+        left
+    } else if left.is_sign_positive() == right.is_sign_positive() {
+        left + (right - left) * 0.5
+    } else {
+        left * 0.5 + right * 0.5
+    }
+}
+
 /// Compute `m * d * d^T` without overflowing the unweighted outer product.
 /// Nonzero components whose products underflow are rejected rather than
 /// silently deleting a physical parallel-axis contribution.
@@ -124,22 +137,39 @@ impl BivectorInertia<3> {
         }
         // Symmetrize only within the already-checked roundoff tolerance.
         let symmetric_inertia = SMatrix::<f64, 3, 3>::from_fn(|row, column| {
-            0.5 * inertia_tensor[(row, column)] + 0.5 * inertia_tensor[(column, row)]
+            symmetric_average(inertia_tensor[(row, column)], inertia_tensor[(column, row)])
         });
-        let second_moment = SMatrix::<f64, 3, 3>::from_fn(|row, column| {
-            if row == column {
-                let other_axes = match row {
-                    0 => [1, 2],
-                    1 => [0, 2],
-                    _ => [0, 1],
-                };
-                0.5 * symmetric_inertia[(other_axes[0], other_axes[0])]
-                    + 0.5 * symmetric_inertia[(other_axes[1], other_axes[1])]
-                    - 0.5 * symmetric_inertia[(row, row)]
-            } else {
-                -symmetric_inertia[(row, column)]
+        let mut second_moment = SMatrix::<f64, 3, 3>::zeros();
+        for row in 0..3 {
+            let other_axes = match row {
+                0 => [1, 2],
+                1 => [0, 2],
+                _ => [0, 1],
+            };
+            let diagonal_scale = symmetric_inertia[(row, row)]
+                .abs()
+                .max(symmetric_inertia[(other_axes[0], other_axes[0])].abs())
+                .max(symmetric_inertia[(other_axes[1], other_axes[1])].abs());
+            if diagonal_scale > 0.0 {
+                let normalized_value = 0.5
+                    * (symmetric_inertia[(other_axes[0], other_axes[0])] / diagonal_scale)
+                    + 0.5
+                        * (symmetric_inertia[(other_axes[1], other_axes[1])] / diagonal_scale)
+                    - 0.5 * (symmetric_inertia[(row, row)] / diagonal_scale);
+                let value = normalized_value * diagonal_scale;
+                if !value.is_finite() || (normalized_value != 0.0 && value == 0.0) {
+                    return Err(RotationalInertiaError::NonFinite);
+                }
+                second_moment[(row, row)] = value;
             }
-        });
+        }
+        for row in 0..3 {
+            for column in 0..3 {
+                if row != column {
+                    second_moment[(row, column)] = -symmetric_inertia[(row, column)];
+                }
+            }
+        }
         if !second_moment.iter().all(|value| value.is_finite()) {
             return Err(RotationalInertiaError::NonFinite);
         }
@@ -1606,6 +1636,24 @@ mod tests {
         let tensor_energy = 0.5 * omega.dot(&(inertia_tensor * omega));
         let operator_energy = operator.kinetic_energy(&angular_state).unwrap();
         assert!((operator_energy - tensor_energy).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn inertia_tensor_adapter_rejects_unrepresentable_half_subnormal_moments() {
+        let minimum = f64::from_bits(1);
+        let tensor = SMatrix::<f64, 3, 3>::identity() * minimum;
+        assert_eq!(
+            BivectorInertia::<3>::from_inertia_tensor_3d(tensor).unwrap_err(),
+            RotationalInertiaError::NonFinite
+        );
+    }
+
+    #[test]
+    fn inertia_tensor_adapter_preserves_minimum_representable_moments() {
+        let minimum = f64::from_bits(1);
+        let tensor = SMatrix::<f64, 3, 3>::identity() * (2.0 * minimum);
+        let operator = BivectorInertia::<3>::from_inertia_tensor_3d(tensor).unwrap();
+        assert_eq!(operator.inertia_tensor_3d().unwrap(), tensor);
     }
 
     #[test]
