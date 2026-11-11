@@ -318,10 +318,7 @@ pub enum TemporalNetworkError {
     TooFewSnapshots,
     TickCountMismatch,
     TicksNotStrictlyIncreasing,
-    SnapshotNodeCountMismatch {
-        expected: usize,
-        actual: usize,
-    },
+    SnapshotNodeCountMismatch { expected: usize, actual: usize },
     NonFiniteTemporalSummary,
 }
 
@@ -376,8 +373,11 @@ impl TemporalNetworkSequence {
     }
 
     pub fn summarize(&self) -> Result<TemporalNetworkSummary, TemporalNetworkError> {
-        let snapshot_summaries: Vec<NetworkSummary> =
-            self.snapshots.iter().map(UndirectedNetwork::summarize).collect();
+        let snapshot_summaries: Vec<NetworkSummary> = self
+            .snapshots
+            .iter()
+            .map(UndirectedNetwork::summarize)
+            .collect();
         let component_counts: Vec<f64> = snapshot_summaries
             .iter()
             .map(|summary| summary.component_count as f64)
@@ -418,7 +418,11 @@ impl TemporalNetworkSequence {
             let intersection = previous.intersection(&current).count() as f64;
             let union = previous.union(&current).count() as f64;
             // Two empty edge sets are identical: Jaccard = 1, turnover = 0.
-            let jaccard = if union == 0.0 { 1.0 } else { intersection / union };
+            let jaccard = if union == 0.0 {
+                1.0
+            } else {
+                intersection / union
+            };
             let additions = current.difference(&previous).count() as f64;
             let removals = previous.difference(&current).count() as f64;
             let denominator = maximum_possible_edges.max(1.0);
@@ -819,8 +823,11 @@ mod tests {
             TemporalNetworkError::TicksNotStrictlyIncreasing
         );
         assert_eq!(
-            TemporalNetworkSequence::new(vec![1, 2], vec![cycle_six(), UndirectedNetwork::new(5, [(0, 1)]).unwrap()])
-                .unwrap_err(),
+            TemporalNetworkSequence::new(
+                vec![1, 2],
+                vec![cycle_six(), UndirectedNetwork::new(5, [(0, 1)]).unwrap()]
+            )
+            .unwrap_err(),
             TemporalNetworkError::SnapshotNodeCountMismatch {
                 expected: 6,
                 actual: 5,
