@@ -427,6 +427,60 @@ mod tests {
     }
 
     #[test]
+    fn reference_point_shift_and_inverse_shift_restore_the_inertia() {
+        let inertia = sample();
+        let offset = SVector::new(0.25, -0.6, 0.35);
+        let shifted = inertia
+            .shift_reference_point(ReferencePointId(20), &offset)
+            .unwrap();
+        let restored = shifted
+            .shift_reference_point(ReferencePointId(10), &(-offset))
+            .unwrap();
+        assert_eq!(restored.frame(), inertia.frame());
+        assert_eq!(restored.about(), inertia.about());
+        assert!((restored.center_of_mass_from_reference()
+            - inertia.center_of_mass_from_reference())
+            .norm()
+            < 1.0e-14);
+        assert!((restored.central_inertia() - inertia.central_inertia()).norm() < 1.0e-14);
+    }
+
+    #[test]
+    fn uniform_mass_scaling_scales_spatial_matrix_momentum_and_energy() {
+        let inertia = sample();
+        let twist = sample_twist();
+        let matrix = inertia.spatial_mass_matrix().unwrap();
+        let momentum = inertia.spatial_momentum(&twist).unwrap();
+        let energy = inertia.kinetic_energy(&twist).unwrap();
+
+        for scale in [1.0e-12, 1.0e12] {
+            let scaled = SpatialInertia3::new(
+                inertia.frame(),
+                inertia.about(),
+                inertia.mass() * scale,
+                *inertia.center_of_mass_from_reference(),
+                inertia.central_inertia() * scale,
+            )
+            .unwrap();
+            let scaled_matrix = scaled.spatial_mass_matrix().unwrap();
+            let scaled_momentum = scaled.spatial_momentum(&twist).unwrap();
+            let scaled_energy = scaled.kinetic_energy(&twist).unwrap();
+            assert!(
+                (scaled_matrix - matrix * scale).norm()
+                    / (matrix.norm() * scale).max(f64::MIN_POSITIVE)
+                    < 2.0e-12,
+                "spatial matrix scale covariance failed at {scale:e}"
+            );
+            assert!(
+                (scaled_momentum - momentum * scale).norm()
+                    / (momentum.norm() * scale).max(f64::MIN_POSITIVE)
+                    < 2.0e-12
+            );
+            assert!((scaled_energy / (energy * scale) - 1.0).abs() < 2.0e-12);
+        }
+    }
+
+    #[test]
     fn frame_reexpression_preserves_energy_and_rotates_spatial_momentum() {
         let inertia = sample();
         let twist = sample_twist();
