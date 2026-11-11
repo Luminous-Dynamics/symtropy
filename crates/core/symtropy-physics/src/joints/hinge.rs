@@ -388,7 +388,7 @@ mod tests {
     }
 
     #[test]
-    fn motor_impulse_applies_full_dynamic_response_against_static_base()
+    fn motor_impulse_applies_full_dynamic_response_against_static_base() {
         let mut a = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
