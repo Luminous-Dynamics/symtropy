@@ -722,6 +722,62 @@
         "A fair comparison must reproduce the triplet-only ablation, use the same cycle-level holdout and report uncertainty over independent runs.",
         "The 128-dimensional learned embedding is not itself evidence of physical fault identifiability or calibrated confidence."
       ]
+    },
+    {
+      "id": "external-context-rcap-container-ship-2026",
+      "title": "Explainable AI-based root-cause diagnosis of maritime engine anomalies with external factors",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-07",
+      "publication_date_precision": "month",
+      "source_url": "https://doi.org/10.1016/j.cie.2026.112028",
+      "data_domain": "18 months of actual operational data from one container ship; internal main-engine sensor time series plus external operational/environmental factors including wind-wave height, draft/trim and sea-surface temperature.",
+      "task": "Unsupervised internal-engine anomaly detection using a variational autoencoder, clustering of internal anomaly patterns, and external Root Cause Anomaly Predictor (LightGBM) to predict anomaly scores from external/context variables; SHAP feature attribution used to interpret associations.",
+      "reported_metrics": [
+        {
+          "metric": "operational_data_exposure",
+          "value": 18,
+          "unit": "months",
+          "context": "One container ship; exact vessel identity, fleet coverage and operating-hour denominator require full methods/data audit.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "detected_anomaly_count",
+          "value": 335,
+          "unit": "anomalies",
+          "context": "Anomalies identified from internal engine sensor patterns; the abstract does not establish 335 independently adjudicated physical faults.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "internal_anomaly_clusters",
+          "value": 4,
+          "unit": "clusters",
+          "context": "Four anomaly types were produced by hierarchical clustering of internal sensor patterns.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "external_context_predictors",
+          "value": "wind-wave height; draft/trim; sea-surface temperature",
+          "unit": "predictor families",
+          "context": "External variables associated with the VAE anomaly score by the RCAP LightGBM model and interpreted using SHAP; these are predictive associations, not identified causal effects.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "The accessible abstract confirms an 18-month operational dataset and VAE→RCAP→SHAP pipeline but does not disclose a full vessel/run/time split, prospective holdout, leakage protocol, event adjudication procedure or independent-vessel test. Recover the full methods and split tables before reproduction.",
+      "reported_limitations": [
+        "The operational validation is one container ship; it does not establish cross-vessel or cross-engine transfer.",
+        "The 335 anomaly events are detected/clustered internal-sensor patterns, not necessarily independently confirmed component faults or maintenance findings.",
+        "RCAP predicts the VAE anomaly score from external operational/environmental variables; SHAP explains predictive associations and does not by itself identify causal effects or prove that changing an external variable would change the engine anomaly.",
+        "The accessible abstract does not disclose time-split design, event adjudication, uncertainty/calibration, false-alarm exposure denominator or independent reproduction artifacts.",
+        "External context requires source/issuer, spatial alignment, valid-time and available-time provenance; the abstract-level description does not establish these details."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Important real-ship external-context comparator; it establishes a useful engine-monitoring capability beyond engine-internal signals.",
+        "Reproduce internal VAE anomaly score first, then external-only RCAP, naive feature fusion and context-conditioned models on frozen chronological splits.",
+        "Benchmark predictive association separately from causal attribution. Use time-aware and route/spatial negative controls, context permutation within matched operating strata, and prospective interventions only where independently authorized.",
+        "Symtropy differentiator: context evidence admission with source availability, valid time, spatial scope, clock uncertainty and dependency lineage, followed by explicit CONTEXT_ASSOCIATION_ONLY unless a causal design supports stronger claims."
+      ]
     }
   ]
 }

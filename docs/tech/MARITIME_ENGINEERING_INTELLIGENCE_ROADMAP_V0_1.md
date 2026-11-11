@@ -161,7 +161,7 @@ This programme currently establishes research artifacts, synthetic evidence-cont
 
 ## Literature update — transfer baselines (10 November 2026)
 
-The diagnostic baseline registry now contains **17 unique IDs and 17 unique source DOIs**. The update adds the October 2026 Weichai WP4 physical test-bench digital-twin study and the September 2026 Wärtsilä 6L20 few-shot combustion-diagnosis study. Each remains a separate protocol; neither headline result is ranked directly against Aalto, LiU-ICE or another study without protocol alignment.
+The diagnostic baseline registry now contains **18 unique IDs and 18 unique source DOIs**. The update adds the October 2026 Weichai WP4 physical test-bench digital-twin study and the September 2026 Wärtsilä 6L20 few-shot combustion-diagnosis study. Each remains a separate protocol; neither headline result is ranked directly against Aalto, LiU-ICE or another study without protocol alignment.
 
 - The 2025 Applied Energy cross-working-condition paper reports **95% accuracy** in its abstract and describes **18 transfer tasks** across two engine case studies (8V396SE, 500 kW, and 620 V16, 2,336 kW). Its evidence mix includes experimental bench lubrication-system data and virtual intake/exhaust task data. Keep each subsystem and source type separate. The exact per-task aggregation, sample grouping and split manifest must be recovered before reproduction. This is not a common-protocol or physical fleet-transfer score.
 - The 2025 Energy mean-value-model-assisted dual-transfer paper reports **more than 97.70% average accuracy** for cross-domain lubricating-oil diagnosis. It describes a simulation-to-measured transfer between a 16V396 simulation domain and an 8V396 experimental bench domain, nine transfer tasks, and 70%, 85% and 100% load points. The exact source/target assignments, run grouping, task-level scores and leakage controls need methods/table audit. It is a separate paper from the 18-task Applied Energy study and is not comparable to the Aalto MU323DGSC data.
@@ -189,3 +189,34 @@ Do not treat random-window or random-row splits as evidence of cross-run or cros
 For each response model, preserve three distinct temporal records: command availability to the diagnostic process, model prediction issue time, and independently observed plant-response time. Require command availability no later than prediction, response strictly later than prediction and inside a predeclared horizon, and command freshness measured at prediction time. A post-hoc command/measurement correlation is not a causal prediction test.
 
 The scored output is a calibrated residual/evidence status, not a fault name. Out-of-envelope response means only that the conditioned expectation was not met. Fault isolation requires independently discriminating evidence; when fault hypotheses remain observationally equivalent, report the equivalence class and the missing measurement needed to separate them. Any observation-selection proposal must be read-only and must not imply permission to change operating conditions.
+
+
+## Literature update — external context and operating-environment confounding (11 November 2026)
+
+**Park et al., July 2026 — Explainable AI-based root-cause diagnosis of maritime engine anomalies with external factors (DOI 10.1016/j.cie.2026.112028).** The paper reports 18 months of operational data from one container ship, 335 internally detected anomaly events and four clusters. A VAE supplies internal-engine anomaly scores; a LightGBM Root Cause Anomaly Predictor (RCAP) predicts those scores from external operational/environmental variables including wind-wave height, draft/trim and sea-surface temperature; SHAP is used to explain predictive associations. The registry records the study as reported-not-reproduced and not directly comparable to Aalto.
+
+The study opens a new benchmark axis: **external-context qualification**. Engine-internal anomaly manifestation and external operating context must remain separate evidence classes. A context record must carry source/issuer and artifact digest; observation/forecast/reanalysis/reported/derived role; **available time** (when the diagnostic process could know it), including clock uncertainty; **valid time** (when it applies), separately from available time; vessel/route/spatial scope and alignment uncertainty; units, source quality, derivation lineage and common dependencies.
+
+For predictive use, the latest possible available time must be no later than the earliest prediction time. Forecast valid time must overlap the declared response horizon and its route/asset scope. A later reanalysis or retrospective observation may support post-hoc analysis, but must be labelled `RETROSPECTIVE_ATTRIBUTION_ONLY` and excluded from predictive features. A forecast issued before prediction can be valid for a future response interval; available-time and valid-time cannot be collapsed into one timestamp.
+
+### External-context benchmark tournament
+
+Compare, on the same chronological/route-held-out evidence:
+1. Internal-only physical residual / VAE anomaly baseline.
+2. External-only RCAP-style anomaly-score predictor.
+3. Naive internal + external fusion.
+4. Context-conditioned physical-response residual.
+5. Regime/route-stratified baseline.
+6. Causal-graph / structural-equation hypothesis where identification assumptions are explicit.
+7. Selective predictor that abstains on missing, stale, spatially misaligned or post-hoc context.
+
+Report event recall at a matched false-alarm-per-engine-hour budget; context-conditioned residual calibration; anomaly-score prediction skill; worst-weather/route/load strata; context-source dropout and spatial/time-misalignment degradation; calibration/selective risk; and matched-context permutation controls. SHAP or other attribution is a model explanation, not causal evidence.
+
+### External-context falsification gates
+
+- No forecast issued after prediction may enter its feature set.
+- No retrospective reanalysis may be silently promoted to real-time available context.
+- A context record outside the vessel/route valid-time/spatial envelope cannot support a prediction.
+- Two weather products sharing an upstream feed/dependency do not count as independent corroboration.
+- SHAP attribution or RCAP score prediction alone cannot assert a causal engine fault.
+- Context effects must be evaluated within matched load, speed, route and sea-state strata to avoid confusing operating policy with physical degradation.
