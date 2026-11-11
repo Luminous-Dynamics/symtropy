@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://luminousdynamics.org/schemas/resource-normalized-driving-result-card-v0.1.schema.json",
-  "title": "Resource-normalized driving experiment result card v0.1",
+  "$id": "https://luminousdynamics.org/schemas/resource-normalized-driving-result-card-v0.2.schema.json",
+  "title": "Resource-normalized driving experiment result card v0.2",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -13,13 +13,14 @@
     "protocol_revision",
     "model",
     "data",
-    "compute",
+    "experience_selection",
+    "inference_allocation",
     "outcomes",
     "evidence"
   ],
   "properties": {
     "schema_version": {
-      "const": "0.1.0"
+      "const": "0.2.0"
     },
     "run_id": {
       "type": "string",
@@ -423,6 +424,194 @@
           "items": {
             "type": "string"
           }
+        }
+      }
+    },
+    "experience_selection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy_id",
+        "selector_revision",
+        "candidate_pool_sha256",
+        "selection_receipt_manifest_sha256",
+        "candidates_scored",
+        "queries_issued",
+        "queries_accepted",
+        "queries_rejected",
+        "query_deadline_misses",
+        "query_simulator_transitions",
+        "query_human_intervention_minutes",
+        "query_compute_gpu_hours"
+      ],
+      "properties": {
+        "strategy_id": {
+          "enum": [
+            "uniform",
+            "rarity",
+            "entropy",
+            "prediction_error",
+            "decision_margin",
+            "sam_decision_value",
+            "sam_recoverability"
+          ]
+        },
+        "selector_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_pool_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "selection_receipt_manifest_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidates_scored": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queries_issued": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queries_accepted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queries_rejected": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "query_deadline_misses": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "query_simulator_transitions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "query_human_intervention_minutes": {
+          "type": "number",
+          "minimum": 0
+        },
+        "query_compute_gpu_hours": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "inference_allocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "allocator_id",
+        "allocator_revision",
+        "allocation_receipt_manifest_sha256",
+        "latency_bound_manifest_sha256",
+        "decision_opportunities",
+        "additional_rollouts",
+        "rollout_compute_units_budgeted",
+        "rollout_compute_units_used",
+        "actuation_reserve_required_us",
+        "actuation_reserve_violations",
+        "deadline_skips",
+        "predicted_regret_reduction",
+        "observed_regret_reduction"
+      ],
+      "properties": {
+        "allocator_id": {
+          "enum": [
+            "fixed_rollouts",
+            "deadline_aware_anytime"
+          ]
+        },
+        "allocator_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allocation_receipt_manifest_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "latency_bound_manifest_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "decision_opportunities": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "additional_rollouts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rollout_compute_units_budgeted": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "rollout_compute_units_used": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "actuation_reserve_required_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actuation_reserve_violations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_skips": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "predicted_regret_reduction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "observed_regret_reduction": {
+          "type": [
+            "number",
+            "null"
+          ]
         }
       }
     }
