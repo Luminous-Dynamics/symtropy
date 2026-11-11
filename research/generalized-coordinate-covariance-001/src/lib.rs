@@ -10,6 +10,11 @@
 //! The transformed path does not reconstruct Cartesian coordinates to run the
 //! canonical solver. It evaluates the dense-coordinate equations directly.
 
+// Matrix loops intentionally use explicit row/column indices for small fixed
+// dimensions; the Newton evaluator keeps its physical inputs visible rather
+// than hiding them in an opaque workspace object.
+#![allow(clippy::needless_range_loop)]
+
 #![allow(clippy::needless_range_loop)]
 
 use std::fmt;
@@ -546,6 +551,7 @@ struct LambdaEvaluation {
     derivative: f64,
 }
 
+#[allow(clippy::too_many_arguments)]
 #[allow(clippy::too_many_arguments)]
 fn evaluate_multiplier(
     lambda: f64,
