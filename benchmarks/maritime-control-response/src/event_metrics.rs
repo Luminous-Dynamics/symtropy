@@ -734,6 +734,21 @@ mod tests {
     }
 
     #[test]
+    fn six_shift_axes_remain_separate_and_bind_data_limits() {
+        let matrix: serde_json::Value =
+            serde_json::from_str(include_str!("../shift-matrix-v0.1.json")).unwrap();
+        let axes = matrix["axes"].as_array().unwrap();
+        let ids = axes.iter().map(|axis| axis["id"].as_str().unwrap()).collect::<BTreeSet<_>>();
+        assert_eq!(ids.len(), 6);
+        assert!(ids.contains("C_SHIFT_DRIVING_CYCLE"));
+        assert!(ids.contains("F_SHIFT_HELD_OUT_FAULT_FAMILY"));
+        assert!(ids.contains("C_PLUS_F_SHIFT"));
+        assert_eq!(matrix["framing"]["no_row_randomization"], true);
+        assert!(matrix["cross_engine_and_fleet"]["status"].as_str().unwrap().contains("unsupported"));
+        assert_eq!(matrix["status"], "protocol_only_not_executed");
+    }
+
+    #[test]
     fn five_way_unknown_fault_slot_is_supported() {
         let mut unknown = event();
         unknown.target_isolation_index = 4;
