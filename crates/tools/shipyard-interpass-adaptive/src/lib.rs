@@ -39,6 +39,8 @@ pub struct ObservedState {
     pub layer_id: String,
     pub after_pass_id: String,
     pub scan_id: String,
+    pub scan_sha256: [u8; 32],
+    pub registration_receipt_sha256: [u8; 32],
     pub coordinate_frame: String,
     pub residual_fill_area_units: u64,
     pub uncertainty_bound_units: u64,
@@ -64,6 +66,8 @@ pub struct PassCandidate {
     pub layer_id: String,
     pub predecessor_pass_id: String,
     pub source_scan_id: String,
+    pub source_scan_sha256: [u8; 32],
+    pub source_registration_receipt_sha256: [u8; 32],
     pub procedure_id: String,
     pub procedure_revision: String,
     pub deposition_area_units: u64,
@@ -98,6 +102,8 @@ pub enum AbstainReason {
     EmptyIdentity,
     PhysicalOrSimulationEvidenceNotAdmitted,
     ScanNotRegistered,
+    ScanDigestMissing,
+    RegistrationReceiptMissing,
     ScanCoverageBelowMinimum,
     ScanOcclusionAboveMaximum,
     ScanRegistrationErrorTooLarge,
@@ -225,6 +231,16 @@ fn validate_observation(input: &PlannerInput) -> Result<(), AbstainReason> {
     if !state.quality.registered {
         return Err(AbstainReason::ScanNotRegistered);
     }
+    if state.scan_sha256.iter().all(|byte| *byte == 0) {
+        return Err(AbstainReason::ScanDigestMissing);
+    }
+    if state
+        .registration_receipt_sha256
+        .iter()
+        .all(|byte| *byte == 0)
+    {
+        return Err(AbstainReason::RegistrationReceiptMissing);
+    }
     if state.quality.minimum_coverage_permille > 1_000
         || state.quality.coverage_permille > 1_000
         || state.quality.coverage_permille < state.quality.minimum_coverage_permille
@@ -295,7 +311,11 @@ fn exclusion_for(
     {
         return Some(CandidateExclusion::IdentityMismatch);
     }
-    if candidate.source_scan_id != state.scan_id {
+    if candidate.source_scan_id != state.scan_id
+        || candidate.source_scan_sha256 != state.scan_sha256
+        || candidate.source_registration_receipt_sha256
+            != state.registration_receipt_sha256
+    {
         return Some(CandidateExclusion::WrongSourceScan);
     }
     if candidate.procedure_id != input.procedure.procedure_id
@@ -446,6 +466,8 @@ mod tests {
             layer_id: "LAYER-03".to_owned(),
             after_pass_id: "PASS-02".to_owned(),
             scan_id: "SCAN-AFTER-PASS-02".to_owned(),
+            scan_sha256: [0x11; 32],
+            registration_receipt_sha256: [0x22; 32],
             coordinate_frame: "SYNTHETIC-JOINT-FRAME".to_owned(),
             residual_fill_area_units: 100,
             uncertainty_bound_units: 10,
@@ -476,6 +498,8 @@ mod tests {
                 layer_id: "LAYER-03".to_owned(),
                 predecessor_pass_id: "PASS-02".to_owned(),
                 source_scan_id: "SCAN-AFTER-PASS-02".to_owned(),
+                source_scan_sha256: [0x11; 32],
+                source_registration_receipt_sha256: [0x22; 32],
                 procedure_id: "SYNTHETIC-PROC-01".to_owned(),
                 procedure_revision: "R1".to_owned(),
                 deposition_area_units: deposition,
@@ -683,6 +707,50 @@ mod tests {
         assert_eq!(feasible_candidate_count, 1);
         assert_eq!(recommendations.len(), 1);
         assert_eq!(excluded.len(), 2);
+    }
+
+    #[test]
+    fn candidate_with_wrong_scan_digest_is_excluded() {
+        let mut input = base_input();
+        input.candidates[0].source_scan_sha256 = [0x33; 32];
+        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
+            recommend_next_pass(&input) else {
+                panic!("remaining candidates should remain feasible");
+            };
+        assert_eq!(feasible_candidate_count, 2);
+        assert_eq!(excluded[0].reason, CandidateExclusion::WrongSourceScan);
+    }
+
+    #[test]
+    fn candidate_with_wrong_registration_receipt_is_excluded() {
+        let mut input = base_input();
+        input.candidates[0].source_registration_receipt_sha256 = [0x44; 32];
+        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
+            recommend_next_pass(&input) else {
+                panic!("remaining candidates should remain feasible");
+            };
+        assert_eq!(feasible_candidate_count, 2);
+        assert_eq!(excluded[0].reason, CandidateExclusion::WrongSourceScan);
+    }
+
+    #[test]
+    fn missing_scan_digest_causes_abstention() {
+        let mut input = base_input();
+        input.observed_state.scan_sha256 = [0; 32];
+        assert!(matches!(
+            recommend_next_pass(&input),
+            Decision::Abstain { reason: AbstainReason::ScanDigestMissing, .. }
+        ));
+    }
+
+    #[test]
+    fn missing_registration_receipt_causes_abstention() {
+        let mut input = base_input();
+        input.observed_state.registration_receipt_sha256 = [0; 32];
+        assert!(matches!(
+            recommend_next_pass(&input),
+            Decision::Abstain { reason: AbstainReason::RegistrationReceiptMissing, .. }
+        ));
     }
 
     #[test]
