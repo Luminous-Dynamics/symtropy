@@ -1,5 +1,5 @@
 {
-  "schema_version": "liu-ice-active-evidence-selection-v0.2",
+  "schema_version": "liu-ice-active-evidence-selection-v0.3",
   "status": "protocol_only_not_executed",
   "purpose": "Rank additional passive observations and explicitly authorized operator inspections by expected reduction in diagnostic hypothesis uncertainty, subject to declared cost, delay, risk and authority gates. This module is a read-only selector.",
   "method": {
@@ -13,7 +13,7 @@
       "scenario_weights": "Positive scenario weights sum to one and define the expected information gain across the declared uncertainty set.",
       "expected_information_gain": "Weighted mean of scenario-specific expected information gain.",
       "worst_case_information_gain": "Minimum scenario-specific expected information gain across the entire declared scenario set.",
-      "eligibility": "Require worst-case expected information gain to exceed the policy floor; an optimistic mean cannot compensate for an uninformative plausible scenario.",
+      "eligibility": "Require worst-case expected information gain over the entire frozen calibrated scenario set; a candidate also requires independently reviewed likelihood calibration before it is eligible. An optimistic weighted mean cannot compensate for an uninformative plausible scenario.",
       "qualification": "A candidate with one point-estimate table may be ranked as a provisional point-model result but is not epistemically robust-qualified. Two or more distinct calibrated scenarios are required for that status."
     },
     "risk_score": {
@@ -28,6 +28,12 @@
       "posterior": "Compute p(h|o) proportional to p(h) times sum_s w_s p(o|h,s), where the scenario weights and likelihood tables are frozen. Point-estimate candidates use their single table.",
       "realized_information": "Report prior entropy, posterior entropy, realized entropy reduction H(prior)-H(posterior), and KL(posterior || prior). Realized entropy reduction may be negative for an individual surprising outcome even though expected information gain is non-negative and KL is non-negative.",
       "scenario_uncertainty": "Report per-scenario posterior entropy range and the number of likelihood scenarios in which the outcome is possible/impossible."
+    },
+    "likelihood_calibration_review": {
+      "requirement": "Every candidate must carry an independent calibration-review receipt digest and a review state. Candidates not independently reviewed remain in the assessment ledger but are ineligible.",
+      "receipt_binding": "The candidate manifest and calibration catalogue bind the likelihood-model SHA, calibration SHA, reviewer receipt SHA and review state.",
+      "qualification": "A caller-supplied boolean and digest are not self-authenticating. The reviewer identity, competence, independence, report contents, signature, scope and revocation state must be verified by the upstream trust service.",
+      "point_estimate_rule": "A point-estimate likelihood table may be scored as a provisional diagnostic hypothesis, but it is not multi-scenario assessed and cannot qualify the robust evidence-selection track."
     }
   },
   "candidate_classes": {
@@ -87,7 +93,6 @@
     "false_unique_root_cause_rate",
     "worst_case_expected_information_gain_nats",
     "likelihood_scenario_count",
-    "epistemic_robustness_qualified",
     "realized_entropy_reduction_nats",
     "realized_kl_divergence_nats",
     "posterior_entropy_nats",
@@ -103,7 +108,11 @@
     "scenario_posterior_entropy_max_nats",
     "possible_likelihood_scenario_count",
     "impossible_likelihood_scenario_count",
-    "observation_candidate_manifest_match"
+    "observation_candidate_manifest_match",
+    "multi_scenario_assessed",
+    "likelihood_calibration_reviewed_by_independent_validator",
+    "likelihood_calibration_catalogue_sha256",
+    "likelihood_review_rejection_count"
   ],
   "hard_gates": [
     "hypothesis IDs, prior and label-space digest are fixed for the selection decision",
@@ -140,7 +149,12 @@
     "report realized entropy reduction separately from KL posterior-to-prior; individual observations may increase entropy",
     "observation receipt integrity digest does not authenticate the acquisition source, sensor, signer, timestamp or authority",
     "posterior update does not schedule or acquire another observation, conduct inspection, authorize action or actuate equipment",
-    "store posterior and observation result as a separate append-only artifact; do not overwrite the original selection result"
+    "store posterior and observation result as a separate append-only artifact; do not overwrite the original selection result",
+    "every candidate carries a digest for an independently reviewed likelihood-calibration receipt",
+    "a candidate without the independent calibration-review state is not eligible even if its likelihood table is normalized",
+    "candidate manifests and the calibration catalogue bind reviewer receipt digest, review state, calibration/model digests and hypothesis/likelihood scenario sets",
+    "multi-scenario assessment is reported separately from independent calibration review; scenario count alone never qualifies epistemic robustness",
+    "upstream trust verifies reviewer identity, independence, competence, report contents, signature, scope and revocation; caller-supplied flags/digests are not authentication"
   ],
   "research_targets_not_achieved": [
     {
@@ -199,8 +213,9 @@
     "simulation_status": "Synthetic contract tests verify entropy ranking and hard exclusions only; they do not establish real diagnostic utility or safety.",
     "authority_status": "Authorization enum and digest are caller-supplied references. Signature verification, identity, scope, expiry, issuer authority and revocation are external mandatory checks.",
     "claim_ceiling": "Read-only ranking contract and synthetic numerical behavior only; no evidence-acquisition execution, active-control result or physical validation claim.",
-    "scenario_status": "The Rust selector evaluates scenario tables supplied by the caller. It does not create or statistically validate those scenarios; scenario calibration and coverage must be demonstrated upstream.",
+    "scenario_status": "The Rust selector evaluates caller-supplied likelihood scenarios. It does not create or statistically validate the scenario set or establish its coverage of reality.",
     "risk_status": "risk_score_ppm is a caller-supplied policy score bound to a digest reference; its underlying assessment is not authenticated or independently verified by this selector.",
-    "realized_update_status": "The Rust updater calculates a posterior from caller-supplied likelihoods and an external receipt digest; it does not collect or authenticate observations, and no physical observation has been evaluated."
+    "realized_update_status": "The Rust updater calculates a posterior from caller-supplied likelihoods and an external receipt digest; it does not collect or authenticate observations, and no physical observation has been evaluated.",
+    "calibration_review": "The source selector checks review receipt digest shape and a caller-supplied independent-review flag. It does not authenticate the reviewer or prove calibration validity; upstream signed verification remains mandatory."
   }
 }
