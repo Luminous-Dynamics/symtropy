@@ -22,12 +22,12 @@
       "consequence": "A missing, malformed or unreviewed risk-evidence reference makes the candidate ineligible."
     },
     "observation_update": {
-      "objective": "After evidence is actually acquired by an authorized external system, update the hypothesis posterior without performing another acquisition or action.",
-      "candidate_binding": "The update must verify the selected candidate ID and exact candidate manifest digest from the frozen selection catalogue.",
-      "receipt_binding": "A source-generated observation receipt SHA-256 and observed outcome ID are mandatory; the selector treats the receipt digest as an integrity reference, not signer authentication.",
-      "posterior": "p(h|o) is proportional to p(h) times the scenario-weighted likelihood sum_s w_s p(o|h,s). A point-estimate candidate uses its single validated likelihood table.",
-      "realized_information": "Report prior entropy, posterior entropy, realized entropy reduction H(prior)-H(posterior), and KL(posterior || prior). Realized entropy reduction can be negative for an individual outcome even though expected information gain is non-negative and KL is non-negative.",
-      "scenario_uncertainty": "Report per-scenario posterior entropy range and counts of scenarios in which the observed outcome is possible or impossible; retain the likelihood scenario manifest."
+      "objective": "After evidence is acquired by an authorized external system, update the hypothesis posterior. This is a read-only calculation and never acquires evidence or executes another action.",
+      "candidate_binding": "The update verifies the exact candidate ID and candidate manifest digest from the frozen selection catalogue; a candidate changed after selection is rejected.",
+      "receipt_binding": "The observation receipt SHA-256 and outcome ID are mandatory. The digest links the external receipt but does not authenticate its signer, sensor, timestamp or authority.",
+      "posterior": "Compute p(h|o) proportional to p(h) times sum_s w_s p(o|h,s), where the scenario weights and likelihood tables are frozen. Point-estimate candidates use their single table.",
+      "realized_information": "Report prior entropy, posterior entropy, realized entropy reduction H(prior)-H(posterior), and KL(posterior || prior). Realized entropy reduction may be negative for an individual surprising outcome even though expected information gain is non-negative and KL is non-negative.",
+      "scenario_uncertainty": "Report per-scenario posterior entropy range and the number of likelihood scenarios in which the outcome is possible/impossible."
     }
   },
   "candidate_classes": {
@@ -95,6 +95,14 @@
     "scenario_posterior_entropy_max_nats",
     "possible_likelihood_scenario_count",
     "impossible_likelihood_scenario_count",
+    "observation_candidate_manifest_match",
+    "realized_entropy_reduction_nats",
+    "realized_kl_divergence_nats",
+    "posterior_entropy_nats",
+    "scenario_posterior_entropy_min_nats",
+    "scenario_posterior_entropy_max_nats",
+    "possible_likelihood_scenario_count",
+    "impossible_likelihood_scenario_count",
     "observation_candidate_manifest_match"
   ],
   "hard_gates": [
@@ -125,7 +133,14 @@
     "report realized entropy reduction separately from KL posterior-to-prior; an individual outcome may increase entropy",
     "observation receipt integrity digest does not authenticate the acquisition source, sensor, signer or authority",
     "posterior update does not itself schedule or acquire another observation, conduct inspection, authorize action or actuate equipment",
-    "store the posterior and observation result as a separate append-only artifact; do not overwrite the original selection result"
+    "store the posterior and observation result as a separate append-only artifact; do not overwrite the original selection result",
+    "a realized posterior update is allowed only for an observation receipt bound to the exact selected candidate manifest digest",
+    "unknown outcome IDs fail closed and zero-probability observations return an explicit impossible-outcome result",
+    "scenario-marginalized posterior uses frozen scenario weights and identical declared outcome spaces",
+    "report realized entropy reduction separately from KL posterior-to-prior; individual observations may increase entropy",
+    "observation receipt integrity digest does not authenticate the acquisition source, sensor, signer, timestamp or authority",
+    "posterior update does not schedule or acquire another observation, conduct inspection, authorize action or actuate equipment",
+    "store posterior and observation result as a separate append-only artifact; do not overwrite the original selection result"
   ],
   "research_targets_not_achieved": [
     {
@@ -167,6 +182,16 @@
       "id": "posterior_replay",
       "target": "100% of observation receipts reproduce the same posterior from the frozen candidate, prior and likelihood-scenario manifests.",
       "status": "aspirational"
+    },
+    {
+      "id": "realized_information_gain_fidelity",
+      "target": "Across held-out outcomes, mean realized KL(posterior || prior) matches independently replayed expected information gain within a preregistered numerical tolerance.",
+      "status": "aspirational"
+    },
+    {
+      "id": "posterior_replay",
+      "target": "100% of observation receipts reproduce the same posterior from frozen candidate, prior and likelihood-scenario manifests.",
+      "status": "aspirational"
     }
   ],
   "evidence_boundaries": {
@@ -176,6 +201,6 @@
     "claim_ceiling": "Read-only ranking contract and synthetic numerical behavior only; no evidence-acquisition execution, active-control result or physical validation claim.",
     "scenario_status": "The Rust selector evaluates scenario tables supplied by the caller. It does not create or statistically validate those scenarios; scenario calibration and coverage must be demonstrated upstream.",
     "risk_status": "risk_score_ppm is a caller-supplied policy score bound to a digest reference; its underlying assessment is not authenticated or independently verified by this selector.",
-    "realized_update_status": "The Rust function realizes a posterior from caller-supplied likelihoods and a source receipt digest; it does not collect or authenticate an observation, and no physical observation has been evaluated."
+    "realized_update_status": "The Rust updater calculates a posterior from caller-supplied likelihoods and an external receipt digest; it does not collect or authenticate observations, and no physical observation has been evaluated."
   }
 }
