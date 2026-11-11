@@ -15,6 +15,7 @@ pub mod causal_identifiability;
 pub mod interference_identifiability;
 pub mod model_adequacy;
 pub mod source_passport;
+pub mod uncertainty_propagation;
 pub mod noisy_causal_drift;
 pub mod sequential_methods;
 
