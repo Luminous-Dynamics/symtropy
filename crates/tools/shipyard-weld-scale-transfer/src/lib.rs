@@ -326,6 +326,7 @@ fn validate_edge(
     if edge.empirical_coverage_permille < edge.minimum_coverage_permille
         || edge.empirical_coverage_permille < manifest.request.required_minimum_coverage_permille
         || edge.empirical_coverage_permille > 1_000
+        || edge.minimum_coverage_permille > 1_000
     {
         return Err(TransferReason::BridgeCoverageInsufficient);
     }
@@ -476,6 +477,20 @@ fn fnv1a64(bytes: &[u8]) -> u64 {
 }
 
 pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
+    if manifest.schema_version != "0.1.0"
+        || manifest.request.required_minimum_coverage_permille == 0
+        || manifest.request.required_minimum_coverage_permille > 1_000
+    {
+        return empty_decision(
+            manifest,
+            TransferDisposition::AbstainEvidenceInvalid,
+            TransferReason::BridgeEvidenceInvalid,
+            manifest.model.calibration_domain_id.clone(),
+            manifest.request.target_domain_id.clone(),
+            0,
+        );
+    }
+
     let source_id = manifest.model.calibration_domain_id.clone();
     let target_id = manifest.request.target_domain_id.clone();
     let domains = match domain_map(manifest) {
@@ -637,7 +652,23 @@ pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
         let mut minimum_coverage = 1_000_u16;
         let mut maximum_error = 0_u64;
         let mut valid = true;
+        let mut path_calibration_specimens = HashSet::new();
+        let mut path_validation_specimens = HashSet::new();
         for edge in path {
+            if edge.validation_specimen_ids.iter().any(|specimen| {
+                path_validation_specimens.contains(specimen)
+                    || path_calibration_specimens.contains(specimen)
+            }) || edge
+                .calibration_specimen_ids
+                .iter()
+                .any(|specimen| path_validation_specimens.contains(specimen))
+            {
+                first_failure = Some(TransferReason::BridgeSpecimenLeakage);
+                valid = false;
+                break;
+            }
+            path_calibration_specimens.extend(edge.calibration_specimen_ids.iter().cloned());
+            path_validation_specimens.extend(edge.validation_specimen_ids.iter().cloned());
             let Some(from) = domains.get(edge.from_domain_id.as_str()).copied() else {
                 first_failure = Some(TransferReason::BridgeEvidenceInvalid);
                 valid = false;
@@ -888,6 +919,9 @@ mod tests {
     fn material_change_requires_bridge_path() {
         let mut manifest = base_manifest();
         manifest.domains[3].signature.material_grade = "S460G2+M".to_owned();
+        manifest.bridge_edges[2].changed_factors = manifest.domains[2]
+            .signature
+            .changed_factors(&manifest.domains[3].signature);
         let result = evaluate_transfer(&manifest);
         assert_eq!(result.disposition, TransferDisposition::AdmittedWithBridgeChain);
     }
@@ -1040,6 +1074,43 @@ mod tests {
         manifest.bridge_edges.retain(|edge| edge.edge_id != "E12" && edge.edge_id != "E23");
         let result = evaluate_transfer(&manifest);
         assert_eq!(result.disposition, TransferDisposition::AbstainOutOfDomain);
+    }
+
+    #[test]
+    fn bridge_validation_specimen_cannot_be_reused_on_another_edge() {
+        let mut manifest = base_manifest();
+        manifest.bridge_edges[1].validation_specimen_ids[0] =
+            manifest.bridge_edges[0].validation_specimen_ids[0].clone();
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.reason, Some(TransferReason::BridgeSpecimenLeakage));
+    }
+
+    #[test]
+    fn target_thickness_outside_source_domain_requires_a_bridge() {
+        let mut manifest = base_manifest();
+        manifest.domains[3].signature = signature(ScaleTier::BeadOrCoupon, 35, 38);
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.disposition, TransferDisposition::AdmittedWithBridgeChain);
+    }
+
+    #[test]
+    fn transfer_uncertainty_overflow_is_rejected() {
+        let mut manifest = base_manifest();
+        manifest.bridge_edges[0].measurement_uncertainty_units = u64::MAX;
+        manifest.bridge_edges[0].parameter_uncertainty_units = 1;
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.reason, Some(TransferReason::NumericOverflow));
+    }
+
+    #[test]
+    fn changed_output_operator_cannot_be_silently_inherited() {
+        let mut manifest = base_manifest();
+        manifest.domains[3].signature.coordinate_frame = "ship_block_frame".to_owned();
+        manifest.bridge_edges[2].changed_factors = manifest.domains[2]
+            .signature
+            .changed_factors(&manifest.domains[3].signature);
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.disposition, TransferDisposition::AdmittedWithBridgeChain);
     }
 
     #[test]
