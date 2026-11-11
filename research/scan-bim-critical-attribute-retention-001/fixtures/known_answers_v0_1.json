@@ -1,0 +1,99 @@
+{
+  "schema_version": "0.1",
+  "receipt_id": "CRITICAL-ATTRIBUTE-RETENTION-SYNTHETIC-001",
+  "scope": {
+    "replay_run_id": "SYNTHETIC-REPLAY-IFC-001",
+    "scene_id": "ROOM-MATERIALS-001",
+    "source_model_revision": "MODEL-SOURCE-REV-001",
+    "target_model_revision": "MODEL-TARGET-REV-001",
+    "exchange_profile_id": "IFC4-REFERENCE-EXCHANGE-SYNTHETIC",
+    "source_ifc_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "target_ifc_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "requirement_profile_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "requirement_completeness": "complete",
+    "semantic_diff_report_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "identity_correspondence_report_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "unit_comparison_report_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+  },
+  "requirements": [
+    {
+      "requirement_id": "REQ-FIRE-001",
+      "source_entity_id": "WALL-SRC-001",
+      "target_entity_id": "WALL-TGT-001",
+      "ifc_entity_type": "IfcWall",
+      "property_set": "Pset_WallCommon",
+      "property_name": "FireRating",
+      "data_type": "IfcLabel",
+      "importance": "critical",
+      "required": true
+    },
+    {
+      "requirement_id": "REQ-THERMAL-001",
+      "source_entity_id": "WALL-SRC-001",
+      "target_entity_id": "WALL-TGT-001",
+      "ifc_entity_type": "IfcWall",
+      "property_set": "Pset_WallCommon",
+      "property_name": "ThermalTransmittance",
+      "data_type": "IfcThermalTransmittanceMeasure",
+      "importance": "critical",
+      "required": true
+    },
+    {
+      "requirement_id": "REQ-ACOUSTIC-001",
+      "source_entity_id": "WALL-SRC-001",
+      "target_entity_id": "WALL-TGT-001",
+      "ifc_entity_type": "IfcWall",
+      "property_set": "Pset_WallCommon",
+      "property_name": "AcousticRating",
+      "data_type": "IfcLabel",
+      "importance": "important",
+      "required": true
+    }
+  ],
+  "comparisons": [
+    {
+      "comparison_record_id": "CMP-FIRE-001",
+      "requirement_id": "REQ-FIRE-001",
+      "correspondence_event_id": "IDENTITY-WALL-001",
+      "source_entity_id": "WALL-SRC-001",
+      "target_entity_id": "WALL-TGT-001",
+      "source_state": "present",
+      "target_state": "present",
+      "disposition": "preserved_exact",
+      "source_value_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "target_value_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "comparison_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "reason": null
+    },
+    {
+      "comparison_record_id": "CMP-THERMAL-001",
+      "requirement_id": "REQ-THERMAL-001",
+      "correspondence_event_id": "IDENTITY-WALL-001",
+      "source_entity_id": "WALL-SRC-001",
+      "target_entity_id": "WALL-TGT-001",
+      "source_state": "present",
+      "target_state": "present",
+      "disposition": "preserved_normalized",
+      "source_value_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "target_value_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "canonical_value_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "unit_comparison_finding_id": "UNIT-EQUIVALENCE-001",
+      "comparison_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "reason": null
+    },
+    {
+      "comparison_record_id": "CMP-ACOUSTIC-001",
+      "requirement_id": "REQ-ACOUSTIC-001",
+      "correspondence_event_id": "IDENTITY-WALL-001",
+      "source_entity_id": "WALL-SRC-001",
+      "target_entity_id": "WALL-TGT-001",
+      "source_state": "present",
+      "target_state": "present",
+      "disposition": "preserved_exact",
+      "source_value_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "target_value_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+      "comparison_evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "reason": null
+    }
+  ]
+}
