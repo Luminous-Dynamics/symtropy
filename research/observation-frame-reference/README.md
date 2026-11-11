@@ -38,7 +38,7 @@ The CLI rejects files over 64 MiB before JSON decoding. The reference validator 
 
 ## Benchmarks
 
-The dependency-free benchmark binary generates deterministic 1k, 10k and 100k claim-bearing entity frames with ordered event streams. It reports nearest-rank p50/p95/p99 compile latency, min/max, serialized input bytes, bytes/entity and entities/second. The workflow preserves the raw JSONL measurements as an artifact. These are reference-oracle costs, not Bevy extraction latency or physics/rendering throughput. Always compare results only with matching source head, Rust version, CPU architecture, OS and runner/hardware profile.
+The dependency-free benchmark binary generates deterministic 1k, 10k and 100k claim-bearing entity frames with ordered event streams. It reports nearest-rank p50/p95/p99 compile latency, min/max, serialized input bytes, total input bytes per entity (including the ordered event stream), validated entities/second and event records/second. The workflow preserves the raw JSONL measurements as an artifact. These are reference-oracle costs, not Bevy extraction latency or physics/rendering throughput. Always compare results only with matching source head, Rust version, CPU architecture, OS and runner/hardware profile.
 
 ## Tests
 
