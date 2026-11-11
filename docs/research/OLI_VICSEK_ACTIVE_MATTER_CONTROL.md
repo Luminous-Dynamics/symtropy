@@ -100,6 +100,23 @@ Two exact cases are frozen:
 
 This establishes causation only inside the known simulation model. It does not establish agency, communication, intention, or intelligence in a natural swarm.
 
+### Network topology observables
+
+The current branch implements:
+- mean local clustering coefficient (degree 0 or 1 contributes zero);
+- mean unweighted shortest-path length across connected unordered pairs only;
+- connected-pair fraction across all unordered particle pairs;
+- mean and variance of component size;
+- mean and variance of component polar order.
+
+Disconnected pairs are not assigned an arbitrary infinite or sentinel path length. The path-length mean is `None` when the graph has no connected pairs, and the connected-pair fraction communicates fragmentation separately. Cluster area/perimeter and finite-size scaling are still future extensions.
+
+### Controlled influence interventions
+
+`VicsekModel::intervene_heading` applies an explicit heading intervention and returns a receipt with the tick, particle index, previous heading and imposed heading. It does not advance or reset the random stream. The benchmark clones the exact pre-intervention state to produce a sham; the intervention and sham then consume identical future random draws.
+
+An all-to-all positive control changes every particle's next heading from 0 to `atan2(1,5)` when one of six headings is rotated by 90°. A self-only negative control changes only the intervened particle and leaves the other particles identical to the sham. These are causal demonstrations inside the declared simulation model—not evidence of natural agency or intelligence.
+
 ## Benchmark design
 
 - Compare local alignment against self-only and independent-particle controls.
