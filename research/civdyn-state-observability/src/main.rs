@@ -399,6 +399,16 @@ mod tests {
     use super::*;
 
     #[test]
+    fn run_parser_preserves_known_belief_collapse_fingerprint() {
+        let line = "run\\ticu/smar\\t10\\t1\\tMCAR\\tAsMAR (MCAR)\\tfalse\\ttrue\\tfalse\\ttrue\\ttrue\\t0.3\\t0.4\\t\\tRemoteException\\ttrue";
+        let run = parse_run(&line.split('\\t').collect::<Vec<_>>()).expect("exception row");
+        assert_eq!(run.exception_kind, "RemoteException");
+        assert!(run.failure_reason_known);
+        assert!(!run.finished);
+        assert!(run.mean.is_none());
+    }
+
+    #[test]
     fn boolean_parser_is_strict() {
         assert_eq!(parse_bool("true"), Ok(true));
         assert_eq!(parse_bool("false"), Ok(false));
