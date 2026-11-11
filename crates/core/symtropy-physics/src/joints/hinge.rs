@@ -294,6 +294,55 @@ mod tests {
     use symtropy_math::Point;
 
     #[test]
+    fn hinge_motor_uses_full_bivector_inertia_operator() {
+        use crate::mass_properties::RotationalInertiaOperator;
+
+        let mut a = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(symtropy_math::Sphere::new(Point::origin(), 0.1)),
+        );
+        let operator = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+            4.0, 0.5, 0.0,
+            0.5, 3.0, 0.25,
+            0.0, 0.25, 2.0,
+        ])
+        .unwrap();
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            0.1,
+            1.0,
+        )
+        .with_rotational_inertia_operator(operator);
+
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1)
+            .with_motor(motor);
+
+        joint.solve_velocity(&mut a, &mut b, 0.1, None);
+
+        // The commanded motor impulse occupies e01. Products of inertia in
+        // the validated operator couple the response into e02; a scalar-mean
+        // update would leave that component exactly zero.
+        assert!(b.angular_velocity.get(0, 1) > 0.0);
+        assert!(
+            b.angular_velocity.get(0, 2).abs() > 1.0e-4,
+            "hinge motor bypassed the off-diagonal inertia coupling"
+        );
+        assert_eq!(
+            b.rotational_inertia_model(),
+            crate::body::RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+    }
+
+    #[test]
     fn hinge_maintains_position() {
         let mut a = RigidBody::<3>::static_body(
             BodyHandle(0),
