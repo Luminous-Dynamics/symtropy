@@ -11,7 +11,7 @@
 
 use nalgebra::SVector;
 
-use crate::body::{BodyHandle, RigidBody};
+use crate::body::{BodyHandle, RigidBody, RotationalInertiaModel};
 use crate::constraint::Constraint;
 use symtropy_math::Bivector;
 
@@ -48,6 +48,13 @@ fn hinge_constraint_reaction_impulse<const D: usize>(
     stiffness: f64,
 ) -> Option<Bivector<D>> {
     let dof = Bivector::<D>::num_components();
+    if (body_a.is_dynamic()
+        && body_a.rotational_inertia_model() == RotationalInertiaModel::InvalidPrincipalMoments)
+        || (body_b.is_dynamic()
+            && body_b.rotational_inertia_model() == RotationalInertiaModel::InvalidPrincipalMoments)
+    {
+        return None;
+    }
     if dof == 0 || dof > MAX_HINGE_ROTATIONAL_DOF || !stiffness.is_finite() {
         return None;
     }
@@ -187,6 +194,13 @@ fn constrained_hinge_motor_impulse<const D: usize>(
     commanded_impulse: f64,
 ) -> Option<Bivector<D>> {
     let dof = Bivector::<D>::num_components();
+    if (body_a.is_dynamic()
+        && body_a.rotational_inertia_model() == RotationalInertiaModel::InvalidPrincipalMoments)
+        || (body_b.is_dynamic()
+            && body_b.rotational_inertia_model() == RotationalInertiaModel::InvalidPrincipalMoments)
+    {
+        return None;
+    }
     if dof == 0 || dof > MAX_HINGE_ROTATIONAL_DOF || !commanded_impulse.is_finite() {
         return None;
     }
@@ -884,6 +898,71 @@ mod tests {
                 (b.angular_velocity.get(i, j) - a.angular_velocity.get(i, j)).abs() < 1e-10
             );
         }
+    }
+
+    #[test]
+    fn passive_hinge_uses_inertia_weighted_reaction_and_records_dissipation() {
+        use crate::mass_properties::RotationalInertiaOperator;
+
+        struct DissipationRecorder {
+            dissipated: f64,
+        }
+        impl crate::world::PhysicsCallback<3> for DissipationRecorder {
+            fn modulate_force(&self, _body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
+                *force
+            }
+            fn modulate_impulse(&self, impulse: f64, _contact: &SVector<f64, 3>) -> f64 {
+                impulse
+            }
+            fn friction_multiplier(&self, _contact: &SVector<f64, 3>, _body: BodyHandle) -> f64 {
+                1.0
+            }
+            fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+            fn record_dissipation(&mut self, energy: f64) {
+                self.dissipated += energy;
+            }
+            fn record_work(&mut self, _body: BodyHandle, _work_joules: f64) {}
+            fn apply_trauma(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+        }
+
+        let operator_a = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+            4.0, 0.5, 0.0,
+            0.5, 3.0, 0.25,
+            0.0, 0.25, 2.0,
+        ]).unwrap();
+        let operator_b = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+            2.0, -0.2, 0.1,
+            -0.2, 5.0, 0.3,
+            0.1, 0.3, 3.0,
+        ]).unwrap();
+        let mut a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(30), Point::origin(), 0.1, 1.0,
+        ).with_rotational_inertia_operator(operator_a);
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(31), Point::origin(), 0.1, 1.0,
+        ).with_rotational_inertia_operator(operator_b);
+
+        a.angular_velocity.set(0, 1, 0.2);
+        b.angular_velocity.set(0, 1, -0.1);
+        a.angular_velocity.set(0, 2, 0.4);
+        b.angular_velocity.set(0, 2, -0.2);
+        a.angular_velocity.set(1, 2, -0.1);
+        b.angular_velocity.set(1, 2, 0.3);
+
+        let energy_before = a.rotational_kinetic_energy() + b.rotational_kinetic_energy();
+        let joint = HingeJoint::new(BodyHandle(30), BodyHandle(31), 0, 1);
+        let mut recorder = DissipationRecorder { dissipated: 0.0 };
+        joint.solve_velocity(&mut a, &mut b, 0.01, Some(&mut recorder));
+
+        let relative_xz = b.angular_velocity.get(0, 2) - a.angular_velocity.get(0, 2);
+        let relative_yz = b.angular_velocity.get(1, 2) - a.angular_velocity.get(1, 2);
+        assert!(relative_xz.abs() < 1.0e-10);
+        assert!(relative_yz.abs() < 1.0e-10);
+
+        let energy_after = a.rotational_kinetic_energy() + b.rotational_kinetic_energy();
+        let actual_dissipation = energy_before - energy_after;
+        assert!(actual_dissipation > 0.0);
+        assert!((recorder.dissipated - actual_dissipation).abs() < 1.0e-10);
     }
 
     #[test]
