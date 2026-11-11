@@ -112,7 +112,7 @@ jobs:
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
     - name: Qualify anisotropic reference campaign (D=2..9)
-      if: runner.os == 'Linux' && steps.anisotropic_reference_changes.outputs.changed == 'true'
+      if: runner.os == 'Linux' && github.event_name == 'pull_request' && steps.anisotropic_reference_changes.outputs.changed == 'true'
       run: |
         cargo test --locked -p symtropy-math --lib --features nd-bivector-9
         cargo test --locked -p symtropy-physics --lib --features nd-bivector-9
