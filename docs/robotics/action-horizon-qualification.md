@@ -66,11 +66,25 @@ Unknown is not infinity. A missing thermal horizon cannot be dropped because the
 
 Every decision carries a fixed-size receipt containing all eight bounds, source identities, timebase IDs, unknown reasons, the active minimum constraint(s), p99 latency profile, K_min and K_max. The selector is fixed-size and allocation-free; it does not authorize or dispatch an action.
 
+## Immutable action commitment receipt
+
+The selector output can be consumed into an immutable `ActionCommitment` bound to:
+- SHA-256 digest of the exact canonical proposed action prefix;
+- SHA-256 digest of the exact robot configuration, including the applicable geometry/mass-property and firmware identity;
+- the complete horizon selection and all eight evidence-source receipts;
+- the common application-time basis;
+- a monotonic commit time and exclusive expiry time;
+- a monotonic sequence number.
+
+The selected prefix duration is computed with checked integer arithmetic and must not exceed the qualified safe horizon. The commitment cannot be created from Unknown, rejected, or otherwise inadmissible selections. Its externally visible fields are read-only; validation rejects a changed proposal digest, changed configuration digest, different timebase, pre-commit use, expired use, or a sequence not greater than the caller's last accepted sequence.
+
+The caller must persist and atomically advance the last accepted sequence in its local execution authority. This module does not provide a signature, secure storage, anti-rollback hardware, dispatch, or actuator authorization. Evidence source authenticity and the upstream measurements remain the responsibility of the evidence owners. An action commitment is a short-lived, configuration-bound permission receipt, not a complete safety certificate.
+
 ## Implementation status
 
 The Rust module is `crates/core/symtropy-physics/src/action_horizon.rs` and is exported from the crate.
 
-It includes 16 authored deterministic tests for:
+It includes 27 authored deterministic tests for:
 - exact minimum and floor arithmetic;
 - tied active constraints;
 - Unknown rejection for every required constraint;
@@ -83,7 +97,7 @@ It includes 16 authored deterministic tests for:
 - empty source/timebase/reason/latency-profile identities, including direct enum-construction bypass attempts;
 - canonical receipt order.
 
-Criterion cases are authored for feasible queued mode, split-timescale mode, and Unknown-thermal rejection. They are latency measurements only; they do not qualify physical validity. These tests and benchmarks have not been compiled or executed in the current environment.
+Criterion cases are authored for feasible queued mode, split-timescale mode, Unknown-thermal rejection, immutable commitment creation and commitment validation. They are latency measurements only; they do not qualify physical validity. These tests and benchmarks have not been compiled or executed in the current environment.
 
 ## Industry and SOTA comparison
 
