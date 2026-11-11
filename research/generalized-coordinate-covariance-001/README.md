@@ -115,7 +115,7 @@ These are **independent equation-level NumPy results**, not output from the comm
 
 ## Authored Rust regressions
 
-The current source includes nine synthetic Rust test functions covering:
+The current source includes ten synthetic Rust test functions covering:
 
 1. dense unimodular coordinate covariance with a nonzero multiplier;
 2. lifted position, velocity, linear momentum and angular-momentum agreement;
