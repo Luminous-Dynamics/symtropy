@@ -93,10 +93,13 @@ pub struct EventClaims {
 pub struct BatteryPayload {
     pub event_type: String,
     pub channel: String,
+    pub sensor_ref: String,
     pub value: Option<f64>,
     pub unit: Option<String>,
     pub evidence_class: String,
     pub calibration_status: String,
+    pub calibration_ref: Option<String>,
+    pub calibration_sha256: Option<String>,
     pub sensor_valid: bool,
     pub out_of_domain: bool,
     pub protocol_ref: Option<String>,
@@ -202,6 +205,16 @@ fn verify_event_signature(event: &SignedEvent, key: &TrustedKey) -> Result<(), S
 }
 
 fn payload_digest_is_valid(claims: &EventClaims) -> Result<(), String> {
+    if claims.payload.sensor_ref.trim().is_empty() {
+        return Err("REJECTED_PAYLOAD_SENSOR_IDENTITY: sensor reference is empty".to_owned());
+    }
+    if claims.payload.calibration_status != "not_applicable" {
+        if claims.payload.calibration_ref.as_deref().is_none_or(str::is_empty)
+            || claims.payload.calibration_sha256.as_deref().is_none_or(|digest| !is_sha256(digest))
+        {
+            return Err("REJECTED_CALIBRATION_BINDING: calibration status lacks exact reference/digest".to_owned());
+        }
+    }
     if let Some(digest) = &claims.payload.observation_digest {
         if !is_sha256(digest) {
             return Err("REJECTED_PAYLOAD_DIGEST: observation digest is malformed".to_owned());
@@ -718,6 +731,14 @@ mod tests {
             row(&report, "evt-valid-001").authenticity_state,
             "QUARANTINED_BOOT_EPOCH_UNKNOWN"
         );
+    }
+
+    #[test]
+    fn calibration_reference_and_digest_remain_bound_to_the_signed_event() {
+        let report = report();
+        let event = row(&report, "evt-valid-001");
+        assert_eq!(event.authenticity_state, "AUTHENTICATED_AND_AUTHORIZED");
+        assert_eq!(event.physical_validity_state, "NOT_ESTABLISHED_BY_SIGNATURE");
     }
 
 }
