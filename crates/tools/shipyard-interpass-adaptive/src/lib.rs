@@ -569,11 +569,21 @@ mod tests {
             };
         let geometry_only = recommendations
             .iter()
-            .min_by_key(|item| (item.objectives.robust_geometry_error_units, &item.candidate_id))
+            .min_by(|left, right| {
+                left.objectives
+                    .robust_geometry_error_units
+                    .cmp(&right.objectives.robust_geometry_error_units)
+                    .then_with(|| left.candidate_id.cmp(&right.candidate_id))
+            })
             .expect("geometry-only baseline candidate");
         let time_only = recommendations
             .iter()
-            .min_by_key(|item| (item.objectives.duration_units, &item.candidate_id))
+            .min_by(|left, right| {
+                left.objectives
+                    .duration_units
+                    .cmp(&right.objectives.duration_units)
+                    .then_with(|| left.candidate_id.cmp(&right.candidate_id))
+            })
             .expect("time-only baseline candidate");
         assert_eq!(geometry_only.candidate_id, "FILL-MID");
         assert_eq!(time_only.candidate_id, "FILL-OVER");
@@ -588,7 +598,11 @@ mod tests {
         };
         let first_geometry_best = first_frontier
             .iter()
-            .min_by_key(|item| item.objectives.robust_geometry_error_units)
+            .min_by(|left, right| {
+                left.objectives
+                    .robust_geometry_error_units
+                    .cmp(&right.objectives.robust_geometry_error_units)
+            })
             .expect("first geometry baseline");
         assert_eq!(first_geometry_best.candidate_id, "FILL-MID");
 
@@ -625,7 +639,11 @@ mod tests {
         };
         let second_geometry_best = second_frontier
             .iter()
-            .min_by_key(|item| item.objectives.robust_geometry_error_units)
+            .min_by(|left, right| {
+                left.objectives
+                    .robust_geometry_error_units
+                    .cmp(&right.objectives.robust_geometry_error_units)
+            })
             .expect("second geometry baseline");
         assert_eq!(second_geometry_best.candidate_id, "FILL-55");
         assert_ne!(first_geometry_best.candidate_id, second_geometry_best.candidate_id);
