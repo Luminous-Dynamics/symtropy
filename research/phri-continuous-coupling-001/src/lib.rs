@@ -386,7 +386,10 @@ mod tests {
         let left_cop = left_result.center_of_pressure_m.unwrap();
         let right_cop = right_result.center_of_pressure_m.unwrap();
         assert!(right_cop[0] > left_cop[0]);
-        assert_eq!(left_result.total_normal_force_n, right_result.total_normal_force_n);
+        assert_eq!(
+            left_result.total_normal_force_n,
+            right_result.total_normal_force_n
+        );
     }
 
     #[test]
