@@ -287,7 +287,6 @@ impl VicsekModel {
     pub fn step(&mut self) -> Result<VicsekMetrics, VicsekError> {
         let next_tick = self.tick.checked_add(1).ok_or(VicsekError::TickOverflow)?;
         let previous = self.particles.clone();
-        let radius_squared = self.config.interaction_radius * self.config.interaction_radius;
         let mut next = Vec::with_capacity(previous.len());
 
         for particle in &previous {
@@ -301,7 +300,7 @@ impl VicsekModel {
                     neighbor.y,
                     self.config.box_size,
                 );
-                if dx * dx + dy * dy <= radius_squared {
+                if dx.hypot(dy) <= self.config.interaction_radius {
                     sum_cos += neighbor.heading_rad.cos();
                     sum_sin += neighbor.heading_rad.sin();
                 }
@@ -318,8 +317,16 @@ impl VicsekModel {
             let noise = self.config.angular_noise_width_rad * (self.rng.next_unit() - 0.5);
             let heading = wrap_angle(alignment + noise);
             let distance = self.config.speed * self.config.dt;
-            let x = (particle.x + distance * heading.cos()).rem_euclid(self.config.box_size);
-            let y = (particle.y + distance * heading.sin()).rem_euclid(self.config.box_size);
+            let x = add_periodic(
+                particle.x,
+                distance * heading.cos(),
+                self.config.box_size,
+            );
+            let y = add_periodic(
+                particle.y,
+                distance * heading.sin(),
+                self.config.box_size,
+            );
             next.push(VicsekParticle {
                 x,
                 y,
@@ -352,7 +359,6 @@ impl VicsekModel {
         }
         let polar_order = (sum_cos.hypot(sum_sin) / count as f64).clamp(0.0, 1.0);
 
-        let radius_squared = self.config.interaction_radius * self.config.interaction_radius;
         let mut neighbor_counts = vec![0usize; count];
         let mut parents: Vec<usize> = (0..count).collect();
 
@@ -367,7 +373,7 @@ impl VicsekModel {
                     b.y,
                     self.config.box_size,
                 );
-                if dx * dx + dy * dy <= radius_squared {
+                if dx.hypot(dy) <= self.config.interaction_radius {
                     neighbor_counts[left] += 1;
                     neighbor_counts[right] += 1;
                     union(&mut parents, left, right);
@@ -412,9 +418,30 @@ fn periodic_displacement(
     y_to: f64,
     box_size: f64,
 ) -> (f64, f64) {
-    let dx = (x_to - x_from + 0.5 * box_size).rem_euclid(box_size) - 0.5 * box_size;
-    let dy = (y_to - y_from + 0.5 * box_size).rem_euclid(box_size) - 0.5 * box_size;
+    let dx = minimum_image(x_to - x_from, box_size);
+    let dy = minimum_image(y_to - y_from, box_size);
     (dx, dy)
+}
+
+fn minimum_image(displacement: f64, box_size: f64) -> f64 {
+    let wrapped = displacement.rem_euclid(box_size);
+    if wrapped > 0.5 * box_size {
+        wrapped - box_size
+    } else {
+        wrapped
+    }
+}
+
+/// Add a signed displacement on a periodic interval without overflowing an intermediate
+/// position-plus-displacement sum when the displacement is very large.
+fn add_periodic(position: f64, displacement: f64, box_size: f64) -> f64 {
+    let wrapped = displacement.rem_euclid(box_size);
+    let distance_to_boundary = box_size - position;
+    if wrapped >= distance_to_boundary {
+        wrapped - distance_to_boundary
+    } else {
+        position + wrapped
+    }
 }
 
 fn wrap_angle(angle: f64) -> f64 {
@@ -579,6 +606,37 @@ mod tests {
                 && metrics.neighbor_count_variance.is_finite()
                 && metrics.largest_cluster_fraction.is_finite()
         }));
+    }
+
+    #[test]
+    fn periodic_minimum_image_uses_short_path_across_box_boundary() {
+        let (dx, dy) = periodic_displacement(0.1, 5.0, 9.9, 5.0, 10.0);
+        assert!((dx + 0.2).abs() < 1.0e-12);
+        assert_eq!(dy, 0.0);
+    }
+
+    #[test]
+    fn large_finite_displacements_wrap_without_intermediate_overflow() {
+        let mut model = VicsekModel::new(
+            vec![VicsekParticle {
+                x: 0.5,
+                y: 0.5,
+                heading_rad: 0.0,
+            }],
+            VicsekConfig {
+                box_size: 10.0,
+                interaction_radius: 0.0,
+                speed: f64::MAX / 4.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+            },
+            1,
+        )
+        .unwrap();
+        let metrics = model.step().unwrap();
+        assert_eq!(metrics.polar_order, 1.0);
+        assert!(model.particles()[0].x.is_finite());
+        assert!((0.0..10.0).contains(&model.particles()[0].x));
     }
 
     #[test]
