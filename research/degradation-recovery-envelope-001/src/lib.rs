@@ -40,7 +40,7 @@ pub enum ObservationCondition {
     ComputeOverrun,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FaultEvent {
     pub event_id: String,
