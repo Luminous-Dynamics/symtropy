@@ -227,7 +227,7 @@ The critical comparison is not simply “score under a camera drop.” It is the
 
 ## Executable result-card evaluator
 
-The standalone Rust evaluator is in `evaluator/`. It is pinned to Rust 1.96.0 and only uses Serde/Serde JSON for typed result-card parsing.
+The standalone Rust evaluator is in `evaluator/`. It is pinned to Rust 1.96.0 and only uses Serde/Serde JSON for typed result-card parsing. The strict per-run result-card contract is version 0.2.0.
 
 From the evaluator directory:
 
@@ -252,6 +252,31 @@ The tool:
 - excludes cards missing any required frontier measurement rather than treating missing values as zero or as a benefit;
 - computes a deterministic 10,000-replicate, 95% paired bootstrap interval automatically for baseline/candidate comparisons.
 
+### Result card v0.2.0: experience selection and inference allocation
+
+The strict result-card schema is now **0.2.0**. In addition to architecture, data, compute, native metrics and paired episode records, each run must carry two orthogonal execution records.
+
+**Experience selection record**
+- strategy ID: `uniform`, `rarity`, `entropy`, `prediction_error`, `decision_margin`, `sam_decision_value`, or `sam_recoverability`;
+- selector revision, candidate-pool digest and selection-receipt manifest digest;
+- candidates scored, queries issued/accepted/rejected and query deadline misses;
+- selector-attributed simulator transitions, human intervention minutes and GPU-hours.
+
+Selector-attributed costs are a *breakdown of the total training budget*, not extra cost to add a second time. The evaluator verifies that selector transition, intervention and GPU-hour attribution do not exceed the total values in the card. It also verifies `queries_issued = queries_accepted + queries_rejected`, that candidates scored cover the queries issued, and that deadline misses are a subset of rejected queries.
+
+**Inference allocation record**
+- allocator identity/revision: `fixed_rollouts` or `deadline_aware_anytime`;
+- allocation-receipt and latency-bound manifest digests;
+- decision-opportunity count, additional rollouts, declared compute-unit budget and actual compute units used;
+- required actuation reserve, reserve violations and deadline-skipped rollout count;
+- predicted regret reduction and observed regret reduction in separate fields.
+
+The predicted value is the allocator's supplied estimate; it is not a measured policy improvement. Observed regret reduction is evaluator-derived and may be negative. The evaluator rejects actual rollout units exceeding the declared budget but **does not erase** runs that report an actuation-reserve violation; the violation remains visible as a negative result.
+
+A matched-compute comparison requires the same declared rollout compute budget and actuation-reserve requirement. Actual rollout units used remain an outcome/resource axis. Strategy and allocator IDs are intentionally allowed to differ between baseline and candidate arms.
+
+The metric-specific Pareto frontier now includes native task score, trainable parameters, training GPU-hours/kWh, simulator transitions, human intervention minutes, inference joules/frame, actual rollout compute units, p99 latency and peak memory. The frontier still creates no weighted composite score. Every complete run must include the sampler candidate-pool/receipt digests and allocator/latency-bound digests; the `not_run` template leaves them null and makes no performance claim.
+
 ### Statistical comparison contract
 
 Every complete result card must carry one record per expected evaluation episode:
@@ -265,7 +290,7 @@ To claim non-inferiority on a higher-is-better metric with margin (m), require t
 
 The evaluator reports native metric differences, uncertainty and resource ratios; it does not combine driving score, energy, latency, memory or safety into a fabricated single score. The Pareto frontier is an efficiency/capability analysis, not a safety certificate.
 
-The current suite contains 21 Rust unit tests covering denominator accounting, episode pairing, cluster mismatch rejection, deterministic bootstrap, missing metrics, matched-budget classification, privilege mismatch, benchmark mismatch, Pareto trade-offs, incomplete measurements, protocol separation, margin direction and schema/template parsing.
+The current suite contains 27 authored Rust unit tests covering denominator accounting, episode pairing, cluster mismatch rejection, deterministic bootstrap, missing metrics, matched-budget classification, privilege mismatch, benchmark mismatch, Pareto trade-offs, incomplete measurements, protocol separation, margin direction and schema/template parsing.
 
 ## Claim ceiling
 
