@@ -377,7 +377,8 @@
             "worst_case_information_gain_nats",
             "epistemic_robustness_qualified",
             "risk_assessment_catalogue_sha256",
-            "risk_evidence_reviewed_by_authority_owner"
+            "risk_evidence_reviewed_by_authority_owner",
+            "observation_update"
           ],
           "properties": {
             "schema_version": {
@@ -510,6 +511,161 @@
             },
             "risk_evidence_reviewed_by_authority_owner": {
               "type": "boolean"
+            },
+            "observation_update": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "status",
+                "candidate_manifest_sha256",
+                "observation_receipt_sha256",
+                "posterior_manifest_sha256",
+                "observed_outcome_id",
+                "realized_entropy_reduction_nats",
+                "realized_kl_divergence_nats",
+                "posterior_entropy_nats",
+                "possible_likelihood_scenario_count",
+                "impossible_likelihood_scenario_count"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "not_executed",
+                    "realized_update"
+                  ]
+                },
+                "candidate_manifest_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "observation_receipt_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "posterior_manifest_sha256": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "pattern": "^[a-f0-9]{64}$"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "observed_outcome_id": {
+                  "oneOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "realized_entropy_reduction_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "realized_kl_divergence_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "posterior_entropy_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "possible_likelihood_scenario_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "impossible_likelihood_scenario_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "scenario_posterior_entropy_min_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "scenario_posterior_entropy_max_nats": {
+                  "type": [
+                    "number",
+                    "null"
+                  ],
+                  "minimum": 0
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "status": {
+                        "const": "realized_update"
+                      }
+                    },
+                    "required": [
+                      "status"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "candidate_manifest_sha256": {
+                        "type": "string"
+                      },
+                      "observation_receipt_sha256": {
+                        "type": "string"
+                      },
+                      "posterior_manifest_sha256": {
+                        "type": "string"
+                      },
+                      "observed_outcome_id": {
+                        "type": "string"
+                      },
+                      "realized_entropy_reduction_nats": {
+                        "type": "number"
+                      },
+                      "realized_kl_divergence_nats": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "posterior_entropy_nats": {
+                        "type": "number",
+                        "minimum": 0
+                      },
+                      "possible_likelihood_scenario_count": {
+                        "type": "integer",
+                        "minimum": 1
+                      }
+                    }
+                  }
+                }
+              ]
             }
           }
         },
@@ -1106,6 +1262,48 @@
           ],
           "minimum": 0,
           "maximum": 1
+        },
+        "realized_entropy_reduction_nats": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "realized_kl_divergence_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "posterior_entropy_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scenario_posterior_entropy_min_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scenario_posterior_entropy_max_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "possible_likelihood_scenario_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "impossible_likelihood_scenario_count": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -1266,6 +1464,46 @@
                   },
                   "risk_evidence_reviewed_by_authority_owner": {
                     "const": false
+                  },
+                  "observation_update": {
+                    "properties": {
+                      "status": {
+                        "const": "not_executed"
+                      },
+                      "candidate_manifest_sha256": {
+                        "type": "null"
+                      },
+                      "observation_receipt_sha256": {
+                        "type": "null"
+                      },
+                      "posterior_manifest_sha256": {
+                        "type": "null"
+                      },
+                      "observed_outcome_id": {
+                        "type": "null"
+                      },
+                      "realized_entropy_reduction_nats": {
+                        "type": "null"
+                      },
+                      "realized_kl_divergence_nats": {
+                        "type": "null"
+                      },
+                      "posterior_entropy_nats": {
+                        "type": "null"
+                      },
+                      "possible_likelihood_scenario_count": {
+                        "const": 0
+                      },
+                      "impossible_likelihood_scenario_count": {
+                        "const": 0
+                      },
+                      "scenario_posterior_entropy_min_nats": {
+                        "type": "null"
+                      },
+                      "scenario_posterior_entropy_max_nats": {
+                        "type": "null"
+                      }
+                    }
                   }
                 }
               },
