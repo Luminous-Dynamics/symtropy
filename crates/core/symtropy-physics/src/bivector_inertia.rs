@@ -117,15 +117,24 @@ impl BivectorInertia<3> {
                 }
             }
         }
-        // Halve before summing to avoid overflow when the mean is representable.
-        let half_trace = 0.5 * inertia_tensor[(0, 0)]
-            + 0.5 * inertia_tensor[(1, 1)]
-            + 0.5 * inertia_tensor[(2, 2)];
-        if !half_trace.is_finite() {
-            return Err(RotationalInertiaError::NonFinite);
-        }
-        let second_moment =
-            SMatrix::<f64, 3, 3>::identity() * half_trace - inertia_tensor;
+        // Symmetrize only within the already-checked roundoff tolerance.
+        let symmetric_inertia = SMatrix::<f64, 3, 3>::from_fn(|row, column| {
+            0.5 * inertia_tensor[(row, column)] + 0.5 * inertia_tensor[(column, row)]
+        });
+        let second_moment = SMatrix::<f64, 3, 3>::from_fn(|row, column| {
+            if row == column {
+                let other_axes = match row {
+                    0 => [1, 2],
+                    1 => [0, 2],
+                    _ => [0, 1],
+                };
+                0.5 * symmetric_inertia[(other_axes[0], other_axes[0])]
+                    + 0.5 * symmetric_inertia[(other_axes[1], other_axes[1])]
+                    - 0.5 * symmetric_inertia[(row, row)]
+            } else {
+                -symmetric_inertia[(row, column)]
+            }
+        });
         if !second_moment.iter().all(|value| value.is_finite()) {
             return Err(RotationalInertiaError::NonFinite);
         }
@@ -138,8 +147,11 @@ impl BivectorInertia<3> {
         let second_moment = &self.second_moment;
         let tensor = SMatrix::<f64, 3, 3>::from_fn(|row, column| {
             if row == column {
-                second_moment[(0, 0)] + second_moment[(1, 1)] + second_moment[(2, 2)]
-                    - second_moment[(row, column)]
+                match row {
+                    0 => second_moment[(1, 1)] + second_moment[(2, 2)],
+                    1 => second_moment[(0, 0)] + second_moment[(2, 2)],
+                    _ => second_moment[(0, 0)] + second_moment[(1, 1)],
+                }
             } else {
                 -second_moment[(row, column)]
             }
@@ -1396,6 +1408,43 @@ mod tests {
             )
             .unwrap_err(),
             RotationalInertiaError::InvalidMassProperties
+        );
+    }
+
+    #[test]
+    fn 3d_inertia_tensor_adapter_roundtrips_products_of_inertia_and_energy() {
+        let inertia_tensor = SMatrix::<f64, 3, 3>::new(
+            46.0, -6.0, 0.0,
+            -6.0, 46.0, 0.0,
+            0.0, 0.0, 20.0,
+        );
+        let operator = BivectorInertia::<3>::from_inertia_tensor_3d(inertia_tensor).unwrap();
+        let recovered = operator.inertia_tensor_3d().unwrap();
+        assert!((recovered - inertia_tensor).norm() < 1.0e-12);
+
+        let omega = SVector::from([0.7, -1.1, 0.4]);
+        let angular_state = angular_vector_to_bivector(&omega);
+        let tensor_energy = 0.5 * omega.dot(&(inertia_tensor * omega));
+        let operator_energy = operator.kinetic_energy(&angular_state).unwrap();
+        assert!((operator_energy - tensor_energy).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn inertia_tensor_adapter_rejects_unphysical_triangle_inequality() {
+        let impossible = SMatrix::<f64, 3, 3>::from_diagonal(&SVector::from([1.0, 1.0, 3.0]));
+        assert_eq!(
+            BivectorInertia::<3>::from_inertia_tensor_3d(impossible).unwrap_err(),
+            RotationalInertiaError::NotPositiveSemidefinite,
+        );
+    }
+
+    #[test]
+    fn inertia_tensor_adapter_rejects_asymmetry() {
+        let mut asymmetric = SMatrix::<f64, 3, 3>::identity();
+        asymmetric[(0, 1)] = 0.1;
+        assert_eq!(
+            BivectorInertia::<3>::from_inertia_tensor_3d(asymmetric).unwrap_err(),
+            RotationalInertiaError::NotSymmetric,
         );
     }
 
