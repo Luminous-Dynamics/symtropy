@@ -725,6 +725,9 @@ pub fn realize_probe_observation(
     if !is_sha256_hex(expected_candidate_manifest_sha256)
         || expected_candidate_manifest_sha256 != candidate.candidate_manifest_sha256
         || candidate_manifest_sha256(candidate)? != candidate.candidate_manifest_sha256
+        || !is_sha256_hex(&candidate.likelihood_model_sha256)
+        || !is_sha256_hex(&candidate.likelihood_calibration_sha256)
+        || !is_sha256_hex(&candidate.risk_assessment_sha256)
     {
         return Err(ProbeError::ObservationCandidateMismatch);
     }
@@ -747,9 +750,8 @@ pub fn realize_probe_observation(
             candidate.candidate_id.clone(),
         ));
     }
-    let (information_gain, _, _, scenario_count, _) =
+    let (_, _, _, scenario_count, _) =
         assess_likelihood_uncertainty(candidate, &prior, hypothesis_ids.len())?;
-    let _ = information_gain;
 
     let likelihood_by_hypothesis = if candidate.uncertainty_scenarios.is_empty() {
         let outcome = candidate
@@ -1628,6 +1630,113 @@ mod tests {
                 policy.cost_penalty_scale_seconds,
             ),
             Err(ProbeError::InvalidSeedDigest)
+        );
+    }
+
+    #[test]
+    fn acquired_observation_updates_posterior_and_binds_candidate_and_receipt() {
+        let item = candidate(
+            "pressure_observation",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        let update = realize_probe_observation(
+            &hypotheses(),
+            &item,
+            &item.candidate_manifest_sha256,
+            "bearing_signature",
+            &digest('e'),
+        )
+        .unwrap();
+        assert_eq!(update.candidate_id, "pressure_observation");
+        assert_eq!(update.observation_receipt_sha256, digest('e'));
+        assert!((update.posterior[0].probability - 0.95).abs() < 1e-12);
+        assert!((update.posterior[1].probability - 0.05).abs() < 1e-12);
+        assert!(update.realized_entropy_reduction_nats > 0.0);
+        assert!(update.realized_kl_divergence_nats > 0.0);
+        assert_eq!(update.likelihood_scenario_count, 1);
+        assert_eq!(update.possible_likelihood_scenario_count, 1);
+        assert_eq!(update.impossible_likelihood_scenario_count, 0);
+    }
+
+    #[test]
+    fn observed_update_marginalizes_likelihood_scenarios_and_reports_scenario_posterior_spread() {
+        let mut item = candidate(
+            "noisy_pressure_observation",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        item.outcomes.clear();
+        item.uncertainty_scenarios = vec![
+            scenario("nominal", 0.5, 0.95),
+            scenario("degraded", 0.5, 0.50),
+        ];
+        item.candidate_manifest_sha256 = candidate_manifest_sha256(&item).unwrap();
+        let update = realize_probe_observation(
+            &hypotheses(),
+            &item,
+            &item.candidate_manifest_sha256,
+            "bearing_signature",
+            &digest('d'),
+        )
+        .unwrap();
+        assert!((update.posterior[0].probability - 0.725).abs() < 1e-12);
+        assert_eq!(update.likelihood_scenario_count, 2);
+        assert_eq!(update.possible_likelihood_scenario_count, 2);
+        assert_eq!(update.impossible_likelihood_scenario_count, 0);
+        assert!(update.scenario_posterior_entropy_min_nats
+            < update.scenario_posterior_entropy_max_nats);
+    }
+
+    #[test]
+    fn observed_update_rejects_changed_candidate_and_unknown_or_impossible_outcomes() {
+        let item = candidate(
+            "pressure_observation",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        assert_eq!(
+            realize_probe_observation(
+                &hypotheses(),
+                &item,
+                &digest('0'),
+                "bearing_signature",
+                &digest('e')
+            ),
+            Err(ProbeError::ObservationCandidateMismatch)
+        );
+        assert_eq!(
+            realize_probe_observation(
+                &hypotheses(),
+                &item,
+                &item.candidate_manifest_sha256,
+                "unlisted_outcome",
+                &digest('e')
+            ),
+            Err(ProbeError::ObservedOutcomeNotFound("unlisted_outcome".into()))
+        );
+
+        let mut impossible = candidate(
+            "impossible_measurement",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        impossible.outcomes[0].likelihood_by_hypothesis = vec![0.0, 0.0];
+        impossible.outcomes[1].likelihood_by_hypothesis = vec![1.0, 1.0];
+        impossible.candidate_manifest_sha256 = candidate_manifest_sha256(&impossible).unwrap();
+        assert_eq!(
+            realize_probe_observation(
+                &hypotheses(),
+                &impossible,
+                &impossible.candidate_manifest_sha256,
+                "bearing_signature",
+                &digest('e')
+            ),
+            Err(ProbeError::ObservedOutcomeImpossible("bearing_signature".into()))
         );
     }
 
