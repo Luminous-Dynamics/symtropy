@@ -551,12 +551,11 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             let torque = (motor.kd * (motor.target_vel - rel_angular_vel))
                 .clamp(-motor.max_force, motor.max_force);
 
-            // Apply the motor's angular impulse through the integrator's
-            // declared inertia model. The integrator currently uses a scalar
-            // mean inverse inertia (exact for isotropic bodies, approximate
-            // for asymmetric bodies); unlike a fixed half-split, this handles
-            // static endpoints and unequal endpoint inertias consistently
-            // within that declared approximation.
+            // Apply the motor through the selected body inertia operators.
+            // The constrained solve adds forbidden-plane reaction impulses
+            // so an asymmetric link cannot violate the hinge's single-DOF
+            // kinematic contract. Static endpoints and unequal endpoint
+            // inertias are handled by the same relative effective-inertia solve.
             let impulse = torque * _dt;
             let Some(total_angular_impulse) = constrained_hinge_motor_impulse(
                 body_a,
