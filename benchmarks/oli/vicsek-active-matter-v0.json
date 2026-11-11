@@ -15,6 +15,22 @@
       "citation": "Jin & Dong, Quantitative relationship between coupled structural dynamics and collective order in the original Vicsek model, Communications Physics (2026-10-20)",
       "url": "https://www.nature.com/articles/s42005-026-02933-9",
       "claim_scope": "Recent analysis connects polar order with interaction-number statistics and cluster/system-level structural properties; OLI uses neighbour and connected-component metrics as descriptive observables, not as cognition scores."
+    },
+    "topology_comparator": {
+      "citation": "Rahman, Napoli, Bonomo, Porfiri & Abaid, Topology and geometry of clusters in the Vicsek model across scales, Physical Review Research 8, 033039 (2026-07-10)",
+      "doi": "10.1103/hkrb-wpdr",
+      "url": "https://doi.org/10.1103/hkrb-wpdr",
+      "reported_scope": "Clusters as connected components of the interaction network; average degree, average path length, clustering coefficient, area, perimeter, and cluster-size scaling across speeds/densities near critical noise.",
+      "erratum": {
+        "citation": "Erratum, Physical Review Research 8, 049002(E), published 2026-10-27",
+        "doi": "10.1103/b9yr-8wmv",
+        "url": "https://doi.org/10.1103/b9yr-8wmv",
+        "correction": "Equation (2) time index for the neighbour set corrected: heading at t+dt is aligned using neighbours at t+dt with velocities/headings at t.",
+        "implication": "The corrected forward-update interpretation leaves the authors' physical interpretation unchanged and yields results indistinguishable from their forward-update method. A backward-update implementation yields different power-law scaling of average degree and path length with cluster mass.",
+        "oli_requirement": "Every Vicsek output must record the update rule. OLI must never compare scaling exponents across update conventions as though they were the same model."
+      },
+      "code_repository": "https://github.com/sqrrahman/Vicsek_interaction_network_critical_noise_geometry_and_topology",
+      "code_access_status": "GitHub API fetch returned NOT_FOUND through the connected source; code repository should be manually verified before claiming source reproduction."
     }
   },
   "model_definition": {
@@ -27,14 +43,26 @@
     "motion": "constant_speed * dt along the updated heading",
     "boundary": "periodic modulo box_size",
     "numerical_arithmetic": "IEEE754_f64",
-    "implementation_complexity": "O(N^2) CPU reference"
+    "implementation_complexity": "O(N^2) CPU reference",
+    "update_rules": {
+      "current_position_alignment": {
+        "semantics": "Select neighbours at positions x(t); compute all new headings from old headings; advance positions along the new headings.",
+        "status": "implemented_default_classic_reference"
+      },
+      "next_position_alignment": {
+        "semantics": "Predict positions using old headings; select neighbours at predicted positions x(t+dt); compute new headings from old headings; retain predicted positions.",
+        "status": "implemented_erratum_aligned_comparator"
+      }
+    }
   },
   "implementation": {
     "crate": "symtropy-lifesim-core",
     "module": "vicsek",
     "rng": "xorshift64; zero seed is mapped to a documented non-zero state",
     "random_initialization": "x,y uniform in [0,L); heading uniform in [0,2pi); initialization and angular-noise draws use one continued deterministic stream",
-    "no_hidden_parameters": true
+    "no_hidden_parameters": true,
+    "update_rule_field": "VicsekConfig.update_rule",
+    "default_update_rule": "CurrentPositionAlignment"
   },
   "benchmark_regimes": [
     {
@@ -121,9 +149,13 @@
     "neighbor_count_variance": "Population variance of local neighbour counts",
     "cluster_count": "Connected components in the metric-neighbour graph",
     "largest_cluster_fraction": "Fraction of all particles in the largest connected component",
-    "mean_local_polar_order": "Mean magnitude of each particle's local neighbour heading vector, including the particle itself",
+    "mean_local_polar_order": "Mean local heading coherence over each particle's metric-neighbourhood, including itself",
     "local_polar_order_variance": "Population variance of per-particle local polar-order values",
-    "note": "Global polar order, local polar order and interaction/cluster statistics must be reported together. A globally disordered system may contain highly ordered local clusters."
+    "note": "Global polar order, local polar order and interaction/cluster statistics must be reported together. A globally disordered system may contain highly ordered local clusters.",
+    "mean_cluster_size": "Mean number of particles per connected component of the current metric-neighbour graph",
+    "cluster_size_variance": "Population variance of connected-component sizes",
+    "mean_cluster_polar_order": "Unweighted mean polar order calculated within each connected component; distinguishes aligned opposing clusters from global disorder",
+    "cluster_polar_order_variance": "Population variance of per-component polar order"
   },
   "benchmark_tasks": [
     "Collective order versus independent-particle baseline",
@@ -131,7 +163,10 @@
     "Noise-response and finite-size scaling",
     "Cluster-size and neighbour-count distribution analysis",
     "Temporal sampling / observability stress",
-    "Adversarial morphology-vs-mechanism test: high polar order must not be promoted to cognition or life"
+    "Adversarial morphology-vs-mechanism test: high polar order must not be promoted to cognition or life",
+    "Neighbour-time update-rule comparison: current-position versus next-position neighbour selection under identical seeds and parameter sets",
+    "Locally ordered but globally cancelling clusters: opposite-heading clusters must show low global polar order but high local and within-cluster order",
+    "Cluster topology parity: degree, clustering coefficient and path-length scaling as a future qualification against the 2026 cluster topology paper"
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
@@ -144,6 +179,9 @@
     "output_digest_sha256": null,
     "digest_status": "PENDING_EXACT_HEAD_RUST_EXECUTION",
     "rust_validation_status": "NOT_RUN_IN_AUTHORING_ENVIRONMENT",
-    "no_physical_observation_claim": true
+    "no_physical_observation_claim": true,
+    "update_rule_must_be_recorded": true,
+    "erratum_comparison_pending": true,
+    "source_code_parity_status": "NOT_ESTABLISHED"
   }
 }
