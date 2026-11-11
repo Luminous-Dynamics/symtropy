@@ -17,8 +17,8 @@ use core::fmt;
 use super::{
     KerrBlackHole,
     kerr_geodesic::{
-        KerrCanonicalEvaluation, KerrCanonicalHamiltonian, KerrCanonicalState,
-        KerrGeodesicError, KerrNullConstants,
+        KerrCanonicalEvaluation, KerrCanonicalHamiltonian, KerrCanonicalLinearization,
+        KerrCanonicalState, KerrGeodesicError, KerrNullConstants,
     },
 };
 
@@ -86,6 +86,29 @@ pub struct KerrTrajectoryResult {
     pub maximum_normalized_radial_first_integral_residual: f64,
     pub maximum_normalized_polar_first_integral_residual: f64,
     pub maximum_scaled_local_error: f64,
+    pub final_step: f64,
+}
+
+/// One accepted sample from canonical trajectory plus variational transport.
+#[derive(Debug, Clone, PartialEq)]
+pub struct KerrVariationalSample {
+    pub trajectory: KerrTrajectorySample,
+    /// Fundamental matrix Phi = d z(lambda) / d z(0), row-major by state component.
+    pub fundamental_matrix: [[f64; 8]; 8],
+    /// Local Hamiltonian-flow identity residual max |A^T Omega + Omega A|.
+    pub local_symplectic_lie_residual: f64,
+    /// Propagated fundamental-matrix residual max |Phi^T Omega Phi - Omega|.
+    pub fundamental_symplectic_residual: f64,
+}
+
+/// Adaptive canonical trajectory and full 8x8 variational fundamental matrix.
+#[derive(Debug, Clone, PartialEq)]
+pub struct KerrVariationalTrajectoryResult {
+    pub samples: Vec<KerrVariationalSample>,
+    pub accepted_steps: usize,
+    pub rejected_steps: usize,
+    pub maximum_scaled_local_error: f64,
+    pub maximum_fundamental_symplectic_residual: f64,
     pub final_step: f64,
 }
 
@@ -300,6 +323,242 @@ impl KerrNullTrajectoryIntegrator {
         })
     }
 
+    /// Integrate the canonical ray and its full fundamental matrix.
+    ///
+    /// The augmented ODE is dz/dlambda = F(z), dPhi/dlambda = A(z) Phi,
+    /// where A is supplied by second-order metric AD. Step-doubling controls
+    /// state and matrix errors separately and accepts the two-half-step state.
+    /// Phi(0) is the 8x8 identity. This is a canonical phase-space tangent map,
+    /// not yet a projected 2x2 optical Jacobi map.
+    pub fn integrate_fundamental_matrix(
+        self,
+        initial_state: KerrCanonicalState,
+        affine_interval: f64,
+    ) -> Result<KerrVariationalTrajectoryResult, KerrIntegratorError> {
+        if !affine_interval.is_finite() || affine_interval <= 0.0 {
+            return Err(KerrIntegratorError::InvalidAffineInterval(affine_interval));
+        }
+
+        let hamiltonian = KerrCanonicalHamiltonian::new(self.hole);
+        let initial_linearization = self.linearize(hamiltonian, initial_state)?;
+        let initial_evaluation = initial_linearization.evaluation;
+        let initial_diagnostics = self.constraint_diagnostics(initial_state, initial_evaluation)?;
+        let mut identity = [[0.0; 8]; 8];
+        for index in 0..8 { identity[index][index] = 1.0; }
+
+        let initial_trajectory = KerrTrajectorySample {
+            affine_parameter: 0.0,
+            state: initial_state,
+            hamiltonian: initial_evaluation.hamiltonian,
+            energy: initial_evaluation.energy,
+            angular_momentum_z_over_m: initial_evaluation.angular_momentum_z_over_m,
+            carter_constant_over_m2: initial_evaluation.carter_constant_over_m2,
+            normalized_radial_first_integral_residual: initial_diagnostics.0,
+            normalized_polar_first_integral_residual: initial_diagnostics.1,
+            scaled_local_error: 0.0,
+        };
+        let mut samples = vec![KerrVariationalSample {
+            trajectory: initial_trajectory,
+            fundamental_matrix: identity,
+            local_symplectic_lie_residual: initial_linearization.symplectic_lie_residual,
+            fundamental_symplectic_residual: 0.0,
+        }];
+
+        let mut affine = 0.0;
+        let mut step = self.options.initial_step.min(self.options.maximum_step);
+        let mut accepted_steps = 0usize;
+        let mut rejected_steps = 0usize;
+        let mut maximum_scaled_local_error: f64 = 0.0;
+        let mut maximum_fundamental_symplectic_residual: f64 = 0.0;
+        let mut state = initial_state;
+        let mut fundamental = identity;
+
+        while affine < affine_interval {
+            if accepted_steps >= self.options.maximum_steps {
+                return Err(KerrIntegratorError::StepLimitExceeded {
+                    affine_parameter: affine,
+                    accepted_steps,
+                });
+            }
+            let remaining = affine_interval - affine;
+            step = step.min(remaining).min(self.options.maximum_step);
+            if step < self.options.minimum_step && remaining > self.options.minimum_step {
+                return Err(KerrIntegratorError::StepUnderflow {
+                    affine_parameter: affine,
+                    step,
+                });
+            }
+
+            let full = self.variational_rk4_step(hamiltonian, state, fundamental, step)?;
+            let half = self.variational_rk4_step(hamiltonian, state, fundamental, 0.5 * step)?;
+            let two_half = self.variational_rk4_step(
+                hamiltonian, half.0, half.1, 0.5 * step,
+            )?;
+            let error = self.scaled_variational_step_error(
+                state, fundamental, full.0, full.1, two_half.0, two_half.1,
+            )?;
+            if !error.is_finite() {
+                return Err(KerrIntegratorError::NonFiniteState);
+            }
+
+            if error <= 1.0 {
+                state = two_half.0;
+                fundamental = two_half.1;
+                affine = if remaining <= step { affine_interval } else { affine + step };
+                accepted_steps += 1;
+
+                let linearization = self.linearize(hamiltonian, state)?;
+                let evaluation = linearization.evaluation;
+                let diagnostics = self.constraint_diagnostics(state, evaluation)?;
+                let tangent_residual = fundamental_symplectic_residual(&fundamental);
+                if !tangent_residual.is_finite() {
+                    return Err(KerrIntegratorError::NonFiniteState);
+                }
+                maximum_scaled_local_error = maximum_scaled_local_error.max(error);
+                maximum_fundamental_symplectic_residual =
+                    maximum_fundamental_symplectic_residual.max(tangent_residual);
+                samples.push(KerrVariationalSample {
+                    trajectory: KerrTrajectorySample {
+                        affine_parameter: affine,
+                        state,
+                        hamiltonian: evaluation.hamiltonian,
+                        energy: evaluation.energy,
+                        angular_momentum_z_over_m: evaluation.angular_momentum_z_over_m,
+                        carter_constant_over_m2: evaluation.carter_constant_over_m2,
+                        normalized_radial_first_integral_residual: diagnostics.0,
+                        normalized_polar_first_integral_residual: diagnostics.1,
+                        scaled_local_error: error,
+                    },
+                    fundamental_matrix: fundamental,
+                    local_symplectic_lie_residual: linearization.symplectic_lie_residual,
+                    fundamental_symplectic_residual: tangent_residual,
+                });
+
+                let factor = if error == 0.0 { 2.0 } else {
+                    (0.9 * error.powf(-0.2)).clamp(0.2, 2.0)
+                };
+                step = (step * factor)
+                    .max(self.options.minimum_step)
+                    .min(self.options.maximum_step);
+            } else {
+                rejected_steps += 1;
+                let factor = (0.9 * error.powf(-0.2)).clamp(0.1, 0.5);
+                let reduced = step * factor;
+                if reduced < self.options.minimum_step {
+                    return Err(KerrIntegratorError::StepUnderflow {
+                        affine_parameter: affine,
+                        step: reduced,
+                    });
+                }
+                step = reduced;
+            }
+        }
+
+        Ok(KerrVariationalTrajectoryResult {
+            samples,
+            accepted_steps,
+            rejected_steps,
+            maximum_scaled_local_error,
+            maximum_fundamental_symplectic_residual,
+            final_step: step,
+        })
+    }
+
+    fn linearize(
+        self,
+        hamiltonian: KerrCanonicalHamiltonian,
+        state: KerrCanonicalState,
+    ) -> Result<KerrCanonicalLinearization, KerrIntegratorError> {
+        match self.chart {
+            KerrIntegrationChart::BoyerLindquist => Ok(hamiltonian.linearize(state)?),
+            KerrIntegrationChart::Ingoing => Ok(hamiltonian.linearize_ingoing(state)?),
+        }
+    }
+
+    fn variational_rhs(
+        self,
+        hamiltonian: KerrCanonicalHamiltonian,
+        state: KerrCanonicalState,
+        fundamental: [[f64; 8]; 8],
+    ) -> Result<[f64; 72], KerrIntegratorError> {
+        let linearization = self.linearize(hamiltonian, state)?;
+        let mut result = [0.0; 72];
+        let field = flatten_derivative(linearization.evaluation.derivative);
+        result[..8].copy_from_slice(&field);
+        for row in 0..8 {
+            for column in 0..8 {
+                let mut value = 0.0;
+                for inner in 0..8 {
+                    value += linearization.jacobian[row][inner] * fundamental[inner][column];
+                }
+                result[8 + row * 8 + column] = value;
+            }
+        }
+        if result.iter().any(|value| !value.is_finite()) {
+            return Err(KerrIntegratorError::NonFiniteState);
+        }
+        Ok(result)
+    }
+
+    fn variational_rk4_step(
+        self,
+        hamiltonian: KerrCanonicalHamiltonian,
+        state: KerrCanonicalState,
+        fundamental: [[f64; 8]; 8],
+        step: f64,
+    ) -> Result<(KerrCanonicalState, [[f64; 8]; 8]), KerrIntegratorError> {
+        let y = flatten_variational(state, fundamental);
+        let k1 = self.variational_rhs(hamiltonian, state, fundamental)?;
+        let y2 = add_scaled_variational(y, k1, 0.5 * step);
+        let (state2, fundamental2) = unflatten_variational(y2);
+        let k2 = self.variational_rhs(hamiltonian, state2, fundamental2)?;
+        let y3 = add_scaled_variational(y, k2, 0.5 * step);
+        let (state3, fundamental3) = unflatten_variational(y3);
+        let k3 = self.variational_rhs(hamiltonian, state3, fundamental3)?;
+        let y4 = add_scaled_variational(y, k3, step);
+        let (state4, fundamental4) = unflatten_variational(y4);
+        let k4 = self.variational_rhs(hamiltonian, state4, fundamental4)?;
+
+        let mut next = y;
+        for index in 0..72 {
+            next[index] += step
+                * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index])
+                / 6.0;
+        }
+        if next.iter().any(|value| !value.is_finite()) {
+            return Err(KerrIntegratorError::NonFiniteState);
+        }
+        Ok(unflatten_variational(next))
+    }
+
+    fn scaled_variational_step_error(
+        self,
+        initial_state: KerrCanonicalState,
+        initial_fundamental: [[f64; 8]; 8],
+        full_state: KerrCanonicalState,
+        full_fundamental: [[f64; 8]; 8],
+        half_state: KerrCanonicalState,
+        half_fundamental: [[f64; 8]; 8],
+    ) -> Result<f64, KerrIntegratorError> {
+        let initial = flatten_variational(initial_state, initial_fundamental);
+        let full = flatten_variational(full_state, full_fundamental);
+        let half = flatten_variational(half_state, half_fundamental);
+        let mut state_sum = 0.0;
+        let mut tangent_sum = 0.0;
+        for index in 0..72 {
+            let scale = self.options.absolute_tolerance
+                + self.options.relative_tolerance * initial[index].abs().max(half[index].abs());
+            let normalized = (half[index] - full[index]).abs() / (15.0 * scale);
+            if !normalized.is_finite() {
+                return Err(KerrIntegratorError::NonFiniteState);
+            }
+            if index < 8 { state_sum += normalized * normalized; }
+            else { tangent_sum += normalized * normalized; }
+        }
+        Ok((state_sum.sqrt() / 8.0_f64.sqrt())
+            .max(tangent_sum.sqrt() / 64.0_f64.sqrt()))
+    }
+
     fn constraint_diagnostics(
         self,
         state: KerrCanonicalState,
@@ -404,6 +663,80 @@ impl KerrNullTrajectoryIntegrator {
         }
         Ok((sum / 8.0).sqrt())
     }
+}
+
+fn flatten_derivative(derivative: super::kerr_geodesic::KerrCanonicalDerivative) -> [f64; 8] {
+    [
+        derivative.coordinates[0],
+        derivative.coordinates[1],
+        derivative.coordinates[2],
+        derivative.coordinates[3],
+        derivative.momenta[0],
+        derivative.momenta[1],
+        derivative.momenta[2],
+        derivative.momenta[3],
+    ]
+}
+
+fn flatten_variational(
+    state: KerrCanonicalState,
+    fundamental: [[f64; 8]; 8],
+) -> [f64; 72] {
+    let mut values = [0.0; 72];
+    values[..8].copy_from_slice(&flatten(state));
+    for row in 0..8 {
+        for column in 0..8 {
+            values[8 + row * 8 + column] = fundamental[row][column];
+        }
+    }
+    values
+}
+
+fn unflatten_variational(values: [f64; 72]) -> (KerrCanonicalState, [[f64; 8]; 8]) {
+    let mut fundamental = [[0.0; 8]; 8];
+    for row in 0..8 {
+        for column in 0..8 {
+            fundamental[row][column] = values[8 + row * 8 + column];
+        }
+    }
+    let mut state_values = [0.0; 8];
+    state_values.copy_from_slice(&values[..8]);
+    (unflatten(state_values), fundamental)
+}
+
+fn add_scaled_variational(
+    state: [f64; 72],
+    derivative: [f64; 72],
+    scale: f64,
+) -> [f64; 72] {
+    let mut result = state;
+    for index in 0..72 { result[index] += scale * derivative[index]; }
+    result
+}
+
+fn canonical_omega_entry(row: usize, column: usize) -> f64 {
+    if row < 4 && column == row + 4 { 1.0 }
+    else if row >= 4 && column + 4 == row { -1.0 }
+    else { 0.0 }
+}
+
+/// max absolute component of Phi^T Omega Phi - Omega.
+fn fundamental_symplectic_residual(fundamental: &[[f64; 8]; 8]) -> f64 {
+    let mut maximum: f64 = 0.0;
+    for row in 0..8 {
+        for column in 0..8 {
+            let mut value = -canonical_omega_entry(row, column);
+            for i in 0..8 {
+                for j in 0..8 {
+                    value += fundamental[i][row]
+                        * canonical_omega_entry(i, j)
+                        * fundamental[j][column];
+                }
+            }
+            maximum = maximum.max(value.abs());
+        }
+    }
+    maximum
 }
 
 fn relative_drift(initial: f64, current: f64) -> f64 {
