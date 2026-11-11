@@ -57,7 +57,9 @@
               "survey_revision",
               "coordinate_frame_id",
               "requirement_revision",
-              "decision_profile_id"
+              "decision_profile_id",
+              "expected_sensor_profile_id",
+              "expected_sensor_profile_sha256"
             ],
             "properties": {
               "building_id": {
@@ -87,6 +89,14 @@
               "decision_profile_id": {
                 "type": "string",
                 "minLength": 1
+              },
+              "expected_sensor_profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expected_sensor_profile_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
               }
             }
           },
