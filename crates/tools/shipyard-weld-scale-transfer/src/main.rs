@@ -54,8 +54,16 @@ fn main() -> ExitCode {
         return ExitCode::FAILURE;
     };
     if decision.disposition != TransferDisposition::AdmittedWithBridgeChain
-        || path.edge_ids != ["E01", "E12", "E23"]
-        || path.domain_ids != ["D0", "D1", "D2", "D3"]
+        || !path
+            .edge_ids
+            .iter()
+            .map(String::as_str)
+            .eq(["E01", "E12", "E23"])
+        || !path
+            .domain_ids
+            .iter()
+            .map(String::as_str)
+            .eq(["D0", "D1", "D2", "D3"])
         || path.cumulative_uncertainty_units != 45
         || path.minimum_empirical_coverage_permille != 960
         || path.uncertainty_components
