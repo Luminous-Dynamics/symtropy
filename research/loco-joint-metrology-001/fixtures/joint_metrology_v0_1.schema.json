@@ -22,8 +22,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 8,
-      "maxItems": 8,
+      "minItems": 9,
+      "maxItems": 9,
       "uniqueItems": true,
       "allOf": [
         {
@@ -137,6 +137,21 @@
             "properties": {
               "case_id": {
                 "const": "JM08_DECISION_HORIZON_EXPIRES_BEFORE_HARD_LIMIT"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "JM09_EXECUTED_PREFIX_MISMATCH"
               }
             },
             "required": [
@@ -600,7 +615,8 @@
             "JM05_INCOMPLETE_ENERGY_BOUNDARY",
             "JM06_MISSING_THERMAL_NODE",
             "JM07_PHYSICAL_STATE_RESET_REJECTED",
-            "JM08_DECISION_HORIZON_EXPIRES_BEFORE_HARD_LIMIT"
+            "JM08_DECISION_HORIZON_EXPIRES_BEFORE_HARD_LIMIT",
+            "JM09_EXECUTED_PREFIX_MISMATCH"
           ]
         },
         "description": {
