@@ -184,6 +184,8 @@ enum Finding {
     FaultUndetected,
     UnknownEventReference,
     DuplicateEventReference,
+    ContainmentReferenceWithoutState,
+    NormalModeWithContainmentActive,
     DetectionDeadlineMissed,
     ContainmentDeadlineMissed,
     RecoveryNotObserved,
@@ -224,6 +226,8 @@ impl Finding {
             Self::FaultUndetected => "fault_undetected",
             Self::UnknownEventReference => "unknown_event_reference",
             Self::DuplicateEventReference => "duplicate_event_reference",
+            Self::ContainmentReferenceWithoutState => "containment_reference_without_state",
+            Self::NormalModeWithContainmentActive => "normal_mode_with_containment_active",
             Self::DetectionDeadlineMissed => "detection_deadline_missed",
             Self::ContainmentDeadlineMissed => "containment_deadline_missed",
             Self::RecoveryNotObserved => "recovery_not_observed",
@@ -268,6 +272,10 @@ fn contains_forbidden_input(conditions: &[ObservationCondition]) -> bool {
             ObservationCondition::ClockViolation,
         ],
     )
+}
+
+fn containment_active(tick: &TickTrace) -> bool {
+    tick.degraded_mode || tick.fallback_active || tick.safe_stop_complete
 }
 
 fn is_healthy_tick(tick: &TickTrace, policy_deadline_us: u64) -> bool {
@@ -409,6 +417,7 @@ fn event_metrics(
                 .iter()
                 .any(|id| id == &event.event_id)
                 .then_some(*tick)
+                .filter(|_| containment_active(record))
         });
 
     let detection_latency = detection_tick.map(|tick| tick.saturating_sub(event.start_tick));
@@ -701,6 +710,12 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
                     findings.insert(Finding::UnknownEventReference);
                 }
             }
+        }
+        if !tick.containment_event_ids.is_empty() && !containment_active(tick) {
+            findings.insert(Finding::ContainmentReferenceWithoutState);
+        }
+        if tick.normal_mode && containment_active(tick) {
+            findings.insert(Finding::NormalModeWithContainmentActive);
         }
     }
 
@@ -1086,6 +1101,24 @@ mod tests {
         assert_eq!(report.faulted_decision_latency.sample_count, 8);
         assert_eq!(report.clean_control_inference_energy.p99_uj, Some(48));
         assert_eq!(report.faulted_inference_energy.p99_uj, Some(48));
+    }
+
+    #[test]
+    fn rejects_containment_event_reference_without_degraded_or_fallback_state() {
+        let mut input = campaign();
+        input.faulted_run.ticks[2].degraded_mode = false;
+        input.faulted_run.ticks[2].fallback_active = false;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "containment_reference_without_state"));
+        assert!(has(&report, "containment_deadline_missed"));
+    }
+
+    #[test]
+    fn rejects_normal_mode_while_fallback_remains_active() {
+        let mut input = campaign();
+        input.faulted_run.ticks[6].fallback_active = true;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "normal_mode_with_containment_active"));
     }
 
     #[test]
