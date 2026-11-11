@@ -274,7 +274,8 @@ pub fn assess_solution<const N: usize>(
 ) -> Result<SolveErrorEnvelopeV1, EnvelopeErrorV1> {
     validate_profile(profile)?;
     let lu = factor(matrix, profile)?;
-    if rhs.iter().any(|value| !value.is_finite()) || computed.iter().any(|value| !value.is_finite()) {
+    if rhs.iter().any(|value| !value.is_finite()) || computed.iter().any(|value| !value.is_finite())
+    {
         return Err(EnvelopeErrorV1::NonFiniteVector);
     }
 
