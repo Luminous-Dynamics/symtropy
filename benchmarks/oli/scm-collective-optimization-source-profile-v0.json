@@ -229,7 +229,40 @@
     "anti_leakage": "Keep entire random processes, environment realizations and initial conditions within one split. Time windows from one trajectory are not independent trials.",
     "improvement_target": "At equal success probability and equal safety envelope, reduce total sensor/function evaluations or energy-distance cost by >=20% on at least two source-reproduced benchmark strata; alternatively improve success rate by >=5 percentage points at equal total cost. Proposed target only, not achieved.",
     "second_target": "On dynamic environments, improve median peak-relocalization lag by >=20% versus source SCM at matched vehicle count, sensing rate and communications budget, with no increase in mission abort rate. Proposed target only.",
-    "report_pareto": "Publish success-vs-cost Pareto frontiers; do not hide SCM's evaluation-cost tradeoff in one scalar."
+    "report_pareto": "Publish success-vs-cost Pareto frontiers; do not hide SCM's evaluation-cost tradeoff in one scalar.",
+    "matched_baselines": [
+      "SCM_NITTI_2025",
+      "PSO",
+      "MIPA",
+      "independent_local_gradient_search",
+      "centralized_global_optimizer"
+    ],
+    "resource_metrics": [
+      "sensor_samples_per_success",
+      "function_evaluations_per_success",
+      "energy_per_success",
+      "distance_per_success",
+      "mission_time_per_success",
+      "communication_bytes_and_rounds",
+      "tracking_lag_after_environment_shift",
+      "mission_abort_rate"
+    ],
+    "communication_stressors": [
+      "latency",
+      "bandwidth_cap",
+      "packet_loss",
+      "stale_state",
+      "intermittent_contact",
+      "agent_dropout"
+    ],
+    "dynamic_environment_stressors": [
+      "advecting_peak",
+      "multiple_moving_peaks",
+      "source_extinction_and_reappearance",
+      "sensor_bias_and_drift",
+      "changing_obstacles"
+    ],
+    "claim_status": "PROPOSED_BENCHMARK_AND_TARGETS_ONLY"
   },
   "data_admission": {
     "source_commit_pinned": true,
@@ -246,6 +279,16 @@
       "Compare v1.0 archive file inventory and blob digests to the pinned GitHub source commit/tag.",
       "Recover exact PSO and MIPA parameters and the complete 33-case matrix from the paper and SI.",
       "Reproduce the exact paper equations and resolve the sine-kernel discrepancy."
+    ],
+    "status": "SOURCE_CODE_AND_PAPER_METADATA_PINNED_ARCHIVE_LICENSE_UNRESOLVED",
+    "no_code_or_data_copied": true,
+    "next_steps": [
+      "Request explicit software licence/permission and confirm the intended v1.0 archive.",
+      "Acquire and hash Supplementary Datasets 1–3 only with verified file-level rights.",
+      "Compare v1.0 archive inventory with GitHub tag and inspected main commit.",
+      "Recover exact PSO/MIPA setup and the complete 33-case matrix.",
+      "Resolve the sine-kernel equation discrepancy before claiming source-faithful dynamics.",
+      "Reproduce dynamic AUV simulation separately from static optimization tests."
     ]
   },
   "results": {
@@ -254,6 +297,13 @@
     "matched_comparison_completed": false,
     "source_data_materialized": false,
     "qualified_sota_improvement": false,
-    "status": "NOT_RUN"
+    "status": "NOT_RUN",
+    "data_reproduction_completed": false
+  },
+  "oli_improvement_targets": {
+    "static_equal_success_cost": "At equal success probability and the same safety envelope, reduce total sensor/function evaluations or energy-distance cost by >=20% on at least two source-reproduced benchmark strata.",
+    "static_equal_cost_success": "Alternatively, improve success probability by >=5 percentage points at equal total sensor/energy/time/communication cost.",
+    "dynamic_tracking": "Reduce median peak-relocalization lag by >=20% versus source SCM on a matched dynamic-environment challenge without increasing mission abort rate.",
+    "qualification_rule": "All are proposed targets. They cannot be claimed until SCM, PSO and MIPA are reproduced on matched conditions with independent environment/random-process holdouts."
   }
 }
