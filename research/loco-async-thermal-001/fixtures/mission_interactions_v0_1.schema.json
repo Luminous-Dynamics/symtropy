@@ -408,10 +408,10 @@
           "minimum": 0
         },
         "clock_offset_lower_ns": {
-          "$ref": "#/$defs/nullable_integer"
+          "$ref": "#/$defs/signed_integer"
         },
         "clock_offset_upper_ns": {
-          "$ref": "#/$defs/nullable_integer"
+          "$ref": "#/$defs/signed_integer"
         },
         "maximum_observation_age_ns": {
           "type": "integer",
@@ -573,6 +573,12 @@
           "$ref": "#/$defs/expected"
         }
       }
+    },
+    "signed_integer": {
+      "type": [
+        "integer",
+        "null"
+      ]
     }
   }
 }
