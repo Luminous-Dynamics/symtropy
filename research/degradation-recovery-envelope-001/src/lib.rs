@@ -307,7 +307,9 @@ fn expected_condition(kind: FaultKind) -> ObservationCondition {
 }
 
 fn contains_any(conditions: &[ObservationCondition], targets: &[ObservationCondition]) -> bool {
-    conditions.iter().any(|condition| targets.contains(condition))
+    conditions
+        .iter()
+        .any(|condition| targets.contains(condition))
 }
 
 fn contains_forbidden_input(conditions: &[ObservationCondition]) -> bool {
@@ -331,7 +333,9 @@ fn is_healthy_tick(tick: &TickTrace, policy_deadline_us: u64) -> bool {
     tick.conditions.as_slice() == [ObservationCondition::Clean]
         && tick.policy_input_accepted
         && !tick.safe_stop_complete
-        && tick.decision_latency_us.is_some_and(|latency| latency <= policy_deadline_us)
+        && tick
+            .decision_latency_us
+            .is_some_and(|latency| latency <= policy_deadline_us)
         && tick.fault_detection_event_ids.is_empty()
         && !contains_any(
             &tick.conditions,
@@ -431,9 +435,7 @@ fn validate_run(run: &RunTrace, expected_ticks: u64, findings: &mut BTreeSet<Fin
             findings.insert(Finding::ForbiddenPolicyInputAccepted);
         }
     }
-    if seen.len() as u64 != expected_ticks
-        || seen.iter().copied().ne(1..=expected_ticks)
-    {
+    if seen.len() as u64 != expected_ticks || seen.iter().copied().ne(1..=expected_ticks) {
         findings.insert(Finding::TickSequenceMismatch);
     }
 }
@@ -492,18 +494,18 @@ fn event_metrics(
     let mut recovery_tick = None;
     if let Some(first_recovery_tick) = event.end_tick.checked_add(1) {
         for (tick, record) in run_ticks.range(first_recovery_tick..) {
-        if is_healthy_tick(record, policy_deadline_us) {
-            healthy_run += 1;
-        } else {
-            healthy_run = 0;
-        }
-        if record.normal_mode && healthy_run < event.recovery_healthy_quorum_ticks {
-            findings.insert(Finding::PrematureRecovery);
-        }
-        if record.normal_mode && healthy_run >= event.recovery_healthy_quorum_ticks {
-            recovery_tick = Some(*tick);
-            break;
-        }
+            if is_healthy_tick(record, policy_deadline_us) {
+                healthy_run += 1;
+            } else {
+                healthy_run = 0;
+            }
+            if record.normal_mode && healthy_run < event.recovery_healthy_quorum_ticks {
+                findings.insert(Finding::PrematureRecovery);
+            }
+            if record.normal_mode && healthy_run >= event.recovery_healthy_quorum_ticks {
+                recovery_tick = Some(*tick);
+                break;
+            }
         }
     }
     if recovery_tick.is_none() {
@@ -517,10 +519,7 @@ fn event_metrics(
             record.policy_input_accepted
                 && contains_any(
                     &record.conditions,
-                    &[
-                        ObservationCondition::Stale,
-                        ObservationCondition::Corrupt,
-                    ],
+                    &[ObservationCondition::Stale, ObservationCondition::Corrupt],
                 )
         })
         .count() as u64;
@@ -544,7 +543,8 @@ fn event_metrics(
         missed_detection_deadline: detection_tick.is_none()
             || detection_latency.is_some_and(|latency| latency > event.detection_deadline_ticks),
         missed_containment_deadline: containment_tick.is_none()
-            || containment_latency.is_some_and(|latency| latency > event.containment_deadline_ticks),
+            || containment_latency
+                .is_some_and(|latency| latency > event.containment_deadline_ticks),
         recovery_observed: recovery_tick.is_some(),
     }
 }
@@ -606,7 +606,9 @@ pub fn standard_fault_schedule(
         };
         let severity_ppm = match kind {
             FaultKind::CameraDrop | FaultKind::StaleReplay => 1_000_000,
-            FaultKind::FrameDelay | FaultKind::PixelCorruption | FaultKind::ComputeOverrun => 500_000,
+            FaultKind::FrameDelay | FaultKind::PixelCorruption | FaultKind::ComputeOverrun => {
+                500_000
+            },
             FaultKind::CalibrationShift | FaultKind::ClockDrift => 250_000,
         };
         events.push(FaultEvent {
@@ -617,7 +619,11 @@ pub fn standard_fault_schedule(
             severity_ppm,
             detection_deadline_ticks,
             containment_deadline_ticks,
-            max_accepted_frame_age_us: if kind == FaultKind::FrameDelay { 100_000 } else { 0 },
+            max_accepted_frame_age_us: if kind == FaultKind::FrameDelay {
+                100_000
+            } else {
+                0
+            },
             recovery_healthy_quorum_ticks,
         });
     }
@@ -644,7 +650,10 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         campaign.faulted_run.run_id.as_str(),
         campaign.clean_control.scenario_seed_sha256.as_str(),
         campaign.faulted_run.scenario_seed_sha256.as_str(),
-        campaign.clean_control.environment_randomness_sha256.as_str(),
+        campaign
+            .clean_control
+            .environment_randomness_sha256
+            .as_str(),
         campaign.faulted_run.environment_randomness_sha256.as_str(),
     ] {
         if identity.trim().is_empty() {
@@ -654,14 +663,25 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
     if campaign.model_status == ModelStatus::TrainedPolicy && campaign.checkpoint_sha256.is_none() {
         findings.insert(Finding::MissingCheckpointForTrainedPolicy);
     }
-    if campaign.checkpoint_sha256.as_deref().is_some_and(|value| !is_sha256_hex(value)) {
+    if campaign
+        .checkpoint_sha256
+        .as_deref()
+        .is_some_and(|value| !is_sha256_hex(value))
+    {
         findings.insert(Finding::InvalidDigest);
     }
     if campaign.policy_visible_inputs.is_empty() {
         findings.insert(Finding::EmptyPolicyInputSet);
     }
-    if campaign.policy_visible_inputs.iter().any(|input| input.trim().is_empty())
-        || campaign.policy_visible_inputs.iter().collect::<BTreeSet<_>>().len()
+    if campaign
+        .policy_visible_inputs
+        .iter()
+        .any(|input| input.trim().is_empty())
+        || campaign
+            .policy_visible_inputs
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .len()
             != campaign.policy_visible_inputs.len()
     {
         findings.insert(Finding::DuplicatePolicyInput);
@@ -669,7 +689,10 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
     for digest in [
         campaign.clean_control.scenario_seed_sha256.as_str(),
         campaign.faulted_run.scenario_seed_sha256.as_str(),
-        campaign.clean_control.environment_randomness_sha256.as_str(),
+        campaign
+            .clean_control
+            .environment_randomness_sha256
+            .as_str(),
         campaign.faulted_run.environment_randomness_sha256.as_str(),
     ] {
         if !is_sha256_hex(digest) {
@@ -734,7 +757,9 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         if active_fault && tick.normal_mode {
             findings.insert(Finding::NormalModeDuringFault);
         }
-        let age = tick.delivered_timestamp_us.saturating_sub(tick.capture_timestamp_us);
+        let age = tick
+            .delivered_timestamp_us
+            .saturating_sub(tick.capture_timestamp_us);
         if tick.policy_input_accepted && tick.conditions.contains(&ObservationCondition::Delayed) {
             let allowed_age = campaign
                 .events
@@ -784,7 +809,12 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
     }
 
     for tick in &campaign.faulted_run.ticks {
-        for condition in tick.conditions.iter().copied().filter(|condition| *condition != ObservationCondition::Clean) {
+        for condition in tick
+            .conditions
+            .iter()
+            .copied()
+            .filter(|condition| *condition != ObservationCondition::Clean)
+        {
             let declared = campaign.events.iter().any(|event| {
                 (event.start_tick..=event.end_tick).contains(&tick.tick)
                     && expected_condition(event.kind) == condition
@@ -795,8 +825,16 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         }
     }
 
-    let events_by_id = campaign.events.iter().map(|event| (event.event_id.as_str(), event)).collect::<std::collections::BTreeMap<_, _>>();
-    let known_event_ids = campaign.events.iter().map(|event| event.event_id.as_str()).collect::<BTreeSet<_>>();
+    let events_by_id = campaign
+        .events
+        .iter()
+        .map(|event| (event.event_id.as_str(), event))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let known_event_ids = campaign
+        .events
+        .iter()
+        .map(|event| event.event_id.as_str())
+        .collect::<BTreeSet<_>>();
     for tick in campaign
         .clean_control
         .ticks
@@ -949,14 +987,78 @@ mod tests {
             })
             .collect::<Vec<_>>();
         let faulted = vec![
-            tick(1, vec![ObservationCondition::Clean], true, false, false, false, true),
-            tick(2, vec![ObservationCondition::Clean], true, false, false, false, true),
-            tick(3, vec![ObservationCondition::Missing], false, true, true, true, false),
-            tick(4, vec![ObservationCondition::Missing], false, false, true, true, false),
-            tick(5, vec![ObservationCondition::Clean], true, false, true, true, false),
-            tick(6, vec![ObservationCondition::Clean], true, false, true, true, false),
-            tick(7, vec![ObservationCondition::Clean], true, false, false, false, true),
-            tick(8, vec![ObservationCondition::Clean], true, false, false, false, true),
+            tick(
+                1,
+                vec![ObservationCondition::Clean],
+                true,
+                false,
+                false,
+                false,
+                true,
+            ),
+            tick(
+                2,
+                vec![ObservationCondition::Clean],
+                true,
+                false,
+                false,
+                false,
+                true,
+            ),
+            tick(
+                3,
+                vec![ObservationCondition::Missing],
+                false,
+                true,
+                true,
+                true,
+                false,
+            ),
+            tick(
+                4,
+                vec![ObservationCondition::Missing],
+                false,
+                false,
+                true,
+                true,
+                false,
+            ),
+            tick(
+                5,
+                vec![ObservationCondition::Clean],
+                true,
+                false,
+                true,
+                true,
+                false,
+            ),
+            tick(
+                6,
+                vec![ObservationCondition::Clean],
+                true,
+                false,
+                true,
+                true,
+                false,
+            ),
+            tick(
+                7,
+                vec![ObservationCondition::Clean],
+                true,
+                false,
+                false,
+                false,
+                true,
+            ),
+            tick(
+                8,
+                vec![ObservationCondition::Clean],
+                true,
+                false,
+                false,
+                false,
+                true,
+            ),
         ];
         Campaign {
             schema_version: 1,
@@ -968,8 +1070,12 @@ mod tests {
             hardware_id: "synthetic-fixture-host-not-measured".to_string(),
             inference_precision: "fp32-fixture".to_string(),
             power_profile: "not-measured-fixture".to_string(),
-            energy_measurement_method: "synthetic-fixture-values-not-hardware-measurement".to_string(),
-            policy_visible_inputs: vec!["front-camera-rgb8".to_string(), "vehicle-state-vector".to_string()],
+            energy_measurement_method: "synthetic-fixture-values-not-hardware-measurement"
+                .to_string(),
+            policy_visible_inputs: vec![
+                "front-camera-rgb8".to_string(),
+                "vehicle-state-vector".to_string(),
+            ],
             benchmark_revision: "degradation-recovery-envelope-v0.1".to_string(),
             evaluator_revision: "auditor-v1".to_string(),
             clock_id: "monotonic-test-clock".to_string(),
@@ -1017,7 +1123,10 @@ mod tests {
         assert_eq!(report.events[0].detection_latency_ticks, Some(0));
         assert_eq!(report.events[0].containment_latency_ticks, Some(0));
         assert_eq!(report.events[0].recovery_tick, Some(7));
-        assert_eq!(report.events[0].recovery_latency_after_clearance_ticks, Some(3));
+        assert_eq!(
+            report.events[0].recovery_latency_after_clearance_ticks,
+            Some(3)
+        );
     }
 
     #[test]
@@ -1074,8 +1183,7 @@ mod tests {
     fn late_detection_is_counted_as_a_deadline_miss_not_as_undetected() {
         let mut input = campaign();
         input.faulted_run.ticks[2].fault_detection_event_ids.clear();
-        input.faulted_run.ticks[6].fault_detection_event_ids =
-            vec!["camera-drop-1".to_string()];
+        input.faulted_run.ticks[6].fault_detection_event_ids = vec!["camera-drop-1".to_string()];
         let report = audit_campaign(&input);
         assert!(has(&report, "detection_deadline_missed"));
         assert!(!has(&report, "fault_undetected"));
@@ -1085,10 +1193,8 @@ mod tests {
     #[test]
     fn one_fault_event_cannot_claim_another_events_detection() {
         let mut input = campaign();
-        input.faulted_run.ticks[2].fault_detection_event_ids =
-            vec!["unrelated-event".to_string()];
-        input.faulted_run.ticks[2].containment_event_ids =
-            vec!["unrelated-event".to_string()];
+        input.faulted_run.ticks[2].fault_detection_event_ids = vec!["unrelated-event".to_string()];
+        input.faulted_run.ticks[2].containment_event_ids = vec!["unrelated-event".to_string()];
         let report = audit_campaign(&input);
         assert!(has(&report, "fault_undetected"));
         assert!(has(&report, "unknown_event_reference"));
@@ -1143,8 +1249,7 @@ mod tests {
     #[test]
     fn rejects_detection_reference_before_fault_onset() {
         let mut input = campaign();
-        input.faulted_run.ticks[0].fault_detection_event_ids =
-            vec!["camera-drop-1".to_string()];
+        input.faulted_run.ticks[0].fault_detection_event_ids = vec!["camera-drop-1".to_string()];
         let report = audit_campaign(&input);
         assert!(has(&report, "fault_event_reference_before_onset"));
     }
@@ -1203,7 +1308,9 @@ mod tests {
     #[test]
     fn rejects_duplicate_policy_visible_input_declarations() {
         let mut input = campaign();
-        input.policy_visible_inputs.push("front-camera-rgb8".to_string());
+        input
+            .policy_visible_inputs
+            .push("front-camera-rgb8".to_string());
         let report = audit_campaign(&input);
         assert!(has(&report, "duplicate_policy_input"));
     }
