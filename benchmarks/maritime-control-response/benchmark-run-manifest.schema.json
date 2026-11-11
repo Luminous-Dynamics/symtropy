@@ -233,7 +233,8 @@
         "shift_matrix_sha256",
         "shift_axis",
         "shift_holdout_manifest_sha256",
-        "independent_test_recordings"
+        "independent_test_recordings",
+        "active_evidence_selection"
       ],
       "properties": {
         "protocol_sha256": {
@@ -352,6 +353,110 @@
         "independent_test_recordings": {
           "type": "integer",
           "minimum": 0
+        },
+        "active_evidence_selection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "candidate_catalogue_sha256",
+            "hypothesis_manifest_sha256",
+            "policy_sha256",
+            "selection_result_sha256",
+            "upstream_authority_verification_sha256",
+            "selected_candidate_id",
+            "execution_performed",
+            "actuation_authorized",
+            "controlled_perturbations_recommended"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "liu-ice-active-evidence-selection-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "evaluated_decision_support"
+              ]
+            },
+            "candidate_catalogue_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "hypothesis_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "policy_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "selection_result_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "upstream_authority_verification_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "selected_candidate_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "execution_performed": {
+              "const": false
+            },
+            "actuation_authorized": {
+              "const": false
+            },
+            "controlled_perturbations_recommended": {
+              "const": 0
+            }
+          }
         }
       }
     },
@@ -480,6 +585,45 @@
           ],
           "minimum": 0,
           "maximum": 1
+        },
+        "expected_information_gain_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "prior_entropy_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expected_posterior_entropy_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "probe_cost_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "authority_gate_violations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsafe_probe_recommendations": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "controlled_perturbations_recommended": {
+          "const": 0
         }
       }
     },
@@ -607,6 +751,26 @@
             "properties": {
               "score_claim_allowed": {
                 "const": false
+              }
+            }
+          },
+          "protocol": {
+            "properties": {
+              "active_evidence_selection": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "execution_performed": {
+                    "const": false
+                  },
+                  "actuation_authorized": {
+                    "const": false
+                  },
+                  "controlled_perturbations_recommended": {
+                    "const": 0
+                  }
+                }
               }
             }
           }
