@@ -36,7 +36,7 @@ All numeric quantities in v0 are **symbolic synthetic units**, not mm², deposit
 - `docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1.schema.json`: Draft 2020-12 input contract.
 - `docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1.md`: benchmark and claim-boundary protocol.
 - Focused CI runs rustfmt, tests and Clippy with warnings denied.
-- 26 Rust unit/mutation tests cover Pareto preservation, uncertainty, stale scan, wrong predecessor, low coverage, occlusion, registration error, future observation, stale observation, future leakage, OOD, measured-data rejection, live execution, procedure scope/revision, wrong scan, collision, resource infeasibility, duplicate candidates, no-feasible-plan and numeric overflow.
+- 28 Rust unit/mutation tests cover Pareto preservation, uncertainty, stale scan, wrong predecessor, low coverage, occlusion, registration error, future observation, stale observation, future leakage, OOD, measured-data rejection, live execution, procedure scope/revision, wrong scan, collision, resource infeasibility, duplicate candidates, no-feasible-plan and numeric overflow.
 
 This crate is an isolated nested Cargo workspace so it does not add another competing root Cargo.toml/Cargo.lock edit while the other three shipyard draft PRs are outstanding. It has no external crate dependencies.
 
@@ -51,3 +51,15 @@ This crate is an isolated nested Cargo workspace so it does not add another comp
 ## Claim ceiling
 
 A v0 PASS proves only that the synthetic input and candidate set satisfy the declared recommendation contract. It does not physically predict bead shape, qualify a process, establish weld quality, accept an NDT result or authorize robot execution.
+
+
+## Matched baselines and receding-horizon known answers — 2026-11-11
+
+The synthetic fixture includes two intentionally different single-objective baselines over the same candidate set:
+- geometry-only selects FILL-MID (worst-case residual error 10 symbolic units);
+- time-only selects FILL-OVER (duration 10 symbolic units);
+- the multi-objective planner preserves FILL-MID, FILL-OVER and FILL-UNDER as a three-member nondominated set.
+
+A separate two-observation test advances from PASS-02 to PASS-03, supplies a new scan ID plus new scan/registration digests, updates residual geometry from 100±10 to 55±5 units, and verifies that the geometry-only comparator changes from FILL-MID to FILL-55. This demonstrates deterministic replanning on the latest observation, not a physical performance improvement.
+
+The planner's measurement identity now binds the scan-byte digest and registration/transform receipt digest. These are symbolic identifiers in the synthetic v0.1 fixture; physical adapters must calculate and verify real digests from authorized source bytes and transform artifacts.
