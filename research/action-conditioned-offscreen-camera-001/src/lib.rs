@@ -267,7 +267,6 @@ pub struct EvaluatorObservationAudit {
     pub renderer_revision: String,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PolicyReceiptOverrides {
     pub capture_timestamp_us: Option<u64>,
@@ -1443,7 +1442,10 @@ mod tests {
         assert_ne!(child.observation_id, parent.observation_id);
         assert_ne!(child.receipt_sha256, parent.receipt_sha256);
         assert_eq!(child.capture_timestamp_us, parent.capture_timestamp_us);
-        assert_eq!(child.applied_action_receipt_id, parent.applied_action_receipt_id);
+        assert_eq!(
+            child.applied_action_receipt_id,
+            parent.applied_action_receipt_id
+        );
         assert_eq!(child.sequence, parent.sequence);
         assert_eq!(sha256_hex(&derived_pixels), child.frame_sha256);
     }
