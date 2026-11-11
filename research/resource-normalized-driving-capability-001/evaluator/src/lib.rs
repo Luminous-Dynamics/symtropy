@@ -1225,6 +1225,107 @@ mod tests {
     }
 
     #[test]
+    fn paired_cluster_bootstrap_detects_constant_two_point_gain() {
+        let baseline = card("baseline", 90.0, Some(4.0), Some(20.0), Some(1_000));
+        let mut candidate = card("candidate", 92.0, Some(2.0), Some(18.0), Some(900));
+        for episode in &mut candidate.outcomes.episode_outcomes {
+            episode.native_metrics.insert("driving_score".into(), Some(92.0));
+        }
+        let result = paired_stratified_cluster_bootstrap(
+            &baseline,
+            &candidate,
+            "driving_score",
+            MetricDirection::HigherIsBetter,
+            2_000,
+            0x1234_5678,
+        )
+        .unwrap();
+        assert_eq!(result.paired_episode_count, 100);
+        assert_eq!(result.scenario_cluster_count, 20);
+        assert_eq!(result.scenario_family_count, 1);
+        assert_eq!(result.point_estimate_candidate_minus_baseline, 2.0);
+        assert_eq!(result.confidence_interval_lower, 2.0);
+        assert_eq!(result.confidence_interval_upper, 2.0);
+        assert!(result.interval_supports_candidate_advantage);
+    }
+
+    #[test]
+    fn paired_bootstrap_is_deterministic_for_fixed_manifest_seed() {
+        let baseline = card("baseline", 90.0, Some(4.0), Some(20.0), Some(1_000));
+        let mut candidate = card("candidate", 91.0, Some(2.0), Some(18.0), Some(900));
+        for (index, episode) in candidate.outcomes.episode_outcomes.iter_mut().enumerate() {
+            let offset = (index % 7) as f64 * 0.1;
+            episode.native_metrics.insert("driving_score".into(), Some(91.0 + offset));
+        }
+        let first = paired_stratified_cluster_bootstrap(
+            &baseline, &candidate, "driving_score",
+            MetricDirection::HigherIsBetter, 2_000, 77,
+        ).unwrap();
+        let second = paired_stratified_cluster_bootstrap(
+            &baseline, &candidate, "driving_score",
+            MetricDirection::HigherIsBetter, 2_000, 77,
+        ).unwrap();
+        assert_eq!(first.confidence_interval_lower, second.confidence_interval_lower);
+        assert_eq!(first.confidence_interval_upper, second.confidence_interval_upper);
+        assert_eq!(first.point_estimate_candidate_minus_baseline, second.point_estimate_candidate_minus_baseline);
+    }
+
+    #[test]
+    fn paired_bootstrap_refuses_unmatched_scenario_clusters() {
+        let baseline = card("baseline", 90.0, Some(4.0), Some(20.0), Some(1_000));
+        let mut candidate = card("candidate", 91.0, Some(2.0), Some(18.0), Some(900));
+        candidate.outcomes.episode_outcomes[0].scenario_cluster_id = "different-cluster".into();
+        assert!(paired_stratified_cluster_bootstrap(
+            &baseline, &candidate, "driving_score",
+            MetricDirection::HigherIsBetter, 1_000, 1,
+        ).unwrap_err().contains("scenario cluster mismatch"));
+    }
+
+    #[test]
+    fn paired_bootstrap_refuses_missing_episode_metric_instead_of_dropping_it() {
+        let baseline = card("baseline", 90.0, Some(4.0), Some(20.0), Some(1_000));
+        let mut candidate = card("candidate", 91.0, Some(2.0), Some(18.0), Some(900));
+        candidate.outcomes.episode_outcomes[3].native_metrics.insert("driving_score".into(), None);
+        assert!(paired_stratified_cluster_bootstrap(
+            &baseline, &candidate, "driving_score",
+            MetricDirection::HigherIsBetter, 1_000, 1,
+        ).unwrap_err().contains("lacks metric"));
+    }
+
+    #[test]
+    fn paired_bootstrap_does_not_call_zero_difference_an_advantage() {
+        let baseline = card("baseline", 90.0, Some(4.0), Some(20.0), Some(1_000));
+        let candidate = card("candidate", 90.0, Some(2.0), Some(18.0), Some(900));
+        let result = paired_stratified_cluster_bootstrap(
+            &baseline, &candidate, "driving_score",
+            MetricDirection::HigherIsBetter, 1_000, 9,
+        ).unwrap();
+        assert_eq!(result.confidence_interval_lower, 0.0);
+        assert_eq!(result.confidence_interval_upper, 0.0);
+        assert!(!result.interval_supports_candidate_advantage);
+    }
+
+    #[test]
+    fn missing_training_compute_prevents_matched_capability_label() {
+        let mut baseline = card("baseline", 90.0, Some(4.0), Some(20.0), Some(1_000));
+        let mut candidate = card("candidate", 91.0, Some(2.0), Some(18.0), Some(900));
+        baseline.compute.training_gpu_hours = None;
+        candidate.compute.training_gpu_hours = None;
+        baseline.compute.training_energy_kwh = None;
+        candidate.compute.training_energy_kwh = None;
+        let comparison = compare_metric(
+            &baseline, &candidate, "driving_score", MetricDirection::HigherIsBetter,
+        ).unwrap();
+        assert_eq!(comparison.class, ComparisonClass::CapabilityFrontierOnly);
+        assert!(comparison.budget_differences.contains(
+            &"training_gpu_hours_unmatched_or_unreported".to_string()
+        ));
+        assert!(comparison.budget_differences.contains(
+            &"training_energy_kwh_unmatched_or_unreported".to_string()
+        ));
+    }
+
+    #[test]
     fn point_estimate_margin_respects_metric_direction() {
         assert!(point_estimate_within_margin(
             95.0,
