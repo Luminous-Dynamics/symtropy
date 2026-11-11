@@ -180,6 +180,30 @@ The benchmark runner should record its checkpoint schedule in the receipt. The i
 - The paired intervention helper must replay bit-for-bit for identical input state, update rule, intervention and step count.
 - Reproduce the analytic all-to-all intervention response `atan2(1,5)` for the treated system and zero response for the sham.
 - Keep transfer entropy / predictive dependence and interventional causal effect as separate report fields.
+- Report directed visibility edges, reciprocal pair counts and reciprocity fraction for visual-sector runs; never treat weak connectivity as mutual perception.
+
+## Directional visual fields and nonreciprocal visibility
+
+Ramlall, Butail and Roy (2026), *Physical Review E* 113, 064409, DOI [10.1103/bbl5-1yjb](https://doi.org/10.1103/bbl5-1yjb), study a restricted visual field offset from the particle's direction of motion. They report near-perfect alignment and centre-of-mass clustering for a flipped/rear-facing field even under high noise. Their companion dataset is DOI [10.17632/y8fx3shsvx.1](https://doi.org/10.17632/y8fx3shsvx.1), with MATLAB scripts and analysed data, and a dataset-level CC BY 4.0 declaration. The package file inventory, per-file rights and hashes have not yet been acquired; the exact aperture, offset, noise and density grids remain pending extraction from the source.
+
+The reference now supports `VicsekPerception::VisualSector { half_aperture_rad, offset_rad }`:
+- offset 0 radians: forward-facing field;
+- offset π radians: rear-facing/flipped field;
+- neighbour visibility is focal-agent-specific and may be asymmetric;
+- local degree and local polar order use each focal particle's directed visible-neighbours;
+- graph topology uses an explicitly labelled weakly connected projection (an undirected edge is present if either endpoint sees the other).
+
+Every `VicsekMetrics` snapshot now records perception geometry and graph semantics. It also reports:
+- `directed_interaction_edge_count`;
+- `reciprocal_interaction_pair_count`;
+- `interaction_reciprocity_fraction`, undefined when there are no directed edges.
+
+The exact controls distinguish (1) reciprocal all-to-all metric visibility, (2) a forward visual sector where A sees B but B does not see A, and (3) forward versus flipped angular sectors that see opposite targets. The default `MetricRadius` behavior remains unchanged for existing callers.
+
+This matters because a weakly connected cluster is not a mutually aware collective. A component can be connected by one-way visibility while its members have different information and influence opportunities. OLI must preserve the directed edge data instead of equating graph connectivity with reciprocal interaction.
+
+**Source boundary:** this implementation is an OLI visual-sector reference control, not yet a source-faithful reproduction of the PRE paper. The source's MATLAB scripts and exact parameter grid must be admitted and reproduced before performance comparisons are made.
+
 
 ## Claim ceiling
 
