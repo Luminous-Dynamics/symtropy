@@ -242,3 +242,37 @@ A second target contains 20% population mass in a modifier stratum absent from t
 - A synthetic known-answer pass validates the code path, not real-world causal transportability.
 
 Run causal-transport-sweep with the locked workspace manifest. CI checks exact source/target effects, positivity bounds, assumption dispositions, provenance and deterministic replay.
+
+
+## Scenario L: outcome-shift sensitivity frontier for causal transport
+
+The quantitative outcome-shift sensitivity evaluator is in src/outcome_shift_sensitivity.rs with the outcome-shift-sensitivity-sweep binary. It advances [CIVDYN-CAUSAL-SENSITIVITY-001 #4672](https://github.com/Luminous-Dynamics/symtropy/issues/4672).
+
+This implements the arm-level weighted empirical greedy mass-redistribution procedure described by Asiaee et al., CLeaR 2026, PMLR 323, under a declared finite outcome support. Generalization weights are supplied by a separately identified weight-estimator receipt. Within each treatment arm, normalized baseline weights p_i are constrained to likelihood-ratio multipliers in [1/Lambda, Lambda], with the tilted weights summing to one.
+
+The lower empirical arm mean allocates the remaining probability budget from the smallest observed outcome upwards; the upper mean allocates from the largest outcome downwards. The target ATE interval is:
+- lower = treatment-arm lower mean - control-arm upper mean;
+- upper = treatment-arm upper mean - control-arm lower mean.
+
+Lambda=1 collapses to the ordinary weighted target ATE. Increasing Lambda widens or preserves the identified interval. The frontier reports the first declared Lambda at which zero enters the ATE interval as a sign-tipping point. This is a deterministic threshold on a predeclared sensitivity grid, not a probability.
+
+### Known-answer fixture
+
+Treatment outcomes [0.2, 0.8] and control outcomes [0.1, 0.4], each with equal baseline weights:
+- Lambda=1: target ATE [0.25, 0.25].
+- Lambda=1.5: target ATE [0.10, 0.40].
+- Lambda=2: treatment mean [0.35, 0.65], control mean [0.175, 0.325], target ATE [0.025, 0.475].
+- Lambda=3: target ATE [-0.05, 0.55]; zero first enters the declared sensitivity interval.
+- Lambda=5: target ATE [-0.11, 0.61].
+
+The reference sweep preserves the full interval at each Lambda and emits effective sample size by arm. These are analytical synthetic calculations, not empirical effects or sampling confidence intervals.
+
+### Assumptions and limitations
+
+The evaluator requires explicit positive evidence receipts for source randomization, target-covariate overlap, no interference, treatment-version invariance and outcome-measurement invariance. Lambda relaxes residual outcome-distribution invariance; it does not repair failed overlap, missing target-only strata, invalid randomization, interference or measurement changes.
+
+This implementation applies the finite-sample greedy optimizer to arm-level weighted empirical outcome distributions. It does not claim to implement the full conditional-X model, graph-free s-admissible-set discovery, or the paper's sampling-inference theory for bound endpoints. It does not infer Lambda from the data or choose Lambda to preserve a preferred policy recommendation.
+
+The returned bounds are identification sensitivity bounds for the declared weighted empirical distribution, not confidence intervals. A complete uncertainty statement would separately account for sampling variability, estimated generalization weights and uncertainty in the target covariate distribution.
+
+Run outcome-shift-sensitivity-sweep using the locked workspace manifest. CI verifies the known-answer envelope, monotonic nesting, sign-tipping point, evidence receipts and deterministic replay.
