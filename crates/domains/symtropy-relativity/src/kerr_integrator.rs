@@ -910,7 +910,7 @@ mod tests {
     }
 
     #[test]
-    fn variational_fundamental_matrix_tracks_neighbouring_integrated_rays() {
+    fn variational_fundamental_matrix_tracks_neighbouring_canonical_trajectories() {
         let black_hole = hole(0.7);
         let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
@@ -938,8 +938,9 @@ mod tests {
             sample.local_symplectic_lie_residual < 2e-10
                 && sample.fundamental_symplectic_residual.is_finite()));
 
-        // Compare the p_theta column of Phi with an independently integrated
-        // central finite-difference bundle. The production method evolves A*Phi.
+        // Compare the p_theta column of Phi with independently integrated
+        // nearby canonical initial states. These perturbations test the full
+        // phase-space flow; they are not claimed to remain on the null shell.
         let epsilon = 2e-5;
         let plus = integrator.integrate(perturb_state(initial, 6, epsilon), 0.05).unwrap();
         let minus = integrator.integrate(perturb_state(initial, 6, -epsilon), 0.05).unwrap();
