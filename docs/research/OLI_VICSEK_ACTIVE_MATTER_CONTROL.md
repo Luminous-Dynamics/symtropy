@@ -172,7 +172,7 @@ The update path and `fast_metrics` now use a sparse periodic cell index to prune
 Expected complexity is near (O(N + 	ext{local candidate work})) at bounded density and local interaction range; worst-case remains (O(N^2)). The full graph shortest-path/clustering calculation remains an explicit checkpoint-only cost. No wall-clock speedup is claimed yet.
 
 Two parity tests are included:
-1. **Candidate completeness:** for periodic random fixtures spanning one-cell, two-cell, normal and fallback radii, every brute-force radius neighbour must appear in the indexed candidate set.
+1. **Candidate completeness:** for periodic random fixtures spanning one-cell, two-cell, normal and fallback radii, every brute-force radius neighbour must appear in the indexed candidate set; tests assert that zero, extremely small and larger-than-box radii actually select the fallback.
 2. **Simulation and metric parity:** metric-radius and flipped visual-sector one-step updates must exactly match a test-only all-pairs reference, including the PRNG state; a separate all-pairs metric oracle checks directed degree, reciprocal counts, local-order coverage and values.
 
 The next qualification step is a pinned-hardware benchmark over population size, density, interaction radius, visual-sector aperture and occupancy skew. Report candidate counts, index build cost, update cost, metrics cost and worst-case regressions separately; do not publish a speedup from a microbenchmark that excludes the fast-metric work performed each tick.
