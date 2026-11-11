@@ -5,6 +5,26 @@
     "trusted_clock_sources": [
       "secure_monotonic_attested",
       "trusted_gateway_receive"
+    ],
+    "admitted_boot_epochs": [
+      {
+        "evidence_ref": "boot-attestation-001",
+        "producer_id": "bms-device-001",
+        "boot_epoch_id": "boot-session-001",
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "evidence_ref": "boot-attestation-001",
+        "producer_id": "bms-device-expired",
+        "boot_epoch_id": "expired-boot-001",
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      }
     ]
   },
   "trusted_keys": [
