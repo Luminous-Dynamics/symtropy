@@ -92,6 +92,30 @@ pub struct ComputeRecord {
     pub measurement_method: String,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EpisodeDisposition {
+    Completed,
+    Failed,
+    Incomplete,
+    Censored,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct EpisodeOutcome {
+    pub episode_id: String,
+    /// Stable scenario-family stratum, such as intersection/unprotected-left.
+    pub scenario_family: String,
+    /// Shared physical/simulated scenario identity across repeated seeds/rollouts.
+    /// Bootstrap resampling occurs at this cluster level, not per frame.
+    pub scenario_cluster_id: String,
+    pub disposition: EpisodeDisposition,
+    /// A failed route can still have a defined success/collision metric.
+    /// Missing values are never converted to zero by the evaluator.
+    pub native_metrics: BTreeMap<String, Option<f64>>,
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct OutcomeRecord {
@@ -104,6 +128,8 @@ pub struct OutcomeRecord {
     pub calibration_metrics: BTreeMap<String, Option<f64>>,
     pub robustness_metrics: BTreeMap<String, Option<f64>>,
     pub replay_exact_match_percent: Option<f64>,
+    #[serde(default)]
+    pub episode_outcomes: Vec<EpisodeOutcome>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -251,6 +277,68 @@ impl ResultCard {
                 errors.push("not_run cards must not contain episode outcomes or metric values".into());
             }
         }
+        let mut episode_ids = std::collections::BTreeSet::new();
+        let mut cluster_families = BTreeMap::<&str, &str>::new();
+        let mut disposition_counts = [0_u64; 4];
+        for episode in &self.outcomes.episode_outcomes {
+            if episode.episode_id.trim().is_empty() {
+                errors.push("episode_outcomes contains an empty episode_id".into());
+            }
+            if episode.scenario_family.trim().is_empty() {
+                errors.push(format!("episode {:?} has an empty scenario_family", episode.episode_id));
+            }
+            if episode.scenario_cluster_id.trim().is_empty() {
+                errors.push(format!("episode {:?} has an empty scenario_cluster_id", episode.episode_id));
+            }
+            if !episode_ids.insert(episode.episode_id.as_str()) {
+                errors.push(format!("duplicate episode_outcomes episode_id {:?}", episode.episode_id));
+            }
+            if let Some(existing_family) = cluster_families.insert(
+                episode.scenario_cluster_id.as_str(),
+                episode.scenario_family.as_str(),
+            ) {
+                if existing_family != episode.scenario_family {
+                    errors.push(format!(
+                        "scenario cluster {:?} appears in multiple scenario families",
+                        episode.scenario_cluster_id
+                    ));
+                }
+            }
+            let disposition_index = match episode.disposition {
+                EpisodeDisposition::Completed => 0,
+                EpisodeDisposition::Failed => 1,
+                EpisodeDisposition::Incomplete => 2,
+                EpisodeDisposition::Censored => 3,
+            };
+            disposition_counts[disposition_index] = disposition_counts[disposition_index].saturating_add(1);
+            for (name, value) in &episode.native_metrics {
+                if value.is_some_and(|metric| !metric.is_finite()) {
+                    errors.push(format!(
+                        "episode {:?} metric {name:?} must be finite when present",
+                        episode.episode_id
+                    ));
+                }
+            }
+        }
+
+        if self.status == RunStatus::Complete {
+            if self.outcomes.episode_outcomes.len() as u64 != self.evidence.expected_episode_count {
+                errors.push(format!(
+                    "complete result requires one per-episode record per expected episode: got {}, expected {}",
+                    self.outcomes.episode_outcomes.len(),
+                    self.evidence.expected_episode_count
+                ));
+            }
+            if disposition_counts != [
+                self.outcomes.completed_episodes,
+                self.outcomes.failed_episodes,
+                self.outcomes.incomplete_episodes,
+                self.outcomes.censored_episodes,
+            ] {
+                errors.push("per-episode dispositions do not match aggregate episode denominators".into());
+            }
+        }
+
         if self.status == RunStatus::Complete {
             if self.evidence.expected_episode_count == 0 {
                 errors.push("complete result must declare a non-zero expected denominator".into());
@@ -470,6 +558,14 @@ fn budget_differences(baseline: &ResultCard, candidate: &ResultCard) -> Vec<Stri
     if baseline.data.teacher_generated_labels != candidate.data.teacher_generated_labels {
         differences.push("teacher_generated_labels".to_string());
     }
+    match (baseline.compute.training_gpu_hours, candidate.compute.training_gpu_hours) {
+        (Some(left), Some(right)) if (left - right).abs() <= 1e-9 => {}
+        _ => differences.push("training_gpu_hours_unmatched_or_unreported".to_string()),
+    }
+    match (baseline.compute.training_energy_kwh, candidate.compute.training_energy_kwh) {
+        (Some(left), Some(right)) if (left - right).abs() <= 1e-9 => {}
+        _ => differences.push("training_energy_kwh_unmatched_or_unreported".to_string()),
+    }
     if baseline.compute.hardware_id != candidate.compute.hardware_id {
         differences.push("inference_hardware_id".to_string());
     }
@@ -511,6 +607,9 @@ pub struct ParetoFrontier {
 #[derive(Debug, Clone, Copy)]
 struct FrontierPoint {
     primary_metric: f64,
+    trainable_parameters: u64,
+    training_gpu_hours: f64,
+    training_energy_kwh: f64,
     inference_energy: f64,
     p99_latency: f64,
     peak_memory: u64,
@@ -552,13 +651,27 @@ pub fn pareto_frontier(
     for card in cards {
         let point = match (
             card.native_metric(primary_metric),
+            card.model.trainable_parameters,
+            card.compute.training_gpu_hours,
+            card.compute.training_energy_kwh,
             card.compute.inference_energy_joules_per_frame,
             card.compute.inference_p99_ms,
             card.compute.peak_memory_bytes,
         ) {
-            (Some(primary_metric), Some(inference_energy), Some(p99_latency), Some(peak_memory)) => {
+            (
+                Some(primary_metric),
+                Some(trainable_parameters),
+                Some(training_gpu_hours),
+                Some(training_energy_kwh),
+                Some(inference_energy),
+                Some(p99_latency),
+                Some(peak_memory),
+            ) => {
                 Some(FrontierPoint {
                     primary_metric,
+                    trainable_parameters,
+                    training_gpu_hours,
+                    training_energy_kwh,
                     inference_energy,
                     p99_latency,
                     peak_memory,
@@ -611,15 +724,24 @@ fn dominates(
         MetricDirection::HigherIsBetter => candidate.primary_metric > other.primary_metric,
         MetricDirection::LowerIsBetter => candidate.primary_metric < other.primary_metric,
     };
+    let params_no_worse = candidate.trainable_parameters <= other.trainable_parameters;
+    let training_gpu_no_worse = candidate.training_gpu_hours <= other.training_gpu_hours;
+    let training_energy_no_worse = candidate.training_energy_kwh <= other.training_energy_kwh;
     let energy_no_worse = candidate.inference_energy <= other.inference_energy;
     let latency_no_worse = candidate.p99_latency <= other.p99_latency;
     let memory_no_worse = candidate.peak_memory <= other.peak_memory;
     let strictly_better = primary_better
+        || candidate.trainable_parameters < other.trainable_parameters
+        || candidate.training_gpu_hours < other.training_gpu_hours
+        || candidate.training_energy_kwh < other.training_energy_kwh
         || candidate.inference_energy < other.inference_energy
         || candidate.p99_latency < other.p99_latency
         || candidate.peak_memory < other.peak_memory;
 
     primary_no_worse
+        && params_no_worse
+        && training_gpu_no_worse
+        && training_energy_no_worse
         && energy_no_worse
         && latency_no_worse
         && memory_no_worse
@@ -687,6 +809,17 @@ mod tests {
                 calibration_metrics: BTreeMap::new(),
                 robustness_metrics: BTreeMap::new(),
                 replay_exact_match_percent: Some(100.0),
+                episode_outcomes: (0..100_u64).map(|index| {
+                    let mut metrics = BTreeMap::new();
+                    metrics.insert("driving_score".to_string(), Some(score));
+                    EpisodeOutcome {
+                        episode_id: format!("episode-{index:03}"),
+                        scenario_family: "urban-interaction".to_string(),
+                        scenario_cluster_id: format!("scenario-{:03}", index / 5),
+                        disposition: EpisodeDisposition::Completed,
+                        native_metrics: metrics,
+                    }
+                }).collect(),
             },
             evidence: EvidenceRecord {
                 raw_artifact_manifest_sha256: Some("c".repeat(64)),
