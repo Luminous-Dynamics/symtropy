@@ -246,6 +246,7 @@ fn make_action_horizon_request(
                 .expect("unknown fixture must have a reason")
         } else {
             HorizonEvidence::qualified(
+                HorizonConstraint::ALL[index],
                 remaining_ns[index],
                 HorizonConstraint::ALL[index].as_str(),
                 "criterion-application-monotonic-epoch",
