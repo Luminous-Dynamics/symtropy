@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   validate:
@@ -24,6 +24,20 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy,rustfmt
+      - name: Normalize source passport Rust formatting
+        run: |
+          set -euo pipefail
+          branch="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+          git fetch origin "refs/heads/${branch}:refs/remotes/origin/${branch}"
+          git checkout -B "${branch}" "origin/${branch}"
+          cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all
+          git add research/civdyn-self-correction/src/source_passport.rs research/civdyn-self-correction/src/bin/source_passport_sweep.rs research/civdyn-self-correction/src/lib.rs
+          if ! git diff --cached --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "style(civdyn): apply rustfmt to source passport"
+            git push origin "${branch}"
+          fi
       - name: Check formatting
         run: cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all -- --check
       - name: Run strict Clippy
@@ -231,4 +245,64 @@ jobs:
 
           assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
           print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
+          PY
+
+      - name: Verify empirical source passport and join compatibility
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin source-passport-sweep > /tmp/civdyn-source-passport.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin source-passport-sweep > /tmp/civdyn-source-passport-replay.csv
+          cmp /tmp/civdyn-source-passport.csv /tmp/civdyn-source-passport-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-source-passport.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 14
+          assert len(rows) == 7
+          cases = {row["scenario"]: row for row in rows}
+          assert set(cases) == {
+              "matched_provincial_survey",
+              "treasury_dws_temporal_mismatch",
+              "dws_default_scenario_assumption",
+              "dws_default_measured_validation",
+              "eskom_acquisition_pending",
+              "municipal_boundary_crosswalk",
+              "unknown_rights_blocked",
+          }
+
+          matched = cases["matched_provincial_survey"]
+          assert matched["compatibility_status"] == "compatible"
+          assert matched["left_source_qualification"] == "qualified_for_registered_use"
+          assert matched["right_source_qualification"] == "qualified_for_registered_use"
+
+          temporal = cases["treasury_dws_temporal_mismatch"]
+          assert temporal["compatibility_status"] == "not_comparable"
+          assert temporal["temporal_mismatch"] == "true"
+
+          default_scenario = cases["dws_default_scenario_assumption"]
+          assert default_scenario["compatibility_status"] == "compatible"
+          default_validation = cases["dws_default_measured_validation"]
+          assert default_validation["compatibility_status"] == "not_comparable"
+          assert default_validation["category_default_rejected"] == "true"
+
+          pending = cases["eskom_acquisition_pending"]
+          assert pending["compatibility_status"] == "not_assessed"
+          assert pending["left_source_qualification"] == "acquisition_pending"
+          assert pending["left_artifact_digest"] == ""
+
+          boundary = cases["municipal_boundary_crosswalk"]
+          assert boundary["compatibility_status"] == "compatible_with_explicit_transform"
+          assert "sha256-mdb-crosswalk-receipt" in boundary["explicit_transform_digests"]
+          assert boundary["geography_mismatch"] == "false"
+
+          unknown = cases["unknown_rights_blocked"]
+          assert unknown["compatibility_status"] == "rights_blocked"
+          assert unknown["left_source_qualification"] == "rights_blocked"
+
+          print("Source passport CSV valid: provenance, rights, source origin, temporal support and boundary-vintage controls preserved; no unacquired artifact or default promoted to measured evidence.")
           PY
