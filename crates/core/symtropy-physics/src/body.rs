@@ -253,7 +253,6 @@ impl<const D: usize> RigidBody<D> {
     }
 }
 
-
 #[cfg(test)]
 mod compound_com_tests {
     use super::*;
