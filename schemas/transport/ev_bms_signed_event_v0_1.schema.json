@@ -20,7 +20,8 @@
       "additionalProperties": false,
       "required": [
         "maximum_clock_uncertainty_ms",
-        "trusted_clock_sources"
+        "trusted_clock_sources",
+        "admitted_boot_epochs"
       ],
       "properties": {
         "maximum_clock_uncertainty_ms": {
@@ -35,6 +36,52 @@
             "minLength": 1
           },
           "uniqueItems": true
+        },
+        "admitted_boot_epochs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "evidence_ref",
+              "producer_id",
+              "boot_epoch_id",
+              "firmware_sha256",
+              "vehicle_ref",
+              "pack_ref",
+              "configuration_sha256"
+            ],
+            "properties": {
+              "evidence_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "producer_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "boot_epoch_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "firmware_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "vehicle_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "pack_ref": {
+                "type": "string",
+                "minLength": 1
+              },
+              "configuration_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
         }
       }
     },
