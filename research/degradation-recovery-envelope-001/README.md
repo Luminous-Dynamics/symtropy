@@ -87,6 +87,25 @@ A camera drop may reduce usable observations while still permitting a safe degra
 - Measure the whole stack and declared target hardware. Compare HDC/LTC with compact GRU/LSTM and transformer baselines using identical input privileges, fault schedule, scenario, training exposure and system budget.
 - Keep native closed-loop route metrics, fault recovery, reasoning scores, open-loop trajectory error and energy/latency in their own metric families.
 
+## Candidate and resource provenance
+
+Every campaign must identify:
+- model ID, model status and model revision;
+- checkpoint SHA-256 for a trained policy (optional only for explicitly marked untrained-input-bridge or synthetic-reference fixtures);
+- hardware ID, inference precision, power profile and energy measurement method;
+- exact policy-visible input set.
+
+This prevents a result card from describing only a policy name while hiding a different checkpoint, precision, hardware target or privileged input. The current positive fixture deliberately declares:
+- `model_status = untrained_input_bridge`;
+- `checkpoint_sha256 = null`;
+- `hardware_id = synthetic-fixture-host-not-measured`;
+- `power_profile = not-measured-fixture`;
+- `energy_measurement_method = synthetic-fixture-values-not-hardware-measurement`.
+
+Its numeric latency and energy fields are synthetic fixture values used to test the auditor's arithmetic and completeness rules. They are **not hardware measurements** and must not enter a capability frontier as measured results. A real trained-policy campaign must supply its exact checkpoint digest and measured host/power/energy methodology.
+
+The declared `policy_visible_inputs` list and `fault_schedule_visible_to_policy=false` flag make intended privileges explicit; the auditor cannot authenticate the actual runtime wiring. Raw frame/receipt artifacts and independent runtime attestation remain necessary for empirical claims.
+
 ## Reusable Rust tooling
 
 Pinned to Rust 1.96.0. The crate lives at `research/degradation-recovery-envelope-001/`.
