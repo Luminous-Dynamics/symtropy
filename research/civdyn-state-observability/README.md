@@ -82,6 +82,31 @@ cargo run --locked --manifest-path research/civdyn-state-observability/Cargo.tom
 
 The script intentionally refuses an unpinned upstream commit or blob mismatch.
 
+
+## PPO / stacked-PPO artifact matrix (separate baseline audit)
+
+The pinned upstream tree also contains **242 individual PPO result manifests** under `experiments/logs_PPO` and `experiments/logs_PPO_stacked`. These are audited separately from the five primary learning-result bundles above. They form 12 groups with a non-uniform count:
+
+| Family | Group | Files |
+|---|---|---:|
+| PPO | ICU / simple MAR | 20 |
+| PPO | ICU / identifiable MNAR | 20 |
+| PPO | ICU / unidentifiable MNAR | 20 |
+| PPO | Predator / MCAR search | 20 |
+| PPO | Predator / simple MAR | 20 |
+| PPO | Predator / unidentifiable MNAR | 20 |
+| Stacked PPO | ICU / simple MAR | 23 |
+| Stacked PPO | ICU / identifiable MNAR | 20 |
+| Stacked PPO | ICU / unidentifiable MNAR | 19 |
+| Stacked PPO | Predator / MCAR search | 20 |
+| Stacked PPO | Predator / simple MAR | 20 |
+| Stacked PPO | Predator / unidentifiable MNAR | 20 |
+| **Total** | | **242** |
+
+Each individual manifest includes its own seed, model/pattern, training budget, evaluation episode count, architecture and PPO hyperparameters. The audit normalizer validates those per-run records and the Rust adapter checks exact group membership/counts, unique run IDs, non-zero seed coverage, budget integrity and finite return summaries. It reports per-group mean/median/min/max returns, mean reported return standard deviation, seed coverage and architecture/hyperparameter diversity. It does not force a single seed-count assumption across groups.
+
+**Important comparison boundary:** the audit does not pool ICU and Predator returns into a single headline mean because they are different tasks with different reward scales. Stacked and unstacked models are also kept as separate groups; their architecture and tuned hyperparameters differ, so their raw returns are not by themselves a controlled causal comparison. The separate output is a provenance/coverage audit of the available reference artifacts, not a claim that all methods were matched in compute or evaluation.
+
 ## Next step beyond the paper
 
 After paper-faithful reproduction and separate PPO artifact auditing:
