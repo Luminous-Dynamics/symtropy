@@ -241,7 +241,7 @@ impl<const D: usize> BivectorInertia<D> {
         if !mass.is_finite() || !semi_axes.iter().all(|axis| axis.is_finite()) {
             return Err(RotationalInertiaError::NonFinite);
         }
-        if mass < 0.0 || semi_axes.iter().any(|axis| *axis < 0.0) {
+        if mass <= 0.0 || semi_axes.iter().any(|axis| *axis <= 0.0) {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
 
@@ -896,6 +896,26 @@ mod tests {
                 .angular_velocity_from_momentum(&Bivector::zero(), 0.0)
                 .unwrap_err(),
             RotationalInertiaError::InvalidTolerance
+        );
+    }
+
+    #[test]
+    fn zero_mass_and_degenerate_ellipsoid_fail_closed() {
+        assert_eq!(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                0.0,
+                SVector::new(1.0, 2.0, 3.0),
+            )
+            .unwrap_err(),
+            RotationalInertiaError::InvalidMassProperties
+        );
+        assert_eq!(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0,
+                SVector::new(1.0, 0.0, 3.0),
+            )
+            .unwrap_err(),
+            RotationalInertiaError::InvalidMassProperties
         );
     }
 
