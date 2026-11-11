@@ -910,6 +910,13 @@ mod tests {
             Err(IdentifiedDecisionError::DuplicatePolicyConstraint { .. })
         ));
 
+        let mut wrong_unit = input(vec![utility("a", 0.1, 0.2), utility("b", 0.2, 0.3)]);
+        wrong_unit.constraint_intervals[0].measurement_unit = "gallons".to_string();
+        assert!(matches!(
+            evaluate_identified_decision(&wrong_unit),
+            Err(IdentifiedDecisionError::InvalidConstraintInterval { .. })
+        ));
+
         let mut nonfinite = input(vec![utility("a", 0.1, 0.2), utility("b", 0.2, 0.3)]);
         nonfinite.constraint_intervals[0].upper = f64::INFINITY;
         assert!(matches!(
