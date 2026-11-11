@@ -31,7 +31,9 @@
     "clean_control_inference_energy",
     "faulted_inference_energy",
     "events",
-    "findings"
+    "findings",
+    "clean_control_disposition",
+    "faulted_run_disposition"
   ],
   "properties": {
     "schema_version": {
@@ -146,6 +148,22 @@
       "items": {
         "type": "string"
       }
+    },
+    "clean_control_disposition": {
+      "enum": [
+        "complete",
+        "failed",
+        "incomplete",
+        "censored"
+      ]
+    },
+    "faulted_run_disposition": {
+      "enum": [
+        "complete",
+        "failed",
+        "incomplete",
+        "censored"
+      ]
     }
   },
   "$defs": {
