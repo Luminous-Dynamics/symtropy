@@ -351,6 +351,107 @@ pub fn port_power_into_robot_w(
     Ok(power)
 }
 
+/// Diagonal virtual impedance state for one six-dimensional interaction port.
+///
+/// Entries 0..3 are translational axes; entries 3..6 are rotational axes.
+/// Virtual inertia units are kg for translation and kg·m² for rotation.
+/// Stiffness units are N/m for translation and N·m/rad for rotation.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct DiagonalVirtualImpedance {
+    pub virtual_inertia: [f64; 6],
+    pub stiffness: [f64; 6],
+}
+
+/// Energy change caused solely by changing virtual inertia/stiffness while
+/// holding the current error and relative velocity fixed.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct VirtualParameterStorageDelta {
+    /// Signed change in the quadratic virtual storage function.
+    pub delta_storage_j: f64,
+    /// Conservative energy-budget debit; only positive storage creation is
+    /// charged. A reduction in virtual storage is not automatically credited.
+    pub required_energy_debit_j: f64,
+    /// Potentially released storage that is deliberately not credited.
+    pub uncredited_storage_release_j: f64,
+}
+
+/// Invalid diagonal virtual impedance data.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum VirtualImpedanceError {
+    NonFiniteErrorOrVelocity,
+    NonPositiveVirtualInertia,
+    NegativeStiffness,
+    NonFiniteParameter,
+    ArithmeticOverflow,
+}
+
+impl fmt::Display for VirtualImpedanceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl std::error::Error for VirtualImpedanceError {}
+
+/// Compute the exact change in the diagonal quadratic storage approximation:
+///
+/// H = 0.5 * sum(M_i * velocity_i^2 + K_i * error_i^2).
+///
+/// This isolates the energy change due to parameter updates at fixed state.
+/// It does not prove passivity of the complete robot/controller, handle
+/// off-diagonal coupling, derive the allowed parameter-rate set, or solve a
+/// parameter-optimization QP.
+///
+/// A positive delta is conservatively treated as an energy-budget debit.
+/// A negative delta is reported but is not automatically credited because
+/// released virtual storage may be converted into physical motion.
+pub fn diagonal_virtual_parameter_storage_delta(
+    old: DiagonalVirtualImpedance,
+    new: DiagonalVirtualImpedance,
+    error: [f64; 6],
+    relative_velocity: [f64; 6],
+) -> Result<VirtualParameterStorageDelta, VirtualImpedanceError> {
+    let mut delta = 0.0_f64;
+    for index in 0..6 {
+        let e = error[index];
+        let velocity = relative_velocity[index];
+        let old_mass = old.virtual_inertia[index];
+        let new_mass = new.virtual_inertia[index];
+        let old_stiffness = old.stiffness[index];
+        let new_stiffness = new.stiffness[index];
+
+        if !e.is_finite() || !velocity.is_finite() {
+            return Err(VirtualImpedanceError::NonFiniteErrorOrVelocity);
+        }
+        if !old_mass.is_finite()
+            || !new_mass.is_finite()
+            || !old_stiffness.is_finite()
+            || !new_stiffness.is_finite()
+        {
+            return Err(VirtualImpedanceError::NonFiniteParameter);
+        }
+        if old_mass <= 0.0 || new_mass <= 0.0 {
+            return Err(VirtualImpedanceError::NonPositiveVirtualInertia);
+        }
+        if old_stiffness < 0.0 || new_stiffness < 0.0 {
+            return Err(VirtualImpedanceError::NegativeStiffness);
+        }
+
+        let inertia_term = (new_mass - old_mass) * velocity * velocity;
+        let stiffness_term = (new_stiffness - old_stiffness) * e * e;
+        delta += 0.5 * (inertia_term + stiffness_term);
+        if !delta.is_finite() {
+            return Err(VirtualImpedanceError::ArithmeticOverflow);
+        }
+    }
+
+    Ok(VirtualParameterStorageDelta {
+        delta_storage_j: delta,
+        required_energy_debit_j: delta.max(0.0),
+        uncredited_storage_release_j: (-delta).max(0.0),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -395,6 +496,103 @@ mod tests {
             initial_energy_budget_j, uncertainty_j, tolerance_j,
         )
             .unwrap()
+    }
+
+    #[test]
+    fn increasing_virtual_stiffness_at_fixed_error_is_charged_to_energy_budget() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [100.0; 6],
+        };
+        let mut new = old;
+        new.stiffness[0] = 200.0;
+        let result = diagonal_virtual_parameter_storage_delta(
+            old, new, [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0; 6],
+        )
+        .unwrap();
+
+        assert!((result.delta_storage_j - 12.5).abs() < 1.0e-12);
+        assert!((result.required_energy_debit_j - 12.5).abs() < 1.0e-12);
+        assert_eq!(result.uncredited_storage_release_j, 0.0);
+    }
+
+    #[test]
+    fn reducing_virtual_stiffness_reports_release_without_automatic_credit() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [200.0; 6],
+        };
+        let mut new = old;
+        new.stiffness[0] = 100.0;
+        let result = diagonal_virtual_parameter_storage_delta(
+            old, new, [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0; 6],
+        )
+        .unwrap();
+
+        assert!((result.delta_storage_j + 12.5).abs() < 1.0e-12);
+        assert_eq!(result.required_energy_debit_j, 0.0);
+        assert!((result.uncredited_storage_release_j - 12.5).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn increasing_virtual_inertia_at_fixed_velocity_is_charged() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [100.0; 6],
+        };
+        let mut new = old;
+        new.virtual_inertia[3] = 3.0;
+        let result = diagonal_virtual_parameter_storage_delta(
+            old, new, [0.0; 6], [0.0, 0.0, 0.0, 2.0, 0.0, 0.0],
+        )
+        .unwrap();
+
+        assert!((result.required_energy_debit_j - 4.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn simultaneous_diagonal_mass_and_stiffness_update_has_exact_storage_delta() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [100.0; 6],
+        };
+        let mut new = old;
+        new.virtual_inertia[0] = 2.0;
+        new.stiffness[1] = 300.0;
+        let result = diagonal_virtual_parameter_storage_delta(
+            old, new, [0.2, 0.5, 0.0, 0.0, 0.0, 0.0], [3.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        )
+        .unwrap();
+
+        let expected = 0.5 * (1.0 * 9.0 + 200.0 * 0.25);
+        assert!((result.delta_storage_j - expected).abs() < 1.0e-12);
+        assert!((result.required_energy_debit_j - expected).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn virtual_impedance_rejects_invalid_inertia_stiffness_and_state() {
+        let nominal = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [100.0; 6],
+        };
+        let mut invalid = nominal;
+        invalid.virtual_inertia[2] = 0.0;
+        assert_eq!(
+            diagonal_virtual_parameter_storage_delta(nominal, invalid, [0.0; 6], [0.0; 6]),
+            Err(VirtualImpedanceError::NonPositiveVirtualInertia)
+        );
+
+        invalid = nominal;
+        invalid.stiffness[2] = -1.0;
+        assert_eq!(
+            diagonal_virtual_parameter_storage_delta(nominal, invalid, [0.0; 6], [0.0; 6]),
+            Err(VirtualImpedanceError::NegativeStiffness)
+        );
+
+        assert_eq!(
+            diagonal_virtual_parameter_storage_delta(nominal, nominal, [f64::NAN; 6], [0.0; 6]),
+            Err(VirtualImpedanceError::NonFiniteErrorOrVelocity)
+        );
     }
 
     #[test]
