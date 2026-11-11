@@ -18,6 +18,7 @@
 //! not a high-performance spatial-index implementation or an empirical animal-flocking
 //! model.
 
+use std::collections::VecDeque;
 use std::error::Error;
 use std::f64::consts::TAU;
 use std::fmt;
@@ -207,6 +208,13 @@ pub struct VicsekMetrics {
     pub mean_cluster_polar_order: f64,
     /// Population variance of per-component polar-order values.
     pub cluster_polar_order_variance: f64,
+    /// Mean local clustering coefficient over all particles; isolated/degree-one vertices contribute zero.
+    pub mean_clustering_coefficient: f64,
+    /// Mean shortest-path length over all connected unordered particle pairs.
+    /// None means there are no connected pairs.
+    pub mean_shortest_path_length: Option<f64>,
+    /// Fraction of all unordered particle pairs that are in the same connected component.
+    pub connected_pair_fraction: f64,
     /// Number of connected components in the metric-neighbour graph.
     pub cluster_count: usize,
     /// Fraction of all particles in the largest connected component.
@@ -427,6 +435,7 @@ impl VicsekModel {
         let polar_order = (sum_cos.hypot(sum_sin) / count as f64).clamp(0.0, 1.0);
 
         let mut neighbor_counts = vec![0usize; count];
+        let mut adjacency = vec![Vec::<usize>::new(); count];
         let mut local_sum_cos: Vec<f64> = self
             .particles
             .iter()
@@ -453,6 +462,8 @@ impl VicsekModel {
                 if dx.hypot(dy) <= self.config.interaction_radius {
                     neighbor_counts[left] += 1;
                     neighbor_counts[right] += 1;
+                    adjacency[left].push(right);
+                    adjacency[right].push(left);
                     local_sum_cos[left] += b.heading_rad.cos();
                     local_sum_cos[right] += a.heading_rad.cos();
                     local_sum_sin[left] += b.heading_rad.sin();
@@ -544,6 +555,65 @@ impl VicsekModel {
             .sum::<f64>()
             / cluster_count as f64;
 
+        // Network topology observables. A vertex with fewer than two neighbours
+        // contributes zero to the mean local clustering coefficient.
+        let mut clustering_sum = 0.0;
+        for neighbors in &adjacency {
+            let degree = neighbors.len();
+            if degree < 2 {
+                continue;
+            }
+            let mut connected_neighbor_pairs = 0usize;
+            for left in 0..degree {
+                for right in (left + 1)..degree {
+                    if adjacency[neighbors[left]].contains(&neighbors[right]) {
+                        connected_neighbor_pairs += 1;
+                    }
+                }
+            }
+            let possible_neighbor_pairs = degree * (degree - 1) / 2;
+            clustering_sum += connected_neighbor_pairs as f64 / possible_neighbor_pairs as f64;
+        }
+        let mean_clustering_coefficient = clustering_sum / count as f64;
+
+        // Average shortest-path length is computed only over connected unordered pairs.
+        // Disconnected pairs are not assigned an arbitrary large distance; their impact is
+        // separately exposed through connected_pair_fraction.
+        let total_unordered_pairs = count.saturating_mul(count.saturating_sub(1)) / 2;
+        let mut connected_pairs = 0usize;
+        let mut shortest_path_sum = 0usize;
+        for source in 0..count {
+            let mut distances = vec![usize::MAX; count];
+            let mut queue = VecDeque::with_capacity(count);
+            distances[source] = 0;
+            queue.push_back(source);
+            while let Some(current) = queue.pop_front() {
+                let next_distance = distances[current] + 1;
+                for &neighbor in &adjacency[current] {
+                    if distances[neighbor] == usize::MAX {
+                        distances[neighbor] = next_distance;
+                        queue.push_back(neighbor);
+                    }
+                }
+            }
+            for distance in distances.iter().skip(source + 1) {
+                if *distance != usize::MAX {
+                    connected_pairs += 1;
+                    shortest_path_sum += *distance;
+                }
+            }
+        }
+        let mean_shortest_path_length = if connected_pairs == 0 {
+            None
+        } else {
+            Some(shortest_path_sum as f64 / connected_pairs as f64)
+        };
+        let connected_pair_fraction = if total_unordered_pairs == 0 {
+            0.0
+        } else {
+            connected_pairs as f64 / total_unordered_pairs as f64
+        };
+
         VicsekMetrics {
             tick: self.tick,
             particle_count: count,
@@ -557,6 +627,9 @@ impl VicsekModel {
             cluster_size_variance,
             mean_cluster_polar_order,
             cluster_polar_order_variance,
+            mean_clustering_coefficient,
+            mean_shortest_path_length,
+            connected_pair_fraction,
             cluster_count,
             largest_cluster_fraction: largest_cluster as f64 / count as f64,
         }
@@ -693,6 +766,9 @@ mod tests {
         );
         assert_eq!(metrics.cluster_count, 1);
         assert_eq!(metrics.largest_cluster_fraction, 1.0);
+        assert_eq!(metrics.mean_clustering_coefficient, 1.0);
+        assert_eq!(metrics.mean_shortest_path_length, Some(1.0));
+        assert_eq!(metrics.connected_pair_fraction, 1.0);
         assert_eq!(metrics.local_order_coverage_fraction, 1.0);
         assert!((metrics.mean_local_polar_order.unwrap() - 1.0).abs() < 1.0e-12);
     }
@@ -794,6 +870,9 @@ mod tests {
         assert_eq!(metrics.local_order_coverage_fraction, 0.0);
         assert_eq!(metrics.mean_local_polar_order, None);
         assert_eq!(metrics.local_polar_order_variance, None);
+        assert_eq!(metrics.mean_clustering_coefficient, 0.0);
+        assert_eq!(metrics.mean_shortest_path_length, None);
+        assert_eq!(metrics.connected_pair_fraction, 0.0);
         assert_eq!(metrics.cluster_count, 5);
     }
 
@@ -825,11 +904,41 @@ mod tests {
         assert!(metrics.polar_order < 1.0e-12, "{metrics:?}");
         assert_eq!(metrics.cluster_count, 2);
         assert_eq!(metrics.largest_cluster_fraction, 0.5);
+        assert_eq!(metrics.mean_clustering_coefficient, 1.0);
+        assert_eq!(metrics.mean_shortest_path_length, Some(1.0));
+        assert!((metrics.connected_pair_fraction - 0.4).abs() < 1.0e-12);
         assert_eq!(metrics.local_order_coverage_fraction, 1.0);
         assert!(
             (metrics.mean_local_polar_order.unwrap() - 1.0).abs() < 1.0e-12,
             "{metrics:?}"
         );
+    }
+
+    #[test]
+    fn path_graph_has_known_shortest_path_and_zero_clustering() {
+        let model = VicsekModel::new(
+            vec![
+                VicsekParticle { x: 2.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle { x: 3.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle { x: 4.0, y: 5.0, heading_rad: 0.0 },
+            ],
+            VicsekConfig {
+                box_size: 10.0,
+                interaction_radius: 1.01,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            29,
+        )
+        .unwrap();
+
+        let metrics = model.metrics();
+        assert_eq!(metrics.cluster_count, 1);
+        assert_eq!(metrics.mean_shortest_path_length, Some(4.0 / 3.0));
+        assert_eq!(metrics.mean_clustering_coefficient, 0.0);
+        assert_eq!(metrics.connected_pair_fraction, 1.0);
     }
 
     #[test]
@@ -885,6 +994,13 @@ mod tests {
                 && metrics.mean_cluster_polar_order.is_finite()
                 && (0.0..=1.0).contains(&metrics.mean_cluster_polar_order)
                 && metrics.cluster_polar_order_variance.is_finite()
+                && metrics.mean_clustering_coefficient.is_finite()
+                && (0.0..=1.0).contains(&metrics.mean_clustering_coefficient)
+                && metrics.mean_shortest_path_length.is_none_or(|value| {
+                    value.is_finite() && value >= 1.0
+                })
+                && metrics.connected_pair_fraction.is_finite()
+                && (0.0..=1.0).contains(&metrics.connected_pair_fraction)
                 && metrics.largest_cluster_fraction.is_finite()
         }));
     }
