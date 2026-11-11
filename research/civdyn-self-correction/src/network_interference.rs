@@ -7,7 +7,7 @@
 
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
 use crate::network_adequacy::{NetworkAdequacyError, UndirectedNetwork};
@@ -62,14 +62,17 @@ impl ClusteredNetwork {
         if cluster_ids.len() != graph.node_count() {
             return Err(NetworkInterferenceError::ClusterMembershipLengthMismatch);
         }
-        let cluster_count = cluster_ids
-            .iter()
-            .copied()
-            .max()
-            .map_or(0, |maximum| maximum.saturating_add(1));
-        if cluster_count == 0 {
+        let unique_clusters: BTreeSet<usize> = cluster_ids.iter().copied().collect();
+        if unique_clusters.is_empty()
+            || unique_clusters
+                .iter()
+                .copied()
+                .enumerate()
+                .any(|(expected, actual)| expected != actual)
+        {
             return Err(NetworkInterferenceError::ClusterIdsNotContiguous);
         }
+        let cluster_count = unique_clusters.len();
 
         let mut cluster_members = vec![Vec::new(); cluster_count];
         for (node, cluster) in cluster_ids.iter().copied().enumerate() {
@@ -134,7 +137,9 @@ pub fn enumerate_two_stage_saturation_design(
     }
 
     let mut cluster_options = Vec::with_capacity(network.cluster_count());
+    let mut cluster_members = Vec::with_capacity(network.cluster_count());
     for members in network.cluster_members() {
+        cluster_members.push(members.clone());
         let cluster_size = members.len();
         let mut options = Vec::new();
         for treated_count in 0..=cluster_size {
@@ -156,6 +161,7 @@ pub fn enumerate_two_stage_saturation_design(
     let mut treated = vec![false; node_count];
     enumerate_cluster_products(
         &cluster_options,
+        &cluster_members,
         0,
         &mut treated,
         1.0,
@@ -191,8 +197,13 @@ fn choose_nodes(nodes: &[usize], count: usize) -> Vec<Vec<usize>> {
         if nodes.len().saturating_sub(start) < remaining {
             return;
         }
-        for index in start..=nodes.len() - remaining {
-            current.push(nodes[index]);
+        for (index, node) in nodes
+            .iter()
+            .enumerate()
+            .take(nodes.len() - remaining + 1)
+            .skip(start)
+        {
+            current.push(*node);
             visit(nodes, count, index + 1, current, output);
             current.pop();
         }
@@ -205,6 +216,7 @@ fn choose_nodes(nodes: &[usize], count: usize) -> Vec<Vec<usize>> {
 
 fn enumerate_cluster_products(
     cluster_options: &[Vec<(Vec<usize>, f64)>],
+    cluster_members: &[Vec<usize>],
     cluster_index: usize,
     treated: &mut [bool],
     probability: f64,
@@ -219,18 +231,15 @@ fn enumerate_cluster_products(
     }
 
     for (selected, conditional_probability) in &cluster_options[cluster_index] {
-        let members: Vec<usize> = cluster_options[cluster_index]
-            .iter()
-            .flat_map(|(nodes, _)| nodes.iter().copied())
-            .collect();
-        for node in members {
-            treated[node] = false;
+        for node in &cluster_members[cluster_index] {
+            treated[*node] = false;
         }
         for node in selected {
             treated[*node] = true;
         }
         enumerate_cluster_products(
             cluster_options,
+            cluster_members,
             cluster_index + 1,
             treated,
             probability * conditional_probability,
@@ -283,7 +292,7 @@ impl InterferenceMechanism {
 
         let adjacency = adjacency(network.graph());
         let mut outcomes = Vec::with_capacity(network.node_count());
-        for node in 0..network.node_count() {
+        for (node, baseline) in self.baseline_outcomes.iter().copied().enumerate() {
             let mut within_treated = 0_usize;
             let mut between_treated = 0_usize;
             for neighbor in &adjacency[node] {
@@ -297,7 +306,7 @@ impl InterferenceMechanism {
             }
 
             let own_treatment = if assignment[node] { 1.0 } else { 0.0 };
-            let outcome = self.baseline_outcomes[node]
+            let outcome = baseline
                 + self.direct_effect * own_treatment
                 + self.within_cluster_spillover_per_treated_neighbor
                     * within_treated as f64
@@ -409,9 +418,8 @@ pub fn assess_exposure_mapping(
     let mut cells = BTreeMap::<(usize, ExposureKey), (f64, f64)>::new();
     for assignment in assignments {
         let outcomes = mechanism.evaluate(network, &assignment.treated)?;
-        for node in 0..network.node_count() {
+        for (node, outcome) in outcomes.iter().copied().enumerate() {
             let key = exposure_key(network, &adjacency, &assignment.treated, node, mapping);
-            let outcome = outcomes[node];
             cells
                 .entry((node, key))
                 .and_modify(|range| {
@@ -584,7 +592,7 @@ pub fn assess_contrast_support(
     let mut within_supported = 0_usize;
     let mut between_supported = 0_usize;
 
-    for node in 0..network.node_count() {
+    for (node, cluster_id) in network.cluster_ids().iter().copied().enumerate() {
         let mut direct_toggle = zero.clone();
         direct_toggle[node] = true;
         if has_assignment(assignments, &direct_toggle) {
@@ -594,7 +602,7 @@ pub fn assess_contrast_support(
         let within_neighbor = adjacency[node]
             .iter()
             .copied()
-            .find(|neighbor| network.cluster_ids[*neighbor] == network.cluster_ids[node]);
+            .find(|neighbor| network.cluster_ids[*neighbor] == cluster_id);
         if let Some(neighbor) = within_neighbor {
             let mut toggle = zero.clone();
             toggle[neighbor] = true;
@@ -606,7 +614,7 @@ pub fn assess_contrast_support(
         let between_neighbor = adjacency[node]
             .iter()
             .copied()
-            .find(|neighbor| network.cluster_ids[*neighbor] != network.cluster_ids[node]);
+            .find(|neighbor| network.cluster_ids[*neighbor] != cluster_id);
         if let Some(neighbor) = between_neighbor {
             let mut toggle = zero.clone();
             toggle[neighbor] = true;
