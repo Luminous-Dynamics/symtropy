@@ -721,7 +721,7 @@ struct DualCandidate {
     passivity_residual_w: f64,
 }
 
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, clippy::needless_range_loop)]
 fn evaluate_dual_candidate(
     multiplier: f64,
     epsilon_reference: f64,
@@ -804,23 +804,6 @@ pub fn optimize_basis_free_compliance_rate(
 
     let epsilon_lower =
         -request.epsilon_decay_rate * (request.epsilon - request.epsilon_min);
-    let minimum_stiffness_rate = request
-        .stiffness
-        .add_scaled(Symmetric3::diagonal(0.0, 0.0, 0.0), 0.0)
-        .map_err(|_| BasisFreeOptimizerError::ArithmeticOverflow)?
-        .add_scaled(
-            Symmetric3 {
-                xx: -request.stiffness_decay_rate * request.stiffness.xx,
-                yy: -request.stiffness_decay_rate * request.stiffness.yy,
-                zz: -request.stiffness_decay_rate * request.stiffness.zz,
-                xy: -request.stiffness_decay_rate * request.stiffness.xy,
-                xz: -request.stiffness_decay_rate * request.stiffness.xz,
-                yz: -request.stiffness_decay_rate * request.stiffness.yz,
-            },
-            1.0,
-        )
-        .map_err(|_| BasisFreeOptimizerError::ArithmeticOverflow)?;
-
     // Reuse the evaluator at the exact lower-rate boundary to validate all
     // physical matrices, scalar state, vectors, and tolerances before solving.
     let validation = evaluate_basis_free_compliance_rate(BasisFreeComplianceRequest {
@@ -849,8 +832,6 @@ pub fn optimize_basis_free_compliance_rate(
     if !validation.candidate_admissible {
         return Err(BasisFreeOptimizerError::Infeasible);
     }
-    let _ = minimum_stiffness_rate;
-
     let inertia_quadratic = request
         .task_inertia
         .quadratic_form(request.task_error_velocity)
@@ -879,7 +860,7 @@ pub fn optimize_basis_free_compliance_rate(
         return Err(BasisFreeOptimizerError::ArithmeticOverflow);
     }
 
-    let mut z = dense_vector_product(transpose_dense3(lower), request.task_error);
+    let z = dense_vector_product(transpose_dense3(lower), request.task_error);
     if !z.iter().all(|value| value.is_finite()) {
         return Err(BasisFreeOptimizerError::ArithmeticOverflow);
     }
@@ -1012,6 +993,12 @@ pub fn optimize_basis_free_compliance_rate(
     let minimum_stiffness_barrier_eigenvalue = barrier_eigenvalues
         .into_iter()
         .fold(f64::INFINITY, f64::min);
+    let barrier_scale = dense_max_abs(dense_from_symmetric(independent.stiffness_barrier_matrix));
+    if minimum_stiffness_barrier_eigenvalue
+        < -request.matrix_tolerance * barrier_scale
+    {
+        return Err(BasisFreeOptimizerError::IndependentPostCheckFailed);
+    }
     let passivity_complementarity_residual =
         (multiplier * independent.passivity_lhs_w).abs();
     if !minimum_stiffness_barrier_eigenvalue.is_finite()
