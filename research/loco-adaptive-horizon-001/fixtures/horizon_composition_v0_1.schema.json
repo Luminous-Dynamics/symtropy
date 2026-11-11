@@ -394,6 +394,19 @@
           "type": [
             "string",
             "null"
+          ],
+          "enum": [
+            "observation_freshness",
+            "chunk_expiry",
+            "task_deadline",
+            "certificate_validity",
+            "contact_model_validity",
+            "actuator_model_validity",
+            "thermal_to_limit",
+            "safe_stop_reserve",
+            "clock_mapping",
+            "thermal_model",
+            "contact_model"
           ]
         },
         "extension_allowed": {
