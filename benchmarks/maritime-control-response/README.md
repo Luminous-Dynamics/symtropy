@@ -120,7 +120,7 @@ The small 26-recording training corpus cannot substantiate 99% calibration per f
 
 ## Required benchmark tournament
 
-The machine-readable protocol is frozen in [`tournament-v0.1.json`](tournament-v0.1.json). It enumerates nine comparators, split protocols, metric definitions, non-compensatory evidence gates and research targets. In addition to the Fault Diagnosis Toolbox analytical reference and matched state-only/control-aware baselines, it adds a required reproduction track for the six LiU-ICE solutions reported in the 2025 Control Engineering Practice benchmark paper. It is marked `protocol_only_not_executed`; the targets are aspirations, not measured performance.
+The machine-readable protocol is frozen in [`tournament-v0.1.json`](tournament-v0.1.json). It enumerates fourteen comparators, split protocols, metric definitions, non-compensatory evidence gates and research targets. In addition to the Fault Diagnosis Toolbox analytical reference and matched state-only/control-aware baselines, it includes all six LiU-ICE solutions from the 2025 Control Engineering Practice benchmark as separate reproduction targets. It is marked `protocol_only_not_executed`; the targets are aspirations, not measured performance.
 
 Evaluate on common frozen recordings/splits, same channel availability, equivalent model capacity and disclosed compute:
 
@@ -132,7 +132,14 @@ Evaluate on common frozen recordings/splits, same channel availability, equivale
 6. Command-conditioned response model with regime and disturbance context.
 7. Gated/control-aware fusion and multi-class regime discrimination.
 8. Calibrated selective / unknown-fault rejection baseline.
-9. The six published LiU-ICE solutions from Jung et al. (2025), reproduced individually wherever their exact method/configuration details can be recovered. [Paper: Control Engineering Practice 164, 106427](https://doi.org/10.1016/j.conengprac.2025.106427)..
+9. CAREngine residual/QDA/LSVC.
+10. RLS local models with open-set residual signatures.
+11. Gaussian/KL distribution matching.
+12. Healthy-residual/ANFIS with cumulative alarm confirmation.
+13. CCDNN multi-view representation.
+14. Dual-VAE detection/isolation with one-class SVM unknown scoring.
+
+The six published methods and their historical results are specified separately in [published-six-solution-baselines-v0.1.json](published-six-solution-baselines-v0.1.json) and must be individually reproduced or explicitly marked unavailable. [Paper: Control Engineering Practice 164, 106427](https://doi.org/10.1016/j.conengprac.2025.106427).
 
 The official page requires a MATLAB or Python competition interface and an input call for every sample; an earlier output cannot be changed after it is returned. The Rust streaming contract enforces this temporal shape, but a Python/MATLAB adapter and golden-vector parity gate are still missing. This Rust crate is an independent evaluator and evidence-verification component, not a direct submission.
 
@@ -161,7 +168,7 @@ The standards context is supportive, not a certification claim. [ISO 13379-1:202
 The current numeric targets remain aspirational: +0.05 official score over the best faithfully reproduced matched baseline with FAR no worse; +5 percentage points event recall at the same false-alarm budget; p95 event confirmation latency no more than 5 seconds or 20% below the best matched baseline; ≤5% false-known rate on independent unknown-fault episodes; and zero false-unique-root-cause claims when multiple hypotheses remain admissible. No result is claimed yet.
 ### Literature and deployment-readiness context
 
-The benchmark's nearest published reference is not a generic industrial vendor model: Jung et al. (2025) document six solutions to this same engine-diagnosis benchmark. Those six methods must be recovered and run as matched comparators before claiming a LiU-ICE SOTA gain. The 2026 marine control-aware domain-adversarial paper is an adjacent direction, but its published abstract describes a thermodynamic simulation study and explicitly says that real-engine validation is absent; it is not a directly matched LiU-ICE baseline.
+The nearest published reference is now decomposed into six named reproduction targets from Jung et al. (2025), rather than one generic aggregate comparator. Each implementation must be matched to the original 2024 challenge protocol before it is re-run under the current DX2026 protocol. The 2026 marine control-aware domain-adversarial paper is an adjacent direction, but its published abstract describes a thermodynamic simulation study and explicitly says that real-engine validation is absent; it is not a directly matched LiU-ICE baseline.
 
 A 2026 survey of 26 industrial CPS/ICS anomaly-detection studies defines nine deployability criteria and reports that detection accuracy is evaluated far more consistently than other real-world deployment criteria. This supports a wider scorecard here: streaming latency and bounded memory, missing-data behaviour, OOD and calibration, failure recovery, auditability, data/asset integration, authority boundaries and maintenance workflow—not accuracy alone. [Deployability survey](https://doi.org/10.1007/s10207-026-01330-1).
 
