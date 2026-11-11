@@ -772,6 +772,7 @@ mod tests {
         .unwrap();
         let result = select_action_horizon(&ActionHorizonRequest {
             bounds,
+            evaluation_time_ns: 100,
             controller_period_ns: 10,
             p99_total_latency_ns: 20,
             latency_profile_id: "p99-profile/test-target-a".to_owned(),
