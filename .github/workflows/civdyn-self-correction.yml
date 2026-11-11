@@ -372,11 +372,15 @@ jobs:
           expected_tipping = math.sqrt(23.0 / 9.0)
           for row in full:
               assert math.isclose(float(row["tipping_lambda"]), expected_tipping, abs_tol=2e-8)
-              assert float(row["tipping_lower_bracket"]) <= expected_tipping
-              assert float(row["tipping_upper_bracket"]) >= expected_tipping
+              assert float(row["tipping_lower_bracket"]) <= expected_tipping + 1e-9
+              assert float(row["tipping_upper_bracket"]) >= expected_tipping - 1e-9
               assert float(row["tipping_upper_bracket"]) - float(row["tipping_lower_bracket"]) <= 1.1e-8
+          expected_partial_tipping = (-0.2 + math.sqrt(0.04 + 4.0 * 0.14 * 0.36)) / (2.0 * 0.14)
           for row in partial:
-              assert row["tipping_lambda"] == "1.0000000000"
+              assert math.isclose(float(row["tipping_lambda"]), expected_partial_tipping, abs_tol=2e-8)
+              assert float(row["tipping_lower_bracket"]) <= expected_partial_tipping + 1e-9
+              assert float(row["tipping_upper_bracket"]) >= expected_partial_tipping - 1e-9
+              assert float(row["tipping_upper_bracket"]) - float(row["tipping_lower_bracket"]) <= 1.1e-8
 
           unsupported = next(row for row in partial if row["lambda"] == "2.00000000" and row["modifier_id"] == "remote-isolated")
           assert unsupported["source_support"] == "false"
