@@ -325,8 +325,8 @@ jobs:
               "3.000000": (-0.05, 0.55, 0.30, 0.70, 0.15, 0.35, "sign_ambiguous"),
               "5.000000": (-0.11, 0.61, 0.26, 0.74, 0.13, 0.37, "sign_ambiguous"),
           }
-          previous_lower = -math.inf
-          previous_upper = math.inf
+          previous_lower = None
+          previous_upper = None
           for row in rows:
               lower, upper, treatment_lower, treatment_upper, control_lower, control_upper, direction = expected[row["lambda"]]
               assert math.isclose(float(row["baseline_weighted_ate"]), 0.25, abs_tol=1e-10)
@@ -338,8 +338,9 @@ jobs:
               assert math.isclose(float(row["control_upper_mean"]), control_upper, abs_tol=1e-10)
               assert row["effect_direction"] == direction
               assert row["sign_tipping_point"] == "3.000000"
-              assert math.isclose(float(row["target_ate_lower"]), previous_lower, abs_tol=0.0) or float(row["target_ate_lower"]) <= previous_lower + 1e-10
-              assert float(row["target_ate_upper"]) >= previous_upper - 1e-10
+              if previous_lower is not None:
+                  assert float(row["target_ate_lower"]) <= previous_lower + 1e-10
+                  assert float(row["target_ate_upper"]) >= previous_upper - 1e-10
               previous_lower = float(row["target_ate_lower"])
               previous_upper = float(row["target_ate_upper"])
 
