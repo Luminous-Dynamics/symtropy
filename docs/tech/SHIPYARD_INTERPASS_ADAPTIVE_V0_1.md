@@ -63,3 +63,37 @@ The synthetic fixture includes two intentionally different single-objective base
 A separate two-observation test advances from PASS-02 to PASS-03, supplies a new scan ID plus new scan/registration digests, updates residual geometry from 100±10 to 55±5 units, and verifies that the geometry-only comparator changes from FILL-MID to FILL-55. This demonstrates deterministic replanning on the latest observation, not a physical performance improvement.
 
 The planner's measurement identity now binds the scan-byte digest and registration/transform receipt digest. These are symbolic identifiers in the synthetic v0.1 fixture; physical adapters must calculate and verify real digests from authorized source bytes and transform artifacts.
+
+
+## Three-timescale closed-loop architecture
+
+The planner is part of a governed three-loop system, not a replacement for the welding controller:
+
+1. **Fast process loop (milliseconds):** independent, qualified equipment/controller regulates the process using current/voltage, wire feed, travel, arc stability and torch-state measurements. The inter-pass planner does not operate at this cadence and does not issue low-level control commands.
+2. **Medium pass loop (between deposited passes):** clean/scan/register the new surface, reconcile it with the exact predecessor pass and process trace, quantify coverage/occlusion/registration error/geometry uncertainty, then compute a next-pass Pareto set. If scan uncertainty exceeds its declared decision limit, abstain and request a better observation rather than forcing a recommendation.
+3. **Slow quality/lifecycle loop (after inspection/repair):** qualified NDT/repair disposition and production outcomes update the evidence graph, calibration/validation data, procedure applicability and model requalification. Rejected and repaired welds remain represented; they are not silently filtered from training/evaluation. Post-hoc NDT results must never leak into an earlier online decision.
+
+A 2026 survey of closed-loop robotic arc welding identifies a maturity asymmetry: perception-to-execution is comparatively developed, while feedback from assessment into modeling/decision remains fragmented. The slow loop is therefore a core research target, not administrative bookkeeping.
+
+## Industry comparison and fair SOTA boundary
+
+| Comparator | Published evidence | What is comparable | What is not yet comparable |
+|---|---|---|---|
+| Yu et al. (2026), adaptive CJP T-joint welding | 4,434 beads across 270 T-joint specimens; pass-by-pass residual-volume reallocation; nine additional validation specimens; reported 100% UT acceptance for those nine under AWS D1.1/D1.8 study context | Hierarchical pass allocation, inter-pass scan feedback, residual-volume management, quality-linked outcome | Their 2G horizontal CJP continuity-plate application differs from BAM's 1G flat Tandem-GMAW; nine accepted specimens do not establish a universal failure rate. The paper also reports 31 poor beads (0.7%) identified by NDT and excluded from subsequent parameter analysis; preserve this selection boundary when comparing training data |
+| Wang et al. (2026), online path/torch posture planning | Reports path RMSE ≤0.1334 mm and torch-posture RMSE ≤0.8064° in its stated test context | Online geometric adaptation, path/pose accuracy and measurement/reporting discipline | Not a matched pass-allocation or shipyard-production benchmark; no claim that this planner beats those numbers |
+| HII / HD Hyundai intelligent mechanized welding pilot (2026) | Workpiece/condition recognition, real-time position correction and process-data capture are described | Workpiece-aware process adaptation and industrial integration | Announced pilot, not an independently measured productivity/quality result |
+| Fincantieri BOOST² (2026) | Company reports programme scale across 13 yards and 450+ employees, with work categorized as operational, validating or future | Deployment/maturity context and multi-yard integration | Programme scale is not a matched weld-level performance KPI |
+
+The field's 2026 reviews also caution that physical validation methods and error metrics differ enough that cross-paper numeric rankings can be misleading. We therefore compare only against **matched** specimen geometry, material, process, position, WPS, measurement definition, uncertainty, observation history, compute budget and acceptance method.
+
+## What “better than SOTA” will mean here
+
+- **Geometry:** lower held-out inter-pass residual-area/volume error and surface/profile error than fixed teach-and-playback and geometry-only reallocation, with scan uncertainty/registration error reported.
+- **Path and torch posture:** matched metrology and coordinate frames before comparing against published path/posture RMSE.
+- **Process:** better calibrated prediction/abstention for process deviations, not just classification accuracy; never infer NDT quality from process signals alone.
+- **Accepted production:** improvement in accepted weld length/joints per labour-hour and cell-hour, full fit-up-to-inspection cycle, repair/reinspection burden and cost per accepted output, with identical inspection denominator.
+- **Robustness:** higher feasible rate and better worst-stratum outcomes under held-out fit-up, scan, material, position and disturbance conditions.
+- **Evidence:** zero unbound scan/transform/procedure identity, zero future-information leakage, zero synthetic-to-physical promotion and zero unauthorized live action.
+
+Aspirational target: at least 5% improvement on one preregistered quality-adjusted outcome versus the strongest matched baseline, with no protected constraint violation or deterioration in other critical outcomes. This is not an achieved result. The BAM dataset's five WIDs remain a small exploratory cohort; WID-grouped evaluation and uncertainty reporting are mandatory.
+
