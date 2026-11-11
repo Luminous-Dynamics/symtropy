@@ -146,7 +146,17 @@
       "directionality": "Visibility is focal-agent-specific and may be asymmetric; no reciprocal edge is assumed.",
       "default": "MetricRadius remains the default for existing callers.",
       "graph_semantics": "Visual-sector topology snapshots use a weakly connected projection, while local visible-neighbour counts and local order use directed out-neighbours.",
-      "validation": "Half-aperture must be finite in [0, PI]; offset must be finite and is normalized to [0, 2PI)."
+      "validation": "Half-aperture must be finite in [0, PI]; offset must be finite and is normalized to [0, 2PI).",
+      "directional_causal_control": {
+        "case": "ASYMMETRIC_VISUAL_VISIBILITY_INTERVENTION",
+        "setup": "Two particles one unit apart on the x-axis, both initially heading +x; forward visual sector with pi/4 half-aperture and radial range 3",
+        "visibility": "Particle 0 sees particle 1; particle 1 does not see particle 0",
+        "expected": {
+          "intervene_particle_0": "Particle 1's paired sham/treatment heading effect is exactly zero",
+          "intervene_particle_1": "Particle 0 changes by pi/4 after one noiseless update when particle 1 is rotated to pi/2"
+        },
+        "interpretation": "Interventional effect direction must match focal-agent visibility; the test distinguishes directional mechanism from symmetric correlation."
+      }
     }
   },
   "benchmark_regimes": [
@@ -505,7 +515,8 @@
     "Visual-sector directed-edge recovery and reciprocity, including one-way visibility",
     "Visual-field offset inference from trajectories with angular-error and calibration metrics",
     "Compare directed out-neighbour local order with weakly connected cluster topology without conflating them",
-    "Interventional influence propagation under visual-sector perception against common-random-number sham trajectories"
+    "Interventional influence propagation under visual-sector perception against common-random-number sham trajectories",
+    "Asymmetric visual intervention direction: a particle that is not visible to a focal agent must not causally change that focal agent, while an actually visible particle may change its heading under intervention"
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
@@ -543,7 +554,8 @@
     "topology_checkpoint_schedule": "PENDING_BENCHMARK_RUNNER; initial proposal: tick 0, warm-up completion, then every 50 ticks and final tick",
     "nontrivial_cluster_order_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
     "visual_sector_code_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
-    "visual_field_source_profile": "benchmarks/oli/visual-field-offset-source-profile-v0.json"
+    "visual_field_source_profile": "benchmarks/oli/visual-field-offset-source-profile-v0.json",
+    "directional_intervention_control": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION"
   },
   "acceptance": {
     "intervention_sham_counterfactual_parity_required": true,
@@ -556,6 +568,7 @@
     "visual_sector_forward_and_rear_controls_required": true,
     "directed_visibility_and_reciprocity_metrics_required": true,
     "metric_rows_must_include_perception_and_graph_semantics": true,
-    "source_paper_parameter_grid_reproduction_required_before_sota_claim": true
+    "source_paper_parameter_grid_reproduction_required_before_sota_claim": true,
+    "asymmetric_visual_intervention_direction_must_match_visibility": true
   }
 }
