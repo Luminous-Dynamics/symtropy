@@ -905,10 +905,7 @@ fn parameter_update_debit(delta: &[f64; 12], coefficients: &[f64; 12]) -> f64 {
         .sum()
 }
 
-fn parameter_update_uncredited_release(
-    delta: &[f64; 12],
-    coefficients: &[f64; 12],
-) -> f64 {
+fn parameter_update_uncredited_release(delta: &[f64; 12], coefficients: &[f64; 12]) -> f64 {
     delta
         .iter()
         .zip(coefficients.iter())
