@@ -856,8 +856,10 @@ mod tests {
         };
         let mut desired = [0.0; 12];
         desired[6] = 100.0;
+        let mut upper = [200.0; 12];
+        upper[6] = 50.0;
         let request = update_request(
-            old, desired, [-0.0; 12], [200.0; 12],
+            old, desired, [0.0; 12], upper,
             [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0; 6], 5.0,
         );
         let result = project_diagonal_virtual_parameter_update(request).unwrap();
