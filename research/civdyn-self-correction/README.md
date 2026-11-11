@@ -242,3 +242,34 @@ A second target contains 20% population mass in a modifier stratum absent from t
 - A synthetic known-answer pass validates the code path, not real-world causal transportability.
 
 Run causal-transport-sweep with the locked workspace manifest. CI checks exact source/target effects, positivity bounds, assumption dispositions, provenance and deterministic replay.
+
+
+## Scenario L: interval-valued policy choice under partial identification
+
+The first identified-decision evaluator is in src/identified_decision.rs and the identified-decision-sweep binary. It advances [CIVDYN-IDENTIFIED-DECISION-001 #4699](https://github.com/Luminous-Dynamics/symtropy/issues/4699).
+
+The evaluator converts the identified or partially identified target risk difference from causal_transport.rs into a policy utility interval. An unidentified causal effect cannot be represented as a finite interval and is rejected. Every utility interval retains source, target-population and transport-protocol provenance, and policies must share the same estimand, metric, unit and target population.
+
+Hard constraints are evaluated independently of the objective:
+- AtMost(c): robustly feasible only if the interval upper endpoint is <= c; definitely infeasible if the lower endpoint is > c; otherwise indeterminate.
+- AtLeast(c): robustly feasible only if the lower endpoint is >= c; definitely infeasible if the upper endpoint is < c; otherwise indeterminate.
+
+Only policies that satisfy every hard constraint over their full declared interval enter the recommendation set. If none qualify, the evaluator returns no robust recommendation.
+
+For maximization, under a rectangular uncertainty convention in which policy utility intervals are independently attainable, the conservative regret upper bound for policy p is max over competing robustly feasible q of max(0, upper(q) - lower(p)). Minimization first reverses the interval. Regret remains in native utility units. Exact ties are retained.
+
+The evaluator compares only a finite declared policy set. It does not assume a probability distribution over models or interval points. This is a conservative interval baseline, not a generally optimal decision rule for all partially identified statistical problems; the 2026 decision-theory literature shows that randomized rules may be relevant in some treatment-choice settings.
+
+### Known-answer sweep
+
+- Maintenance policy: causal transport gives target utility interval [0.02, 0.42].
+- Infrastructure policy: causal transport gives identified target utility 0.28.
+- Both policies satisfy the declared water-use and minimum-service constraints over their full intervals.
+- The regret upper bounds are calculated from the rectangular policy intervals, preserving the native risk-difference scale.
+- Every row retains source, target-population and transport protocol identities, constraint evidence, the uncertainty-set definition and minimax selection status.
+
+Rust tests include an exhaustive endpoint enumeration for small rectangular portfolios, tie retention, minimizing objectives, robust/indeterminate/definitely-infeasible constraint classifications, no-robust-option behavior, causal-transport conversion and evidence/unit mismatch negative controls.
+
+The implementation does not account for known correlation between policy outcomes. Rectangular uncertainty can be conservative when policy outcomes share shocks or causal mechanisms. A future joint-world evaluator should preserve those dependencies rather than multiplying uncertainty unnecessarily. It also does not implement randomized decision rules, sampling uncertainty or general distributionally robust optimization.
+
+Run identified-decision-sweep using the locked workspace manifest. CI checks the 18-column named CSV schema, exact policy intervals and regret, hard constraint statuses, evidence identities and deterministic replay.
