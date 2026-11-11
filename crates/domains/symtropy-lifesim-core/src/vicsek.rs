@@ -269,6 +269,40 @@ pub struct CommonFieldIntervention {
     pub affected_particle_count: usize,
 }
 
+/// Per-tick response from a paired heading-intervention replay.
+///
+/// Treatment and sham begin as exact clones, including the PRNG state. The same random
+/// variates are therefore applied to corresponding particles on every subsequent tick;
+/// differences in untreated particles are attributable to the intervention under this
+/// declared synthetic model and update rule, not independent noise realizations.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PairedInterventionStep {
+    pub tick: u64,
+    pub sham_metrics: VicsekMetrics,
+    pub treatment_metrics: VicsekMetrics,
+    /// Mean absolute circular heading difference for all untreated particles.
+    /// None when the intervention targets the only particle.
+    pub mean_untreated_heading_effect_rad: Option<f64>,
+    /// Fraction of untreated particles whose heading differs by more than 1e-12 radians.
+    pub untreated_heading_response_fraction: Option<f64>,
+    /// Mean minimum-image displacement difference for untreated particles.
+    pub mean_untreated_position_effect: Option<f64>,
+    /// Fraction of untreated particles displaced by more than 1e-12 box-length units.
+    pub untreated_position_response_fraction: Option<f64>,
+}
+
+/// Reproducible treatment/sham trajectory pair for one direct heading intervention.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PairedInterventionResult {
+    pub intervention: HeadingIntervention,
+    pub update_rule: VicsekUpdateRule,
+    pub initial_sham_metrics: VicsekMetrics,
+    pub initial_treatment_metrics: VicsekMetrics,
+    pub common_random_numbers: bool,
+    pub response_threshold: f64,
+    pub steps: Vec<PairedInterventionStep>,
+}
+
 /// Periodic two-dimensional Vicsek active-particle reference model.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VicsekModel {
@@ -808,6 +842,104 @@ impl VicsekModel {
     }
 }
 
+/// Run a matched sham and treatment trajectory from the same pre-intervention state.
+///
+/// The function clones `baseline` twice. Only the treatment copy receives the
+/// heading intervention. Since the intervention does not consume random numbers, both
+/// simulations retain identical PRNG state and receive common random numbers at every
+/// subsequent update. This is the preferred synthetic counterfactual primitive for OLI.
+///
+/// The reported downstream response excludes the directly treated particle. Response
+/// fractions use a declared numerical threshold of 1e-12 in radians and box-length units.
+/// A real experimental adapter must replace this with instrument-specific uncertainty.
+pub fn run_paired_heading_intervention(
+    baseline: &VicsekModel,
+    particle_index: usize,
+    imposed_heading_rad: f64,
+    steps: usize,
+) -> Result<PairedInterventionResult, VicsekError> {
+    const RESPONSE_THRESHOLD: f64 = 1.0e-12;
+
+    let mut sham = baseline.clone();
+    let mut treatment = baseline.clone();
+    let initial_sham_metrics = sham.fast_metrics();
+    let intervention = treatment.intervene_heading(particle_index, imposed_heading_rad)?;
+    let initial_treatment_metrics = treatment.fast_metrics();
+    let update_rule = baseline.config.update_rule;
+    let untreated_count = baseline.particles.len().saturating_sub(1);
+    let mut response_rows = Vec::with_capacity(steps);
+
+    for _ in 0..steps {
+        let sham_metrics = sham.step()?;
+        let treatment_metrics = treatment.step()?;
+        let mut heading_effect_sum = 0.0;
+        let mut position_effect_sum = 0.0;
+        let mut heading_responders = 0usize;
+        let mut position_responders = 0usize;
+
+        for index in 0..baseline.particles.len() {
+            if index == particle_index {
+                continue;
+            }
+            let sham_particle = sham.particles[index];
+            let treatment_particle = treatment.particles[index];
+            let heading_effect = wrap_signed_angle(
+                treatment_particle.heading_rad - sham_particle.heading_rad,
+            )
+            .abs();
+            let (dx, dy) = periodic_displacement(
+                sham_particle.x,
+                sham_particle.y,
+                treatment_particle.x,
+                treatment_particle.y,
+                baseline.config.box_size,
+            );
+            let position_effect = dx.hypot(dy);
+            heading_effect_sum += heading_effect;
+            position_effect_sum += position_effect;
+            if heading_effect > RESPONSE_THRESHOLD {
+                heading_responders += 1;
+            }
+            if position_effect > RESPONSE_THRESHOLD {
+                position_responders += 1;
+            }
+        }
+
+        let (mean_untreated_heading_effect_rad, untreated_heading_response_fraction,
+            mean_untreated_position_effect, untreated_position_response_fraction) =
+            if untreated_count == 0 {
+                (None, None, None, None)
+            } else {
+                (
+                    Some(heading_effect_sum / untreated_count as f64),
+                    Some(heading_responders as f64 / untreated_count as f64),
+                    Some(position_effect_sum / untreated_count as f64),
+                    Some(position_responders as f64 / untreated_count as f64),
+                )
+            };
+
+        response_rows.push(PairedInterventionStep {
+            tick: treatment.tick,
+            sham_metrics,
+            treatment_metrics,
+            mean_untreated_heading_effect_rad,
+            untreated_heading_response_fraction,
+            mean_untreated_position_effect,
+            untreated_position_response_fraction,
+        });
+    }
+
+    Ok(PairedInterventionResult {
+        intervention,
+        update_rule,
+        initial_sham_metrics,
+        initial_treatment_metrics,
+        common_random_numbers: true,
+        response_threshold: RESPONSE_THRESHOLD,
+        steps: response_rows,
+    })
+}
+
 fn periodic_displacement(
     x_from: f64,
     y_from: f64,
@@ -1174,6 +1306,94 @@ mod tests {
         assert!((treated.particles()[1].heading_rad - expected).abs() < 1.0e-12);
         assert_eq!(sham.particles()[1].heading_rad, 0.0);
         assert!(treated.particles()[1].heading_rad > sham.particles()[1].heading_rad);
+    }
+
+    #[test]
+    fn paired_intervention_replay_matches_all_to_all_analytic_response_and_replays() {
+        let particles = (0..6)
+            .map(|index| VicsekParticle {
+                x: (index as f64 + 0.5) * 10.0 / 6.0,
+                y: 5.0,
+                heading_rad: 0.0,
+            })
+            .collect();
+        let config = VicsekConfig {
+            box_size: 10.0,
+            interaction_radius: 8.0,
+            speed: 0.25,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let baseline = VicsekModel::new(particles, config, 53).unwrap();
+
+        let first = run_paired_heading_intervention(
+            &baseline,
+            0,
+            std::f64::consts::FRAC_PI_2,
+            5,
+        )
+        .unwrap();
+        let second = run_paired_heading_intervention(
+            &baseline,
+            0,
+            std::f64::consts::FRAC_PI_2,
+            5,
+        )
+        .unwrap();
+
+        assert_eq!(first, second);
+        assert!(first.common_random_numbers);
+        assert_eq!(first.update_rule, VicsekUpdateRule::CurrentPositionAlignment);
+        assert_eq!(first.intervention.tick, 0);
+        assert_eq!(first.steps.len(), 5);
+        let first_step = &first.steps[0];
+        assert_eq!(first_step.tick, 1);
+        assert!((first_step.treatment_metrics.polar_order - 1.0).abs() < 1.0e-12);
+        assert!(first_step.sham_metrics.polar_order > 1.0 - 1.0e-12);
+        assert!(
+            (first_step.mean_untreated_heading_effect_rad.unwrap()
+                - 1.0_f64.atan2(5.0))
+            .abs()
+                < 1.0e-12
+        );
+        assert_eq!(first_step.untreated_heading_response_fraction, Some(1.0));
+        assert!(first_step.mean_untreated_position_effect.unwrap() > 0.0);
+        assert_eq!(first_step.untreated_position_response_fraction, Some(1.0));
+    }
+
+    #[test]
+    fn paired_intervention_uses_common_noise_and_has_zero_untreated_effect_without_coupling() {
+        let particles = vec![
+            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle { x: 5.0, y: 5.0, heading_rad: 1.0 },
+            VicsekParticle { x: 9.0, y: 9.0, heading_rad: 2.0 },
+        ];
+        let config = VicsekConfig {
+            box_size: 12.0,
+            interaction_radius: 0.0,
+            speed: 0.1,
+            dt: 1.0,
+            angular_noise_width_rad: 0.2,
+            update_rule: VicsekUpdateRule::NextPositionAlignment,
+        };
+        let baseline = VicsekModel::new(particles, config, 59).unwrap();
+        let result = run_paired_heading_intervention(
+            &baseline,
+            0,
+            std::f64::consts::FRAC_PI_2,
+            20,
+        )
+        .unwrap();
+
+        assert!(result.common_random_numbers);
+        assert_eq!(result.update_rule, VicsekUpdateRule::NextPositionAlignment);
+        assert!(result.steps.iter().all(|row| {
+            row.mean_untreated_heading_effect_rad == Some(0.0)
+                && row.untreated_heading_response_fraction == Some(0.0)
+                && row.mean_untreated_position_effect == Some(0.0)
+                && row.untreated_position_response_fraction == Some(0.0)
+        }));
     }
 
     #[test]
