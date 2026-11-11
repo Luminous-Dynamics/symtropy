@@ -24,6 +24,8 @@ pub enum CovarianceError {
     InvalidTimeStep,
     SingularMatrix,
     NonPositiveMassMetric,
+    MassMetricNotSymmetric,
+    InvalidProfile,
     NewtonDerivativeDegenerate,
     NewtonLineSearchFailed,
     NewtonDidNotConverge,
@@ -43,6 +45,7 @@ pub struct StepProfileV1 {
     pub maximum_backtracks: usize,
     pub normalized_constraint_tolerance: f64,
     pub relative_pivot_tolerance: f64,
+    pub metric_symmetry_tolerance: f64,
 }
 
 impl Default for StepProfileV1 {
@@ -52,6 +55,7 @@ impl Default for StepProfileV1 {
             maximum_backtracks: 24,
             normalized_constraint_tolerance: 1.0e-12,
             relative_pivot_tolerance: 64.0 * f64::EPSILON,
+            metric_symmetry_tolerance: 1.0e-12,
         }
     }
 }
@@ -66,6 +70,7 @@ pub struct StepDiagnosticsV1 {
     pub external_work: f64,
     pub kinetic_energy_change: f64,
     pub energy_work_defect: f64,
+    pub mass_metric_symmetry_defect: f64,
     pub newton_iterations: usize,
 }
 
@@ -643,9 +648,14 @@ pub fn constrained_dumbbell_step(
     }
     if !profile.normalized_constraint_tolerance.is_finite()
         || profile.normalized_constraint_tolerance <= 0.0
+        || !profile.relative_pivot_tolerance.is_finite()
+        || profile.relative_pivot_tolerance <= 0.0
+        || !profile.metric_symmetry_tolerance.is_finite()
+        || profile.metric_symmetry_tolerance <= 0.0
         || profile.maximum_newton_iterations == 0
+        || profile.maximum_backtracks == 0
     {
-        return Err(CovarianceError::InvalidTimeStep);
+        return Err(CovarianceError::InvalidProfile);
     }
     if position.iter().any(|value| !value.is_finite())
         || velocity.iter().any(|value| !value.is_finite())
@@ -656,11 +666,19 @@ pub fn constrained_dumbbell_step(
         return Err(CovarianceError::NonFiniteInput("step arguments"));
     }
 
-    // Cholesky verifies positive definiteness of the mass metric.
-    cholesky6(mass_metric, profile.relative_pivot_tolerance)?;
+    // Admit the metric once. Preserve a scale-free defect for diagnostics, but
+    // use the exactly symmetric effective metric in every subsequent operation.
+    // This prevents tolerated serialization noise from producing a different
+    // matrix in the solves and energy ledger.
+    let (effective_mass_metric, mass_metric_symmetry_defect) =
+        admit_mass_metric(mass_metric, profile)?;
+    cholesky6(&effective_mass_metric, profile.relative_pivot_tolerance)?;
 
-    let inverse_mass_force =
-        solve6(mass_metric, generalized_force, profile.relative_pivot_tolerance)?;
+    let inverse_mass_force = solve6(
+        &effective_mass_metric,
+        generalized_force,
+        profile.relative_pivot_tolerance,
+    )?;
     let free_midpoint_velocity =
         add6(velocity, &scale6(&inverse_mass_force, time_step / 2.0));
 
@@ -671,7 +689,7 @@ pub fn constrained_dumbbell_step(
             right_hand_side[row] = constraint_map[axis][row];
         }
         let solution = solve6(
-            mass_metric,
+            &effective_mass_metric,
             &right_hand_side,
             profile.relative_pivot_tolerance,
         )?;
@@ -778,9 +796,9 @@ pub fn constrained_dumbbell_step(
         position_constraint_change - time_step * final_evaluation.residual;
 
     let initial_energy =
-        0.5 * dot6(velocity, &apply6(mass_metric, velocity));
+        0.5 * dot6(velocity, &apply6(&effective_mass_metric, velocity));
     let final_energy =
-        0.5 * dot6(&velocity_next, &apply6(mass_metric, &velocity_next));
+        0.5 * dot6(&velocity_next, &apply6(&effective_mass_metric, &velocity_next));
     let energy_change = final_energy - initial_energy;
     let external_work = time_step * dot6(generalized_force, &midpoint_velocity);
     let energy_work_defect = energy_change - external_work;
@@ -800,9 +818,34 @@ pub fn constrained_dumbbell_step(
             external_work,
             kinetic_energy_change: energy_change,
             energy_work_defect,
+            mass_metric_symmetry_defect,
             newton_iterations: iterations,
         },
     })
+}
+
+fn admit_mass_metric(
+    supplied: &Matrix6,
+    profile: StepProfileV1,
+) -> Result<(Matrix6, f64), CovarianceError> {
+    let scale = maximum_absolute_matrix6(supplied);
+    if !scale.is_finite() || scale == 0.0 {
+        return Err(CovarianceError::NonPositiveMassMetric);
+    }
+    let mut effective = [[0.0; 6]; 6];
+    let mut defect = 0.0_f64;
+    for row in 0..6 {
+        for column in 0..6 {
+            let normalized = (supplied[row][column] - supplied[column][row]).abs() / scale;
+            defect = defect.max(normalized);
+            effective[row][column] =
+                0.5 * (supplied[row][column] + supplied[column][row]);
+        }
+    }
+    if defect > profile.metric_symmetry_tolerance {
+        return Err(CovarianceError::MassMetricNotSymmetric);
+    }
+    Ok((effective, defect))
 }
 
 fn cholesky6(
@@ -816,12 +859,7 @@ fn cholesky6(
     let mut lower = [[0.0; 6]; 6];
     for row in 0..6 {
         for column in 0..=row {
-            let asymmetry = (matrix[row][column] - matrix[column][row]).abs() / scale;
-            if asymmetry > 1.0e-11 {
-                return Err(CovarianceError::NonPositiveMassMetric);
-            }
-            let mut residual =
-                0.5 * (matrix[row][column] / scale + matrix[column][row] / scale);
+            let mut residual = matrix[row][column] / scale;
             for inner in 0..column {
                 residual -= lower[row][inner] * lower[column][inner];
             }
@@ -850,7 +888,6 @@ pub fn relative_matrix_defect(left: &Matrix6, right: &Matrix6) -> f64 {
 
 pub fn transform_state_to_basis(
     state: PhysicalStateV1,
-    basis: &Matrix6,
     basis_inverse: &Matrix6,
 ) -> PhysicalStateV1 {
     PhysicalStateV1 {
@@ -922,13 +959,12 @@ pub fn rotation3(axis: Vector3, angle: f64) -> Matrix3 {
     }
     let unit = scale3(&axis, 1.0 / magnitude);
     let skew = cross_matrix(&unit);
-    let skew_squared = multiply3(&skew, &skew);
     let mut result = identity3();
     let cosine = angle.cos();
     let sine = angle.sin();
     for row in 0..3 {
         for column in 0..3 {
-            result[row][column] = if row == column { cosine } else { 0.0 }
+            result[row][column] = (if row == column { cosine } else { 0.0 })
                 + (1.0 - cosine) * unit[row] * unit[column]
                 + sine * skew[row][column];
         }
@@ -1053,7 +1089,7 @@ mod tests {
         )
         .expect("frozen basis must be invertible");
         let transformed_state =
-            transform_state_to_basis(state, &basis, &basis_inverse);
+            transform_state_to_basis(state, &basis_inverse);
         let transformed_force = transform_force_covector(&basis, &force);
         let transformed_mass =
             transformed_mass_metric(&canonical_mass, &basis);
