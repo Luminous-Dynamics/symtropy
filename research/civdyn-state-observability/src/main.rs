@@ -383,6 +383,124 @@ fn run_audit(input: &str) -> Result<String, String> {
     Ok(output)
 }
 
+fn normalized_policy_value(value: f64, oracle: f64, random: f64) -> Option<f64> {
+    let gap = oracle - random;
+    if !value.is_finite() || !oracle.is_finite() || !random.is_finite() || gap <= f64::EPSILON {
+        None
+    } else {
+        Some((value - random) / gap)
+    }
+}
+
+fn run_policy_summary(input: &str) -> Result<String, String> {
+    let mut contracts = BTreeMap::new();
+    let mut run_groups: BTreeMap<String, Vec<Run>> = BTreeMap::new();
+
+    for (line_number, line) in input.lines().enumerate() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let fields: Vec<&str> = line.split('\t').collect();
+        match fields.first().copied() {
+            Some("contract") => {
+                let contract = parse_contract(&fields)
+                    .map_err(|error| format!("line {}: {error}", line_number + 1))?;
+                if contracts.insert(contract.id.clone(), contract).is_some() {
+                    return Err(format!("duplicate contract on line {}", line_number + 1));
+                }
+            }
+            Some("run") => {
+                let run = parse_run(&fields)
+                    .map_err(|error| format!("line {}: {error}", line_number + 1))?;
+                run_groups.entry(run.experiment_id.clone()).or_default().push(run);
+            }
+            _ => return Err(format!("unknown record on line {}", line_number + 1)),
+        }
+    }
+
+    if contracts.len() != EXPECTED.len() || run_groups.len() != EXPECTED.len() {
+        return Err("policy-summary input does not contain the complete five-experiment matrix".to_owned());
+    }
+
+    let mut output = String::from(
+        "experiment_id,dataset_size,assumed_missingness,algorithm,finished,exceptions,mean_return,median_return,minimum_return,maximum_return,mean_average_tv,mean_worst_tv,normalized_policy_value,oracle_anchor,random_anchor\n"
+    );
+
+    for expected in EXPECTED {
+        let contract = contracts
+            .get(expected.id)
+            .ok_or_else(|| format!("missing contract {}", expected.id))?;
+        validate_contract(contract, expected)?;
+        let runs = run_groups
+            .get(expected.id)
+            .ok_or_else(|| format!("missing learning rows for {}", expected.id))?;
+        validate_runs(contract, runs)?;
+
+        for size in SIZES {
+            for class in CLASSES {
+                let cell: Vec<&Run> = runs
+                    .iter()
+                    .filter(|run| run.dataset_size == size && run.class == class)
+                    .collect();
+                if cell.len() != 20 {
+                    return Err(format!("{} / {} / {} has {} runs, expected 20", expected.id, size, class, cell.len()));
+                }
+                let finished: Vec<&Run> = cell.iter().copied().filter(|run| run.finished).collect();
+                let exceptions = cell.len() - finished.len();
+                let algorithm = algorithm_for(class)
+                    .ok_or_else(|| format!("unknown missingness class {class}"))?;
+                if finished.is_empty() {
+                    output.push_str(&format!(
+                        "{},{},{},{},{},{},,,,,,,{:.9},{:.9}\n",
+                        expected.id, size, class, algorithm, 0, exceptions,
+                        contract.oracle_mean, contract.random_mean
+                    ));
+                    continue;
+                }
+
+                let mut returns: Vec<f64> = finished.iter().map(|run| run.mean.expect("finished row has mean")).collect();
+                let median_return = median(&mut returns);
+                let mean_return = finished
+                    .iter()
+                    .map(|run| run.mean.expect("finished row has mean"))
+                    .sum::<f64>() / finished.len() as f64;
+                let minimum_return = finished
+                    .iter()
+                    .map(|run| run.mean.expect("finished row has mean"))
+                    .fold(f64::INFINITY, f64::min);
+                let maximum_return = finished
+                    .iter()
+                    .map(|run| run.mean.expect("finished row has mean"))
+                    .fold(f64::NEG_INFINITY, f64::max);
+                let mean_average_tv = finished.iter().map(|run| run.atv).sum::<f64>() / finished.len() as f64;
+                let mean_worst_tv = finished.iter().map(|run| run.wtv).sum::<f64>() / finished.len() as f64;
+                let normalized = normalized_policy_value(mean_return, contract.oracle_mean, contract.random_mean)
+                    .map_or_else(String::new, |value| format!("{value:.9}"));
+
+                output.push_str(&format!(
+                    "{},{},{},{},{},{},{:.9},{:.9},{:.9},{:.9},{:.9},{:.9},{},{:.9},{:.9}\n",
+                    expected.id,
+                    size,
+                    class,
+                    algorithm,
+                    finished.len(),
+                    exceptions,
+                    mean_return,
+                    median_return,
+                    minimum_return,
+                    maximum_return,
+                    mean_average_tv,
+                    mean_worst_tv,
+                    normalized,
+                    contract.oracle_mean,
+                    contract.random_mean
+                ));
+            }
+        }
+    }
+    Ok(output)
+}
+
 fn main() {
     let path = env::args().nth(1).unwrap_or_else(|| {
         eprintln!("usage: miss-mdp-audit <normalized-upstream-results.tsv>");
@@ -413,6 +531,14 @@ mod tests {
         assert!(run.failure_reason_known);
         assert!(!run.finished);
         assert!(run.mean.is_none());
+    }
+
+    #[test]
+    fn normalized_policy_value_uses_per_experiment_oracle_and_random_anchors() {
+        assert_eq!(normalized_policy_value(-10.0, -10.0, -30.0), Some(1.0));
+        assert_eq!(normalized_policy_value(-30.0, -10.0, -30.0), Some(0.0));
+        assert_eq!(normalized_policy_value(-20.0, -10.0, -30.0), Some(0.5));
+        assert_eq!(normalized_policy_value(-20.0, -20.0, -20.0), None);
     }
 
     #[test]
