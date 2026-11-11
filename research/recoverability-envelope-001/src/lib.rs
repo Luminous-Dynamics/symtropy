@@ -48,7 +48,8 @@ pub struct PairingIdentity {
     pub pair_id: String,
     pub baseline_run_id: String,
     pub world_seed_sha256: String,
-    pub model_checkpoint_sha256: String,
+    pub baseline_checkpoint_sha256: String,
+    pub candidate_checkpoint_sha256: String,
     pub simulator_revision: String,
     pub evaluator_revision: String,
 }
@@ -62,6 +63,7 @@ pub struct RecoveryContract {
     pub min_stable_nominal_ticks: u64,
     pub max_camera_age_us: u64,
     pub max_vehicle_state_age_us: u64,
+    pub max_deadline_miss_ticks_during_fault: u64,
     pub max_fault_concurrency: usize,
 }
 
@@ -129,6 +131,7 @@ pub struct FaultResult {
     pub recovery_latency_ticks: Option<u64>,
     pub fallback_ticks_until_recovery: u64,
     pub degraded_ticks_during_fault: u64,
+    pub deadline_miss_ticks_during_fault: u64,
     pub constraint_violation_ticks: u64,
     pub first_constraint_violation_tick: Option<u64>,
     pub contract_met: bool,
@@ -194,7 +197,8 @@ impl RecoveryEpisode {
 
         for (name, digest) in [
             ("pairing.world_seed_sha256", &self.pairing.world_seed_sha256),
-            ("pairing.model_checkpoint_sha256", &self.pairing.model_checkpoint_sha256),
+            ("pairing.baseline_checkpoint_sha256", &self.pairing.baseline_checkpoint_sha256),
+            ("pairing.candidate_checkpoint_sha256", &self.pairing.candidate_checkpoint_sha256),
         ] {
             if !is_sha256(digest) {
                 errors.push(format!("{name} must be a lowercase SHA-256 digest"));
@@ -433,6 +437,15 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
                 && tick.mode != OperatingMode::Nominal
         })
         .count() as u64;
+    let deadline_miss_ticks_during_fault = episode
+        .trace
+        .iter()
+        .filter(|tick| {
+            tick.tick >= event.onset_tick
+                && tick.tick < event.end_tick_exclusive
+                && tick.inference_duration_us > tick.control_deadline_us
+        })
+        .count() as u64;
 
     let recovery_tick = find_stable_recovery(episode, event);
     let recovery_latency_ticks =
@@ -473,6 +486,9 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
     if constraint_violation_ticks > 0 {
         unmet_conditions.push("constraint_violation_during_fault".to_string());
     }
+    if deadline_miss_ticks_during_fault > episode.contract.max_deadline_miss_ticks_during_fault {
+        unmet_conditions.push("deadline_miss_budget_exceeded".to_string());
+    }
 
     let contract_met = unmet_conditions.is_empty();
     FaultResult {
@@ -495,6 +511,7 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
         recovery_latency_ticks,
         fallback_ticks_until_recovery,
         degraded_ticks_during_fault,
+        deadline_miss_ticks_during_fault,
         constraint_violation_ticks,
         first_constraint_violation_tick,
         contract_met,
@@ -630,7 +647,8 @@ mod tests {
                 pair_id: "paired-merge-seed-001".into(),
                 baseline_run_id: "baseline-run-001".into(),
                 world_seed_sha256: "a".repeat(64),
-                model_checkpoint_sha256: "b".repeat(64),
+                baseline_checkpoint_sha256: "b".repeat(64),
+                candidate_checkpoint_sha256: "c".repeat(64),
                 simulator_revision: "snapshot-backend-v1".into(),
                 evaluator_revision: "recovery-evaluator-v0.1".into(),
             },
@@ -642,11 +660,45 @@ mod tests {
                 min_stable_nominal_ticks: 2,
                 max_camera_age_us: 5_000,
                 max_vehicle_state_age_us: 5_000,
+                max_deadline_miss_ticks_during_fault: 1,
                 max_fault_concurrency: 2,
             },
             fault_events: events,
             trace,
         }
+    }
+
+    #[test]
+    fn checked_in_compound_fault_fixture_parses_and_evaluates() {
+        let input = include_str!("../fixtures/compound-merge-recovery-v1.json");
+        let episode = RecoveryEpisode::from_json(input).unwrap();
+        let report = episode.evaluate().unwrap();
+        assert_eq!(report.expected_ticks, 10);
+        assert_eq!(report.fault_event_count, 2);
+        assert_eq!(report.maximum_concurrent_faults, 2);
+        assert_eq!(report.contract_met_fault_count, 2);
+    }
+
+    #[test]
+    fn checked_in_episode_schema_is_valid_json_and_versioned() {
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/episode-v1.schema.json")).unwrap();
+        assert_eq!(
+            schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(schema["title"], "Recoverability envelope episode v1");
+    }
+
+    #[test]
+    fn deadline_miss_budget_is_explicit_per_fault() {
+        let mut episode = valid_episode();
+        episode.contract.max_deadline_miss_ticks_during_fault = 0;
+        let report = episode.evaluate().unwrap();
+        let delayed = report.results.iter().find(|item| item.fault_id == "inference-delay").unwrap();
+        assert_eq!(delayed.deadline_miss_ticks_during_fault, 1);
+        assert!(!delayed.contract_met);
+        assert!(delayed.unmet_conditions.contains(&"deadline_miss_budget_exceeded".to_string()));
     }
 
     #[test]
@@ -745,6 +797,7 @@ mod tests {
     fn reports_deadline_misses_separately_from_fault_recovery() {
         let report = valid_episode().evaluate().unwrap();
         assert_eq!(report.deadline_miss_ticks, 1);
+        assert_eq!(report.results[1].deadline_miss_ticks_during_fault, 1);
         assert!(report.results.iter().all(|result| result.unmet_conditions.is_empty()));
     }
 
