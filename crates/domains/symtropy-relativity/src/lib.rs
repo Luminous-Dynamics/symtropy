@@ -10,10 +10,12 @@
 //! and a separated Kerr null-geodesic first-integral kernel.
 //!
 //! The Kerr kernel evaluates Carter-separated radial/polar potentials,
-//! asymptotic Bardeen screen constants and Mino-time derivatives. It is not
-//! yet a complete Kerr ray stepper: turning-point event handling, independent
-//! Hamiltonian evolution, Jacobi fields and caustic maps remain separate work.
-//! It does not implement waveform generation or numerical-relativity evolution.
+//! asymptotic Bardeen screen constants, turning-point-regular Mino dynamics,
+//! adaptive separated-ray trajectories in exterior and ingoing charts, and an
+//! independent canonical Hamiltonian trajectory formulation. Horizon-event
+//! localization is reported separately from its interpolation uncertainty.
+//! Ray-bundle/Jacobi transport, observer-to-source shooting, caustic maps,
+//! waveform generation and numerical-relativity evolution remain out of scope.
 //!
 //! Conventions:
 //! - SI units are used at the public API boundary.
@@ -38,8 +40,10 @@ pub mod connection;
 pub mod curvature;
 /// Schwarzschild timelike/null geodesics with Christoffel and Hamiltonian formulations.
 pub mod geodesic;
-/// Separated Kerr null-geodesic potentials, asymptotic screen mapping and Mino derivatives.
+/// Separated Kerr null-geodesic potentials, screen mapping and adaptive Mino trajectories.
 pub mod kerr_geodesic;
+/// Horizon-event localization on accepted Kerr Mino-trajectory segments.
+pub mod kerr_events;
 /// Adaptive canonical Hamiltonian integration of Kerr null trajectories.
 pub mod kerr_integrator;
 /// Kerr equatorial circular-null-orbit and light-ring observables.
