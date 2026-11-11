@@ -62,7 +62,7 @@ Every benchmark receipt must keep separate:
 3. **Prediction:** how well does the model reproduce individual and group trajectories in closed loop?
 4. **Causal influence:** what changes under a controlled intervention versus a matched sham?
 
-A high score on one dimension cannot substitute for evidence on another.
+A high score on one dimension cannot substitute for evidence on another. Visual-sector geometry and directed-visibility recovery are now a separate task track; weak connectivity must not be reported as reciprocal awareness.
 
 ## Paradigm shift: from static graph discovery to intervention-checked mechanism discovery
 
@@ -98,3 +98,20 @@ All numerical targets are proposals for future qualification, not current perfor
 ## Data admission
 
 The machine-readable matrix records each source's data/code status. Until source revisions, file inventories, per-file hashes, environment versions, splits and licensing are pinned, no source reproduction is complete and no cross-method SOTA claim is allowed.
+
+
+## 5. Directional visual perception: a new 2026 baseline
+
+Ramlall, Butail and Roy (2026), *Physical Review E* 113, 064409, DOI [10.1103/bbl5-1yjb](https://doi.org/10.1103/bbl5-1yjb), investigate a restricted visual field offset from a particle's heading. Their reported flipped/rear-facing configuration exhibits near-perfect alignment and clustering at the centre of mass even under high noise. The companion dataset is DOI [10.17632/y8fx3shsvx.1](https://doi.org/10.17632/y8fx3shsvx.1), a MATLAB/scripts-and-data package whose Data Commons page declares CC BY 4.0. File inventory, exact source grids and per-file digests are still pending.
+
+This motivates a separate **DIRECTIONAL_VISUAL_PERCEPTION** task:
+- infer visual offset and half-aperture;
+- recover directed visibility edges and reciprocity;
+- distinguish a weakly connected component from mutual awareness;
+- test forward, side and flipped/rear perception under matched noise/density;
+- measure intervention effects separately from statistical information transfer.
+
+The current Symtropy reference includes `VicsekPerception::VisualSector`, focal-agent-specific out-neighbour counts and explicit directed-edge/reciprocity metrics. Weakly connected components are clearly tagged as a topology projection, not as the directed interaction graph.
+
+**Competitive rule:** do not compare the new Rust control against the paper's plotted outcomes until the public MATLAB package is downloaded, file-hashed, and its exact aperture/offset/noise/density/seed grid is reproduced. The paper's result is a comparator reference, not an OLI result.
+
