@@ -290,8 +290,9 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             let Some(active_impulse) = solve_spd(&active_matrix, &active_rhs) else {
                 continue;
             };
-            if relative_negative_residual(&active_impulse, &active_matrix, &active_rhs)
-                > SOLVE_TOLERANCE
+            let active_dual_residual =
+                relative_negative_residual(&active_impulse, &active_matrix, &active_rhs);
+            if active_dual_residual > SOLVE_TOLERANCE {
                 continue;
             }
             for (active_index, &contact_index) in active_indices.iter().enumerate() {
@@ -314,8 +315,8 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
 
         let primal_residual =
             relative_primal_feasibility(&normal_velocity, &target_velocity, &slack);
-        if relative_negative_residual(&impulse, &delassus, &contact_rhs) > SOLVE_TOLERANCE
-            || primal_residual > SOLVE_TOLERANCE
+        let dual_residual = relative_negative_residual(&impulse, &delassus, &contact_rhs);
+        if dual_residual > SOLVE_TOLERANCE || primal_residual > SOLVE_TOLERANCE
         {
             continue;
         }
@@ -594,7 +595,11 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 /// residual and the absolute coupled impulse contribution divided by W_ii.
 /// This prevents a large impulse at an unrelated contact from masking a
 /// negative impulse at a much smaller contact scale.
-fn relative_negative_residual(values: &[f64], delassus: &Matrix, contact_rhs: &[f64]) -> f64 {
+fn relative_negative_residual(
+    values: &[f64],
+    delassus: &Matrix,
+    contact_rhs: &[f64],
+) -> f64 {
     values
         .iter()
         .enumerate()
@@ -932,7 +937,11 @@ mod tests {
             let scaled_target = target_velocity.map(|value| value * scale);
             let scaled_slack = slack.map(|value| value * scale);
             let observed = (
-                relative_negative_residual(&scaled_impulse, &Matrix::identity(2), &scaled_impulse),
+                relative_negative_residual(
+                &scaled_impulse,
+                &Matrix::identity(2),
+                &scaled_impulse,
+            ),
                 relative_primal_feasibility(&scaled_normal, &scaled_target, &scaled_slack),
                 relative_complementarity_residual(
                     &scaled_impulse,
