@@ -216,10 +216,7 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
         );
     }
     if !is_sha256(&survey_evidence.survey_product_sha256) {
-        return decision(
-            "STALE_OR_INVALID_EVIDENCE",
-            "SURVEY_PRODUCT_DIGEST_INVALID",
-        );
+        return decision("STALE_OR_INVALID_EVIDENCE", "SURVEY_PRODUCT_DIGEST_INVALID");
     }
     match survey_evidence.survey_product_status {
         EvidenceStatus::Qualified => {}
@@ -285,11 +282,9 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
     }
 
     match survey_evidence.registration_stability {
-        RegistrationStabilityStatus::Stable => match survey_evidence
-            .registration_stability_receipt
-            .status
-        {
-            EvidenceStatus::Qualified => {
+        RegistrationStabilityStatus::Stable => {
+            match survey_evidence.registration_stability_receipt.status {
+                EvidenceStatus::Qualified => {
                 if !survey_evidence
                     .registration_stability_receipt
                     .receipt_sha256
@@ -302,19 +297,20 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
                     );
                 }
             }
-            EvidenceStatus::Unresolved => {
-                return decision(
-                    "REQUEST_ADDITIONAL_OBSERVATION",
-                    "REGISTRATION_STABILITY_UNRESOLVED",
-                );
+                EvidenceStatus::Unresolved => {
+                    return decision(
+                        "REQUEST_ADDITIONAL_OBSERVATION",
+                        "REGISTRATION_STABILITY_UNRESOLVED",
+                    );
+                }
+                EvidenceStatus::Invalid => {
+                    return decision(
+                        "STALE_OR_INVALID_EVIDENCE",
+                        "REGISTRATION_STABILITY_EVIDENCE_INVALID",
+                    );
+                }
             }
-            EvidenceStatus::Invalid => {
-                return decision(
-                    "STALE_OR_INVALID_EVIDENCE",
-                    "REGISTRATION_STABILITY_EVIDENCE_INVALID",
-                );
-            }
-        },
+        }
         RegistrationStabilityStatus::DriftSuspected => {
             return decision(
                 "REQUEST_ADDITIONAL_OBSERVATION",
@@ -732,7 +728,10 @@ mod tests {
     fn nuisance_evidence_does_not_invent_change_in_no_change_world() {
         let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
         for (case_id, reason) in [
-            ("SB-038", "REGISTRATION_DRIFT_OR_COMMON_MODE_SHIFT_UNRESOLVED"),
+            (
+                "SB-038",
+                "REGISTRATION_DRIFT_OR_COMMON_MODE_SHIFT_UNRESOLVED",
+            ),
             ("SB-039", "SURVEY_CHANGE_ESTIMATE_UNRESOLVED"),
             ("SB-040", "INDEPENDENT_CHECKPOINT_EVIDENCE_UNRESOLVED"),
         ] {
@@ -902,7 +901,10 @@ mod tests {
             .find(|item| item.case_id == "SB-029")
             .expect("survey scope mismatch fixture");
         assert_eq!(evaluate(case).0, "STALE_OR_INVALID_EVIDENCE");
-        assert_eq!(evaluate(case).1, vec!["SURVEY_EVIDENCE_SCOPE_MISMATCH".to_owned()]);
+        assert_eq!(
+            evaluate(case).1,
+            vec!["SURVEY_EVIDENCE_SCOPE_MISMATCH".to_owned()]
+        );
     }
 
     #[test]
@@ -913,14 +915,20 @@ mod tests {
             .iter()
             .find(|item| item.case_id == "SB-031")
             .expect("missing change receipt fixture");
-        assert_eq!(evaluate(change).1, vec!["CHANGE_ESTIMATE_RECEIPT_MISSING_OR_INVALID".to_owned()]);
+        assert_eq!(
+            evaluate(change).1,
+            vec!["CHANGE_ESTIMATE_RECEIPT_MISSING_OR_INVALID".to_owned()]
+        );
 
         let registration = corpus
             .cases
             .iter()
             .find(|item| item.case_id == "SB-032")
             .expect("missing registration receipt fixture");
-        assert_eq!(evaluate(registration).1, vec!["REGISTRATION_STABILITY_RECEIPT_MISSING_OR_INVALID".to_owned()]);
+        assert_eq!(
+            evaluate(registration).1,
+            vec!["REGISTRATION_STABILITY_RECEIPT_MISSING_OR_INVALID".to_owned()]
+        );
     }
 
     #[test]
