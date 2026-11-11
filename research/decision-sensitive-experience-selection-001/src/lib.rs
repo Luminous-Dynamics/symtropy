@@ -866,6 +866,9 @@ mod tests {
         let mut item = candidate("bad-metric");
         item.prediction_error_ppm = Some(1_000_001);
         let receipt = select(&[item], Strategy::PredictionError, config()).unwrap();
-        assert_eq!(receipt.rejected_candidates[0].reason, RejectionReason::MetricOutOfRange);
+        assert_eq!(
+            receipt.rejected_candidates[0].reason,
+            RejectionReason::MetricOutOfRange
+        );
     }
 }
