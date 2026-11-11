@@ -432,7 +432,21 @@
     "graph": "At least 90% edge-direction recovery on held-out asymmetric known-truth systems at a preregistered sampling envelope.",
     "null_control": "Zero false causal edges on at least 299 independent common-driver/no-coupling systems to target a one-sided 95% exact upper false-positive bound below 1%.",
     "adequacy": "Zero false model-adequacy passes on the public omitted-mechanism negative controls.",
-    "abstention": "Report risk-coverage curves and prefer abstention over high-confidence geometry/edge claims under topology mismatch or inadequate cadence."
+    "abstention": "Report risk-coverage curves and prefer abstention over high-confidence geometry/edge claims under topology mismatch or inadequate cadence.",
+    "collective_search_resource_efficiency": {
+      "baseline": "SCM_NITTI_2025",
+      "target": "At matched success probability and safety envelope, reduce total sensor/function evaluations or energy-distance cost by >=20% on at least two reproduced benchmark strata; alternatively increase success probability by >=5 percentage points at equal total cost.",
+      "status": "PROPOSED_NOT_ACHIEVED"
+    },
+    "dynamic_target_tracking": {
+      "baseline": "SCM_NITTI_2025",
+      "target": "Reduce median peak-relocalization lag by >=20% on matched moving-peak/advection cases without increasing mission abort rate.",
+      "status": "PROPOSED_NOT_ACHIEVED"
+    },
+    "communication_resilience": {
+      "target": "Maintain registered success probability under explicit bandwidth, latency, packet-loss and intermittent-contact sweeps; report the break point and communication cost.",
+      "status": "PROPOSED_NOT_ACHIEVED"
+    }
   },
   "source_admission": {
     "IGIC": "File inventory, exact seeds/splits, per-file hashes and rights must be verified.",
@@ -440,7 +454,7 @@
     "GDP": "Pin GitHub commit, datasets and environment, then reproduce under-sampling cases.",
     "PR_GNN": "Inspect supplementary PDF and contact authors for code/data where not stated; respect CC BY-NC-ND article licence and third-party data rights.",
     "VISUAL_FIELD_OFFSET_RAMLALL_2026": "Acquire dataset DOI 10.17632/y8fx3shsvx.1, enumerate files, pin MATLAB versions/scripts and per-file hashes, verify data rights and reproduce exact source offset/aperture/noise/density/seed conditions before any SOTA claim.",
-    "SCM_NITTI_2025": "GitHub source commit and file blob identifiers pinned in the machine-readable profile; Zenodo v1.0 archive metadata pinned. Source license/redistribution permission is unresolved; no code was copied. Paper reports 22/33 low-dimensional M<=16 success-rate parity/wins with about 10x more function evaluations. The AUV result is simulated and remains a computational proof of concept."
+    "SCM_NITTI_2025": "Source commit, key file blob SHAs and Zenodo v1.0 archive digest pinned. No code copied. MATLAB software licence not visible in GitHub or inspected Zenodo rights; permission must be resolved before redistribution. Paper HTML and repository sine-kernel scaling differ, and MATLAB consensus-window indexing differs from the continuous paper definition. Independent Rust reference exposes both variants; no source-faithful reproduction is complete."
   },
   "results": {
     "baseline_reproductions_completed": [],
