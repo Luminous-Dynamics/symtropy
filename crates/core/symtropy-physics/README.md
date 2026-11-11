@@ -89,6 +89,15 @@ The crate now exposes an independent 3D angular-momentum and mass-property refer
 See [`ASYMMETRIC_TOP_VALIDATION.md`](ASYMMETRIC_TOP_VALIDATION.md), [`MASS_PROPERTIES_3D_VALIDATION.md`](MASS_PROPERTIES_3D_VALIDATION.md), and [`COMPOUND_INERTIA_3D_VALIDATION.md`](COMPOUND_INERTIA_3D_VALIDATION.md) for equations, deterministic gates, negative controls, and promotion criteria.
 
 
+### N-dimensional bivector inertia reference
+
+`BivectorInertia<D>` is an independent reference for full rotational inertia on `Lambda^2(R^D)`, based on the centered second-moment matrix and `I(B) = B*S + S*B`. It supports the `Bivector` dimension limit `2 <= D <= 9`, provides a plane-wise inverse using the principal eigensystem of `S`, and includes Rotor-consistent gyroscopic and rotational contact-effective-mass operations.
+
+The reference uses the same convention as the production sign audit: `Rotor::from_bivector(B) = exp(-B)`, physical point velocity `-B*r`, and offset-first angular impulse `r wedge j`. It has tests for cross-plane coupling, world/body covariance, contact effective-mass covariance, torque balance and all 36 rotation planes at D=9.
+
+**Boundary:** it is not connected to production `RigidBody` or `PhysicsWorld`; it does not make the live contact solver anisotropic. See [`BIVECTOR_INERTIA_ND_VALIDATION.md`](BIVECTOR_INERTIA_ND_VALIDATION.md) for the exact equations, admissibility rules, tests, and promotion boundary.
+
+
 ## PhysicsCallback — Custom Force Modulation
 
 ```rust
