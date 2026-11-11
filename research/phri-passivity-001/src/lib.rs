@@ -657,6 +657,8 @@ pub fn diagonal_virtual_parameter_storage_delta(
     relative_velocity: [f64; 6],
 ) -> Result<VirtualParameterStorageDelta, VirtualImpedanceError> {
     let mut delta = 0.0_f64;
+    let mut required_energy_debit_j = 0.0_f64;
+    let mut uncredited_storage_release_j = 0.0_f64;
     for (((((old_mass, new_mass), old_stiffness), new_stiffness), e), velocity) in old.virtual_inertia.iter()
         .zip(new.virtual_inertia.iter())
         .zip(old.stiffness.iter())
@@ -688,18 +690,23 @@ pub fn diagonal_virtual_parameter_storage_delta(
             return Err(VirtualImpedanceError::NegativeStiffness);
         }
 
-        let inertia_term = (new_mass - old_mass) * velocity * velocity;
-        let stiffness_term = (new_stiffness - old_stiffness) * e * e;
-        delta += 0.5 * (inertia_term + stiffness_term);
-        if !delta.is_finite() {
+        let inertia_term = 0.5 * (new_mass - old_mass) * velocity * velocity;
+        let stiffness_term = 0.5 * (new_stiffness - old_stiffness) * e * e;
+        delta += inertia_term + stiffness_term;
+        required_energy_debit_j += inertia_term.max(0.0) + stiffness_term.max(0.0);
+        uncredited_storage_release_j += (-inertia_term).max(0.0) + (-stiffness_term).max(0.0);
+        if !delta.is_finite()
+            || !required_energy_debit_j.is_finite()
+            || !uncredited_storage_release_j.is_finite()
+        {
             return Err(VirtualImpedanceError::ArithmeticOverflow);
         }
     }
 
     Ok(VirtualParameterStorageDelta {
         delta_storage_j: delta,
-        required_energy_debit_j: delta.max(0.0),
-        uncredited_storage_release_j: (-delta).max(0.0),
+        required_energy_debit_j,
+        uncredited_storage_release_j,
     })
 }
 
@@ -826,6 +833,48 @@ mod tests {
         let expected = 0.5 * (1.0 * 9.0 + 200.0 * 0.25);
         assert!((result.delta_storage_j - expected).abs() < 1.0e-12);
         assert!((result.required_energy_debit_j - expected).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn positive_parameter_storage_increase_is_not_funded_by_another_axis_release() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [200.0, 100.0, 100.0, 100.0, 100.0, 100.0],
+        };
+        let mut new = old;
+        new.stiffness[0] = 100.0;
+        new.stiffness[1] = 200.0;
+        let result = diagonal_virtual_parameter_storage_delta(
+            old,
+            new,
+            [0.5, 0.5, 0.0, 0.0, 0.0, 0.0],
+            [0.0; 6],
+        )
+        .unwrap();
+
+        assert!(result.delta_storage_j.abs() < 1.0e-12);
+        assert!((result.required_energy_debit_j - 12.5).abs() < 1.0e-12);
+        assert!((result.uncredited_storage_release_j - 12.5).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn parameter_projection_rejects_overflowing_energy_coefficients() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [100.0; 6],
+        };
+        assert_eq!(
+            project_diagonal_virtual_parameter_update(update_request(
+                old,
+                [0.0; 12],
+                [0.0; 12],
+                [1.0; 12],
+                [f64::MAX, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0; 6],
+                1.0,
+            )),
+            Err(VirtualImpedanceError::ArithmeticOverflow)
+        );
     }
 
     #[test]
