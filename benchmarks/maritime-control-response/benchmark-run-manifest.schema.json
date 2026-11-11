@@ -368,11 +368,16 @@
             "selected_candidate_id",
             "execution_performed",
             "actuation_authorized",
-            "controlled_perturbations_recommended"
+            "controlled_perturbations_recommended",
+            "likelihood_scenario_manifest_sha256",
+            "likelihood_scenario_count",
+            "expected_information_gain_nats",
+            "worst_case_information_gain_nats",
+            "epistemic_robustness_qualified"
           ],
           "properties": {
             "schema_version": {
-              "const": "liu-ice-active-evidence-selection-v0.1"
+              "const": "liu-ice-active-evidence-selection-v0.2"
             },
             "status": {
               "enum": [
@@ -455,6 +460,38 @@
             },
             "controlled_perturbations_recommended": {
               "const": 0
+            },
+            "likelihood_scenario_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "likelihood_scenario_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "expected_information_gain_nats": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "worst_case_information_gain_nats": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "epistemic_robustness_qualified": {
+              "type": "boolean"
             }
           }
         }
@@ -624,6 +661,20 @@
         },
         "controlled_perturbations_recommended": {
           "const": 0
+        },
+        "worst_case_expected_information_gain_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "likelihood_scenario_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "epistemic_robustness_qualified": {
+          "type": "boolean"
         }
       }
     },
@@ -769,6 +820,18 @@
                   },
                   "controlled_perturbations_recommended": {
                     "const": 0
+                  },
+                  "epistemic_robustness_qualified": {
+                    "const": false
+                  },
+                  "likelihood_scenario_count": {
+                    "const": 0
+                  },
+                  "expected_information_gain_nats": {
+                    "type": "null"
+                  },
+                  "worst_case_information_gain_nats": {
+                    "type": "null"
                   }
                 }
               }
@@ -838,6 +901,31 @@
               "independent_test_recordings": {
                 "type": "integer",
                 "minimum": 5
+              },
+              "active_evidence_selection": {
+                "properties": {
+                  "status": {
+                    "const": "evaluated_decision_support"
+                  },
+                  "likelihood_scenario_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "likelihood_scenario_count": {
+                    "minimum": 2
+                  },
+                  "epistemic_robustness_qualified": {
+                    "const": true
+                  },
+                  "execution_performed": {
+                    "const": false
+                  },
+                  "actuation_authorized": {
+                    "const": false
+                  },
+                  "controlled_perturbations_recommended": {
+                    "const": 0
+                  }
+                }
               }
             }
           }
