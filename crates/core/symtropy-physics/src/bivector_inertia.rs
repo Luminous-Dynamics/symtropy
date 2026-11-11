@@ -1090,6 +1090,60 @@ mod tests {
     }
 
     #[test]
+    fn contact_impulse_matches_independent_three_dimensional_tensor_solve() {
+        // Independent route: form the conventional spatial tensor
+        // I = tr(S) 1 - S, solve I*omega = r x n, then evaluate omega x r.
+        let second_moment = SMatrix::<f64, 3, 3>::new(
+            2.0, 0.25, -0.1,
+            0.25, 1.5, 0.15,
+            -0.1, 0.15, 0.9,
+        );
+        let operator = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
+        let tensor = SMatrix::<f64, 3, 3>::identity() * second_moment.trace() - second_moment;
+
+        for sample in 1..=32 {
+            let k = sample as f64;
+            let offset = SVector::new(0.2 + 0.07 * k, (0.31 * k).sin(), (0.17 * k).cos());
+            let direction =
+                SVector::new((0.71 * k).sin(), (0.37 * k).cos(), 0.5 + (0.13 * k).sin())
+                    .normalize();
+            let angular_impulse = Bivector::from_wedge(&offset, &direction);
+            let angular_response = operator
+                .angular_velocity_from_momentum(&angular_impulse, 1.0e-12)
+                .unwrap();
+            let omega_from_bivector = SVector::from([
+                angular_response.get(1, 2),
+                -angular_response.get(0, 2),
+                angular_response.get(0, 1),
+            ]);
+            let torque = offset.cross(&direction);
+            let omega_from_tensor = tensor
+                .lu()
+                .solve(&torque)
+                .expect("positive-definite spatial inertia");
+            let point_velocity_from_bivector = -angular_response.apply_to_vector(&offset);
+            let point_velocity_from_tensor = omega_from_tensor.cross(&offset);
+            let observed_effective_mass = operator
+                .rotational_inverse_effective_mass(&offset, &direction, 1.0e-12)
+                .unwrap();
+            let expected_effective_mass = direction.dot(&point_velocity_from_tensor);
+
+            assert!(
+                (omega_from_bivector - omega_from_tensor).norm() < 2.0e-11,
+                "angular-velocity mismatch for sample {sample}"
+            );
+            assert!(
+                (point_velocity_from_bivector - point_velocity_from_tensor).norm() < 2.0e-11,
+                "point-velocity mismatch for sample {sample}"
+            );
+            assert!(
+                (observed_effective_mass - expected_effective_mass).abs() < 2.0e-11,
+                "effective-mass mismatch for sample {sample}: observed={observed_effective_mass:e}, expected={expected_effective_mass:e}"
+            );
+        }
+    }
+
+    #[test]
     fn rotational_inverse_effective_mass_is_covariant_under_global_rotation() {
         let body_inertia =
             BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
