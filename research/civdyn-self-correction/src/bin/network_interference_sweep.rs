@@ -3,9 +3,9 @@
 
 use civdyn_self_correction::network_adequacy::UndirectedNetwork;
 use civdyn_self_correction::network_interference::{
-    assess_contrast_support, assess_exposure_mapping, enumerate_two_stage_saturation_design,
-    target_effect_bounds_over_completions, ClusteredNetwork, ExposureMapping,
-    InterferenceMechanism,
+    ClusteredNetwork, ExposureMapping, InterferenceMechanism, assess_contrast_support,
+    assess_exposure_mapping, enumerate_two_stage_saturation_design,
+    target_effect_bounds_over_completions,
 };
 use std::error::Error;
 
@@ -38,16 +38,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         "record_type,candidate,mapping_id,assignment_count,probability_mass,exposure_cell_count,nonconstant_exposure_cells,maximum_within_cell_outcome_range,mean_within_cell_outcome_range,direct_effect_truth,within_spillover_truth,between_spillover_truth,direct_supported_units,within_supported_units,between_supported_units,completion_count,target_unit,effect_lower,effect_upper,point_identified,source_id,network_id,design_id,split_id"
     );
 
-    let graph =
-        UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 2), (1, 3)])?;
+    let graph = UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 2), (1, 3)])?;
     let clustered = ClusteredNetwork::new(graph, vec![0, 0, 1, 1])?;
     let assignments = enumerate_two_stage_saturation_design(&clustered)?;
     let probability_mass: f64 = assignments
         .iter()
         .map(|assignment| assignment.probability)
         .sum();
-    let mechanism =
-        InterferenceMechanism::new(vec![0.0; 4], 0.4, 0.2, 0.6)?;
+    let mechanism = InterferenceMechanism::new(vec![0.0; 4], 0.4, 0.2, 0.6)?;
     let support = assess_contrast_support(&clustered, &assignments)?;
 
     let mappings = [
@@ -66,8 +64,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ];
 
     for mapping in &mappings {
-        let summary =
-            assess_exposure_mapping(&clustered, &assignments, &mechanism, mapping)?;
+        let summary = assess_exposure_mapping(&clustered, &assignments, &mechanism, mapping)?;
         emit(&[
             "exposure_mapping".to_string(),
             mapping.id(),
@@ -92,9 +89,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     .between_cluster_spillover_per_treated_neighbor
             ),
             support.direct_supported_units.to_string(),
-            support
-                .within_cluster_spillover_supported_units
-                .to_string(),
+            support.within_cluster_spillover_supported_units.to_string(),
             support
                 .between_cluster_spillover_supported_units
                 .to_string(),
@@ -110,12 +105,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         ]);
     }
 
-    let observed_partial =
-        UndirectedNetwork::new(4, [(0, 1), (2, 3)])?;
-    let completion_a =
-        UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 2), (1, 3)])?;
-    let completion_b =
-        UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 3), (1, 2)])?;
+    let observed_partial = UndirectedNetwork::new(4, [(0, 1), (2, 3)])?;
+    let completion_a = UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 2), (1, 3)])?;
+    let completion_b = UndirectedNetwork::new(4, [(0, 1), (2, 3), (0, 3), (1, 2)])?;
     let bounds = target_effect_bounds_over_completions(
         &observed_partial,
         &[completion_a, completion_b],
@@ -149,9 +141,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .between_cluster_spillover_per_treated_neighbor
         ),
         support.direct_supported_units.to_string(),
-        support
-            .within_cluster_spillover_supported_units
-            .to_string(),
+        support.within_cluster_spillover_supported_units.to_string(),
         support
             .between_cluster_spillover_supported_units
             .to_string(),
