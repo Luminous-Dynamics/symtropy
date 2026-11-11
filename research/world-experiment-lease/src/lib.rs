@@ -11,6 +11,7 @@ pub const SCHEMA_VERSION: u32 = 1;
 const CLAIM_CEILING: &str =
     "finite-read-only-lease-conformance-only;upstream-receipts-referenced-not-authenticated;no-physical-truth-or-actuation-authority";
 const HASH_DOMAIN: &[u8] = b"symtropy-read-only-experiment-lease-v1\0";
+const USAGE_HASH_DOMAIN: &[u8] = b"symtropy-read-only-usage-snapshot-v1\0";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -102,6 +103,8 @@ pub struct LeaseReceiptV1 {
 #[serde(deny_unknown_fields)]
 pub struct UsageSnapshotV1 {
     pub lease_sha256: String,
+    /// Digest of the immediately preceding accepted usage snapshot; absent only at sequence 1.
+    pub previous_usage_sha256: Option<String>,
     pub run_id: String,
     pub simulation_state_sha256: String,
     pub event_order_sha256: String,
@@ -151,8 +154,17 @@ pub enum StopReason {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "outcome", rename_all = "snake_case")]
 pub enum UsageDecision {
-    Continue { lease_sha256: String, sequence: u64 },
-    Stop { reason: StopReason },
+    Continue {
+        lease_sha256: String,
+        sequence: u64,
+        usage_sha256: String,
+    },
+    Stop {
+        lease_sha256: String,
+        sequence: u64,
+        usage_sha256: String,
+        reason: StopReason,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -178,6 +190,7 @@ pub enum LeaseError {
     DuplicateUsageView(String),
     InvalidUsageCounters,
     NonMonotonicUsage,
+    UsageChainMismatch,
     InconsistentUsageTotals,
     PreviousSnapshotStopped,
 }
@@ -384,6 +397,9 @@ fn validate_usage_shape(
     if usage.sequence == 0 {
         return Err(LeaseError::InvalidUsageCounters);
     }
+    if let Some(previous) = usage.previous_usage_sha256.as_deref() {
+        require_sha(previous, "previous_usage_sha256")?;
+    }
 
     let allowed: BTreeMap<&str, &ViewAdmissionRef> = lease
         .views
@@ -437,6 +453,20 @@ fn validate_usage_shape(
     }
 
     Ok(())
+}
+
+/// Return a canonical, domain-separated digest for one cumulative usage snapshot.
+/// View records are treated as a set and sorted by `view_id` before hashing.
+/// This digest links adjacent records; it is not a signature or authenticated storage.
+pub fn usage_snapshot_sha256(usage: &UsageSnapshotV1) -> Result<String, LeaseError> {
+    let mut canonical = usage.clone();
+    canonical.views.sort_by(|left, right| left.view_id.cmp(&right.view_id));
+    let bytes = serde_json::to_vec(&canonical)
+        .map_err(|error| LeaseError::Serialization(error.to_string()))?;
+    let mut material = Vec::with_capacity(USAGE_HASH_DOMAIN.len() + bytes.len());
+    material.extend_from_slice(USAGE_HASH_DOMAIN);
+    material.extend_from_slice(&bytes);
+    Ok(sha256_hex(&material))
 }
 
 fn usage_stop_reason(
@@ -517,7 +547,11 @@ pub fn evaluate_usage(
         if previous.physical_mutation_attempted || usage_stop_reason(lease, previous)?.is_some() {
             return Err(LeaseError::PreviousSnapshotStopped);
         }
-        if current.sequence != previous.sequence.checked_add(1).ok_or(LeaseError::CounterOverflow)?
+        if current.sequence
+            != previous
+                .sequence
+                .checked_add(1)
+                .ok_or(LeaseError::CounterOverflow)?
             || current.view_event_count < previous.view_event_count
             || current.rendered_frames_total < previous.rendered_frames_total
             || current.peak_system_memory_bytes < previous.peak_system_memory_bytes
@@ -540,24 +574,40 @@ pub fn evaluate_usage(
                 return Err(LeaseError::NonMonotonicUsage);
             }
         }
-    } else if current.sequence != 1 {
-        return Err(LeaseError::NonMonotonicUsage);
+
+        let expected_parent = usage_snapshot_sha256(previous)?;
+        if current.previous_usage_sha256.as_deref() != Some(expected_parent.as_str()) {
+            return Err(LeaseError::UsageChainMismatch);
+        }
+    } else if current.sequence != 1 || current.previous_usage_sha256.is_some() {
+        return Err(LeaseError::UsageChainMismatch);
     }
 
+    let usage_sha256 = usage_snapshot_sha256(current)?;
     if current.physical_mutation_attempted {
         return Ok(UsageDecision::Stop {
+            lease_sha256: lease.lease_sha256.clone(),
+            sequence: current.sequence,
+            usage_sha256,
             reason: StopReason::PhysicalMutationAttempted,
         });
     }
     if let Some(reason) = usage_stop_reason(lease, current)? {
-        return Ok(UsageDecision::Stop { reason });
+        return Ok(UsageDecision::Stop {
+            lease_sha256: lease.lease_sha256.clone(),
+            sequence: current.sequence,
+            usage_sha256,
+            reason,
+        });
     }
 
     Ok(UsageDecision::Continue {
         lease_sha256: lease.lease_sha256.clone(),
         sequence: current.sequence,
+        usage_sha256,
     })
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -580,6 +630,7 @@ mod tests {
             observation_frame_sha256: lease.experiment.observation_frame_sha256.clone(),
             simulation_tick: lease.experiment.simulation_tick,
             sequence: 1,
+            previous_usage_sha256: None,
             view_event_count: 1,
             rendered_frames_total: 120,
             peak_system_memory_bytes: 1_200_000_000,
@@ -668,10 +719,10 @@ mod tests {
         let mut usage = valid_usage(&lease);
         usage.gpu_energy_uj_total = Some(lease.budget.max_gpu_energy_uj_total.unwrap() + 1);
         usage.gpu_energy_receipt_sha256 = Some("c".repeat(64));
-        assert_eq!(
-            evaluate_usage(&lease, &usage, None).expect("energy cap stops"),
-            UsageDecision::Stop { reason: StopReason::GpuEnergyBudgetExceeded }
-        );
+        assert!(matches!(
+            evaluate_usage(&lease, &usage, None),
+            Ok(UsageDecision::Stop { reason: StopReason::GpuEnergyBudgetExceeded, .. })
+        ));
     }
 
     #[test]
@@ -737,10 +788,10 @@ mod tests {
         let lease = compile_fixture();
         let mut usage = valid_usage(&lease);
         usage.physical_mutation_attempted = true;
-        assert_eq!(
-            evaluate_usage(&lease, &usage, None).expect("scoped mutation attempt"),
-            UsageDecision::Stop { reason: StopReason::PhysicalMutationAttempted }
-        );
+        assert!(matches!(
+            evaluate_usage(&lease, &usage, None),
+            Ok(UsageDecision::Stop { reason: StopReason::PhysicalMutationAttempted, .. })
+        ));
     }
 
     #[test]
@@ -749,10 +800,10 @@ mod tests {
         let mut usage = valid_usage(&lease);
         usage.gpu_energy_uj_total = None;
         usage.gpu_energy_receipt_sha256 = None;
-        assert_eq!(
-            evaluate_usage(&lease, &usage, None).expect("missing telemetry stops"),
-            UsageDecision::Stop { reason: StopReason::RequiredEnergyMissing }
-        );
+        assert!(matches!(
+            evaluate_usage(&lease, &usage, None),
+            Ok(UsageDecision::Stop { reason: StopReason::RequiredEnergyMissing, .. })
+        ));
     }
 
     #[test]
@@ -762,10 +813,10 @@ mod tests {
         usage.rendered_frames_total = lease.budget.max_rendered_frames + 1;
         usage.views[0].rendered_frames = usage.rendered_frames_total;
         // The independent lease-wide energy sample remains below its cap.
-        assert_eq!(
-            evaluate_usage(&lease, &usage, None).expect("frame budget stops"),
-            UsageDecision::Stop { reason: StopReason::RenderedFrameBudgetExceeded }
-        );
+        assert!(matches!(
+            evaluate_usage(&lease, &usage, None),
+            Ok(UsageDecision::Stop { reason: StopReason::RenderedFrameBudgetExceeded, .. })
+        ));
     }
 
     #[test]
@@ -787,6 +838,72 @@ mod tests {
         assert_eq!(
             evaluate_usage(&lease, &usage, None).unwrap_err(),
             LeaseError::UnknownView("unadmitted-view".to_string())
+        );
+    }
+
+    #[test]
+    fn usage_chain_links_adjacent_cumulative_snapshots() {
+        let lease = compile_fixture();
+        let first = valid_usage(&lease);
+        let first_receipt = evaluate_usage(&lease, &first, None).expect("first snapshot accepted");
+        let first_digest = match first_receipt {
+            UsageDecision::Continue { usage_sha256, .. } => usage_sha256,
+            other => panic!("unexpected first-snapshot decision: {other:?}"),
+        };
+
+        let mut second = first.clone();
+        second.sequence = 2;
+        second.previous_usage_sha256 = Some(first_digest);
+        second.view_event_count = 2;
+        second.rendered_frames_total += 30;
+        second.views[0].view_events = 2;
+        second.views[0].rendered_frames += 30;
+        second.gpu_energy_uj_total = Some(second.gpu_energy_uj_total.unwrap() + 10);
+        second.gpu_energy_receipt_sha256 = Some("c".repeat(64));
+        assert!(matches!(
+            evaluate_usage(&lease, &second, Some(&first)),
+            Ok(UsageDecision::Continue { sequence: 2, .. })
+        ));
+    }
+
+    #[test]
+    fn usage_chain_rejects_a_spliced_or_wrong_parent() {
+        let lease = compile_fixture();
+        let first = valid_usage(&lease);
+        let mut second = first.clone();
+        second.sequence = 2;
+        second.previous_usage_sha256 = Some("f".repeat(64));
+        second.view_event_count = 2;
+        second.rendered_frames_total += 30;
+        second.views[0].view_events = 2;
+        second.views[0].rendered_frames += 30;
+        second.gpu_energy_uj_total = Some(second.gpu_energy_uj_total.unwrap() + 10);
+        second.gpu_energy_receipt_sha256 = Some("c".repeat(64));
+        assert_eq!(
+            evaluate_usage(&lease, &second, Some(&first)).unwrap_err(),
+            LeaseError::UsageChainMismatch
+        );
+    }
+
+    #[test]
+    fn usage_digest_is_invariant_to_view_record_order() {
+        let mut usage = valid_usage(&compile_fixture());
+        usage.views.push(ViewUsageV1 {
+            view_id: "accessibility-inspection".to_string(),
+            view_events: 1,
+            rendered_frames: 120,
+            p95_frame_time_us: 15_000,
+            p99_frame_time_us: 20_000,
+            peak_vram_bytes: 3_000_000_000,
+            measurement_receipt_sha256: "c".repeat(64),
+        });
+        usage.view_event_count = 2;
+        usage.rendered_frames_total = 240;
+        let digest = usage_snapshot_sha256(&usage).expect("canonical usage digest");
+        usage.views.reverse();
+        assert_eq!(
+            digest,
+            usage_snapshot_sha256(&usage).expect("permuted usage digest")
         );
     }
 
