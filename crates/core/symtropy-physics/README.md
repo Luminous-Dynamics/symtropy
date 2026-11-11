@@ -76,6 +76,19 @@ for the transformed-geometry contract, limitations, and external campaign. Publi
 research claims should follow that protocol and explicitly distinguish proven,
 experimental, and planned capabilities.
 
+## Checked 3D anisotropic reference (not production stepping)
+
+The crate now exposes an independent 3D angular-momentum and mass-property reference for validating the future anisotropic production migration:
+
+- `PrincipalInertia3` and `angular_dynamics`: body-frame principal moments, explicit world angular momentum, Rotor-consistent bivector/axial-vector mapping, point velocity, checked angular impulse and a momentum-based reference step.
+- `MassProperties3`: checked uniform-density solid sphere, cuboid, and capsule principal moments, including representability checks on derived inertia.
+- `CompoundMassProperties3`: deterministic, stable-ID-ordered full 3×3 inertia composition using rotated child tensors and the parallel-axis theorem, with symmetry and positive-definiteness validation.
+
+**Important boundary:** these APIs are reference/evidence code. `RigidBody<3>` and `PhysicsWorld<3>` still use the legacy scalar-mean rotational approximation in the production integrator/contact path. The reference does not make production contact response anisotropic, and the existing `merge_toolhead()` remains a compatibility approximation.
+
+See [`ASYMMETRIC_TOP_VALIDATION.md`](ASYMMETRIC_TOP_VALIDATION.md), [`MASS_PROPERTIES_3D_VALIDATION.md`](MASS_PROPERTIES_3D_VALIDATION.md), and [`COMPOUND_INERTIA_3D_VALIDATION.md`](COMPOUND_INERTIA_3D_VALIDATION.md) for equations, deterministic gates, negative controls, and promotion criteria.
+
+
 ## PhysicsCallback — Custom Force Modulation
 
 ```rust
