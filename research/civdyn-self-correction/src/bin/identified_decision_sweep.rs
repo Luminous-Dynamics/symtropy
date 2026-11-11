@@ -130,6 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "risk_difference",
             UtilityDirection::Maximize,
             &partial,
+            "sha256-maintenance-transport-result",
         )?,
         PolicyUtilityBounds::from_causal_transport(
             "infrastructure",
@@ -137,6 +138,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "risk_difference",
             UtilityDirection::Maximize,
             &identified,
+            "sha256-infrastructure-transport-result",
         )?,
     ];
 
