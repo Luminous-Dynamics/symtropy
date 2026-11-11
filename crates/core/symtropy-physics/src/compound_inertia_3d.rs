@@ -16,17 +16,32 @@ use crate::mass_properties_3d::MassProperties3;
 
 const ROTATION_VALIDITY_TOLERANCE: f64 = 1.0e-8;
 
-/// Average symmetric entries without overflowing equal large values or
-/// erasing equal subnormal values by halving each operand first.
+/// Average symmetric entries without overflowing or erasing a nonzero
+/// average that lies below the smallest representable `f64`.
 #[inline]
-fn symmetric_average(left: f64, right: f64) -> f64 {
-    if left == right {
-        left
-    } else if left.is_sign_positive() == right.is_sign_positive() {
-        left + (right - left) * 0.5
-    } else {
-        left * 0.5 + right * 0.5
+fn symmetric_average(left: f64, right: f64) -> Result<f64, CompoundInertia3Error> {
+    if !left.is_finite() || !right.is_finite() {
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
     }
+    if left == right {
+        return Ok(left);
+    }
+    let scale = left.abs().max(right.abs());
+    if scale == 0.0 {
+        return Ok(0.0);
+    }
+    let normalized = 0.5 * (left / scale) + 0.5 * (right / scale);
+    if normalized == 0.0 {
+        if left == -right {
+            return Ok(0.0);
+        }
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    let average = normalized * scale;
+    if !average.is_finite() || average == 0.0 {
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    Ok(average)
 }
 
 /// One child contribution to a compound body.
@@ -162,7 +177,7 @@ impl CompoundMassProperties3 {
         // Remove only roundoff-scale antisymmetry introduced by matrix products.
         for row in 0..3 {
             for col in (row + 1)..3 {
-                let average = symmetric_average(tensor[(row, col)], tensor[(col, row)]);
+                let average = symmetric_average(tensor[(row, col)], tensor[(col, row)])?;
                 if !average.is_finite() {
                     return Err(CompoundInertia3Error::UnrepresentableTensor);
                 }
@@ -378,10 +393,14 @@ mod tests {
     fn symmetric_average_preserves_equal_extreme_and_subnormal_values() {
         let maximum = f64::MAX;
         let minimum = f64::from_bits(1);
-        assert_eq!(symmetric_average(maximum, maximum), maximum);
-        assert_eq!(symmetric_average(minimum, minimum), minimum);
-        assert_eq!(symmetric_average(-minimum, -minimum), -minimum);
-        assert_eq!(symmetric_average(maximum, -maximum), 0.0);
+        assert_eq!(symmetric_average(maximum, maximum).unwrap(), maximum);
+        assert_eq!(symmetric_average(minimum, minimum).unwrap(), minimum);
+        assert_eq!(symmetric_average(-minimum, -minimum).unwrap(), -minimum);
+        assert_eq!(symmetric_average(maximum, -maximum).unwrap(), 0.0);
+        assert_eq!(
+            symmetric_average(minimum, 0.0).unwrap_err(),
+            CompoundInertia3Error::UnrepresentableTensor
+        );
     }
 
     #[test]
