@@ -623,6 +623,7 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         .iter()
         .filter(|tick| {
             !tick.fault_detection_event_ids.is_empty()
+                || !tick.containment_event_ids.is_empty()
                 || tick.degraded_mode
                 || tick.fallback_active
                 || tick.safe_stop_complete
