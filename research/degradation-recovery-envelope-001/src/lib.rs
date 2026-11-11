@@ -229,6 +229,7 @@ enum Finding {
     DuplicateFaultEvent,
     InvalidFaultCausality,
     CommonCauseGroupTooSmall,
+    CommonCauseGroupNoOverlap,
     MissingCausalParent,
     CausalParentAfterChild,
     CausalParentCycle,
@@ -285,6 +286,7 @@ impl Finding {
             Self::DuplicateFaultEvent => "duplicate_fault_event",
             Self::InvalidFaultCausality => "invalid_fault_causality",
             Self::CommonCauseGroupTooSmall => "common_cause_group_too_small",
+            Self::CommonCauseGroupNoOverlap => "common_cause_group_no_overlap",
             Self::MissingCausalParent => "missing_causal_parent",
             Self::CausalParentAfterChild => "causal_parent_after_child",
             Self::CausalParentCycle => "causal_parent_cycle",
@@ -773,7 +775,7 @@ fn validate_fault_causality(events: &[FaultEvent], findings: &mut BTreeSet<Findi
         .iter()
         .map(|event| (event.event_id.as_str(), event))
         .collect::<std::collections::BTreeMap<_, _>>();
-    let mut common_groups = std::collections::BTreeMap::<&str, usize>::new();
+    let mut common_groups = std::collections::BTreeMap::<&str, Vec<&FaultEvent>>::new();
 
     for event in events {
         match event.causality {
@@ -788,7 +790,7 @@ fn validate_fault_causality(events: &[FaultEvent], findings: &mut BTreeSet<Findi
                 }
                 match event.causal_group_id.as_deref() {
                     Some(group_id) if !group_id.trim().is_empty() => {
-                        *common_groups.entry(group_id).or_default() += 1;
+                        common_groups.entry(group_id).or_default().push(event);
                     }
                     _ => findings.insert(Finding::EmptyCausalGroupId),
                 }
@@ -813,9 +815,23 @@ fn validate_fault_causality(events: &[FaultEvent], findings: &mut BTreeSet<Findi
         }
     }
 
-    for count in common_groups.values() {
-        if *count < 2 {
+    for group_events in common_groups.values() {
+        if group_events.len() < 2 {
             findings.insert(Finding::CommonCauseGroupTooSmall);
+            continue;
+        }
+        let latest_start = group_events
+            .iter()
+            .map(|event| event.start_tick)
+            .max()
+            .unwrap_or(0);
+        let earliest_end = group_events
+            .iter()
+            .map(|event| event.end_tick)
+            .min()
+            .unwrap_or(0);
+        if latest_start > earliest_end {
+            findings.insert(Finding::CommonCauseGroupNoOverlap);
         }
     }
 
@@ -1666,6 +1682,21 @@ mod tests {
                 && event.causal_group_id.as_deref()
                     == Some("shared-power-clock-domain-1")
         }));
+    }
+
+    #[test]
+    fn rejects_common_cause_events_without_overlapping_exposure_windows() {
+        let mut input = campaign();
+        input.events[0].causality = FaultCausality::CommonCause;
+        input.events[0].causal_group_id = Some("shared-clock-domain".into());
+        let mut second = input.events[0].clone();
+        second.event_id = "clock-drift-following".into();
+        second.kind = FaultKind::ClockDrift;
+        second.start_tick = 6;
+        second.end_tick = 7;
+        input.events.push(second);
+        let report = audit_campaign(&input);
+        assert!(has(&report, "common_cause_group_no_overlap"));
     }
 
     #[test]
