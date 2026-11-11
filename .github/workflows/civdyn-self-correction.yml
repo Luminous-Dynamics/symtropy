@@ -296,3 +296,57 @@ jobs:
               assert row["estimand"] == "target_average_treatment_effect_risk_difference"
           print("Causal-transport CSV valid: point standardization under full support; no point extrapolation under target-only modifier; sharp risk-difference bounds retained.")
           PY
+      - name: Verify interval-valued policy decisions under partial identification
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin identified-decision-sweep > /tmp/civdyn-identified-decision.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin identified-decision-sweep > /tmp/civdyn-identified-decision-replay.csv
+          cmp /tmp/civdyn-identified-decision.csv /tmp/civdyn-identified-decision-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-identified-decision.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 18, f"expected 18 columns, got {len(fields or [])}"
+          assert len(rows) == 2, f"expected two policy rows, got {len(rows)}"
+          policies = {row["policy_id"]: row for row in rows}
+          maintenance = policies["maintenance"]
+          infrastructure = policies["infrastructure"]
+
+          assert maintenance["metric_id"] == infrastructure["metric_id"] == "essential-service-benefit"
+          assert maintenance["utility_unit"] == infrastructure["utility_unit"] == "risk_difference"
+          assert maintenance["direction"] == infrastructure["direction"] == "maximize"
+
+          assert math.isclose(float(maintenance["utility_lower"]), 0.02, abs_tol=1e-8)
+          assert math.isclose(float(maintenance["utility_upper"]), 0.42, abs_tol=1e-8)
+          assert math.isclose(float(infrastructure["utility_lower"]), 0.26, abs_tol=1e-8)
+          assert math.isclose(float(infrastructure["utility_upper"]), 0.26, abs_tol=1e-8)
+
+          assert maintenance["robust_feasibility"] == "robustly_feasible"
+          assert infrastructure["robust_feasibility"] == "robustly_feasible"
+          assert maintenance["constraint_statuses"] == "daily-water-use:robustly_feasible;minimum-service-coverage:robustly_feasible"
+          assert infrastructure["constraint_statuses"] == "daily-water-use:robustly_feasible;minimum-service-coverage:robustly_feasible"
+
+          assert math.isclose(float(maintenance["worst_case_regret"]), 0.24, abs_tol=1e-8)
+          assert math.isclose(float(infrastructure["worst_case_regret"]), 0.16, abs_tol=1e-8)
+          assert maintenance["minimax_selected"] == "false"
+          assert infrastructure["minimax_selected"] == "true"
+          assert all(row["claim_ceiling"] == "minimax_regret_within_declared_rectangular_set" for row in rows)
+          assert all(row["uncertainty_set"] == "independent_rectangular_policy_utility_intervals" for row in rows)
+          assert all(row["robustly_feasible_policy_ids"] == "maintenance;infrastructure" for row in rows)
+          assert all(row["minimax_regret_policy_ids"] == "infrastructure" for row in rows)
+          assert len({row["target_population_digest"] for row in rows}) == 1
+          assert len({row["source_data_digest"] for row in rows}) == 2
+          assert len({row["transport_protocol_digest"] for row in rows}) == 2
+          assert maintenance["utility_evidence_digest"] == "sha256-maintenance-transport-result"
+          assert infrastructure["utility_evidence_digest"] == "sha256-infrastructure-transport-result"
+          assert maintenance["transport_protocol_digest"] == "sha256-maintenance-transport-protocol"
+          assert infrastructure["transport_protocol_digest"] == "sha256-infrastructure-transport-protocol"
+          assert all(row["source_data_digest"] and row["target_population_digest"] for row in rows)
+          print("Identified-decision CSV valid: causal point/partial intervals preserved, hard constraints robustly satisfied, rectangular minimax regret independently checked, no midpoint substitution.")
+          PY
