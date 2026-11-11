@@ -315,7 +315,10 @@
       "detection_deadline_ticks": 1,
       "containment_deadline_ticks": 1,
       "max_accepted_frame_age_us": 0,
-      "recovery_healthy_quorum_ticks": 2
+      "recovery_healthy_quorum_ticks": 2,
+      "causality": "independent",
+      "causal_group_id": null,
+      "parent_event_id": null
     }
   ],
   "fault_schedule_visible_to_policy": false,
