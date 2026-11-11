@@ -22,6 +22,38 @@ use symtropy_math::{Bivector, Rotor};
 
 const ROTATION_VALIDITY_TOLERANCE: f64 = 1.0e-8;
 
+/// Compute `m * d * d^T` without overflowing the unweighted outer product.
+/// Nonzero components whose products underflow are rejected rather than
+/// silently deleting a physical parallel-axis contribution.
+fn checked_mass_weighted_outer<const D: usize>(
+    mass: f64,
+    offset: &SVector<f64, D>,
+) -> Result<SMatrix<f64, D, D>, RotationalInertiaError> {
+    if mass == 0.0 {
+        return Ok(SMatrix::<f64, D, D>::zeros());
+    }
+    let weighted_offset = offset * mass.sqrt();
+    if !weighted_offset.iter().all(|value| value.is_finite()) {
+        return Err(RotationalInertiaError::NonFinite);
+    }
+    let outer = weighted_offset * weighted_offset.transpose();
+    for row in 0..D {
+        for column in 0..D {
+            if weighted_offset[row] != 0.0
+                && weighted_offset[column] != 0.0
+                && outer[(row, column)] == 0.0
+            {
+                return Err(RotationalInertiaError::NonFinite);
+            }
+        }
+    }
+    if outer.iter().all(|value| value.is_finite()) {
+        Ok(outer)
+    } else {
+        Err(RotationalInertiaError::NonFinite)
+    }
+}
+
 /// Construction errors for a rotational inertia operator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RotationalInertiaError {
@@ -33,11 +65,11 @@ pub enum RotationalInertiaError {
     NotSymmetric,
     /// The supplied second-moment matrix has a materially negative eigenvalue.
     NotPositiveSemidefinite,
-    /// Uniform-ball mass or radius is negative.
+    /// A mass or geometric extent is non-positive or otherwise invalid.
     InvalidMassProperties,
     /// A requested inverse is undefined because at least one rotation plane has zero inertia.
     SingularInertia,
-    /// An inverse-operation tolerance is non-finite or non-positive.
+    /// An inverse-operation tolerance is non-finite or outside `(0, 1)`.
     InvalidTolerance,
     /// A contact/impulse direction is zero or non-finite.
     InvalidDirection,
@@ -190,15 +222,8 @@ impl<const D: usize> BivectorInertia<D> {
 
         // Form m*d*d^T as (sqrt(m)*d)(sqrt(m)*d)^T so an intermediate
         // d*d^T cannot overflow when the mass-weighted tensor is finite.
-        let weighted_offset_a = offset_a * mass_a.sqrt();
-        let weighted_offset_b = offset_b * mass_b.sqrt();
-        if !weighted_offset_a.iter().all(|value| value.is_finite())
-            || !weighted_offset_b.iter().all(|value| value.is_finite())
-        {
-            return Err(RotationalInertiaError::NonFinite);
-        }
-        let parallel_axis_a = weighted_offset_a * weighted_offset_a.transpose();
-        let parallel_axis_b = weighted_offset_b * weighted_offset_b.transpose();
+        let parallel_axis_a = checked_mass_weighted_outer(mass_a, offset_a)?;
+        let parallel_axis_b = checked_mass_weighted_outer(mass_b, offset_b)?;
         let second_moment =
             inertia_a.second_moment + parallel_axis_a + inertia_b.second_moment + parallel_axis_b;
         Self::from_second_moment(second_moment)
@@ -213,7 +238,7 @@ impl<const D: usize> BivectorInertia<D> {
     where
         I: IntoIterator<Item = (SVector<f64, D>, f64)>,
     {
-        if D < 2 {
+        if !(2..=9).contains(&D) {
             return Err(RotationalInertiaError::InvalidDimension);
         }
 
@@ -380,7 +405,10 @@ impl<const D: usize> BivectorInertia<D> {
         angular_momentum: &Bivector<D>,
         relative_tolerance: f64,
     ) -> Result<Bivector<D>, RotationalInertiaError> {
-        if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 || relative_tolerance >= 1.0 {
+        if !relative_tolerance.is_finite()
+            || relative_tolerance <= 0.0
+            || relative_tolerance >= 1.0
+        {
             return Err(RotationalInertiaError::InvalidTolerance);
         }
         if !angular_momentum.is_finite() {
@@ -901,7 +929,7 @@ mod tests {
         assert!(
             (rotational_energy - impulse_work).abs()
                 <= 2.0e-11 * rotational_energy.abs().max(1.0),
-            "rotational energy does not match half impulse-work: energy={rotational_energy:e}, work={impulse_work:e}"
+            "rotational energy / half impulse-work mismatch: energy={rotational_energy:e}, work={impulse_work:e}"
         );
     }
 
