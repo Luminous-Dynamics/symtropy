@@ -248,7 +248,7 @@ Run causal-transport-sweep with the locked workspace manifest. CI checks exact s
 
 The first identified-decision evaluator is in src/identified_decision.rs and the identified-decision-sweep binary. It advances [CIVDYN-IDENTIFIED-DECISION-001 #4699](https://github.com/Luminous-Dynamics/symtropy/issues/4699).
 
-The evaluator converts the identified or partially identified target risk difference from causal_transport.rs into a policy utility interval. An unidentified causal effect cannot be represented as a finite interval and is rejected. Every utility interval retains source, target-population and transport-protocol provenance, and policies must share the same estimand, metric, unit and target population.
+The evaluator converts the identified or partially identified target risk difference from causal_transport.rs into a policy utility interval. An unidentified causal effect cannot be represented as a finite interval and is rejected. Every utility interval retains a distinct caller-supplied transport-result receipt digest plus source, target-population and transport-protocol identities. The result digest is provenance supplied by the receipt producer, not cryptographically authenticated by this module. Policies must share the same estimand, metric, unit and target population.
 
 Hard constraints are evaluated independently of the objective:
 - AtMost(c): robustly feasible only if the interval upper endpoint is <= c; definitely infeasible if the lower endpoint is > c; otherwise indeterminate.
