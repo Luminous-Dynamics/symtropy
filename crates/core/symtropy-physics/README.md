@@ -97,6 +97,14 @@ The reference uses the same convention as the production sign audit: `Rotor::fro
 
 **Boundary:** it is not connected to production `RigidBody` or `PhysicsWorld`; it does not make the live contact solver anisotropic. See [`BIVECTOR_INERTIA_ND_VALIDATION.md`](BIVECTOR_INERTIA_ND_VALIDATION.md) for the exact equations, admissibility rules, tests, and promotion boundary.
 
+Run the deterministic CSV campaign with:
+
+```bash
+cargo run --release --example anisotropic_reference_campaign -p symtropy-physics
+```
+
+It checks analytic top dynamics, timestep refinement, contact/energy identities, D=2/3/4/9 inversion, mass scaling, body-frame/world-frame contact equivalence, point-cloud determinism and scale-safe mass-property construction. It is a reference qualification campaign, not a production PhysicsWorld throughput benchmark.
+
 
 ## PhysicsCallback — Custom Force Modulation
 
