@@ -2,7 +2,9 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-use symtropy_observation_frame_reference::{MAX_INPUT_BYTES, ObservationFrameInputV1, compile_observation_frame};
+use symtropy_observation_frame_reference::{
+    MAX_INPUT_BYTES, ObservationFrameInputV1, compile_observation_frame,
+};
 
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = env::args().skip(1);
