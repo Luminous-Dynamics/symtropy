@@ -92,6 +92,66 @@ pub struct BivectorInertia<const D: usize> {
     principal_axes: SMatrix<f64, D, D>,
 }
 
+impl BivectorInertia<3> {
+    /// Construct the second-moment operator from a physical 3D inertia tensor
+    /// about the center of mass. For `I = tr(S) * 1 - S`, the inverse relation
+    /// is `S = 0.5 * tr(I) * 1 - I`. Passing the result through
+    /// `from_second_moment` enforces the physical principal-moment triangle
+    /// inequalities instead of accepting an arbitrary positive matrix.
+    pub fn from_inertia_tensor_3d(
+        inertia_tensor: SMatrix<f64, 3, 3>,
+    ) -> Result<Self, RotationalInertiaError> {
+        if !inertia_tensor.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        let scale = inertia_tensor
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+        let symmetry_tolerance = 1.0e-12 * scale.max(f64::MIN_POSITIVE);
+        for row in 0..3 {
+            for column in 0..3 {
+                if (inertia_tensor[(row, column)] - inertia_tensor[(column, row)]).abs()
+                    > symmetry_tolerance
+                {
+                    return Err(RotationalInertiaError::NotSymmetric);
+                }
+            }
+        }
+        // Halve before summing to avoid overflow when the mean is representable.
+        let half_trace = 0.5 * inertia_tensor[(0, 0)]
+            + 0.5 * inertia_tensor[(1, 1)]
+            + 0.5 * inertia_tensor[(2, 2)];
+        if !half_trace.is_finite() {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        let second_moment =
+            SMatrix::<f64, 3, 3>::identity() * half_trace - inertia_tensor;
+        if !second_moment.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        Self::from_second_moment(second_moment)
+    }
+
+    /// Reconstruct the conventional physical 3D inertia tensor about the
+    /// center of mass: `I = tr(S) * 1 - S`.
+    pub fn inertia_tensor_3d(&self) -> Result<SMatrix<f64, 3, 3>, RotationalInertiaError> {
+        let second_moment = &self.second_moment;
+        let tensor = SMatrix::<f64, 3, 3>::from_fn(|row, column| {
+            if row == column {
+                second_moment[(0, 0)] + second_moment[(1, 1)] + second_moment[(2, 2)]
+                    - second_moment[(row, column)]
+            } else {
+                -second_moment[(row, column)]
+            }
+        });
+        if tensor.iter().all(|value| value.is_finite()) {
+            Ok(tensor)
+        } else {
+            Err(RotationalInertiaError::NonFinite)
+        }
+    }
+}
+
 impl<const D: usize> BivectorInertia<D> {
     /// Construct from the centered second-moment matrix S = integral r r^T dm.
     ///
