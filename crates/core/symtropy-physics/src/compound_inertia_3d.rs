@@ -11,6 +11,7 @@
 use nalgebra::{SMatrix, SVector};
 use symtropy_math::Transform;
 
+use crate::bivector_inertia::{BivectorInertia, RotationalInertiaError};
 use crate::mass_properties_3d::MassProperties3;
 
 const ROTATION_VALIDITY_TOLERANCE: f64 = 1.0e-8;
@@ -53,6 +54,7 @@ pub enum CompoundInertia3Error {
     NonSymmetricTensor,
     NonPositiveDefiniteTensor,
     InvalidTolerance,
+    InvalidBivectorOperator(RotationalInertiaError),
 }
 
 impl CompoundMassProperties3 {
@@ -195,6 +197,19 @@ impl CompoundMassProperties3 {
             return Err(CompoundInertia3Error::UnrepresentableTensor);
         }
         Ok(energy)
+    }
+
+    /// Convert this checked full compound inertia tensor into the N-dimensional
+    /// bivector-inertia reference. This is the bridge between the compound
+    /// parallel-axis representation and the operator used by angular dynamics.
+    /// The compound evidence and the tensor-to-second-moment triangle-inequality
+    /// checks are both revalidated before returning the operator.
+    pub fn to_bivector_inertia_reference(
+        &self,
+    ) -> Result<BivectorInertia<3>, CompoundInertia3Error> {
+        self.validate()?;
+        BivectorInertia::from_inertia_tensor_3d(self.inertia_tensor_body)
+            .map_err(CompoundInertia3Error::InvalidBivectorOperator)
     }
 
     /// Whether the selected compound body frame is already a principal-inertia
@@ -534,6 +549,44 @@ mod tests {
         let diagonal_only = 0.5
             * (compound.inertia_tensor_body[(0, 0)] + compound.inertia_tensor_body[(1, 1)]);
         assert!((energy - diagonal_only).abs() > 1.0);
+    }
+
+    #[test]
+    fn compound_tensor_and_bivector_operator_agree_on_energy() {
+        let cuboid = MassProperties3::solid_cuboid(12.0, [1.0, 2.0, 3.0]).unwrap();
+        let rotation = Rotor::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1),
+            std::f64::consts::FRAC_PI_4,
+        );
+        let compound = CompoundMassProperties3::compose(&[part(
+            1,
+            [0.0, 0.0, 0.0],
+            rotation,
+            cuboid,
+        )])
+        .unwrap();
+        let operator = compound.to_bivector_inertia_reference().unwrap();
+
+        for omega in [
+            SVector::from([1.0, 1.0, 0.0]),
+            SVector::from([0.3, -0.8, 1.2]),
+            SVector::from([-1.1, 0.2, 0.4]),
+        ] {
+            let mut angular_state = Bivector::<3>::zero();
+            angular_state.set(1, 2, omega[0]);
+            angular_state.set(0, 2, -omega[1]);
+            angular_state.set(0, 1, omega[2]);
+            let tensor_energy = compound.rotational_energy_body_checked(&omega).unwrap();
+            let operator_energy = operator.kinetic_energy(&angular_state).unwrap();
+            assert!(
+                (tensor_energy - operator_energy).abs() < 1.0e-11,
+                "tensor energy={tensor_energy}, bivector energy={operator_energy}"
+            );
+        }
+        assert!(
+            (operator.inertia_tensor_3d().unwrap() - compound.inertia_tensor_body).norm()
+                < 1.0e-11
+        );
     }
 
     #[test]
