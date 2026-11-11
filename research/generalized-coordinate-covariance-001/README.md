@@ -96,12 +96,12 @@ Frozen case:
 - one-sided constant force on the first mass: (0.18, -0.07, 0.11) N;
 - timestep: 0.02 s.
 
-The force deliberately excites the constraint reaction. The canonical reference obtains a multiplier of approximately -0.2410915652, with a normalized midpoint constraint residual around 4.0e-16.
+The force deliberately excites the constraint reaction. The canonical reference obtains a multiplier of approximately -0.2410915652007, with a raw midpoint constraint residual of -3.75e-18 (normalized by the declared fixture scale: 5.21e-20).
 
 | Basis family | Lifted position difference | Lifted velocity difference | Multiplier difference |
 |---:|---:|---:|---:|
-| 0 | 2.13e-14 | 1.47e-14 | 1.28e-13 |
-| 2 | 2.37e-15 | 5.43e-15 | 5.01e-14 |
+| 0 | 5.02e-15 | 1.34e-14 | 1.62e-13 |
+| 2 | 2.68e-15 | 4.05e-15 | 5.04e-14 |
 
 Additional independent negative controls:
 - applying the inverse-basis force law instead of the covector law changes the lifted position by approximately 1.58e-3;
