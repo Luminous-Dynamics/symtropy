@@ -11,7 +11,7 @@ use std::error::Error;
 
 const SOURCE_ID: &str = "synthetic-network-interference-known-truth-v1";
 const NETWORK_ID: &str = "four-node-two-cluster-cross-edge-v1";
-const DESIGN_ID: &str = "uniform-cluster-saturation-then-uniform-within-cluster-v1";
+const DESIGN_ID: &str = "uniform-saturation-levels-0-0p5-1-then-bernoulli-v1";
 const SPLIT_ID: &str = "synthetic-reference-not-empirical-validation";
 
 fn csv_field(value: &str) -> String {
