@@ -49,13 +49,14 @@ impl MissingReason {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum MissingnessMechanism {
     Complete,
     Mcar,
     Mar,
     MnarAdverseOutcomesHidden,
     MnarBeneficialOutcomesHidden,
+    Mixed,
 }
 
 impl MissingnessMechanism {
@@ -66,6 +67,7 @@ impl MissingnessMechanism {
             Self::Mar => "mar",
             Self::MnarAdverseOutcomesHidden => "mnar_adverse_hidden",
             Self::MnarBeneficialOutcomesHidden => "mnar_beneficial_hidden",
+            Self::Mixed => "mixed",
         }
     }
 }
@@ -128,6 +130,10 @@ pub struct ObservationEstimates {
     pub observed_units: usize,
     pub missing_units: usize,
     pub missing_by_reason: BTreeMap<MissingReason, usize>,
+    pub propensity_units: usize,
+    pub missing_propensity_units: usize,
+    pub minimum_propensity_bps: Option<u32>,
+    pub maximum_propensity_bps: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -171,7 +177,6 @@ pub enum EvaluationError {
     InvalidOutcomeSupport,
     EmptyPopulation,
     MixedPolicyIds,
-    MixedMechanisms,
     EmptyIdentity,
     ZeroPopulationWeight,
     DuplicateUnit,
@@ -254,8 +259,19 @@ pub fn estimate_from_observations(
     let mut missing_units = 0_usize;
     let mut observed_units = 0_usize;
     let mut missing_by_reason = BTreeMap::new();
+    let mut propensity_units = 0_usize;
+    let mut missing_propensity_units = 0_usize;
+    let mut minimum_propensity_bps: Option<u32> = None;
+    let mut maximum_propensity_bps: Option<u32> = None;
 
     for record in records {
+        if let Some(propensity) = record.observation_propensity_bps {
+            propensity_units += 1;
+            minimum_propensity_bps = Some(minimum_propensity_bps.map_or(propensity, |v| v.min(propensity)));
+            maximum_propensity_bps = Some(maximum_propensity_bps.map_or(propensity, |v| v.max(propensity)));
+        } else {
+            missing_propensity_units += 1;
+        }
         let weight = record.population_weight as f64;
         match (record.observed_outcome, record.missing_reason) {
             (Some(value), None) => {
@@ -289,6 +305,10 @@ pub fn estimate_from_observations(
         observed_units,
         missing_units,
         missing_by_reason,
+        propensity_units,
+        missing_propensity_units,
+        minimum_propensity_bps,
+        maximum_propensity_bps,
     })
 }
 
@@ -342,13 +362,13 @@ pub fn evaluate_policy(
     let estimates = estimate_from_observations(&observations, support)?;
     let policy_id = observations[0].policy_id.clone();
 
-    let mechanism = records[0].true_mechanism;
-    if records
-        .iter()
-        .any(|record| record.true_mechanism != mechanism)
-    {
-        return Err(EvaluationError::MixedMechanisms);
-    }
+    let mechanisms: BTreeSet<MissingnessMechanism> =
+        records.iter().map(|record| record.true_mechanism).collect();
+    let mechanism = if mechanisms.len() == 1 {
+        *mechanisms.iter().next().expect("non-empty mechanism set")
+    } else {
+        MissingnessMechanism::Mixed
+    };
     if records
         .iter()
         .any(|record| !support.contains(record.latent_outcome))
@@ -675,15 +695,14 @@ mod tests {
     }
 
     #[test]
-    fn mixed_evaluator_mechanisms_are_rejected() {
+    fn mixed_evaluator_mechanisms_are_preserved_as_mixed_not_rejected() {
         let rows = vec![
-            record("p", "u1", "a", 10, true, MissingnessMechanism::Complete),
+            record("p", "u1", "a", 10, true, MissingnessMechanism::Mar),
             record("p", "u2", "a", 20, false, MissingnessMechanism::MnarBeneficialOutcomesHidden),
         ];
-        assert_eq!(
-            evaluate_policy(&rows, SUPPORT),
-            Err(EvaluationError::MixedMechanisms)
-        );
+        let result = evaluate_policy(&rows, SUPPORT).expect("mixed mechanism evaluation");
+        assert_eq!(result.true_mechanism, MissingnessMechanism::Mixed);
+        assert!(result.estimates.identified_interval.contains(result.true_mean));
     }
 
     #[test]
