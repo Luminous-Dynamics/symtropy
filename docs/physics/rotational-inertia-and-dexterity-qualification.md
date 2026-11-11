@@ -77,6 +77,21 @@ These are complementary policy benchmarks, not substitutes for evaluating the me
 
 All learned-policy scores must disclose demonstrations, pretraining, fine-tuning, action space, camera access, tactile inputs, control frequency, compute budget, task variants and confidence intervals. Compare matched runs, not a single best checkpoint.
 
+**Current frontier reference (November 2026): NVIDIA GR00T 2.** Its research page reports:
+- 40% mean success in zero-shot trials on a 50-task target-robot transfer set, with at least one success on 40/50 tasks;
+- 95% mean success after five demonstrations per task (under three minutes of robot data) and a 30-minute fine-tune on one RTX 5090;
+- 88–96% success after real-robot reinforcement learning on three contact-rich tasks;
+- 97–98 successes per 100 for agent-assisted assembly of three toys, with scene recovery and task-level planning;
+- for GR00T 2 Turbo on Unitree G1, 124 ms per prediction on Jetson Thor, 48/48 popcorn-serving trials and 93% table-clearing success;
+- reported simulation-to-real policy-ranking correlations of Pearson 0.92 and Spearman 0.89 across 14 policy variants on a 25-task YAM benchmark.
+
+These numbers are vendor-reported and refer to different robots, policy variants, task sets and control stacks; they are not directly comparable to a single Luminous robot. The 97–98/100 agentic result includes a planner/recovery layer and must not be compared to a standalone policy score.
+
+A matched Luminous challenge set should therefore report at least four separable scores: (1) zero-shot task transfer; (2) few-shot adaptation with an explicitly bounded demo and compute budget; (3) contact-rich closed-loop performance; and (4) agent-assisted long-horizon task completion with intervention/recovery counts. Proposed targets for a future matched 50-task transfer suite are >50% mean zero-shot trial success (exceed the reported 40% reference), >=95% mean success after five demonstrations, and >=80% on every task family; these are aspirations, not present results. Any "better than GR00T 2" claim requires the same robot embodiment or a published cross-embodiment protocol, same task split, equivalent sensors, same demonstration allowance, comparable compute, repeated trials and confidence intervals.
+
+For simulation-to-real transfer, use the GR00T-reported Pearson/Spearman values as a contextual reference. A Luminous target of >=0.95 on both correlations across at least 20 independently varied policy/configuration pairs is an ambitious screening goal. Correlation is only rank agreement; additionally report absolute trajectory, contact-force, timing and energy prediction errors. High correlation does not qualify safety or absolute model accuracy.
+
+
 ### D. Commercial prosthetic reference points
 
 Use manufacturer specifications only as contextual reference points. They are not directly comparable until measured on the same fixture and protocol.
@@ -197,6 +212,8 @@ Queued, skipped, cancelled or failed CI is not a pass. Publish exact commit and 
 
 ## References
 
+- NVIDIA GR00T 2 research results (Nov 2026): https://research.nvidia.com/labs/gear/gr00t-2/
+- NVIDIA CoRL 2026 robotics/benchmark announcement (Nov 9, 2026): https://blogs.nvidia.com/blog/robotics-simulation-advancements-corl/
 - NIST Humanoid Robot Baseline Performance Benchmark: https://www.nist.gov/el/intelligent-systems-division-73500/humanoid-robot-baseline-performance-benchmark
 - Fraunhofer IPA humanoid benchmark: https://www.ipa.fraunhofer.de/en/press-media/press_releases/benchmark-for-humanoid-robots.html
 - Boston Dynamics Atlas specifications: https://bostondynamics.com/wp-content/uploads/2026/01/atlas-spec-sheet.pdf
