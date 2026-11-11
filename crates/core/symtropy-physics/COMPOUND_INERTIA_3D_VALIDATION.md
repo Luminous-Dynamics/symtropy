@@ -101,7 +101,7 @@ Finite inputs whose total mass, COM update, rotated tensor, parallel-axis term, 
 
 Compute each child contribution in mass-weighted coordinates `w = sqrt(m) * d`, then form `I_parallel = (w dot w) * 1 - w * w^T`. In 3D, evaluate each diagonal as the sum of the two other weighted component squares, avoiding a potentially catastrophic subtraction. Reject any nonzero weighted component or product that underflows to zero, and reject non-finite intermediates.
 
-A regression uses `m=1e300` and a COM offset of `1e-170`: the raw `d dot d` underflows to zero, but the physical mass-weighted transverse contribution is `1e-40` and must be retained. This ensures mass scaling occurs before geometric squaring.
+A regression uses `m=1e300` and a COM offset of `1e-170`: the raw `d dot d` underflows to zero, but the physical mass-weighted transverse contribution is `1e-40` and must be retained. This ensures mass scaling occurs before geometric squaring. A separate 32-case deterministic sweep compares the scale-safe implementation against the direct identity `(d·d)1 - dd^T` on moderate offsets.
 
 Zero-mass semantics are explicit: a point-cloud sample with zero mass is removed before choosing the canonical reference origin, all-zero point clouds are rejected, and a component with zero mass cannot carry a nonzero centered second-moment tensor. The scale-safe parallel-axis helper also rejects overflow in weighted squares/products and underflow of nonzero contributions before the compound tensor is committed.
 
