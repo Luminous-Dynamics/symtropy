@@ -5,6 +5,7 @@ use symtropy_observation_frame_reference::{
     FrameIdentityV1, ModelTimeV1, ObservationEntityV1, ObservationEventV1,
     ObservationFrameInputV1, ObservationSourceClass, ObservationValueV1,
     ObservableV1, RuntimeSubjectRefV1, compile_observation_frame,
+    compute_observable_set_sha256,
 };
 
 #[derive(Serialize)]
@@ -32,7 +33,10 @@ fn digest(character: char) -> String {
     std::iter::repeat_n(character, 64).collect()
 }
 
-fn synthetic_frame(entity_count: usize, event_count: usize) -> ObservationFrameInputV1 {
+fn synthetic_frame(
+    entity_count: usize,
+    event_count: usize,
+) -> Result<ObservationFrameInputV1, Box<dyn std::error::Error>> {
     let entities = (0..entity_count)
         .map(|index| {
             let scenario_entity_id = format!("bench/entity-{index:06}");
@@ -73,7 +77,8 @@ fn synthetic_frame(entity_count: usize, event_count: usize) -> ObservationFrameI
         })
         .collect();
 
-    ObservationFrameInputV1 {
+    let observable_set_sha256 = compute_observable_set_sha256(&entities)?;
+    Ok(ObservationFrameInputV1 {
         schema_version: 1,
         identity: FrameIdentityV1 {
             scenario_id: "observation-frame-benchmark".to_string(),
@@ -85,7 +90,7 @@ fn synthetic_frame(entity_count: usize, event_count: usize) -> ObservationFrameI
             initial_state_sha256: digest('e'),
             simulation_state_sha256: digest('f'),
             model_profile_sha256: digest('1'),
-            observable_set_sha256: digest('2'),
+            observable_set_sha256,
             adapter_version: "reference-oracle-bench-v1".to_string(),
             simulation_tick: 1,
         },
@@ -97,7 +102,7 @@ fn synthetic_frame(entity_count: usize, event_count: usize) -> ObservationFrameI
         },
         entities,
         event_stream: Some(events),
-    }
+    })
 }
 
 fn percentile(samples: &[u128], percentile: usize) -> u128 {
@@ -110,7 +115,7 @@ fn run_profile(
     event_count: usize,
     samples: usize,
 ) -> Result<BenchmarkResult, Box<dyn std::error::Error>> {
-    let input = synthetic_frame(entity_count, event_count);
+    let input = synthetic_frame(entity_count, event_count)?;
     let input_bytes = serde_json::to_vec(&input)?.len();
     let mut timings = Vec::with_capacity(samples);
 
