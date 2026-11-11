@@ -4,6 +4,7 @@
 //! not authenticate observations, qualify sensors, or establish physical truth.
 
 use std::collections::BTreeSet;
+use std::io::{self, Write};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -671,13 +672,36 @@ pub fn compute_observable_set_sha256(
     hash_serialized(OBSERVABLE_SET_HASH_DOMAIN, &entries)
 }
 
+/// A serde_json writer that streams serialized bytes directly into SHA-256.
+///
+/// This avoids allocating a second frame-sized JSON buffer during canonical
+/// identity computation.
+struct Sha256Writer<'a> {
+    hasher: &'a mut Sha256,
+}
+
+impl Write for Sha256Writer<'_> {
+    fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.hasher.update(bytes);
+        Ok(bytes.len())
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+}
+
 fn hash_serialized<T: Serialize>(domain: &[u8], value: &T) -> Result<String, FrameError> {
-    let bytes = serde_json::to_vec(value)
-        .map_err(|error| FrameError::Serialization(error.to_string()))?;
-    let mut material = Vec::with_capacity(domain.len() + bytes.len());
-    material.extend_from_slice(domain);
-    material.extend_from_slice(&bytes);
-    let digest = Sha256::digest(&material);
+    let mut hasher = Sha256::new();
+    hasher.update(domain);
+    {
+        let mut writer = Sha256Writer {
+            hasher: &mut hasher,
+        };
+        serde_json::to_writer(&mut writer, value)
+            .map_err(|error| FrameError::Serialization(error.to_string()))?;
+    }
+    let digest = hasher.finalize();
     Ok(digest.iter().map(|byte| format!("{byte:02x}")).collect())
 }
 
@@ -813,6 +837,26 @@ mod tests {
         assert_eq!(receipt.event_count, 2);
         assert!(receipt.event_order_sha256.is_some());
         assert!(receipt.findings.is_empty());
+    }
+
+    #[test]
+    fn sha256_writer_matches_buffered_sha256_for_chunked_writes() {
+        let domain = b"symtropy-streaming-writer-test\0";
+        let mut hasher = Sha256::new();
+        hasher.update(domain);
+        {
+            let mut writer = Sha256Writer {
+                hasher: &mut hasher,
+            };
+            writer.write_all(b"{\"frame\":").expect("first chunk");
+            writer.write_all(b"\"immutable\"}").expect("second chunk");
+            writer.flush().expect("flush");
+        }
+        let actual = hasher.finalize();
+        let mut buffered = domain.to_vec();
+        buffered.extend_from_slice(b"{\"frame\":\"immutable\"}");
+        let expected = Sha256::digest(&buffered);
+        assert_eq!(actual.as_slice(), expected.as_slice());
     }
 
     #[test]
