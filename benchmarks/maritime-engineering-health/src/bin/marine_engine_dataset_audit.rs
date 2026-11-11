@@ -154,14 +154,23 @@ fn usage() -> &'static str {
 
 fn parse_args() -> Result<Cli, String> {
     let mut args = env::args_os().skip(1);
-    let dataset_root = args.next().map(PathBuf::from).ok_or_else(|| usage().to_string())?;
-    let manifest_path = args.next().map(PathBuf::from).ok_or_else(|| usage().to_string())?;
+    let dataset_root = args
+        .next()
+        .map(PathBuf::from)
+        .ok_or_else(|| usage().to_string())?;
+    let manifest_path = args
+        .next()
+        .map(PathBuf::from)
+        .ok_or_else(|| usage().to_string())?;
     let mut archive_path = None;
     let mut output_path = None;
 
     while let Some(flag) = args.next() {
         let flag = flag.to_string_lossy();
-        let value = args.next().map(PathBuf::from).ok_or_else(|| format!("missing value for {flag}"))?;
+        let value = args
+            .next()
+            .map(PathBuf::from)
+            .ok_or_else(|| format!("missing value for {flag}"))?;
         match flag.as_ref() {
             "--archive" => archive_path = Some(value),
             "--output" => output_path = Some(value),
@@ -182,15 +191,17 @@ fn sha256_hex(bytes: &[u8]) -> String {
 }
 
 fn read_file_bounded(path: &Path) -> Result<Vec<u8>, String> {
-    let file = File::open(path)
-        .map_err(|error| format!("cannot open {}: {error}", path.display()))?;
+    let file =
+        File::open(path).map_err(|error| format!("cannot open {}: {error}", path.display()))?;
     let mut limited = file.take(MAX_FILE_BYTES + 1);
     let mut bytes = Vec::new();
     limited
         .read_to_end(&mut bytes)
         .map_err(|error| format!("cannot read {}: {error}", path.display()))?;
     if bytes.len() as u64 > MAX_FILE_BYTES {
-        return Err(format!("file exceeds safety limit of {MAX_FILE_BYTES} bytes"));
+        return Err(format!(
+            "file exceeds safety limit of {MAX_FILE_BYTES} bytes"
+        ));
     }
     Ok(bytes)
 }
@@ -202,7 +213,9 @@ fn safe_relative_path(value: &str) -> Result<PathBuf, String> {
     }
     for component in path.components() {
         if !matches!(component, Component::Normal(_)) {
-            return Err(format!("non-relative or traversing path is not allowed: {value}"));
+            return Err(format!(
+                "non-relative or traversing path is not allowed: {value}"
+            ));
         }
     }
     Ok(path.to_path_buf())
@@ -217,7 +230,9 @@ fn resolve_inventory_path(root: &Path, relative: &str) -> Result<PathBuf, String
         let canonical = fs::canonicalize(&direct)
             .map_err(|error| format!("cannot resolve {}: {error}", direct.display()))?;
         if !canonical.starts_with(&canonical_root) {
-            return Err(format!("inventory path escapes dataset root through a symlink: {relative}"));
+            return Err(format!(
+                "inventory path escapes dataset root through a symlink: {relative}"
+            ));
         }
         return Ok(canonical);
     }
@@ -231,7 +246,9 @@ fn resolve_inventory_path(root: &Path, relative: &str) -> Result<PathBuf, String
         let canonical = fs::canonicalize(&alternate)
             .map_err(|error| format!("cannot resolve {}: {error}", alternate.display()))?;
         if !canonical.starts_with(&canonical_root) {
-            return Err(format!("inventory path escapes dataset root through a symlink: {relative}"));
+            return Err(format!(
+                "inventory path escapes dataset root through a symlink: {relative}"
+            ));
         }
         return Ok(canonical);
     }
@@ -305,24 +322,34 @@ fn parse_csv_records(input: &str) -> Result<Vec<Vec<String>>, String> {
         if quote_closed {
             match byte {
                 b',' => {
-                    record.push(String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?);
+                    record.push(
+                        String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?,
+                    );
                     quote_closed = false;
                     index += 1;
                 }
                 b'\n' => {
-                    record.push(String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?);
+                    record.push(
+                        String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?,
+                    );
                     records.push(std::mem::take(&mut record));
                     quote_closed = false;
                     index += 1;
                 }
                 b'\r' => {
-                    record.push(String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?);
+                    record.push(
+                        String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?,
+                    );
                     records.push(std::mem::take(&mut record));
                     quote_closed = false;
                     index += usize::from(bytes.get(index + 1) == Some(&b'\n')) + 1;
                 }
                 b' ' | b'\t' => index += 1,
-                _ => return Err(format!("unexpected byte after closing quote at offset {index}")),
+                _ => {
+                    return Err(format!(
+                        "unexpected byte after closing quote at offset {index}"
+                    ));
+                }
             }
             continue;
         }
@@ -334,16 +361,22 @@ fn parse_csv_records(input: &str) -> Result<Vec<Vec<String>>, String> {
             }
             b'"' => return Err(format!("quote inside unquoted field at offset {index}")),
             b',' => {
-                record.push(String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?);
+                record.push(
+                    String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?,
+                );
                 index += 1;
             }
             b'\n' => {
-                record.push(String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?);
+                record.push(
+                    String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?,
+                );
                 records.push(std::mem::take(&mut record));
                 index += 1;
             }
             b'\r' => {
-                record.push(String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?);
+                record.push(
+                    String::from_utf8(std::mem::take(&mut field)).map_err(|e| e.to_string())?,
+                );
                 records.push(std::mem::take(&mut record));
                 index += usize::from(bytes.get(index + 1) == Some(&b'\n')) + 1;
             }
@@ -384,7 +417,12 @@ fn md5_with_available_tool(path: &Path) -> Option<String> {
         let output = match program {
             "md5sum" => Command::new(program).arg(path).output(),
             "md5" => Command::new(program).arg("-q").arg(path).output(),
-            _ => Command::new(program).arg("dgst").arg("-md5").arg("-r").arg(path).output(),
+            _ => Command::new(program)
+                .arg("dgst")
+                .arg("-md5")
+                .arg("-r")
+                .arg(path)
+                .output(),
         };
         let Ok(output) = output else {
             continue;
@@ -404,8 +442,8 @@ fn md5_with_available_tool(path: &Path) -> Option<String> {
 }
 
 fn sha256_file(path: &Path) -> Result<(u64, String), String> {
-    let mut file = File::open(path)
-        .map_err(|error| format!("cannot open {}: {error}", path.display()))?;
+    let mut file =
+        File::open(path).map_err(|error| format!("cannot open {}: {error}", path.display()))?;
     let mut hasher = Sha256::new();
     let mut buffer = [0u8; 64 * 1024];
     let mut total = 0u64;
@@ -459,7 +497,10 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
     let text = text.strip_prefix('\u{feff}').unwrap_or(text);
     let records = parse_csv_records(text)?;
     if records.len() <= HEADER_ROWS {
-        return Err(format!("expected three header rows and data rows; found {} records", records.len()));
+        return Err(format!(
+            "expected three header rows and data rows; found {} records",
+            records.len()
+        ));
     }
 
     let expected_columns = match role {
@@ -484,7 +525,10 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         let index = header_index(headers, "Anomaly State")
             .ok_or_else(|| "scenario CSV has no Anomaly State header".to_string())?;
         if index != 2 {
-            return Err(format!("Anomaly State is at column {}; expected third column", index + 1));
+            return Err(format!(
+                "Anomaly State is at column {}; expected third column",
+                index + 1
+            ));
         }
         Some(index)
     } else {
@@ -494,7 +538,10 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
     let time_abs_column = header_index(headers, "Time_abs")
         .ok_or_else(|| "Time_abs column was not found in the three header rows".to_string())?;
     if time_abs_column != 0 {
-        return Err(format!("Time_abs is at column {}; expected first column", time_abs_column + 1));
+        return Err(format!(
+            "Time_abs is at column {}; expected first column",
+            time_abs_column + 1
+        ));
     }
     let time_rel_column = header_index(headers, "Time_rel");
     if time_rel_column != Some(1) {
@@ -643,7 +690,9 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
         return Err(format!("{anomaly_invalid_rows} non-binary anomaly labels"));
     }
     if time_rel_non_numeric_rows > 0 {
-        return Err(format!("{time_rel_non_numeric_rows} non-numeric Time_rel values"));
+        return Err(format!(
+            "{time_rel_non_numeric_rows} non-numeric Time_rel values"
+        ));
     }
 
     Ok(CsvAudit {
@@ -722,9 +771,7 @@ fn inventory_from_manifest(manifest: &Value) -> Result<Vec<InventoryEntry>, Stri
 }
 
 fn archive_integrity_verified(archive: Option<&ArchiveAudit>) -> bool {
-    archive.is_some_and(|item| {
-        item.zip_signature_valid && item.publisher_md5_matches == Some(true)
-    })
+    archive.is_some_and(|item| item.zip_signature_valid && item.publisher_md5_matches == Some(true))
 }
 
 fn build_split_template(entries: &[InventoryEntry]) -> SplitTemplate {
@@ -818,7 +865,9 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
             if size_bytes.is_none() {
                 file_errors.push("could not determine file size; refusing unbounded read".into());
             } else if size_bytes.is_some_and(|size| size > MAX_FILE_BYTES) {
-                file_errors.push(format!("file exceeds safety limit of {MAX_FILE_BYTES} bytes"));
+                file_errors.push(format!(
+                    "file exceeds safety limit of {MAX_FILE_BYTES} bytes"
+                ));
             } else {
                 match read_file_bounded(&path) {
                     Ok(bytes) => {
@@ -828,20 +877,30 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                         if entry.role == "scenario_csv" || entry.role == "baseline_csv" {
                             match inspect_csv(&entry.path, &entry.role, &bytes) {
                                 Ok(audit) => {
-                                    total_data_rows = total_data_rows.saturating_add(audit.data_rows);
+                                    total_data_rows =
+                                        total_data_rows.saturating_add(audit.data_rows);
                                     if entry.role == "scenario_csv" {
                                         scenario_csvs_audited += 1;
                                     } else {
                                         baseline_csvs_audited += 1;
                                     }
                                     if audit.time_rel_backsteps > 0 {
-                                        file_errors.push(format!("Time_rel has {} backsteps", audit.time_rel_backsteps));
+                                        file_errors.push(format!(
+                                            "Time_rel has {} backsteps",
+                                            audit.time_rel_backsteps
+                                        ));
                                     }
                                     if audit.time_abs_duplicate_rows > 0 {
-                                        warnings.push(format!("{}: Time_abs contains {} duplicate timestamps", entry.path, audit.time_abs_duplicate_rows));
+                                        warnings.push(format!(
+                                            "{}: Time_abs contains {} duplicate timestamps",
+                                            entry.path, audit.time_abs_duplicate_rows
+                                        ));
                                     }
                                     if audit.time_rel_duplicates > 0 {
-                                        warnings.push(format!("{}: Time_rel contains {} duplicate timestamps", entry.path, audit.time_rel_duplicates));
+                                        warnings.push(format!(
+                                            "{}: Time_rel contains {} duplicate timestamps",
+                                            entry.path, audit.time_rel_duplicates
+                                        ));
                                     }
                                     if !audit.missing_header_names.is_empty()
                                         || !audit.missing_shorthand_symbols.is_empty()
@@ -856,12 +915,19 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                                         ));
                                     }
                                     if audit.time_abs_empty_rows > 0 {
-                                        file_errors.push(format!("Time_abs has {} empty rows", audit.time_abs_empty_rows));
+                                        file_errors.push(format!(
+                                            "Time_abs has {} empty rows",
+                                            audit.time_abs_empty_rows
+                                        ));
                                     }
-                                    if audit.anomaly_only_expected && audit.anomaly_only_observed != Some(true) {
+                                    if audit.anomaly_only_expected
+                                        && audit.anomaly_only_observed != Some(true)
+                                    {
                                         file_errors.push("the anomaly-only nozzle recording contains pre-anomaly or invalid labels".into());
                                     }
-                                    if !audit.anomaly_only_expected && audit.anomaly_onset_evaluable != Some(true) {
+                                    if !audit.anomaly_only_expected
+                                        && audit.anomaly_onset_evaluable != Some(true)
+                                    {
                                         file_errors.push("recording expected to contain both pre-anomaly and anomaly labels does not support onset evaluation".into());
                                     }
                                     csv = Some(audit);
@@ -874,7 +940,9 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
                                 .and_then(parse_csv_records)
                             {
                                 Ok(records) => metadata_csv_rows = Some(records.len()),
-                                Err(error) => file_errors.push(format!("metadata CSV parse failed: {error}")),
+                                Err(error) => {
+                                    file_errors.push(format!("metadata CSV parse failed: {error}"))
+                                }
                             }
                         } else if !utf8_valid {
                             file_errors.push("metadata text is not valid UTF-8".into());
@@ -905,25 +973,49 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
     }
 
     if files_found != inventory.len() {
-        warnings.push(format!("{} of {} inventory files were found", files_found, inventory.len()));
+        warnings.push(format!(
+            "{} of {} inventory files were found",
+            files_found,
+            inventory.len()
+        ));
     }
     if scenario_csvs_audited != 15 {
-        warnings.push(format!("audited {} of 15 expected scenario CSVs", scenario_csvs_audited));
+        warnings.push(format!(
+            "audited {} of 15 expected scenario CSVs",
+            scenario_csvs_audited
+        ));
     }
     if baseline_csvs_audited != 1 {
-        warnings.push(format!("audited {} of 1 expected baseline CSV", baseline_csvs_audited));
+        warnings.push(format!(
+            "audited {} of 1 expected baseline CSV",
+            baseline_csvs_audited
+        ));
     }
-    if archive.as_ref().is_some_and(|item| !item.zip_signature_valid) {
-        errors.push("archive does not have a recognized ZIP local/end-of-central-directory signature".into());
+    if archive
+        .as_ref()
+        .is_some_and(|item| !item.zip_signature_valid)
+    {
+        errors.push(
+            "archive does not have a recognized ZIP local/end-of-central-directory signature"
+                .into(),
+        );
     }
-    if archive.as_ref().is_some_and(|item| item.publisher_md5_matches == Some(false)) {
+    if archive
+        .as_ref()
+        .is_some_and(|item| item.publisher_md5_matches == Some(false))
+    {
         errors.push("archive MD5 does not match the publisher-published value".into());
     }
-    if archive.as_ref().is_some_and(|item| item.publisher_md5_matches.is_none()) {
+    if archive
+        .as_ref()
+        .is_some_and(|item| item.publisher_md5_matches.is_none())
+    {
         warnings.push("publisher MD5 was not independently verified; ensure an md5sum, md5 or openssl executable is available".into());
     }
     if archive.is_none() {
-        warnings.push("archive bytes were not supplied; only extracted member files can be audited".into());
+        warnings.push(
+            "archive bytes were not supplied; only extracted member files can be audited".into(),
+        );
     } else {
         warnings.push("the auditor does not prove that the extracted tree was produced from the supplied ZIP; retain the extraction command, tool version and extraction log separately".into());
     }
@@ -942,10 +1034,19 @@ fn audit_dataset(cli: &Cli) -> Result<DatasetAuditReport, String> {
 
     Ok(DatasetAuditReport {
         report_version: "0.1.0".into(),
-        dataset_doi: manifest.pointer("/dataset/doi").and_then(Value::as_str).map(str::to_string),
-        dataset_version: manifest.pointer("/dataset/version").and_then(Value::as_str).map(str::to_string),
+        dataset_doi: manifest
+            .pointer("/dataset/doi")
+            .and_then(Value::as_str)
+            .map(str::to_string),
+        dataset_version: manifest
+            .pointer("/dataset/version")
+            .and_then(Value::as_str)
+            .map(str::to_string),
         audit_state: audit_state.into(),
-        claim_ceiling: manifest.get("claim_ceiling").and_then(Value::as_str).map(str::to_string),
+        claim_ceiling: manifest
+            .get("claim_ceiling")
+            .and_then(Value::as_str)
+            .map(str::to_string),
         archive,
         files_expected: inventory.len(),
         files_found,
@@ -998,7 +1099,9 @@ fn main() -> ExitCode {
     }
 
     // An incomplete payload audit is a distinct non-zero result, never a pass.
-    if report.audit_state != "content_audited_pending_independent_review" || !report.errors.is_empty() {
+    if report.audit_state != "content_audited_pending_independent_review"
+        || !report.errors.is_empty()
+    {
         ExitCode::from(1)
     } else {
         ExitCode::SUCCESS
@@ -1011,7 +1114,9 @@ mod tests {
 
     #[test]
     fn parses_quoted_commas_and_escaped_quotes() {
-        let parsed = parse_csv_records("name,description\nengine,\"large, marine \"\"diesel\"\"\"\n").unwrap();
+        let parsed =
+            parse_csv_records("name,description\nengine,\"large, marine \"\"diesel\"\"\"\n")
+                .unwrap();
         assert_eq!(parsed[1][0], "engine");
         assert_eq!(parsed[1][1], "large, marine \"diesel\"");
     }
@@ -1044,7 +1149,11 @@ mod tests {
     #[test]
     fn identifies_header_across_three_rows() {
         let headers = vec![
-            vec!["Absolute time".into(), "Relative time".into(), "Anomaly State".into()],
+            vec![
+                "Absolute time".into(),
+                "Relative time".into(),
+                "Anomaly State".into(),
+            ],
             vec!["Time_abs".into(), "Time_rel".into(), "Anomaly_State".into()],
             vec!["s".into(), "s".into(), "1".into()],
         ];
@@ -1079,14 +1188,28 @@ mod tests {
     #[test]
     fn split_template_never_assigns_a_partition() {
         let entries = vec![
-            InventoryEntry { path: "a.csv".into(), reported_size: "1 MB".into(), role: "scenario_csv".into() },
-            InventoryEntry { path: "b.csv".into(), reported_size: "1 MB".into(), role: "baseline_csv".into() },
+            InventoryEntry {
+                path: "a.csv".into(),
+                reported_size: "1 MB".into(),
+                role: "scenario_csv".into(),
+            },
+            InventoryEntry {
+                path: "b.csv".into(),
+                reported_size: "1 MB".into(),
+                role: "baseline_csv".into(),
+            },
         ];
         let template = build_split_template(&entries);
         assert_eq!(template.groups.len(), 2);
         assert_eq!(template.groups[0].assignment, None);
-        assert_eq!(template.groups[1].assignment.as_deref(), Some("reference_only"));
-        assert_eq!(template.groups[1].assignment_state, "preassigned_reference_only");
+        assert_eq!(
+            template.groups[1].assignment.as_deref(),
+            Some("reference_only")
+        );
+        assert_eq!(
+            template.groups[1].assignment_state,
+            "preassigned_reference_only"
+        );
         assert!(!template.random_window_split_allowed);
     }
 
@@ -1095,9 +1218,17 @@ mod tests {
         names[0] = "Time_abs".into();
         names[1] = "Time_rel".into();
         names[2] = "Anomaly State".into();
-        let symbols = names.iter().map(|name| format!("sym_{name}")).collect::<Vec<_>>();
+        let symbols = names
+            .iter()
+            .map(|name| format!("sym_{name}"))
+            .collect::<Vec<_>>();
         let units = vec!["unit".to_string(); SCENARIO_COLUMNS];
-        let mut output = format!("{}\n{}\n{}\n", names.join(","), symbols.join(","), units.join(","));
+        let mut output = format!(
+            "{}\n{}\n{}\n",
+            names.join(","),
+            symbols.join(","),
+            units.join(",")
+        );
         for (absolute, relative, label) in rows {
             let mut cells = vec!["value".to_string(); SCENARIO_COLUMNS];
             cells[0] = (*absolute).into();
@@ -1113,12 +1244,7 @@ mod tests {
     #[test]
     fn audits_scenario_label_transitions_missingness_and_time() {
         let data = synthetic_scenario_csv(&[("100", "0", "0"), ("101", "1", "1")]);
-        let audit = inspect_csv(
-            "AC_Fouling_40_Load.csv",
-            "scenario_csv",
-            data.as_bytes(),
-        )
-        .unwrap();
+        let audit = inspect_csv("AC_Fouling_40_Load.csv", "scenario_csv", data.as_bytes()).unwrap();
         assert_eq!(audit.column_count, SCENARIO_COLUMNS);
         assert_eq!(audit.data_rows, 2);
         assert_eq!(audit.anomaly_zero_rows, 1);
@@ -1134,12 +1260,7 @@ mod tests {
     #[test]
     fn flags_non_monotonic_relative_time_without_reordering_samples() {
         let data = synthetic_scenario_csv(&[("100", "2", "0"), ("101", "1", "1")]);
-        let audit = inspect_csv(
-            "AC_Fouling_40_Load.csv",
-            "scenario_csv",
-            data.as_bytes(),
-        )
-        .unwrap();
+        let audit = inspect_csv("AC_Fouling_40_Load.csv", "scenario_csv", data.as_bytes()).unwrap();
         assert_eq!(audit.time_rel_backsteps, 1);
         assert_eq!(audit.first_time_rel.as_deref(), Some("2"));
         assert_eq!(audit.last_time_rel.as_deref(), Some("1"));

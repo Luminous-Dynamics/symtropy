@@ -256,7 +256,9 @@ pub fn validate_case(case: &Case) -> Result<(), EvalError> {
         || !nonempty(&case.description)
         || !nonempty(&case.decision_clock_domain)
     {
-        return Err(EvalError::Invalid("case identity/description is empty".into()));
+        return Err(EvalError::Invalid(
+            "case identity/description is empty".into(),
+        ));
     }
     for (field, value) in [
         ("vessel_id", case.asset.vessel_id.as_str()),
@@ -576,9 +578,7 @@ mod tests {
             .expect("expired-age fixture exists");
         let observation = &case.observations[0];
         assert_eq!(observation.quality, Quality::Current);
-        assert!(
-            case.decision_time_ms - observation.observed_at_ms > observation.max_age_ms
-        );
+        assert!(case.decision_time_ms - observation.observed_at_ms > observation.max_age_ms);
         assert_eq!(evaluate_case(case).decision_evidence_observations, 0);
         assert_eq!(
             evaluate_case(case).disposition,
@@ -599,13 +599,19 @@ mod tests {
             case.observations[0].max_age_ms
         );
         assert_eq!(evaluate_case(case).decision_evidence_observations, 1);
-        assert_eq!(evaluate_case(case).disposition, Disposition::ContinueWithWatch);
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::ContinueWithWatch
+        );
 
         let mut over_age = case.clone();
         over_age.observations[0].observed_at_ms =
             over_age.decision_time_ms - over_age.observations[0].max_age_ms - 1;
         assert_eq!(evaluate_case(&over_age).decision_evidence_observations, 0);
-        assert_eq!(evaluate_case(&over_age).disposition, Disposition::UnknownEscalate);
+        assert_eq!(
+            evaluate_case(&over_age).disposition,
+            Disposition::UnknownEscalate
+        );
     }
 
     #[test]
@@ -618,7 +624,10 @@ mod tests {
             .expect("future-dated fixture exists");
         assert!(case.observations[0].observed_at_ms > case.decision_time_ms);
         assert_eq!(evaluate_case(case).decision_evidence_observations, 0);
-        assert_eq!(evaluate_case(case).disposition, Disposition::UnknownEscalate);
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::UnknownEscalate
+        );
     }
 
     #[test]
@@ -634,7 +643,10 @@ mod tests {
             case.decision_clock_domain
         );
         assert_eq!(evaluate_case(case).decision_evidence_observations, 0);
-        assert_eq!(evaluate_case(case).disposition, Disposition::UnknownEscalate);
+        assert_eq!(
+            evaluate_case(case).disposition,
+            Disposition::UnknownEscalate
+        );
     }
 
     #[test]
