@@ -108,7 +108,7 @@ Expected results:
 - 5 screen-eligible candidates, 1 mission-blocked, 1 insufficient-service and 1 indeterminate;
 - 2 robust-dominance pairs;
 - 3 frontier candidates: baseline, eco route and fast route;
-- synthetic-only evidence grade.
+- mixed/indeterminate evidence grade because one candidate carries unknown source evidence; no physical result is admitted.
 
 All mission reports, option identities, work quantities, energy/time values, uncertainties and digests are synthetic. These fixtures test comparability, hash binding and frontier arithmetic only. They do not establish actual energy savings, range, reliability, service output or physical feasibility.
 
