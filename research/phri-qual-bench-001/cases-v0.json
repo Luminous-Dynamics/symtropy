@@ -55,7 +55,9 @@
     "poignonec_passivity_constrained_nmpc",
     "luminous_diagonal_vic_reference",
     "luminous_basis_free_candidate",
-    "ru_et_al_matrix_valued_passivity_indices_lti_scope"
+    "ru_et_al_matrix_valued_passivity_indices_lti_scope",
+    "single_rate_synchronous_adaptation",
+    "multi_rate_proposal_expiry_local_safety_architecture"
   ],
   "scenarios": [
     {
@@ -325,6 +327,44 @@
         "pressure_time_integral_reported",
         "exposure_duration_reported",
         "global_energy_and_local_limits_scored_separately"
+      ]
+    },
+    {
+      "id": "multirate-proposal-expiry",
+      "domain": "timing_and_authority",
+      "purpose": "Exercise slow intent, medium-rate optimizer and fast local loop with proposal expiry, supersession and state binding.",
+      "seeded_faults": [
+        "late_optimizer_result",
+        "superseded_proposal",
+        "expired_proposal",
+        "state_revision_change",
+        "clock_reset",
+        "wearer_stop_while_pending"
+      ],
+      "required_assertions": [
+        "old_proposal_never_overwrites_newer",
+        "expired_proposal_rejected",
+        "old_agency_epoch_rejected",
+        "fast_loop_never_blocks_on_optimizer",
+        "post_stop_no_proposal_applied"
+      ]
+    },
+    {
+      "id": "fast-loop-compute-contention",
+      "domain": "timing_and_authority",
+      "purpose": "Measure fast local control deadline behaviour while optimizer/NMPC runs under contention and thermal throttling.",
+      "seeded_faults": [
+        "cpu_contention",
+        "thermal_throttling",
+        "optimizer_overrun",
+        "queued_results",
+        "sensor_to_receipt_age_mismatch"
+      ],
+      "required_assertions": [
+        "fast_loop_deadline_distribution_reported",
+        "higher_layer_wait_count_zero",
+        "timeout_fallback_declared",
+        "source_age_distinct_from_receipt_age"
       ]
     }
   ],
