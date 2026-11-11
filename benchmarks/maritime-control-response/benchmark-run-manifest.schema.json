@@ -374,7 +374,9 @@
             "likelihood_scenario_count",
             "expected_information_gain_nats",
             "worst_case_information_gain_nats",
-            "epistemic_robustness_qualified"
+            "epistemic_robustness_qualified",
+            "risk_assessment_catalogue_sha256",
+            "risk_evidence_reviewed_by_authority_owner"
           ],
           "properties": {
             "schema_version": {
@@ -492,6 +494,20 @@
               "minimum": 0
             },
             "epistemic_robustness_qualified": {
+              "type": "boolean"
+            },
+            "risk_assessment_catalogue_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "risk_evidence_reviewed_by_authority_owner": {
               "type": "boolean"
             }
           }
@@ -821,6 +837,10 @@
             "null"
           ],
           "minimum": 0
+        },
+        "risk_evidence_unreviewed_candidate_count": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -978,6 +998,9 @@
                   },
                   "worst_case_information_gain_nats": {
                     "type": "null"
+                  },
+                  "risk_evidence_reviewed_by_authority_owner": {
+                    "const": false
                   }
                 }
               },
@@ -1092,6 +1115,12 @@
                   },
                   "controlled_perturbations_recommended": {
                     "const": 0
+                  },
+                  "risk_assessment_catalogue_sha256": {
+                    "type": "string"
+                  },
+                  "risk_evidence_reviewed_by_authority_owner": {
+                    "const": true
                   }
                 }
               },
@@ -1133,6 +1162,13 @@
                     "const": 0
                   }
                 }
+              }
+            }
+          },
+          "metrics": {
+            "properties": {
+              "risk_evidence_unreviewed_candidate_count": {
+                "const": 0
               }
             }
           }
