@@ -197,7 +197,6 @@
       "purpose": "Test the controller against a pre-registered perturbation sequence not used to set its gain or fixed-rate baseline.",
       "mode": "PROPORTIONAL_FEEDBACK",
       "feedback_gain_per_time": 1.2,
-      "sequence_seed": 20261111,
       "disturbances": [
         0.08,
         0,
@@ -220,7 +219,7 @@
         1,
         1
       ],
-      "expected": "report recovery, energy limitation and residual integrity for every step; do not infer learning from robust feedback under a fixed known control law"
+      "expected": "This is a deterministic, pre-registered out-of-calibration stress sequence, not a random-seed experiment. Report recovery, energy limitation and residual integrity for every step; do not infer learning from robust feedback under a fixed known control law."
     }
   ],
   "metrics": [
@@ -252,7 +251,9 @@
     "zero_energy_input_repair_from_empty_store": 0,
     "replay_exact_same_platform": true,
     "no_non_finite_state_or_report": true,
-    "all_cases_grouped_by_trajectory": true
+    "all_cases_grouped_by_trajectory": true,
+    "finite_reserve_depletion_test_required": true,
+    "matched_disturbance_and_energy_sequences_required": true
   },
   "reproducibility": {
     "seed": "only the unseen perturbation sequence uses sequence_seed; core state transitions are deterministic",
