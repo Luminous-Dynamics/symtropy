@@ -118,7 +118,17 @@
       "Predator MCAR search artifacts are a separate experiment contract and are not merged into the five primary result bundles.",
       "PPO and stacked-PPO outputs live in separate logs_PPO and logs_PPO_stacked trees (242 results.json files at this commit) and are not counted as completed baseline coverage by this adapter.",
       "An exception row is retained and reported; it is never silently dropped or counted as a successful policy evaluation."
-    ]
+    ],
+    "exception_taxonomy": {
+      "exception_classes": [
+        "RemoteException"
+      ],
+      "exception_rows_with_known_message": 123,
+      "message": "Failed discrete belief update: new probabilities sum to zero.",
+      "affected_learning_experiment_bundles": 4,
+      "unaffected_learning_experiment_bundles": 1,
+      "message_fingerprint_claim": "All 123 failed learning rows carry the same top-level belief-update failure message; raw stack traces remain in the pinned result JSON blobs."
+    }
   },
   "ppo_artifact_matrix": {
     "expected_total": 242,
