@@ -59,6 +59,18 @@ where `T` is the stored-bivector representation of the physical applied torque. 
 - Parallel-axis composition and point-cloud accumulation with scale-safe huge-offset/tiny-mass controls, explicit underflow rejection, point-mass translation invariance (including small geometry far from world origin), canonical point-cloud input-order invariance, and offset-centering negative control.
 - Invalid dimensions outside `2 <= D <= 9`, asymmetric/indefinite/zero-mass/degenerate inputs, invalid tolerance, singular rotation planes, zero impulse direction, improper Rotor, non-finite intermediates and overflow controls.
 
+## Executable CSV qualification campaign
+
+Run:
+
+```bash
+cargo run --release --example anisotropic_reference_campaign -p symtropy-physics
+```
+
+The example emits deterministic CSV rows with `case`, `parameter`, `observed`, `reference`, absolute/relative error and a pass flag. It includes symmetric-top analytic precession/refinement, asymmetric-top energy convergence, intermediate-axis growth with world-momentum control, off-centre impulse/contact-effective-mass/energy identity, inverse round trips in D=2/3/4/9, mass scaling, body-frame vs explicit world-frame contact queries, point-cloud ordering, huge-offset/tiny-mass point-cloud and parallel-axis composition, and fail-closed underflow controls.
+
+This is a numerical qualification campaign, **not a throughput benchmark** and not a runtime `PhysicsWorld` campaign. It gives a reproducible input/output table for a future matched MuJoCo/Chrono/Pinocchio differential run. The CSV does not itself establish external physical validation or production solver quality. Record the exact source SHA, toolchain, host and release flags when storing a run.
+
 ## Mathematical prior art and novelty boundary
 
 The arbitrary-dimensional bivector formulation is established mathematics, not a new claim of this PR. Edward Parker's corrected 2024 paper, *The Ricci decomposition of the inertia tensor for a rigid body in arbitrary spatial dimensions*, derives the rank-4 inertia operator on `Lambda^2(R^D)` and proves its Weyl component vanishes: the physical inertia operator is fully determined by a symmetric rank-2 tensor (the Schouten/Ricci contraction). The paper also notes that the most efficient evaluation can skip materializing the rank-4 operator and apply the rank-2 tensor directly to the angular bivector.
