@@ -10,16 +10,6 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_DECISION_CAPTURE_ADAPTER_V0_1.json"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_DECISION_CAPTURE_ADAPTER_V0_1.schema.json"
       - ".github/workflows/scan-bim-decision-capture-adapter.yml"
-  push:
-    branches: ["research/scan-bim-decision-capture-adapter-v0-1"]
-    paths:
-      - "tools/scan-bim-decision-capture-adapter/**"
-      - "tools/spatial-resilience-qualifier/**"
-      - "docs/research/spatial-design/SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.json"
-      - "docs/research/built-asset/scan-bim/SCAN_BIM_DECISION_CAPTURE_ADAPTER_V0_1.json"
-      - "docs/research/built-asset/scan-bim/SCAN_BIM_DECISION_CAPTURE_ADAPTER_V0_1.schema.json"
-      - ".github/workflows/scan-bim-decision-capture-adapter.yml"
-
 permissions:
   contents: read
 
