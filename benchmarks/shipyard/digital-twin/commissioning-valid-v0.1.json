@@ -248,5 +248,6 @@
       "fidelity_residual_units": 3,
       "coverage_permille": 995
     }
-  ]
+  ],
+  "master_clock_id": "CELL-MASTER"
 }
