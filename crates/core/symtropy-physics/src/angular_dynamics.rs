@@ -542,6 +542,67 @@ mod tests {
     }
 
     #[test]
+    fn anisotropic_angular_reference_is_covariant_under_global_rotation() {
+        let inertia = PrincipalInertia3::new([1.2, 2.3, 3.4]).unwrap();
+        let mut body_generator = Bivector::<3>::zero();
+        body_generator.set(0, 1, 0.22);
+        body_generator.set(0, 2, -0.31);
+        body_generator.set(1, 2, 0.17);
+        let rotation = Rotor::from_bivector(&body_generator);
+        let omega_world = SVector::from([0.4, -0.3, 0.8]);
+        let angular_velocity = angular_vector_to_bivector(&omega_world);
+        let torque_world = SVector::from([0.7, -0.2, 0.5]);
+        let dt = 0.003;
+
+        let mut global_generator = Bivector::<3>::zero();
+        global_generator.set(0, 1, -0.43);
+        global_generator.set(0, 2, 0.28);
+        global_generator.set(1, 2, 0.36);
+        let global = Rotor::from_bivector(&global_generator);
+
+        let rotated_initial = global.compose(&rotation);
+        let rotated_omega_vector = global.rotate_vector(&omega_world);
+        let rotated_angular_velocity = angular_vector_to_bivector(&rotated_omega_vector);
+        let rotated_torque = global.rotate_vector(&torque_world);
+
+        let initial_l = world_angular_momentum(&rotation, &angular_velocity, inertia).unwrap();
+        let rotated_initial_l =
+            world_angular_momentum(&rotated_initial, &rotated_angular_velocity, inertia).unwrap();
+        assert!(vec_close(
+            &rotated_initial_l,
+            &global.rotate_vector(&initial_l),
+            2.0e-12,
+        ));
+
+        let reference =
+            step_principal_inertia(&rotation, &angular_velocity, inertia, &torque_world, dt)
+                .unwrap();
+        let transformed = step_principal_inertia(
+            &rotated_initial,
+            &rotated_angular_velocity,
+            inertia,
+            &rotated_torque,
+            dt,
+        )
+        .unwrap();
+
+        let expected_rotation = global.compose(&reference.rotation);
+        let rotation_error = (transformed.rotation.to_matrix() - expected_rotation.to_matrix()).norm();
+        assert!(rotation_error < 2.0e-11, "rotation covariance error={rotation_error:e}");
+        let expected_omega = global.rotate_vector(&bivector_to_angular_vector(&reference.angular_velocity));
+        assert!(vec_close(
+            &bivector_to_angular_vector(&transformed.angular_velocity),
+            &expected_omega,
+            2.0e-11,
+        ));
+        assert!(vec_close(
+            &transformed.world_angular_momentum,
+            &global.rotate_vector(&reference.world_angular_momentum),
+            2.0e-11,
+        ));
+    }
+
+    #[test]
     fn negative_or_non_finite_timestep_is_rejected() {
         let inertia = PrincipalInertia3::new([1.0, 2.0, 3.0]).unwrap();
         let rotation = Rotor::<3>::identity();
