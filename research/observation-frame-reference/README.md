@@ -42,7 +42,7 @@ The dependency-free benchmark binary generates deterministic 1k, 10k and 100k cl
 
 ## Tests
 
-The unit corpus covers entity/observable order invariance, ordered-event sensitivity, absent event identity, source-class preservation, unavailable-versus-zero semantics, malformed values/uncertainty, duplicate identities, stable NetId generation scope, non-finite IEEE values, and source-clock round-trip.
+The unit corpus covers entity/observable order invariance, ordered-event sensitivity, absent event identity, source-class preservation, unavailable-versus-zero semantics, observable-set known-answer and membership mismatch, value-independent channel identity, unavailable-channel retention, malformed values/uncertainty, duplicate identities, stable NetId generation scope, non-finite IEEE values, and source-clock round-trip.
 
 ## Claim ceiling
 
