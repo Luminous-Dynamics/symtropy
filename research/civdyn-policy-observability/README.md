@@ -45,6 +45,10 @@ Missing-as-zero scoring reverses the true ranking in this second fixture. This i
 
 A separate balanced finite fixture has values 20, 20, 80, 80. One unit in each stratum is observed, all units carry a declared positive observation propensity of 0.5, and the Horvitz-Thompson mean is 50, equal to the known finite-population mean. This verifies arithmetic only; it does not establish that a real missingness process is MAR.
 
+### Mixed observation mechanism
+
+A fourth finite fixture makes the population's observation process explicitly mixed: two units carry a declared MAR mechanism and two carry an MNAR mechanism. The evaluator reports the aggregate mechanism as `mixed`, while candidate estimators still receive only unit-level observation rows. The bounds remain [42.5, 92.5] around the true mean of 45; the benchmark does not pretend the MAR propensity values for two units identify the other two units' MNAR outcomes.
+
 ## Estimators and qualification
 
 For outcome support [L, U], observed weighted sum S, total population weight W, and missing weight M, the no-assumption finite-population bounds are:
@@ -65,7 +69,7 @@ The known-propensity estimator is an explicit positive-control path and rejects 
 - No hidden outcome or true-mechanism field is passed to candidate estimators.
 - Complete-case and missing-as-zero rank-reversal tests run in opposite selection directions.
 - All-missing policies return the full outcome-support interval and no complete-case estimate.
-- Per-stratum true values, coverage and identified intervals are reported separately.
+- Per-stratum true values, coverage and identified intervals are reported separately. The sweep also emits reason-specific missingness counts and known/unknown propensity counts and extrema; it does not silently pool away subgroup coverage.
 - Pairwise robust regret is bounded from interval endpoints rather than point midpoints.
 
 ## Research and industry comparison
