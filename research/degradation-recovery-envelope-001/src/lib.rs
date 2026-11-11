@@ -1483,6 +1483,75 @@ mod tests {
     }
 
     #[test]
+    fn accepts_cascaded_fault_with_a_prior_parent_event() {
+        let mut input = campaign();
+        input.events[0].end_tick = 3;
+        let mut child = input.events[0].clone();
+        child.event_id = "compute-overrun-2".to_string();
+        child.kind = FaultKind::ComputeOverrun;
+        child.start_tick = 4;
+        child.end_tick = 4;
+        child.causality = FaultCausality::Cascaded;
+        child.causal_group_id = None;
+        child.parent_event_id = Some("camera-drop-1".to_string());
+        input.events[0].causality = FaultCausality::Independent;
+        input.events[0].causal_group_id = None;
+        input.events[0].parent_event_id = None;
+        input.events.push(child);
+
+        input.faulted_run.ticks[3].conditions = vec![ObservationCondition::ComputeOverrun];
+        input.faulted_run.ticks[3].fault_detection_event_ids =
+            vec!["compute-overrun-2".to_string()];
+        input.faulted_run.ticks[3].containment_event_ids =
+            vec!["compute-overrun-2".to_string()];
+
+        let report = audit_campaign(&input);
+        assert!(!has(&report, "missing_causal_parent"));
+        assert!(!has(&report, "causal_parent_after_child"));
+        assert!(!has(&report, "causal_parent_cycle"));
+        assert_eq!(report.events.len(), 2);
+    }
+
+    #[test]
+    fn compound_common_cause_events_are_attributed_independently() {
+        let mut input = campaign();
+        input.events[0].causality = FaultCausality::CommonCause;
+        input.events[0].causal_group_id = Some("shared-power-clock-domain-1".to_string());
+        input.events[0].parent_event_id = None;
+
+        let mut clock_fault = input.events[0].clone();
+        clock_fault.event_id = "clock-drift-1".to_string();
+        clock_fault.kind = FaultKind::ClockDrift;
+        input.events.push(clock_fault);
+
+        for tick in &mut input.faulted_run.ticks[2..4] {
+            tick.conditions = vec![
+                ObservationCondition::Missing,
+                ObservationCondition::ClockViolation,
+            ];
+            tick.policy_input_accepted = false;
+            tick.fault_detection_event_ids = if tick.tick == 3 {
+                vec!["camera-drop-1".to_string(), "clock-drift-1".to_string()]
+            } else {
+                Vec::new()
+            };
+            tick.containment_event_ids =
+                vec!["camera-drop-1".to_string(), "clock-drift-1".to_string()];
+        }
+
+        let report = audit_campaign(&input);
+        assert_eq!(report.disposition, "valid");
+        assert_eq!(report.events.len(), 2);
+        assert_eq!(report.events[0].detection_latency_ticks, Some(0));
+        assert_eq!(report.events[1].detection_latency_ticks, Some(0));
+        assert!(report.events.iter().all(|event| {
+            event.causality == FaultCausality::CommonCause
+                && event.causal_group_id.as_deref()
+                    == Some("shared-power-clock-domain-1")
+        }));
+    }
+
+    #[test]
     fn accepts_declared_common_cause_group_with_multiple_fault_events() {
         let mut input = campaign();
         let mut second = input.events[0].clone();
