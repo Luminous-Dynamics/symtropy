@@ -117,7 +117,7 @@ jobs:
 
         with Path("/tmp/civdyn-policy-observability.csv").open(newline="", encoding="utf-8") as handle:
             reader = csv.DictReader(handle)
-            assert reader.fieldnames is not None and len(reader.fieldnames) == 18
+            assert reader.fieldnames is not None and len(reader.fieldnames) == 22
             rows = list(reader)
 
         assert len(rows) == 5
@@ -146,8 +146,8 @@ jobs:
         mar = by_key[("mar_positive_control", "mar_known_propensity")]
         assert mar["true_mean"] == "50.000"
         assert mar["known_mar_ht_mean"] == "50.000"
-        assert mar["identified_lower"] == "50.000"
-        assert mar["identified_upper"] == "50.000"
+        assert mar["identified_lower"] == "25.000"
+        assert mar["identified_upper"] == "75.000"
 
         print("CIVDYN policy observability contract passed: selection-induced rank reversals, honest bounds, subgroup reporting, MAR positive control and deterministic replay.")
         PY
