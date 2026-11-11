@@ -734,7 +734,10 @@ mod tests {
     #[test]
     fn zero_budget_preserves_all_rollouts_for_fallback() {
         let receipt = allocate(&[opportunity("zero-budget", vec![100])], config(0)).unwrap();
-        assert_eq!(allocation(&receipt, "zero-budget").additional_rollout_count, 0);
+        assert_eq!(
+            allocation(&receipt, "zero-budget").additional_rollout_count,
+            0
+        );
         assert_eq!(receipt.compute_units_allocated, 0);
     }
 
