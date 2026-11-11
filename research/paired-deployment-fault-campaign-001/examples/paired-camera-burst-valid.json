@@ -321,6 +321,15 @@
             "affected_channel": "front_camera",
             "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
             "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "fault-restored-120",
+            "fault_family": "camera_burst_drop",
+            "kind": "fault_restored",
+            "tick": 120,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
           }
         ],
         "recovery": {
