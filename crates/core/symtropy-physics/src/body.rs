@@ -65,7 +65,7 @@ pub struct RigidBody<const D: usize> {
     /// Detects direct public mass mutation that bypasses the replacement API.
     pub rotational_inertia_operator_mass_bits: Option<u64>,
     /// Mass value against which the legacy diagonal inertia was derived.
-    mass_properties_mass_bits: Option<u64>,
+    pub(crate) mass_properties_mass_bits: Option<u64>,
     /// True when compound mass properties use the legacy approximation.
     pub rotational_inertia_approximate: bool,
     pub collider: Box<dyn Shape<D>>,
@@ -553,6 +553,9 @@ impl<const D: usize> RigidBody<D> {
         tool_collider: Box<dyn Shape<D>>,
         tool_mass: f64,
     ) {
+        let source_mass_properties_current =
+            self.mass_properties_mass_bits == Some(self.mass.to_bits());
+
         use symtropy_math::CompoundShape;
 
         let mut compound =
@@ -594,7 +597,11 @@ impl<const D: usize> RigidBody<D> {
         // approximation even when the resulting three stored moments happen
         // to be equal.
         self.rotational_inertia_approximate = true;
-        self.mass_properties_mass_bits = Some(self.mass.to_bits());
+        self.mass_properties_mass_bits = if source_mass_properties_current {
+            Some(self.mass.to_bits())
+        } else {
+            None
+        };
 
         // Toolhead mass changes invalidate any previously certified full
         // inertia operator. Do not silently keep using stale mass properties.
