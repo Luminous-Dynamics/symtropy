@@ -45,7 +45,9 @@ cargo test --manifest-path benchmarks/pomdar/score-oracle/Cargo.toml
 
 ## Human-reference limitations and Luminous extension
 
-The paper's human baseline is the mean completion time across six participants and three trials per task (54 human trajectories). Five of six participants were right-handed and all performed with their right hand. The robot evaluation used one operator, the ORCA hand on a Franka arm, and reported that results reflect the combined hand, teleoperation interface and operator; direct comparison across different teleoperation systems is not guaranteed. The paper itself describes its small human baseline study as a baseline reference rather than a population-level human study.
+The paper reports six human participants; five of six were right-handed, and all performed with their right hand. It then states that each participant completed three trials per task, yielding 54 trajectories. That denominator does not reconcile with the paper's 18 named POMDAR tasks if "trajectory" means one participant-task trial: six participants × three trials × 18 tasks would be 324 task trajectories. The text does not explain whether 54 counts a different unit, a subset, or a subset of participants/tasks. Preserve the paper's published reference unchanged, but do not infer per-task sample counts, independent observations, confidence intervals, or population variance from the stated 54 until the released raw trajectories or authors clarify the accounting.
+
+The robot evaluation used one operator, the ORCA hand on a Franka arm, and reports that results reflect the combined hand, teleoperation interface and operator; direct comparison across different teleoperation systems is not guaranteed. The paper itself describes its small human baseline study as a baseline reference rather than a population-level human study.
 
 Therefore:
 - Preserve the published reference when reproducing POMDAR; do not silently replace it.
