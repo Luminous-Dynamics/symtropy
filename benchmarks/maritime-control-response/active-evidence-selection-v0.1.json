@@ -15,6 +15,11 @@
       "worst_case_information_gain": "Minimum scenario-specific expected information gain across the entire declared scenario set.",
       "eligibility": "Require worst-case expected information gain to exceed the policy floor; an optimistic mean cannot compensate for an uninformative plausible scenario.",
       "qualification": "A candidate with one point-estimate table may be ranked as a provisional point-model result but is not epistemically robust-qualified. Two or more distinct calibrated scenarios are required for that status."
+    },
+    "risk_score": {
+      "definition": "risk_score_ppm is a declared policy score, not a calibrated probability or safety certification.",
+      "evidence": "Each candidate binds a separate risk_assessment_sha256 reference. The evidence content, method, scope, signer, review status, expiry and authority must be checked upstream.",
+      "consequence": "A missing, malformed or unreviewed risk-evidence reference makes the candidate ineligible."
     }
   },
   "candidate_classes": {
@@ -94,7 +99,10 @@
     "scenario weights are finite, strictly positive and sum to one",
     "eligibility and risk-adjusted utility use the minimum scenario-specific expected information gain, not only a weighted mean",
     "one-scenario point estimates are visibly marked not epistemically robust-qualified",
-    "no scenario may be added, removed, reweighted or recalibrated after observing confirmatory outcomes"
+    "no scenario may be added, removed, reweighted or recalibrated after observing confirmatory outcomes",
+    "each candidate binds a risk-assessment digest distinct from the likelihood calibration digest",
+    "risk_score_ppm is never described as a measured probability or safety certification",
+    "risk assessment content, method, scope, reviewer identity, expiry and revocation are independently checked upstream"
   ],
   "research_targets_not_achieved": [
     {
@@ -133,6 +141,7 @@
     "simulation_status": "Synthetic contract tests verify entropy ranking and hard exclusions only; they do not establish real diagnostic utility or safety.",
     "authority_status": "Authorization enum and digest are caller-supplied references. Signature verification, identity, scope, expiry, issuer authority and revocation are external mandatory checks.",
     "claim_ceiling": "Read-only ranking contract and synthetic numerical behavior only; no evidence-acquisition execution, active-control result or physical validation claim.",
-    "scenario_status": "The Rust selector evaluates scenario tables supplied by the caller. It does not create or statistically validate those scenarios; scenario calibration and coverage must be demonstrated upstream."
+    "scenario_status": "The Rust selector evaluates scenario tables supplied by the caller. It does not create or statistically validate those scenarios; scenario calibration and coverage must be demonstrated upstream.",
+    "risk_status": "risk_score_ppm is a caller-supplied policy score bound to a digest reference; its underlying assessment is not authenticated or independently verified by this selector."
   }
 }
