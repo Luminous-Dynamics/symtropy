@@ -637,7 +637,8 @@ mod tests {
 
         assert!((momentum_world.to_matrix() - expected_world_momentum).norm() < 1e-11);
         assert!(
-            (body_inertia.kinetic_energy(&omega_body).unwrap() - world_inertia.kinetic_energy(&omega_world).unwrap())
+            (body_inertia.kinetic_energy(&omega_body).unwrap()
+                - world_inertia.kinetic_energy(&omega_world).unwrap())
                 .abs()
                 < 1e-11
         );
@@ -738,7 +739,8 @@ mod tests {
             .unwrap();
         assert!(
             (observed - expected).abs() < 2.0e-11,
-            "rotational effective mass changed under global frame rotation: expected={expected:e}, observed={observed:e}"
+            "rotational effective mass changed under global frame rotation: \
+             expected={expected:e}, observed={observed:e}"
         );
     }
 
@@ -798,6 +800,37 @@ mod tests {
         let energy_rate =
             0.5 * (bivector_pairing(&b_dot, &l) + bivector_pairing(&b, &actual_l_dot));
         assert!(energy_rate.abs() < 1e-11, "energy_rate={energy_rate}");
+    }
+
+    #[test]
+    fn angular_acceleration_reproduces_instantaneous_applied_world_torque() {
+        let inertia = BivectorInertia::<3>::from_second_moment(SMatrix::<f64, 3, 3>::new(
+            1.4, 0.12, -0.08,
+            0.12, 2.2, 0.17,
+            -0.08, 0.17, 3.1,
+        ))
+        .unwrap();
+        let mut b = Bivector::<3>::zero();
+        b.set(0, 1, 0.4);
+        b.set(0, 2, -0.25);
+        b.set(1, 2, 0.7);
+        let mut torque = Bivector::<3>::zero();
+        torque.set(0, 1, -0.3);
+        torque.set(0, 2, 0.8);
+        torque.set(1, 2, 0.2);
+
+        let b_dot = inertia.angular_acceleration(&b, &torque, 1e-12).unwrap();
+        let s = inertia.second_moment();
+        let b_matrix = b.to_matrix();
+        let b_dot_matrix = b_dot.to_matrix();
+        let s_dot = -b_matrix * s + s * b_matrix;
+        let l_dot_matrix =
+            b_dot_matrix * s + s * b_dot_matrix + b_matrix * s_dot + s_dot * b_matrix;
+        let l_dot = Bivector::<3>::from_matrix(&l_dot_matrix);
+        assert!(
+            l_dot.add(&torque.scale(-1.0)).norm() < 2.0e-11,
+            "instantaneous angular-momentum derivative must equal applied torque: got={l_dot:?}, expected={torque:?}"
+        );
     }
 
     #[test]
