@@ -148,7 +148,9 @@
         "family",
         "configuration_sha256",
         "model_artifact_sha256",
-        "channels"
+        "channels",
+        "historical_reference_metric_semantics",
+        "faithful_reproduction_status"
       ],
       "properties": {
         "comparator_id": {
@@ -165,7 +167,13 @@
             "command_conditioned_dynamic",
             "regime_gated_fusion",
             "selective_unknown_fault",
-            "physics_informed_inverse_twin"
+            "physics_informed_inverse_twin",
+            "adaptive_residual_qda_lsvc",
+            "rls_open_set_residuals",
+            "distribution_kl_matching",
+            "residual_anfis",
+            "ccdnn_multiview",
+            "dual_vae_svm_ensemble"
           ]
         },
         "configuration_sha256": {
@@ -190,6 +198,21 @@
             "minLength": 1
           },
           "uniqueItems": true
+        },
+        "historical_reference_metric_semantics": {
+          "enum": [
+            "not_applicable",
+            "historical_tir_not_current_fia",
+            "current_dx2026_metrics"
+          ]
+        },
+        "faithful_reproduction_status": {
+          "enum": [
+            "not_started",
+            "faithful_reproduction",
+            "reimplementation",
+            "unavailable_source_artifacts"
+          ]
         }
       }
     },
