@@ -44,6 +44,7 @@ The module exports:
 - polar order parameter;
 - mean neighbour count excluding self;
 - neighbour-count variance;
+- mean and variance of per-particle local polar order;
 - connected-component count in the metric-neighbour graph;
 - largest connected-component fraction.
 
@@ -60,7 +61,7 @@ The low/high noise runs are exploratory finite-size cases. No universal critical
 
 - Compare local alignment against self-only and independent-particle controls.
 - Sweep interaction radius, speed, noise and particle density.
-- Report polar order and spatial cluster statistics jointly.
+- Report global polar order, local polar-order distribution, neighbour counts and spatial cluster statistics jointly. A globally disordered system may contain highly aligned local clusters whose directions cancel at system scale.
 - Measure transient behaviour and stationary windows separately.
 - Test time-window and sensor-sampling reductions to expose temporal aliasing.
 - Hold out entire parameter regimes, particle counts and, separately, interaction-rule variants.
