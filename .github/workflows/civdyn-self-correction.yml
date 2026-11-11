@@ -31,7 +31,7 @@ jobs:
           git fetch origin "refs/heads/${branch}:refs/remotes/origin/${branch}"
           git checkout -B "${branch}" "origin/${branch}"
           cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all
-          git add research/civdyn-self-correction/src/source_passport.rs research/civdyn-self-correction/src/bin/source_passport_sweep.rs research/civdyn-self-correction/src/lib.rs
+          git add research/civdyn-self-correction/src/source_passport.rs research/civdyn-self-correction/src/bin/source_passport_sweep.rs research/civdyn-self-correction/src/uncertainty_propagation.rs research/civdyn-self-correction/src/bin/uncertainty_propagation_sweep.rs research/civdyn-self-correction/src/lib.rs
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -305,4 +305,64 @@ jobs:
           assert unknown["left_source_qualification"] == "rights_blocked"
 
           print("Source passport CSV valid: provenance, rights, source origin, temporal support and boundary-vintage controls preserved; no unacquired artifact or default promoted to measured evidence.")
+          PY
+      - name: Verify correlated uncertainty propagation and provenance lineage
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin uncertainty-propagation-sweep > /tmp/civdyn-uncertainty-propagation.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin uncertainty-propagation-sweep > /tmp/civdyn-uncertainty-propagation-replay.csv
+          cmp /tmp/civdyn-uncertainty-propagation.csv /tmp/civdyn-uncertainty-propagation-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-uncertainty-propagation.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 23, f"expected 23 columns, got {len(fields or [])}"
+          assert len(rows) == 7, f"expected seven output quantity receipts, got {len(rows)}"
+          cases = {(row["scenario"], row["output_variable_id"]): row for row in rows}
+          assert len(cases) == 7
+
+          correlated_sum = cases[("correlated_sum_difference", "combined-service")]
+          correlated_difference = cases[("correlated_sum_difference", "service-difference")]
+          assert math.isclose(float(correlated_sum["output_estimate"]), 180.0, abs_tol=1e-8)
+          assert math.isclose(float(correlated_sum["output_variance"]), 19.0, abs_tol=1e-8)
+          assert correlated_sum["covariance_row"] == "19.00000000;-5.00000000"
+          assert correlated_difference["covariance_row"] == "-5.00000000;7.00000000"
+          assert math.isclose(float(correlated_difference["output_estimate"]), 20.0, abs_tol=1e-8)
+          assert math.isclose(float(correlated_difference["output_variance"]), 7.0, abs_tol=1e-8)
+          assert correlated_sum["input_covariance_flat"] == "4.00000000;3.00000000;3.00000000;9.00000000"
+          assert "-0.433554" in correlated_sum["correlation_row"]
+
+          independent_sum = cases[("independent_covariance_ablation", "combined-service")]
+          independent_difference = cases[("independent_covariance_ablation", "service-difference")]
+          assert math.isclose(float(independent_sum["output_variance"]), 13.0, abs_tol=1e-8)
+          assert independent_sum["covariance_row"] == "13.00000000;-5.00000000"
+          assert independent_difference["covariance_row"] == "-5.00000000;13.00000000"
+
+          common_sum = cases[("shared_common_cause", "meter-sum")]
+          common_difference = cases[("shared_common_cause", "meter-difference")]
+          assert math.isclose(float(common_sum["output_variance"]), 16.0, abs_tol=1e-8)
+          assert common_sum["covariance_row"] == "16.00000000;0.00000000"
+          assert math.isclose(float(common_difference["output_variance"]), 0.0, abs_tol=1e-8)
+          assert common_difference["standard_uncertainty"] == "0.00000000"
+          assert common_difference["correlation_row"] == "undefined;undefined"
+
+          crosswalk = cases[("explicit_crosswalk_uncertainty", "harmonized-estimate")]
+          assert math.isclose(float(crosswalk["output_estimate"]), 102.0, abs_tol=1e-8)
+          assert math.isclose(float(crosswalk["output_variance"]), 6.0, abs_tol=1e-8)
+          assert crosswalk["input_covariance_flat"] == "4.00000000;0.50000000;0.50000000;1.00000000"
+          assert "spatial-crosswalk~spatial_crosswalk~sha256-crosswalk~crosswalk-adjustment~boundary-allocation" in crosswalk["input_source_receipts"]
+          assert "spatial-crosswalk~spatial_crosswalk~sha256-crosswalk~harmonized-estimate~boundary-allocation" in crosswalk["output_source_receipts"]
+
+          assert "water-survey~sampling_design~sha256-water-survey~water-service~common-household-sample" in correlated_sum["input_source_receipts"]
+          assert "water-survey~sampling_design~sha256-water-survey~combined-service;service-difference~common-household-sample" in correlated_sum["output_source_receipts"]
+          assert all(row["transform_digest"] and row["protocol_digest"] for row in rows)
+          assert all(row["input_state_id"] and row["input_covariance_flat"] for row in rows)
+          assert all(row["input_source_count"] == row["output_source_count"] for row in rows)
+          print("Uncertainty propagation CSV valid: covariance terms retained, shared calibration error cancels in differences, transform uncertainty carried explicitly, source lineage remapped and replay deterministic.")
           PY
