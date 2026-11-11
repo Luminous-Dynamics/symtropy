@@ -26,10 +26,10 @@ Each signed event binds:
 - monotonic per-producer/per-boot sequence and one-use nonce;
 - event timestamp, clock source and clock uncertainty;
 - firmware digest;
-- payload channel, event type, evidence class, calibration status, sensor validity and out-of-domain flag;
+- payload channel, event type, exact sensor reference, evidence class, calibration status, calibration record reference and digest, sensor validity and out-of-domain flag;
 - optional protocol and observation references.
 
-The trust store binds each key to a producer identity and role, a validity interval, revocation state and permitted event types. An event signed by a valid BMS key cannot assert a service-completion event unless that role has explicit authority for the event type.
+The trust store binds each key to a producer identity and role, a validity interval, revocation state and permitted event types. The policy also contains externally admitted boot-epoch references bound to producer, boot epoch, firmware digest and exact asset configuration. The v0.1 auditor verifies membership in that supplied admission set; it does not perform secure-boot attestation verification itself. An event signed by a valid BMS key cannot assert a service-completion event unless that role has explicit authority for the event type.
 
 ## Event outcomes
 
@@ -48,11 +48,11 @@ The audit uses explicit authenticity states, including:
 - `QUARANTINED_CLOCK_REGRESSION`
 - `QUARANTINED_BOOT_EPOCH_UNKNOWN`
 
-Physical validity is a separate field. A signature can be authentic while the sensor is invalid, calibration expired, or the value is out of domain. Even a clean signature and a current calibration record do not establish physical truth; the physical state remains `NOT_ESTABLISHED_BY_SIGNATURE`.
+Physical validity is a separate field. A signature can be authentic while the signed producer reports an invalid sensor, expired/unknown calibration, or an out-of-domain value. The exact sensor and calibration record identities are included in the signed claims, but their correctness is not validated by this crate. Even a clean signature and a current calibration record do not establish physical truth; the physical state remains `NOT_ESTABLISHED_BY_SIGNATURE`.
 
 Replay state is advanced only for events with a verified signature under an admitted, non-revoked and in-validity key. Unsigned or bad-signature messages cannot poison a producer's replay state. Once a signed event is authenticated, its sequence/nonce is consumed even when later authorization, asset or clock policy rejects or quarantines it.
 
-Event order is meaningful. The corpus preserves producer stream order for replay and timestamp-regression checks; unlike a static metric registry, event time-series input is not permutation invariant.
+Event order is meaningful. The corpus preserves producer stream order for replay and timestamp-regression checks; unlike a static metric registry, event time-series input is not permutation invariant. Key-expiry decisions use event time only after the event's clock source and uncertainty pass the trust policy.
 
 ## Frozen synthetic corpus
 
