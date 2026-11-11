@@ -631,6 +631,48 @@ mod rotational_inertia_tests {
     }
 
     #[test]
+    fn asymmetric_torque_free_body_has_gyroscopic_precession() {
+        let body = anisotropic_body();
+        let mut spinning = body;
+        // Axial angular velocity (1, 1, 0) in the local principal frame.
+        spinning.angular_velocity.set(1, 2, 1.0);
+        spinning.angular_velocity.set(0, 2, -1.0);
+
+        let acceleration =
+            spinning.angular_acceleration_from_torque(&Bivector::<3>::zero());
+
+        // omega x (I omega) = (1,1,0) x (1,2,0) = (0,0,1).
+        // Euler's equation therefore yields alpha_z = -1 / I_z = -1/4.
+        assert!(acceleration.get(1, 2).abs() < 1e-12);
+        assert!(acceleration.get(0, 2).abs() < 1e-12);
+        assert!((acceleration.get(0, 1) + 0.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn torque_free_asymmetric_integration_keeps_rotational_energy_bounded() {
+        let mut body = anisotropic_body();
+        body.angular_damping = 0.0;
+        body.linear_damping = 0.0;
+        body.angular_velocity.set(1, 2, 0.8);
+        body.angular_velocity.set(0, 2, -0.6);
+        body.angular_velocity.set(0, 1, 0.35);
+
+        let initial = body.rotational_kinetic_energy();
+        for _ in 0..2_000 {
+            crate::integrator::integrate(
+                &mut body,
+                &SVector::<f64, 3>::zeros(),
+                0.0005,
+            );
+        }
+        let final_energy = body.rotational_kinetic_energy();
+        let relative_drift = ((final_energy - initial) / initial).abs();
+
+        assert!(relative_drift < 0.01, "relative rotational energy drift={relative_drift}");
+        assert!(body.transform.rotation.is_proper_rotation(1e-9));
+    }
+
+    #[test]
     fn higher_dimensions_keep_explicit_mean_inertia_compatibility_path() {
         let mut body = RigidBody::<4>::dynamic_sphere(
             BodyHandle(2),
