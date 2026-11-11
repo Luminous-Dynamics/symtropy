@@ -111,6 +111,8 @@ pub struct CleanObservation {
     pub pixels_file: String,
     pub parent_policy_receipt: PolicyObservationReceipt,
     pub vehicle_signals: VehicleSignals,
+    /// Full serde VehicleState object consumed by Symthaea's bridge CLI.
+    pub vehicle_state_json: serde_json::Value,
     pub control_timing: Option<ControlTiming>,
 }
 
@@ -173,6 +175,7 @@ pub struct FaultedObservation {
     pub policy_receipt: Option<PolicyObservationReceipt>,
     pub pixels_rgb: Option<Vec<u8>>,
     pub vehicle_signals: Option<VehicleSignals>,
+    pub vehicle_state_json: Option<serde_json::Value>,
     pub control_timing: Option<ControlTiming>,
     /// Evaluator-only sidecar; never pass this field to the driving policy.
     pub derivation: Option<FaultDerivationReceipt>,
@@ -224,6 +227,7 @@ pub enum FaultApplyError {
     PixelLengthMismatch,
     PixelTransformOverflow,
     InvalidControlTiming,
+    InvalidVehicleStateJson,
     MissingControlTiming,
     ControlTimestampOverflow,
     MissingPriorFrameForReplay,
@@ -416,6 +420,15 @@ fn validate_plan(plan: &FaultPlan, observations: &[CleanObservation]) -> Result<
         {
             return Err(FaultApplyError::ParentReceiptDigestMismatch);
         }
+        let state_object = observation.vehicle_state_json.as_object()
+            .ok_or(FaultApplyError::InvalidVehicleStateJson)?;
+        for field in ["speed", "position_x", "position_y", "timestamp"] {
+            if !state_object.get(field).and_then(serde_json::Value::as_f64)
+                .is_some_and(f64::is_finite)
+            {
+                return Err(FaultApplyError::InvalidVehicleStateJson);
+            }
+        }
         if let Some(control) = &observation.control_timing {
             if control.observation_timestamp_us != observation.capture_timestamp_us
                 || control.inference_completed_timestamp_us < control.observation_timestamp_us
@@ -476,6 +489,27 @@ fn checked_add_signed(value: u64, delta: i64) -> Result<u64, FaultApplyError> {
     }
 }
 
+fn vehicle_state_json_with_signals(
+    original: &serde_json::Value,
+    signals: &VehicleSignals,
+) -> Result<serde_json::Value, FaultApplyError> {
+    let mut state = original.clone();
+    let object = state
+        .as_object_mut()
+        .ok_or(FaultApplyError::InvalidVehicleStateJson)?;
+    for (field, milli_value) in [
+        ("position_x", signals.gps_x_mm),
+        ("position_y", signals.gps_y_mm),
+        ("speed", signals.speed_mm_per_s),
+    ] {
+        let value = milli_value as f64 / 1_000.0;
+        let number = serde_json::Number::from_f64(value)
+            .ok_or(FaultApplyError::InvalidVehicleStateJson)?;
+        object.insert(field.to_string(), serde_json::Value::Number(number));
+    }
+    Ok(state)
+}
+
 fn build_derivation(
     plan: &FaultPlan,
     source: &CleanObservation,
@@ -483,14 +517,15 @@ fn build_derivation(
     receipt: &PolicyObservationReceipt,
     source_pixels: &[u8],
     vehicle_signals: &VehicleSignals,
+    vehicle_state_json: &serde_json::Value,
     sampled_values: BTreeMap<String, i64>,
     geometry: BTreeMap<String, u64>,
     seed_sha256: String,
 ) -> Result<FaultDerivationReceipt, FaultApplyError> {
-    let source_state_bytes =
-        serde_json::to_vec(&current.vehicle_signals).map_err(|_| FaultApplyError::InvalidDigest)?;
-    let child_state_bytes =
-        serde_json::to_vec(vehicle_signals).map_err(|_| FaultApplyError::InvalidDigest)?;
+    let source_state_bytes = serde_json::to_vec(&current.vehicle_state_json)
+        .map_err(|_| FaultApplyError::InvalidDigest)?;
+    let child_state_bytes = serde_json::to_vec(vehicle_state_json)
+        .map_err(|_| FaultApplyError::InvalidDigest)?;
     let mut result = FaultDerivationReceipt {
         schema_version: 1,
         campaign_id: plan.campaign_id.clone(),
@@ -726,6 +761,7 @@ pub fn apply_fault_plan(
                 policy_receipt: Some(parent_receipt.clone()),
                 pixels_rgb: Some(parent_pixels.clone()),
                 vehicle_signals: Some(current.vehicle_signals.clone()),
+                vehicle_state_json: Some(current.vehicle_state_json.clone()),
                 control_timing: current.control_timing.clone(),
                 derivation: None,
                 missing_event: None,
@@ -741,6 +777,7 @@ pub fn apply_fault_plan(
                 policy_receipt: None,
                 pixels_rgb: None,
                 vehicle_signals: None,
+                vehicle_state_json: None,
                 control_timing: current.control_timing.clone(),
                 derivation: None,
                 missing_event: Some(MissingFrameEvent {
@@ -864,6 +901,8 @@ pub fn apply_fault_plan(
                 .ok_or(FaultApplyError::MissingPixels)?
                 .as_slice()
         };
+        let child_vehicle_state_json =
+            vehicle_state_json_with_signals(&current.vehicle_state_json, &child_state)?;
         let child_receipt = if status == ObservationStatus::StaleReplayNegativeControl {
             source_observation.parent_policy_receipt.clone()
         } else {
@@ -883,6 +922,7 @@ pub fn apply_fault_plan(
             &child_receipt,
             &child_pixels,
             &child_state,
+            &child_vehicle_state_json,
             sampled_values,
             geometry,
             seed_sha256,
@@ -898,6 +938,7 @@ pub fn apply_fault_plan(
             policy_receipt: Some(child_receipt),
             pixels_rgb: Some(child_pixels),
             vehicle_signals: Some(child_state),
+            vehicle_state_json: Some(child_vehicle_state_json),
             control_timing: child_control,
             derivation: Some(sidecar),
             missing_event: None,
@@ -1012,6 +1053,29 @@ mod tests {
                     gps_y_mm: sequence as i64 * 200,
                     speed_mm_per_s: 10_000,
                 },
+                vehicle_state_json: serde_json::json!({
+                    "speed": 10.0,
+                    "position_x": sequence as f64 * 0.1,
+                    "position_y": sequence as f64 * 0.2,
+                    "timestamp": capture as f64 / 1_000_000.0,
+                    "lateral_velocity": 0.0,
+                    "yaw_rate": 0.0,
+                    "heading": 0.0,
+                    "steering_angle": 0.0,
+                    "throttle_position": 0.2,
+                    "brake_pressure": 0.0,
+                    "longitudinal_accel": 0.0,
+                    "lateral_accel": 0.0,
+                    "tire_slip_front": 0.0,
+                    "tire_slip_rear": 0.0,
+                    "pitch": 0.0,
+                    "lateral_offset": 0.0,
+                    "curvature_ahead": 0.0,
+                    "nearest_peer_distance": 10.0,
+                    "peer_relative_speed": 0.0,
+                    "mesh_brake_density": 0.0,
+                    "mesh_confidence": 1.0
+                }),
                 control_timing: Some(ControlTiming {
                     command_id: format!("control-{sequence}"),
                     observation_timestamp_us: capture,
