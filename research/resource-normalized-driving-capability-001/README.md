@@ -102,6 +102,65 @@ The current #11480 bridge is only the deterministic visual/proprioceptive repres
 
 All arms must expose the same policy-visible observation and action interface for matched comparisons. If a comparator requires a different sensor history, navigation input or teacher privilege, record that mismatch rather than hide it.
 
+## Orthogonal learning and inference allocation experiments
+
+Do not treat the sampler or inference allocator as part of the model architecture. They are independent experimental factors.
+
+### Training experience selection
+
+Use [#4550](https://github.com/Luminous-Dynamics/symtropy/issues/4550)'s preregistered arms and [#4575](https://github.com/Luminous-Dynamics/symtropy/pull/4575)'s deterministic selector:
+- cyclic/uniform;
+- scenario rarity;
+- entropy/disagreement;
+- temporal prediction error;
+- action-decision margin;
+- SAM expected decision-loss reduction per acquisition cost;
+- SAM recoverability / fragility-directed counterexamples.
+
+The selector's evidence inputs, cost and query deadline must be measured. A high-entropy scenario is not automatically valuable; the outcome must show that the selected experience changes a decision or improves held-out competence.
+
+### Inference-time imagination allocation
+
+Use [#4581](https://github.com/Luminous-Dynamics/symtropy/pull/4581)'s anytime allocator as an independent factor:
+- fixed rollout count;
+- fixed compute budget;
+- deadline-aware marginal expected decision-regret reduction;
+- no additional rollouts when marginal value is non-positive;
+- no allocation that consumes the actuation or recovery reserve.
+
+The allocator is a deterministic greedy priority heuristic, not a globally optimal knapsack solver. Its marginal regret and latency inputs must be checkpoint-, context-, hardware- and observation-bound, and their calibration must be measured.
+
+### Factorial ablation design
+
+At minimum, cross these factors on the same scenario and evaluation splits:
+
+| Factor | Levels |
+|---|---|
+| Policy architecture | matched GRU/LSTM, compact transformer, HDC-LTC/CfC hybrid |
+| Experience sampler | uniform, entropy, prediction-error, decision-margin, SAM decision-value, SAM recoverability |
+| Inference allocation | fixed rollouts, compute-matched anytime, latency-matched anytime |
+| World model | absent, action-conditioned |
+| Assurance | ordinary fixed fallback baseline, independently SAM-qualified recoverability |
+
+This is a research matrix, not an instruction to run every cross-product immediately. Start with one-factor ablations, then run the smallest predeclared factorial block that can distinguish architecture, sampler and allocator effects without changing data, hardware or test access.
+
+Report two resource views for every comparison:
+1. **Equal compute:** same total training experiences, human labels, rollout compute and total measured energy.
+2. **Equal deadline:** same hardware, control deadline, p99 latency ceiling and reserved actuation/recovery time.
+
+Never let the anytime allocator receive extra compute in the equal-compute comparison. Never let the fixed baseline be denied inference time or sensor history available to the allocator. Record all extra world-model calls, cached predictions, teacher labels and selected-candidate evaluation costs.
+
+### Required interaction tests
+
+- Does decision-sensitive sampling reduce transitions to a frozen competence threshold with no worst-family regression?
+- Does the HDC-LTC/CfC temporal core benefit more from irregular timestamps and partial observations than matched GRU/LSTM and transformer baselines?
+- Does action-conditioned imagination improve action ranking and closed-loop outcomes over an equally trained model without imagination?
+- Does anytime allocation improve task quality under equal compute, or reduce compute while holding quality non-inferior under equal deadline?
+- Does SAM recoverability ranking reduce fragile decisions without collapsing into always-stop behaviour?
+- Do the benefits persist under Bench2Drive-Robust and the event-attributed #4657 degradation/recovery protocol?
+
+Primary outcomes remain separate: native task score, transitions/human minutes per skill gate, rollout cost, marginal regret reduction, p99 latency, energy, recovery and worst-family performance. Do not fit post-hoc weights to claim a combined win.
+
 ## What to measure
 
 ### Capability
