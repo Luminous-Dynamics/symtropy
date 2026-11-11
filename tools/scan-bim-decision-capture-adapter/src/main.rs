@@ -16,9 +16,9 @@ fn run() -> Result<i32, Box<dyn Error>> {
     let mut schema_path: Option<PathBuf> = None;
 
     while let Some(argument) = args.next() {
-        let value = args.next().ok_or_else(|| {
-            format!("missing value after {}", argument.to_string_lossy())
-        })?;
+        let value = args
+            .next()
+            .ok_or_else(|| format!("missing value after {}", argument.to_string_lossy()))?;
         match argument.to_str() {
             Some("--corpus") => corpus_path = Some(PathBuf::from(value)),
             Some("--schema") => schema_path = Some(PathBuf::from(value)),
