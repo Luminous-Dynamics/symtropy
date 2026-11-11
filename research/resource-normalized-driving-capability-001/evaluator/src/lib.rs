@@ -48,6 +48,8 @@ pub struct ResultCard {
     pub seed_manifest_sha256: Option<String>,
     pub model: ModelRecord,
     pub data: DataRecord,
+    pub experience_selection: ExperienceSelectionRecord,
+    pub inference_allocation: InferenceAllocationRecord,
     pub compute: ComputeRecord,
     pub outcomes: OutcomeRecord,
     pub evidence: EvidenceRecord,
@@ -74,6 +76,49 @@ pub struct DataRecord {
     pub human_intervention_minutes: f64,
     pub teacher_generated_labels: u64,
     pub holdout_split_sha256: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ExperienceSelectionRecord {
+    /// "uniform", "rarity", "entropy", "prediction_error", "decision_margin",
+    /// "sam_decision_value", or "sam_recoverability".
+    pub strategy_id: String,
+    pub selector_revision: String,
+    pub candidate_pool_sha256: Option<String>,
+    pub selection_receipt_manifest_sha256: Option<String>,
+    pub candidates_scored: u64,
+    pub queries_issued: u64,
+    pub queries_accepted: u64,
+    pub queries_rejected: u64,
+    pub query_deadline_misses: u64,
+    pub query_simulator_transitions: u64,
+    pub query_human_intervention_minutes: f64,
+    /// Selector-specific compute attribution. This is a subset of total
+    /// training compute, not an additional budget to sum twice.
+    pub query_compute_gpu_hours: Option<f64>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct InferenceAllocationRecord {
+    /// "fixed_rollouts" or "deadline_aware_anytime".
+    pub allocator_id: String,
+    pub allocator_revision: String,
+    pub allocation_receipt_manifest_sha256: Option<String>,
+    pub latency_bound_manifest_sha256: Option<String>,
+    pub decision_opportunities: u64,
+    pub additional_rollouts: u64,
+    /// Equal-compute comparisons must pin the same rollout compute-unit budget.
+    pub rollout_compute_units_budgeted: Option<u64>,
+    pub rollout_compute_units_used: Option<u64>,
+    pub actuation_reserve_required_us: u64,
+    pub actuation_reserve_violations: u64,
+    pub deadline_skips: u64,
+    /// Sum of allocator-predicted regret reductions; not a measured outcome.
+    pub predicted_regret_reduction: Option<f64>,
+    /// Sum of evaluator-measured regret reduction; can be negative.
+    pub observed_regret_reduction: Option<f64>,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -150,9 +195,9 @@ impl ResultCard {
     pub fn validate(&self) -> Result<(), Vec<String>> {
         let mut errors = Vec::new();
 
-        if self.schema_version != "0.1.0" {
+        if self.schema_version != "0.2.0" {
             errors.push(format!(
-                "schema_version must be 0.1.0, got {:?}",
+                "schema_version must be 0.2.0, got {:?}",
                 self.schema_version
             ));
         }
@@ -186,6 +231,67 @@ impl ResultCard {
             || self.data.human_intervention_minutes < 0.0
         {
             errors.push("data.human_intervention_minutes must be finite and non-negative".into());
+        }
+
+        for (name, value) in [
+            ("experience_selection.strategy_id", self.experience_selection.strategy_id.as_str()),
+            ("experience_selection.selector_revision", self.experience_selection.selector_revision.as_str()),
+            ("inference_allocation.allocator_id", self.inference_allocation.allocator_id.as_str()),
+            ("inference_allocation.allocator_revision", self.inference_allocation.allocator_revision.as_str()),
+        ] {
+            if value.trim().is_empty() {
+                errors.push(format!("{name} must be non-empty"));
+            }
+        }
+
+        if self.experience_selection.queries_issued
+            != self.experience_selection.queries_accepted
+                .saturating_add(self.experience_selection.queries_rejected)
+        {
+            errors.push("experience_selection queries_issued must equal accepted + rejected".into());
+        }
+        if self.experience_selection.candidates_scored
+            < self.experience_selection.queries_issued
+        {
+            errors.push("experience_selection.candidates_scored cannot be less than queries_issued".into());
+        }
+        if self.experience_selection.query_deadline_misses
+            > self.experience_selection.queries_rejected
+        {
+            errors.push("experience_selection.query_deadline_misses cannot exceed rejected queries".into());
+        }
+        if !self.experience_selection.query_human_intervention_minutes.is_finite()
+            || self.experience_selection.query_human_intervention_minutes < 0.0
+            || self.experience_selection.query_human_intervention_minutes
+                > self.data.human_intervention_minutes + 1e-9
+        {
+            errors.push("experience_selection query human minutes must be finite, non-negative and within total human intervention minutes".into());
+        }
+        if self.experience_selection.query_simulator_transitions
+            > self.data.simulator_transitions
+        {
+            errors.push("experience_selection query simulator transitions exceed total simulator transitions".into());
+        }
+        if self.experience_selection.query_compute_gpu_hours.is_some_and(|value| {
+            !value.is_finite()
+                || value < 0.0
+                || self.compute.training_gpu_hours.is_some_and(|total| value > total + 1e-9)
+        }) {
+            errors.push("experience_selection.query_compute_gpu_hours must be finite, non-negative and within total training GPU-hours".into());
+        }
+
+        if self.inference_allocation.rollout_compute_units_budgeted.is_some_and(|budget| {
+            self.inference_allocation.rollout_compute_units_used.is_some_and(|used| used > budget)
+        }) {
+            errors.push("inference_allocation.rollout_compute_units_used exceeds its declared budget".into());
+        }
+        if self.inference_allocation.predicted_regret_reduction.is_some_and(|value| {
+            !value.is_finite() || value < 0.0
+        }) {
+            errors.push("inference_allocation.predicted_regret_reduction must be finite and non-negative".into());
+        }
+        if self.inference_allocation.observed_regret_reduction.is_some_and(|value| !value.is_finite()) {
+            errors.push("inference_allocation.observed_regret_reduction must be finite when present".into());
         }
 
         for (name, value) in [
@@ -340,6 +446,21 @@ impl ResultCard {
         }
 
         if self.status == RunStatus::Complete {
+            for (name, digest) in [
+                ("experience_selection.candidate_pool_sha256", self.experience_selection.candidate_pool_sha256.as_deref()),
+                ("experience_selection.selection_receipt_manifest_sha256", self.experience_selection.selection_receipt_manifest_sha256.as_deref()),
+                ("inference_allocation.allocation_receipt_manifest_sha256", self.inference_allocation.allocation_receipt_manifest_sha256.as_deref()),
+                ("inference_allocation.latency_bound_manifest_sha256", self.inference_allocation.latency_bound_manifest_sha256.as_deref()),
+            ] {
+                if digest.is_none() {
+                    errors.push(format!("complete result requires {name}"));
+                }
+            }
+            if self.inference_allocation.rollout_compute_units_budgeted.is_none()
+                || self.inference_allocation.rollout_compute_units_used.is_none()
+            {
+                errors.push("complete result requires inference rollout compute budget and used units".into());
+            }
             if self.evidence.expected_episode_count == 0 {
                 errors.push("complete result must declare a non-zero expected denominator".into());
             }
@@ -363,6 +484,22 @@ impl ResultCard {
             (
                 "evidence.raw_artifact_manifest_sha256",
                 self.evidence.raw_artifact_manifest_sha256.as_deref(),
+            ),
+            (
+                "experience_selection.candidate_pool_sha256",
+                self.experience_selection.candidate_pool_sha256.as_deref(),
+            ),
+            (
+                "experience_selection.selection_receipt_manifest_sha256",
+                self.experience_selection.selection_receipt_manifest_sha256.as_deref(),
+            ),
+            (
+                "inference_allocation.allocation_receipt_manifest_sha256",
+                self.inference_allocation.allocation_receipt_manifest_sha256.as_deref(),
+            ),
+            (
+                "inference_allocation.latency_bound_manifest_sha256",
+                self.inference_allocation.latency_bound_manifest_sha256.as_deref(),
             ),
         ] {
             if digest.is_some_and(|value| !is_sha256_hex(value)) {
@@ -1030,6 +1167,35 @@ mod tests {
                 human_intervention_minutes: 30.0,
                 teacher_generated_labels: 0,
                 holdout_split_sha256: Some("b".repeat(64)),
+            },
+            experience_selection: ExperienceSelectionRecord {
+                strategy_id: "uniform".into(),
+                selector_revision: "uniform-baseline-v1".into(),
+                candidate_pool_sha256: Some("d".repeat(64)),
+                selection_receipt_manifest_sha256: Some("e".repeat(64)),
+                candidates_scored: 50_000,
+                queries_issued: 1_000,
+                queries_accepted: 1_000,
+                queries_rejected: 0,
+                query_deadline_misses: 0,
+                query_simulator_transitions: 0,
+                query_human_intervention_minutes: 0.0,
+                query_compute_gpu_hours: Some(0.0),
+            },
+            inference_allocation: InferenceAllocationRecord {
+                allocator_id: "fixed_rollouts".into(),
+                allocator_revision: "fixed-rollouts-v1".into(),
+                allocation_receipt_manifest_sha256: Some("f".repeat(64)),
+                latency_bound_manifest_sha256: Some("1".repeat(64)),
+                decision_opportunities: 100,
+                additional_rollouts: 0,
+                rollout_compute_units_budgeted: Some(10_000),
+                rollout_compute_units_used: Some(10_000),
+                actuation_reserve_required_us: 5_000,
+                actuation_reserve_violations: 0,
+                deadline_skips: 0,
+                predicted_regret_reduction: Some(0.0),
+                observed_regret_reduction: Some(0.0),
             },
             compute: ComputeRecord {
                 hardware_id: "same-gpu".into(),
