@@ -18,6 +18,21 @@ use symtropy_math::Bivector;
 /// Maximum bivector degrees of freedom supported by symtropy-math (D <= 9).
 const MAX_HINGE_ROTATIONAL_DOF: usize = 36;
 
+/// Euclidean inner product in canonical bivector-plane coordinates.
+fn bivector_inner_product<const D: usize>(
+    left: &Bivector<D>,
+    right: &Bivector<D>,
+) -> f64 {
+    let mut total = 0.0;
+    for i in 0..D {
+        for j in (i + 1)..D {
+            total += left.get(i, j) * right.get(i, j);
+        }
+    }
+    total
+}
+
+
 /// Build the total equal-and-opposite angular impulse for a hinge motor while
 /// enforcing zero relative velocity change in every forbidden hinge plane.
 ///
@@ -400,14 +415,12 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             // The total impulse contains the allowed-plane motor impulse plus
             // the forbidden-plane reaction needed to cancel inertia coupling.
             // Its allowed component remains exactly the commanded actuator impulse.
-            let omega_a_before = body_a.angular_velocity.get(pa, pb);
-            let omega_b_before = body_b.angular_velocity.get(pa, pb);
+            let omega_a_before = body_a.angular_velocity;
+            let omega_b_before = body_b.angular_velocity;
             let delta_omega_a = body_a
-                .apply_inverse_angular_inertia(&total_angular_impulse.scale(-1.0))
-                .get(pa, pb);
+                .apply_inverse_angular_inertia(&total_angular_impulse.scale(-1.0));
             let delta_omega_b = body_b
-                .apply_inverse_angular_inertia(&total_angular_impulse)
-                .get(pa, pb);
+                .apply_inverse_angular_inertia(&total_angular_impulse);
 
             if body_a.is_dynamic() {
                 crate::integrator::apply_angular_impulse(
@@ -419,19 +432,31 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 crate::integrator::apply_angular_impulse(body_b, &total_angular_impulse);
             }
 
-            // Record signed mechanical work per dynamic endpoint using
-            // midpoint angular velocity. Summing the two entries equals the
-            // relative motor work and the kinetic-energy change in the
-            // engine's declared scalar-inertia model. This is not measured
-            // electrical input or evidence of regenerative battery return.
+            // Attribute the complete generalized impulse to each dynamic
+            // endpoint. The forbidden-plane components are constraint
+            // reactions; omitting them would misstate each link's kinetic
+            // energy change even when their net ideal-constraint work is zero.
+            // Midpoint work is exact for this instantaneous impulse update:
+            // ΔK = <J, ω_before> + 1/2 <J, I^-1 J>.
             if let Some(ref mut cb) = callback {
                 if body_a.is_dynamic() {
-                    let midpoint_omega_a = omega_a_before + 0.5 * delta_omega_a;
-                    cb.record_work(self.body_a, -impulse * midpoint_omega_a);
+                    let midpoint_omega_a =
+                        omega_a_before.add(&delta_omega_a.scale(0.5));
+                    cb.record_work(
+                        self.body_a,
+                        bivector_inner_product(
+                            &total_angular_impulse.scale(-1.0),
+                            &midpoint_omega_a,
+                        ),
+                    );
                 }
                 if body_b.is_dynamic() {
-                    let midpoint_omega_b = omega_b_before + 0.5 * delta_omega_b;
-                    cb.record_work(self.body_b, impulse * midpoint_omega_b);
+                    let midpoint_omega_b =
+                        omega_b_before.add(&delta_omega_b.scale(0.5));
+                    cb.record_work(
+                        self.body_b,
+                        bivector_inner_product(&total_angular_impulse, &midpoint_omega_b),
+                    );
                 }
             }
         }
