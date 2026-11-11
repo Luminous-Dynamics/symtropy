@@ -336,7 +336,7 @@
             "h_cross"
           ]
         },
-        "reported_reference_target": "Kerr-versus-Schwarzschild mismatch typically below 2.2e-5 for the paper's specified inspiral/merger comparison and inclination/polarization cases. Do not interpret this number as a coda mismatch, a universal Kerr-vs-Schwarzschild bound, or a general detector detectability claim.",
+        "reported_reference_target": "The paper reports Kerr-versus-Schwarzschild mismatch typically below 2.2e-5 under its defined noise-weighted fitting-factor metric (time-shift maximized; 20-1024 Hz; projected Advanced LIGO O4 PSD) for its listed inclination/polarization configurations. The paper separately describes substantial ringdown modification and a late coda; reproduce and report those time windows independently. Do not treat the aggregate mismatch as a coda-specific error bound, a universal Kerr-vs-Schwarzschild bound, or a general detector detectability claim.",
         "required_outputs": [
           "kerr_h_plus_and_h_cross",
           "schwarzschild_h_plus_and_h_cross",
