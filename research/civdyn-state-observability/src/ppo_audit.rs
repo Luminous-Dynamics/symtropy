@@ -89,6 +89,7 @@ fn parse_run(fields: &[&str]) -> Result<PpoRun, String> {
     Ok(run)
 }
 
+#[cfg(test)]
 fn expected_group(id: &str) -> Option<ExpectedGroup> {
     EXPECTED_GROUPS.iter().copied().find(|group| group.id == id)
 }
