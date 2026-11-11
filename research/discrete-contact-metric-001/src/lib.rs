@@ -62,7 +62,11 @@ impl Matrix {
         if rows.iter().any(|row| row.len() != cols) {
             return Err(StepError::InvalidMatrixShape);
         }
-        Self::new(rows.len(), cols, rows.iter().flat_map(|row| row.iter().copied()).collect())
+        Self::new(
+            rows.len(),
+            cols,
+            rows.iter().flat_map(|row| row.iter().copied()).collect(),
+        )
     }
 
     pub fn zeros(rows: usize, cols: usize) -> Self {
@@ -94,7 +98,9 @@ impl Matrix {
     }
 
     pub fn max_abs(&self) -> f64 {
-        self.values.iter().fold(0.0_f64, |maximum, value| maximum.max(value.abs()))
+        self.values
+            .iter()
+            .fold(0.0_f64, |maximum, value| maximum.max(value.abs()))
     }
 }
 
@@ -129,7 +135,9 @@ impl fmt::Display for StepError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidMatrixShape => write!(f, "matrix has inconsistent dimensions"),
-            Self::InvalidVectorShape => write!(f, "vector or contact data has inconsistent dimensions"),
+            Self::InvalidVectorShape => {
+                write!(f, "vector or contact data has inconsistent dimensions")
+            }
             Self::InvalidStepSize => write!(f, "step size must be finite and strictly positive"),
             Self::NonFiniteInput => write!(f, "input contains a non-finite value"),
             Self::MatrixNotSymmetric { name, residual } => {
@@ -139,7 +147,10 @@ impl fmt::Display for StepError {
                 write!(f, "effective metric is not positive definite")
             }
             Self::ProblemTooLarge { dof, contacts } => {
-                write!(f, "reference limit exceeded: dof={dof}, contacts={contacts}")
+                write!(
+                    f,
+                    "reference limit exceeded: dof={dof}, contacts={contacts}"
+                )
             }
             Self::NoComplementarySolution => {
                 write!(f, "no feasible complementary active set was found")
@@ -209,12 +220,11 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
     let kq = mat_vec(&input.stiffness, &input.position_error);
     let mut rhs = vec![0.0; n];
     for index in 0..n {
-        rhs[index] = mv[index] + input.dt * input.external_force[index]
-            - input.dt * kq[index];
+        rhs[index] = mv[index] + input.dt * input.external_force[index] - input.dt * kq[index];
     }
 
-    let unconstrained = solve_spd(&metric, &rhs)
-        .ok_or(StepError::EffectiveMetricNotPositiveDefinite)?;
+    let unconstrained =
+        solve_spd(&metric, &rhs).ok_or(StepError::EffectiveMetricNotPositiveDefinite)?;
 
     // Compute M_hat^-1 J^T once. Both the constrained velocity correction and
     // the Delassus/contact matrix use this exact same metric.
@@ -223,8 +233,8 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         let row = (0..n)
             .map(|dof| input.contact_jacobian[(contact, dof)])
             .collect::<Vec<_>>();
-        let column = solve_spd(&metric, &row)
-            .ok_or(StepError::EffectiveMetricNotPositiveDefinite)?;
+        let column =
+            solve_spd(&metric, &row).ok_or(StepError::EffectiveMetricNotPositiveDefinite)?;
         for dof in 0..n {
             metric_inverse_jt[(dof, contact)] = column[dof];
         }
@@ -306,13 +316,13 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             continue;
         }
 
-        let residual = metric_equation_residual(
-        &metric,
-        &next_velocity,
-        &rhs,
-        &input.contact_jacobian,
-        &impulse,
-    );
+            let residual = metric_equation_residual(
+            &metric,
+            &next_velocity,
+            &rhs,
+            &input.contact_jacobian,
+            &impulse,
+        );
         // Candidate impulses have already been checked for negativity and
         // clamped at zero. Do not apply an absolute impulse threshold here:
         // impulse units and magnitude change under a uniform mass rescaling.
@@ -384,7 +394,10 @@ fn validate_input(input: &DiscreteStepInput) -> Result<(), StepError> {
         || input.contact_gap.len() != m
     {
         return Err(if n > MAX_DOF || m > MAX_CONTACTS {
-            StepError::ProblemTooLarge { dof: n, contacts: m }
+            StepError::ProblemTooLarge {
+                dof: n,
+                contacts: m,
+            }
         } else {
             StepError::InvalidVectorShape
         });
@@ -392,8 +405,12 @@ fn validate_input(input: &DiscreteStepInput) -> Result<(), StepError> {
     if !input.dt.is_finite() || input.dt <= 0.0 {
         return Err(StepError::InvalidStepSize);
     }
-    if !input.position_error.iter().chain(&input.velocity)
-        .chain(&input.external_force).chain(&input.contact_gap)
+    if !input
+        .position_error
+        .iter()
+        .chain(&input.velocity)
+        .chain(&input.external_force)
+        .chain(&input.contact_gap)
         .all(|value| value.is_finite())
     {
         return Err(StepError::NonFiniteInput);
@@ -401,7 +418,12 @@ fn validate_input(input: &DiscreteStepInput) -> Result<(), StepError> {
     validate_symmetric("mass", &input.mass)?;
     validate_symmetric("damping", &input.damping)?;
     validate_symmetric("stiffness", &input.stiffness)?;
-    if !input.contact_jacobian.values.iter().all(|value| value.is_finite()) {
+    if !input
+        .contact_jacobian
+        .values
+        .iter()
+        .all(|value| value.is_finite())
+    {
         return Err(StepError::NonFiniteInput);
     }
     if solve_spd(&input.mass, &vec![1.0; n]).is_none() {
@@ -409,7 +431,6 @@ fn validate_input(input: &DiscreteStepInput) -> Result<(), StepError> {
     }
     Ok(())
 }
-
 
 fn validate_symmetric(name: &'static str, matrix: &Matrix) -> Result<(), StepError> {
     if matrix.rows != matrix.cols {
@@ -489,12 +510,19 @@ fn solve_spd(matrix: &Matrix, rhs: &[f64]) -> Option<Vec<f64>> {
         }
         solution[row] = value / lower[(row, row)];
     }
-    solution.iter().all(|value| value.is_finite()).then_some(solution)
+    solution
+        .iter()
+        .all(|value| value.is_finite())
+        .then_some(solution)
 }
 
 fn mat_vec(matrix: &Matrix, vector: &[f64]) -> Vec<f64> {
     (0..matrix.rows)
-        .map(|row| (0..matrix.cols).map(|col| matrix[(row, col)] * vector[col]).sum())
+        .map(|row| {
+            (0..matrix.cols)
+                .map(|col| matrix[(row, col)] * vector[col])
+                .sum()
+        })
         .collect()
 }
 
@@ -560,7 +588,9 @@ mod tests {
         let result = solve_discrete_step(&input).unwrap();
         assert!((result.effective_metric[(0, 0)] - 2.14).abs() < 1.0e-12);
         assert!((result.next_velocity[0] - (-0.5 / 2.14)).abs() < 1.0e-12);
-        assert!((result.next_position_error[0] - (0.5 + 0.1 * result.next_velocity[0])).abs() < 1.0e-12);
+        assert!(
+            (result.next_position_error[0] - (0.5 + 0.1 * result.next_velocity[0])).abs() < 1.0e-12
+        );
         assert!(result.max_metric_equation_residual < 1.0e-10);
     }
 
@@ -666,7 +696,10 @@ mod tests {
         };
         assert!(matches!(
             solve_discrete_step(&input),
-            Err(StepError::MatrixNotSymmetric { name: "stiffness", .. })
+            Err(StepError::MatrixNotSymmetric {
+                name: "stiffness",
+                ..
+            })
         ));
     }
     #[test]
