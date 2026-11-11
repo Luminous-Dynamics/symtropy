@@ -1,0 +1,216 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic inter-pass profile comparison request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "reference_profile",
+    "observed_profile",
+    "registration",
+    "decision_boundary",
+    "region_of_interest",
+    "quality_policy",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-GEOMETRY-METROLOGY-ORACLE-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_contract_only"
+    },
+    "reference_profile": {
+      "$ref": "#/$defs/profile"
+    },
+    "observed_profile": {
+      "$ref": "#/$defs/profile"
+    },
+    "registration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_sha256",
+        "residual_bound_um",
+        "maximum_residual_um"
+      ],
+      "properties": {
+        "receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "residual_bound_um": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_residual_um": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "decision_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_at_tick",
+        "maximum_observation_age_ticks"
+      ],
+      "properties": {
+        "decision_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_observation_age_ticks": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "region_of_interest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_x_um",
+        "end_x_um"
+      ],
+      "properties": {
+        "start_x_um": {
+          "type": "integer"
+        },
+        "end_x_um": {
+          "type": "integer"
+        }
+      }
+    },
+    "quality_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_coverage_permille",
+        "maximum_unsupported_gap_um",
+        "maximum_area_uncertainty2_um2"
+      ],
+      "properties": {
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "maximum_unsupported_gap_um": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_area_uncertainty2_um2": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "claim_ceiling": {
+      "const": "SYNTHETIC_PROFILE_INTEGRATION_CONTRACT_ONLY"
+    }
+  },
+  "$defs": {
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_class",
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "transition_pass_id",
+        "scan_id",
+        "source_sha256",
+        "coordinate_frame",
+        "x_unit",
+        "z_unit",
+        "observed_at_tick",
+        "samples"
+      ],
+      "properties": {
+        "evidence_class": {
+          "const": "synthetic_contract_only"
+        },
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "transition_pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "x_unit": {
+          "const": "um"
+        },
+        "z_unit": {
+          "const": "um"
+        },
+        "observed_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "samples": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/$defs/sample"
+          }
+        }
+      }
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "x_um",
+        "z_um",
+        "uncertainty_bound_um"
+      ],
+      "properties": {
+        "x_um": {
+          "type": "integer"
+        },
+        "z_um": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "uncertainty_bound_um": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
