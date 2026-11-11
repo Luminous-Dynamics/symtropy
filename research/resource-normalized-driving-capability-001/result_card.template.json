@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.1.0",
+  "schema_version": "0.2.0",
   "run_id": "NOT_RUN",
   "status": "not_run",
   "model_arm_id": "B",
@@ -58,5 +58,34 @@
     "notes": [
       "This file is a template, not an experiment result."
     ]
+  },
+  "experience_selection": {
+    "strategy_id": "uniform",
+    "selector_revision": "NOT_RUN",
+    "candidate_pool_sha256": null,
+    "selection_receipt_manifest_sha256": null,
+    "candidates_scored": 0,
+    "queries_issued": 0,
+    "queries_accepted": 0,
+    "queries_rejected": 0,
+    "query_deadline_misses": 0,
+    "query_simulator_transitions": 0,
+    "query_human_intervention_minutes": 0,
+    "query_compute_gpu_hours": null
+  },
+  "inference_allocation": {
+    "allocator_id": "fixed_rollouts",
+    "allocator_revision": "NOT_RUN",
+    "allocation_receipt_manifest_sha256": null,
+    "latency_bound_manifest_sha256": null,
+    "decision_opportunities": 0,
+    "additional_rollouts": 0,
+    "rollout_compute_units_budgeted": null,
+    "rollout_compute_units_used": null,
+    "actuation_reserve_required_us": 0,
+    "actuation_reserve_violations": 0,
+    "deadline_skips": 0,
+    "predicted_regret_reduction": null,
+    "observed_regret_reduction": null
   }
 }
