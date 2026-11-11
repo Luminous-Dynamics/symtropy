@@ -51,7 +51,7 @@ jobs:
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
             (.comparators | length == 9) and
-            ([.comparators[].id] | unique | length == 8) and
+            ([.comparators[].id] | unique | length == 9) and
             (.hard_evidence_gates | length >= 34) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
@@ -102,6 +102,22 @@ jobs:
             (.hard_gates | length >= 10) and
             (.research_targets_not_achieved | all(.status == "aspirational"))
           ' benchmarks/maritime-control-response/streaming-contract-v0.1.json >/dev/null
+ 
+          jq -e '
+            .schema_version == "symtropy-marine-external-dataset-track-v0.1" and
+            .status == "metadata_audited_archive_not_audited" and
+            .dataset.doi == "10.5281/zenodo.19857425" and
+            .dataset.license == "CC-BY-4.0" and
+            .dataset.engine == "Matsui Iron Works MU323DGSC" and
+            (.dataset.files.csv_count == 16) and
+            (.dataset.files.fault_scenario_files == 15) and
+            (.dataset.missingness.absent_in_runs == 5) and
+            (.fault_scenarios | length == 5) and
+            (.evaluation_tracks | length == 6) and
+            (.evaluation_tracks | map(.status) | all(. != "qualified")) and
+            (.research_targets_not_achieved | all(.status == "aspirational")) and
+            (.claim_ceiling | contains("have not yet been audited"))
+          ' benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json >/dev/null
 
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
@@ -110,6 +126,7 @@ jobs:
             (.properties.protocol.required | index("shift_matrix_sha256") != null) and
             (.properties.protocol.required | index("active_evidence_selection") != null) and
             (.properties.protocol.required | index("streaming_contract") != null) and
+            (.properties.protocol.required | index("external_dataset_track") != null) and
             (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
             (.properties.protocol.properties.active_evidence_selection.properties.risk_assessment_catalogue_sha256.oneOf | length == 2) and
