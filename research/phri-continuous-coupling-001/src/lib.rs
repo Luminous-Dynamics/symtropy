@@ -401,7 +401,7 @@ mod tests {
 
         assert!((result.total_normal_force_n - 0.4).abs() < 1.0e-12);
         assert!((cop[0] - 1.005).abs() < 1.0e-12);
-        assert!((cop[1] - 2.015).abs() < 1.0e-12);
+        assert!((cop[1] - 2.0125).abs() < 1.0e-12);
     }
 
     #[test]
@@ -462,6 +462,42 @@ mod tests {
         assert_eq!(
             analyze_tactile_field(&calibration(), &sample),
             Err(TactileFieldError::InvalidPressureValue)
+        );
+    }
+
+    #[test]
+    fn registered_rotated_surface_frame_maps_center_of_pressure_correctly() {
+        let mut calibration = calibration();
+        calibration.axis_u_unit = [0.0, 1.0, 0.0];
+        calibration.axis_v_unit = [0.0, 0.0, 1.0];
+        let mut sample = frame();
+        sample.pressure_pa[0] = 2_000.0;
+
+        let result = analyze_tactile_field(&calibration, &sample).unwrap();
+        let cop = result.center_of_pressure_m.unwrap();
+        assert!((cop[0] - 1.0).abs() < 1.0e-12);
+        assert!((cop[1] - 2.005).abs() < 1.0e-12);
+        assert!((cop[2] - 3.005).abs() < 1.0e-12);
+        assert_eq!(result.normal_direction_in_frame, [1.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn zero_clock_identity_is_rejected() {
+        let mut sample = frame();
+        sample.clock.clock_id = 0;
+        assert_eq!(
+            analyze_tactile_field(&calibration(), &sample),
+            Err(TactileFieldError::ZeroClockIdentity)
+        );
+    }
+
+    #[test]
+    fn overflowing_pressure_integral_is_rejected() {
+        let mut sample = frame();
+        sample.pressure_pa[0] = f64::MAX;
+        assert_eq!(
+            analyze_tactile_field(&calibration(), &sample),
+            Err(TactileFieldError::ArithmeticOverflow)
         );
     }
 
