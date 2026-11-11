@@ -243,6 +243,17 @@ pub struct HeadingIntervention {
     pub imposed_heading_rad: f64,
 }
 
+/// Receipt for a spatially shared exogenous heading impulse.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CommonFieldIntervention {
+    /// Model tick at which the field was applied.
+    pub tick: u64,
+    /// Shared angular displacement applied to every particle.
+    pub heading_impulse_rad: f64,
+    /// Number of particles receiving the common field input.
+    pub affected_particle_count: usize,
+}
+
 /// Periodic two-dimensional Vicsek active-particle reference model.
 #[derive(Debug, Clone, PartialEq)]
 pub struct VicsekModel {
@@ -371,6 +382,29 @@ impl VicsekModel {
             particle_index,
             previous_heading_rad,
             imposed_heading_rad,
+        })
+    }
+
+    /// Apply the same exogenous angular impulse to every particle.
+    ///
+    /// This models a shared environmental driver, not an interaction between particles.
+    /// It changes no positions and consumes no random numbers. A matched sham can be made
+    /// by cloning the pre-intervention model and not applying the common field.
+    pub fn apply_common_heading_impulse(
+        &mut self,
+        heading_impulse_rad: f64,
+    ) -> Result<CommonFieldIntervention, VicsekError> {
+        if !heading_impulse_rad.is_finite() {
+            return Err(VicsekError::NonFiniteHeading { particle: usize::MAX });
+        }
+        let heading_impulse_rad = wrap_signed_angle(heading_impulse_rad);
+        for particle in &mut self.particles {
+            particle.heading_rad = wrap_angle(particle.heading_rad + heading_impulse_rad);
+        }
+        Ok(CommonFieldIntervention {
+            tick: self.tick,
+            heading_impulse_rad,
+            affected_particle_count: self.particles.len(),
         })
     }
 
@@ -750,6 +784,10 @@ fn add_periodic(position: f64, displacement: f64, box_size: f64) -> f64 {
     }
 }
 
+fn wrap_signed_angle(angle: f64) -> f64 {
+    (angle + std::f64::consts::PI).rem_euclid(TAU) - std::f64::consts::PI
+}
+
 fn wrap_angle(angle: f64) -> f64 {
     angle.rem_euclid(TAU)
 }
@@ -1095,6 +1133,61 @@ mod tests {
         assert_eq!(treated.particles()[0].heading_rad, std::f64::consts::FRAC_PI_2);
         assert_eq!(treated.particles()[1].heading_rad, sham.particles()[1].heading_rad);
         assert_eq!(treated.particles()[2].heading_rad, sham.particles()[2].heading_rad);
+    }
+
+    #[test]
+    fn shared_environmental_heading_field_correlates_isolated_particles_without_edges() {
+        let particles = vec![
+            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.25 },
+            VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.25 },
+            VicsekParticle { x: 9.0, y: 9.0, heading_rad: 0.25 },
+        ];
+        let config = VicsekConfig {
+            box_size: 12.0,
+            interaction_radius: 0.0,
+            speed: 0.0,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let mut model = VicsekModel::new(particles, config, 43).unwrap();
+        let sham = model.clone();
+        let before_order = model.fast_metrics();
+
+        let receipt = model
+            .apply_common_heading_impulse(std::f64::consts::FRAC_PI_3)
+            .unwrap();
+        assert_eq!(receipt.tick, 0);
+        assert_eq!(receipt.affected_particle_count, 3);
+        assert!((receipt.heading_impulse_rad - std::f64::consts::FRAC_PI_3).abs() < 1.0e-12);
+
+        let after = model.fast_metrics();
+        assert_eq!(before_order.cluster_count, 3);
+        assert_eq!(after.cluster_count, 3);
+        assert_eq!(after.mean_neighbors_excluding_self, 0.0);
+        assert!(after.mean_local_polar_order.is_none());
+        assert!((after.polar_order - before_order.polar_order).abs() < 1.0e-12);
+
+        let common_deltas: Vec<f64> = model
+            .particles()
+            .iter()
+            .zip(sham.particles())
+            .map(|(treated, control)| {
+                wrap_signed_angle(treated.heading_rad - control.heading_rad)
+            })
+            .collect();
+        assert!(common_deltas.iter().all(|delta| {
+            (*delta - std::f64::consts::FRAC_PI_3).abs() < 1.0e-12
+        }));
+    }
+
+    #[test]
+    fn shared_heading_field_rejects_nonfinite_impulse() {
+        let mut model = VicsekModel::random_uniform(3, VicsekConfig::default(), 47).unwrap();
+        assert!(matches!(
+            model.apply_common_heading_impulse(f64::INFINITY),
+            Err(VicsekError::NonFiniteHeading { particle: usize::MAX })
+        ));
     }
 
     #[test]
