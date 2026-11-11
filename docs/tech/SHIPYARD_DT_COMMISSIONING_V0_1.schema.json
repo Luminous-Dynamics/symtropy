@@ -29,8 +29,14 @@
       "minLength": 1
     },
     "configuration_sha256": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
+      "type": "array",
+      "minItems": 32,
+      "maxItems": 32,
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      }
     },
     "now_tick": {
       "type": "integer",
@@ -164,7 +170,8 @@
         "source_sha256",
         "transformation_receipt_sha256",
         "fidelity_residual_units",
-        "coverage_permille"
+        "coverage_permille",
+        "ingestion_clock_id"
       ],
       "properties": {
         "stream_id": {
@@ -229,20 +236,38 @@
           "minLength": 1
         },
         "calibration_sha256": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "type": "array",
+          "minItems": 32,
+          "maxItems": 32,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
         },
         "calibration_expires_at_tick": {
           "type": "integer",
           "minimum": 0
         },
         "source_sha256": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "type": "array",
+          "minItems": 32,
+          "maxItems": 32,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
         },
         "transformation_receipt_sha256": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
+          "type": "array",
+          "minItems": 32,
+          "maxItems": 32,
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 255
+          }
         },
         "fidelity_residual_units": {
           "type": "integer",
@@ -252,6 +277,10 @@
           "type": "integer",
           "minimum": 0,
           "maximum": 1000
+        },
+        "ingestion_clock_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
