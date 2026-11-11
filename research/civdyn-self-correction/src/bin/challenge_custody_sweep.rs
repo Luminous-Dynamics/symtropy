@@ -2,8 +2,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::challenge_custody::{
-    validate_challenge_eligibility, ChallengeEvaluationReceipt, ChallengeRequest,
-    ModelRevision,
+    ChallengeEvaluationReceipt, ChallengeRequest, ModelRevision, validate_challenge_eligibility,
 };
 
 const CSV_COLUMNS: usize = 10;
