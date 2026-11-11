@@ -1523,6 +1523,16 @@ mod tests {
         }
     }
 
+    #[cfg(not(feature = "nd-bivector-9"))]
+    #[test]
+    fn dimensions_five_to_nine_require_research_feature() {
+        assert_eq!(
+            BivectorInertia::<5>::from_second_moment(SMatrix::<f64, 5, 5>::identity())
+                .unwrap_err(),
+            RotationalInertiaError::InvalidDimension,
+        );
+    }
+
     #[test]
     fn operator_rejects_dimensions_outside_bivector_capacity() {
         assert_eq!(
