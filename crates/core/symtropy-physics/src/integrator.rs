@@ -274,8 +274,7 @@ mod tests {
         let rotation = *frame_change.to_matrix();
 
         let original_point_velocity = angular_point_velocity(&angular_velocity, &offset);
-        let rotated_angular_matrix =
-            rotation * angular_velocity.to_matrix() * rotation.transpose();
+        let rotated_angular_matrix = rotation * angular_velocity.to_matrix() * rotation.transpose();
         let rotated_angular_velocity = Bivector::<3>::from_matrix(&rotated_angular_matrix);
         let rotated_offset = frame_change.rotate_vector(&offset);
         let rotated_point_velocity =
@@ -289,8 +288,7 @@ mod tests {
         let original_impulse = angular_impulse_from_point(&offset, &impulse);
         let rotated_offset = frame_change.rotate_vector(&offset);
         let rotated_impulse = frame_change.rotate_vector(&impulse);
-        let transformed_impulse =
-            angular_impulse_from_point(&rotated_offset, &rotated_impulse);
+        let transformed_impulse = angular_impulse_from_point(&rotated_offset, &rotated_impulse);
         let expected_impulse_matrix =
             rotation * original_impulse.to_matrix() * rotation.transpose();
         let expected_impulse = Bivector::<3>::from_matrix(&expected_impulse_matrix);
@@ -305,8 +303,7 @@ mod tests {
 
     #[test]
     fn off_centre_impulse_matches_rotor_motion_and_physical_torque_sign() {
-        let mut body =
-            RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
+        let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 1.0, 1.0);
         body.angular_damping = 0.0;
 
         let offset = SVector::from([1.0, 0.0, 0.0]);
@@ -325,8 +322,7 @@ mod tests {
         let expected_unit_inertia_response =
             impulse * offset.norm_squared() - offset * offset.dot(&impulse);
         let inverse_inertia = body.inv_inertia[0];
-        let predicted_point_velocity =
-            angular_point_velocity(&body.angular_velocity, &offset);
+        let predicted_point_velocity = angular_point_velocity(&body.angular_velocity, &offset);
         assert!(
             (predicted_point_velocity - expected_unit_inertia_response * inverse_inertia).norm()
                 < 1.0e-12,
