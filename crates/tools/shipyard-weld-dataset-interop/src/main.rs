@@ -453,6 +453,27 @@ mod tests {
     }
 
     #[test]
+    fn intel_intended_defect_labels_cannot_be_promoted_to_expert_truth() {
+        let mut v = registry_value();
+        v["sources"][1]["expert_defect_labels_present"] = Value::Bool(true);
+        assert!(validate_registry(REGISTRY_SCHEMA, &serde_json::to_string(&v).unwrap()).is_err());
+    }
+
+    #[test]
+    fn incompatible_domain_targets_cannot_share_an_accuracy_denominator() {
+        let mut v = registry_value();
+        v["claim_policy"]["cross_domain_accuracy_pooling_allowed"] = Value::Bool(true);
+        assert!(validate_registry(REGISTRY_SCHEMA, &serde_json::to_string(&v).unwrap()).is_err());
+    }
+
+    #[test]
+    fn source_group_counts_are_not_replaced_with_sample_counts() {
+        let mut v = registry_value();
+        v["sources"][0]["independent_unit_count"] = Value::from(30);
+        assert!(validate_registry(REGISTRY_SCHEMA, &serde_json::to_string(&v).unwrap()).is_err());
+    }
+
+    #[test]
     fn random_sample_split_is_rejected() {
         let mut v=registry_value();
         v["split_policy"]["random_sample_split_allowed"]=Value::Bool(true);
