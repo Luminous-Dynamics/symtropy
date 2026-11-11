@@ -7,9 +7,9 @@ publish = false
 [workspace]
 
 [dependencies]
-ed25519-dalek = { version = "3.0.0", default-features = false, features = ["alloc", "fast", "zeroize"] }
-hex = "0.4"
-jsonschema = "0.58.6"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-sha2 = "0.11"
+ed25519-dalek = { version = "=3.0.0", default-features = false, features = ["alloc", "fast", "zeroize"] }
+hex = "=0.4.3"
+jsonschema = "=0.58.6"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+sha2 = "=0.11.1"
