@@ -1,4 +1,5 @@
 {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "schema_version": "0.1.0",
   "corpus_id": "SCAN-BIM-DECISION-CAPTURE-ADAPTER-001",
   "claim_ceiling": "Synthetic adapter qualification only. No real survey accuracy, physical view accessibility, calibrated measurement likelihood, physical cost savings or building safety is established.",
