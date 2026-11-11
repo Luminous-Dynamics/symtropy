@@ -21,12 +21,16 @@ struct BenchmarkResult {
     entity_count: usize,
     observable_count: usize,
     event_count: usize,
+    warmup_runs: usize,
     samples: usize,
     p50_ns: u128,
     p95_ns: u128,
     p99_ns: u128,
     min_ns: u128,
     max_ns: u128,
+    invalid_reject_p50_ns: u128,
+    invalid_reject_p95_ns: u128,
+    invalid_reject_p99_ns: u128,
     input_bytes: usize,
     input_bytes_per_entity_including_events: f64,
     compile_entities_per_second_at_p50: f64,
@@ -121,7 +125,22 @@ fn run_profile(
 ) -> Result<BenchmarkResult, Box<dyn std::error::Error>> {
     let input = synthetic_frame(entity_count, event_count)?;
     let input_bytes = serde_json::to_vec(&input)?.len();
+    let mut hostile = input.clone();
+    hostile.entities[0].observables[0].unit.push_str("-mismatch");
+
+    const WARMUP_RUNS: usize = 2;
+    for _ in 0..WARMUP_RUNS {
+        let receipt = compile_observation_frame(input.clone())?;
+        if receipt.entity_count != entity_count || receipt.event_count != event_count {
+            return Err("benchmark warm-up receipt count mismatch".into());
+        }
+        if compile_observation_frame(hostile.clone()).is_ok() {
+            return Err("observable-set mismatch unexpectedly accepted during warm-up".into());
+        }
+    }
+
     let mut timings = Vec::with_capacity(samples);
+    let mut reject_timings = Vec::with_capacity(samples);
 
     for _ in 0..samples {
         let candidate = input.clone();
@@ -132,9 +151,18 @@ fn run_profile(
             return Err("benchmark receipt count mismatch".into());
         }
         timings.push(elapsed.as_nanos().max(1));
+
+        let hostile_candidate = hostile.clone();
+        let reject_start = Instant::now();
+        match compile_observation_frame(hostile_candidate) {
+            Err(symtropy_observation_frame_reference::FrameError::ObservableSetDigestMismatch) => {}
+            _ => return Err("deep hostile fixture was not rejected by observable-set commitment".into()),
+        }
+        reject_timings.push(reject_start.elapsed().as_nanos().max(1));
     }
 
     timings.sort_unstable();
+    reject_timings.sort_unstable();
     let p50 = percentile(&timings, 50);
     let entities_per_second = entity_count as f64 * 1_000_000_000.0 / p50 as f64;
     let events_per_second = event_count as f64 * 1_000_000_000.0 / p50 as f64;
@@ -151,12 +179,16 @@ fn run_profile(
         entity_count,
         observable_count: entity_count,
         event_count,
+        warmup_runs: WARMUP_RUNS,
         samples,
         p50_ns: p50,
         p95_ns: percentile(&timings, 95),
         p99_ns: percentile(&timings, 99),
         min_ns: timings[0],
         max_ns: timings[timings.len() - 1],
+        invalid_reject_p50_ns: percentile(&reject_timings, 50),
+        invalid_reject_p95_ns: percentile(&reject_timings, 95),
+        invalid_reject_p99_ns: percentile(&reject_timings, 99),
         input_bytes,
         input_bytes_per_entity_including_events: input_bytes as f64 / entity_count as f64,
         compile_entities_per_second_at_p50: entities_per_second,
