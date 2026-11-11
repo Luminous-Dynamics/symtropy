@@ -142,6 +142,16 @@ A repeated invocation from the same baseline must produce an identical full resu
 
 The cluster metrics also now expose `nontrivial_cluster_coverage_fraction` and `mean_nontrivial_cluster_polar_order`. This avoids a subtle statistical trap: an isolated one-particle component has polar order 1 by construction. The traditional mean across all components remains available for reference, but singleton components do not contribute to nontrivial-cluster coverage or coherence. If every component is a singleton, the nontrivial-cluster mean and variance are `None`, not 1 or 0.
 
+### Asymmetric perception: intervention direction must follow visibility
+
+The new one-way visibility fixture uses two particles one unit apart on the x-axis, both initially facing forward. With a forward visual sector of half-aperture π/4, particle 0 sees particle 1, but particle 1 does not see particle 0.
+
+The paired treatment/sham test runs both directions:
+- Intervene on particle 0 (the unseen source from particle 1's perspective): particle 1's heading and position remain identical to sham.
+- Intervene on particle 1 (the visible source to particle 0): particle 0 changes by exactly π/4 after one noiseless update, matching the circular mean of the original and imposed headings.
+
+This is a stronger directional causal check than an edge-count test alone: the intervention response must follow the focal-agent visibility relation. The result is still causal evidence only inside the specified synthetic update model.
+
 ## Performance and measurement cadence
 
 The implementation separates trajectory-scale and graph-topology analysis:
