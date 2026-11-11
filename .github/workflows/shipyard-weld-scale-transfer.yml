@@ -40,7 +40,7 @@ jobs:
         run: cargo clippy --locked --manifest-path crates/tools/shipyard-weld-scale-transfer/Cargo.toml --all-targets -- -D warnings
 
       - name: Verify frozen scale-transfer corpus
-        run: cargo run --locked --manifest-path crates/tools/shipyard-weld-scale-transfer/Cargo.toml -- benchmarks/shipyard/scale-transfer/corpus-v0.1.json
+        run: cargo run --locked --manifest-path crates/tools/shipyard-weld-scale-transfer/Cargo.toml -- benchmarks/shipyard/scale-transfer/corpus-v0.1.json benchmarks/shipyard/scale-transfer/reference-chain-v0.1.json
 
       - name: Confirm verifier did not modify tracked inputs
         run: git diff --exit-code
