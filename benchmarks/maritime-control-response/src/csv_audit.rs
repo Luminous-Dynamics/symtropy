@@ -226,9 +226,6 @@ pub fn audit_marine_csv_bytes(
     if records.len() <= MARINE_CSV_HEADER_ROWS {
         return Err(CsvAuditError::EmptyCsv(relative_path.to_owned()));
     }
-    if records.len() < MARINE_CSV_HEADER_ROWS + 1 {
-        return Err(CsvAuditError::InvalidHeaderRows(relative_path.to_owned()));
-    }
 
     let column_count = records[0].len();
     let role = match column_count {
@@ -496,7 +493,7 @@ fn audit_metadata_artifacts(
     let categories = [
         ("dataset_index", &["dataset_index"][..]),
         ("variable_dictionary", &["variable_dictionary"][..]),
-        ("normalization_script", &["normalization", "normalisation"][..]),
+        ("normalization_script", &["normaliz", "normalis"][..]),
     ];
     let mut result = BTreeMap::new();
     for (artifact_name, needles) in categories {
