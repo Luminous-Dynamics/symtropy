@@ -33,15 +33,23 @@ Each transition must be explicit, versioned and reviewable. A low point-cloud re
 
 ### Change attribution requires survey-state separation
 
-A geometric residual is not yet proof of physical building change. Before the admission oracle evaluates element residuals or a proposed model delta, it consumes the qualified survey product's explicit change-estimate disposition, registration-stability disposition and independent-checkpoint evidence reference from #1607.
+A geometric residual is not yet proof of physical building change. Before the admission oracle evaluates element residuals or a proposed model delta, it consumes #1607-owned survey evidence through an explicit P0 binding:
 
-- A qualified change estimate with registration stable within its validated bound and a checkpoint-evidence digest may proceed to element-level admission.
-- An unresolved change estimate requests additional observation.
-- Suspected common-mode registration shift or unknown registration stability requests additional observation and cannot be promoted to a physical model change.
-- Missing/invalid independent-checkpoint evidence is stale/unqualified evidence, not a zero-error assumption.
+- survey-product SHA-256;
+- source asset ID, base model revision and coordinate-frame ID;
+- survey-product qualification disposition;
+- change-estimate receipt status and digest;
+- registration-stability disposition, receipt status and digest;
+- independent-checkpoint receipt status and digest.
 
-This is a consumer-side guard only. #1607 remains the authority for estimating registration stability and physical change; this oracle does not re-register scans, calculate control adjustment, infer a drift field or authenticate the upstream receipt bytes.
+All receipt references share and are checked against the same survey-product / asset / model / frame scope. A stale scope, malformed survey-product digest or a QUALIFIED receipt without a valid digest cannot authorize residual interpretation.
 
+- A qualified change estimate with registration stable within its validated bound and a qualified independent-checkpoint receipt may proceed to element-level admission.
+- An unresolved survey product, change estimate, registration assessment or checkpoint requests additional observation.
+- Suspected common-mode registration shift or unknown registration stability requests additional observation and cannot be promoted to physical model change.
+- Invalid evidence or scope mismatch is stale/unqualified evidence, not a zero-error assumption.
+
+This is a consumer-side contract guard only. #1607 remains the authority for estimating registration stability and physical change; this oracle does not re-register scans, calculate control adjustment, infer a drift field, authenticate upstream receipt bytes or independently prove checkpoint independence. The synthetic P0 digest fields prove consistency mechanics only.
 
 ## 2. Ownership boundaries
 
