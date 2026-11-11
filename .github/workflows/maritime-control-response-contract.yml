@@ -50,8 +50,8 @@ jobs:
           jq -e '
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 14) and
-            ([.comparators[].id] | unique | length == 14) and
+            (.comparators | length == 15) and
+            ([.comparators[].id] | unique | length == 15) and
             (.hard_evidence_gates | length >= 40) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             ([.comparators[].id] | index("published_solution_1_care_engine") != null) and
@@ -60,6 +60,11 @@ jobs:
             ([.comparators[].id] | index("published_solution_4_residual_anfis") != null) and
             ([.comparators[].id] | index("published_solution_5_ccdnn_multiview") != null) and
             ([.comparators[].id] | index("published_solution_6_vae_svm_ensemble") != null) and
+            ([.comparators[].id] | index("behavioral_set_intersection") != null) and
+            (.behavioral_set_diagnosis.schema_version == "symtropy-behavioral-set-diagnosis-v0.1") and
+            (.behavioral_set_diagnosis.status == "protocol_only_not_executed") and
+            (.behavioral_set_diagnosis.global_unique_physical_cause_claim_allowed == false) and
+            ([.behavioral_set_diagnosis.hard_evidence_gates[]] | length >= 12) and
             ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
             (.calibration.minimum_independent_episodes["900000"] == 9) and
             (.calibration.minimum_independent_episodes["950000"] == 19) and
@@ -129,6 +134,20 @@ jobs:
           ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
 
           jq -e '
+            .schema_version == "symtropy-behavioral-set-diagnosis-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.comparators | length == 5) and
+            (.output_statuses | index("ambiguous_hypothesis_set") != null) and
+            (.output_statuses | index("unknown_or_out_of_support") != null) and
+            (.envelope_contract.independent_calibration_minimums.coverage_950000_ppm == 19) and
+            (.hard_gates | length >= 12) and
+            (.implementation.trained_model_present == false) and
+            (.implementation.physical_validation == false) and
+            (.research_targets_not_achieved | all(.status == "aspirational")) and
+            (.limitations.global_identifiability | contains("global uniqueness"))
+          ' benchmarks/maritime-control-response/behavioral-set-diagnosis-v0.1.json >/dev/null
+
+          jq -e '
             .schema_version == "symtropy-industrial-diagnostic-deployability-v0.1" and
             .status == "evidence_matrix_defined_not_executed" and
             (.dimensions | length == 9) and
@@ -190,6 +209,10 @@ jobs:
             (.properties.protocol.required | index("shift_matrix_sha256") != null) and
             (.properties.protocol.required | index("active_evidence_selection") != null) and
             (.properties.protocol.required | index("streaming_contract") != null) and
+            (.properties.protocol.required | index("behavioral_set_evaluation") != null) and
+            (.properties.protocol.properties.behavioral_set_evaluation.properties.global_unique_physical_cause_claim_allowed.const == false) and
+            (.properties.metrics.properties.ambiguous_hypothesis_set_rate != null) and
+            (.properties.metrics.properties.global_unique_physical_cause_claim_allowed.const == false) and
             (.properties.protocol.required | index("external_dataset_track") != null) and
             (.properties.protocol.required | index("deployability_matrix_sha256") != null) and
             (.properties.protocol.required | index("deployability_assessment") != null) and
