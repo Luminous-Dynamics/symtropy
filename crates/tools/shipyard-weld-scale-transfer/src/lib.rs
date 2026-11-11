@@ -42,6 +42,10 @@ pub struct DomainSignature {
     pub thickness_max_mm: u16,
     pub boundary_class: String,
     pub output_scope: String,
+    pub output_definition_id: String,
+    pub datum_id: String,
+    pub measurement_operator_id: String,
+    pub measurement_calibration_digest_sha256: String,
     pub coordinate_frame: String,
 }
 
@@ -58,9 +62,13 @@ impl DomainSignature {
             self.restraint_class.as_str(),
             self.boundary_class.as_str(),
             self.output_scope.as_str(),
+            self.output_definition_id.as_str(),
+            self.datum_id.as_str(),
+            self.measurement_operator_id.as_str(),
             self.coordinate_frame.as_str(),
         ];
         if required.iter().any(|value| value.trim().is_empty())
+            || !valid_sha256(&self.measurement_calibration_digest_sha256)
             || self.thickness_min_mm == 0
             || self.thickness_min_mm > self.thickness_max_mm
         {
@@ -109,6 +117,18 @@ impl DomainSignature {
         if self.output_scope != other.output_scope {
             changed.push("output_scope".to_owned());
         }
+        if self.output_definition_id != other.output_definition_id {
+            changed.push("output_definition_id".to_owned());
+        }
+        if self.datum_id != other.datum_id {
+            changed.push("datum_id".to_owned());
+        }
+        if self.measurement_operator_id != other.measurement_operator_id {
+            changed.push("measurement_operator_id".to_owned());
+        }
+        if self.measurement_calibration_digest_sha256 != other.measurement_calibration_digest_sha256 {
+            changed.push("measurement_calibration_digest_sha256".to_owned());
+        }
         if self.coordinate_frame != other.coordinate_frame {
             changed.push("coordinate_frame".to_owned());
         }
@@ -137,6 +157,7 @@ pub struct ModelRecord {
     pub family: String,
     pub calibration_domain_id: String,
     pub output_scope: String,
+    pub output_definition_id: String,
     pub validation_status: String,
     pub model_digest_sha256: String,
     pub parameter_set_digest_sha256: String,
@@ -151,6 +172,10 @@ pub struct BridgeEdge {
     pub model_id: String,
     pub model_revision: String,
     pub output_scope: String,
+    pub output_definition_id: String,
+    pub error_metric_id: String,
+    pub measurement_operator_id: String,
+    pub measurement_calibration_digest_sha256: String,
     pub changed_factors: Vec<String>,
     pub calibration_specimen_ids: Vec<String>,
     pub validation_specimen_ids: Vec<String>,
@@ -173,6 +198,8 @@ pub struct BridgeEdge {
 pub struct TransferRequest {
     pub target_domain_id: String,
     pub requested_output_scope: String,
+    pub requested_output_definition_id: String,
+    pub required_error_metric_id: String,
     pub decision_cutoff_tick: u64,
     pub maximum_total_uncertainty_units: u64,
     pub required_minimum_coverage_permille: u16,
@@ -212,6 +239,9 @@ pub enum TransferReason {
     SourceDomainMissing,
     TargetDomainMissing,
     OutputScopeMismatch,
+    OutputDefinitionMismatch,
+    ErrorMetricMismatch,
+    MeasurementOperatorInvalid,
     NoBridgePath,
     BridgeEvidenceInvalid,
     BridgeEdgeNotAdjacentScale,
@@ -274,6 +304,9 @@ impl UncertaintyComponents {
 pub struct BridgePathReport {
     pub edge_ids: Vec<String>,
     pub domain_ids: Vec<String>,
+    pub output_definition_id: String,
+    pub error_metric_id: String,
+    pub measurement_operator_ids: Vec<String>,
     pub changed_factors: Vec<String>,
     pub cumulative_uncertainty_units: u64,
     pub uncertainty_components: UncertaintyComponents,
@@ -354,6 +387,10 @@ fn validate_edge(
         || edge.model_id != manifest.model.model_id
         || edge.model_revision != manifest.model.revision
         || edge.output_scope != manifest.request.requested_output_scope
+        || edge.output_definition_id != manifest.request.requested_output_definition_id
+        || edge.error_metric_id != manifest.request.required_error_metric_id
+        || edge.measurement_operator_id.trim().is_empty()
+        || !valid_sha256(&edge.measurement_calibration_digest_sha256)
         || edge.validation_status != "independently_validated"
         || !valid_sha256(&edge.evidence_digest_sha256)
         || edge.validation_specimen_ids.is_empty()
@@ -601,6 +638,8 @@ pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
         || manifest.model.revision.trim().is_empty()
         || manifest.model.family.trim().is_empty()
         || manifest.request.requested_output_scope.trim().is_empty()
+        || manifest.request.requested_output_definition_id.trim().is_empty()
+        || manifest.request.required_error_metric_id.trim().is_empty()
     {
         return empty_decision(
             manifest,
@@ -658,6 +697,20 @@ pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
             manifest,
             TransferDisposition::AbstainOutputScope,
             TransferReason::OutputScopeMismatch,
+            source_id,
+            target_id,
+            0,
+        );
+    }
+
+    if manifest.model.output_definition_id != manifest.request.requested_output_definition_id
+        || source.signature.output_definition_id != manifest.model.output_definition_id
+        || target.signature.output_definition_id != manifest.request.requested_output_definition_id
+    {
+        return empty_decision(
+            manifest,
+            TransferDisposition::AbstainOutputScope,
+            TransferReason::OutputDefinitionMismatch,
             source_id,
             target_id,
             0,
@@ -806,9 +859,19 @@ pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
                 .collect::<Vec<_>>();
             let mut changed_factors = changed_factors;
             changed_factors.sort();
+            let mut measurement_operator_ids = path
+                .iter()
+                .map(|edge| edge.measurement_operator_id.clone())
+                .collect::<HashSet<_>>()
+                .into_iter()
+                .collect::<Vec<_>>();
+            measurement_operator_ids.sort();
             accepted.push(BridgePathReport {
                 edge_ids: path.iter().map(|edge| edge.edge_id.clone()).collect(),
                 domain_ids,
+                output_definition_id: manifest.request.requested_output_definition_id.clone(),
+                error_metric_id: manifest.request.required_error_metric_id.clone(),
+                measurement_operator_ids,
                 changed_factors,
                 cumulative_uncertainty_units: total_uncertainty,
                 uncertainty_components,
@@ -884,6 +947,10 @@ mod tests {
             thickness_max_mm: thickness_max,
             boundary_class: "ambient_air_cooling".to_owned(),
             output_scope: "released_angular_distortion".to_owned(),
+            output_definition_id: "released_free_state_angular_deviation_v1".to_owned(),
+            datum_id: "panel_reference_datum_v1".to_owned(),
+            measurement_operator_id: "laser_surface_registration_v1".to_owned(),
+            measurement_calibration_digest_sha256: "d".repeat(64),
             coordinate_frame: "welding_reference_frame".to_owned(),
         }
     }
@@ -909,6 +976,10 @@ mod tests {
             model_id: "MODEL-TEP-01".to_owned(),
             model_revision: "R3".to_owned(),
             output_scope: "released_angular_distortion".to_owned(),
+            output_definition_id: "released_free_state_angular_deviation_v1".to_owned(),
+            error_metric_id: "max_abs_released_angular_deviation_mm_v1".to_owned(),
+            measurement_operator_id: "laser_surface_registration_v1".to_owned(),
+            measurement_calibration_digest_sha256: "e".repeat(64),
             changed_factors: from_signature.changed_factors(to_signature),
             calibration_specimen_ids: vec![format!("CAL-{id}")],
             validation_specimen_ids: vec![format!("VAL-{id}-A"), format!("VAL-{id}-B")],
@@ -940,6 +1011,7 @@ mod tests {
                 family: "transient_thermo_elasto_plastic_fem".to_owned(),
                 calibration_domain_id: "D0".to_owned(),
                 output_scope: "released_angular_distortion".to_owned(),
+                output_definition_id: "released_free_state_angular_deviation_v1".to_owned(),
                 validation_status: "validated".to_owned(),
                 model_digest_sha256: "b".repeat(64),
                 parameter_set_digest_sha256: "c".repeat(64),
@@ -958,6 +1030,8 @@ mod tests {
             request: TransferRequest {
                 target_domain_id: "D3".to_owned(),
                 requested_output_scope: "released_angular_distortion".to_owned(),
+                requested_output_definition_id: "released_free_state_angular_deviation_v1".to_owned(),
+                required_error_metric_id: "max_abs_released_angular_deviation_mm_v1".to_owned(),
                 decision_cutoff_tick: 100,
                 maximum_total_uncertainty_units: 60,
                 required_minimum_coverage_permille: 950,
