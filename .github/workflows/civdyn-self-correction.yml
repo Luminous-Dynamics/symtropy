@@ -296,3 +296,74 @@ jobs:
               assert row["estimand"] == "target_average_treatment_effect_risk_difference"
           print("Causal-transport CSV valid: point standardization under full support; no point extrapolation under target-only modifier; sharp risk-difference bounds retained.")
           PY
+      - name: Verify quantitative outcome-shift sensitivity frontier
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin outcome-shift-sensitivity-sweep > /tmp/civdyn-outcome-shift-sensitivity.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin outcome-shift-sensitivity-sweep > /tmp/civdyn-outcome-shift-sensitivity-replay.csv
+          cmp /tmp/civdyn-outcome-shift-sensitivity.csv /tmp/civdyn-outcome-shift-sensitivity-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-outcome-shift-sensitivity.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 35, f"expected 35 columns, got {len(fields or [])}"
+          assert len(rows) == 5, f"expected five Lambda receipts, got {len(rows)}"
+          assert [row["lambda"] for row in rows] == [
+              "1.000000", "1.500000", "2.000000", "3.000000", "5.000000"
+          ]
+
+          expected = {
+              "1.000000": (0.25, 0.25, 0.25, 0.50, 0.25, 0.25, "positive_effect_robust"),
+              "1.500000": (0.10, 0.40, 0.40, 0.60, 0.20, 0.30, "positive_effect_robust"),
+              "2.000000": (0.025, 0.475, 0.35, 0.65, 0.175, 0.325, "positive_effect_robust"),
+              "3.000000": (-0.05, 0.55, 0.30, 0.70, 0.15, 0.35, "sign_ambiguous"),
+              "5.000000": (-0.11, 0.61, 0.26, 0.74, 0.13, 0.37, "sign_ambiguous"),
+          }
+          previous_lower = -math.inf
+          previous_upper = math.inf
+          for row in rows:
+              lower, upper, treatment_lower, treatment_upper, control_lower, control_upper, direction = expected[row["lambda"]]
+              assert math.isclose(float(row["baseline_weighted_ate"]), 0.25, abs_tol=1e-10)
+              assert math.isclose(float(row["target_ate_lower"]), lower, abs_tol=1e-10)
+              assert math.isclose(float(row["target_ate_upper"]), upper, abs_tol=1e-10)
+              assert math.isclose(float(row["treatment_lower_mean"]), treatment_lower, abs_tol=1e-10)
+              assert math.isclose(float(row["treatment_upper_mean"]), treatment_upper, abs_tol=1e-10)
+              assert math.isclose(float(row["control_lower_mean"]), control_lower, abs_tol=1e-10)
+              assert math.isclose(float(row["control_upper_mean"]), control_upper, abs_tol=1e-10)
+              assert row["effect_direction"] == direction
+              assert row["sign_tipping_point"] == "3.000000"
+              assert math.isclose(float(row["target_ate_lower"]), previous_lower, abs_tol=0.0) or float(row["target_ate_lower"]) <= previous_lower + 1e-10
+              assert float(row["target_ate_upper"]) >= previous_upper - 1e-10
+              previous_lower = float(row["target_ate_lower"])
+              previous_upper = float(row["target_ate_upper"])
+
+              assert row["control_n"] == row["treatment_n"] == "2"
+              assert row["control_effective_sample_size"] == row["treatment_effective_sample_size"] == "2.000000000000"
+              assert row["measurement_unit"] == "risk_difference"
+              assert row["outcome_support_lower"] == "0.000000000000"
+              assert row["outcome_support_upper"] == "1.000000000000"
+              assert row["source_randomization"] == "supported_by_design"
+              assert row["covariate_overlap"] == "supported_by_evidence"
+              assert row["no_interference"] == "supported_by_design"
+              assert row["treatment_version_invariance"] == "supported_by_evidence"
+              assert row["outcome_measurement_invariance"] == "supported_by_evidence"
+              assert row["source_data_digest"] == "sha256-outcome-shift-source-rct"
+              assert row["target_population_digest"] == "sha256-outcome-shift-target-population"
+              assert row["protocol_digest"] == "sha256-outcome-shift-protocol-v0.1"
+              assert row["weight_estimator_digest"] == "sha256-generalization-weight-estimator-v0.1"
+              assert row["estimand"] == "target_average_treatment_effect_weighted_mean_difference"
+              assert all(row[column] for column in [
+                  "source_randomization_evidence_digest",
+                  "covariate_overlap_evidence_digest",
+                  "no_interference_evidence_digest",
+                  "treatment_version_evidence_digest",
+                  "outcome_measurement_evidence_digest",
+              ])
+          print("Outcome-shift sensitivity CSV valid: Lambda=1 recovers the weighted ATE; bounds nest; Lambda=3 is the first sign-tipping point; exact assumptions and provenance retained.")
+          PY
