@@ -50,6 +50,14 @@ pub struct ProbeOutcomeLikelihood {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
+pub struct ProbeLikelihoodScenario {
+    pub scenario_id: String,
+    pub scenario_weight: f64,
+    pub outcomes: Vec<ProbeOutcomeLikelihood>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
 pub struct DiagnosticProbeCandidate {
     pub candidate_id: String,
     pub probe_class: ProbeClass,
@@ -63,7 +71,11 @@ pub struct DiagnosticProbeCandidate {
     pub expected_delay_seconds: f64,
     /// Risk estimate in parts per million, 0..=1_000_000.
     pub risk_score_ppm: u32,
+    /// Single point-estimate likelihood table, used only when no uncertainty scenarios are supplied.
     pub outcomes: Vec<ProbeOutcomeLikelihood>,
+    /// Optional calibrated likelihood scenarios spanning declared model/regime uncertainty.
+    /// When non-empty, outcomes must be empty and robust eligibility uses worst-case EIG.
+    pub uncertainty_scenarios: Vec<ProbeLikelihoodScenario>,
     /// Digest over every candidate field other than this digest.
     pub candidate_manifest_sha256: String,
 }
@@ -135,7 +147,10 @@ pub struct ProbeAssessment {
     pub eligible: bool,
     pub rejection_reasons: Vec<ProbeRejectionReason>,
     pub expected_information_gain_nats: f64,
+    pub worst_case_information_gain_nats: f64,
     pub expected_posterior_entropy_nats: f64,
+    pub scenario_count: usize,
+    pub epistemic_robustness_qualified: bool,
     pub risk_adjusted_utility: Option<f64>,
 }
 
@@ -145,7 +160,10 @@ pub struct RankedDiagnosticProbe {
     pub candidate_id: String,
     pub probe_class: ProbeClass,
     pub expected_information_gain_nats: f64,
+    pub worst_case_information_gain_nats: f64,
     pub expected_posterior_entropy_nats: f64,
+    pub scenario_count: usize,
+    pub epistemic_robustness_qualified: bool,
     pub risk_adjusted_utility: f64,
     pub expected_cost_seconds: f64,
     pub expected_delay_seconds: f64,
@@ -177,6 +195,7 @@ pub enum ProbeError {
     InvalidLikelihoodTable(String),
     InvalidLikelihoodProbability(String),
     InvalidLikelihoodNormalization(String),
+    InvalidScenarioSet(String),
     InvalidInformationGain(String),
     Serialization,
 }
@@ -194,6 +213,7 @@ impl fmt::Display for ProbeError {
             Self::InvalidLikelihoodTable(id) => write!(formatter, "probe likelihood table is empty, incomplete, or has duplicate outcomes: {id}"),
             Self::InvalidLikelihoodProbability(id) => write!(formatter, "probe likelihood is negative, non-finite, or above one: {id}"),
             Self::InvalidLikelihoodNormalization(id) => write!(formatter, "conditional outcomes do not sum to one for every hypothesis: {id}"),
+            Self::InvalidScenarioSet(id) => write!(formatter, "likelihood uncertainty scenarios are empty, duplicated, unnormalized, or ambiguous: {id}"),
             Self::InvalidInformationGain(id) => write!(formatter, "expected information gain is numerically invalid: {id}"),
             Self::Serialization => write!(formatter, "failed to serialize probe evidence for canonical hashing"),
         }
@@ -229,6 +249,7 @@ pub fn candidate_manifest_sha256(
         candidate.expected_delay_seconds,
         candidate.risk_score_ppm,
         &candidate.outcomes,
+        &candidate.uncertainty_scenarios,
     );
     sha256_serializable(b"symtropy-diagnostic-probe-candidate-v1\0", &payload)
 }
@@ -292,10 +313,8 @@ pub fn rank_diagnostic_probes(
             ));
         }
 
-        validate_likelihood_table(candidate, hypothesis_ids.len())?;
-        let (information_gain, posterior_entropy) =
-            expected_information_gain(&prior, &candidate.outcomes)
-                .map_err(|_| ProbeError::InvalidInformationGain(candidate.candidate_id.clone()))?;
+        let (information_gain, worst_case_information_gain, posterior_entropy, scenario_count, robustness_qualified) =
+            assess_likelihood_uncertainty(candidate, &prior, hypothesis_ids.len())?;
 
         let mut rejection_reasons = Vec::new();
         match candidate.probe_class {
@@ -351,13 +370,13 @@ pub fn rank_diagnostic_probes(
         {
             rejection_reasons.push(ProbeRejectionReason::RiskBudgetExceeded);
         }
-        if information_gain < policy.minimum_expected_information_gain_nats {
+        if worst_case_information_gain < policy.minimum_expected_information_gain_nats {
             rejection_reasons.push(ProbeRejectionReason::InformationGainBelowMinimum);
         }
 
         let eligible = rejection_reasons.is_empty();
         let utility = eligible.then(|| {
-            information_gain
+            worst_case_information_gain
                 / (1.0
                     + candidate.expected_cost_seconds / policy.cost_penalty_scale_seconds
                     + candidate.expected_delay_seconds / policy.delay_penalty_scale_seconds
@@ -368,7 +387,10 @@ pub fn rank_diagnostic_probes(
             eligible,
             rejection_reasons,
             expected_information_gain_nats: information_gain,
+            worst_case_information_gain_nats: worst_case_information_gain,
             expected_posterior_entropy_nats: posterior_entropy,
+            scenario_count,
+            epistemic_robustness_qualified: robustness_qualified,
             risk_adjusted_utility: utility,
         });
         if let Some(utility) = utility {
@@ -377,7 +399,10 @@ pub fn rank_diagnostic_probes(
                 candidate_id: candidate.candidate_id.clone(),
                 probe_class: candidate.probe_class,
                 expected_information_gain_nats: information_gain,
+                worst_case_information_gain_nats: worst_case_information_gain,
                 expected_posterior_entropy_nats: posterior_entropy,
+                scenario_count,
+                epistemic_robustness_qualified: robustness_qualified,
                 risk_adjusted_utility: utility,
                 expected_cost_seconds: candidate.expected_cost_seconds,
                 expected_delay_seconds: candidate.expected_delay_seconds,
@@ -447,47 +472,98 @@ fn canonical_hypotheses(
 }
 
 fn validate_likelihood_table(
-    candidate: &DiagnosticProbeCandidate,
+    candidate_id: &str,
+    outcomes: &[ProbeOutcomeLikelihood],
     hypothesis_count: usize,
 ) -> Result<(), ProbeError> {
-    if candidate.outcomes.len() < 2 {
-        return Err(ProbeError::InvalidLikelihoodTable(
-            candidate.candidate_id.clone(),
-        ));
+    if outcomes.len() < 2 {
+        return Err(ProbeError::InvalidLikelihoodTable(candidate_id.to_owned()));
     }
     let mut outcome_ids = BTreeSet::new();
-    for outcome in &candidate.outcomes {
+    for outcome in outcomes {
         if outcome.outcome_id.trim().is_empty()
             || !outcome_ids.insert(outcome.outcome_id.clone())
             || outcome.likelihood_by_hypothesis.len() != hypothesis_count
         {
-            return Err(ProbeError::InvalidLikelihoodTable(
-                candidate.candidate_id.clone(),
-            ));
+            return Err(ProbeError::InvalidLikelihoodTable(candidate_id.to_owned()));
         }
         if outcome
             .likelihood_by_hypothesis
             .iter()
             .any(|value| !value.is_finite() || *value < 0.0 || *value > 1.0)
         {
-            return Err(ProbeError::InvalidLikelihoodProbability(
-                candidate.candidate_id.clone(),
-            ));
+            return Err(ProbeError::InvalidLikelihoodProbability(candidate_id.to_owned()));
         }
     }
     for hypothesis_index in 0..hypothesis_count {
-        let sum = candidate
-            .outcomes
+        let sum = outcomes
             .iter()
             .map(|outcome| outcome.likelihood_by_hypothesis[hypothesis_index])
             .sum::<f64>();
         if !sum.is_finite() || (sum - 1.0).abs() > PROBABILITY_TOLERANCE {
-            return Err(ProbeError::InvalidLikelihoodNormalization(
-                candidate.candidate_id.clone(),
-            ));
+            return Err(ProbeError::InvalidLikelihoodNormalization(candidate_id.to_owned()));
         }
     }
     Ok(())
+}
+
+fn assess_likelihood_uncertainty(
+    candidate: &DiagnosticProbeCandidate,
+    prior: &[f64],
+    hypothesis_count: usize,
+) -> Result<(f64, f64, f64, usize, bool), ProbeError> {
+    if candidate.uncertainty_scenarios.is_empty() {
+        if !candidate.outcomes.is_empty() {
+            validate_likelihood_table(
+                &candidate.candidate_id,
+                &candidate.outcomes,
+                hypothesis_count,
+            )?;
+            let (gain, posterior_entropy) = expected_information_gain(prior, &candidate.outcomes)
+                .map_err(|_| ProbeError::InvalidInformationGain(candidate.candidate_id.clone()))?;
+            return Ok((gain, gain, posterior_entropy, 1, false));
+        }
+        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+    }
+    if !candidate.outcomes.is_empty() {
+        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+    }
+    let mut scenario_ids = BTreeSet::new();
+    let mut weight_sum = 0.0;
+    let mut weighted_information_gain = 0.0;
+    let mut worst_case_information_gain = f64::INFINITY;
+    for scenario in &candidate.uncertainty_scenarios {
+        if scenario.scenario_id.trim().is_empty()
+            || !scenario_ids.insert(scenario.scenario_id.clone())
+            || !scenario.scenario_weight.is_finite()
+            || scenario.scenario_weight <= 0.0
+            || scenario.scenario_weight > 1.0
+        {
+            return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        }
+        validate_likelihood_table(
+            &candidate.candidate_id,
+            &scenario.outcomes,
+            hypothesis_count,
+        )?;
+        let (gain, _) = expected_information_gain(prior, &scenario.outcomes)
+            .map_err(|_| ProbeError::InvalidInformationGain(candidate.candidate_id.clone()))?;
+        weight_sum += scenario.scenario_weight;
+        weighted_information_gain += scenario.scenario_weight * gain;
+        worst_case_information_gain = worst_case_information_gain.min(gain);
+    }
+    if (weight_sum - 1.0).abs() > PROBABILITY_TOLERANCE {
+        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+    }
+    let expected_information_gain = weighted_information_gain / weight_sum;
+    let expected_posterior_entropy = entropy(prior) - expected_information_gain;
+    Ok((
+        expected_information_gain.max(0.0),
+        worst_case_information_gain.max(0.0),
+        expected_posterior_entropy.max(0.0),
+        candidate.uncertainty_scenarios.len(),
+        candidate.uncertainty_scenarios.len() > 1,
+    ))
 }
 
 fn expected_information_gain(
@@ -616,6 +692,7 @@ mod tests {
             risk_score_ppm: 1_000,
             outcomes: outcomes(informative),
             candidate_manifest_sha256: digest('0'),
+            uncertainty_scenarios: Vec::new(),
         };
         candidate.candidate_manifest_sha256 = candidate_manifest_sha256(&candidate).unwrap();
         candidate
