@@ -426,6 +426,10 @@ fn resolve_candidate(
         ));
     }
     .to_owned();
+    let frontier_eligible = matches!(
+        disposition.as_str(),
+        "ELIGIBLE_SYNTHETIC_SCREEN" | "ELIGIBLE_EVIDENCE_BACKED_SCREEN_NOT_VALIDATED"
+    );
 
     Ok(ResolvedCandidate {
         audit: CandidateAudit {
@@ -438,10 +442,7 @@ fn resolve_candidate(
             source_evidence_class: source_evidence.to_owned(),
             source_mission_status: mission_status.to_owned(),
             disposition,
-            frontier_eligible: matches!(
-                disposition.as_str(),
-                "ELIGIBLE_SYNTHETIC_SCREEN" | "ELIGIBLE_EVIDENCE_BACKED_SCREEN_NOT_VALIDATED"
-            ),
+            frontier_eligible,
             service_delivery_lower: candidate.service_delivery.lower,
             service_delivery_upper: candidate.service_delivery.upper,
             minimum_service_required: contract.minimum_service_quantity,
@@ -705,12 +706,11 @@ mod tests {
         let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus");
         let candidates = corpus["candidates"].as_array_mut().unwrap();
         let baseline = candidates.iter_mut().find(|candidate| candidate["candidate_id"] == "baseline").unwrap();
-        baseline["battery_energy"]["lower"] = json!(19.5);
-        baseline["battery_energy"]["upper"] = json!(20.5);
+        baseline["battery_energy"]["lower"] = json!(21.5);
+        baseline["battery_energy"]["upper"] = json!(22.5);
         baseline["elapsed_time"]["lower"] = json!(1.0);
         baseline["elapsed_time"]["upper"] = json!(1.5);
-        baseline["battery_energy"]["evidence_sha256"] = Value::String("f".repeat(64));
-        baseline["elapsed_time"]["evidence_sha256"] = Value::String("f".repeat(64));
+
         let bytes = serde_json::to_vec(&corpus).expect("overlapping corpus");
         let audit = audit_corpus(SCHEMA, &bytes).expect("overlapping interval audit");
         assert!(audit.robust_frontier_candidate_ids.contains(&"baseline".to_owned()));
@@ -775,8 +775,9 @@ mod tests {
     #[test]
     fn mission_units_must_match_the_single_service_contract() {
         let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus");
+        let source_ref = corpus["candidates"][0]["source_report_ref"].clone();
         let report = corpus["mission_reports"].as_array_mut().unwrap().iter_mut()
-            .find(|report| report["report_ref"] == corpus["candidates"][0]["source_report_ref"])
+            .find(|report| report["report_ref"] == source_ref)
             .unwrap();
         report["report"]["results"][0]["mission_functional_unit"] = Value::String("passenger-km per shift".into());
         let bytes = serde_json::to_vec(&corpus).expect("mixed service unit corpus");
@@ -786,10 +787,14 @@ mod tests {
     #[test]
     fn duplicate_source_scenario_cannot_be_counted_as_two_options() {
         let mut corpus: Corpus = serde_json::from_slice(CORPUS).expect("corpus");
-        corpus.candidates[1].source_report_ref = corpus.candidates[0].source_report_ref.clone();
-        corpus.candidates[1].scenario_id = corpus.candidates[0].scenario_id.clone();
-        corpus.candidates[1].source_report_sha256 = corpus.candidates[0].source_report_sha256.clone();
-        corpus.candidates[1].source_result_sha256 = corpus.candidates[0].source_result_sha256.clone();
+        let source_report_ref = corpus.candidates[0].source_report_ref.clone();
+        let scenario_id = corpus.candidates[0].scenario_id.clone();
+        let source_report_sha256 = corpus.candidates[0].source_report_sha256.clone();
+        let source_result_sha256 = corpus.candidates[0].source_result_sha256.clone();
+        corpus.candidates[1].source_report_ref = source_report_ref;
+        corpus.candidates[1].scenario_id = scenario_id;
+        corpus.candidates[1].source_report_sha256 = source_report_sha256;
+        corpus.candidates[1].source_result_sha256 = source_result_sha256;
         let bytes = serde_json::to_vec(&corpus).expect("duplicated scenario corpus");
         let error = audit_corpus(SCHEMA, &bytes).expect_err("source scenario cannot be reused");
         assert!(error.contains("reused by multiple alternatives"));
