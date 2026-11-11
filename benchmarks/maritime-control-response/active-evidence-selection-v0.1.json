@@ -20,6 +20,14 @@
       "definition": "risk_score_ppm is a declared policy score, not a calibrated probability or safety certification.",
       "evidence": "Each candidate binds a separate risk_assessment_sha256 reference. The evidence content, method, scope, signer, review status, expiry and authority must be checked upstream.",
       "consequence": "A missing, malformed or unreviewed risk-evidence reference makes the candidate ineligible."
+    },
+    "observation_update": {
+      "objective": "After evidence is actually acquired by an authorized external system, update the hypothesis posterior without performing another acquisition or action.",
+      "candidate_binding": "The update must verify the selected candidate ID and exact candidate manifest digest from the frozen selection catalogue.",
+      "receipt_binding": "A source-generated observation receipt SHA-256 and observed outcome ID are mandatory; the selector treats the receipt digest as an integrity reference, not signer authentication.",
+      "posterior": "p(h|o) is proportional to p(h) times the scenario-weighted likelihood sum_s w_s p(o|h,s). A point-estimate candidate uses its single validated likelihood table.",
+      "realized_information": "Report prior entropy, posterior entropy, realized entropy reduction H(prior)-H(posterior), and KL(posterior || prior). Realized entropy reduction can be negative for an individual outcome even though expected information gain is non-negative and KL is non-negative.",
+      "scenario_uncertainty": "Report per-scenario posterior entropy range and counts of scenarios in which the observed outcome is possible or impossible; retain the likelihood scenario manifest."
     }
   },
   "candidate_classes": {
@@ -79,7 +87,15 @@
     "false_unique_root_cause_rate",
     "worst_case_expected_information_gain_nats",
     "likelihood_scenario_count",
-    "epistemic_robustness_qualified"
+    "epistemic_robustness_qualified",
+    "realized_entropy_reduction_nats",
+    "realized_kl_divergence_nats",
+    "posterior_entropy_nats",
+    "scenario_posterior_entropy_min_nats",
+    "scenario_posterior_entropy_max_nats",
+    "possible_likelihood_scenario_count",
+    "impossible_likelihood_scenario_count",
+    "observation_candidate_manifest_match"
   ],
   "hard_gates": [
     "hypothesis IDs, prior and label-space digest are fixed for the selection decision",
@@ -102,7 +118,14 @@
     "no scenario may be added, removed, reweighted or recalibrated after observing confirmatory outcomes",
     "each candidate binds a risk-assessment digest distinct from the likelihood calibration digest",
     "risk_score_ppm is never described as a measured probability or safety certification",
-    "risk assessment content, method, scope, reviewer identity, expiry and revocation are independently checked upstream"
+    "risk assessment content, method, scope, reviewer identity, expiry and revocation are independently checked upstream",
+    "a realized posterior update is allowed only for an observation receipt bound to the exact selected candidate manifest digest",
+    "unknown observed outcome IDs fail closed and zero-probability observations return an explicit impossible-outcome result",
+    "scenario-marginalized posterior uses the frozen scenario weights and common outcome space",
+    "report realized entropy reduction separately from KL posterior-to-prior; an individual outcome may increase entropy",
+    "observation receipt integrity digest does not authenticate the acquisition source, sensor, signer or authority",
+    "posterior update does not itself schedule or acquire another observation, conduct inspection, authorize action or actuate equipment",
+    "store the posterior and observation result as a separate append-only artifact; do not overwrite the original selection result"
   ],
   "research_targets_not_achieved": [
     {
@@ -134,6 +157,16 @@
       "id": "calibration_uncertainty",
       "target": "Empirical likelihood-scenario coverage is measured on independent episodes and no confirmatory outcome is used to construct the uncertainty set.",
       "status": "aspirational"
+    },
+    {
+      "id": "realized_information_gain_fidelity",
+      "target": "Across held-out observed outcomes, mean realized KL(posterior || prior) agrees with independently replayed expected information gain within a preregistered numerical tolerance.",
+      "status": "aspirational"
+    },
+    {
+      "id": "posterior_replay",
+      "target": "100% of observation receipts reproduce the same posterior from the frozen candidate, prior and likelihood-scenario manifests.",
+      "status": "aspirational"
     }
   ],
   "evidence_boundaries": {
@@ -142,6 +175,7 @@
     "authority_status": "Authorization enum and digest are caller-supplied references. Signature verification, identity, scope, expiry, issuer authority and revocation are external mandatory checks.",
     "claim_ceiling": "Read-only ranking contract and synthetic numerical behavior only; no evidence-acquisition execution, active-control result or physical validation claim.",
     "scenario_status": "The Rust selector evaluates scenario tables supplied by the caller. It does not create or statistically validate those scenarios; scenario calibration and coverage must be demonstrated upstream.",
-    "risk_status": "risk_score_ppm is a caller-supplied policy score bound to a digest reference; its underlying assessment is not authenticated or independently verified by this selector."
+    "risk_status": "risk_score_ppm is a caller-supplied policy score bound to a digest reference; its underlying assessment is not authenticated or independently verified by this selector.",
+    "realized_update_status": "The Rust function realizes a posterior from caller-supplied likelihoods and a source receipt digest; it does not collect or authenticate an observation, and no physical observation has been evaluated."
   }
 }
