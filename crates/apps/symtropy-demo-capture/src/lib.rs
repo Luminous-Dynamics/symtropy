@@ -97,9 +97,9 @@ fn parse_capture_directory(raw: Option<OsString>) -> Result<Option<String>, Stri
     let Some(raw) = raw else {
         return Ok(None);
     };
-    let dir = raw.into_string().map_err(|_| {
-        "SYMTROPY_DEMO_CAPTURE_DIR must be valid UTF-8".to_string()
-    })?;
+    let dir = raw
+        .into_string()
+        .map_err(|_| "SYMTROPY_DEMO_CAPTURE_DIR must be valid UTF-8".to_string())?;
     if dir.trim().is_empty() {
         return Err("SYMTROPY_DEMO_CAPTURE_DIR must not be empty".to_string());
     }
@@ -111,7 +111,9 @@ fn capture_configuration_from_env() -> Result<(Vec<f32>, f32), String> {
         Ok(raw) => parse_capture_schedule(&raw)?,
         Err(std::env::VarError::NotPresent) => vec![1.5, 4.0, 7.0],
         Err(error) => {
-            return Err(format!("could not read SYMTROPY_DEMO_CAPTURE_TIMES: {error}"));
+            return Err(format!(
+                "could not read SYMTROPY_DEMO_CAPTURE_TIMES: {error}"
+            ));
         }
     };
 
@@ -119,7 +121,9 @@ fn capture_configuration_from_env() -> Result<(Vec<f32>, f32), String> {
         Ok(raw) => Some(raw),
         Err(std::env::VarError::NotPresent) => None,
         Err(error) => {
-            return Err(format!("could not read SYMTROPY_DEMO_CAPTURE_EXIT_AT: {error}"));
+            return Err(format!(
+                "could not read SYMTROPY_DEMO_CAPTURE_EXIT_AT: {error}"
+            ));
         }
     };
     let exit_at = parse_capture_exit_at(exit_at_raw.as_deref(), &schedule)?;
@@ -257,7 +261,10 @@ mod tests {
 
     #[test]
     fn capture_directory_is_noop_only_when_unset() {
-        assert_eq!(parse_capture_directory(None).expect("unset directory"), None);
+        assert_eq!(
+            parse_capture_directory(None).expect("unset directory"),
+            None
+        );
         assert_eq!(
             parse_capture_directory(Some(OsString::from("/tmp/captures")))
                 .expect("valid directory"),
