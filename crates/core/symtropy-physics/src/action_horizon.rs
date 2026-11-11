@@ -833,6 +833,7 @@ mod tests {
             requested_cycles: 2,
             controller_period_ns: 10,
             p99_total_latency_ns: 20,
+            latency_profile_id: "p99-profile/test-target-a".to_owned(),
             execution_mode: ActionExecutionMode::QueuedOpenLoop,
         }).unwrap();
 
