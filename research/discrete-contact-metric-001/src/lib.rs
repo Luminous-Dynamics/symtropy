@@ -605,11 +605,7 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 /// residual and the absolute coupled impulse contribution divided by W_ii.
 /// This prevents a large impulse at an unrelated contact from masking a
 /// negative impulse at a much smaller contact scale.
-fn relative_negative_residual(
-    values: &[f64],
-    delassus: &Matrix,
-    contact_rhs: &[f64],
-) -> f64 {
+fn relative_negative_residual(values: &[f64], delassus: &Matrix, contact_rhs: &[f64]) -> f64 {
     values
         .iter()
         .enumerate()
@@ -962,11 +958,7 @@ mod tests {
             let scaled_slack = slack.map(|value| value * scale);
             let scaled_free_normal = free_normal_velocity.map(|value| value * scale);
             let observed = (
-                relative_negative_residual(
-                    &scaled_impulse,
-                    &Matrix::identity(2),
-                    &scaled_impulse,
-                ),
+                relative_negative_residual(&scaled_impulse, &Matrix::identity(2), &scaled_impulse),
                 relative_primal_feasibility(
                     &scaled_normal,
                     &scaled_target,
@@ -1008,7 +1000,10 @@ mod tests {
         );
 
         assert!(primal < 1.0e-15, "primal residual={primal:e}");
-        assert!(complementarity < 1.0e-15, "complementarity={complementarity:e}");
+        assert!(
+            complementarity < 1.0e-15,
+            "complementarity={complementarity:e}"
+        );
     }
 
     #[test]
@@ -1035,12 +1030,7 @@ mod tests {
         let scaled = DiscreteStepInput {
             mass: Matrix::new(2, 2, vec![s0 * s0, 0.0, 0.0, s1 * s1]).unwrap(),
             damping: Matrix::zeros(2, 2),
-            stiffness: Matrix::new(
-                2,
-                2,
-                vec![100.0 * s0 * s0, 0.0, 0.0, 0.0],
-            )
-            .unwrap(),
+            stiffness: Matrix::new(2, 2, vec![100.0 * s0 * s0, 0.0, 0.0, 0.0]).unwrap(),
             position_error: vec![0.1 / s0, 0.0],
             velocity: vec![-1.0 / s0, -1.0 / s1],
             external_force: vec![0.5 * s0, -0.25 * s1],
@@ -1062,9 +1052,7 @@ mod tests {
                 reference.next_velocity
             );
         }
-        assert!(
-            (transformed.contact_impulse[0] - reference.contact_impulse[0]).abs() < 1.0e-10
-        );
+        assert!((transformed.contact_impulse[0] - reference.contact_impulse[0]).abs() < 1.0e-10);
         assert_eq!(transformed.active_contacts, reference.active_contacts);
         assert!((transformed.contact_slack[0] - reference.contact_slack[0]).abs() < 1.0e-10);
         assert!(
