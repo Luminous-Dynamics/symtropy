@@ -1,0 +1,12 @@
+[package]
+name = "phri-basis-free-compliance-001"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Basis-free matrix-coordinate compliance passivity reference"
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
