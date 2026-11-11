@@ -1,0 +1,53 @@
+name: EV mission option frontier v0.1
+
+on:
+  pull_request:
+    paths:
+      - "tools/ev-mission-option-frontier/**"
+      - "docs/research/EV_MISSION_OPTION_FRONTIER_V0_1.md"
+      - ".github/workflows/ev-mission-option-frontier.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-mission-option-frontier/Cargo.toml -- --check
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path tools/ev-mission-option-frontier/Cargo.toml --all-targets -- -D warnings
+      - name: Run mission option and robust frontier tests
+        run: cargo test --manifest-path tools/ev-mission-option-frontier/Cargo.toml
+      - name: Audit frozen equal-service option set
+        run: |
+          cargo run --manifest-path tools/ev-mission-option-frontier/Cargo.toml -- \
+            --schema tools/ev-mission-option-frontier/schemas/mission_option_frontier_v0_1.schema.json \
+            --corpus tools/ev-mission-option-frontier/fixtures/mission_option_frontier_v0_1.json \
+            > "$RUNNER_TEMP/mission-option-frontier-report.json"
+          jq -e '
+            .candidate_count == 8 and
+            .eligible_candidate_count == 5 and
+            .blocked_count == 1 and
+            .insufficient_service_count == 1 and
+            .indeterminate_count == 1 and
+            .robust_dominance_pair_count == 2 and
+            .robust_frontier_count == 3 and
+            .robust_frontier_candidate_ids == ["baseline","eco-route","fast-route"] and
+            .source_grade == "SYNTHETIC_ONLY" and
+            any(.candidates[]; .candidate_id == "load-shed" and
+              .disposition == "INSUFFICIENT_SERVICE" and
+              .frontier_eligible == false) and
+            any(.dominance_pairs[]; .dominator_candidate_id == "baseline" and
+              .dominated_candidate_id == "wasteful") and
+            any(.dominance_pairs[]; .dominator_candidate_id == "eco-route" and
+              .dominated_candidate_id == "slow-route")
+          ' "$RUNNER_TEMP/mission-option-frontier-report.json"
