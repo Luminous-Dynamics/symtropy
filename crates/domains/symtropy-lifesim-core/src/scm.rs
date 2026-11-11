@@ -301,15 +301,27 @@ impl ScmModel {
     /// the previous observation and evaluate only the newly advanced agent positions.
     pub fn step<L: ScmLandscape>(&mut self, landscape: &L) -> Result<ScmStepReport, ScmError> {
         let next_tick = self.tick.checked_add(1).ok_or(ScmError::TickOverflow)?;
-        let mut initial_evaluations = 0usize;
-        let current_observations = match &self.observations {
-            Some(observations) => observations.clone(),
-            None => {
-                let observations = self.observe_agents(&self.agents, landscape)?;
-                initial_evaluations = observations.len();
-                observations
-            }
-        };
+        let mut initial_evaluations_this_call = 0usize;
+        if self.observations.is_none() {
+            // A completed initial observation is an acquired measurement. Retain its cost
+            // and cache even if a later successor observation fails.
+            let initial = self.observe_agents(&self.agents, landscape)?;
+            let new_total = self
+                .total_function_evaluations
+                .checked_add(
+                    u64::try_from(initial.len())
+                        .map_err(|_| ScmError::EvaluationCounterOverflow)?,
+                )
+                .ok_or(ScmError::EvaluationCounterOverflow)?;
+            initial_evaluations_this_call = initial.len();
+            self.observations = Some(initial);
+            self.total_function_evaluations = new_total;
+        }
+        let current_observations = self
+            .observations
+            .as_ref()
+            .expect("initial observations are cached")
+            .clone();
 
         let previous_positions: Vec<Vec<f64>> = self
             .agents
@@ -382,7 +394,7 @@ impl ScmModel {
         }
 
         let updated_observations = self.observe_agents(&next_agents, landscape)?;
-        let evaluations_this_step = initial_evaluations + updated_observations.len();
+        let evaluations_this_step = initial_evaluations_this_call + updated_observations.len();
         let new_total_function_evaluations = self
             .total_function_evaluations
             .checked_add(
@@ -803,9 +815,11 @@ mod tests {
     }
 
     #[test]
-    fn failed_successor_observation_does_not_commit_partial_state() {
+    fn failed_successor_observation_preserves_motion_but_accounts_initial_measurements() {
         let mut model = ScmModel::new(small_agents(), ScmConfig::default(), 31).unwrap();
-        let before = model.clone();
+        let before_agents = model.agents.clone();
+        let before_rng = model.rng;
+        let before_tick = model.tick;
         let failure = FailOnNextObservationBatch {
             calls: std::cell::Cell::new(0),
             successful_calls: 3,
@@ -815,7 +829,11 @@ mod tests {
             model.step(&failure),
             Err(ScmError::LandscapeFailure { .. })
         ));
-        assert_eq!(model, before);
+        assert_eq!(model.agents, before_agents);
+        assert_eq!(model.rng, before_rng);
+        assert_eq!(model.tick, before_tick);
+        assert!(model.observations.is_some());
+        assert_eq!(model.total_function_evaluations, 3);
     }
 
     #[test]
