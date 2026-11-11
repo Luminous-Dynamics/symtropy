@@ -489,6 +489,30 @@ mod tests {
     }
 
     #[test]
+    fn scale_safe_parallel_axis_matches_direct_tensor_identity_on_32_offsets() {
+        let identity = SMatrix::<f64, 3, 3>::identity();
+        for sample in 1..=32 {
+            let k = sample as f64;
+            let mass = 0.25 + 0.75 * k;
+            let offset = SVector::new(
+                (0.17 * k).sin(),
+                (0.31 * k).cos(),
+                (0.23 * k).sin() + 0.4,
+            );
+            let observed = checked_parallel_axis_tensor(mass, &offset).unwrap();
+            let expected =
+                (identity * offset.norm_squared() - offset * offset.transpose()) * mass;
+            let error = (observed - expected).norm();
+            let scale = expected.norm().max(f64::MIN_POSITIVE);
+            assert!(
+                error / scale < 2.0e-14,
+                "parallel-axis mismatch at sample {sample}: relative={:e}",
+                error / scale
+            );
+        }
+    }
+
+    #[test]
     fn compound_parallel_axis_term_is_scale_safe_before_squaring_offsets() {
         let properties = MassProperties3 {
             mass: 1.0e300,
