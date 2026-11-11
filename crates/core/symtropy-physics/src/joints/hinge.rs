@@ -579,6 +579,88 @@ mod tests {
     }
 
     #[test]
+    fn constrained_hinge_work_ledger_matches_each_link_energy_change() {
+        use crate::mass_properties::RotationalInertiaOperator;
+        use std::collections::HashMap;
+
+        struct WorkRecorder {
+            work_by_body: HashMap<BodyHandle, f64>,
+        }
+        impl crate::world::PhysicsCallback<3> for WorkRecorder {
+            fn modulate_force(&self, _body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
+                *force
+            }
+            fn modulate_impulse(&self, impulse: f64, _contact: &SVector<f64, 3>) -> f64 {
+                impulse
+            }
+            fn friction_multiplier(&self, _contact: &SVector<f64, 3>, _body: BodyHandle) -> f64 {
+                1.0
+            }
+            fn on_collision(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+            fn record_dissipation(&mut self, _energy: f64) {}
+            fn record_work(&mut self, body: BodyHandle, work_joules: f64) {
+                *self.work_by_body.entry(body).or_default() += work_joules;
+            }
+            fn apply_trauma(&mut self, _event: &crate::contact::CollisionEvent<3>) {}
+        }
+
+        let operator_a = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+            4.0, 0.5, 0.0,
+            0.5, 3.0, 0.25,
+            0.0, 0.25, 2.0,
+        ]).unwrap();
+        let operator_b = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+            2.0, -0.2, 0.1,
+            -0.2, 5.0, 0.3,
+            0.1, 0.3, 3.0,
+        ]).unwrap();
+        let mut a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(20), Point::origin(), 0.1, 1.0,
+        ).with_rotational_inertia_operator(operator_a);
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(21), Point::origin(), 0.1, 1.0,
+        ).with_rotational_inertia_operator(operator_b);
+
+        // Begin with a common non-zero forbidden-plane velocity, so the
+        // endpoint work ledger must account for the motor reaction impulse
+        // even though it produces no forbidden relative hinge motion.
+        a.angular_velocity.set(0, 2, 0.4);
+        b.angular_velocity.set(0, 2, 0.4);
+        a.angular_velocity.set(1, 2, -0.2);
+        b.angular_velocity.set(1, 2, -0.2);
+        a.angular_velocity.set(0, 1, 0.15);
+        b.angular_velocity.set(0, 1, -0.10);
+
+        let energy_a_before = a.rotational_kinetic_energy();
+        let energy_b_before = b.rotational_kinetic_energy();
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(20), BodyHandle(21), 0, 1)
+            .with_motor(motor);
+        let mut recorder = WorkRecorder { work_by_body: HashMap::new() };
+
+        joint.solve_velocity(&mut a, &mut b, 0.1, Some(&mut recorder));
+
+        let work_a = recorder.work_by_body[&BodyHandle(20)];
+        let work_b = recorder.work_by_body[&BodyHandle(21)];
+        let delta_energy_a = a.rotational_kinetic_energy() - energy_a_before;
+        let delta_energy_b = b.rotational_kinetic_energy() - energy_b_before;
+
+        assert!((work_a - delta_energy_a).abs() < 1.0e-10);
+        assert!((work_b - delta_energy_b).abs() < 1.0e-10);
+        for (i, j) in [(0, 2), (1, 2)] {
+            assert!(
+                (b.angular_velocity.get(i, j) - a.angular_velocity.get(i, j)).abs() < 1e-10
+            );
+        }
+    }
+
+    #[test]
     fn hinge_maintains_position() {
         let mut a = RigidBody::<3>::static_body(
             BodyHandle(0),
