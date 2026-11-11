@@ -662,6 +662,47 @@ mod tests {
     }
 
     #[test]
+    fn malformed_source_digest_rejects() {
+        let mut input = fixture();
+        input.identity.model_profile_sha256 = "not-a-digest".to_string();
+        assert_eq!(
+            compile_observation_frame(input).unwrap_err(),
+            FrameError::InvalidSha256("model_profile_sha256")
+        );
+    }
+
+    #[test]
+    fn empty_unit_rejects() {
+        let mut input = fixture();
+        input.entities[0].observables[0].unit = " ".to_string();
+        assert_eq!(
+            compile_observation_frame(input).unwrap_err(),
+            FrameError::EmptyField("unit")
+        );
+    }
+
+    #[test]
+    fn unknown_event_subject_rejects() {
+        let mut input = fixture();
+        input.event_stream.as_mut().expect("events")[0].scenario_entity_id =
+            Some("machine-test-01/not-in-this-frame".to_string());
+        assert_eq!(
+            compile_observation_frame(input).unwrap_err(),
+            FrameError::UnknownEventSubject("machine-test-01/not-in-this-frame".to_string())
+        );
+    }
+
+    #[test]
+    fn zero_model_time_scale_rejects() {
+        let mut input = fixture();
+        input.model_time.nanoseconds_per_tick = 0;
+        assert_eq!(
+            compile_observation_frame(input).unwrap_err(),
+            FrameError::InvalidModelTime
+        );
+    }
+
+    #[test]
     fn duplicate_entity_ids_reject() {
         let mut input = fixture();
         input.entities[1].scenario_entity_id = input.entities[0].scenario_entity_id.clone();
