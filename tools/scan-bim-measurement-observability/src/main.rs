@@ -585,11 +585,9 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
             || reasons.contains("INVALID_SYSTEMATIC_ERROR_BOUND")
             || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_INVALID")
             || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE")
-            || reasons.contains("CALIBRATION_HOLDOUT_GROUP_OVERLAP")
             || reasons.contains("HOLDOUT_REFERENCE_GROUP_ID_INVALID")
-            || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_INVALID")
             || reasons.contains("HOLDOUT_REFERENCE_GROUP_ID_DUPLICATE")
-            || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE")
+            || reasons.contains("CALIBRATION_HOLDOUT_GROUP_OVERLAP")
             || reasons.contains("HOLDOUT_PARAMETERS_NOT_FROZEN");
         let status = if fail {
             GateStatus::Fail
@@ -914,6 +912,32 @@ mod tests {
         assert!(result
             .reason_codes
             .contains(&"CALIBRATION_HOLDOUT_GROUP_OVERLAP".to_owned()));
+    }
+
+    #[test]
+    fn duplicate_calibration_or_holdout_group_ids_are_rejected() {
+        let mut corpus = fixture();
+        let duplicate_calibration = corpus
+            .cases
+            .iter_mut()
+            .find(|case| case.case_id == "duplicate_calibration_reference_group_fail")
+            .expect("duplicate calibration group fixture");
+        let result = evaluate_case(duplicate_calibration);
+        assert_eq!(result.metrology_gate.status, GateStatus::Fail);
+        assert!(result
+            .reason_codes
+            .contains(&"CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE".to_owned()));
+
+        let duplicate_holdout = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "duplicate_holdout_reference_group_fail")
+            .expect("duplicate holdout group fixture");
+        let result = evaluate_case(duplicate_holdout);
+        assert_eq!(result.metrology_gate.status, GateStatus::Fail);
+        assert!(result
+            .reason_codes
+            .contains(&"HOLDOUT_REFERENCE_GROUP_ID_DUPLICATE".to_owned()));
     }
 
     #[test]
