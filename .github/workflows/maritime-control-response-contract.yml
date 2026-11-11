@@ -65,7 +65,7 @@ jobs:
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.axes | length == 6) and
             ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
-            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.2") and
+            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.3") and
             (.active_evidence_selection.execution_performed == false) and
             (.active_evidence_selection.actuation_authorized == false) and
             (.active_evidence_selection.controlled_perturbations_recommended == 0) and
@@ -80,6 +80,11 @@ jobs:
             (.external_dataset_track.status == "metadata_audited_archive_not_audited") and
             (.external_dataset_track.dataset.doi == "10.5281/zenodo.19857425") and
             (.external_dataset_track.dataset.license == "CC-BY-4.0") and
+            (.external_dataset_track.dataset.doi == "10.5281/zenodo.19857425") and
+            (.external_dataset_track.dataset.aalto_catalogue.catalogue_doi == "10.5281/zenodo.19857424") and
+            (.external_dataset_track.dataset.zenodo_record.file.publisher_reported_md5 == "f4d246c1bb46e05b26e56221acc2606c") and
+            (.external_dataset_track.dataset.zenodo_record.file.sha256 == null) and
+            (.external_dataset_track.dataset.zenodo_record.file.md5_independently_verified == false) and
             (.external_dataset_track.dataset.files.csv_count == 16) and
             (.external_dataset_track.dataset.files.fault_scenario_files == 15) and
             (.external_dataset_track.evaluation_tracks | length == 6) and
@@ -88,12 +93,14 @@ jobs:
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
           jq -e '
-            .schema_version == "liu-ice-active-evidence-selection-v0.2" and
+            .schema_version == "liu-ice-active-evidence-selection-v0.3" and
             .status == "protocol_only_not_executed" and
             (.comparators | length == 6) and
             (.candidate_classes.controlled_perturbation.eligible == false) and
-            (.hard_gates | length >= 30) and
+            (.hard_gates | length >= 40) and
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
+            (.method.likelihood_calibration_review.requirement | contains("independently reviewed")) and
+            (.method.likelihood_calibration_review.qualification | contains("not self-authenticating")) and
             (.research_targets_not_achieved | all(.status == "aspirational"))
           ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
 
@@ -128,9 +135,11 @@ jobs:
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
             .["$id"] == "https://luminousdynamics.io/schemas/marine-external-file-manifest-v1.json" and
-            (.required | length == 9) and
+            (.required | length == 11) and
             (.properties.files.minItems == 16) and
             (.properties.files.maxItems == 16) and
+            (.properties.archive_md5.pattern == "^[a-f0-9]{32}$") and
+            (.properties.archive_size_bytes.minimum == 1) and
             (.properties.files.items["$ref"] == "#/$defs/file") and
             (.["$defs"].file.properties.header_rows.const == 3) and
             (.["$defs"].file.properties.recorded_column_count.enum == [70,73]) and
@@ -148,10 +157,19 @@ jobs:
             (.properties.protocol.properties.external_dataset_track.properties.archive_sha256.oneOf | length == 2) and
             (.properties.protocol.properties.external_dataset_track.properties.cross_engine_or_fleet_claim_allowed.const == false) and
             (.properties.protocol.properties.external_dataset_track.properties.dataset_doi.const == "10.5281/zenodo.19857425") and
+            (.properties.protocol.properties.external_dataset_track.properties.archive_md5_publisher_reported.oneOf | length == 2) and
+            (.properties.protocol.properties.external_dataset_track.properties.archive_size_bytes.type | contains("integer")) and
+            (.properties.protocol.properties.external_dataset_track.properties.archive_md5_independently_verified.type == "boolean") and
             (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
             (.properties.protocol.properties.active_evidence_selection.properties.risk_assessment_catalogue_sha256.oneOf | length == 2) and
             (.properties.protocol.properties.active_evidence_selection.properties.risk_evidence_reviewed_by_authority_owner.type == "boolean") and
+            (.properties.protocol.properties.active_evidence_selection.properties.multi_scenario_assessed.type == "boolean") and
+                        (.properties.protocol.properties.active_evidence_selection.properties.likelihood_calibration_reviewed_by_independent_validator.type == "boolean") and
+            (.properties.protocol.properties.active_evidence_selection.properties.upstream_likelihood_calibration_verification_sha256.oneOf | length == 2) and
+            (.properties.protocol.properties.active_evidence_selection.properties.likelihood_calibration_reviewed_by_independent_validator.type == "boolean") and
+            (.properties.protocol.properties.active_evidence_selection.properties.likelihood_calibration_catalogue_sha256.oneOf | length == 2) and
+            (.properties.protocol.properties.active_evidence_selection.properties.upstream_likelihood_calibration_verification_sha256.oneOf | length == 2) and
             (.properties.protocol.properties.streaming_contract.properties.historical_output_mutation_count.const == 0) and
             (.properties.protocol.properties.streaming_contract.properties.sample_sequence_gap_count.const == 0) and
             (.properties.metrics.properties.false_alarms_per_observed_normal_hour != null) and
