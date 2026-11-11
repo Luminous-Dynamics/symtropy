@@ -14,6 +14,7 @@
     "faulted_observed_ticks",
     "fault_event_count",
     "clean_control_false_positive_ticks",
+    "clean_control_deadline_miss_ticks",
     "faulted_stale_or_corrupt_acceptances",
     "faulted_deadline_miss_ticks",
     "clean_control_decision_latency",
@@ -91,6 +92,10 @@
       "items": {
         "type": "string"
       }
+    },
+    "clean_control_deadline_miss_ticks": {
+      "type": "integer",
+      "minimum": 0
     }
   },
   "$defs": {
@@ -230,6 +235,8 @@
   "x-invariants": [
     "No aggregate composite score is produced.",
     "Per-event detection, containment, recovery, stale/corrupt acceptance, clean-control false-positive, latency and energy axes remain separate.",
-    "valid means only structural/declared trace conformance under this software auditor, not physical fault handling or vehicle safety."
+    "valid means only structural/declared trace conformance under this software auditor, not physical fault handling or vehicle safety.",
+    "The clean control must remain in normal mode, accept clean observations, and have complete latency/energy telemetry for every tick.",
+    "Detection and containment evidence references are event-specific; containment requires an actual degraded, fallback or safe-stop state."
   ]
 }
