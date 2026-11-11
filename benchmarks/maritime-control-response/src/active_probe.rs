@@ -66,6 +66,8 @@ pub struct DiagnosticProbeCandidate {
     pub authorization_receipt_sha256: Option<String>,
     pub likelihood_model_sha256: String,
     pub likelihood_calibration_sha256: String,
+    /// Digest of the independently reviewed risk assessment backing risk_score_ppm.
+    pub risk_assessment_sha256: String,
     pub hypothesis_manifest_sha256: String,
     pub expected_cost_seconds: f64,
     pub expected_delay_seconds: f64,
@@ -268,6 +270,7 @@ pub fn candidate_manifest_sha256(
         &candidate.authorization_receipt_sha256,
         candidate.likelihood_model_sha256.as_str(),
         candidate.likelihood_calibration_sha256.as_str(),
+        candidate.risk_assessment_sha256.as_str(),
         candidate.hypothesis_manifest_sha256.as_str(),
         candidate.expected_cost_seconds,
         candidate.expected_delay_seconds,
@@ -323,6 +326,7 @@ pub fn rank_diagnostic_probes(
         }
         if !is_sha256_hex(&candidate.likelihood_model_sha256)
             || !is_sha256_hex(&candidate.likelihood_calibration_sha256)
+            || !is_sha256_hex(&candidate.risk_assessment_sha256)
             || !is_sha256_hex(&candidate.hypothesis_manifest_sha256)
             || !is_sha256_hex(&candidate.candidate_manifest_sha256)
             || candidate_manifest_sha256(candidate)? != candidate.candidate_manifest_sha256
@@ -843,6 +847,7 @@ mod tests {
             authorization_receipt_sha256: Some(digest('f')),
             likelihood_model_sha256: digest('a'),
             likelihood_calibration_sha256: digest('b'),
+            risk_assessment_sha256: digest('c'),
             hypothesis_manifest_sha256,
             expected_cost_seconds: 30.0,
             expected_delay_seconds: 10.0,
@@ -960,6 +965,26 @@ mod tests {
         assert!(result.ranked_recommendations.is_empty());
         assert_eq!(result.assessments.len(), 2);
         assert!(result.assessments.iter().all(|assessment| !assessment.eligible));
+    }
+
+    #[test]
+    fn missing_or_malformed_risk_assessment_digest_fails_before_ranking() {
+        let mut candidate = candidate(
+            "unreviewed_risk_score",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        candidate.risk_assessment_sha256 = "unreviewed".into();
+        candidate.candidate_manifest_sha256 = candidate_manifest_sha256(&candidate).unwrap();
+        assert!(matches!(
+            rank_diagnostic_probes(
+                &hypotheses(),
+                &[candidate],
+                &ProbeSelectionPolicy::conservative_read_only()
+            ),
+            Err(ProbeError::InvalidCandidateDigest(_))
+        ));
     }
 
     #[test]
