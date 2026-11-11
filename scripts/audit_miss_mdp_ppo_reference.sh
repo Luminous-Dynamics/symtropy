@@ -58,6 +58,12 @@ for path in "${paths[@]}"; do
     and ($r.ppo_hparams.target_kl | type == "number" and isfinite and . > 0)
     and ($r.ppo_hparams.a_opt | type == "object" and has("epochs") and has("lr") and has("batch_size"))
     and ($r.ppo_hparams.c_opt | type == "object" and has("epochs") and has("lr") and has("batch_size"))
+    and ($r.ppo_hparams.a_opt.epochs | type == "number" and isfinite and . > 0)
+    and ($r.ppo_hparams.a_opt.lr | type == "number" and isfinite and . > 0)
+    and ($r.ppo_hparams.a_opt.batch_size | type == "number" and . > 0)
+    and ($r.ppo_hparams.c_opt.epochs | type == "number" and isfinite and . > 0)
+    and ($r.ppo_hparams.c_opt.lr | type == "number" and isfinite and . > 0)
+    and ($r.ppo_hparams.c_opt.batch_size | type == "number" and . > 0)
   ' "$file" >/dev/null || {
     printf 'invalid PPO result manifest: %s\n' "$path" >&2
     exit 1
