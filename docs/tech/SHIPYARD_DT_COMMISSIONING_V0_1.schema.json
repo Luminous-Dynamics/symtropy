@@ -1,0 +1,254 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic shipyard twin commissioning input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "twin_id",
+    "twin_revision",
+    "declared_operational_purpose",
+    "configuration_sha256",
+    "now_tick",
+    "requested_capabilities",
+    "permitted_capabilities",
+    "required_streams",
+    "observations"
+  ],
+  "properties": {
+    "twin_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "twin_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "declared_operational_purpose": {
+      "type": "string",
+      "minLength": 1
+    },
+    "configuration_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "now_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "requested_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "permitted_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "required_streams": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/requirement"
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/observation"
+      }
+    }
+  },
+  "$defs": {
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream_id",
+        "owner_twin_id",
+        "schema_id",
+        "schema_version",
+        "clock_id",
+        "expected_interval_ticks",
+        "maximum_jitter_ticks",
+        "maximum_latency_ticks",
+        "maximum_age_ticks",
+        "maximum_clock_offset_ticks",
+        "maximum_clock_drift_ppm",
+        "maximum_fidelity_residual_units",
+        "minimum_coverage_permille"
+      ],
+      "properties": {
+        "stream_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_twin_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_interval_ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_jitter_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_latency_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_age_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_clock_offset_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_clock_drift_ppm": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_fidelity_residual_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stream_id",
+        "owner_twin_id",
+        "schema_id",
+        "schema_version",
+        "clock_id",
+        "evidence_class",
+        "source_timestamps_ticks",
+        "ingestion_timestamps_ticks",
+        "measured_clock_offset_ticks",
+        "measured_clock_drift_ppm",
+        "calibration_id",
+        "calibration_revision",
+        "calibration_sha256",
+        "calibration_expires_at_tick",
+        "source_sha256",
+        "transformation_receipt_sha256",
+        "fidelity_residual_units",
+        "coverage_permille"
+      ],
+      "properties": {
+        "stream_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_twin_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic",
+            "simulated",
+            "measured",
+            "inspected",
+            "accepted"
+          ]
+        },
+        "source_timestamps_ticks": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "ingestion_timestamps_ticks": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "measured_clock_offset_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "measured_clock_drift_ppm": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "calibration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "calibration_expires_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "transformation_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "fidelity_residual_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    }
+  }
+}
