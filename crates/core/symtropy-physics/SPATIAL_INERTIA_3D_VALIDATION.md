@@ -113,6 +113,26 @@ The module currently covers:
 9. Shift-then-inverse-shift restores the original point identity, COM offset and central inertia.
 10. Uniform mass scaling by `1e-12` and `1e12` scales the 6×6 matrix, spatial momentum and kinetic energy linearly without changing geometry.
 
+## Criterion reference-cost measurements
+
+The existing `physics_bench` target now includes seven spatial-inertia reference operations:
+
+- build the 6×6 mass matrix;
+- apply a cached 6×6 matrix to a twist;
+- checked twist-to-spatial-momentum API (including matrix construction);
+- checked kinetic-energy evaluation;
+- reference-point shift;
+- frame re-expression;
+- composition at a common reference.
+
+Run:
+
+```bash
+cargo bench -p symtropy-physics --bench physics_bench -- spatial_inertia_3d
+```
+
+These microbenchmarks do not claim production throughput or an advantage over Drake/Pinocchio. Record exact source SHA, Rust toolchain, target triple, CPU model, OS, compiler flags, allocator, precision, Criterion warmup/sample settings and host power profile. Publish confidence intervals and raw Criterion output. The cached matrix multiply and checked API call are intentionally separate so validation/build cost is not confused with the 6×6 arithmetic.
+
 ## Promotion gates
 
 Before integrating this into production body state:
