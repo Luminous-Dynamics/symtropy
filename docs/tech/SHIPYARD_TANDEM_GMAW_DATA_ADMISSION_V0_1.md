@@ -73,3 +73,16 @@ The 31-control contract corpus includes one positive metadata-only baseline and 
 ## Claim ceiling
 
 PASS means only that the publicly described record, its 5×6 topology, artifact-role contract and rights/missingness/split boundaries are faithfully represented. It is not a parse of the raw binary files, a physical experiment result, a weld-process qualification, a weld-quality/NDT finding, thermal or residual-stress validation, causal process comparison, released-state distortion measurement or permission to use the raw data.
+
+
+## Companion article: newly resolved measurement contract
+
+The companion Data in Brief article is open access under CC BY 4.0: Fabry et al., DOI https://doi.org/10.1016/j.dib.2026.113329, PMCID PMC13718683. This licence applies to the published article text and metadata; it does **not** resolve the separate Zenodo raw-file licence field. The raw archive remains RIGHTS_PENDING.
+
+The article documents all recorded time-series files with UTC timestamps on a common TwinCAT 3 Runtime / EtherCAT master clock. Distributed clocks are enabled; the paper reports less-than-10-µs drift for collected Beckhoff analog-to-digital signals. The sample intervals nevertheless differ: robot file minimum 1 ms (TCP coordinates 8 ms), process current/voltage 0.1 ms, power-source OPC-UA data 100 ms, control-system power/gas/thermocouple variables 1 ms, video triggers 40 Hz, and surface scan profiles 50 Hz. Do not apply the analog terminal drift figure to all channel transfer paths or resample raw observations to a fictitious common cadence.
+
+The scan map is seven files per WID: L1 scan_pre through L6 scan_pre, plus L6 scan_post. For layer n=1..5, the after-state is the scan_pre of layer n+1; for layer 6, it is L6 scan_post. The paper reports 47,188 line profiles and 2,048 points per profile, in millimetres in the welding reference frame, with robot position recorded alongside profiles. This yields 30 explicit before/after transitions across five WIDs. Video has 51,783 frames at 40 Hz; no intrinsic/extrinsic camera calibration is supplied.
+
+t8/5 semantics are defined: cooling time from 800 °C to 500 °C manually extracted from Type-K thermocouple data placed in the weld pool where successful. The paper explicitly reports missing values for WID630 L6, WID631 L5/L6, and WID632 L2/L6. This manifest preserves those missing records and does not ingest raw values or infer missing values from process variables.
+
+The paper identifies WID617 as a repeat of an earlier published experiment sequence with modern T-GMAW equipment. It identifies WID631 and WID632 as a matched-parameter PMC+PMC versus PMC+CMT contrast. The latter is one workpiece per mode; useful for exploratory paired comparison, not causal replication. L1 is a single-wire PMC root pass and is excluded from tandem-only analyses.
