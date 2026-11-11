@@ -141,6 +141,42 @@ mod tests {
     }
 
     #[test]
+    fn checked_in_za_source_profile_is_valid_draft_not_policy_eligible() {
+        let profile: JurisdictionProfile =
+            serde_json::from_str(include_str!("../fixtures/za-profile-draft-v0-1.json")).unwrap();
+        let report = audit_profile(&profile);
+        assert_eq!(report.disposition, "valid_draft");
+        assert!(!report.policy_eligible);
+        assert_eq!(report.traffic_side, jurisdictional_driving_transfer::TrafficSide::Left);
+        assert_eq!(report.legal_reviewed_source_count, 0);
+    }
+
+    #[test]
+    fn checked_in_left_right_metamorphic_pair_is_valid() {
+        let fixture: ConventionMetamorphicFixture =
+            serde_json::from_str(include_str!("../fixtures/za-us-metamorphic-lht-rht-v0-1.json")).unwrap();
+        let report = audit_metamorphic_fixture(&fixture);
+        assert_eq!(report.disposition, "valid");
+        assert!(report.same_task_intent);
+        assert!(report.traffic_side_changed);
+        assert!(report.geometry_mirrored);
+    }
+
+    #[test]
+    fn both_versioned_schemas_are_parseable_and_close_to_the_fixture_types() {
+        let profile_schema: Value =
+            serde_json::from_str(include_str!("../schemas/jurisdiction-profile-v1.schema.json")).unwrap();
+        let pair_schema: Value =
+            serde_json::from_str(include_str!("../schemas/convention-metamorphic-fixture-v1.schema.json")).unwrap();
+        assert_eq!(profile_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+        assert_eq!(pair_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+        assert!(profile_schema["required"].as_array().unwrap().contains(&json!("traffic_side")));
+        assert!(profile_schema["required"].as_array().unwrap().contains(&json!("steering_wheel_side")));
+        assert!(pair_schema["required"].as_array().unwrap().contains(&json!("base_geometry")));
+        assert!(pair_schema["required"].as_array().unwrap().contains(&json!("alternate_geometry")));
+    }
+
+    #[test]
     fn profile_cli_rejects_unknown_fields() {
         let mut value = za_profile_json();
         value["untracked_rule_override"] = serde_json::json!("trust-me");
