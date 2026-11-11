@@ -580,6 +580,18 @@ mod rotational_inertia_tests {
         result
     }
 
+    fn world_angular_momentum(body: &RigidBody<3>) -> SVector<f64, 3> {
+        let rotation = body.transform.rotation.to_matrix();
+        let omega_world = axial_vector(&body.angular_velocity);
+        let omega_local = rotation.transpose() * omega_world;
+        let principal_moments = SVector::<f64, 3>::new(
+            body.inertia[0],
+            body.inertia[1],
+            body.inertia[2],
+        );
+        rotation * principal_moments.component_mul(&omega_local)
+    }
+
     fn assert_bivector_close(actual: &Bivector<3>, expected: &Bivector<3>, tol: f64) {
         for i in 0..3 {
             for j in (i + 1)..3 {
@@ -823,6 +835,39 @@ mod rotational_inertia_tests {
             Bivector::zero()
         );
         assert_eq!(body.rotational_kinetic_energy(), 0.0);
+    }
+
+    #[test]
+    fn torque_free_asymmetric_top_conserves_world_angular_momentum_with_timestep_refinement() {
+        fn run(dt: f64, steps: usize) -> f64 {
+            let mut body = anisotropic_body();
+            body.angular_velocity.set(1, 2, 0.8);
+            body.angular_velocity.set(0, 2, -0.6);
+            body.angular_velocity.set(0, 1, 0.35);
+            let initial_momentum = world_angular_momentum(&body);
+
+            for _ in 0..steps {
+                crate::integrator::integrate(
+                    &mut body,
+                    &SVector::<f64, 3>::zeros(),
+                    dt,
+                );
+            }
+
+            (world_angular_momentum(&body) - initial_momentum).norm()
+                / initial_momentum.norm()
+        }
+
+        let coarse_error = run(0.001, 1_000);
+        let fine_error = run(0.0005, 2_000);
+        assert!(
+            fine_error < coarse_error,
+            "world angular momentum error should decrease under timestep refinement: coarse={coarse_error}, fine={fine_error}"
+        );
+        assert!(
+            fine_error < 5.0e-3,
+            "torque-free angular momentum drift={fine_error}"
+        );
     }
 
     #[test]
