@@ -41,7 +41,35 @@
       "dataset_index",
       "variable_dictionary",
       "normalization_script"
-    ]
+    ],
+    "zenodo_record": {
+      "canonical_record_url": "https://zenodo.org/records/19857425",
+      "canonical_doi": "10.5281/zenodo.19857425",
+      "version": "v1",
+      "displayed_published_date": "2026-04-28",
+      "issued_date": "2026-07-27",
+      "file": {
+        "name": "Marine_Engine_Fault_Data_v1.zip",
+        "publisher_reported_size_bytes": 26538633,
+        "publisher_reported_md5": "f4d246c1bb46e05b26e56221acc2606c",
+        "sha256": null,
+        "download_status": "not_downloaded_or_verified",
+        "md5_independently_verified": false
+      }
+    },
+    "aalto_catalogue": {
+      "record_url": "https://research.aalto.fi/en/datasets/marine-engine-fault-experimental-dataset/",
+      "catalogue_doi": "10.5281/zenodo.19857424",
+      "displayed_available_date": "2026-07-27",
+      "note": "Aalto's research portal cites 10.5281/zenodo.19857424, while the Zenodo landing record opened for this audit identifies 10.5281/zenodo.19857425. Keep both identifiers visible until their resolver/version relationship is confirmed; use the opened Zenodo record as the current file/source locator."
+    },
+    "publication": {
+      "arxiv_id": "2607.19444",
+      "doi": "10.48550/arXiv.2607.19444",
+      "title": "Marine Engine Fault Dataset: Open-Access Data under Controlled Reference and Fault Scenario Conditions",
+      "posted_date": "2026-07-21",
+      "evidence_review_status": "abstract reviewed; full manuscript and raw dataset archive not independently audited"
+    }
   },
   "fault_scenarios": [
     {
@@ -220,5 +248,11 @@
       "status": "aspirational"
     }
   ],
-  "claim_ceiling": "Zenodo metadata describes a useful second dataset track. Archive bytes, variable dictionary, physical run identities, per-file missingness, splits and model results have not yet been audited; no model accuracy or cross-engine/fleet claim is made."
+  "claim_ceiling": "Zenodo metadata describes a useful second dataset track. Archive bytes, variable dictionary, physical run identities, per-file missingness, splits and model results have not yet been audited; no model accuracy or cross-engine/fleet claim is made.",
+  "source_interpretation": {
+    "reported_intervention_label": "The five class names describe the experimental anomaly scenarios reported by the dataset creators.",
+    "causal_limit": "A scenario label is not by itself proof that the intervention reproduces the full causal physics, degradation progression or failure envelope of an in-service fault.",
+    "audit_requirement": "Review the archive README, intervention procedures, channel dictionary and manuscript before interpreting a scenario label as a physical root cause or using it to claim field representativeness.",
+    "secondary_review_note": "A secondary review of the data descriptor flags potential proxy interventions and qualitative technical validation. Treat this as an audit lead, not an authoritative correction to the dataset creators' metadata."
+  }
 }
