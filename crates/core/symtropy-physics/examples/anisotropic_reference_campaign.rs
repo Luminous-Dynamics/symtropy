@@ -380,7 +380,7 @@ fn scale_safe_mass_properties_campaign() -> usize {
     failures += report(
         "point_cloud_underflow_rejected",
         "nonzero_mass_moment_underflows_f64",
-        f64::from(!rejected),
+        if rejected { 0.0 } else { 1.0 },
         0.0,
         0.0,
     );
