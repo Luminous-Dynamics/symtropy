@@ -159,7 +159,14 @@
     "active evidence selection binds exact hypothesis prior, label space, likelihood model/calibration, candidate catalogue and policy digests",
     "all value-of-information baselines share the same candidate catalogue and hard eligibility set",
     "authority digest shape is not signer verification; issuer identity, authority scope, expiry and revocation are verified upstream",
-    "active selector cannot execute observations or inspections and cannot recommend controlled perturbations"
+    "active selector cannot execute observations or inspections and cannot recommend controlled perturbations",
+    "streaming inference accepts one new sample per call and emits exactly one current five-slot output",
+    "the stream rejects sample-index gaps and non-monotonic timestamps before model invocation",
+    "invalid model outputs and uncertain model-side failures poison the stateful session",
+    "previous output values cannot be revised through the streaming API",
+    "per-sample receipts bind frozen model identity, input/output digests and previous receipt",
+    "Python/MATLAB adapter parity and no-retroactive-update checks are separate from Rust-core tests",
+    "active evidence eligibility is based on worst-case EIG across the complete frozen scenario set, not only a weighted average"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -215,6 +222,26 @@
     {
       "id": "event_detection_latency",
       "target": "P95 event confirmation latency at or below 5 seconds on supported held-out episodes, or at least 20% lower than the best matched baseline at a non-increased false-alarm rate.",
+      "status": "aspirational"
+    },
+    {
+      "id": "streaming_cardinality_and_no_rewrite",
+      "target": "Zero missing/duplicate outputs, zero index gaps, and zero historical output mutations across all benchmark replay samples.",
+      "status": "aspirational"
+    },
+    {
+      "id": "streaming_latency",
+      "target": "P95 per-sample inference plus receipt latency below 10 ms on declared reference hardware at 20 Hz, with bounded memory and no queue growth.",
+      "status": "aspirational"
+    },
+    {
+      "id": "robust_value_of_information",
+      "target": "Selected evidence has positive worst-case expected information gain across every frozen calibrated likelihood scenario and reduces realized cost-to-identification versus cheapest-only and seeded-random matched baselines.",
+      "status": "aspirational"
+    },
+    {
+      "id": "cross_language_parity",
+      "target": "Exact golden-vector parity between Rust core and compliant Python or MATLAB adapter.",
       "status": "aspirational"
     }
   ],
@@ -306,21 +333,42 @@
   },
   "active_evidence_selection": {
     "path": "active-evidence-selection-v0.1.json",
-    "schema_version": "liu-ice-active-evidence-selection-v0.1",
+    "schema_version": "liu-ice-active-evidence-selection-v0.2",
     "status": "protocol_only_not_executed",
-    "selector": "read_only_value_of_information",
-    "utility": "expected_information_gain_nats / (1 + normalized_cost + normalized_delay + normalized_risk)",
+    "selector": "read_only_value_of_information_with_likelihood_scenario_robustness",
+    "utility": "minimum scenario-specific expected information gain / (1 + normalized cost + normalized delay + normalized risk)",
     "comparators": [
       "no_additional_evidence",
       "cheapest_eligible",
       "maximum_eig_only",
       "eig_per_cost",
       "seeded_random_eligible",
-      "risk_adjusted_eig"
+      "risk_adjusted_worst_case_eig"
     ],
+    "eligibility": "Hard authority and safety eligibility first; require worst-case EIG above the frozen policy floor.",
+    "epistemic_rule": "Point-estimate candidates are not robust-qualified; multiple calibrated likelihood scenarios use identical hypothesis and outcome spaces, positive weights summing to one, and worst-case EIG.",
     "execution_performed": false,
     "actuation_authorized": false,
     "controlled_perturbations_recommended": 0,
-    "claim_ceiling": "synthetic likelihood contracts only; no sensor, inspection, controlled test or actuator operation is executed"
+    "claim_ceiling": "caller-supplied calibrated scenario tables and synthetic mathematical contracts only; no field acquisition or active intervention"
+  },
+  "streaming_contract": {
+    "path": "streaming-contract-v0.1.json",
+    "schema_version": "liu-ice-streaming-contract-v0.1",
+    "status": "protocol_only_not_executed",
+    "rust_module": "src/streaming_contract.rs",
+    "one_sample_one_output": true,
+    "historical_output_mutation": false,
+    "contiguous_sample_index": true,
+    "monotonic_timestamp": true,
+    "model_error_poisoning": true,
+    "receipt_chain": true,
+    "official_adapter_languages": [
+      "Python",
+      "MATLAB"
+    ],
+    "rust_core_direct_submission_compatible": false,
+    "adapter_status": "not_implemented",
+    "claim_ceiling": "append-only Rust source contract and synthetic tests only"
   }
 }
