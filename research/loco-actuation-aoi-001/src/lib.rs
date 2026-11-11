@@ -324,6 +324,45 @@ impl AoiHoldSegment {
     }
 }
 
+
+/// A held-command AoI segment with bounded starting age.
+///
+/// Both age envelopes increase at one nanosecond per elapsed nanosecond.
+/// The interval width is preserved for the whole segment.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AoiHoldSegmentBounds {
+    pub minimum_age_at_start_ns: u64,
+    pub maximum_age_at_start_ns: u64,
+    pub duration_ns: u64,
+}
+
+impl AoiHoldSegmentBounds {
+    pub fn new(
+        minimum_age_at_start_ns: u64,
+        maximum_age_at_start_ns: u64,
+        duration_ns: u64,
+    ) -> Result<Self, AoiError> {
+        if minimum_age_at_start_ns > maximum_age_at_start_ns {
+            return Err(AoiError::InvalidTimeInterval);
+        }
+        AoiHoldSegment::new(minimum_age_at_start_ns, duration_ns)?;
+        AoiHoldSegment::new(maximum_age_at_start_ns, duration_ns)?;
+        Ok(Self {
+            minimum_age_at_start_ns,
+            maximum_age_at_start_ns,
+            duration_ns,
+        })
+    }
+
+    fn lower_segment(self) -> Result<AoiHoldSegment, AoiError> {
+        AoiHoldSegment::new(self.minimum_age_at_start_ns, self.duration_ns)
+    }
+
+    fn upper_segment(self) -> Result<AoiHoldSegment, AoiError> {
+        AoiHoldSegment::new(self.maximum_age_at_start_ns, self.duration_ns)
+    }
+}
+
 /// Continuous-time summary of an AoI trace, weighted by elapsed time.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct TimeWeightedAoiSummary {
@@ -390,6 +429,44 @@ pub fn summarize_time_weighted_aoi(
         p95_ns,
         p99_ns,
         maximum_ns,
+    })
+}
+
+
+/// Continuous-time AoI summary bounds propagated from timestamp uncertainty.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct TimeWeightedAoiBoundsSummary {
+    pub lower_bound: TimeWeightedAoiSummary,
+    pub upper_bound: TimeWeightedAoiSummary,
+}
+
+/// Summarizes time-weighted AoI while preserving lower/upper age envelopes.
+///
+/// This is monotone interval propagation: each bounded segment is summarized
+/// once at its minimum possible age and once at its maximum possible age.
+/// The result bounds mean and duration-weighted quantiles without collapsing
+/// timestamp uncertainty to a point estimate.
+pub fn summarize_time_weighted_aoi_bounds(
+    segments: &[AoiHoldSegmentBounds],
+) -> Result<TimeWeightedAoiBoundsSummary, AoiError> {
+    if segments.is_empty() {
+        return Err(AoiError::InvalidZeroDuration);
+    }
+
+    let mut lower_segments = Vec::with_capacity(segments.len());
+    let mut upper_segments = Vec::with_capacity(segments.len());
+
+    for segment in segments.iter().copied() {
+        if segment.minimum_age_at_start_ns > segment.maximum_age_at_start_ns {
+            return Err(AoiError::InvalidTimeInterval);
+        }
+        lower_segments.push(segment.lower_segment()?);
+        upper_segments.push(segment.upper_segment()?);
+    }
+
+    Ok(TimeWeightedAoiBoundsSummary {
+        lower_bound: summarize_time_weighted_aoi(&lower_segments)?,
+        upper_bound: summarize_time_weighted_aoi(&upper_segments)?,
     })
 }
 
@@ -732,6 +809,38 @@ mod tests {
         assert_eq!(bounds[0].maximum_age_ns, 60);
         assert_eq!(bounds[1].minimum_age_ns, 30);
         assert_eq!(bounds[1].maximum_age_ns, 50);
+    }
+
+
+    #[test]
+    fn time_weighted_summary_preserves_age_uncertainty_bounds() {
+        let segment = AoiHoldSegmentBounds::new(
+            50_000_000,
+            55_000_000,
+            20_000_000,
+        )
+        .unwrap();
+        let summary = summarize_time_weighted_aoi_bounds(&[segment]).unwrap();
+
+        assert_eq!(summary.lower_bound.p95_ns, 69_000_000);
+        assert_eq!(summary.lower_bound.p99_ns, 69_800_000);
+        assert!((summary.lower_bound.mean_aoi_ns() - 60_000_000.0).abs() < 0.5);
+
+        assert_eq!(summary.upper_bound.p95_ns, 74_000_000);
+        assert_eq!(summary.upper_bound.p99_ns, 74_800_000);
+        assert!((summary.upper_bound.mean_aoi_ns() - 65_000_000.0).abs() < 0.5);
+    }
+
+    #[test]
+    fn bounded_hold_segments_reject_invalid_intervals_and_overflow() {
+        assert_eq!(
+            AoiHoldSegmentBounds::new(20, 10, 5),
+            Err(AoiError::InvalidTimeInterval)
+        );
+        assert_eq!(
+            AoiHoldSegmentBounds::new(u64::MAX - 1, u64::MAX, 2),
+            Err(AoiError::ArithmeticOverflow)
+        );
     }
 
     #[test]
