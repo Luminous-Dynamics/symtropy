@@ -176,17 +176,11 @@
           "type": "boolean"
         },
         "decision_latency_us": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": "integer",
           "minimum": 0
         },
         "inference_energy_uj": {
-          "type": [
-            "integer",
-            "null"
-          ],
+          "type": "integer",
           "minimum": 0
         },
         "fault_detection_event_ids": {
@@ -282,6 +276,9 @@
     "Return to normal_mode requires the configured number of consecutive healthy observations after fault clearance.",
     "A valid digest proves only syntactic consistency, not the authenticity or truth of source data.",
     "Fault detection and containment references identify exact fault event IDs; a generic system-level flag cannot satisfy multiple unrelated events.",
-    "fault_schedule_visible_to_policy must be false; this is a declared control and does not authenticate the policy's actual observations."
+    "fault_schedule_visible_to_policy must be false; this is a declared control and does not authenticate the policy's actual observations.",
+    "Every expected tick has measured decision latency and inference energy; null/missing telemetry is rejected by the auditor and cannot count toward recovery.",
+    "Clean-control ticks must be clean, accepted, and remain in normal mode with no degraded, fallback or safe-stop state.",
+    "Each non-clean fault condition in the faulted trace must be covered by a declared active fault event."
   ]
 }
