@@ -235,7 +235,10 @@
         "stale_or_corrupt_acceptances",
         "missed_detection_deadline",
         "missed_containment_deadline",
-        "recovery_observed"
+        "recovery_observed",
+        "causality",
+        "causal_group_id",
+        "parent_event_id"
       ],
       "properties": {
         "event_id": {
@@ -309,6 +312,29 @@
         "max_accepted_frame_age_us": {
           "type": "integer",
           "minimum": 0
+        },
+        "causality": {
+          "enum": [
+            "independent",
+            "common_cause",
+            "cascaded"
+          ]
+        },
+        "causal_group_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "parent_event_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 256
         }
       }
     }
