@@ -1,0 +1,1223 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "Synthetic code-behaviour fixture only; no instrument accuracy or fitness is established.",
+  "instrument": {
+    "instrument_id": "tls-lab-unit-001",
+    "manufacturer": "Synthetic Manufacturer",
+    "model": "Synthetic TLS Profile A",
+    "serial_number": "TLS-SYNTH-0001",
+    "firmware_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "sensor_profile_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "configuration_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "calibration_id": "CAL-2026-001",
+    "calibration_certificate_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+  },
+  "method": {
+    "method_id": "OBRIEN_ROBUST_OMNIBUS_IPA_PART_II",
+    "method_revision": "2026-paper-adapt-v0.1",
+    "alpha": 0.01,
+    "minimum_target_count": 20,
+    "minimum_position_count": 4
+  },
+  "units": {
+    "azimuth": "arcsecond",
+    "elevation": "arcsecond",
+    "range": "millimetre"
+  },
+  "baseline": {
+    "timepoint_id": "baseline-after-calibration",
+    "captured_utc": "2026-01-02T10:00:00Z",
+    "source_scan_manifest_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "target_array_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "residual_generation_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "instrument_identity_sha256": "328e61350357a969715ce0d592247a0d5aa2bf2b6a297bfd46ded7457c3b2282",
+    "target_ids": [
+      "T00",
+      "T01",
+      "T02",
+      "T03",
+      "T04",
+      "T05",
+      "T06",
+      "T07",
+      "T08",
+      "T09",
+      "T10",
+      "T11",
+      "T12",
+      "T13",
+      "T14",
+      "T15",
+      "T16",
+      "T17",
+      "T18",
+      "T19"
+    ],
+    "position_ids": [
+      "P00",
+      "P01",
+      "P02",
+      "P03"
+    ],
+    "residuals": [
+      {
+        "target_id": "T00",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.358466343775551,
+        "elevation_arcsec": -0.08811886647528855,
+        "range_mm": -0.16555545247277817
+      },
+      {
+        "target_id": "T00",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.25763498901561527,
+        "elevation_arcsec": -0.17911014632860978,
+        "range_mm": -0.7717346815634429
+      },
+      {
+        "target_id": "T00",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.20613904271269443,
+        "elevation_arcsec": -0.33300316845701744,
+        "range_mm": -0.21215855452005622
+      },
+      {
+        "target_id": "T00",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.5675848825021353,
+        "elevation_arcsec": -0.32903368606952493,
+        "range_mm": -0.7042000035063882
+      },
+      {
+        "target_id": "T01",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.28954673216764754,
+        "elevation_arcsec": -0.20930869776257066,
+        "range_mm": 0.0183970251730462
+      },
+      {
+        "target_id": "T01",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.5675848825021353,
+        "elevation_arcsec": -0.32903368606952493,
+        "range_mm": -0.7042000035063882
+      },
+      {
+        "target_id": "T01",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.299753610765719,
+        "elevation_arcsec": 0.2650111875776088,
+        "range_mm": 0.7716515448249416
+      },
+      {
+        "target_id": "T01",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.39593614261505344,
+        "elevation_arcsec": -0.046543473789689184,
+        "range_mm": -0.0522813044250794
+      },
+      {
+        "target_id": "T02",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.3018846614634534,
+        "elevation_arcsec": -0.12612782506863046,
+        "range_mm": 0.32380726903862955
+      },
+      {
+        "target_id": "T02",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.024759028066267716,
+        "elevation_arcsec": 0.3538606827344508,
+        "range_mm": -0.3897714912379748
+      },
+      {
+        "target_id": "T02",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.49662037147486643,
+        "elevation_arcsec": -0.1761977368889199,
+        "range_mm": -0.3425163016079418
+      },
+      {
+        "target_id": "T02",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.14648574584637314,
+        "elevation_arcsec": 0.3966457532241793,
+        "range_mm": 1.0136633700788897
+      },
+      {
+        "target_id": "T03",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.37847686756871085,
+        "elevation_arcsec": -0.3376068980454767,
+        "range_mm": -0.7992984113247914
+      },
+      {
+        "target_id": "T03",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.11439786422349399,
+        "elevation_arcsec": 0.15823459626932765,
+        "range_mm": -0.5958589564517854
+      },
+      {
+        "target_id": "T03",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.07462839726001176,
+        "elevation_arcsec": 0.0863544275468786,
+        "range_mm": -1.0247178095790102
+      },
+      {
+        "target_id": "T03",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.11434804165920548,
+        "elevation_arcsec": -0.36499194077558855,
+        "range_mm": -0.30319593455960697
+      },
+      {
+        "target_id": "T04",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.4238536370398215,
+        "elevation_arcsec": -0.3830112490014226,
+        "range_mm": 0.8948576431570029
+      },
+      {
+        "target_id": "T04",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.5896773378706267,
+        "elevation_arcsec": -0.13610309529826117,
+        "range_mm": -1.0765501261714154
+      },
+      {
+        "target_id": "T04",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.20129530016067018,
+        "elevation_arcsec": -0.005978905016580639,
+        "range_mm": 0.5803744365078309
+      },
+      {
+        "target_id": "T04",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.32349507981958503,
+        "elevation_arcsec": 0.04656498083222418,
+        "range_mm": 0.2339508658723753
+      },
+      {
+        "target_id": "T05",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.3418134226094283,
+        "elevation_arcsec": -0.24834377241408198,
+        "range_mm": -0.27918560339629583
+      },
+      {
+        "target_id": "T05",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.12677097605800344,
+        "elevation_arcsec": -0.35870773740079015,
+        "range_mm": -1.0098729684301417
+      },
+      {
+        "target_id": "T05",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.4673290302771714,
+        "elevation_arcsec": -0.06428685827009957,
+        "range_mm": 0.5766244525702118
+      },
+      {
+        "target_id": "T05",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.4396117526389021,
+        "elevation_arcsec": 0.2065791975290062,
+        "range_mm": 0.8237844582125918
+      },
+      {
+        "target_id": "T06",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.11610622635251398,
+        "elevation_arcsec": -0.400089984335764,
+        "range_mm": -0.652614675085948
+      },
+      {
+        "target_id": "T06",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.16327100798622932,
+        "elevation_arcsec": 0.2621766851621384,
+        "range_mm": -0.4814855424893558
+      },
+      {
+        "target_id": "T06",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.3289522768385302,
+        "elevation_arcsec": 0.12950848803970477,
+        "range_mm": -0.4988056963703551
+      },
+      {
+        "target_id": "T06",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.4525693754527892,
+        "elevation_arcsec": -0.2593415266020951,
+        "range_mm": -0.789090659239136
+      },
+      {
+        "target_id": "T07",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.1693009208037813,
+        "elevation_arcsec": -0.342846493087666,
+        "range_mm": 1.1065049416491461
+      },
+      {
+        "target_id": "T07",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.4173123365951901,
+        "elevation_arcsec": 0.24878944573839887,
+        "range_mm": -0.3318224845767586
+      },
+      {
+        "target_id": "T07",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.04608908587010784,
+        "elevation_arcsec": -0.1938420388051278,
+        "range_mm": 0.3194279438371123
+      },
+      {
+        "target_id": "T07",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.3814287439243701,
+        "elevation_arcsec": 0.21546658785651004,
+        "range_mm": -0.22613639270790326
+      },
+      {
+        "target_id": "T08",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3868778267618542,
+        "elevation_arcsec": -0.14909417632266977,
+        "range_mm": -0.743628065055771
+      },
+      {
+        "target_id": "T08",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.388150724858422,
+        "elevation_arcsec": -0.12834958533385618,
+        "range_mm": -0.6430008709635321
+      },
+      {
+        "target_id": "T08",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.32005994745363836,
+        "elevation_arcsec": 0.25468202549156854,
+        "range_mm": 0.2693753256035339
+      },
+      {
+        "target_id": "T08",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.2627317804042161,
+        "elevation_arcsec": -0.09871509036695038,
+        "range_mm": 0.3095082141532761
+      },
+      {
+        "target_id": "T09",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.45582442484663604,
+        "elevation_arcsec": -0.24345885240084372,
+        "range_mm": 0.008720462381199657
+      },
+      {
+        "target_id": "T09",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.24890287360696872,
+        "elevation_arcsec": -0.33492627200079705,
+        "range_mm": -0.6013975318849406
+      },
+      {
+        "target_id": "T09",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.4984992088800935,
+        "elevation_arcsec": -0.30045302669526974,
+        "range_mm": -1.0354110359827853
+      },
+      {
+        "target_id": "T09",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.1344906256719647,
+        "elevation_arcsec": -0.15177623373398094,
+        "range_mm": -1.0278014853228092
+      },
+      {
+        "target_id": "T10",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3965595309418593,
+        "elevation_arcsec": -0.10617363319218658,
+        "range_mm": 0.4502938221638513
+      },
+      {
+        "target_id": "T10",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.26149113524905754,
+        "elevation_arcsec": 0.1274476177286256,
+        "range_mm": 0.016235350879893275
+      },
+      {
+        "target_id": "T10",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.11854379465863372,
+        "elevation_arcsec": 0.31336421823600064,
+        "range_mm": -0.017630577041182493
+      },
+      {
+        "target_id": "T10",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.02252923018500584,
+        "elevation_arcsec": 0.3896063073817801,
+        "range_mm": 0.012387359019066646
+      },
+      {
+        "target_id": "T11",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3077822530362803,
+        "elevation_arcsec": 0.10696899055251785,
+        "range_mm": -0.4955637770901844
+      },
+      {
+        "target_id": "T11",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.5254422842695963,
+        "elevation_arcsec": 0.3517572171847435,
+        "range_mm": 0.42150383041098816
+      },
+      {
+        "target_id": "T11",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.0854422555274789,
+        "elevation_arcsec": -0.27630925152435687,
+        "range_mm": 1.0457451067397394
+      },
+      {
+        "target_id": "T11",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.06560390516536632,
+        "elevation_arcsec": -0.3139476156183567,
+        "range_mm": 0.6816415132196734
+      },
+      {
+        "target_id": "T12",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.28463426879802955,
+        "elevation_arcsec": 0.02505028094392338,
+        "range_mm": 0.4568914033132993
+      },
+      {
+        "target_id": "T12",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.1599544391481464,
+        "elevation_arcsec": -0.1308234739784351,
+        "range_mm": 0.22081233018270138
+      },
+      {
+        "target_id": "T12",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.5467839943985063,
+        "elevation_arcsec": 0.18123766724017237,
+        "range_mm": -0.24463040241450398
+      },
+      {
+        "target_id": "T12",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.1374215756017781,
+        "elevation_arcsec": -0.0835335247238813,
+        "range_mm": -0.5041937455408142
+      },
+      {
+        "target_id": "T13",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3421532799073819,
+        "elevation_arcsec": 0.18445787260680657,
+        "range_mm": -0.49963658501877406
+      },
+      {
+        "target_id": "T13",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.28966104425102673,
+        "elevation_arcsec": -0.2877628111279539,
+        "range_mm": 0.10721055019389905
+      },
+      {
+        "target_id": "T13",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.24319557896927543,
+        "elevation_arcsec": -0.035503637218651234,
+        "range_mm": -0.3453715903247554
+      },
+      {
+        "target_id": "T13",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.20531625965798678,
+        "elevation_arcsec": 0.4057913107810806,
+        "range_mm": 0.571865113958042
+      },
+      {
+        "target_id": "T14",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.4038488352504305,
+        "elevation_arcsec": 0.35356778058551797,
+        "range_mm": 0.3471626674853166
+      },
+      {
+        "target_id": "T14",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.4435604755271221,
+        "elevation_arcsec": -0.012491276423485319,
+        "range_mm": 0.58766914547665
+      },
+      {
+        "target_id": "T14",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.18270375144438736,
+        "elevation_arcsec": -0.13673286816522068,
+        "range_mm": 0.4990627099225927
+      },
+      {
+        "target_id": "T14",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.27469744056560547,
+        "elevation_arcsec": -0.33812988078228207,
+        "range_mm": 0.8166560688674314
+      },
+      {
+        "target_id": "T15",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3642679988600179,
+        "elevation_arcsec": 0.2275950083278175,
+        "range_mm": 0.24074949659908712
+      },
+      {
+        "target_id": "T15",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.10369474888246506,
+        "elevation_arcsec": 0.4292010827813557,
+        "range_mm": 1.0485442310259987
+      },
+      {
+        "target_id": "T15",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.46756391233058975,
+        "elevation_arcsec": 0.2992080119119907,
+        "range_mm": -0.5481175867740016
+      },
+      {
+        "target_id": "T15",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.3363630737047273,
+        "elevation_arcsec": 0.025955495211371964,
+        "range_mm": -0.6633707795442322
+      },
+      {
+        "target_id": "T16",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.17655330690286128,
+        "elevation_arcsec": 0.35228952953318005,
+        "range_mm": -0.9308335110951929
+      },
+      {
+        "target_id": "T16",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.418700408019232,
+        "elevation_arcsec": -0.10977268022365416,
+        "range_mm": 0.8503046389345068
+      },
+      {
+        "target_id": "T16",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.29008115083071595,
+        "elevation_arcsec": -0.4132093320548908,
+        "range_mm": -0.6048072621275797
+      },
+      {
+        "target_id": "T16",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.3670807229983714,
+        "elevation_arcsec": 0.19903775496338055,
+        "range_mm": 0.23306056178960954
+      },
+      {
+        "target_id": "T17",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.10369474888246506,
+        "elevation_arcsec": 0.4292010827813557,
+        "range_mm": 1.0485442310259987
+      },
+      {
+        "target_id": "T17",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.3012209139420208,
+        "elevation_arcsec": -0.25238995344626086,
+        "range_mm": 0.47267673377712927
+      },
+      {
+        "target_id": "T17",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.42030745064900527,
+        "elevation_arcsec": 0.44907771586854905,
+        "range_mm": 1.008800274289231
+      },
+      {
+        "target_id": "T17",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.33866486832312814,
+        "elevation_arcsec": -0.25061680552287635,
+        "range_mm": 0.18752205715367642
+      },
+      {
+        "target_id": "T18",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.3531017545635855,
+        "elevation_arcsec": 0.2296040174236703,
+        "range_mm": -0.368752753966454
+      },
+      {
+        "target_id": "T18",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.3260430050589039,
+        "elevation_arcsec": -0.11991695885408699,
+        "range_mm": 0.6399737728866399
+      },
+      {
+        "target_id": "T18",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.28558022623725055,
+        "elevation_arcsec": -0.3956046993670065,
+        "range_mm": 0.3761219660291253
+      },
+      {
+        "target_id": "T18",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.2319459717437652,
+        "elevation_arcsec": 0.22449062490279859,
+        "range_mm": -1.1426240823131717
+      },
+      {
+        "target_id": "T19",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.46756391233058975,
+        "elevation_arcsec": 0.2992080119119907,
+        "range_mm": -0.5481175867740016
+      },
+      {
+        "target_id": "T19",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.42030745064900527,
+        "elevation_arcsec": 0.44907771586854905,
+        "range_mm": 1.008800274289231
+      },
+      {
+        "target_id": "T19",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.2435674407525613,
+        "elevation_arcsec": 0.26398671819743735,
+        "range_mm": -0.7778567397317274
+      },
+      {
+        "target_id": "T19",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.04957712493638273,
+        "elevation_arcsec": -0.10062972058144325,
+        "range_mm": 0.10996523508547318
+      }
+    ]
+  },
+  "testing": {
+    "timepoint_id": "interim-assessment",
+    "captured_utc": "2026-11-01T10:00:00Z",
+    "source_scan_manifest_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "target_array_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+    "residual_generation_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "instrument_identity_sha256": "328e61350357a969715ce0d592247a0d5aa2bf2b6a297bfd46ded7457c3b2282",
+    "target_ids": [
+      "T00",
+      "T01",
+      "T02",
+      "T03",
+      "T04",
+      "T05",
+      "T06",
+      "T07",
+      "T08",
+      "T09",
+      "T10",
+      "T11",
+      "T12",
+      "T13",
+      "T14",
+      "T15",
+      "T16",
+      "T17",
+      "T18",
+      "T19"
+    ],
+    "position_ids": [
+      "P00",
+      "P01",
+      "P02",
+      "P03"
+    ],
+    "residuals": [
+      {
+        "target_id": "T00",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.358466343775551,
+        "elevation_arcsec": -0.08811886647528855,
+        "range_mm": -0.49666635741833454
+      },
+      {
+        "target_id": "T00",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.25763498901561527,
+        "elevation_arcsec": -0.17911014632860978,
+        "range_mm": -2.315204044690329
+      },
+      {
+        "target_id": "T00",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.20613904271269443,
+        "elevation_arcsec": -0.33300316845701744,
+        "range_mm": -0.6364756635601687
+      },
+      {
+        "target_id": "T00",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.5675848825021353,
+        "elevation_arcsec": -0.32903368606952493,
+        "range_mm": -2.1126000105191647
+      },
+      {
+        "target_id": "T01",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.28954673216764754,
+        "elevation_arcsec": -0.20930869776257066,
+        "range_mm": 0.0551910755191386
+      },
+      {
+        "target_id": "T01",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.5675848825021353,
+        "elevation_arcsec": -0.32903368606952493,
+        "range_mm": -2.1126000105191647
+      },
+      {
+        "target_id": "T01",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.299753610765719,
+        "elevation_arcsec": 0.2650111875776088,
+        "range_mm": 2.314954634474825
+      },
+      {
+        "target_id": "T01",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.39593614261505344,
+        "elevation_arcsec": -0.046543473789689184,
+        "range_mm": -0.15684391327523822
+      },
+      {
+        "target_id": "T02",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.3018846614634534,
+        "elevation_arcsec": -0.12612782506863046,
+        "range_mm": 0.9714218071158887
+      },
+      {
+        "target_id": "T02",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.024759028066267716,
+        "elevation_arcsec": 0.3538606827344508,
+        "range_mm": -1.1693144737139243
+      },
+      {
+        "target_id": "T02",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.49662037147486643,
+        "elevation_arcsec": -0.1761977368889199,
+        "range_mm": -1.0275489048238253
+      },
+      {
+        "target_id": "T02",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.14648574584637314,
+        "elevation_arcsec": 0.3966457532241793,
+        "range_mm": 3.0409901102366694
+      },
+      {
+        "target_id": "T03",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.37847686756871085,
+        "elevation_arcsec": -0.3376068980454767,
+        "range_mm": -2.397895233974374
+      },
+      {
+        "target_id": "T03",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.11439786422349399,
+        "elevation_arcsec": 0.15823459626932765,
+        "range_mm": -1.7875768693553562
+      },
+      {
+        "target_id": "T03",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.07462839726001176,
+        "elevation_arcsec": 0.0863544275468786,
+        "range_mm": -3.0741534287370307
+      },
+      {
+        "target_id": "T03",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.11434804165920548,
+        "elevation_arcsec": -0.36499194077558855,
+        "range_mm": -0.909587803678821
+      },
+      {
+        "target_id": "T04",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.4238536370398215,
+        "elevation_arcsec": -0.3830112490014226,
+        "range_mm": 2.684572929471009
+      },
+      {
+        "target_id": "T04",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.5896773378706267,
+        "elevation_arcsec": -0.13610309529826117,
+        "range_mm": -3.229650378514246
+      },
+      {
+        "target_id": "T04",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.20129530016067018,
+        "elevation_arcsec": -0.005978905016580639,
+        "range_mm": 1.7411233095234928
+      },
+      {
+        "target_id": "T04",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.32349507981958503,
+        "elevation_arcsec": 0.04656498083222418,
+        "range_mm": 0.7018525976171259
+      },
+      {
+        "target_id": "T05",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.3418134226094283,
+        "elevation_arcsec": -0.24834377241408198,
+        "range_mm": -0.8375568101888875
+      },
+      {
+        "target_id": "T05",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.12677097605800344,
+        "elevation_arcsec": -0.35870773740079015,
+        "range_mm": -3.029618905290425
+      },
+      {
+        "target_id": "T05",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.4673290302771714,
+        "elevation_arcsec": -0.06428685827009957,
+        "range_mm": 1.7298733577106353
+      },
+      {
+        "target_id": "T05",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.4396117526389021,
+        "elevation_arcsec": 0.2065791975290062,
+        "range_mm": 2.4713533746377756
+      },
+      {
+        "target_id": "T06",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.11610622635251398,
+        "elevation_arcsec": -0.400089984335764,
+        "range_mm": -1.957844025257844
+      },
+      {
+        "target_id": "T06",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.16327100798622932,
+        "elevation_arcsec": 0.2621766851621384,
+        "range_mm": -1.4444566274680675
+      },
+      {
+        "target_id": "T06",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.3289522768385302,
+        "elevation_arcsec": 0.12950848803970477,
+        "range_mm": -1.4964170891110653
+      },
+      {
+        "target_id": "T06",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.4525693754527892,
+        "elevation_arcsec": -0.2593415266020951,
+        "range_mm": -2.367271977717408
+      },
+      {
+        "target_id": "T07",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.1693009208037813,
+        "elevation_arcsec": -0.342846493087666,
+        "range_mm": 3.319514824947438
+      },
+      {
+        "target_id": "T07",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.4173123365951901,
+        "elevation_arcsec": 0.24878944573839887,
+        "range_mm": -0.9954674537302759
+      },
+      {
+        "target_id": "T07",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.04608908587010784,
+        "elevation_arcsec": -0.1938420388051278,
+        "range_mm": 0.9582838315113369
+      },
+      {
+        "target_id": "T07",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.3814287439243701,
+        "elevation_arcsec": 0.21546658785651004,
+        "range_mm": -0.6784091781237098
+      },
+      {
+        "target_id": "T08",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3868778267618542,
+        "elevation_arcsec": -0.14909417632266977,
+        "range_mm": -2.230884195167313
+      },
+      {
+        "target_id": "T08",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.388150724858422,
+        "elevation_arcsec": -0.12834958533385618,
+        "range_mm": -1.9290026128905962
+      },
+      {
+        "target_id": "T08",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.32005994745363836,
+        "elevation_arcsec": 0.25468202549156854,
+        "range_mm": 0.8081259768106017
+      },
+      {
+        "target_id": "T08",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.2627317804042161,
+        "elevation_arcsec": -0.09871509036695038,
+        "range_mm": 0.9285246424598284
+      },
+      {
+        "target_id": "T09",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.45582442484663604,
+        "elevation_arcsec": -0.24345885240084372,
+        "range_mm": 0.02616138714359897
+      },
+      {
+        "target_id": "T09",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.24890287360696872,
+        "elevation_arcsec": -0.33492627200079705,
+        "range_mm": -1.804192595654822
+      },
+      {
+        "target_id": "T09",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.4984992088800935,
+        "elevation_arcsec": -0.30045302669526974,
+        "range_mm": -3.1062331079483556
+      },
+      {
+        "target_id": "T09",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.1344906256719647,
+        "elevation_arcsec": -0.15177623373398094,
+        "range_mm": -3.0834044559684277
+      },
+      {
+        "target_id": "T10",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3965595309418593,
+        "elevation_arcsec": -0.10617363319218658,
+        "range_mm": 1.3508814664915538
+      },
+      {
+        "target_id": "T10",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.26149113524905754,
+        "elevation_arcsec": 0.1274476177286256,
+        "range_mm": 0.04870605263967982
+      },
+      {
+        "target_id": "T10",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.11854379465863372,
+        "elevation_arcsec": 0.31336421823600064,
+        "range_mm": -0.052891731123547475
+      },
+      {
+        "target_id": "T10",
+        "position_id": "P03",
+        "azimuth_arcsec": 0.02252923018500584,
+        "elevation_arcsec": 0.3896063073817801,
+        "range_mm": 0.03716207705719994
+      },
+      {
+        "target_id": "T11",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3077822530362803,
+        "elevation_arcsec": 0.10696899055251785,
+        "range_mm": -1.4866913312705532
+      },
+      {
+        "target_id": "T11",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.5254422842695963,
+        "elevation_arcsec": 0.3517572171847435,
+        "range_mm": 1.2645114912329645
+      },
+      {
+        "target_id": "T11",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.0854422555274789,
+        "elevation_arcsec": -0.27630925152435687,
+        "range_mm": 3.1372353202192182
+      },
+      {
+        "target_id": "T11",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.06560390516536632,
+        "elevation_arcsec": -0.3139476156183567,
+        "range_mm": 2.04492453965902
+      },
+      {
+        "target_id": "T12",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.28463426879802955,
+        "elevation_arcsec": 0.02505028094392338,
+        "range_mm": 1.3706742099398979
+      },
+      {
+        "target_id": "T12",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.1599544391481464,
+        "elevation_arcsec": -0.1308234739784351,
+        "range_mm": 0.6624369905481041
+      },
+      {
+        "target_id": "T12",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.5467839943985063,
+        "elevation_arcsec": 0.18123766724017237,
+        "range_mm": -0.733891207243512
+      },
+      {
+        "target_id": "T12",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.1374215756017781,
+        "elevation_arcsec": -0.0835335247238813,
+        "range_mm": -1.5125812366224425
+      },
+      {
+        "target_id": "T13",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3421532799073819,
+        "elevation_arcsec": 0.18445787260680657,
+        "range_mm": -1.4989097550563222
+      },
+      {
+        "target_id": "T13",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.28966104425102673,
+        "elevation_arcsec": -0.2877628111279539,
+        "range_mm": 0.3216316505816972
+      },
+      {
+        "target_id": "T13",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.24319557896927543,
+        "elevation_arcsec": -0.035503637218651234,
+        "range_mm": -1.0361147709742662
+      },
+      {
+        "target_id": "T13",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.20531625965798678,
+        "elevation_arcsec": 0.4057913107810806,
+        "range_mm": 1.7155953418741259
+      },
+      {
+        "target_id": "T14",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.4038488352504305,
+        "elevation_arcsec": 0.35356778058551797,
+        "range_mm": 1.0414880024559499
+      },
+      {
+        "target_id": "T14",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.4435604755271221,
+        "elevation_arcsec": -0.012491276423485319,
+        "range_mm": 1.76300743642995
+      },
+      {
+        "target_id": "T14",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.18270375144438736,
+        "elevation_arcsec": -0.13673286816522068,
+        "range_mm": 1.4971881297677783
+      },
+      {
+        "target_id": "T14",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.27469744056560547,
+        "elevation_arcsec": -0.33812988078228207,
+        "range_mm": 2.449968206602294
+      },
+      {
+        "target_id": "T15",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.3642679988600179,
+        "elevation_arcsec": 0.2275950083278175,
+        "range_mm": 0.7222484897972614
+      },
+      {
+        "target_id": "T15",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.10369474888246506,
+        "elevation_arcsec": 0.4292010827813557,
+        "range_mm": 3.145632693077996
+      },
+      {
+        "target_id": "T15",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.46756391233058975,
+        "elevation_arcsec": 0.2992080119119907,
+        "range_mm": -1.6443527603220047
+      },
+      {
+        "target_id": "T15",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.3363630737047273,
+        "elevation_arcsec": 0.025955495211371964,
+        "range_mm": -1.9901123386326964
+      },
+      {
+        "target_id": "T16",
+        "position_id": "P00",
+        "azimuth_arcsec": 0.17655330690286128,
+        "elevation_arcsec": 0.35228952953318005,
+        "range_mm": -2.792500533285579
+      },
+      {
+        "target_id": "T16",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.418700408019232,
+        "elevation_arcsec": -0.10977268022365416,
+        "range_mm": 2.5509139168035206
+      },
+      {
+        "target_id": "T16",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.29008115083071595,
+        "elevation_arcsec": -0.4132093320548908,
+        "range_mm": -1.8144217863827392
+      },
+      {
+        "target_id": "T16",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.3670807229983714,
+        "elevation_arcsec": 0.19903775496338055,
+        "range_mm": 0.6991816853688286
+      },
+      {
+        "target_id": "T17",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.10369474888246506,
+        "elevation_arcsec": 0.4292010827813557,
+        "range_mm": 3.145632693077996
+      },
+      {
+        "target_id": "T17",
+        "position_id": "P01",
+        "azimuth_arcsec": 0.3012209139420208,
+        "elevation_arcsec": -0.25238995344626086,
+        "range_mm": 1.418030201331388
+      },
+      {
+        "target_id": "T17",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.42030745064900527,
+        "elevation_arcsec": 0.44907771586854905,
+        "range_mm": 3.026400822867693
+      },
+      {
+        "target_id": "T17",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.33866486832312814,
+        "elevation_arcsec": -0.25061680552287635,
+        "range_mm": 0.5625661714610293
+      },
+      {
+        "target_id": "T18",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.3531017545635855,
+        "elevation_arcsec": 0.2296040174236703,
+        "range_mm": -1.1062582618993622
+      },
+      {
+        "target_id": "T18",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.3260430050589039,
+        "elevation_arcsec": -0.11991695885408699,
+        "range_mm": 1.9199213186599198
+      },
+      {
+        "target_id": "T18",
+        "position_id": "P02",
+        "azimuth_arcsec": -0.28558022623725055,
+        "elevation_arcsec": -0.3956046993670065,
+        "range_mm": 1.1283658980873759
+      },
+      {
+        "target_id": "T18",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.2319459717437652,
+        "elevation_arcsec": 0.22449062490279859,
+        "range_mm": -3.427872246939515
+      },
+      {
+        "target_id": "T19",
+        "position_id": "P00",
+        "azimuth_arcsec": -0.46756391233058975,
+        "elevation_arcsec": 0.2992080119119907,
+        "range_mm": -1.6443527603220047
+      },
+      {
+        "target_id": "T19",
+        "position_id": "P01",
+        "azimuth_arcsec": -0.42030745064900527,
+        "elevation_arcsec": 0.44907771586854905,
+        "range_mm": 3.026400822867693
+      },
+      {
+        "target_id": "T19",
+        "position_id": "P02",
+        "azimuth_arcsec": 0.2435674407525613,
+        "elevation_arcsec": 0.26398671819743735,
+        "range_mm": -2.3335702191951824
+      },
+      {
+        "target_id": "T19",
+        "position_id": "P03",
+        "azimuth_arcsec": -0.04957712493638273,
+        "elevation_arcsec": -0.10062972058144325,
+        "range_mm": 0.32989570525641954
+      }
+    ]
+  }
+}
