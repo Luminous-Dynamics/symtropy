@@ -91,7 +91,7 @@ See [`ASYMMETRIC_TOP_VALIDATION.md`](ASYMMETRIC_TOP_VALIDATION.md), [`MASS_PROPE
 
 ### N-dimensional bivector inertia reference
 
-`BivectorInertia<D>` is an independent reference for full rotational inertia on `Lambda^2(R^D)`, based on the centered second-moment matrix and `I(B) = B*S + S*B`. It supports the `Bivector` dimension limit `2 <= D <= 9`, provides a plane-wise inverse using the principal eigensystem of `S`, and includes Rotor-consistent gyroscopic and rotational contact-effective-mass operations. Forward/inverse, energy, torque, and contact response include mass-rescaling and global-frame covariance controls; an off-centre impulse test ties point velocity, effective mass and rotational energy together; point-mass assembly is canonical under input reordering and uses scale-safe weighted outer products for huge offsets/tiny masses; compound and point-cloud paths reject overflowing/underflowing mass terms; and a body-frame contact query avoids rebuilding the world-frame eigensystem; and the D=9 fixture round-trips all 36 independent rotation planes.
+`BivectorInertia<D>` is an independent reference for full rotational inertia on `Lambda^2(R^D)`, based on the centered second-moment matrix and `I(B) = B*S + S*B`. Default builds retain compact D<=4 storage; `--features nd-bivector-9` opts into the expanded D<=9 (36-plane) research representation. It provides a plane-wise inverse using the principal eigensystem of `S`, and includes Rotor-consistent gyroscopic and rotational contact-effective-mass operations. Forward/inverse, energy, torque, and contact response include mass-rescaling and global-frame covariance controls; an off-centre impulse test ties point velocity, effective mass and rotational energy together; point-mass assembly is canonical under input reordering and uses scale-safe weighted outer products for huge offsets/tiny masses; compound and point-cloud paths reject overflowing/underflowing mass terms; and a body-frame contact query avoids rebuilding the world-frame eigensystem; and the D=9 fixture round-trips all 36 independent rotation planes.
 
 The reference uses the same convention as the production sign audit: `Rotor::from_bivector(B) = exp(-B)`, physical point velocity `-B*r`, and offset-first angular impulse `r wedge j`. It has tests for cross-plane coupling, world/body covariance, contact effective-mass covariance, torque balance and all 36 rotation planes at D=9.
 
@@ -100,7 +100,7 @@ The reference uses the same convention as the production sign audit: `Rotor::fro
 Run the deterministic CSV campaign with:
 
 ```bash
-cargo run --release --example anisotropic_reference_campaign -p symtropy-physics
+cargo run --release --example anisotropic_reference_campaign -p symtropy-physics --features nd-bivector-9
 ```
 
 It checks analytic top dynamics, timestep refinement, an independent RK4 Euler-top attitude and angular-velocity trajectory, contact/energy identities, D=2/3/4/9 inversion, mass scaling, body-frame/world-frame contact equivalence, point-cloud determinism and scale-safe mass-property construction. It is a reference qualification campaign, not a production PhysicsWorld throughput benchmark.
