@@ -33,10 +33,6 @@ fn emit(fields: &[String]) {
     );
 }
 
-fn optional(value: Option<String>) -> String {
-    value.unwrap_or_default()
-}
-
 fn main() -> Result<(), Box<dyn Error>> {
     println!(
         "record_type,candidate,mapping_id,assignment_count,probability_mass,exposure_cell_count,nonconstant_exposure_cells,maximum_within_cell_outcome_range,mean_within_cell_outcome_range,direct_effect_truth,within_spillover_truth,between_spillover_truth,direct_supported_units,within_supported_units,between_supported_units,completion_count,target_unit,effect_lower,effect_upper,point_identified,source_id,network_id,design_id,split_id"
