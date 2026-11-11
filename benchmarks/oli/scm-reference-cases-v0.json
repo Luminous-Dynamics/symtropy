@@ -16,7 +16,9 @@
     "rng": "xorshift64 + Box-Muller",
     "rng_compatible_with_matlab": false,
     "update_order": "synchronous; all agents update from a shared previous-state snapshot",
-    "function_evaluation_accounting": "initial observations are cached; first step counts initial plus successor observations; each subsequent step counts the newly observed successor positions"
+    "function_evaluation_accounting": "initial observations are cached; first step counts initial plus successor observations; each subsequent step counts the newly observed successor positions",
+    "transactional_update": true,
+    "function_evaluation_contract": "Step candidates and successor observations are built locally; positions, RNG state, cache, tick, history and counters commit only if all successor observations validate."
   },
   "equation_variants": [
     {
@@ -194,14 +196,27 @@
       "injected_input": "fitness=1.1",
       "expected": "InvalidLandscapeObservation",
       "test": "rejects_fitness_outside_dimensionless_unit_interval"
+    },
+    {
+      "id": "CONSENSUS_WINDOW_CONVENTION_DIVERGENCE",
+      "purpose": "Prove the paper and repository discrete window schedules have distinct first update ticks.",
+      "tau_steps": 4,
+      "steps": 5,
+      "expected": {
+        "published_equal_half_intervals_first_update_tick": 4,
+        "repository_matlab_inclusive_endpoints_first_update_tick": 5
+      },
+      "test": "consensus_window_conventions_have_distinct_first_update_ticks"
     }
   ],
   "rust_source_tests": {
-    "count": 11,
+    "count": 12,
     "status": "ADDED_NOT_EXECUTED_IN_AUTHORING_ENVIRONMENT",
     "rustfmt": "NOT_RUN",
     "cargo_test": "NOT_RUN",
-    "exact_head_ci": "PENDING"
+    "exact_head_ci": "PENDING",
+    "transactional_failure_injection_test": true,
+    "consensus_window_variant_test": true
   },
   "source_reproduction": {
     "matlab_source_copied": false,
@@ -210,7 +225,9 @@
     "paper_source_equation_resolved": false,
     "static_benchmark_reproduced": false,
     "dynamic_auv_simulation_reproduced": false,
-    "status": "NOT_A_SOURCE_REPRODUCTION"
+    "status": "NOT_A_SOURCE_REPRODUCTION",
+    "independent_rust_reference_added": true,
+    "independent_rust_reference_validated": false
   },
   "qualification_next_steps": [
     "Run cargo fmt and cargo test for symtropy-lifesim-core at the exact PR head.",
@@ -219,5 +236,19 @@
     "Add normalized Ackley and Rastrigin landscapes and reproduce the SCM 100-replication source protocol.",
     "Implement matched PSO and MIPA baselines with identical initial states, sensor/function-evaluation budgets and success criteria.",
     "Add moving peak/advection scenarios and network constraints before comparing the AUV proof-of-concept."
+  ],
+  "consensus_window_controls": [
+    {
+      "id": "PUBLISHED_EQUAL_HALF_INTERVALS",
+      "implementation": "ScmConsensusWindow::PublishedEqualHalfIntervals",
+      "semantics": "Exactly tau_steps consensus observations; split into two disjoint equal halves; first update at tick tau_steps.",
+      "purpose": "Implements the equal-width continuous-time half-window description."
+    },
+    {
+      "id": "REPOSITORY_MATLAB_INCLUSIVE_ENDPOINTS",
+      "implementation": "ScmConsensusWindow::RepositoryMatlabInclusiveEndpoints",
+      "semantics": "tau_steps+1 observations; early sum uses tau_steps/2+1 values, late sum uses tau_steps/2 values; first update at tick tau_steps+1.",
+      "purpose": "Reproduces the inclusive array-index schedule observed in the inspected MATLAB replication loop; not identical to the paper's equal half-interval definition."
+    }
   ]
 }
