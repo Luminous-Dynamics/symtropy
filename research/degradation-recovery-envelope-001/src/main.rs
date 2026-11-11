@@ -140,11 +140,46 @@ mod tests {
             serde_json::from_str(include_str!("../schemas/report-v1.schema.json")).unwrap();
         assert_eq!(campaign_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
         assert_eq!(report_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+        for field in [
+            "model_id",
+            "model_status",
+            "checkpoint_sha256",
+            "hardware_id",
+            "inference_precision",
+            "power_profile",
+            "energy_measurement_method",
+            "policy_visible_inputs",
+            "fault_schedule_visible_to_policy",
+        ] {
+            assert!(campaign_schema["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry == field));
+        }
+        for field in [
+            "clean_control_deadline_miss_ticks",
+            "model_id",
+            "checkpoint_sha256",
+            "hardware_id",
+            "policy_visible_inputs",
+        ] {
+            assert!(report_schema["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|entry| entry == field));
+        }
         assert!(campaign_schema["$defs"]["tick"]["required"]
             .as_array()
             .unwrap()
             .iter()
             .any(|field| field == "fault_detection_event_ids"));
+        assert!(report_schema["$defs"]["event_metrics"]["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "severity_ppm"));
     }
 
     #[test]
