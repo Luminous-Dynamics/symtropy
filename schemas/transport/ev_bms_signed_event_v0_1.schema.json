@@ -282,10 +282,13 @@
                 "required": [
                   "event_type",
                   "channel",
+                  "sensor_ref",
                   "value",
                   "unit",
                   "evidence_class",
                   "calibration_status",
+                  "calibration_ref",
+                  "calibration_sha256",
                   "sensor_valid",
                   "out_of_domain",
                   "protocol_ref",
@@ -304,6 +307,10 @@
                     ]
                   },
                   "channel": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "sensor_ref": {
                     "type": "string",
                     "minLength": 1
                   },
@@ -338,6 +345,19 @@
                       "unknown",
                       "not_applicable"
                     ]
+                  },
+                  "calibration_ref": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "calibration_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[a-f0-9]{64}$"
                   },
                   "sensor_valid": {
                     "type": "boolean"
