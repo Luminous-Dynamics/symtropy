@@ -23,7 +23,7 @@ A proposal is admitted only when:
 - its clock and boot epoch match the current local context;
 - its wearer-agency epoch matches the current, non-revoked epoch;
 - it has not expired and its issue timestamp is not in the future;
-- the source observation is no older than the declared maximum age;
+- the source observation is no older than the declared maximum age and is not from a future observation sequence;
 - the current state/configuration revision matches the proposal's source revision;
 - proposal, parameter and optimizer-receipt identities are present.
 
