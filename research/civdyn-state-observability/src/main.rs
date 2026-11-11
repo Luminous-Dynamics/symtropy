@@ -48,6 +48,8 @@ struct Contract {
     pomcp_failed: usize,
     baseline_ids: Vec<String>,
     algorithms: Vec<String>,
+    oracle_mean: f64,
+    random_mean: f64,
 }
 
 #[derive(Debug)]
@@ -86,8 +88,8 @@ fn parse_usize(value: &str, field: &str) -> Result<usize, String> {
 }
 
 fn parse_contract(fields: &[&str]) -> Result<Contract, String> {
-    if fields.len() != 21 || fields[0] != "contract" {
-        return Err(format!("contract row must have 21 fields, got {}", fields.len()));
+    if fields.len() != 23 || fields[0] != "contract" {
+        return Err(format!("contract row must have 23 fields, got {}", fields.len()));
     }
     let mut baseline_ids: Vec<String> = fields[19].split(';').map(str::to_owned).collect();
     baseline_ids.sort();
@@ -114,6 +116,8 @@ fn parse_contract(fields: &[&str]) -> Result<Contract, String> {
         pomcp_failed: parse_usize(fields[18], "failed POMCP count")?,
         baseline_ids,
         algorithms,
+        oracle_mean: parse_f64(fields[21], "oracle policy value")?,
+        random_mean: parse_f64(fields[22], "random policy value")?,
     })
 }
 
@@ -188,6 +192,9 @@ fn validate_contract(contract: &Contract, expected: ExpectedExperiment) -> Resul
         || contract.baseline_ids != ["random".to_owned(), "upper".to_owned()]
     {
         return Err(format!("baseline contract mismatch for {}", contract.id));
+    }
+    if contract.oracle_mean <= contract.random_mean {
+        return Err(format!("policy normalization anchors are not ordered for {}", contract.id));
     }
     if contract.exception_rows > 0 {
         if contract.exception_classes != ["RemoteException".to_owned()]
