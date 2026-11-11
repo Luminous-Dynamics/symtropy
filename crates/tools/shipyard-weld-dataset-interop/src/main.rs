@@ -38,6 +38,10 @@ fn integer_at(value: &Value, key: &str) -> Option<i64> {
     value.get(key).and_then(Value::as_i64)
 }
 
+fn number_at(value: &Value, key: &str) -> Option<f64> {
+    value.get(key).and_then(Value::as_f64)
+}
+
 fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistrySummary, Vec<String>> {
     let mut errors = Vec::new();
     let schema: Value = serde_json::from_str(schema_text)
@@ -110,7 +114,7 @@ fn validate_registry(schema_text: &str, manifest_text: &str) -> Result<RegistryS
             || str_at(intel, "access_mode") != Some("gated_research_only")
             || integer_at(intel, "independent_unit_count") != Some(236)
             || integer_at(intel, "label_count") != Some(12)
-            || integer_at(intel, "reported_size_gb").and_then(|value| u64::try_from(value).ok()) != Some(39)
+            || number_at(intel, "reported_size_gb") != Some(39.9)
             || str_at(intel, "grouping_field") != Some("session_or_weld_id")
             || bool_at(intel, "expert_defect_labels_present") != Some(false)
         {
