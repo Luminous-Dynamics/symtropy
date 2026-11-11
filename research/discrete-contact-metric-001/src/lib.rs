@@ -621,15 +621,15 @@ fn relative_negative_residual(values: &[f64], delassus: &Matrix, contact_rhs: &[
             return f64::INFINITY;
         }
         let mut coupled_velocity_scale = contact_rhs[row].abs();
-        for col in 0..values.len() {
+        for (col, other_impulse) in values.iter().enumerate() {
             if col == row {
                 continue;
             }
             let coupling = delassus[(row, col)].abs();
-            if !coupling.is_finite() || !values[col].is_finite() {
+            if !coupling.is_finite() || !other_impulse.is_finite() {
                 return f64::INFINITY;
             }
-            let contribution = coupling * values[col].abs();
+            let contribution = coupling * other_impulse.abs();
             if !contribution.is_finite() {
                 return f64::INFINITY;
             }
@@ -754,14 +754,14 @@ fn metric_equation_relative_residual(
 ) -> f64 {
     let lhs = mat_vec(metric, velocity);
     let mut maximum = 0.0_f64;
-    for row in 0..lhs.len() {
-        if !lhs[row].is_finite() || !rhs[row].is_finite() {
+    for (row, lhs_value) in lhs.iter().enumerate() {
+        let rhs_value = rhs[row];
+        if !lhs_value.is_finite() || !rhs_value.is_finite() {
             return f64::INFINITY;
         }
         let mut contact_term = 0.0_f64;
-        for contact in 0..impulse.len() {
+        for (contact, contact_impulse) in impulse.iter().enumerate() {
             let jacobian = contact_jacobian[(contact, row)];
-            let contact_impulse = impulse[contact];
             if !jacobian.is_finite() || !contact_impulse.is_finite() {
                 return f64::INFINITY;
             }
@@ -770,8 +770,8 @@ fn metric_equation_relative_residual(
                 return f64::INFINITY;
             }
         }
-        let residual_value = lhs[row] - rhs[row] - contact_term;
-        let scale = lhs[row].abs().max(rhs[row].abs()).max(contact_term.abs());
+        let residual_value = *lhs_value - rhs_value - contact_term;
+        let scale = lhs_value.abs().max(rhs_value.abs()).max(contact_term.abs());
         if !residual_value.is_finite() || !scale.is_finite() {
             return f64::INFINITY;
         }
