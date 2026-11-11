@@ -204,6 +204,24 @@ mod tests {
     }
 
     #[test]
+    fn checked_in_severity_sweep_fixture_matches_generator_exactly() {
+        let generated = severity_sweep_schedule(
+            10,
+            5,
+            3,
+            1,
+            1,
+            2,
+            &[100_000, 250_000, 500_000, 750_000, 1_000_000],
+        )
+        .unwrap();
+        let fixture: Vec<degradation_recovery_envelope::FaultEvent> =
+            serde_json::from_str(include_str!("../fixtures/severity-sweep.json")).unwrap();
+        assert_eq!(fixture, generated);
+        assert_eq!(fixture.len(), 35);
+    }
+
+    #[test]
     fn cli_exposes_severity_sweep_generator() {
         let events = severity_sweep_schedule(
             10,
