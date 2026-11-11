@@ -151,7 +151,11 @@
     "alarm debounce, merge-gap, detection deadline and observation-gap policy are frozen before confirmatory evaluation",
     "event-to-alarm matching is one-to-one; alarms before fault onset cannot be counted as early fault detections",
     "false-alarm exposure excludes unobserved time gaps and fault-active intervals; the exact exposure denominator is reported",
-    "event-level uncertainty is resampled by independent recording/engine run, never by 20 Hz rows or alarm windows"
+    "event-level uncertainty is resampled by independent recording/engine run, never by 20 Hz rows or alarm windows",
+    "each benchmark run binds the exact shift-matrix digest, shift axis, holdout manifest digest and independent test recording count",
+    "condition-shift retention, fault-semantic unknown rejection and joint C+F robustness are reported as distinct outcomes",
+    "a leave-one-known-fault-family-out result is labelled a surrogate open-set test, not proof of a previously unseen physical mechanism",
+    "no C+F transfer claim is made unless independent test recordings cover the joint held-out fault-family and operating-cycle cell"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -279,5 +283,21 @@
     ],
     "uncertainty_unit": "independent_recording_or_engine_run",
     "claim_ceiling": "synthetic event-contract tests only until authoritative event labels, source data bytes and a frozen model run are audited"
+  },
+  "shift_matrix": {
+    "path": "shift-matrix-v0.1.json",
+    "schema_version": "liu-ice-shift-matrix-v0.1",
+    "status": "protocol_only_not_executed",
+    "axes": [
+      "C_SHIFT_DRIVING_CYCLE",
+      "C_SHIFT_AMBIENT_ENVELOPE",
+      "F_SHIFT_HELD_OUT_FAULT_FAMILY",
+      "C_PLUS_F_SHIFT",
+      "MAGNITUDE_SHIFT_WITHIN_FAMILY",
+      "SENSOR_CHAIN_SHIFT"
+    ],
+    "core_rule": "Condition shift, fault-semantic shift and combined shift are separate claims. Passing one axis never qualifies another.",
+    "independent_unit": "recording_or_engine_run",
+    "cross_engine_fleet": "unsupported_until_independent_engine_or_fleet_units_are_available"
   }
 }
