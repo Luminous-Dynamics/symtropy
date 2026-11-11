@@ -150,7 +150,9 @@ fn sha256(bytes: &[u8]) -> String {
 
 fn is_sha256(value: &str) -> bool {
     value.len() == 64
-        && value.bytes().all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn compile_schema(bytes: &[u8]) -> Result<Validator, String> {
@@ -171,16 +173,23 @@ fn compile_schema(bytes: &[u8]) -> Result<Validator, String> {
 }
 
 fn validate_instance(validator: &Validator, value: &Value) -> Result<(), String> {
-    let errors: Vec<String> = validator.iter_errors(value).map(|error| error.to_string()).collect();
+    let errors: Vec<String> = validator
+        .iter_errors(value)
+        .map(|error| error.to_string())
+        .collect();
     if errors.is_empty() {
         Ok(())
     } else {
-        Err(format!("BMS evidence corpus failed schema validation: {}", errors.join("; ")))
+        Err(format!(
+            "BMS evidence corpus failed schema validation: {}",
+            errors.join("; ")
+        ))
     }
 }
 
 fn decode_hex<const N: usize>(value: &str, label: &str) -> Result<[u8; N], String> {
-    let bytes = hex::decode(value).map_err(|_| format!("{label} is not valid lowercase hexadecimal"))?;
+    let bytes =
+        hex::decode(value).map_err(|_| format!("{label} is not valid lowercase hexadecimal"))?;
     if value.bytes().any(|byte| byte.is_ascii_uppercase()) || bytes.len() != N {
         return Err(format!("{label} must be exactly {} lowercase-hex bytes", N));
     }
@@ -190,7 +199,10 @@ fn decode_hex<const N: usize>(value: &str, label: &str) -> Result<[u8; N], Strin
 }
 
 fn verify_event_signature(event: &SignedEvent, key: &TrustedKey) -> Result<(), String> {
-    let signature_hex = event.signature_hex.as_deref().filter(|value| !value.is_empty())
+    let signature_hex = event
+        .signature_hex
+        .as_deref()
+        .filter(|value| !value.is_empty())
         .ok_or_else(|| "UNATTESTED: event has no signature".to_owned())?;
     let public_key = decode_hex::<32>(&key.public_key_hex, "trusted public key")?;
     let signature_bytes = decode_hex::<64>(signature_hex, "event signature")?;
@@ -209,10 +221,21 @@ fn payload_digest_is_valid(claims: &EventClaims) -> Result<(), String> {
         return Err("REJECTED_PAYLOAD_SENSOR_IDENTITY: sensor reference is empty".to_owned());
     }
     if claims.payload.calibration_status != "not_applicable" {
-        if claims.payload.calibration_ref.as_deref().is_none_or(str::is_empty)
-            || claims.payload.calibration_sha256.as_deref().is_none_or(|digest| !is_sha256(digest))
+        if claims
+            .payload
+            .calibration_ref
+            .as_deref()
+            .is_none_or(str::is_empty)
+            || claims
+                .payload
+                .calibration_sha256
+                .as_deref()
+                .is_none_or(|digest| !is_sha256(digest))
         {
-            return Err("REJECTED_CALIBRATION_BINDING: calibration status lacks exact reference/digest".to_owned());
+            return Err(
+                "REJECTED_CALIBRATION_BINDING: calibration status lacks exact reference/digest"
+                    .to_owned(),
+            );
         }
     }
     if let Some(digest) = &claims.payload.observation_digest {
@@ -280,8 +303,8 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
     let json: Value = serde_json::from_slice(corpus_bytes)
         .map_err(|error| format!("corpus JSON is invalid: {error}"))?;
     validate_instance(&validator, &json)?;
-    let corpus: Corpus = serde_json::from_value(json)
-        .map_err(|error| format!("corpus decode failed: {error}"))?;
+    let corpus: Corpus =
+        serde_json::from_value(json).map_err(|error| format!("corpus decode failed: {error}"))?;
     if corpus.corpus_version != CORPUS_VERSION {
         return Err("unsupported BMS evidence corpus version".to_owned());
     }
@@ -296,10 +319,19 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             || key.producer_role.trim().is_empty()
             || keys.insert(key.key_id.clone(), key).is_some()
         {
-            return Err(format!("empty or duplicate trusted key identity: {}", key.key_id));
+            return Err(format!(
+                "empty or duplicate trusted key identity: {}",
+                key.key_id
+            ));
         }
-        if key.valid_until_ms.is_some_and(|end| end < key.valid_from_ms) {
-            return Err(format!("trusted key {} has an inverted validity interval", key.key_id));
+        if key
+            .valid_until_ms
+            .is_some_and(|end| end < key.valid_from_ms)
+        {
+            return Err(format!(
+                "trusted key {} has an inverted validity interval",
+                key.key_id
+            ));
         }
         decode_hex::<32>(&key.public_key_hex, "trusted public key")?;
     }
@@ -314,7 +346,9 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             || !is_sha256(&admission.firmware_sha256)
             || !is_sha256(&admission.configuration_sha256)
         {
-            return Err("admitted boot epoch contains incomplete identity or malformed digest".to_owned());
+            return Err(
+                "admitted boot epoch contains incomplete identity or malformed digest".to_owned(),
+            );
         }
         if !admitted_boots.insert((
             admission.evidence_ref.clone(),
@@ -331,7 +365,10 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             || binding.pack_ref.trim().is_empty()
             || !is_sha256(&binding.configuration_sha256)
         {
-            return Err("asset binding contains empty identity or malformed configuration digest".to_owned());
+            return Err(
+                "asset binding contains empty identity or malformed configuration digest"
+                    .to_owned(),
+            );
         }
         if !asset_bindings.insert((
             binding.vehicle_ref.clone(),
@@ -427,7 +464,10 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
                 "REJECTED_SIGNER_BINDING",
                 &physical_state,
                 0,
-                Some("signed producer identity/role does not match the trusted key record".to_owned()),
+                Some(
+                    "signed producer identity/role does not match the trusted key record"
+                        .to_owned(),
+                ),
             ));
             continue;
         }
@@ -444,7 +484,10 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
                     "REJECTED_REPLAY",
                     &physical_state,
                     0,
-                    Some(format!("sequence {} is not greater than prior accepted sequence {last}", claims.sequence)),
+                    Some(format!(
+                        "sequence {} is not greater than prior accepted sequence {last}",
+                        claims.sequence
+                    )),
                 ));
                 continue;
             }
@@ -452,7 +495,10 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
         }
         let nonce_key = (claims.producer_id.clone(), claims.nonce_hex.clone());
         if claims.nonce_hex.len() != 32
-            || claims.nonce_hex.bytes().any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase())
+            || claims
+                .nonce_hex
+                .bytes()
+                .any(|byte| !byte.is_ascii_hexdigit() || byte.is_ascii_uppercase())
             || !replay_nonces.insert(nonce_key)
         {
             replay_rejected_count += 1;
@@ -466,7 +512,10 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             ));
             continue;
         }
-        if stream.last_timestamp_ms.is_some_and(|last| claims.observed_at_ms < last) {
+        if stream
+            .last_timestamp_ms
+            .is_some_and(|last| claims.observed_at_ms < last)
+        {
             quarantined_count += 1;
             stream.last_sequence = Some(claims.sequence);
             events.push(make_row(
@@ -497,11 +546,18 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
                 "REJECTED_ASSET_BINDING",
                 &physical_state,
                 gap,
-                Some("vehicle/pack/configuration tuple is not in the admitted asset binding set".to_owned()),
+                Some(
+                    "vehicle/pack/configuration tuple is not in the admitted asset binding set"
+                        .to_owned(),
+                ),
             ));
             continue;
         }
-        if !key.authorized_event_types.iter().any(|event_type| event_type == &claims.payload.event_type) {
+        if !key
+            .authorized_event_types
+            .iter()
+            .any(|event_type| event_type == &claims.payload.event_type)
+        {
             rejected_count += 1;
             events.push(make_row(
                 claims,
@@ -512,7 +568,11 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             ));
             continue;
         }
-        if !corpus.policy.trusted_clock_sources.iter().any(|source| source == &claims.clock_source)
+        if !corpus
+            .policy
+            .trusted_clock_sources
+            .iter()
+            .any(|source| source == &claims.clock_source)
             || claims.clock_uncertainty_ms > corpus.policy.maximum_clock_uncertainty_ms
         {
             quarantined_count += 1;
@@ -526,7 +586,9 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             continue;
         }
         if claims.observed_at_ms < key.valid_from_ms
-            || key.valid_until_ms.is_some_and(|end| claims.observed_at_ms > end)
+            || key
+                .valid_until_ms
+                .is_some_and(|end| claims.observed_at_ms > end)
         {
             rejected_count += 1;
             events.push(make_row(
@@ -538,17 +600,20 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             ));
             continue;
         }
-        let boot_admitted = claims.boot_attestation_ref.as_deref().is_some_and(|reference| {
-            corpus.policy.admitted_boot_epochs.iter().any(|admission| {
-                admission.evidence_ref == reference
-                    && admission.producer_id == claims.producer_id
-                    && admission.boot_epoch_id == claims.boot_epoch_id
-                    && admission.firmware_sha256 == claims.firmware_sha256
-                    && admission.vehicle_ref == claims.vehicle_ref
-                    && admission.pack_ref == claims.pack_ref
-                    && admission.configuration_sha256 == claims.configuration_sha256
-            })
-        });
+        let boot_admitted = claims
+            .boot_attestation_ref
+            .as_deref()
+            .is_some_and(|reference| {
+                corpus.policy.admitted_boot_epochs.iter().any(|admission| {
+                    admission.evidence_ref == reference
+                        && admission.producer_id == claims.producer_id
+                        && admission.boot_epoch_id == claims.boot_epoch_id
+                        && admission.firmware_sha256 == claims.firmware_sha256
+                        && admission.vehicle_ref == claims.vehicle_ref
+                        && admission.pack_ref == claims.pack_ref
+                        && admission.configuration_sha256 == claims.configuration_sha256
+                })
+            });
         if !boot_admitted {
             quarantined_count += 1;
             events.push(make_row(
@@ -572,7 +637,10 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
                 "REJECTED_MALFORMED_EVIDENCE",
                 &physical_state,
                 gap,
-                Some("signed event lacks a valid firmware/configuration digest or event channel".to_owned()),
+                Some(
+                    "signed event lacks a valid firmware/configuration digest or event channel"
+                        .to_owned(),
+                ),
             ));
             continue;
         }
@@ -621,15 +689,21 @@ mod tests {
     use super::*;
     use serde_json::Value;
 
-    const SCHEMA: &[u8] = include_bytes!("../../../schemas/transport/ev_bms_signed_event_v0_1.schema.json");
-    const CORPUS: &[u8] = include_bytes!("../../../fixtures/ev_battery/bms_evidence_auth_v0_1.json");
+    const SCHEMA: &[u8] =
+        include_bytes!("../../../schemas/transport/ev_bms_signed_event_v0_1.schema.json");
+    const CORPUS: &[u8] =
+        include_bytes!("../../../fixtures/ev_battery/bms_evidence_auth_v0_1.json");
 
     fn report() -> AuditReport {
         audit_corpus(SCHEMA, CORPUS).expect("frozen BMS evidence corpus")
     }
 
     fn row<'a>(report: &'a AuditReport, id: &str) -> &'a EventAudit {
-        report.events.iter().find(|event| event.event_id == id).expect("event row")
+        report
+            .events
+            .iter()
+            .find(|event| event.event_id == id)
+            .expect("event row")
     }
 
     #[test]
@@ -648,14 +722,20 @@ mod tests {
         let report = report();
         let event = row(&report, "evt-valid-001");
         assert_eq!(event.authenticity_state, "AUTHENTICATED_AND_AUTHORIZED");
-        assert_eq!(event.physical_validity_state, "NOT_ESTABLISHED_BY_SIGNATURE");
+        assert_eq!(
+            event.physical_validity_state,
+            "NOT_ESTABLISHED_BY_SIGNATURE"
+        );
         assert_eq!(event.evidence_class, "bms_reported");
     }
 
     #[test]
     fn duplicate_sequence_and_nonce_are_rejected_as_replay() {
         let report = report();
-        assert_eq!(row(&report, "evt-replay-002").authenticity_state, "REJECTED_REPLAY");
+        assert_eq!(
+            row(&report, "evt-replay-002").authenticity_state,
+            "REJECTED_REPLAY"
+        );
         assert_eq!(report.replay_rejected_count, 1);
     }
 
@@ -663,49 +743,88 @@ mod tests {
     fn compromised_or_invalid_physical_measurement_does_not_change_authenticity() {
         let report = report();
         let calibration = row(&report, "evt-calibration-expired-009");
-        assert_eq!(calibration.authenticity_state, "AUTHENTICATED_AND_AUTHORIZED");
-        assert_eq!(calibration.physical_validity_state, "SOURCE_REPORTED_CALIBRATION_NOT_CURRENT");
+        assert_eq!(
+            calibration.authenticity_state,
+            "AUTHENTICATED_AND_AUTHORIZED"
+        );
+        assert_eq!(
+            calibration.physical_validity_state,
+            "SOURCE_REPORTED_CALIBRATION_NOT_CURRENT"
+        );
         let sensor = row(&report, "evt-sensor-invalid-010");
         assert_eq!(sensor.authenticity_state, "AUTHENTICATED_AND_AUTHORIZED");
-        assert_eq!(sensor.physical_validity_state, "SOURCE_REPORTED_SENSOR_INVALID");
+        assert_eq!(
+            sensor.physical_validity_state,
+            "SOURCE_REPORTED_SENSOR_INVALID"
+        );
     }
 
     #[test]
     fn payload_change_after_signing_fails_signature_verification() {
         let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus JSON");
-        let event = corpus["events"].as_array_mut().unwrap()
-            .iter_mut().find(|event| event["claims"]["event_id"] == "evt-signature-tamper-003").unwrap();
-        event["claims"]["firmware_sha256"] = Value::String("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".into());
+        let event = corpus["events"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|event| event["claims"]["event_id"] == "evt-signature-tamper-003")
+            .unwrap();
+        event["claims"]["firmware_sha256"] = Value::String(
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".into(),
+        );
         let bytes = serde_json::to_vec(&corpus).expect("tampered corpus");
         let report = audit_corpus(SCHEMA, &bytes).expect("tamper becomes a rejected row");
-        assert_eq!(row(&report, "evt-signature-tamper-003").authenticity_state, "REJECTED_SIGNATURE");
+        assert_eq!(
+            row(&report, "evt-signature-tamper-003").authenticity_state,
+            "REJECTED_SIGNATURE"
+        );
     }
 
     #[test]
     fn revoked_key_and_unauthorized_event_role_are_rejected() {
         let report = report();
-        assert_eq!(row(&report, "evt-revoked-key-005").authenticity_state, "REJECTED_REVOKED_KEY");
-        assert_eq!(row(&report, "evt-unauthorized-service-004").authenticity_state, "REJECTED_AUTHORITY");
+        assert_eq!(
+            row(&report, "evt-revoked-key-005").authenticity_state,
+            "REJECTED_REVOKED_KEY"
+        );
+        assert_eq!(
+            row(&report, "evt-unauthorized-service-004").authenticity_state,
+            "REJECTED_AUTHORITY"
+        );
     }
 
     #[test]
     fn wrong_pack_configuration_is_rejected_even_with_valid_signature() {
         let report = report();
-        assert_eq!(row(&report, "evt-wrong-config-006").authenticity_state, "REJECTED_ASSET_BINDING");
+        assert_eq!(
+            row(&report, "evt-wrong-config-006").authenticity_state,
+            "REJECTED_ASSET_BINDING"
+        );
     }
 
     #[test]
     fn unknown_boot_and_untrusted_clock_are_quarantined() {
         let report = report();
-        assert_eq!(row(&report, "evt-untrusted-clock-007").authenticity_state, "QUARANTINED_CLOCK_UNTRUSTED");
-        assert_eq!(row(&report, "evt-unknown-boot-008").authenticity_state, "QUARANTINED_BOOT_EPOCH_UNKNOWN");
+        assert_eq!(
+            row(&report, "evt-untrusted-clock-007").authenticity_state,
+            "QUARANTINED_CLOCK_UNTRUSTED"
+        );
+        assert_eq!(
+            row(&report, "evt-unknown-boot-008").authenticity_state,
+            "QUARANTINED_BOOT_EPOCH_UNKNOWN"
+        );
     }
 
     #[test]
     fn an_unsigned_event_cannot_poison_the_next_signed_sequence() {
         let report = report();
-        assert_eq!(row(&report, "evt-missing-signature-011").authenticity_state, "UNATTESTED");
-        assert_eq!(row(&report, "evt-valid-after-unsigned-012").authenticity_state, "AUTHENTICATED_AND_AUTHORIZED");
+        assert_eq!(
+            row(&report, "evt-missing-signature-011").authenticity_state,
+            "UNATTESTED"
+        );
+        assert_eq!(
+            row(&report, "evt-valid-after-unsigned-012").authenticity_state,
+            "AUTHENTICATED_AND_AUTHORIZED"
+        );
     }
     #[test]
     fn expired_and_unknown_keys_are_never_authenticated() {
@@ -723,8 +842,9 @@ mod tests {
     #[test]
     fn boot_epoch_reference_must_match_the_external_admission_binding() {
         let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus JSON");
-        corpus["policy"]["admitted_boot_epochs"][0]["firmware_sha256"] =
-            Value::String("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".into());
+        corpus["policy"]["admitted_boot_epochs"][0]["firmware_sha256"] = Value::String(
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".into(),
+        );
         let bytes = serde_json::to_vec(&corpus).expect("mutated corpus");
         let report = audit_corpus(SCHEMA, &bytes).expect("mismatch quarantines the row");
         assert_eq!(
@@ -738,28 +858,41 @@ mod tests {
         let report = report();
         let event = row(&report, "evt-valid-001");
         assert_eq!(event.authenticity_state, "AUTHENTICATED_AND_AUTHORIZED");
-        assert_eq!(event.physical_validity_state, "NOT_ESTABLISHED_BY_SIGNATURE");
+        assert_eq!(
+            event.physical_validity_state,
+            "NOT_ESTABLISHED_BY_SIGNATURE"
+        );
     }
 
     #[test]
     fn calibration_digest_is_covered_by_the_event_signature() {
         let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus JSON");
-        let event = corpus["events"].as_array_mut().unwrap()
-            .iter_mut().find(|event| event["claims"]["event_id"] == "evt-valid-001").unwrap();
-        event["claims"]["payload"]["calibration_sha256"] =
-            Value::String("dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".into());
+        let event = corpus["events"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|event| event["claims"]["event_id"] == "evt-valid-001")
+            .unwrap();
+        event["claims"]["payload"]["calibration_sha256"] = Value::String(
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd".into(),
+        );
         let bytes = serde_json::to_vec(&corpus).expect("mutated corpus");
         let report = audit_corpus(SCHEMA, &bytes).expect("calibration tamper becomes rejected row");
-        assert_eq!(row(&report, "evt-valid-001").authenticity_state, "REJECTED_SIGNATURE");
+        assert_eq!(
+            row(&report, "evt-valid-001").authenticity_state,
+            "REJECTED_SIGNATURE"
+        );
     }
 
     #[test]
     fn a_current_calibration_claim_requires_an_exact_reference_and_digest() {
         let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus JSON");
         let payload = &mut corpus["events"][0]["claims"]["payload"];
-        payload.as_object_mut().unwrap().remove("calibration_sha256");
+        payload
+            .as_object_mut()
+            .unwrap()
+            .remove("calibration_sha256");
         let bytes = serde_json::to_vec(&corpus).expect("mutated corpus");
         assert!(audit_corpus(SCHEMA, &bytes).is_err());
     }
-
 }
