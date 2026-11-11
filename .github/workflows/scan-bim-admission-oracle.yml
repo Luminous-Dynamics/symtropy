@@ -2,7 +2,7 @@ name: Scan-to-BIM Admission Synthetic Oracle
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: ["main", "research/scan-bim-admission-v0-1"]
     paths:
       - "tools/scan-bim-admission-oracle/**"
       - "docs/research/built-asset/scan-bim/**"
