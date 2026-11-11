@@ -223,6 +223,9 @@ fn validate_runs(contract: &Contract, runs: &[Run]) -> Result<(usize, usize), St
         if !run.atv_present || !run.wtv_present {
             return Err("missingness-function TV absent from a learning row".to_owned());
         }
+        if run.atv > run.wtv + 1e-9 {
+            return Err(format!("average TV exceeds worst TV for {} / seed {}", contract.id, run.seed));
+        }
         if run.finished {
             if run.exception || !run.mean_present || run.mean.is_none() {
                 return Err("finished learning row lacks a valid mean or carries exception".to_owned());
