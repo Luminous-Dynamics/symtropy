@@ -1,6 +1,6 @@
 # Symtropy Sensor Observability Bench
 
-Standalone, read-only evaluator for **fault-pair diagnosability** of a declared excavation / pneumatic-conveying sensor layout.
+Standalone, read-only evaluator for **fault-pair diagnosability** of a declared sensor layout. It retains the excavation/pneumatic-conveying contract and also supports domain-neutral asset/configuration/operating-domain identities for other engineering domains.
 
 Implements [issue #3993](https://github.com/Luminous-Dynamics/symtropy/issues/3993), and composes with #3877/#3913 event truth, #3927 stage-resolved material flow, and #3987/#3991 metrology evidence.
 
@@ -12,6 +12,8 @@ Implements [issue #3993](https://github.com/Luminous-Dynamics/symtropy/issues/39
 
 For every required fault pair:
 - all channel/state response cells must exist;
+- the layout profile binds a versioned `state_taxonomy_ref`; state IDs are case-local canonical uppercase identifiers rather than a hard-coded excavation-only enumeration;
+- domains may use the legacy material/path/geometry tuple or the domain-neutral asset-family/configuration/operating-domain/installation-profile tuple;
 - every response binds to an exact channel unit, material/path/geometry domain, synchronized state window, source and adjudication;
 - a channel discriminates the pair only if both responses are VALID, independently evidenced and strictly non-overlapping;
 - channels assigned to the same independent-principle group count once, regardless of serial number or channel count;

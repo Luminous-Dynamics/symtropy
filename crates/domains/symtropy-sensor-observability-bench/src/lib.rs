@@ -83,13 +83,16 @@ fn state_ids_match(parent: &Value, context: &Value) -> Vec<Violation> {
         push(&mut errors, "PARENT_TRIAL_MISMATCH", "$.parent_context.trial_id", "trial identity must match exact parent interval");
     }
     if let Some(profile) = parent.get("profile") {
-        for key in [
-            "material_cohort_ref",
-            "machine_configuration_ref",
-            "transport_configuration_ref",
-        ] {
+        let keys: &[&str] = if profile.get("asset_family_ref").is_some() {
+            &["asset_family_ref", "asset_configuration_ref", "operating_domain_ref", "installation_profile_ref"]
+        } else {
+            // Backward-compatible excavation/conveying profile. New asset domains
+            // should use the domain-neutral identity keys above.
+            &["material_cohort_ref", "machine_configuration_ref", "transport_configuration_ref"]
+        };
+        for key in keys {
             if text(context, key) != text(profile, key) {
-                push(&mut errors, "PARENT_PROFILE_MISMATCH", &format!("$.parent_context.{key}"), "observability context must match exact parent material/machine/transport profile");
+                push(&mut errors, "PARENT_PROFILE_MISMATCH", &format!("$.parent_context.{key}"), "observability context must match the exact parent asset/configuration/domain profile");
             }
         }
     } else {
@@ -102,26 +105,14 @@ fn intervals_disjoint(a_lower: f64, a_upper: f64, b_lower: f64, b_upper: f64) ->
     a_upper < b_lower || b_upper < a_lower
 }
 
+/// State IDs are case-local, namespaced by the versioned state_taxonomy_ref,
+/// and use a portable uppercase identifier rather than a hard-coded domain list.
 fn valid_state_id(id: &str) -> bool {
-    matches!(
-        id,
-        "NORMAL_STABLE"
-            | "STARTUP_SHUTDOWN_TRANSIENT"
-            | "HIGH_SOLIDS_LOADING"
-            | "STRATIFIED_FLOW"
-            | "DUNE_DEPOSITION"
-            | "PARTIAL_RESTRICTION"
-            | "DEVELOPING_BLOCKAGE"
-            | "COMPLETE_BLOCKAGE"
-            | "WATER_ACCUMULATION"
-            | "FILTER_CYCLONE_LOADING"
-            | "AIR_LEAK_DISCONNECTION"
-            | "BLOWER_VFD_FAULT"
-            | "PRESSURE_SENSOR_FAULT"
-            | "AIRFLOW_SENSOR_FAULT"
-            | "CURRENT_SENSOR_FAULT"
-            | "UNKNOWN_OUT_OF_DOMAIN"
-    )
+    let bytes = id.as_bytes();
+    !bytes.is_empty()
+        && bytes.len() <= 64
+        && bytes[0].is_ascii_uppercase()
+        && bytes.iter().skip(1).all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || *b == b'_')
 }
 
 /// Validate sensor layout, state list, pair set and complete response matrix.
@@ -145,7 +136,7 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
         push(&mut errors, "MISSING_LAYOUT_PROFILE", "$.layout_profile", "versioned layout profile and pair-set identity are required");
         return errors;
     };
-    for key in ["layout_profile_ref", "required_pair_set_ref"] {
+    for key in ["layout_profile_ref", "required_pair_set_ref", "state_taxonomy_ref"] {
         if text(profile, key).is_none() {
             push(&mut errors, "MISSING_LAYOUT_PROFILE_FIELD", &format!("$.layout_profile.{key}"), "layout profile and required-pair-set references are required");
         }
@@ -195,17 +186,25 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
         }
         let domain = channel.get("domain");
         if domain.is_none()
-            || text(domain.unwrap_or(&Value::Null), "material_cohort_ref").is_none()
-            || text(domain.unwrap_or(&Value::Null), "path_configuration_ref").is_none()
-            || text(domain.unwrap_or(&Value::Null), "geometry_profile_ref").is_none()
+            || (domain.unwrap_or(&Value::Null).get("asset_family_ref").is_some()
+                && ["asset_family_ref", "asset_configuration_ref", "operating_domain_ref", "installation_profile_ref"]
+                    .iter().any(|key| text(domain.unwrap_or(&Value::Null), key).is_none()))
+            || (domain.unwrap_or(&Value::Null).get("asset_family_ref").is_none()
+                && ["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"]
+                    .iter().any(|key| text(domain.unwrap_or(&Value::Null), key).is_none()))
         {
             push(&mut errors, "INCOMPLETE_CHANNEL_DOMAIN", &format!("{path}.domain"), "channel calibration domain must declare material cohort, path and geometry");
         } else {
             let domain = domain.unwrap();
-            if text(domain, "material_cohort_ref") != text(&case["parent_context"], "material_cohort_ref")
-                || text(domain, "path_configuration_ref") != text(&case["parent_context"], "transport_configuration_ref")
-            {
-                push(&mut errors, "CHANNEL_PARENT_DOMAIN_MISMATCH", &format!("{path}.domain"), "channel material/path domain must match the exact parent cohort and transport configuration");
+            let generic_domain = domain.get("asset_family_ref").is_some();
+            let keys: &[&str] = if generic_domain {
+                &["asset_family_ref", "asset_configuration_ref", "operating_domain_ref", "installation_profile_ref"]
+            } else {
+                &["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"]
+            };
+            let mismatch = keys.iter().any(|key| text(domain, key) != text(&case["parent_context"], key));
+            if mismatch {
+                push(&mut errors, "CHANNEL_PARENT_DOMAIN_MISMATCH", &format!("{path}.domain"), "channel asset/domain identity must match the exact parent configuration and operating domain");
             }
         }
     }
@@ -222,7 +221,7 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
             continue;
         };
         if !valid_state_id(id) {
-            push(&mut errors, "UNKNOWN_STATE_ID", &format!("{path}.state_id"), "state is outside the frozen v0.1 taxonomy");
+            push(&mut errors, "INVALID_STATE_ID", &format!("{path}.state_id"), "state ID must use the canonical uppercase identifier in the case-bound state taxonomy");
         }
         if state_map.insert(id.to_owned(), state).is_some() {
             push(&mut errors, "DUPLICATE_STATE_ID", &format!("{path}.state_id"), "state IDs must be unique");
@@ -398,9 +397,12 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
 }
 
 fn same_domain(a: &Value, b: &Value) -> bool {
-    ["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"]
-        .iter()
-        .all(|key| text(a, key).is_some() && text(a, key) == text(b, key))
+    let keys: &[&str] = if a.get("asset_family_ref").is_some() || b.get("asset_family_ref").is_some() {
+        &["asset_family_ref", "asset_configuration_ref", "operating_domain_ref", "installation_profile_ref"]
+    } else {
+        &["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"]
+    };
+    keys.iter().all(|key| text(a, key).is_some() && text(a, key) == text(b, key))
 }
 
 /// Evaluate fault-pair identifiability using only non-overlapping intervals
@@ -595,6 +597,21 @@ mod tests {
             .find(|c| c["channel_id"] == channel).unwrap()
     }
 
+    fn rename_key(value: &mut Value, old: &str, new: &str) {
+        let object = value.as_object_mut().expect("object");
+        let item = object.remove(old).expect("old key exists");
+        object.insert(new.to_owned(), item);
+    }
+
+    fn replace_string(value: &mut Value, from: &str, to: &str) {
+        match value {
+            Value::String(s) if s == from => *s = to.to_owned(),
+            Value::Array(items) => for item in items { replace_string(item, from, to); },
+            Value::Object(items) => for item in items.values_mut() { replace_string(item, from, to); },
+            _ => {}
+        }
+    }
+
     #[test]
     fn synthetic_layout_manifest_is_valid() {
         assert!(validate_case(&fixture(), &parent()).is_empty());
@@ -768,10 +785,44 @@ mod tests {
     }
 
     #[test]
-    fn unknown_state_taxonomy_is_rejected() {
+    fn noncanonical_state_id_is_rejected() {
         let mut case = fixture();
-        case["states"][0]["state_id"] = serde_json::json!("MAGIC_FAULT");
-        assert!(has(&validate_case(&case, &parent()), "UNKNOWN_STATE_ID"));
+        case["states"][0]["state_id"] = serde_json::json!("magic-fault");
+        assert!(has(&validate_case(&case, &parent()), "INVALID_STATE_ID"));
+    }
+
+    #[test]
+    fn domain_neutral_engine_taxonomy_and_asset_profile_are_supported() {
+        let mut case = fixture();
+        let mut parent_case = parent();
+
+        for (old, new) in [
+            ("material_cohort_ref", "asset_family_ref"),
+            ("machine_configuration_ref", "asset_configuration_ref"),
+            ("transport_configuration_ref", "operating_domain_ref"),
+        ] {
+            rename_key(&mut case["parent_context"], old, new);
+            rename_key(&mut parent_case["profile"], old, new);
+        }
+        let installation = serde_json::json!("installation-profile:marine-engine-a-v1");
+        case["parent_context"]["installation_profile_ref"] = installation.clone();
+        parent_case["profile"]["installation_profile_ref"] = installation;
+
+        for channel in case["channels"].as_array_mut().unwrap() {
+            let domain = &mut channel["domain"];
+            rename_key(domain, "material_cohort_ref", "asset_family_ref");
+            rename_key(domain, "path_configuration_ref", "asset_configuration_ref");
+            rename_key(domain, "geometry_profile_ref", "installation_profile_ref");
+            domain["operating_domain_ref"] = case["parent_context"]["operating_domain_ref"].clone();
+        }
+        case["layout_profile"]["state_taxonomy_ref"] = serde_json::json!("taxonomy:marine-diesel-faults-v0.1");
+        replace_string(&mut case, "DEVELOPING_BLOCKAGE", "ENGINE_FUEL_INJECTION_FAULT");
+
+        assert!(validate_case(&case, &parent_case).is_empty());
+        let report = evaluate_case(&case, &parent_case).expect("maritime profile evaluates");
+        assert_eq!(report.state_count, 8);
+        assert_eq!(report.required_pair_count, 8);
+        assert_eq!(report.evidence_disposition, "SYNTHETIC_ONLY");
     }
 
     #[test]

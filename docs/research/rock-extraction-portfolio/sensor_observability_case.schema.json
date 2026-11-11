@@ -22,24 +22,52 @@
       "minLength": 1
     },
     "domain": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "material_cohort_ref",
-        "path_configuration_ref",
-        "geometry_profile_ref"
-      ],
-      "properties": {
-        "material_cohort_ref": {
-          "$ref": "#/$defs/ref"
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "material_cohort_ref",
+            "path_configuration_ref",
+            "geometry_profile_ref"
+          ],
+          "properties": {
+            "material_cohort_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "path_configuration_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "geometry_profile_ref": {
+              "$ref": "#/$defs/ref"
+            }
+          }
         },
-        "path_configuration_ref": {
-          "$ref": "#/$defs/ref"
-        },
-        "geometry_profile_ref": {
-          "$ref": "#/$defs/ref"
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "asset_family_ref",
+            "asset_configuration_ref",
+            "operating_domain_ref",
+            "installation_profile_ref"
+          ],
+          "properties": {
+            "asset_family_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "asset_configuration_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "operating_domain_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "installation_profile_ref": {
+              "$ref": "#/$defs/ref"
+            }
+          }
         }
-      }
+      ]
     },
     "channel": {
       "type": "object",
@@ -99,24 +127,8 @@
       ],
       "properties": {
         "state_id": {
-          "enum": [
-            "NORMAL_STABLE",
-            "STARTUP_SHUTDOWN_TRANSIENT",
-            "HIGH_SOLIDS_LOADING",
-            "STRATIFIED_FLOW",
-            "DUNE_DEPOSITION",
-            "PARTIAL_RESTRICTION",
-            "DEVELOPING_BLOCKAGE",
-            "COMPLETE_BLOCKAGE",
-            "WATER_ACCUMULATION",
-            "FILTER_CYCLONE_LOADING",
-            "AIR_LEAK_DISCONNECTION",
-            "BLOWER_VFD_FAULT",
-            "PRESSURE_SENSOR_FAULT",
-            "AIRFLOW_SENSOR_FAULT",
-            "CURRENT_SENSOR_FAULT",
-            "UNKNOWN_OUT_OF_DOMAIN"
-          ]
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]{0,63}$"
         },
         "state_class": {
           "enum": [
@@ -250,36 +262,76 @@
       ]
     },
     "parent_context": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "parent_case_id",
-        "parent_interval_id",
-        "trial_id",
-        "material_cohort_ref",
-        "machine_configuration_ref",
-        "transport_configuration_ref"
-      ],
-      "properties": {
-        "parent_case_id": {
-          "$ref": "#/$defs/ref"
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "parent_case_id",
+            "parent_interval_id",
+            "trial_id",
+            "material_cohort_ref",
+            "machine_configuration_ref",
+            "transport_configuration_ref"
+          ],
+          "properties": {
+            "parent_case_id": {
+              "$ref": "#/$defs/ref"
+            },
+            "parent_interval_id": {
+              "$ref": "#/$defs/ref"
+            },
+            "trial_id": {
+              "$ref": "#/$defs/ref"
+            },
+            "material_cohort_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "machine_configuration_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "transport_configuration_ref": {
+              "$ref": "#/$defs/ref"
+            }
+          }
         },
-        "parent_interval_id": {
-          "$ref": "#/$defs/ref"
-        },
-        "trial_id": {
-          "$ref": "#/$defs/ref"
-        },
-        "material_cohort_ref": {
-          "$ref": "#/$defs/ref"
-        },
-        "machine_configuration_ref": {
-          "$ref": "#/$defs/ref"
-        },
-        "transport_configuration_ref": {
-          "$ref": "#/$defs/ref"
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "parent_case_id",
+            "parent_interval_id",
+            "trial_id",
+            "asset_family_ref",
+            "asset_configuration_ref",
+            "operating_domain_ref",
+            "installation_profile_ref"
+          ],
+          "properties": {
+            "parent_case_id": {
+              "$ref": "#/$defs/ref"
+            },
+            "parent_interval_id": {
+              "$ref": "#/$defs/ref"
+            },
+            "trial_id": {
+              "$ref": "#/$defs/ref"
+            },
+            "asset_family_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "asset_configuration_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "operating_domain_ref": {
+              "$ref": "#/$defs/ref"
+            },
+            "installation_profile_ref": {
+              "$ref": "#/$defs/ref"
+            }
+          }
         }
-      }
+      ]
     },
     "measurement_system_case_id": {
       "$ref": "#/$defs/ref"
@@ -290,7 +342,8 @@
       "required": [
         "layout_profile_ref",
         "minimum_independent_principles_for_critical_pairs",
-        "required_pair_set_ref"
+        "required_pair_set_ref",
+        "state_taxonomy_ref"
       ],
       "properties": {
         "layout_profile_ref": {
@@ -301,6 +354,9 @@
           "minimum": 1
         },
         "required_pair_set_ref": {
+          "$ref": "#/$defs/ref"
+        },
+        "state_taxonomy_ref": {
           "$ref": "#/$defs/ref"
         }
       }

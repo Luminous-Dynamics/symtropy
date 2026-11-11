@@ -233,3 +233,12 @@ Set final numerical thresholds only after the measurement-system study establish
 - #3993: layout-level pairwise diagnosability.
 
 This crate evaluates declared response envelopes and grouping assumptions. It does not prove field identifiability outside measured domains, optimize an installation, prescribe safe sensor placement or line operating conditions, or authorize mine operation. Physical claims require independently measured fault signatures, qualified sensors, common-mode analysis and held-out prospective fault campaigns.
+
+
+## Domain-neutral reuse extension — state taxonomy and asset identity
+
+The reference evaluator no longer hard-codes the excavation fault-state enumeration into its Rust library. Each case must bind an explicit versioned `state_taxonomy_ref`; state IDs are canonical uppercase identifiers declared by that case. This preserves domain-specific fault vocabulary without translating engine faults into excavation labels. The existing excavation fixture remains bound to `taxonomy:excavation-pneumatic-v0.1`.
+
+The channel-domain contract remains backward-compatible with the excavation tuple (material cohort, path configuration, geometry profile). A domain-neutral tuple is also supported: asset family, exact asset configuration, operating domain and installation profile. All four identities must match the parent context and be common across the pair of response states before a channel can contribute evidence. This makes the existing pairwise separation algorithm reusable by maritime machinery without changing its interval, measurement-principle, sensor-fault, or evidence-role semantics.
+
+A new synthetic Rust test transforms the existing case into a marine-engine profile with the case-local state `ENGINE_FUEL_INJECTION_FAULT`. It checks that the generic evaluator accepts this domain-specific identity while retaining the same known response matrix and report claim ceiling. This is a synthetic API-conformance fixture, not a physical engine result.
