@@ -284,6 +284,64 @@ impl<const D: usize> RigidBody<D> {
         }
     }
 
+    /// Compute world-space angular acceleration from applied torque using
+    /// Euler's rigid-body equation.
+    ///
+    /// In 3D this includes the gyroscopic term:
+    /// alpha = I_world^-1 * (tau_world - omega_world x L_world).
+    /// Omitting the gyroscopic term would produce incorrect torque-free
+    /// precession for asymmetric bodies. Higher-dimensional compatibility
+    /// paths retain the legacy scalar approximation and do not claim this
+    /// general rotational coupling.
+    pub fn angular_acceleration_from_torque(
+        &self,
+        torque_world_bivector: &Bivector<D>,
+    ) -> Bivector<D> {
+        if !self.is_dynamic() {
+            return Bivector::zero();
+        }
+        if D != 3 {
+            return self.apply_inverse_angular_inertia(torque_world_bivector);
+        }
+        if !self.principal_moments_3d_are_valid() {
+            return Bivector::zero();
+        }
+
+        let rotation = SMatrix::<f64, 3, 3>::from_fn(|row, col| {
+            self.transform.rotation.to_matrix()[(row, col)]
+        });
+        let omega_world = SVector::<f64, 3>::new(
+            self.angular_velocity.get(1, 2),
+            -self.angular_velocity.get(0, 2),
+            self.angular_velocity.get(0, 1),
+        );
+        let torque_world = SVector::<f64, 3>::new(
+            torque_world_bivector.get(1, 2),
+            -torque_world_bivector.get(0, 2),
+            torque_world_bivector.get(0, 1),
+        );
+
+        let omega_local = rotation.transpose() * omega_world;
+        let momentum_local = self.inertia.component_mul(&omega_local);
+        let momentum_world = rotation * momentum_local;
+
+        let gyroscopic = SVector::<f64, 3>::new(
+            omega_world[1] * momentum_world[2] - omega_world[2] * momentum_world[1],
+            omega_world[2] * momentum_world[0] - omega_world[0] * momentum_world[2],
+            omega_world[0] * momentum_world[1] - omega_world[1] * momentum_world[0],
+        );
+        let net_torque_world = torque_world - gyroscopic;
+        let net_torque_local = rotation.transpose() * net_torque_world;
+        let alpha_local = self.inv_inertia.component_mul(&net_torque_local);
+        let alpha_world = rotation * alpha_local;
+
+        let mut result = Bivector::<D>::zero();
+        result.set(0, 1, alpha_world[2]);
+        result.set(0, 2, -alpha_world[1]);
+        result.set(1, 2, alpha_world[0]);
+        result
+    }
+
     /// Rotational kinetic energy using the same inertia operator as integration.
     /// Invalid 3D principal moments fail closed to zero rotational energy.
     pub fn rotational_kinetic_energy(&self) -> f64 {
@@ -374,7 +432,7 @@ impl<const D: usize> RigidBody<D> {
 #[cfg(test)]
 mod rotational_inertia_tests {
     use super::*;
-    use symtropy_math::{Bivector, Point, Rotor, Sphere};
+    use symtropy_math::{Bivector, Point, Rotor};
 
     fn anisotropic_body() -> RigidBody<3> {
         let mut body = RigidBody::<3>::dynamic_sphere(
