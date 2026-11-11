@@ -327,7 +327,10 @@ fn minimum_linear_power_prefix_work_j(
     let mut minimum_work_j = 0.0_f64.min(end_work_j);
 
     if power_start_w < 0.0 && power_end_w > 0.0 {
-        let fraction_to_zero = -power_start_w / (power_end_w - power_start_w);
+        let scale = power_start_w.abs().max(power_end_w.abs());
+        let scaled_start = power_start_w / scale;
+        let scaled_end = power_end_w / scale;
+        let fraction_to_zero = -scaled_start / (scaled_end - scaled_start);
         let interior_work_j = 0.5 * power_start_w * fraction_to_zero * duration_s;
         minimum_work_j = minimum_work_j.min(interior_work_j);
     }
@@ -451,6 +454,9 @@ pub fn project_diagonal_virtual_parameter_update(
         }
         coefficients[index] = 0.5 * velocity * velocity;
         coefficients[index + 6] = 0.5 * error * error;
+        if !coefficients[index].is_finite() || !coefficients[index + 6].is_finite() {
+            return Err(VirtualImpedanceError::ArithmeticOverflow);
+        }
     }
 
     if !request.available_energy_budget_j.is_finite()
@@ -542,7 +548,7 @@ pub fn project_diagonal_virtual_parameter_update(
     let mut lower_multiplier = 0.0_f64;
     let mut upper_multiplier = maximum_multiplier;
     for _ in 0..80 {
-        let midpoint = lower_multiplier + (upper_multiplier - lower_multiplier) * 0.5;
+        let midpoint = lower_multiplier.midpoint(upper_multiplier);
         let candidate = parameter_update_at_multiplier(&request, &coefficients, midpoint);
         let debit = parameter_update_debit(&candidate, &coefficients);
         if debit > request.available_energy_budget_j {
@@ -651,7 +657,7 @@ pub fn diagonal_virtual_parameter_storage_delta(
     relative_velocity: [f64; 6],
 ) -> Result<VirtualParameterStorageDelta, VirtualImpedanceError> {
     let mut delta = 0.0_f64;
-    for ((((((old_mass, new_mass), old_stiffness), new_stiffness), e), velocity)) in old.virtual_inertia.iter()
+    for (((((old_mass, new_mass), old_stiffness), new_stiffness), e), velocity) in old.virtual_inertia.iter()
         .zip(new.virtual_inertia.iter())
         .zip(old.stiffness.iter())
         .zip(new.stiffness.iter())
@@ -766,7 +772,7 @@ mod tests {
 
         assert!((result.delta_storage_j - 12.5).abs() < 1.0e-12);
         assert!((result.required_energy_debit_j - 12.5).abs() < 1.0e-12);
-        assert_eq!(result.uncredited_storage_release_j, 0.0);
+        assert!(result.uncredited_storage_release_j.abs() < 1.0e-12);
     }
 
     #[test]
@@ -783,7 +789,7 @@ mod tests {
         .unwrap();
 
         assert!((result.delta_storage_j + 12.5).abs() < 1.0e-12);
-        assert_eq!(result.required_energy_debit_j, 0.0);
+        assert!(result.required_energy_debit_j.abs() < 1.0e-12);
         assert!((result.uncredited_storage_release_j - 12.5).abs() < 1.0e-12);
     }
 
@@ -954,7 +960,7 @@ mod tests {
 
         assert!(result.accepted_delta[0] > -1.0);
         assert!(result.accepted_delta[6] >= -100.0);
-        assert_eq!(result.parameter_energy_debit_j, 0.0);
+        assert!(result.parameter_energy_debit_j.abs() < 1.0e-12);
     }
 
     #[test]
@@ -965,7 +971,7 @@ mod tests {
 
         assert!((result.cumulative_port_work_j - 1.0).abs() < 1.0e-12);
         assert!((result.conservative_storage_lower_bound_j - 1.5).abs() < 1.0e-12);
-        assert_eq!(result.passivity_deficit_j, 0.0);
+        assert!(result.passivity_deficit_j.abs() < 1.0e-12);
         assert_eq!(result.violation_interval_count, 0);
     }
 
