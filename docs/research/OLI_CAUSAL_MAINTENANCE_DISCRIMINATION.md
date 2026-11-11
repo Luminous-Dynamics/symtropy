@@ -41,6 +41,7 @@ A disturbance applies an instantaneous, explicitly supplied damage value. The en
 - energy available divided by energy required per unit repair.
 
 The update report preserves:
+- controller mode and environmental energy availability for that exact tick;
 - integrity before and after;
 - passive decay loss and applied disturbance;
 - requested, applied and unmet repair;
