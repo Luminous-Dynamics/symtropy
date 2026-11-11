@@ -1477,6 +1477,23 @@ mod tests {
         }
     }
 
+    fn selected_probe_context(
+        hypotheses: &[HypothesisPrior],
+        candidates: &[DiagnosticProbeCandidate],
+    ) -> (ProbeSelectionPolicy, ProbePortfolio, ProbeBaselineSelection) {
+        let policy = ProbeSelectionPolicy::conservative_read_only();
+        let portfolio = rank_diagnostic_probes(hypotheses, candidates, &policy).unwrap();
+        let selection = select_probe_baseline(
+            &portfolio,
+            candidates,
+            ProbeBaseline::RiskAdjustedWorstCaseInformationGain,
+            None,
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
+        (policy, portfolio, selection)
+    }
+
     #[test]
     fn robust_selector_rejects_optimistic_measurement_with_uninformative_plausible_scenario() {
         let mut uncertain = candidate(
@@ -1675,8 +1692,16 @@ mod tests {
             ProbeAuthorization::ApprovedReadOnly,
             true,
         );
+        let hypotheses = hypotheses();
+        let candidates = vec![item.clone()];
+        let (_policy, portfolio, selection) =
+            selected_probe_context(&hypotheses, &candidates);
         let update = realize_probe_observation(
-            &hypotheses(),
+            &hypotheses,
+            &candidates,
+            &_policy,
+            &portfolio,
+            &selection,
             &item,
             &item.candidate_manifest_sha256,
             "bearing_signature",
@@ -1705,18 +1730,26 @@ mod tests {
         item.outcomes.clear();
         item.uncertainty_scenarios = vec![
             scenario("nominal", 0.5, 0.95),
-            scenario("degraded", 0.5, 0.50),
+            scenario("degraded", 0.5, 0.90),
         ];
         item.candidate_manifest_sha256 = candidate_manifest_sha256(&item).unwrap();
+        let hypotheses = hypotheses();
+        let candidates = vec![item.clone()];
+        let (_policy, portfolio, selection) =
+            selected_probe_context(&hypotheses, &candidates);
         let update = realize_probe_observation(
-            &hypotheses(),
+            &hypotheses,
+            &candidates,
+            &_policy,
+            &portfolio,
+            &selection,
             &item,
             &item.candidate_manifest_sha256,
             "bearing_signature",
             &digest('d'),
         )
         .unwrap();
-        assert!((update.posterior[0].probability - 0.725).abs() < 1e-12);
+        assert!((update.posterior[0].probability - 0.925).abs() < 1e-12);
         assert_eq!(update.likelihood_scenario_count, 2);
         assert_eq!(update.possible_likelihood_scenario_count, 2);
         assert_eq!(update.impossible_likelihood_scenario_count, 0);
@@ -1732,9 +1765,17 @@ mod tests {
             ProbeAuthorization::ApprovedReadOnly,
             true,
         );
+        let hypotheses = hypotheses();
+        let candidates = vec![item.clone()];
+        let (_policy, portfolio, selection) =
+            selected_probe_context(&hypotheses, &candidates);
         assert_eq!(
             realize_probe_observation(
-                &hypotheses(),
+                &hypotheses,
+                &candidates,
+                &_policy,
+                &portfolio,
+                &selection,
                 &item,
                 &digest('0'),
                 "bearing_signature",
@@ -1744,7 +1785,11 @@ mod tests {
         );
         assert_eq!(
             realize_probe_observation(
-                &hypotheses(),
+                &hypotheses,
+                &candidates,
+                &_policy,
+                &portfolio,
+                &selection,
                 &item,
                 &item.candidate_manifest_sha256,
                 "unlisted_outcome",
@@ -1759,18 +1804,37 @@ mod tests {
             ProbeAuthorization::ApprovedReadOnly,
             true,
         );
-        impossible.outcomes[0].likelihood_by_hypothesis = vec![0.0, 0.0];
-        impossible.outcomes[1].likelihood_by_hypothesis = vec![1.0, 1.0];
+        impossible.outcomes = vec![
+            ProbeOutcomeLikelihood {
+                outcome_id: "bearing_signature".into(),
+                likelihood_by_hypothesis: vec![1.0, 0.0],
+            },
+            ProbeOutcomeLikelihood {
+                outcome_id: "fuel_signature".into(),
+                likelihood_by_hypothesis: vec![0.0, 1.0],
+            },
+            ProbeOutcomeLikelihood {
+                outcome_id: "impossible_signature".into(),
+                likelihood_by_hypothesis: vec![0.0, 0.0],
+            },
+        ];
         impossible.candidate_manifest_sha256 = candidate_manifest_sha256(&impossible).unwrap();
+        let impossible_candidates = vec![impossible.clone()];
+        let (_policy, portfolio, selection) =
+            selected_probe_context(&hypotheses, &impossible_candidates);
         assert_eq!(
             realize_probe_observation(
-                &hypotheses(),
+                &hypotheses,
+                &impossible_candidates,
+                &_policy,
+                &portfolio,
+                &selection,
                 &impossible,
                 &impossible.candidate_manifest_sha256,
-                "bearing_signature",
+                "impossible_signature",
                 &digest('e')
             ),
-            Err(ProbeError::ObservedOutcomeImpossible("bearing_signature".into()))
+            Err(ProbeError::ObservedOutcomeImpossible("impossible_signature".into()))
         );
     }
 
