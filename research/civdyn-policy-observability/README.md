@@ -86,6 +86,12 @@ https://proceedings.mlr.press/v306/wei26v.html
 
 This v0.1 crate does **not** reproduce that estimator. It provides a much smaller finite-population arithmetic/identification control against which a future sequence-level implementation can be tested.
 
+A second, complementary planning comparator is Wendland et al., **Missingness-MDPs: Bridging the Theory of Missing Data and POMDPs**, IJCAI 2026 (pp. 6217–6226). Unlike reward-MNAR off-policy evaluation, this work treats missing state features as a state-dependent observation function and learns it under MCAR, simple-MAR and selected MNAR structural assumptions before solving the approximate POMDP. Its ICU and Predator benchmarks include identifiable and unidentifiable MNAR cases, dependent feature missingness, AMCAR/AsMAR/AIMI methods, and comparisons against SARSOP optimal/prior policies, POMCP and PPO with/without memory. The paper reports average/worst total variation of the learned missingness function and normalized true policy value over 20 independent runs. Its [public reference implementation](https://github.com/ai-fm/missingness-mdps) is MIT-licensed.
+
+The ICML OPE track and IJCAI planning track are different estimands: reward observation versus state-feature observation. Do not merge their headline scores. Reproduce both paper protocols separately before adding CIVDYN's policy-induced mixed-mechanism and subgroup challenge families.
+
+The ICML paper's [author implementation is ShadOPE](https://github.com/NAIVlab/ShadOPE), whose README lists ProxFQE, NaiveFQE, WeightedFQE, ImputeFQE, SCOPE and a neural bridge/AGMM route. The current requirements pin Python 3.11-era dependencies and PyTorch 2.9.1+CUDA 12.6. The root `LICENSE` path was not found during this inspection; do not vendor or redistribute that code until its terms are verified. Keep it as a separately pinned external reference runner.
+
 Other relevant 2026 work includes Rubinstein et al. on bounds under an unknown mixture of informative and non-informative missingness (Journal of Causal Inference, 2026):
 
 https://pmc.ncbi.nlm.nih.gov/articles/PMC13455597/
@@ -106,12 +112,13 @@ These works are methodological reference points, not a directly comparable leade
 
 ## Next benchmark targets
 
-1. Sequence-level finite-horizon trajectories with policy, state, action, reward, observation indicator and observation propensity on every time step.
-2. Reproduction of the ICML 2026 missingness-aware MDP estimator under its stated assumptions and available reference implementation.
-3. MCAR, MAR, MNAR, mixed-mechanism, positivity failure and policy-induced mechanism-shift challenge families.
-4. Shadow-variable/bridge-function estimators, inverse-propensity baselines, complete-case and zero-imputation negative controls, and assumption-free bounds.
-5. Paired held-out worlds with measured policy value, regret, bound coverage, interval width, subgroup support and compute.
-6. Empirical South African water/energy/municipal evaluation only after the #4560/#4601 source, rights, measurement-equivalence and uncertainty gates are satisfied.
+1. Reproduce the IJCAI 2026 miss-MDP protocol (AMCAR/AsMAR/AIMI, ICU/Predator, sample-size curves, average/worst missingness-function TV and true policy value) in a separately pinned reference runner.
+2. Reproduce the ICML 2026 ShadOPE protocol (its reward-MNAR model, bridge/min-max estimator, FQE variants and published simulation/MIMIC-III evaluations) without importing unlicensed source into this crate.
+3. Add sequence-level CIVDYN trajectories with policy, state, action, reward, observation indicator and observation propensity on every time step.
+4. Add MCAR, MAR, identifiable/unidentifiable MNAR, mixed-mechanism, dependent-feature outage, positivity failure and policy-induced mechanism-shift challenge families.
+5. Compare shadow-variable/bridge estimators, AMCAR/AsMAR/AIMI, inverse-propensity baselines, POMCP/PPO planning, complete-case and zero-imputation controls, and assumption-free bounds on their respective tasks.
+6. Use paired held-out worlds with measured policy value, regret, bound coverage, interval width, subgroup support, total-variation fit and compute.
+7. Empirical South African water/energy/municipal evaluation only after the #4560/#4601 source, rights, measurement-equivalence and uncertainty gates are satisfied.
 
 ## Claim ceiling
 
