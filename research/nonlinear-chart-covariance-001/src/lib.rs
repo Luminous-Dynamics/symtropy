@@ -390,7 +390,7 @@ mod tests {
             }
         }
         let expected = pullback_constraint_jacobian(y, amplitude, jacobian_q).unwrap();
-        let h = 1.0e-6;
+        let h = 1.0e-5;
         for column in 0..DIMENSION {
             let mut plus = y;
             let mut minus = y;
