@@ -1,0 +1,49 @@
+name: EV BMS evidence authenticity audit v0.1
+
+on:
+  pull_request:
+    paths:
+      - "docs/transport/EV_BMS_EVIDENCE_AUTH_V0_1.md"
+      - "schemas/transport/ev_bms_signed_event_v0_1.schema.json"
+      - "fixtures/ev_battery/bms_evidence_auth_v0_1.json"
+      - "tools/ev-bms-evidence-auth-audit/**"
+      - ".github/workflows/ev-bms-evidence-auth-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-bms-evidence-auth-audit/Cargo.toml -- --check
+
+      - name: Run signature, role, asset, replay and mutation tests
+        run: cargo test --manifest-path tools/ev-bms-evidence-auth-audit/Cargo.toml
+
+      - name: Audit frozen synthetic BMS events
+        run: |
+          cargo run --manifest-path tools/ev-bms-evidence-auth-audit/Cargo.toml -- \
+            --schema schemas/transport/ev_bms_signed_event_v0_1.schema.json \
+            --corpus fixtures/ev_battery/bms_evidence_auth_v0_1.json \
+            > "$RUNNER_TEMP/ev-bms-evidence-auth-report.json"
+          jq -e '
+            .event_count == 14 and
+            .authenticated_count == 4 and
+            .quarantined_count == 2 and
+            .rejected_count == 7 and
+            .replay_rejected_count == 1 and
+            .unattested_count == 1 and
+            any(.events[]; .event_id == "evt-valid-001" and
+              .authenticity_state == "AUTHENTICATED_AND_AUTHORIZED" and
+              .physical_validity_state == "NOT_ESTABLISHED_BY_SIGNATURE")
+          ' "$RUNNER_TEMP/ev-bms-evidence-auth-report.json"
