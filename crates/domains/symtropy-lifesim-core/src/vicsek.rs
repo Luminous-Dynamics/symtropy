@@ -218,10 +218,19 @@ pub struct VicsekMetrics {
     pub mean_cluster_size: f64,
     /// Population variance of connected-component sizes.
     pub cluster_size_variance: f64,
-    /// Mean polar order calculated separately within each connected component.
+    /// Mean polar order calculated separately within each connected component, including
+    /// singleton components. This is descriptive only: singleton order is trivially one.
     pub mean_cluster_polar_order: f64,
-    /// Population variance of per-component polar-order values.
+    /// Population variance of per-component polar-order values, including singletons.
     pub cluster_polar_order_variance: f64,
+    /// Fraction of particles belonging to a connected component containing at least two particles.
+    /// A system of isolated particles has zero nontrivial-cluster coverage.
+    pub nontrivial_cluster_coverage_fraction: f64,
+    /// Mean polar order across components containing at least two particles; None if
+    /// every component is a singleton.
+    pub mean_nontrivial_cluster_polar_order: Option<f64>,
+    /// Variance of nontrivial-component polar order; None if there are no such components.
+    pub nontrivial_cluster_polar_order_variance: Option<f64>,
     /// Whether the optional all-pairs graph topology metrics were computed for this snapshot.
     pub topology_metrics_computed: bool,
     /// Mean local clustering coefficient over all particles; isolated/degree-one vertices contribute zero.
@@ -668,6 +677,44 @@ impl VicsekModel {
             .sum::<f64>()
             / cluster_count as f64;
 
+        // A singleton connected component has polar order 1 by construction, regardless
+        // of whether it interacts with anything. Keep the all-component statistic for
+        // source compatibility, but expose support and order for nontrivial clusters
+        // separately so an isolated gas cannot appear perfectly cluster-coherent.
+        let nontrivial_cluster_particle_count: usize = component_sizes
+            .iter()
+            .filter(|size| **size > 1)
+            .sum();
+        let nontrivial_cluster_orders: Vec<f64> = (0..count)
+            .filter(|root| component_sizes[*root] > 1)
+            .map(|root| {
+                (component_sum_cos[root].hypot(component_sum_sin[root])
+                    / component_sizes[root] as f64)
+                    .clamp(0.0, 1.0)
+            })
+            .collect();
+        let mean_nontrivial_cluster_polar_order = if nontrivial_cluster_orders.is_empty() {
+            None
+        } else {
+            Some(
+                nontrivial_cluster_orders.iter().sum::<f64>()
+                    / nontrivial_cluster_orders.len() as f64,
+            )
+        };
+        let nontrivial_cluster_polar_order_variance =
+            mean_nontrivial_cluster_polar_order.map(|mean| {
+                nontrivial_cluster_orders
+                    .iter()
+                    .map(|order| {
+                        let delta = *order - mean;
+                        delta * delta
+                    })
+                    .sum::<f64>()
+                    / nontrivial_cluster_orders.len() as f64
+            });
+        let nontrivial_cluster_coverage_fraction =
+            nontrivial_cluster_particle_count as f64 / count as f64;
+
         // Optional network topology analysis. Its cost is paid only when the caller
         // explicitly requests a full checkpoint snapshot.
         let graph_metrics = adjacency.map(|graph| {
@@ -748,6 +795,9 @@ impl VicsekModel {
             cluster_size_variance,
             mean_cluster_polar_order,
             cluster_polar_order_variance,
+            nontrivial_cluster_coverage_fraction,
+            mean_nontrivial_cluster_polar_order,
+            nontrivial_cluster_polar_order_variance,
             topology_metrics_computed: graph_metrics.is_some(),
             mean_clustering_coefficient: graph_metrics.map(|metrics| metrics.0),
             mean_shortest_path_length: graph_metrics.and_then(|metrics| metrics.1),
@@ -978,6 +1028,9 @@ mod tests {
         assert!((metrics.mean_local_polar_order.unwrap() - 1.0).abs() < 1.0e-12);
         assert!((metrics.mean_cluster_polar_order - 1.0).abs() < 1.0e-12);
         assert_eq!(metrics.cluster_count, 2);
+        assert_eq!(metrics.nontrivial_cluster_coverage_fraction, 1.0);
+        assert!((metrics.mean_nontrivial_cluster_polar_order.unwrap() - 1.0).abs() < 1.0e-12);
+        assert_eq!(metrics.nontrivial_cluster_polar_order_variance, Some(0.0));
         assert_eq!(metrics.mean_cluster_size, 2.0);
         assert_eq!(metrics.cluster_size_variance, 0.0);
         assert_eq!(metrics.largest_cluster_fraction, 0.5);
@@ -1013,6 +1066,9 @@ mod tests {
         assert_eq!(full_metrics.mean_shortest_path_length, None);
         assert_eq!(full_metrics.connected_pair_fraction, Some(0.0));
         assert_eq!(metrics.cluster_count, 5);
+        assert_eq!(metrics.nontrivial_cluster_coverage_fraction, 0.0);
+        assert_eq!(metrics.mean_nontrivial_cluster_polar_order, None);
+        assert_eq!(metrics.nontrivial_cluster_polar_order_variance, None);
     }
 
     #[test]
