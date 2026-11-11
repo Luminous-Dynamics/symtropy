@@ -1403,6 +1403,7 @@ mod tests {
         .unwrap();
         let transformed_state =
             transform_state_to_basis(state, &basis_inverse);
+        let force = asymmetric_force();
         let transformed_force = transform_force_covector(&basis, &force);
         let transformed_metric =
             transformed_mass_metric(&mass_metric(masses), &basis);
@@ -1419,6 +1420,7 @@ mod tests {
             StepProfileV1::default(),
         )
         .unwrap();
+        assert!(base_step.diagnostics.multiplier.abs() > 1.0e-2);
 
         let rotation3 = rotation3([0.3, -0.4, 0.8], 0.73);
         let physical_action = block_rotation3(&rotation3);
@@ -1460,6 +1462,52 @@ mod tests {
             &rotated_step.velocity_next,
             &apply6(&transformed_action, &base_step.velocity_next),
             1.0e-10,
+        );
+        assert!(
+            (rotated_step.diagnostics.multiplier - base_step.diagnostics.multiplier).abs()
+                < 1.0e-10
+        );
+    }
+
+    #[test]
+    fn wrong_constraint_jacobian_rebasis_is_detected() {
+        let state = canonical_state();
+        let masses = DumbbellMassesV1 {
+            first: 1.3,
+            second: 2.1,
+        };
+        let force = asymmetric_force();
+        let canonical = run_canonical(state, force, 0.02);
+        let basis = frozen_dense_basis(2);
+        let basis_inverse = inverse6(
+            &basis,
+            StepProfileV1::default().relative_pivot_tolerance,
+        )
+        .unwrap();
+        let transformed_state = transform_state_to_basis(state, &basis_inverse);
+        let transformed_mass = transformed_mass_metric(&mass_metric(masses), &basis);
+        let transformed_force = transform_force_covector(&basis, &force);
+        let wrong_map =
+            multiply_constraint_by_basis(&relative_position_map(), &basis_inverse);
+        let wrong = constrained_dumbbell_step(
+            &transformed_state.position,
+            &transformed_state.velocity,
+            &transformed_mass,
+            &wrong_map,
+            &transformed_force,
+            0.02,
+            StepProfileV1::default(),
+        )
+        .expect("wrong-map control remains a finite solve");
+        let lifted = lift_state_from_basis(
+            PhysicalStateV1 {
+                position: wrong.position_next,
+                velocity: wrong.velocity_next,
+            },
+            &basis,
+        );
+        assert!(
+            norm6(&subtract6(&lifted.position, &canonical.position_next)) > 1.0e-4
         );
     }
 
