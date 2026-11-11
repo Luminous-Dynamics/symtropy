@@ -9,36 +9,108 @@
     "license_path": "LICENSE",
     "license_git_blob": "859c41b3529fe6408802113bf8931575339e3262",
     "source_files": [
-      {"path":"src/Experiment.jl","git_blob":"8765725aa592ea5ce3cd628cac6d0b3e52d0abdf"},
-      {"path":"src/Learning.jl","git_blob":"379f57bb6eca65b3f0bb7dea389c10d4c3ea506b"},
-      {"path":"src/Metrics.jl","git_blob":"3a96b9184969720fc78f993862e81c5d8b3134ad"},
-      {"path":"src/benchmarks/Icu.jl","git_blob":"b2ca11258ed56f8abae7e15247b9af2536a246e6"},
-      {"path":"src/benchmarks/PredatorFactored.jl","git_blob":"fd4fbedc1bf519d04da9eed99bba8538e052cce7"}
+      {
+        "path": "src/Experiment.jl",
+        "git_blob": "8765725aa592ea5ce3cd628cac6d0b3e52d0abdf"
+      },
+      {
+        "path": "src/Learning.jl",
+        "git_blob": "379f57bb6eca65b3f0bb7dea389c10d4c3ea506b"
+      },
+      {
+        "path": "src/Metrics.jl",
+        "git_blob": "3a96b9184969720fc78f993862e81c5d8b3134ad"
+      },
+      {
+        "path": "src/benchmarks/Icu.jl",
+        "git_blob": "b2ca11258ed56f8abae7e15247b9af2536a246e6"
+      },
+      {
+        "path": "src/benchmarks/PredatorFactored.jl",
+        "git_blob": "fd4fbedc1bf519d04da9eed99bba8538e052cce7"
+      }
     ]
   },
   "experiment_contract": {
     "repetitions_per_dataset_size": 20,
-    "dataset_sizes": [10,50,100,500,1000,5000,10000,100000,1000000,10000000],
-    "learning_assumptions": ["MCAR","MAR","MNAR"],
+    "dataset_sizes": [
+      10,
+      50,
+      100,
+      500,
+      1000,
+      5000,
+      10000,
+      100000,
+      1000000,
+      10000000
+    ],
+    "learning_assumptions": [
+      "MCAR",
+      "MAR",
+      "MNAR"
+    ],
     "expected_learning_rows_per_experiment": 600,
     "expected_unique_run_keys_per_experiment": 600,
-    "baseline_identities": ["upper","random"],
+    "baseline_identities": [
+      "upper",
+      "random"
+    ],
     "mconst_rows": 1,
     "pomcp_rows": 8
   },
   "artifacts": [
-    {"experiment_id":"icu/smar","path":"experiments/logs/icu/smar/results.json","git_blob":"33c6bfc9d14f2fd6e174aff758f02f39e581817d","pomdp_states":800,"finished_learning_rows":567,"exception_learning_rows":33},
-    {"experiment_id":"icu/mnar-ident","path":"experiments/logs/icu/mnar-ident/results.json","git_blob":"9d6ca66d366bc4c8360f124c7124d320be3a0b43","pomdp_states":800,"finished_learning_rows":564,"exception_learning_rows":36},
-    {"experiment_id":"icu/mnar-unident","path":"experiments/logs/icu/mnar-unident/results.json","git_blob":"2bf5bca7ecfa79fe7ef619123e0b7c24186decf7","pomdp_states":800,"finished_learning_rows":585,"exception_learning_rows":15},
-    {"experiment_id":"predator-factored/smar","path":"experiments/logs/predator/smar/results.json","git_blob":"619033929aed329d75f6800e45fc22e9e2881ece","pomdp_states":626,"finished_learning_rows":600,"exception_learning_rows":0},
-    {"experiment_id":"predator-factored/mnar-unident","path":"experiments/logs/predator/mnar-unident/results.json","git_blob":"6bdc39a53cf37916b644478c6ed67af127e2f56e","pomdp_states":626,"finished_learning_rows":561,"exception_learning_rows":39}
+    {
+      "experiment_id": "icu/smar",
+      "path": "experiments/logs/icu/smar/results.json",
+      "git_blob": "33c6bfc9d14f2fd6e174aff758f02f39e581817d",
+      "pomdp_states": 800,
+      "finished_learning_rows": 567,
+      "exception_learning_rows": 33
+    },
+    {
+      "experiment_id": "icu/mnar-ident",
+      "path": "experiments/logs/icu/mnar-ident/results.json",
+      "git_blob": "9d6ca66d366bc4c8360f124c7124d320be3a0b43",
+      "pomdp_states": 800,
+      "finished_learning_rows": 564,
+      "exception_learning_rows": 36
+    },
+    {
+      "experiment_id": "icu/mnar-unident",
+      "path": "experiments/logs/icu/mnar-unident/results.json",
+      "git_blob": "2bf5bca7ecfa79fe7ef619123e0b7c24186decf7",
+      "pomdp_states": 800,
+      "finished_learning_rows": 585,
+      "exception_learning_rows": 15
+    },
+    {
+      "experiment_id": "predator-factored/smar",
+      "path": "experiments/logs/predator/smar/results.json",
+      "git_blob": "619033929aed329d75f6800e45fc22e9e2881ece",
+      "pomdp_states": 626,
+      "finished_learning_rows": 600,
+      "exception_learning_rows": 0
+    },
+    {
+      "experiment_id": "predator-factored/mnar-unident",
+      "path": "experiments/logs/predator/mnar-unident/results.json",
+      "git_blob": "6bdc39a53cf37916b644478c6ed67af127e2f56e",
+      "pomdp_states": 626,
+      "finished_learning_rows": 561,
+      "exception_learning_rows": 39
+    }
   ],
   "known_artifact_audit": {
     "learning_rows_total": 3000,
     "finished_learning_rows_total": 2877,
     "exception_learning_rows_total": 123,
     "exception_rate": 0.041,
-    "exception_rows_by_dataset_size": {"10":120,"50":3,"other":0},
+    "exception_rows_by_dataset_size": {
+      "10": 120,
+      "50": 3,
+      "other": 0
+    },
     "artifact_timestamp": "2025-07-15",
     "limitations": [
       "The five locked primary results.json artifacts do not constitute the full paper benchmark matrix.",
@@ -47,5 +119,130 @@
       "PPO and stacked-PPO outputs live in separate logs_PPO and logs_PPO_stacked trees (242 results.json files at this commit) and are not counted as completed baseline coverage by this adapter.",
       "An exception row is retained and reported; it is never silently dropped or counted as a successful policy evaluation."
     ]
+  },
+  "ppo_artifact_matrix": {
+    "expected_total": 242,
+    "directories": [
+      {
+        "path": "experiments/logs_PPO/icu/mnar-ident",
+        "stacked": false,
+        "model": "icu",
+        "pattern": "mnar-ident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/icu/mnar-unident",
+        "stacked": false,
+        "model": "icu",
+        "pattern": "mnar-unident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/icu/smar",
+        "stacked": false,
+        "model": "icu",
+        "pattern": "smar",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/predator/mcar_search_big",
+        "stacked": false,
+        "model": "predator",
+        "pattern": "mcar_search_big",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/predator/mnar-unident",
+        "stacked": false,
+        "model": "predator",
+        "pattern": "mnar-unident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/predator/smar",
+        "stacked": false,
+        "model": "predator",
+        "pattern": "smar",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/icu/mnar-ident",
+        "stacked": true,
+        "model": "icu",
+        "pattern": "mnar-ident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/icu/mnar-unident",
+        "stacked": true,
+        "model": "icu",
+        "pattern": "mnar-unident",
+        "runs": 19
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/icu/smar",
+        "stacked": true,
+        "model": "icu",
+        "pattern": "smar",
+        "runs": 23
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/predator/mcar_search_big",
+        "stacked": true,
+        "model": "pred",
+        "pattern": "mcar_search_big",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/predator/mnar-unident",
+        "stacked": true,
+        "model": "pred",
+        "pattern": "mnar-unident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/predator/smar",
+        "stacked": true,
+        "model": "pred",
+        "pattern": "smar",
+        "runs": 20
+      }
+    ],
+    "manifest_contract": {
+      "algorithm": "PPO",
+      "train_steps": 1000000,
+      "eval_episodes": 2000,
+      "required_fields": [
+        "is_stacked",
+        "model",
+        "train_steps",
+        "pattern",
+        "id",
+        "n_frames",
+        "n_layers",
+        "n_hidden",
+        "algorithm",
+        "return_std",
+        "ppo_hparams",
+        "eval_episodes",
+        "return_mean",
+        "seed"
+      ],
+      "output_metrics": [
+        "run_count",
+        "unique_run_ids",
+        "unique_seeds",
+        "minimum_seed",
+        "maximum_seed",
+        "architecture_ranges",
+        "mean_return",
+        "median_return",
+        "minimum_return",
+        "maximum_return",
+        "mean_reported_return_std",
+        "unique_hyperparameter_sets"
+      ],
+      "comparison_rule": "Do not pool ICU and Predator return values; keep stacked and unstacked as separate groups."
+    }
   }
 }
