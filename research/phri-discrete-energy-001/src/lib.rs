@@ -494,12 +494,12 @@ mod tests {
     #[test]
     fn arithmetic_overflow_is_rejected_without_mutation() {
         let mut initial = baseline();
-        initial.storage_j = f64::MAX;
+        initial.storage_j = 0.0;
         let mut observer = DiscreteEnergyObserver::new(initial, 100).unwrap();
-        let result = observer.record(step(101, 1_010, 0.0, -f64::MAX));
+        let result = observer.record(step(101, 1_010, f64::MAX, -f64::MAX));
         assert_eq!(result, Err(DiscreteEnergyError::ArithmeticOverflow));
         assert_eq!(observer.accepted_steps(), 0);
-        assert_eq!(observer.last_storage_j(), f64::MAX);
+        assert_eq!(observer.last_storage_j(), 0.0);
     }
 
     #[test]
