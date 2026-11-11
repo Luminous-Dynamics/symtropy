@@ -88,9 +88,7 @@ fn validate_profile(profile: ErrorEnvelopeProfileV1) -> Result<(), EnvelopeError
         || profile.relative_pivot_tolerance <= 0.0
         || !profile.maximum_condition_inf.is_finite()
         || profile.maximum_condition_inf < 1.0
-        || !profile
-            .maximum_condition_times_backward_error
-            .is_finite()
+        || !profile.maximum_condition_times_backward_error.is_finite()
         || profile.maximum_condition_times_backward_error <= 0.0
         || profile.maximum_condition_times_backward_error >= 1.0
     {
@@ -145,18 +143,12 @@ pub fn apply<const N: usize>(matrix: &Matrix<N>, vector: &Vector<N>) -> Vector<N
 }
 
 /// (M_y=S^T M_q S), the mass-metric congruence for q = S y.
-pub fn transform_metric<const N: usize>(
-    mass_q: &Matrix<N>,
-    basis: &Matrix<N>,
-) -> Matrix<N> {
+pub fn transform_metric<const N: usize>(mass_q: &Matrix<N>, basis: &Matrix<N>) -> Matrix<N> {
     multiply(&multiply(&transpose(basis), mass_q), basis)
 }
 
 /// (Q_y=S^T Q_q), the covector transformation for q = S y.
-pub fn transform_covector<const N: usize>(
-    basis: &Matrix<N>,
-    force_q: &Vector<N>,
-) -> Vector<N> {
+pub fn transform_covector<const N: usize>(basis: &Matrix<N>, force_q: &Vector<N>) -> Vector<N> {
     apply(&transpose(basis), force_q)
 }
 
@@ -195,11 +187,7 @@ fn factor<const N: usize>(
 
     for column in 0..N {
         let pivot_row = (column..N)
-            .max_by(|left, right| {
-                lu[*left][column]
-                    .abs()
-                    .total_cmp(&lu[*right][column].abs())
-            })
+            .max_by(|left, right| lu[*left][column].abs().total_cmp(&lu[*right][column].abs()))
             .ok_or(EnvelopeErrorV1::ZeroDimension)?;
         let pivot_magnitude = lu[pivot_row][column].abs();
         if !pivot_magnitude.is_finite() || pivot_magnitude <= threshold {
@@ -254,10 +242,7 @@ impl<const N: usize> LuFactorV1<N> {
         Ok(solution)
     }
 
-    fn condition_inf(
-        &self,
-        original: &Matrix<N>,
-    ) -> Result<f64, EnvelopeErrorV1> {
+    fn condition_inf(&self, original: &Matrix<N>) -> Result<f64, EnvelopeErrorV1> {
         let mut inverse = [[0.0; N]; N];
         for column in 0..N {
             let mut unit = [0.0; N];
@@ -289,15 +274,12 @@ pub fn assess_solution<const N: usize>(
 ) -> Result<SolveErrorEnvelopeV1, EnvelopeErrorV1> {
     validate_profile(profile)?;
     let lu = factor(matrix, profile)?;
-    if rhs.iter().any(|value| !value.is_finite())
-        || computed.iter().any(|value| !value.is_finite())
-    {
+    if rhs.iter().any(|value| !value.is_finite()) || computed.iter().any(|value| !value.is_finite()) {
         return Err(EnvelopeErrorV1::NonFiniteVector);
     }
 
     let product = apply(matrix, computed);
-    let residual: Vector<N> =
-        std::array::from_fn(|index| rhs[index] - product[index]);
+    let residual: Vector<N> = std::array::from_fn(|index| rhs[index] - product[index]);
     let residual_inf = vector_inf(&residual);
     let matrix_norm = matrix_inf(matrix);
     let solution_norm = vector_inf(computed);
@@ -346,13 +328,9 @@ pub fn assess_solution<const N: usize>(
     }
 
     let condition_inf_estimate = lu.condition_inf(matrix)?;
-    let condition_times_backward_error =
-        condition_inf_estimate * normwise_backward_error;
+    let condition_times_backward_error = condition_inf_estimate * normwise_backward_error;
     let forward_error_bound_estimate = if condition_times_backward_error < 1.0 {
-        Some(
-            condition_times_backward_error
-                / (1.0 - condition_times_backward_error),
-        )
+        Some(condition_times_backward_error / (1.0 - condition_times_backward_error))
     } else {
         None
     };
@@ -361,9 +339,7 @@ pub fn assess_solution<const N: usize>(
         EnvelopeStatusV1::OutsideConditionEnvelope
     } else if forward_error_bound_estimate.is_none() {
         EnvelopeStatusV1::VacuousEstimate
-    } else if condition_times_backward_error
-        > profile.maximum_condition_times_backward_error
-    {
+    } else if condition_times_backward_error > profile.maximum_condition_times_backward_error {
         EnvelopeStatusV1::WeakEstimate
     } else {
         EnvelopeStatusV1::InformativeEstimate
@@ -428,10 +404,8 @@ mod tests {
         let envelope =
             assess_solution(&matrix, &rhs, &computed, ErrorEnvelopeProfileV1::default()).unwrap();
 
-        let observed = vector_inf(&[
-            computed[0] - exact[0],
-            computed[1] - exact[1],
-        ]) / vector_inf(&exact);
+        let observed =
+            vector_inf(&[computed[0] - exact[0], computed[1] - exact[1]]) / vector_inf(&exact);
         let bound = envelope.forward_error_bound_estimate.unwrap();
         assert!(observed <= bound);
         assert!(envelope.componentwise_backward_error > envelope.normwise_backward_error);
