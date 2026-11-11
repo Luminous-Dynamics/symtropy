@@ -210,6 +210,7 @@ pub struct BridgeStudyEvidence {
     pub slope_ci_lower: f64,
     pub slope_ci_upper: f64,
     pub slope_equivalence_margin: f64,
+    pub individual_error_lower_bound: Option<f64>,
     pub individual_error_upper_bound: Option<f64>,
     pub individual_score_margin: Option<f64>,
     pub population_invariance: EvidenceDisposition,
@@ -260,7 +261,7 @@ pub struct MeasurementEquivalenceReport {
     pub slope_equivalence_margin: Option<f64>,
     pub individual_error_upper_bound: Option<f64>,
     pub individual_score_margin: Option<f64>,
-    pub achieved_invariance: Option<EvidenceDisposition>,
+    pub invariance_levels: Option<[EvidenceDisposition; 4]>,
     pub anchor_item_ids: Vec<String>,
     pub non_invariant_item_ids: Vec<String>,
     pub claims: Vec<ClaimEquivalenceResult>,
@@ -648,7 +649,12 @@ pub fn assess_measurement_equivalence(
                 (
                     receipt.study_digest.clone(),
                     "survey_invariance",
-                    Some(receipt.residual),
+                    Some([
+                        receipt.configural,
+                        receipt.metric,
+                        receipt.scalar,
+                        receipt.residual,
+                    ]),
                     receipt.anchor_item_ids.clone(),
                     receipt.non_invariant_item_ids.clone(),
                     claims,
@@ -706,22 +712,27 @@ pub fn assess_measurement_equivalence(
                     receipt.slope_equivalence_margin,
                 )?;
                 let individual_score = match (
+                    receipt.individual_error_lower_bound,
                     receipt.individual_error_upper_bound,
                     receipt.individual_score_margin,
                 ) {
-                    (Some(bound), Some(margin))
-                        if bound.is_finite()
+                    (Some(lower), Some(upper), Some(margin))
+                        if lower.is_finite()
+                            && upper.is_finite()
                             && margin.is_finite()
-                            && bound >= 0.0
+                            && lower >= 0.0
+                            && lower <= upper
                             && margin > 0.0 =>
                     {
-                        Some(if bound <= margin {
+                        Some(if upper <= margin {
                             EvidenceDisposition::Supported
+                        } else if lower > margin {
+                            EvidenceDisposition::NotSupported
                         } else {
                             EvidenceDisposition::NotAssessed
                         })
                     }
-                    (None, None) => None,
+                    (None, None, None) => None,
                     _ => return Err(MeasurementEquivalenceError::InvalidIndividualScoreBound),
                 };
                 let claims = MeasurementClaim::ALL
@@ -837,9 +848,10 @@ pub fn assess_measurement_equivalence(
         mean_equivalence_margin,
         slope_ci,
         slope_equivalence_margin,
+        individual_error_lower_bound,
         individual_error_upper_bound,
         individual_score_margin,
-        achieved_invariance,
+        invariance_levels,
         anchor_item_ids,
         non_invariant_item_ids,
         claims,
@@ -918,6 +930,7 @@ mod tests {
             slope_ci_lower: 0.94,
             slope_ci_upper: 1.05,
             slope_equivalence_margin: 0.10,
+            individual_error_lower_bound: Some(0.04),
             individual_error_upper_bound: Some(0.08),
             individual_score_margin: Some(0.12),
             population_invariance,
@@ -1183,6 +1196,25 @@ mod tests {
         assert_eq!(
             report.claims[1].status,
             EquivalenceStatus::EquivalentForClaim
+        );
+    }
+
+    #[test]
+    fn bridge_individual_score_error_clearly_above_margin_is_not_equivalent() {
+        let (left, right) = survey_pair();
+        let mut evidence = bridge(EvidenceDisposition::Supported);
+        evidence.individual_error_lower_bound = Some(0.20);
+        evidence.individual_error_upper_bound = Some(0.25);
+        evidence.individual_score_margin = Some(0.12);
+        let report = assess_measurement_equivalence(
+            &left,
+            &right,
+            &MeasurementEquivalenceEvidence::BridgeStudy(evidence),
+        )
+        .expect("clear individual-score mismatch is reportable");
+        assert_eq!(
+            report.claims[3].status,
+            EquivalenceStatus::NotEquivalentForClaim
         );
     }
 
