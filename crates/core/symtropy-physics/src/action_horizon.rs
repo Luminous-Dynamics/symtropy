@@ -387,6 +387,152 @@ const fn div_ceil(numerator: u64, denominator: u64) -> u64 {
     quotient + if remainder == 0 { 0 } else { 1 }
 }
 
+/// Errors returned when an admissible selector result is bound to a proposal.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ActionCommitmentError {
+    SelectionNotAdmissible,
+    MissingTimebase,
+    MissingSelectedCycles,
+    DurationOverflow,
+    ExpiryOverflow,
+    ExceedsSafeHorizon,
+}
+
+impl core::fmt::Display for ActionCommitmentError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::SelectionNotAdmissible => write!(f, "action horizon selection is not admissible"),
+            Self::MissingTimebase => write!(f, "admissible selection has no common timebase"),
+            Self::MissingSelectedCycles => write!(f, "admissible selection has no selected cycles"),
+            Self::DurationOverflow => write!(f, "selected action duration overflowed nanoseconds"),
+            Self::ExpiryOverflow => write!(f, "action commitment expiry overflowed nanoseconds"),
+            Self::ExceedsSafeHorizon => write!(f, "selected duration exceeds the safe horizon"),
+        }
+    }
+}
+
+impl std::error::Error for ActionCommitmentError {}
+
+/// Why an existing action commitment must be rejected before dispatch.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum ActionCommitmentInvalidity {
+    NotYetValid,
+    Expired,
+    TimebaseMismatch,
+    ProposalDigestMismatch,
+    ConfigurationDigestMismatch,
+}
+
+/// Evidence-carrying permission window for one exact proposed action prefix.
+///
+/// This is a receipt, not an actuator command or safety certificate. The
+/// caller supplies SHA-256 digests of the exact canonical proposal and robot
+/// configuration. The local execution authority must still independently
+/// validate the command and atomically consume/replay-protect its sequence.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ActionCommitment<'a> {
+    /// SHA-256 digest of the canonical proposed action/prefix payload.
+    pub proposal_digest: [u8; 32],
+    /// SHA-256 digest of the exact robot/configuration/mass-property identity.
+    pub configuration_digest: [u8; 32],
+    /// Monotonic sequence number. The execution authority must reject reused
+    /// or out-of-order sequence numbers using its durable local state.
+    pub sequence_number: u64,
+    /// The exact horizon decision and eight source receipts.
+    pub selection: ActionHorizonSelection<'a>,
+    /// Common application-time basis of all qualified horizon inputs.
+    pub timebase_id: &'a str,
+    /// Time at which the upstream evidence was evaluated and this receipt issued.
+    pub committed_at_ns: u64,
+    /// Exclusive upper bound: the commitment is invalid when now >= this time.
+    pub expires_at_ns: u64,
+    /// Number of low-level control cycles covered by this commitment.
+    pub selected_cycles: u64,
+}
+
+/// Bind an admissible horizon selection to an exact proposal and configuration.
+///
+/// The selector result is consumed so a caller cannot accidentally create a
+/// receipt from one decision and later mutate the evidence object it came from.
+/// Call this at the same application-time instant used to evaluate the input
+/// horizons. It does not sign, dispatch or authorize the proposal.
+pub fn create_action_commitment<'a>(
+    selection: ActionHorizonSelection<'a>,
+    proposal_digest: [u8; 32],
+    configuration_digest: [u8; 32],
+    sequence_number: u64,
+    committed_at_ns: u64,
+) -> Result<ActionCommitment<'a>, ActionCommitmentError> {
+    if !matches!(
+        selection.disposition,
+        HorizonDisposition::AdmissibleQueuedOpenLoop
+            | HorizonDisposition::AdmissibleSplitTimescale
+    ) {
+        return Err(ActionCommitmentError::SelectionNotAdmissible);
+    }
+    let timebase_id = selection
+        .common_timebase_id
+        .ok_or(ActionCommitmentError::MissingTimebase)?;
+    let selected_cycles = selection
+        .selected_cycles
+        .ok_or(ActionCommitmentError::MissingSelectedCycles)?;
+    let selected_duration_ns = selected_cycles
+        .checked_mul(selection.controller_period_ns)
+        .ok_or(ActionCommitmentError::DurationOverflow)?;
+    let safe_horizon_ns = selection
+        .safe_horizon_ns
+        .ok_or(ActionCommitmentError::SelectionNotAdmissible)?;
+    if selected_duration_ns > safe_horizon_ns {
+        return Err(ActionCommitmentError::ExceedsSafeHorizon);
+    }
+    let expires_at_ns = committed_at_ns
+        .checked_add(selected_duration_ns)
+        .ok_or(ActionCommitmentError::ExpiryOverflow)?;
+
+    Ok(ActionCommitment {
+        proposal_digest,
+        configuration_digest,
+        sequence_number,
+        selection,
+        timebase_id,
+        committed_at_ns,
+        expires_at_ns,
+        selected_cycles,
+    })
+}
+
+impl ActionCommitment<'_> {
+    /// Check whether this receipt still matches the exact proposed action,
+    /// robot configuration and application-time basis at the instant of use.
+    ///
+    /// The caller must separately enforce sequence-number anti-replay using
+    /// durable local state and obtain fresh independent actuator authority.
+    pub fn validate(
+        &self,
+        now_ns: u64,
+        current_timebase_id: &str,
+        proposal_digest: &[u8; 32],
+        configuration_digest: &[u8; 32],
+    ) -> Result<(), ActionCommitmentInvalidity> {
+        if now_ns < self.committed_at_ns {
+            return Err(ActionCommitmentInvalidity::NotYetValid);
+        }
+        if now_ns >= self.expires_at_ns {
+            return Err(ActionCommitmentInvalidity::Expired);
+        }
+        if current_timebase_id != self.timebase_id {
+            return Err(ActionCommitmentInvalidity::TimebaseMismatch);
+        }
+        if proposal_digest != &self.proposal_digest {
+            return Err(ActionCommitmentInvalidity::ProposalDigestMismatch);
+        }
+        if configuration_digest != &self.configuration_digest {
+            return Err(ActionCommitmentInvalidity::ConfigurationDigestMismatch);
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -702,3 +848,130 @@ mod tests {
         );
     }
 }
+\n#[cfg(test)]
+mod action_commitment_tests {
+    use super::*;
+
+    fn valid_selection() -> ActionHorizonSelection<'static> {
+        let bounds = core::array::from_fn(|index| HorizonBoundReceipt {
+            constraint: HorizonConstraint::ALL[index],
+            reported_constraint: HorizonConstraint::ALL[index],
+            remaining_ns: Some(100),
+            source_id: Some("qualified-source"),
+            timebase_id: Some("application-epoch-1"),
+            unknown_reason: None,
+        });
+        ActionHorizonSelection {
+            disposition: HorizonDisposition::AdmissibleQueuedOpenLoop,
+            bounds,
+            common_timebase_id: Some("application-epoch-1"),
+            safe_horizon_ns: Some(95),
+            active_constraints: [Some(HorizonConstraint::RecoveryReserve), None, None, None, None, None, None, None],
+            active_constraint_count: 1,
+            controller_period_ns: 10,
+            p99_total_latency_ns: 20,
+            latency_profile_id: "latency-profile-v1",
+            k_min_queue_cycles: Some(2),
+            k_max_safe_cycles: Some(9),
+            selected_cycles: Some(9),
+        }
+    }
+
+    fn commitment() -> ActionCommitment<'static> {
+        create_action_commitment(
+            valid_selection(),
+            [0x11; 32],
+            [0x22; 32],
+            7,
+            1_000,
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn commitment_binds_proposal_configuration_timebase_and_expiry() {
+        let receipt = commitment();
+        assert_eq!(receipt.selected_cycles, 9);
+        assert_eq!(receipt.expires_at_ns, 1_090);
+        assert_eq!(
+            receipt.validate(1_089, "application-epoch-1", &[0x11; 32], &[0x22; 32]),
+            Ok(())
+        );
+    }
+
+    #[test]
+    fn commitment_expires_at_exclusive_boundary() {
+        let receipt = commitment();
+        assert_eq!(
+            receipt.validate(1_090, "application-epoch-1", &[0x11; 32], &[0x22; 32]),
+            Err(ActionCommitmentInvalidity::Expired)
+        );
+    }
+
+    #[test]
+    fn commitment_rejects_precommit_time() {
+        let receipt = commitment();
+        assert_eq!(
+            receipt.validate(999, "application-epoch-1", &[0x11; 32], &[0x22; 32]),
+            Err(ActionCommitmentInvalidity::NotYetValid)
+        );
+    }
+
+    #[test]
+    fn commitment_rejects_wrong_timebase() {
+        let receipt = commitment();
+        assert_eq!(
+            receipt.validate(1_010, "other-epoch", &[0x11; 32], &[0x22; 32]),
+            Err(ActionCommitmentInvalidity::TimebaseMismatch)
+        );
+    }
+
+    #[test]
+    fn commitment_rejects_changed_proposal_digest() {
+        let receipt = commitment();
+        assert_eq!(
+            receipt.validate(1_010, "application-epoch-1", &[0x33; 32], &[0x22; 32]),
+            Err(ActionCommitmentInvalidity::ProposalDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn commitment_rejects_changed_robot_configuration_digest() {
+        let receipt = commitment();
+        assert_eq!(
+            receipt.validate(1_010, "application-epoch-1", &[0x11; 32], &[0x44; 32]),
+            Err(ActionCommitmentInvalidity::ConfigurationDigestMismatch)
+        );
+    }
+
+    #[test]
+    fn commitment_cannot_be_created_from_unknown_or_infeasible_selection() {
+        let mut selection = valid_selection();
+        selection.disposition = HorizonDisposition::QueueCoverageInfeasible;
+        assert_eq!(
+            create_action_commitment(selection, [0; 32], [0; 32], 1, 0),
+            Err(ActionCommitmentError::SelectionNotAdmissible)
+        );
+    }
+
+    #[test]
+    fn commitment_rejects_expiry_overflow() {
+        let mut selection = valid_selection();
+        selection.selected_cycles = Some(9);
+        assert_eq!(
+            create_action_commitment(selection, [0; 32], [0; 32], 1, u64::MAX - 50),
+            Err(ActionCommitmentError::ExpiryOverflow)
+        );
+    }
+
+    #[test]
+    fn commitment_rejects_duration_over_safe_horizon() {
+        let mut selection = valid_selection();
+        selection.selected_cycles = Some(10);
+        assert_eq!(
+            create_action_commitment(selection, [0; 32], [0; 32], 1, 0),
+            Err(ActionCommitmentError::ExceedsSafeHorizon)
+        );
+    }
+}
+
