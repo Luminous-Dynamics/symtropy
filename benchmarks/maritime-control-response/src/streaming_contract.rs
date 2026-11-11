@@ -568,6 +568,7 @@ mod tests {
 
         let mut tampered_output = second.clone();
         tampered_output.output.detection = true;
+        tampered_output.output.isolation_probabilities = [1.0, 0.0, 0.0, 0.0, 0.0];
         assert_eq!(
             validate_receipt_chain(&[first.clone(), tampered_output]),
             Err(StreamingError::ReceiptIntegrityFailure)
