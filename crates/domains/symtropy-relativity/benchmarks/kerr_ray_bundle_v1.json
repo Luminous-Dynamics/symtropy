@@ -80,6 +80,17 @@
       ],
       "role": "Chart/metric-distortion and geodesic-tube mathematical context",
       "limitation": "Riemannian local chart results, with stated assumptions; not Lorentzian Kerr null-ray results"
+    },
+    {
+      "id": "self_lensing_gw_kerr_jacobi_2026",
+      "title": "Self-lensing of gravitational waves from binary extreme-mass-ratio inspirals: Extended caustics and paired flashes",
+      "arxiv": "2610.08399",
+      "url": "https://arxiv.org/abs/2610.08399",
+      "published_or_submitted": "2026-10-06",
+      "status": "preprint",
+      "role": "Kerr point-to-point lens map from null-geodesic integrals; Jacobi-map strain magnification; extended caustics and image-dependent arrival-time separation",
+      "benchmark_use": "Reproduce only the explicitly reported parameter configurations and compare image magnification/caustic crossing/timing after matching source orbit, observer inclination, spin, normalization and phase conventions",
+      "limitation": "Preprint comparator; not a peer-reviewed standard or a general-purpose numerical oracle"
     }
   ],
   "conventions": {
@@ -336,7 +347,30 @@
     "parity": "sign(det(D)) away from a caustic, with branch continuity and orientation metadata",
     "magnification": "1/abs(det(D)) only when screen-area normalization and source/observer endpoint surfaces are fully declared and the map is nonsingular",
     "near_caustic_policy": "typed IllConditioned or Unresolved; do not clamp to a falsely finite physical magnification",
-    "geometric_vs_wave_optics": "geometric-optics divergence is not a finite wave-optics intensity prediction"
+    "geometric_vs_wave_optics": "geometric-optics divergence is not a finite wave-optics intensity prediction",
+    "curvature_convention": "Pin the full Riemann tensor index/sign convention before defining the geodesic-deviation RHS and optical tidal matrix. Confirm the convention with zero curvature in Minkowski and independent Schwarzschild optical-scalar identities.",
+    "observer_initial_conditions": "Initialize two independent screen-direction deviation fields using the observer orthonormal tetrad. State the affine tangent normalization and the derivative of each initial deviation with respect to the observer's physical screen angle. If Mino parameter is used, pin the Sigma conversion and its derivative terms; do not silently treat Mino parameter as affine parameter.",
+    "endpoint_projection": "Project the two deviation fields into an explicitly declared orthonormal source screen at the same source event / endpoint surface as the central ray. Store the raw coordinate deviation vectors, source screen basis, 2x2 projected Jacobi map and normalization metadata separately.",
+    "screen_basis_covariance": "Rotate observer and source screen bases independently and verify the 2x2 map transforms by the corresponding left/right orthogonal actions. Under proper screen rotations, determinant magnitude and singular values are invariant; parity is meaningful only with pinned screen orientations.",
+    "finite_difference_protocol": "For each observer screen direction, launch symmetric neighbouring rays at plus/minus delta using the independently implemented separated-geodesic path. Use at least three decreasing angular-separation scales and at least three independently refined trajectory resolutions. Vary angular delta separately from the integration step to expose truncation and roundoff floors.",
+    "flat_space_known_answer": "With zero initial transverse separation and unit derivative with respect to the observer screen angle, an affine-parameter distance lambda to a parallel source screen gives D_AB = lambda * delta_AB. Test both axes, off-axis screen rotations and finite-difference convergence.",
+    "caustic_localization": "Bracket signed determinant zero crossings along a continuously tracked image branch and independently monitor the smallest singular value. Keep root-bracket uncertainty separate from trajectory, screen-projection and interpolation errors. A small determinant alone is not a qualified caustic if the map is unresolved or branch identity changes.",
+    "required_diagnostics": [
+      "observer_tetrad_orthonormality_residual",
+      "source_screen_orthonormality_residual",
+      "affine_parameter_normalization",
+      "riemann_convention_id",
+      "jacobi_variational_constraint_residual",
+      "finite_difference_delta",
+      "finite_difference_truncation_estimate",
+      "integration_refinement_level",
+      "jacobi_determinant",
+      "jacobi_singular_values",
+      "jacobi_condition_number",
+      "caustic_zero_bracket",
+      "caustic_root_uncertainty",
+      "map_projection_uncertainty"
+    ]
   },
   "time_delay_contract": {
     "requirement": "Preserve per-image-branch travel time and source emission event. A variable source may not be collapsed to one emission time unless the full delay spread is demonstrated negligible relative to the declared source correlation time.",
@@ -408,7 +442,12 @@
     "magnification": "conditioning-aware agreement away from caustics; no finite-precision claim where determinant is unresolved",
     "time_delay": "independent separated and Hamiltonian paths agree within declared integration error",
     "adaptive_efficiency": "rays, wall time and memory only compared at matched screen-map, caustic and delay-map error",
-    "abstention": "under-resolved, out-of-chart and singular-map inputs must abstain with a typed reason"
+    "abstention": "under-resolved, out-of-chart and singular-map inputs must abstain with a typed reason",
+    "jacobi_basis_covariance": "Independent proper rotations of observer/source screen bases produce the expected left/right orthogonal transformation; singular values and absolute determinant remain invariant within propagated error.",
+    "jacobi_finite_difference_order": "On non-caustic analytic fixtures, central-difference discrepancies exhibit the expected angular-step convergence until the measured roundoff/noise floor; angular-step and trajectory-step sweeps are reported separately.",
+    "jacobi_variational_crosscheck": "Variational and finite-difference maps agree within a separately reported error budget over at least three angular-separation scales and three trajectory refinements.",
+    "caustic_bracket_stability": "Caustic zero brackets, singular-value minima, image branch identity and parity are stable under independent ray, angular-separation and trajectory refinement; unresolved topology abstains.",
+    "magnification_uncertainty": "Magnification uncertainty propagates from the screen map, normalization and determinant; no finite magnification is reported when determinant significance is insufficient."
   },
   "qualification_states": [
     "planned",
@@ -424,6 +463,6 @@
     "current_status": "not_run",
     "expected_commands": [],
     "no_results_claimed": true,
-    "evidence_contract": "Reuse tools/bh-response-manifest and the existing Mycelix-DeSci ScientificEvent / Attestation pathway; this benchmark manifest is input/expectation metadata, not a new run receipt or evidence ledger."
+    "evidence_contract": "Reuse the versioned tools/bh-response-manifest contract and the per-method tools/bh-execution-manifest v1.0.0 contract proposed in draft PR #4621. The latter is not yet merged; until then, report execution-envelope evidence using the current accepted repository contract. This benchmark manifest remains input/expectation metadata, not a run receipt or evidence ledger."
   }
 }
