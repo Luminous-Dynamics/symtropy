@@ -331,6 +331,7 @@ mod compound_com_tests {
             );
         }
     }
+
     fn assert_original_geometry_preserved(before: &[SVector<f64, 3>], body: &RigidBody<3>) {
         let directions = [
             SVector::from([1.0, 0.0, 0.0]),
@@ -402,7 +403,7 @@ mod compound_com_tests {
         let tool_transform = Transform::from_translation(Point::new([1.2, -0.7, 0.4]));
         let local_com_offset = tool_transform.translation.0 / 3.0;
         let old_translation = body.transform.translation.0;
-        let old_rotation = body.transform.rotation;
+        let old_rotation = body.transform.rotation.clone();
         let old_linear_velocity = body.linear_velocity;
         let dt = 1.0e-7;
 
