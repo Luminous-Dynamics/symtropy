@@ -44,7 +44,7 @@ struct Contract {
     baseline_failed: usize,
     mconst_count: usize,
     mconst_failed: usize,
-    pomcp_count: usize,
+    pomcp_count,exception_class_count,known_belief_collapse_exception_rows: usize,
     pomcp_failed: usize,
     baseline_ids: Vec<String>,
     algorithms: Vec<String>,
@@ -347,7 +347,7 @@ fn run_audit(input: &str) -> Result<String, String> {
         total_exceptions += exceptions;
         let success_rate = finished as f64 / 600.0;
         output.push_str(&format!(
-            "{},{},{},{},{},{},{},{:.6},{},{},{},{},{}\n",
+            "{},{},{},{},{},{},{},{:.6},{},{},{},{},{},{},{}\n",
             contract.id,
             contract.environment,
             contract.mechanism,
@@ -370,7 +370,7 @@ fn run_audit(input: &str) -> Result<String, String> {
         return Err(format!("aggregate status mismatch: finished={total_finished}, exceptions={total_exceptions}"));
     }
     output.push_str(&format!(
-        "TOTAL,all,all,NA,3000,{total_finished},{total_exceptions},{:.6},120,3,0,10,40\n",
+        "TOTAL,all,all,NA,3000,{total_finished},{total_exceptions},{:.6},120,3,0,10,40,1,123\n",
         total_finished as f64 / 3000.0
     ));
     Ok(output)
