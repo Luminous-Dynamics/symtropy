@@ -77,7 +77,6 @@ impl ObservationOrigin {
     const fn requires_parent_lineage(self) -> bool {
         matches!(self, Self::DerivedFromRegisteredInputs | Self::Imputed)
     }
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -439,8 +438,14 @@ pub fn qualify_source(
     }
 
     if passport.retrieved_at_epoch.is_none_or(|value| value < 0)
-        || passport.artifact_digest.as_deref().is_none_or(str::is_empty)
-        || passport.transformation_digest.as_deref().is_none_or(str::is_empty)
+        || passport
+            .artifact_digest
+            .as_deref()
+            .is_none_or(str::is_empty)
+        || passport
+            .transformation_digest
+            .as_deref()
+            .is_none_or(str::is_empty)
         || passport.terms_digest.as_deref().is_none_or(str::is_empty)
     {
         return result(
@@ -477,14 +482,20 @@ fn validate_observation(
     }
 
     if observation.origin == ObservationOrigin::SurveyEstimate {
-        let sample_design_matches = observation.sample_design_digest.as_deref()
-            == passport.sample_design_digest.as_deref();
+        let sample_design_matches =
+            observation.sample_design_digest.as_deref() == passport.sample_design_digest.as_deref();
         let weights_match =
             observation.weights_digest.as_deref() == passport.weights_digest.as_deref();
         if !sample_design_matches
             || !weights_match
-            || observation.sample_design_digest.as_deref().is_none_or(str::is_empty)
-            || observation.weights_digest.as_deref().is_none_or(str::is_empty)
+            || observation
+                .sample_design_digest
+                .as_deref()
+                .is_none_or(str::is_empty)
+            || observation
+                .weights_digest
+                .as_deref()
+                .is_none_or(str::is_empty)
         {
             reasons.push(CompatibilityReason::SurveyDesignOrWeightsMissing);
         }
@@ -519,7 +530,10 @@ fn validate_observation(
     if observation.origin.requires_parent_lineage() {
         let mut parents = BTreeSet::new();
         if observation.parent_observation_digests.is_empty()
-            || observation.transformation_digest.as_deref().is_none_or(str::is_empty)
+            || observation
+                .transformation_digest
+                .as_deref()
+                .is_none_or(str::is_empty)
             || observation.transformation_digest != passport.transformation_digest
             || observation
                 .parent_observation_digests
@@ -547,13 +561,10 @@ fn transform_for<'a>(
     })
 }
 
-fn validate_transform_coverage(
-    receipt: &TransformReceipt,
-    minimum_coverage: f64,
-) -> bool {
-    receipt.coverage_fraction.is_some_and(|value| {
-        value.is_finite() && (minimum_coverage..=1.0).contains(&value)
-    })
+fn validate_transform_coverage(receipt: &TransformReceipt, minimum_coverage: f64) -> bool {
+    receipt
+        .coverage_fraction
+        .is_some_and(|value| value.is_finite() && (minimum_coverage..=1.0).contains(&value))
 }
 
 /// Check whether two observation passports can be aligned on a declared panel
@@ -574,9 +585,12 @@ pub fn assess_observation_compatibility(
     for qualification in [&left_qualification, &right_qualification] {
         match qualification.status {
             SourceQualificationStatus::RightsBlocked => {
-                reasons.push(qualification.reason.clone().unwrap_or(
-                    CompatibilityReason::RightsUnknown,
-                ));
+                reasons.push(
+                    qualification
+                        .reason
+                        .clone()
+                        .unwrap_or(CompatibilityReason::RightsUnknown),
+                );
             }
             SourceQualificationStatus::CandidateAvailable
             | SourceQualificationStatus::AcquisitionPending
@@ -691,10 +705,14 @@ pub fn assess_observation_compatibility(
         if purpose == RegisteredPurpose::EmpiricalValidation {
             match observation.origin {
                 ObservationOrigin::CategoryDefault => {
-                    reasons.push(CompatibilityReason::CategoryDefaultNotEligibleForEmpiricalValidation);
+                    reasons.push(
+                        CompatibilityReason::CategoryDefaultNotEligibleForEmpiricalValidation,
+                    );
                 }
                 ObservationOrigin::Imputed => {
-                    reasons.push(CompatibilityReason::ImputedObservationNotEligibleForEmpiricalValidation);
+                    reasons.push(
+                        CompatibilityReason::ImputedObservationNotEligibleForEmpiricalValidation,
+                    );
                 }
                 ObservationOrigin::Unknown => {
                     reasons.push(CompatibilityReason::ObservationOriginUnknown);
@@ -718,7 +736,8 @@ pub fn assess_observation_compatibility(
 
     let rights_blocked = left_qualification.status == SourceQualificationStatus::RightsBlocked
         || right_qualification.status == SourceQualificationStatus::RightsBlocked;
-    let not_assessed = left_qualification.status != SourceQualificationStatus::QualifiedForRegisteredUse
+    let not_assessed = left_qualification.status
+        != SourceQualificationStatus::QualifiedForRegisteredUse
         && left_qualification.status != SourceQualificationStatus::RightsBlocked
         || right_qualification.status != SourceQualificationStatus::QualifiedForRegisteredUse
             && right_qualification.status != SourceQualificationStatus::RightsBlocked;
@@ -812,8 +831,10 @@ mod tests {
             landing_page: "https://example.invalid/dataset".to_string(),
             acquisition_locator: "fixture://synthetic-data".to_string(),
             acquisition_status: acquisition,
-            retrieved_at_epoch: (acquisition == AcquisitionStatus::Acquired).then_some(1_800_000_000),
-            artifact_digest: (acquisition == AcquisitionStatus::Acquired).then(|| digest.to_string()),
+            retrieved_at_epoch: (acquisition == AcquisitionStatus::Acquired)
+                .then_some(1_800_000_000),
+            artifact_digest: (acquisition == AcquisitionStatus::Acquired)
+                .then(|| digest.to_string()),
             transformation_digest: (acquisition == AcquisitionStatus::Acquired)
                 .then(|| format!("transform-{digest}")),
             terms_digest: (acquisition == AcquisitionStatus::Acquired)
@@ -878,61 +899,169 @@ mod tests {
 
     #[test]
     fn same_semantics_period_and_boundary_are_compatible() {
-        let left_source = passport("ghs-2025", "sha256-ghs", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let right_source = passport("survey-2025", "sha256-other-survey", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let left = observation("ghs-prov-a", "ghs-2025", "sha256-ghs", ObservationOrigin::SurveyEstimate);
-        let right = observation("other-prov-a", "survey-2025", "sha256-other-survey", ObservationOrigin::SurveyEstimate);
+        let left_source = passport(
+            "ghs-2025",
+            "sha256-ghs",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let right_source = passport(
+            "survey-2025",
+            "sha256-other-survey",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let left = observation(
+            "ghs-prov-a",
+            "ghs-2025",
+            "sha256-ghs",
+            ObservationOrigin::SurveyEstimate,
+        );
+        let right = observation(
+            "other-prov-a",
+            "survey-2025",
+            "sha256-other-survey",
+            ObservationOrigin::SurveyEstimate,
+        );
         let report = assess_observation_compatibility(
-            &left, &left_source, &right, &right_source,
-            RegisteredPurpose::EmpiricalValidation, &plan()
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &plan(),
         );
         assert_eq!(report.status, CompatibilityStatus::Compatible);
     }
 
     #[test]
     fn unaligned_financial_quarter_and_daily_water_are_not_comparable_without_transform() {
-        let left_source = passport("treasury", "sha256-treasury", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let right_source = passport("dws", "sha256-dws", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let mut left = observation("treasury-quarter", "treasury", "sha256-treasury", ObservationOrigin::AdministrativeSubmission);
-        let mut right = observation("dws-daily", "dws", "sha256-dws", ObservationOrigin::AdministrativeSubmission);
+        let left_source = passport(
+            "treasury",
+            "sha256-treasury",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let right_source = passport(
+            "dws",
+            "sha256-dws",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let mut left = observation(
+            "treasury-quarter",
+            "treasury",
+            "sha256-treasury",
+            ObservationOrigin::AdministrativeSubmission,
+        );
+        let mut right = observation(
+            "dws-daily",
+            "dws",
+            "sha256-dws",
+            ObservationOrigin::AdministrativeSubmission,
+        );
         left.temporal_support = period(2025, 2025 + 1, TemporalResolution::Quarter);
         right.temporal_support = period(2025, 2025 + 1, TemporalResolution::Day);
         let report = assess_observation_compatibility(
-            &left, &left_source, &right, &right_source,
-            RegisteredPurpose::EmpiricalValidation, &plan()
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &plan(),
         );
         assert_eq!(report.status, CompatibilityStatus::NotComparable);
-        assert!(report.reasons.contains(&CompatibilityReason::TemporalSupportMismatch));
+        assert!(
+            report
+                .reasons
+                .contains(&CompatibilityReason::TemporalSupportMismatch)
+        );
     }
 
     #[test]
     fn category_defaults_are_allowed_as_scenario_assumptions_but_not_measured_validation() {
-        let left_source = passport("dws-default", "sha256-dws-default", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let right_source = passport("other", "sha256-other", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let left = observation("dws-default-value", "dws-default", "sha256-dws-default", ObservationOrigin::CategoryDefault);
-        let right = observation("other-value", "other", "sha256-other", ObservationOrigin::AdministrativeSubmission);
+        let left_source = passport(
+            "dws-default",
+            "sha256-dws-default",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let right_source = passport(
+            "other",
+            "sha256-other",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let left = observation(
+            "dws-default-value",
+            "dws-default",
+            "sha256-dws-default",
+            ObservationOrigin::CategoryDefault,
+        );
+        let right = observation(
+            "other-value",
+            "other",
+            "sha256-other",
+            ObservationOrigin::AdministrativeSubmission,
+        );
         let scenario = assess_observation_compatibility(
-            &left, &left_source, &right, &right_source,
-            RegisteredPurpose::ScenarioAssumption, &plan()
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::ScenarioAssumption,
+            &plan(),
         );
         assert_eq!(scenario.status, CompatibilityStatus::Compatible);
         let validation = assess_observation_compatibility(
-            &left, &left_source, &right, &right_source,
-            RegisteredPurpose::EmpiricalValidation, &plan()
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &plan(),
         );
         assert_eq!(validation.status, CompatibilityStatus::NotComparable);
-        assert!(validation.reasons.contains(&CompatibilityReason::CategoryDefaultNotEligibleForEmpiricalValidation));
+        assert!(
+            validation
+                .reasons
+                .contains(&CompatibilityReason::CategoryDefaultNotEligibleForEmpiricalValidation)
+        );
     }
 
     #[test]
     fn acquisition_pending_is_not_assessed_not_a_pass() {
-        let pending = passport("eskom-hourly", "sha256-pending", RightsStatus::Permitted, AcquisitionStatus::AcquisitionPending);
-        let other = passport("other", "sha256-other", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let left = observation("eskom", "eskom-hourly", "sha256-pending", ObservationOrigin::DirectMeasurement);
-        let right = observation("other", "other", "sha256-other", ObservationOrigin::DirectMeasurement);
+        let pending = passport(
+            "eskom-hourly",
+            "sha256-pending",
+            RightsStatus::Permitted,
+            AcquisitionStatus::AcquisitionPending,
+        );
+        let other = passport(
+            "other",
+            "sha256-other",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let left = observation(
+            "eskom",
+            "eskom-hourly",
+            "sha256-pending",
+            ObservationOrigin::DirectMeasurement,
+        );
+        let right = observation(
+            "other",
+            "other",
+            "sha256-other",
+            ObservationOrigin::DirectMeasurement,
+        );
         let report = assess_observation_compatibility(
-            &left, &pending, &right, &other,
-            RegisteredPurpose::EmpiricalValidation, &plan()
+            &left,
+            &pending,
+            &right,
+            &other,
+            RegisteredPurpose::EmpiricalValidation,
+            &plan(),
         );
         assert_eq!(report.status, CompatibilityStatus::NotAssessed);
     }
@@ -950,10 +1079,7 @@ mod tests {
             RegisteredPurpose::EmpiricalValidation,
         );
         assert_eq!(report.status, SourceQualificationStatus::RightsBlocked);
-        assert_eq!(
-            report.reason,
-            Some(CompatibilityReason::RightsProhibited)
-        );
+        assert_eq!(report.reason, Some(CompatibilityReason::RightsProhibited));
     }
 
     #[test]
@@ -992,21 +1118,47 @@ mod tests {
             &plan(),
         );
         assert_eq!(report.status, CompatibilityStatus::NotAssessed);
-        assert!(report
-            .reasons
-            .contains(&CompatibilityReason::SurveyDesignOrWeightsMissing));
+        assert!(
+            report
+                .reasons
+                .contains(&CompatibilityReason::SurveyDesignOrWeightsMissing)
+        );
     }
 
     #[test]
     fn unknown_and_prohibited_rights_block_empirical_use() {
         for rights in [RightsStatus::Unknown, RightsStatus::Prohibited] {
-            let left_source = passport("restricted", "sha256-restricted", rights, AcquisitionStatus::Acquired);
-            let right_source = passport("other", "sha256-other", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-            let left = observation("left", "restricted", "sha256-restricted", ObservationOrigin::SurveyEstimate);
-            let right = observation("right", "other", "sha256-other", ObservationOrigin::SurveyEstimate);
+            let left_source = passport(
+                "restricted",
+                "sha256-restricted",
+                rights,
+                AcquisitionStatus::Acquired,
+            );
+            let right_source = passport(
+                "other",
+                "sha256-other",
+                RightsStatus::Permitted,
+                AcquisitionStatus::Acquired,
+            );
+            let left = observation(
+                "left",
+                "restricted",
+                "sha256-restricted",
+                ObservationOrigin::SurveyEstimate,
+            );
+            let right = observation(
+                "right",
+                "other",
+                "sha256-other",
+                ObservationOrigin::SurveyEstimate,
+            );
             let report = assess_observation_compatibility(
-                &left, &left_source, &right, &right_source,
-                RegisteredPurpose::EmpiricalValidation, &plan()
+                &left,
+                &left_source,
+                &right,
+                &right_source,
+                RegisteredPurpose::EmpiricalValidation,
+                &plan(),
             );
             assert_eq!(report.status, CompatibilityStatus::RightsBlocked);
         }
@@ -1014,16 +1166,40 @@ mod tests {
 
     #[test]
     fn boundary_mismatch_requires_crosswalk_bound_to_source_digest() {
-        let left_source = passport("old-boundary", "sha256-old", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let right_source = passport("new-boundary", "sha256-new", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let left = observation("old", "old-boundary", "sha256-old", ObservationOrigin::AdministrativeSubmission);
-        let mut right = observation("new", "new-boundary", "sha256-new", ObservationOrigin::AdministrativeSubmission);
+        let left_source = passport(
+            "old-boundary",
+            "sha256-old",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let right_source = passport(
+            "new-boundary",
+            "sha256-new",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let left = observation(
+            "old",
+            "old-boundary",
+            "sha256-old",
+            ObservationOrigin::AdministrativeSubmission,
+        );
+        let mut right = observation(
+            "new",
+            "new-boundary",
+            "sha256-new",
+            ObservationOrigin::AdministrativeSubmission,
+        );
         right.geography = geography("province-a", "boundary-v2");
         let mut alignment = plan();
         alignment.target_geography = geography("province-a", "boundary-v2");
         let blocked = assess_observation_compatibility(
-            &left, &left_source, &right, &right_source,
-            RegisteredPurpose::EmpiricalValidation, &alignment
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &alignment,
         );
         assert_eq!(blocked.status, CompatibilityStatus::NotComparable);
         alignment.transforms.push(TransformReceipt {
@@ -1039,20 +1215,51 @@ mod tests {
             coverage_fraction: Some(0.98),
         });
         let allowed = assess_observation_compatibility(
-            &left, &left_source, &right, &right_source,
-            RegisteredPurpose::EmpiricalValidation, &alignment
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &alignment,
         );
-        assert_eq!(allowed.status, CompatibilityStatus::CompatibleWithExplicitTransform);
-        assert!(allowed.explicit_transform_digests.contains(&"sha256-crosswalk-receipt".to_string()));
+        assert_eq!(
+            allowed.status,
+            CompatibilityStatus::CompatibleWithExplicitTransform
+        );
+        assert!(
+            allowed
+                .explicit_transform_digests
+                .contains(&"sha256-crosswalk-receipt".to_string())
+        );
     }
 
     #[test]
     fn low_crosswalk_coverage_does_not_pass() {
-        let left_source = passport("old", "sha256-old", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let right_source = passport("new", "sha256-new", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let mut left = observation("left", "old", "sha256-old", ObservationOrigin::AdministrativeSubmission);
+        let left_source = passport(
+            "old",
+            "sha256-old",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let right_source = passport(
+            "new",
+            "sha256-new",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let mut left = observation(
+            "left",
+            "old",
+            "sha256-old",
+            ObservationOrigin::AdministrativeSubmission,
+        );
         left.geography = geography("muni-old", "boundary-old");
-        let right = observation("right", "new", "sha256-new", ObservationOrigin::AdministrativeSubmission);
+        let right = observation(
+            "right",
+            "new",
+            "sha256-new",
+            ObservationOrigin::AdministrativeSubmission,
+        );
         let mut alignment = plan();
         alignment.target_geography = geography("province-a", "boundary-v1");
         alignment.transforms.push(TransformReceipt {
@@ -1068,34 +1275,90 @@ mod tests {
             coverage_fraction: Some(0.5),
         });
         let report = assess_observation_compatibility(
-            &left, &left_source, &right, &right_source,
-            RegisteredPurpose::EmpiricalValidation, &alignment
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &alignment,
         );
         assert_eq!(report.status, CompatibilityStatus::NotComparable);
-        assert!(report.reasons.contains(&CompatibilityReason::TransformCoverageBelowThreshold));
+        assert!(
+            report
+                .reasons
+                .contains(&CompatibilityReason::TransformCoverageBelowThreshold)
+        );
     }
 
     #[test]
     fn missing_survey_design_and_weights_remain_not_assessed() {
-        let left_source = passport("survey-a", "sha256-survey-a", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let right_source = passport("survey-b", "sha256-survey-b", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let mut left = observation("left", "survey-a", "sha256-survey-a", ObservationOrigin::SurveyEstimate);
+        let left_source = passport(
+            "survey-a",
+            "sha256-survey-a",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let right_source = passport(
+            "survey-b",
+            "sha256-survey-b",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let mut left = observation(
+            "left",
+            "survey-a",
+            "sha256-survey-a",
+            ObservationOrigin::SurveyEstimate,
+        );
         left.weights_digest = None;
-        let right = observation("right", "survey-b", "sha256-survey-b", ObservationOrigin::SurveyEstimate);
+        let right = observation(
+            "right",
+            "survey-b",
+            "sha256-survey-b",
+            ObservationOrigin::SurveyEstimate,
+        );
         let report = assess_observation_compatibility(
-            &left, &left_source, &right, &right_source,
-            RegisteredPurpose::EmpiricalValidation, &plan()
+            &left,
+            &left_source,
+            &right,
+            &right_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &plan(),
         );
         assert_eq!(report.status, CompatibilityStatus::NotAssessed);
-        assert!(report.reasons.contains(&CompatibilityReason::SurveyDesignOrWeightsMissing));
+        assert!(
+            report
+                .reasons
+                .contains(&CompatibilityReason::SurveyDesignOrWeightsMissing)
+        );
     }
 
     #[test]
     fn unit_conversion_requires_source_bound_receipt_and_is_reported() {
-        let left_source = passport("left", "sha256-left", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let right_source = passport("right", "sha256-right", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let left = observation("left", "left", "sha256-left", ObservationOrigin::AdministrativeSubmission);
-        let right = observation("right", "right", "sha256-right", ObservationOrigin::AdministrativeSubmission);
+        let left_source = passport(
+            "left",
+            "sha256-left",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let right_source = passport(
+            "right",
+            "sha256-right",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let left = observation(
+            "left",
+            "left",
+            "sha256-left",
+            ObservationOrigin::AdministrativeSubmission,
+        );
+        let right = observation(
+            "right",
+            "right",
+            "sha256-right",
+            ObservationOrigin::AdministrativeSubmission,
+        );
         let mut alignment = plan();
         alignment.target_measurement_unit = "fraction".to_string();
         alignment.transforms.push(TransformReceipt {
@@ -1119,7 +1382,11 @@ mod tests {
             &alignment,
         );
         assert_eq!(report.status, CompatibilityStatus::NotComparable);
-        assert!(report.reasons.contains(&CompatibilityReason::DifferentMeasurementUnit));
+        assert!(
+            report
+                .reasons
+                .contains(&CompatibilityReason::DifferentMeasurementUnit)
+        );
         alignment.transforms.push(TransformReceipt {
             transform_id: "percent-to-fraction-right".to_string(),
             transform_kind: TransformKind::UnitConversion,
@@ -1140,17 +1407,40 @@ mod tests {
             RegisteredPurpose::EmpiricalValidation,
             &alignment,
         );
-        assert_eq!(report.status, CompatibilityStatus::CompatibleWithExplicitTransform);
+        assert_eq!(
+            report.status,
+            CompatibilityStatus::CompatibleWithExplicitTransform
+        );
         assert_eq!(report.explicit_transform_digests.len(), 2);
     }
 
     #[test]
     fn source_sample_unit_mismatch_is_not_reported_as_compatible() {
-        let left_source = passport("left", "sha256-left", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let right_source = passport("right", "sha256-right", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let mut left = observation("left", "left", "sha256-left", ObservationOrigin::AdministrativeSubmission);
+        let left_source = passport(
+            "left",
+            "sha256-left",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let right_source = passport(
+            "right",
+            "sha256-right",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let mut left = observation(
+            "left",
+            "left",
+            "sha256-left",
+            ObservationOrigin::AdministrativeSubmission,
+        );
         left.sampling_unit = IndependentUnitKind::Region;
-        let right = observation("right", "right", "sha256-right", ObservationOrigin::AdministrativeSubmission);
+        let right = observation(
+            "right",
+            "right",
+            "sha256-right",
+            ObservationOrigin::AdministrativeSubmission,
+        );
         let report = assess_observation_compatibility(
             &left,
             &left_source,
@@ -1160,35 +1450,92 @@ mod tests {
             &plan(),
         );
         assert_eq!(report.status, CompatibilityStatus::NotAssessed);
-        assert!(report.reasons.contains(&CompatibilityReason::ObservationSourceMismatch));
+        assert!(
+            report
+                .reasons
+                .contains(&CompatibilityReason::ObservationSourceMismatch)
+        );
     }
 
     #[test]
     fn derived_observations_require_unique_parent_and_transform_lineage() {
-        let source = passport("derived", "sha256-derived", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let mut obs = observation("derived-observation", "derived", "sha256-derived", ObservationOrigin::DerivedFromRegisteredInputs);
-        obs.parent_observation_digests = vec!["sha256-parent".to_string(), "sha256-parent".to_string()];
+        let source = passport(
+            "derived",
+            "sha256-derived",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let mut obs = observation(
+            "derived-observation",
+            "derived",
+            "sha256-derived",
+            ObservationOrigin::DerivedFromRegisteredInputs,
+        );
+        obs.parent_observation_digests =
+            vec!["sha256-parent".to_string(), "sha256-parent".to_string()];
         obs.transformation_digest = source.transformation_digest.clone();
-        let other_source = passport("other", "sha256-other", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let other = observation("other", "other", "sha256-other", ObservationOrigin::DirectMeasurement);
+        let other_source = passport(
+            "other",
+            "sha256-other",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let other = observation(
+            "other",
+            "other",
+            "sha256-other",
+            ObservationOrigin::DirectMeasurement,
+        );
         let report = assess_observation_compatibility(
-            &obs, &source, &other, &other_source,
-            RegisteredPurpose::EmpiricalValidation, &plan()
+            &obs,
+            &source,
+            &other,
+            &other_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &plan(),
         );
         assert_eq!(report.status, CompatibilityStatus::NotAssessed);
-        assert!(report.reasons.contains(&CompatibilityReason::DerivedLineageMissing));
+        assert!(
+            report
+                .reasons
+                .contains(&CompatibilityReason::DerivedLineageMissing)
+        );
     }
 
     #[test]
     fn restricted_rights_require_purpose_specific_receipt() {
-        let mut source = passport("restricted", "sha256-restricted", RightsStatus::Restricted, AcquisitionStatus::Acquired);
+        let mut source = passport(
+            "restricted",
+            "sha256-restricted",
+            RightsStatus::Restricted,
+            AcquisitionStatus::Acquired,
+        );
         source.permitted_purposes = vec![RegisteredPurpose::ScenarioAssumption.name().to_string()];
-        let other_source = passport("other", "sha256-other", RightsStatus::Permitted, AcquisitionStatus::Acquired);
-        let left = observation("left", "restricted", "sha256-restricted", ObservationOrigin::SurveyEstimate);
-        let right = observation("right", "other", "sha256-other", ObservationOrigin::SurveyEstimate);
+        let other_source = passport(
+            "other",
+            "sha256-other",
+            RightsStatus::Permitted,
+            AcquisitionStatus::Acquired,
+        );
+        let left = observation(
+            "left",
+            "restricted",
+            "sha256-restricted",
+            ObservationOrigin::SurveyEstimate,
+        );
+        let right = observation(
+            "right",
+            "other",
+            "sha256-other",
+            ObservationOrigin::SurveyEstimate,
+        );
         let report = assess_observation_compatibility(
-            &left, &source, &right, &other_source,
-            RegisteredPurpose::EmpiricalValidation, &plan()
+            &left,
+            &source,
+            &right,
+            &other_source,
+            RegisteredPurpose::EmpiricalValidation,
+            &plan(),
         );
         assert_eq!(report.status, CompatibilityStatus::RightsBlocked);
     }

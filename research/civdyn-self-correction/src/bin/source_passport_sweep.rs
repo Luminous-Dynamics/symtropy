@@ -3,10 +3,10 @@
 
 use civdyn_self_correction::model_adequacy::IndependentUnitKind;
 use civdyn_self_correction::source_passport::{
-    AcquisitionStatus, CompatibilityReport, GeographySupport,
-    JoinAlignmentPlan, ObservationOrigin, ObservationPassport, RegisteredPurpose,
-    RightsStatus, SourceArtifactPassport, TemporalResolution, TemporalSupport, qualify_source,
-    TransformKind, TransformReceipt, assess_observation_compatibility,
+    AcquisitionStatus, CompatibilityReport, GeographySupport, JoinAlignmentPlan, ObservationOrigin,
+    ObservationPassport, RegisteredPurpose, RightsStatus, SourceArtifactPassport,
+    TemporalResolution, TemporalSupport, TransformKind, TransformReceipt,
+    assess_observation_compatibility, qualify_source,
 };
 
 const CSV_COLUMNS: usize = 14;
@@ -174,7 +174,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         "scenario,compatibility_status,reasons,purpose,left_observation_id,right_observation_id,left_artifact_digest,right_artifact_digest,left_source_qualification,right_source_qualification,explicit_transform_digests,category_default_rejected,temporal_mismatch,geography_mismatch"
     );
 
-    let year = period(2025, 2026, "calendar-year", TemporalResolution::CalendarYear);
+    let year = period(
+        2025,
+        2026,
+        "calendar-year",
+        TemporalResolution::CalendarYear,
+    );
     let province = geography("province-a", "province", "MDB-2026", "sha256-mdb-2026");
 
     // GHS and a second household survey: identical provincial/year construct,
@@ -327,7 +332,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::ScenarioAssumption,
         &plan(year.clone(), province.clone(), "percent"),
     );
-    emit_report("dws_default_scenario_assumption", &scenario_report, &dws_default, &admin_source);
+    emit_report(
+        "dws_default_scenario_assumption",
+        &scenario_report,
+        &dws_default,
+        &admin_source,
+    );
     let measured_report = assess_observation_compatibility(
         &default_obs,
         &dws_default,
@@ -336,7 +346,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::EmpiricalValidation,
         &plan(year.clone(), province.clone(), "percent"),
     );
-    emit_report("dws_default_measured_validation", &measured_report, &dws_default, &admin_source);
+    emit_report(
+        "dws_default_measured_validation",
+        &measured_report,
+        &dws_default,
+        &admin_source,
+    );
 
     // Eskom has a published request process, but no dataset has yet been
     // acquired into this synthetic fixture. It cannot be empirically scored.
@@ -348,7 +363,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         "national-hour",
         "MW",
         period(1, 2, "UTC-hour", TemporalResolution::Hour),
-        geography("south-africa", "country", "country-boundary-v1", "sha256-country-boundary"),
+        geography(
+            "south-africa",
+            "country",
+            "country-boundary-v1",
+            "sha256-country-boundary",
+        ),
     );
     let other_grid = passport(
         "other-grid-source",
@@ -358,7 +378,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         "national-hour",
         "MW",
         period(1, 2, "UTC-hour", TemporalResolution::Hour),
-        geography("south-africa", "country", "country-boundary-v1", "sha256-country-boundary"),
+        geography(
+            "south-africa",
+            "country",
+            "country-boundary-v1",
+            "sha256-country-boundary",
+        ),
     );
     let eskom_obs = observation(
         "eskom-hourly-demand",
@@ -366,7 +391,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         "not-yet-acquired",
         ObservationOrigin::DirectMeasurement,
         period(1, 2, "UTC-hour", TemporalResolution::Hour),
-        geography("south-africa", "country", "country-boundary-v1", "sha256-country-boundary"),
+        geography(
+            "south-africa",
+            "country",
+            "country-boundary-v1",
+            "sha256-country-boundary",
+        ),
         "MW",
     );
     let other_grid_obs = observation(
@@ -375,7 +405,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         "sha256-other-grid",
         ObservationOrigin::DirectMeasurement,
         period(1, 2, "UTC-hour", TemporalResolution::Hour),
-        geography("south-africa", "country", "country-boundary-v1", "sha256-country-boundary"),
+        geography(
+            "south-africa",
+            "country",
+            "country-boundary-v1",
+            "sha256-country-boundary",
+        ),
         "MW",
     );
     let report = assess_observation_compatibility(
@@ -386,15 +421,35 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::EmpiricalValidation,
         &plan(
             period(1, 2, "UTC-hour", TemporalResolution::Hour),
-            geography("south-africa", "country", "country-boundary-v1", "sha256-country-boundary"),
+            geography(
+                "south-africa",
+                "country",
+                "country-boundary-v1",
+                "sha256-country-boundary",
+            ),
             "MW",
         ),
     );
-    emit_report("eskom_acquisition_pending", &report, &eskom_pending, &other_grid);
+    emit_report(
+        "eskom_acquisition_pending",
+        &report,
+        &eskom_pending,
+        &other_grid,
+    );
 
     // Boundary changes require an explicit, source-bound MDB crosswalk.
-    let old_geo = geography("municipality-001", "municipality", "MDB-2021", "sha256-mdb-2021");
-    let new_geo = geography("municipality-001", "municipality", "MDB-2026", "sha256-mdb-2026");
+    let old_geo = geography(
+        "municipality-001",
+        "municipality",
+        "MDB-2021",
+        "sha256-mdb-2021",
+    );
+    let new_geo = geography(
+        "municipality-001",
+        "municipality",
+        "MDB-2026",
+        "sha256-mdb-2026",
+    );
     let old_muni = passport(
         "old-muni-data",
         "sha256-old-muni",
@@ -454,7 +509,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::EmpiricalValidation,
         &crosswalk_plan,
     );
-    emit_report("municipal_boundary_crosswalk", &report, &old_muni, &new_muni);
+    emit_report(
+        "municipal_boundary_crosswalk",
+        &report,
+        &old_muni,
+        &new_muni,
+    );
 
     // Unknown rights stop the join even when every statistical field matches.
     let unknown_rights = passport(
@@ -484,7 +544,12 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
         RegisteredPurpose::EmpiricalValidation,
         &plan(year, province, "percent"),
     );
-    emit_report("unknown_rights_blocked", &report, &unknown_rights, &other_survey);
+    emit_report(
+        "unknown_rights_blocked",
+        &report,
+        &unknown_rights,
+        &other_survey,
+    );
     Ok(())
 }
 
