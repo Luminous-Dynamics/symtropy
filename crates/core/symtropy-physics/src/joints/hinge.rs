@@ -116,7 +116,7 @@ fn hinge_axis_inverse_inertia<const D: usize>(
     }
 
     if D == 3 {
-        let axis_index = D - 1 - plane_axis_a - plane_axis_b;
+        let axis_index = D - plane_axis_a - plane_axis_b;
         let mut world_axis = SVector::<f64, D>::zeros();
         world_axis[axis_index] = 1.0;
         let local_axis = body
@@ -281,6 +281,12 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 - rel_angular_vel * motor.kd)
                 .clamp(-motor.max_force, motor.max_force);
 
+            let inverse_inertia_a = hinge_axis_inverse_inertia(body_a, pa, pb);
+            let inverse_inertia_b = hinge_axis_inverse_inertia(body_b, pa, pb);
+            if inverse_inertia_a + inverse_inertia_b <= 1e-15 {
+                return;
+            }
+
             // METABOLIC HEARTBEAT: Calculate Work and Energy Recovery
             // Work (Power) = Torque * AngularVelocity
             // Positive = Consuming, Negative = Regenerating
@@ -290,12 +296,6 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             if let Some(ref mut cb) = callback {
                 // Charge/Drain from the thermodynamic ledger
                 cb.record_work(self.body_b, work_joules);
-            }
-
-            let inverse_inertia_a = hinge_axis_inverse_inertia(body_a, pa, pb);
-            let inverse_inertia_b = hinge_axis_inverse_inertia(body_b, pa, pb);
-            if inverse_inertia_a + inverse_inertia_b <= 1e-15 {
-                return;
             }
 
             // Apply equal-and-opposite angular impulse through each body's
