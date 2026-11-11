@@ -24,7 +24,7 @@ struct MonitorInput {
     testing: Timepoint,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct InstrumentIdentity {
     instrument_id: String,
@@ -64,6 +64,7 @@ struct Timepoint {
     source_scan_manifest_sha256: String,
     target_array_sha256: String,
     residual_generation_sha256: String,
+    instrument_identity_sha256: String,
     target_ids: Vec<String>,
     position_ids: Vec<String>,
     residuals: Vec<SphericalResidual>,
@@ -234,6 +235,9 @@ fn validate_input(input: &MonitorInput) -> Result<(), &'static str> {
             return Err("INSTRUMENT_EVIDENCE_DIGEST_INVALID");
         }
     }
+    let instrument_bytes =
+        serde_json::to_vec(instrument).map_err(|_| "INSTRUMENT_IDENTITY_SERIALIZATION_FAILED")?;
+    let expected_instrument_binding = sha256_hex(&instrument_bytes);
 
     if input.baseline.timepoint_id == input.testing.timepoint_id
         || !is_nonempty(&input.baseline.timepoint_id)
@@ -249,6 +253,9 @@ fn validate_input(input: &MonitorInput) -> Result<(), &'static str> {
     }
 
     for timepoint in [&input.baseline, &input.testing] {
+        if timepoint.instrument_identity_sha256 != expected_instrument_binding {
+            return Err("TIMEPOINT_INSTRUMENT_IDENTITY_MISMATCH");
+        }
         for digest in [
             timepoint.source_scan_manifest_sha256.as_str(),
             timepoint.target_array_sha256.as_str(),
@@ -297,15 +304,8 @@ fn validate_input(input: &MonitorInput) -> Result<(), &'static str> {
         }
     }
 
-    // Longitudinal precision comparisons require the same instrument and
-    // measurement configuration. A changed calibration/profile starts a new
-    // baseline rather than being silently treated as temporal drift.
-    let base = &input.instrument;
-    if base.instrument_id != input.instrument.instrument_id
-        || base.serial_number != input.instrument.serial_number
-    {
-        return Err("INSTRUMENT_IDENTITY_CHANGED");
-    }
+    // Each timepoint binds to the same canonical instrument identity.
+    // Firmware/profile/configuration/calibration changes require a new baseline.
     Ok(())
 }
 
@@ -858,9 +858,10 @@ mod tests {
     fn profile_or_calibration_change_requires_new_baseline() {
         let mut input = fixture();
         input.instrument.sensor_profile_sha256 = "f".repeat(64);
-        // Baseline/testing share one InstrumentIdentity. A future schema with
-        // per-timepoint profile binding must reject a profile transition.
-        assert!(validate_input(&input).is_ok());
+        assert_eq!(
+            validate_input(&input),
+            Err("TIMEPOINT_INSTRUMENT_IDENTITY_MISMATCH")
+        );
     }
 
     #[test]
@@ -881,7 +882,10 @@ mod tests {
     fn changed_configuration_is_not_comparable_with_same_baseline() {
         let mut input = fixture();
         input.instrument.configuration_sha256 = "0".repeat(64);
-        assert!(valid_sha256(&input.instrument.configuration_sha256));
+        assert_eq!(
+            validate_input(&input),
+            Err("TIMEPOINT_INSTRUMENT_IDENTITY_MISMATCH")
+        );
     }
 
     #[test]
@@ -960,7 +964,7 @@ mod tests {
         let original = evaluate(&input, "1".repeat(64).as_str());
         input.testing.residuals.reverse();
         let permuted = evaluate(&input, "2".repeat(64).as_str());
-        assert_eq!(original.disposition as u8, permuted.disposition as u8);
+        assert_eq!(original.disposition, permuted.disposition);
         assert!((original.p_value.unwrap() - permuted.p_value.unwrap()).abs() < 1e-10);
     }
 
