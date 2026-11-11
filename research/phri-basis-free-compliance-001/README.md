@@ -33,7 +33,7 @@ Symmetric 3×3 matrices use six stored coordinates. PSD is checked by all princi
 
 ## Regression coverage
 
-Seventeen authored deterministic tests cover:
+Eighteen authored deterministic tests cover:
 - PSD/SPD known answers;
 - repeated eigenvalues without eigenvector tracking;
 - off-diagonal stiffness-rate quadratic terms;
