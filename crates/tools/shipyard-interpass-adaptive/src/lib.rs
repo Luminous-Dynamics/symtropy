@@ -460,6 +460,7 @@ pub fn recommend_next_pass(input: &PlannerInput) -> Decision {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
 pub enum TemporalEvidenceKind {
     ProcessObservation,
     GeometryScan,
@@ -471,6 +472,7 @@ pub enum TemporalEvidenceKind {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
 pub enum TemporalEvidenceRole {
     Feature,
     OutcomeLabel,
@@ -478,6 +480,7 @@ pub enum TemporalEvidenceRole {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[repr(u8)]
 pub enum TemporalDecisionPurpose {
     FastProcess,
     MediumNextPass,
@@ -861,13 +864,17 @@ pub fn build_point_in_time_snapshot(
     }
 
     let mut revoked = HashSet::new();
-    let mut superseded = HashSet::new();
     for event in &eligible {
         if let Some(target) = &event.revokes_event_id {
             revoked.insert(target.clone());
         }
-        if let Some(target) = &event.supersedes_event_id {
-            superseded.insert(target.clone());
+    }
+    let mut superseded = HashSet::new();
+    for event in &eligible {
+        if !revoked.contains(&event.event_id) {
+            if let Some(target) = &event.supersedes_event_id {
+                superseded.insert(target.clone());
+            }
         }
     }
 
@@ -1047,6 +1054,155 @@ mod tests {
             maximum_timestamp_precision_ticks: 5,
             policy_revision: "TEMPORAL-POLICY-R1".to_owned(),
         }
+    }
+
+    #[test]
+    fn clock_domain_mismatch_is_excluded() {
+        let mut event =
+            temporal_test_event("EV-WRONG-CLOCK", TemporalEvidenceKind::ProcessObservation, 80, 81);
+        event.clock_id = "UNMAPPED-DEVICE-CLOCK".to_owned();
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::FastProcess, 100),
+        )
+        .expect("unmapped clock is excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::ClockDomainMismatch
+        );
+    }
+
+    #[test]
+    fn expired_evidence_is_excluded() {
+        let mut event =
+            temporal_test_event("EV-EXPIRED", TemporalEvidenceKind::ModelCalibration, 80, 81);
+        event.valid_until_tick = Some(99);
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("expired evidence is excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::Expired
+        );
+    }
+
+    #[test]
+    fn not_yet_valid_evidence_is_excluded() {
+        let mut event =
+            temporal_test_event("EV-NOT-YET", TemporalEvidenceKind::ModelCalibration, 80, 81);
+        event.valid_from_tick = 101;
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("not-yet-valid evidence is excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::NotYetValid
+        );
+    }
+
+    #[test]
+    fn purpose_authorization_is_enforced() {
+        let mut event =
+            temporal_test_event("EV-NO-PERMISSION", TemporalEvidenceKind::ProcessObservation, 80, 81);
+        event.purpose_authorized[0] = false;
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::FastProcess, 100),
+        )
+        .expect("unauthorized purpose is excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::PurposeNotAuthorized
+        );
+    }
+
+    #[test]
+    fn joint_revision_mismatch_is_excluded() {
+        let mut event =
+            temporal_test_event("EV-OTHER-REV", TemporalEvidenceKind::GeometryScan, 80, 81);
+        event.joint_revision = "JOINT-R2".to_owned();
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("wrong joint revision excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::JointRevisionMismatch
+        );
+    }
+
+    #[test]
+    fn layer_mismatch_is_excluded() {
+        let mut event =
+            temporal_test_event("EV-OTHER-LAYER", TemporalEvidenceKind::GeometryScan, 80, 81);
+        event.layer_id = Some("LAYER-02".to_owned());
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("wrong layer excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::LayerMismatch
+        );
+    }
+
+    #[test]
+    fn predecessor_pass_mismatch_is_excluded() {
+        let mut event =
+            temporal_test_event("EV-OTHER-PASS", TemporalEvidenceKind::ProcessObservation, 80, 81);
+        event.pass_id = Some("PASS-01".to_owned());
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("wrong predecessor pass excluded");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::PassMismatch
+        );
+    }
+
+    #[test]
+    fn missing_registration_receipt_digest_is_excluded() {
+        let mut event =
+            temporal_test_event("EV-NO-TRANSFORM", TemporalEvidenceKind::GeometryScan, 80, 81);
+        event.transform_receipt_sha256 = [0; 32];
+        let snapshot = build_point_in_time_snapshot(
+            &[event],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("missing transform receipt is quarantined");
+        assert_eq!(
+            snapshot.excluded[0].reason,
+            TemporalExclusionReason::MissingTransformReceipt
+        );
+    }
+
+    #[test]
+    fn revoked_superseding_scan_does_not_hide_the_prior_scan() {
+        let old = temporal_test_event("SCAN-OLD", TemporalEvidenceKind::GeometryScan, 80, 81);
+        let mut replacement =
+            temporal_test_event("SCAN-NEW", TemporalEvidenceKind::GeometryScan, 90, 91);
+        replacement.supersedes_event_id = Some("SCAN-OLD".to_owned());
+        let mut revocation =
+            temporal_test_event("REV-NEW", TemporalEvidenceKind::RegistrationReceipt, 95, 96);
+        revocation.revokes_event_id = Some("SCAN-NEW".to_owned());
+        let snapshot = build_point_in_time_snapshot(
+            &[old, replacement, revocation],
+            &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
+        )
+        .expect("revoked replacement no longer supersedes the prior scan");
+        assert!(snapshot.included.iter().any(|event| event.event_id == "SCAN-OLD"));
+        assert!(!snapshot.included.iter().any(|event| event.event_id == "SCAN-NEW"));
+        assert!(snapshot.excluded.iter().any(|event| {
+            event.event_id == "SCAN-NEW" && event.reason == TemporalExclusionReason::Revoked
+        }));
     }
 
     #[test]
