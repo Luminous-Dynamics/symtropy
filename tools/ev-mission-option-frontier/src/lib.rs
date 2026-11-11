@@ -777,13 +777,16 @@ mod tests {
     fn mission_units_must_match_the_single_service_contract() {
         let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus");
         let source_ref = corpus["candidates"][0]["source_report_ref"].clone();
-        let report = corpus["mission_reports"].as_array_mut().unwrap().iter_mut()
-            .find(|report| report["report_ref"] == source_ref)
-            .unwrap();
-        report["report"]["results"][0]["mission_functional_unit"] = Value::String("passenger-km per shift".into());
-        let new_report_digest = sha256(&canonical_json(&report["report"]).unwrap());
-        let new_result_digest = sha256(&canonical_json(&report["report"]["results"][0]).unwrap());
-        report["report_sha256"] = Value::String(new_report_digest.clone());
+        let (new_report_digest, new_result_digest) = {
+            let report = corpus["mission_reports"].as_array_mut().unwrap().iter_mut()
+                .find(|report| report["report_ref"] == source_ref)
+                .unwrap();
+            report["report"]["results"][0]["mission_functional_unit"] = Value::String("passenger-km per shift".into());
+            let new_report_digest = sha256(&canonical_json(&report["report"]).unwrap());
+            let new_result_digest = sha256(&canonical_json(&report["report"]["results"][0]).unwrap());
+            report["report_sha256"] = Value::String(new_report_digest.clone());
+            (new_report_digest, new_result_digest)
+        };
         corpus["candidates"][0]["source_report_sha256"] = Value::String(new_report_digest);
         corpus["candidates"][0]["source_result_sha256"] = Value::String(new_result_digest);
         let bytes = serde_json::to_vec(&corpus).expect("mixed service unit corpus");
