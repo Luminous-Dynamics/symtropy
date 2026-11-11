@@ -23,6 +23,20 @@ pub struct Corpus {
 pub struct TrustPolicy {
     pub maximum_clock_uncertainty_ms: u64,
     pub trusted_clock_sources: Vec<String>,
+    /// References admitted by an external boot-attestation verifier/policy.
+    pub admitted_boot_epochs: Vec<AdmittedBootEpoch>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AdmittedBootEpoch {
+    pub evidence_ref: String,
+    pub producer_id: String,
+    pub boot_epoch_id: String,
+    pub firmware_sha256: String,
+    pub vehicle_ref: String,
+    pub pack_ref: String,
+    pub configuration_sha256: String,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -204,20 +218,20 @@ fn payload_digest_is_valid(claims: &EventClaims) -> Result<(), String> {
 fn physical_validity(payload: &BatteryPayload) -> (String, Option<String>) {
     if !payload.sensor_valid {
         return (
-            "SENSOR_INVALID".to_owned(),
-            Some("signature authenticity does not override an invalid sensor state".to_owned()),
+            "SOURCE_REPORTED_SENSOR_INVALID".to_owned(),
+            Some("the signed producer reports an invalid sensor; signature does not independently validate the sensor".to_owned()),
         );
     }
     if payload.calibration_status != "current" {
         return (
-            "CALIBRATION_NOT_CURRENT".to_owned(),
-            Some("calibration is expired or unknown; no physical measurement qualification is made".to_owned()),
+            "SOURCE_REPORTED_CALIBRATION_NOT_CURRENT".to_owned(),
+            Some("the signed producer reports expired/unknown calibration; the calibration record is not independently validated here".to_owned()),
         );
     }
     if payload.out_of_domain {
         return (
-            "OUT_OF_DOMAIN".to_owned(),
-            Some("observation is outside the declared physical validity domain".to_owned()),
+            "SOURCE_REPORTED_OUT_OF_DOMAIN".to_owned(),
+            Some("the signed producer flags an out-of-domain observation; physical validity remains unverified".to_owned()),
         );
     }
     (
@@ -372,19 +386,6 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             ));
             continue;
         }
-        if claims.observed_at_ms < key.valid_from_ms
-            || key.valid_until_ms.is_some_and(|end| claims.observed_at_ms > end)
-        {
-            rejected_count += 1;
-            events.push(make_row(
-                claims,
-                "REJECTED_KEY_OUTSIDE_VALIDITY",
-                &physical_state,
-                0,
-                Some("event time lies outside the signing key validity interval".to_owned()),
-            ));
-            continue;
-        }
         if claims.producer_id != key.producer_id || claims.producer_role != key.producer_role {
             rejected_count += 1;
             events.push(make_row(
@@ -477,17 +478,6 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             ));
             continue;
         }
-        if claims.boot_epoch_id.trim().is_empty() || claims.boot_attestation_ref.as_deref().is_none_or(str::is_empty) {
-            quarantined_count += 1;
-            events.push(make_row(
-                claims,
-                "QUARANTINED_BOOT_EPOCH_UNKNOWN",
-                &physical_state,
-                gap,
-                Some("boot/session epoch lacks an admitted attestation reference".to_owned()),
-            ));
-            continue;
-        }
         if !corpus.policy.trusted_clock_sources.iter().any(|source| source == &claims.clock_source)
             || claims.clock_uncertainty_ms > corpus.policy.maximum_clock_uncertainty_ms
         {
@@ -498,6 +488,41 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
                 &physical_state,
                 gap,
                 Some("clock source is not trusted or its uncertainty exceeds policy".to_owned()),
+            ));
+            continue;
+        }
+        if claims.observed_at_ms < key.valid_from_ms
+            || key.valid_until_ms.is_some_and(|end| claims.observed_at_ms > end)
+        {
+            rejected_count += 1;
+            events.push(make_row(
+                claims,
+                "REJECTED_KEY_OUTSIDE_VALIDITY",
+                &physical_state,
+                0,
+                Some("event time lies outside the signing key validity interval".to_owned()),
+            ));
+            continue;
+        }
+        let boot_admitted = claims.boot_attestation_ref.as_deref().is_some_and(|reference| {
+            corpus.policy.admitted_boot_epochs.iter().any(|admission| {
+                admission.evidence_ref == reference
+                    && admission.producer_id == claims.producer_id
+                    && admission.boot_epoch_id == claims.boot_epoch_id
+                    && admission.firmware_sha256 == claims.firmware_sha256
+                    && admission.vehicle_ref == claims.vehicle_ref
+                    && admission.pack_ref == claims.pack_ref
+                    && admission.configuration_sha256 == claims.configuration_sha256
+            })
+        });
+        if !boot_admitted {
+            quarantined_count += 1;
+            events.push(make_row(
+                claims,
+                "QUARANTINED_BOOT_EPOCH_UNKNOWN",
+                &physical_state,
+                gap,
+                Some("boot epoch reference is absent or does not match an externally admitted producer/configuration/firmware binding".to_owned()),
             ));
             continue;
         }
@@ -605,10 +630,10 @@ mod tests {
         let report = report();
         let calibration = row(&report, "evt-calibration-expired-009");
         assert_eq!(calibration.authenticity_state, "AUTHENTICATED_AND_AUTHORIZED");
-        assert_eq!(calibration.physical_validity_state, "CALIBRATION_NOT_CURRENT");
+        assert_eq!(calibration.physical_validity_state, "SOURCE_REPORTED_CALIBRATION_NOT_CURRENT");
         let sensor = row(&report, "evt-sensor-invalid-010");
         assert_eq!(sensor.authenticity_state, "AUTHENTICATED_AND_AUTHORIZED");
-        assert_eq!(sensor.physical_validity_state, "SENSOR_INVALID");
+        assert_eq!(sensor.physical_validity_state, "SOURCE_REPORTED_SENSOR_INVALID");
     }
 
     #[test]
