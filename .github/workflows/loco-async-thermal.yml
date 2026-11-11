@@ -1,0 +1,145 @@
+name: LOCO Async Thermal Fixture Validation
+
+on:
+  push:
+    branches:
+      - research/loco-async-thermal-001
+    paths:
+      - "research/loco-async-thermal-001/**"
+      - ".github/workflows/loco-async-thermal.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "research/loco-async-thermal-001/**"
+      - ".github/workflows/loco-async-thermal.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  fixture-validation:
+    name: Draft 2020-12 schema and semantic preflight
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install pinned schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.23.0
+      - name: Validate schema and all known-answer cases
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/loco-async-thermal-001/fixtures")
+          fixture = json.loads((root / "mission_interactions_v0_1.json").read_text())
+          schema = json.loads((root / "mission_interactions_v0_1.schema.json").read_text())
+
+          Draft202012Validator.check_schema(schema)
+          validator = Draft202012Validator(schema)
+          errors = sorted(validator.iter_errors(fixture), key=lambda e: list(e.absolute_path))
+          if errors:
+              for error in errors:
+                  print(f"SCHEMA ERROR at {list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+
+          cases = fixture["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(cases) != 12 or len(set(ids)) != 12:
+              raise SystemExit("Expected exactly 12 unique known-answer cases")
+
+          expected_ids = [
+              "LA01_TEMPORALLY_AND_PHYSICALLY_ELIGIBLE",
+              "LA02_EXECUTED_PREFIX_MISMATCH",
+              "LA03_OBSERVATION_STALE_AT_APPLICATION",
+              "LA04_CLOCK_MAPPING_UNKNOWN",
+              "LA05_SINGLE_NODE_LIMIT_HIDDEN_BY_MEAN",
+              "LA06_THERMAL_PREDECESSOR_DIGEST_MISMATCH",
+              "LA07_CUMULATIVE_HEAT_CARRYOVER_EXCEEDS_LIMIT",
+              "LA08_COMPUTE_COST_CONSUMES_SAFE_STOP_RESERVE",
+              "LA09_ACTION_QUEUE_UNDERFLOW",
+              "LA10_INDEPENDENT_RTA_VETO",
+              "LA11_THERMAL_MODEL_QUALIFICATION_UNKNOWN",
+              "LA12_NO_OBSERVATION_CONSTRAINED_RECOVERY_ROUTE",
+          ]
+          if ids != expected_ids:
+              raise SystemExit("Known-answer IDs or their declared order changed")
+
+          # No fixture can grant physical actuation authority.
+          if any(case["expected"]["actuation_authorized"] is not False for case in cases):
+              raise SystemExit("A fixture incorrectly grants actuation authority")
+
+          eligible = [
+              case for case in cases
+              if case["expected"]["projection_eligible"] is True
+          ]
+          if len(eligible) != 1 or eligible[0]["case_id"] != expected_ids[0]:
+              raise SystemExit("Only LA01 may be eligible for independent projection")
+
+          # Recompute the conservative age upper bound on the positive case.
+          x = eligible[0]["inputs"]
+          if x["clock_offset_lower_ns"] is None:
+              raise SystemExit("Positive case has no clock mapping")
+          age_upper = (
+              x["application_time_ns"] + x["application_time_uncertainty_ns"]
+              - (x["source_observation_time_ns"]
+                 - x["source_observation_uncertainty_ns"]
+                 + x["clock_offset_lower_ns"])
+          )
+          if age_upper != 52_000_000 or age_upper > x["maximum_observation_age_ns"]:
+              raise SystemExit(f"Unexpected positive-case age upper bound: {age_upper}")
+          if x["application_time_ns"] + x["application_time_uncertainty_ns"] > x["action_chunk_expires_at_ns"]:
+              raise SystemExit("Positive case exceeds chunk expiry")
+          if x["application_time_ns"] + x["application_time_uncertainty_ns"] > x["action_deadline_ns"]:
+              raise SystemExit("Positive case exceeds action deadline")
+
+          # Per-node thermal limits must dominate whole-body means.
+          hot = cases[4]["inputs"]
+          if hot["mean_temperature_milli_deg_c"] >= hot["thermal_nodes"][0]["limit_milli_deg_c"]:
+              raise SystemExit("Negative control should have mean temperature below the motor limit")
+          if hot["thermal_nodes"][0]["temperature_milli_deg_c"] <= hot["thermal_nodes"][0]["limit_milli_deg_c"]:
+              raise SystemExit("Per-node overtemperature negative control is missing")
+
+          # The two-event fixture must carry the state forward without reset.
+          carry = cases[6]["inputs"]["cumulative_thermal_transition"]
+          total = (
+              carry["initial_temperature_milli_deg_c"]
+              + carry["event1_delta_milli_deg_c"]
+              + carry["event2_delta_milli_deg_c"]
+          )
+          if total != carry["resulting_temperature_milli_deg_c"] or total != 102_000:
+              raise SystemExit("Cumulative thermal carryover arithmetic mismatch")
+          if cases[6]["inputs"]["thermal_nodes"][0]["temperature_milli_deg_c"] != total:
+              raise SystemExit("Cumulative thermal node state was not carried into event 2")
+
+          # A safe-stop reserve cannot be spent on deliberation.
+          reserve = cases[7]["inputs"]
+          if reserve["mission_energy_remaining_mj"] >= reserve["terminal_safe_stop_reserve_mj"]:
+              raise SystemExit("Safe-stop reserve negative control is invalid")
+
+          # Unknown lineage, missing clock mapping, queue underflow and RTA veto fail closed.
+          expected_dispositions = {
+              expected_ids[1]: "executed_prefix_mismatch",
+              expected_ids[2]: "observation_stale",
+              expected_ids[3]: "clock_mapping_unknown",
+              expected_ids[5]: "thermal_predecessor_unknown",
+              expected_ids[8]: "queue_underflow_fallback",
+              expected_ids[9]: "independent_rta_veto",
+              expected_ids[10]: "thermal_model_unknown",
+              expected_ids[11]: "future_recovery_unavailable",
+          }
+          for case_id, disposition in expected_dispositions.items():
+              case = next(c for c in cases if c["case_id"] == case_id)
+              if case["expected"]["disposition"] != disposition or case["expected"]["projection_eligible"]:
+                  raise SystemExit(f"Fail-closed disposition mismatch for {case_id}")
+
+          print(f"PASS: Draft 2020-12 schema + {len(cases)} semantic known-answer cases")
+          print(f"PASS: positive-case observation-age upper bound = {age_upper} ns")
+          print("PASS: cumulative thermal carryover = 102000 milli-deg-C; no state reset")
+          print("PASS: all outcomes retain actuation_authorized = false")
+          PY
