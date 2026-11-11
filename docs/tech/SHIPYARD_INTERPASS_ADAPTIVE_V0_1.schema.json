@@ -66,7 +66,9 @@
         "occlusion_permille",
         "maximum_occlusion_permille",
         "registration_error_units",
-        "maximum_registration_error_units"
+        "maximum_registration_error_units",
+        "scan_sha256",
+        "registration_receipt_sha256"
       ],
       "properties": {
         "workpiece_id": {
@@ -129,6 +131,14 @@
         "maximum_registration_error_units": {
           "type": "integer",
           "minimum": 0
+        },
+        "scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "registration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
@@ -240,7 +250,9 @@
         "within_declared_procedure_envelope",
         "resource_feasible",
         "path_reachable",
-        "collision_free"
+        "collision_free",
+        "source_scan_sha256",
+        "source_registration_receipt_sha256"
       ],
       "properties": {
         "candidate_id": {
@@ -299,6 +311,14 @@
         },
         "collision_free": {
           "type": "boolean"
+        },
+        "source_scan_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_registration_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     }
