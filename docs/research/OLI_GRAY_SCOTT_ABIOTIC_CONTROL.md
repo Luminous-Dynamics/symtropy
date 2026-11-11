@@ -20,7 +20,7 @@ Module: `crates/domains/symtropy-lifesim-core/src/gray_scott.rs`
   - U: diffusion, autocatalytic consumption, feed.
   - V: diffusion, autocatalytic production, feed/kill removal.
 - Explicit Euler integration with fixed timestep.
-- Nine-point Laplacian.
+- Standard second-order nine-point Laplacian with center weight −10/3, axial weights 2/3 and diagonal weights 1/6 (unit grid). It reproduces the exact Laplacian of an interior quadratic field `u=x²+y²`; the previous normalized weights were 0.3× the canonical operator and have been removed.
 - No-flux boundary approximation using clamped neighbour coordinates.
 - Bounded [0,1] state values; all numerical clipping is accumulated in the step report.
 - Explicit uniform-patch interventions and a seeded noisy-patch initializer; every pseudorandom draw is generated from a supplied seed and is part of the experiment input.
@@ -66,6 +66,7 @@ A machine-readable case manifest freezes the first challenge input at `benchmark
 ## Future qualification work
 
 - Compare the finite-difference solver with a separately implemented numerical reference and a convergence study.
+- Test no-flux mass conservation with feed, removal and reaction terms disabled.
 - Freeze the seeded pattern case: 80×80 grid, 32×32 patch at (24,24), U center 0.5, V center 0.25, U/V noise amplitudes 0.2, xorshift64 seed 42, 3,000 fixed steps, and V threshold 0.1 for four-neighbour connected components.
 - Freeze parameter sweeps, boundary conditions, grid spacing, timestep, seed patch, and output digests in benchmark manifests.
 - Add reaction–diffusion pattern families to OLI's 12-family abiotic look-alike tournament.
