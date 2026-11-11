@@ -5,7 +5,6 @@ use civdyn_active_sensing::{
     assess_active_sensing, ActiveSensingConfig, DecisionWorld, MissingCause, PolicyOutcome,
     SensorAction, SensorPrediction,
 };
-use std::error::Error;
 
 const SCENARIO_ID: &str = "three-world-sensor-dual-control-v1";
 const SOURCE_DIGEST: &str = "sha256-three-world-sensor-source-v1";
@@ -201,7 +200,7 @@ fn audit_fields(
     fields
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), String> {
     let (config, worlds, sensors) = fixture();
     let report = assess_active_sensing(&config, &worlds, &sensors)?;
 
