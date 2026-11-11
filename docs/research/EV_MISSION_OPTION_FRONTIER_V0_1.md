@@ -75,9 +75,12 @@ This is stronger than comparing nominal points. It means the worst declared valu
 
 The audit outputs:
 - every candidate and its disposition/reason;
+- separate source evidence grades for the mission result, service quantity, battery-energy interval and elapsed-time interval;
 - pairwise robust-dominance relationships;
 - the complete robust non-dominated frontier;
 - candidate counts for eligible, blocked, insufficient-service and indeterminate options.
+
+The overall source grade is derived from all four evidence components. Any unknown component keeps the set MIXED_OR_INDETERMINATE; a mixture of synthetic and evidence-backed sources is labelled MIXED_SYNTHETIC_AND_EVIDENCE_BACKED. A mission model's evidence class alone cannot conceal weaker or missing objective-bound evidence.
 
 There is no universal scalar score and no single winner. A human or a separately authorized preference/decision policy can select from the frontier according to declared priorities.
 
