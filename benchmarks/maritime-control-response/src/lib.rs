@@ -14,6 +14,7 @@ pub mod active_probe;
 pub mod streaming_contract;
 pub mod external_dataset;
 pub mod csv_audit;
+pub mod behavioral_sets;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
