@@ -1,6 +1,6 @@
 # DEGRADATION-AND-RECOVERY-ENVELOPE-001
 
-**Status:** deterministic fault schedule, typed paired-trace auditor, campaign/report schemas and one positive fixture; no trained policy or vehicle-dynamics result  
+**Status:** deterministic seven-family schedule, typed paired-trace auditor, causal fault relationships, campaign/report schemas, and independent plus compound fixtures; no trained policy or vehicle-dynamics result  
 **Issue:** https://github.com/Luminous-Dynamics/symtropy/issues/4657  
 **Related capability frontier:** #4639  
 **Related camera receipt boundary:** #4595 / #4616  
