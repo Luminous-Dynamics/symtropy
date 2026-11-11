@@ -173,7 +173,7 @@ impl<const D: usize> BivectorInertia<D> {
     pub fn from_second_moment(
         second_moment: SMatrix<f64, D, D>,
     ) -> Result<Self, RotationalInertiaError> {
-        if !(2..=9).contains(&D) {
+        if D < 2 || D > Bivector::<D>::MAX_SUPPORTED_DIMENSION {
             return Err(RotationalInertiaError::InvalidDimension);
         }
         if !second_moment.iter().all(|value| value.is_finite()) {
@@ -1292,6 +1292,7 @@ mod tests {
         assert!(inertia.kinetic_energy(&angular_state).unwrap() > 0.0);
     }
 
+    #[cfg(feature = "nd-bivector-9")]
     #[test]
     fn nine_dimensional_operator_roundtrips_all_36_rotation_planes() {
         let semi_axes = SVector::<f64, 9>::from_fn(|axis, _| 0.5 + axis as f64 * 0.2);
