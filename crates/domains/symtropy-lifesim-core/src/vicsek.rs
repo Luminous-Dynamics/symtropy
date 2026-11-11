@@ -1343,6 +1343,74 @@ mod tests {
     }
 
     #[test]
+    fn asymmetric_visual_visibility_predicts_directional_intervention_effect() {
+        let baseline = VicsekModel::new_with_perception(
+            vec![
+                VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle { x: 6.0, y: 5.0, heading_rad: 0.0 },
+            ],
+            VicsekConfig {
+                box_size: 12.0,
+                interaction_radius: 3.0,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            73,
+            VicsekPerception::VisualSector {
+                half_aperture_rad: std::f64::consts::FRAC_PI_4,
+                offset_rad: 0.0,
+            },
+        )
+        .unwrap();
+
+        // Particle 0 sees particle 1, but particle 1 does not see particle 0.
+        let metrics = baseline.metrics();
+        assert_eq!(metrics.directed_interaction_edge_count, 1);
+        assert_eq!(metrics.reciprocal_interaction_pair_count, 0);
+        assert_eq!(metrics.interaction_reciprocity_fraction, Some(0.0));
+
+        // Change the unseen particle (0): particle 1 must remain exactly on its sham path.
+        let unseen_intervention = run_paired_heading_intervention(
+            &baseline,
+            0,
+            std::f64::consts::FRAC_PI_2,
+            1,
+        )
+        .unwrap();
+        assert_eq!(
+            unseen_intervention.steps[0].mean_untreated_heading_effect_rad,
+            Some(0.0)
+        );
+        assert_eq!(
+            unseen_intervention.steps[0].untreated_heading_response_fraction,
+            Some(0.0)
+        );
+
+        // Change the visible particle (1): particle 0 sees its new heading and rotates
+        // halfway toward it, so the downstream effect is analytically PI/4.
+        let visible_intervention = run_paired_heading_intervention(
+            &baseline,
+            1,
+            std::f64::consts::FRAC_PI_2,
+            1,
+        )
+        .unwrap();
+        assert!(
+            (visible_intervention.steps[0].mean_untreated_heading_effect_rad
+                .unwrap()
+                - std::f64::consts::FRAC_PI_4)
+            .abs()
+                < 1.0e-12
+        );
+        assert_eq!(
+            visible_intervention.steps[0].untreated_heading_response_fraction,
+            Some(1.0)
+        );
+    }
+
+    #[test]
     fn visual_sector_rejects_invalid_aperture_and_offset() {
         let particles = vec![VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 }];
         let config = VicsekConfig::default();
