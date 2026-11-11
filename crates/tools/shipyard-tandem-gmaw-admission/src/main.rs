@@ -220,10 +220,23 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
                 errors.push(format!("{wid} L{expected_order}: t85_field missing"));
                 continue;
             };
+            let unavailable_t85 = matches!(
+                (wid.as_str(), expected_order),
+                ("WID630", 6) | ("WID631", 5) | ("WID631", 6)
+                    | ("WID632", 2) | ("WID632", 6)
+            );
+            let expected_t85_availability = if unavailable_t85 {
+                "NOT_AVAILABLE"
+            } else {
+                "NOT_LISTED_AS_MISSING"
+            };
             if str_at(t85, "value_ingestion_status") != Some("NOT_INGESTED")
                 || !t85.get("raw_value").is_some_and(Value::is_null)
                 || str_at(t85, "source_declared_unit") != Some("s")
-                || str_at(t85, "semantic_definition_status") != Some("UNRESOLVED")
+                || str_at(t85, "semantic_definition_status") != Some("PAPER_DEFINED_T8_5")
+                || str_at(t85, "physical_definition") != Some("elapsed cooling time from 800 C to 500 C")
+                || str_at(t85, "source_declared_availability") != Some(expected_t85_availability)
+                || str_at(t85, "semantic_source_doi") != Some("10.1016/j.dib.2026.113329")
             {
                 errors.push(format!(
                     "{wid} L{expected_order}: t85 missingness/semantic boundary was altered"
@@ -238,11 +251,100 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         errors.push(format!("expected 30 metadata layer slots, found {layer_total}"));
     }
 
+    let Some(article) = manifest.get("published_article") else {
+        errors.push("published_article metadata is required".to_owned());
+        return Err(errors);
+    };
+    if str_at(article, "doi") != Some("10.1016/j.dib.2026.113329")
+        || str_at(article, "license") != Some("CC-BY-4.0")
+        || bool_at(article, "not_a_license_for_zenodo_raw_archive") != Some(true)
+        || bool_at(rights, "redistribution_allowed") != Some(false)
+    {
+        errors.push("article licence must remain separate from raw Zenodo data rights".to_owned());
+    }
+
+    let Some(clock) = manifest.get("clock_contract") else {
+        errors.push("clock_contract is required".to_owned());
+        return Err(errors);
+    };
+    if str_at(clock, "timestamp_representation") != Some("UTC")
+        || str_at(clock, "master_clock") != Some("TwinCAT3_runtime_EtherCAT_master")
+        || bool_at(clock, "common_master_clock_declared_for_recorded_time_series_and_video_triggers") != Some(true)
+        || bool_at(clock, "distributed_clocks_enabled") != Some(true)
+        || clock.get("reported_analog_signal_drift_upper_bound_us").and_then(Value::as_f64) != Some(10.0)
+        || clock.get("file_minimum_sample_intervals_ms").and_then(|v| v.get("robot_file")).and_then(Value::as_f64) != Some(1.0)
+        || clock.get("file_minimum_sample_intervals_ms").and_then(|v| v.get("process_file")).and_then(Value::as_f64) != Some(0.1)
+        || clock.get("file_minimum_sample_intervals_ms").and_then(|v| v.get("power_source_files")).and_then(Value::as_f64) != Some(100.0)
+        || clock.get("channel_sampling_intervals_ms").and_then(|v| v.get("robot_tcp_coords")).and_then(Value::as_f64) != Some(8.0)
+        || clock.get("video_frame_trigger_hz").and_then(Value::as_u64) != Some(40)
+    {
+        errors.push("clock/sample interval metadata differs from the published article".to_owned());
+    }
+    if str_at(clock, "drift_bound_scope").is_none_or(str::is_empty) {
+        errors.push("analog drift-bound scope must be explicit".to_owned());
+    }
+
+    let Some(scan_contract) = manifest.get("surface_scan_contract") else {
+        errors.push("surface_scan_contract is required".to_owned());
+        return Err(errors);
+    };
+    if scan_contract.get("files_per_workpiece").and_then(Value::as_u64) != Some(7)
+        || scan_contract.get("total_files").and_then(Value::as_u64) != Some(35)
+        || scan_contract.get("layer_transitions_per_workpiece").and_then(Value::as_u64) != Some(6)
+        || scan_contract.get("total_layer_transitions").and_then(Value::as_u64) != Some(30)
+        || scan_contract.get("total_laser_line_profiles").and_then(Value::as_u64) != Some(47_188)
+        || scan_contract.get("points_per_profile").and_then(Value::as_u64) != Some(2_048)
+        || scan_contract.get("profile_trigger_hz").and_then(Value::as_u64) != Some(50)
+        || str_at(scan_contract, "coordinates_frame") != Some("welding_reference_frame")
+        || bool_at(scan_contract, "profile_position_recorded_with_robot_position") != Some(true)
+    {
+        errors.push("surface scan topology/coordinate metadata differs from the published article".to_owned());
+    }
+
+    let Some(scan_transitions) = manifest.get("scan_state_transitions").and_then(Value::as_array) else {
+        errors.push("scan_state_transitions must be an array".to_owned());
+        return Err(errors);
+    };
+    if scan_transitions.len() != 30 {
+        errors.push(format!("expected 30 scan transitions, found {}", scan_transitions.len()));
+    }
+    let mut scan_artifacts = HashSet::new();
+    let wid_numbers = ["615", "617", "630", "631", "632"];
+    let mut transition_index = 0usize;
+    for number in wid_numbers {
+        for layer in 1..=6 {
+            if let Some(transition) = scan_transitions.get(transition_index) {
+                let expected_wid = format!("WID{number}");
+                let expected_layer = format!("L{layer}");
+                let expected_before = format!("WID{number}_L{layer}_T1_scan_pre.nc");
+                let (expected_after, expected_storage) = if layer < 6 {
+                    (format!("WID{number}_L{}_T1_scan_pre.nc", layer + 1), "next_layer_scan_pre")
+                } else {
+                    (format!("WID{number}_L6_T1_scan_post.nc"), "same_layer_scan_post")
+                };
+                if str_at(transition, "workpiece_id") != Some(expected_wid.as_str())
+                    || str_at(transition, "layer_id") != Some(expected_layer.as_str())
+                    || str_at(transition, "before_scan_artifact") != Some(expected_before.as_str())
+                    || str_at(transition, "after_scan_artifact") != Some(expected_after.as_str())
+                    || str_at(transition, "after_scan_storage") != Some(expected_storage)
+                {
+                    errors.push(format!("{expected_wid} L{layer}: before/after scan state mapping is invalid"));
+                }
+                scan_artifacts.insert(expected_before);
+                scan_artifacts.insert(expected_after);
+            }
+            transition_index += 1;
+        }
+    }
+    if scan_artifacts.len() != 35 {
+        errors.push(format!("expected 35 unique scan artifacts, found {}", scan_artifacts.len()));
+    }
+
     let Some(controls) = manifest.get("controls").and_then(Value::as_array) else {
         return Err(vec!["controls must be an array".to_owned()]);
     };
-    if controls.len() != 31 {
-        errors.push(format!("expected 31 metadata controls, found {}", controls.len()));
+    if controls.len() != 40 {
+        errors.push(format!("expected 40 metadata controls, found {}", controls.len()));
     }
     let allowed_dispositions = [
         "METADATA_ONLY_ADMISSION_VALID",
@@ -312,9 +414,9 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
             }
         }
     }
-    if positive != 1 || negative != 30 {
+    if positive != 1 || negative != 39 {
         errors.push(format!(
-            "expected 1 positive / 30 negative controls, found {positive}/{negative}"
+            "expected 1 positive / 39 negative controls, found {positive}/{negative}"
         ));
     }
     if str_at(&manifest, "claim_ceiling").is_none_or(str::is_empty) {
@@ -403,9 +505,9 @@ mod tests {
             Summary {
                 workpieces: 5,
                 layers: 30,
-                controls: 31,
+                controls: 40,
                 positive: 1,
-                negative: 30,
+                negative: 39,
             }
         );
     }
@@ -463,6 +565,42 @@ mod tests {
     fn random_layer_split_is_not_admissible() {
         let mut manifest = manifest_value();
         manifest["experiment_design"]["random_layer_split_allowed"] = Value::Bool(true);
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn next_layer_pre_scan_is_the_previous_layer_after_state() {
+        let mut manifest = manifest_value();
+        manifest["scan_state_transitions"][0]["after_scan_artifact"] =
+            Value::String("WID615_L1_T1_scan_post.nc".to_owned());
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn source_reported_missing_t85_records_cannot_be_imputed() {
+        let mut manifest = manifest_value();
+        manifest["workpieces"][2]["layers"][5]["t85_field"]["raw_value"] = Value::from(0.0);
+        manifest["workpieces"][2]["layers"][5]["t85_field"]["source_declared_availability"] =
+            Value::String("NOT_LISTED_AS_MISSING".to_owned());
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn article_cc_by_license_does_not_authorize_raw_archive_reuse() {
+        let mut manifest = manifest_value();
+        manifest["rights_gate"]["redistribution_allowed"] = Value::Bool(true);
+        let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
+        assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
+    }
+
+    #[test]
+    fn a_common_clock_does_not_mean_a_common_sample_interval() {
+        let mut manifest = manifest_value();
+        manifest["clock_contract"]["file_minimum_sample_intervals_ms"]["power_source_files"] =
+            Value::from(0.1);
         let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
         assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
     }
