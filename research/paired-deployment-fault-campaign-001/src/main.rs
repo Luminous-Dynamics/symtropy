@@ -72,3 +72,47 @@ fn main() {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_campaign_cli_input_produces_valid_json_report() {
+        let input = include_str!("../examples/paired-camera-burst-valid.json");
+        let (report, valid) = audit_value(input).unwrap();
+        assert!(valid);
+        assert_eq!(report["disposition"], "valid");
+        assert_eq!(report["observed_pair_count"], 1);
+        assert_eq!(report["pair_results"][0]["fault_family"], "camera_burst_drop");
+    }
+
+    #[test]
+    fn mismatched_checkpoint_fixture_produces_rejected_json_report() {
+        let input = include_str!("../examples/mismatched-checkpoint-negative-control.json");
+        let (report, valid) = audit_value(input).unwrap();
+        assert!(!valid);
+        assert_eq!(report["disposition"], "rejected");
+        assert!(report["findings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|finding| finding == "matched_context_mismatch"));
+    }
+
+    #[test]
+    fn unknown_campaign_fields_are_rejected_by_typed_deserialization() {
+        let input = r#"{
+          "schema_version": 1,
+          "campaign_id": "unexpected-field-test",
+          "benchmark_id": "bench",
+          "evaluator_revision": "eval",
+          "expected_pair_ids": [],
+          "metric_definitions": [],
+          "pairs": [],
+          "hidden_privileged_input": true
+        }"#;
+        assert!(audit_value(input).is_err());
+    }
+}
