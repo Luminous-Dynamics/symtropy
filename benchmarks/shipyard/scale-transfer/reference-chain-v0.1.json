@@ -121,7 +121,7 @@
       "validated_at_tick": 90
     },
     {
-      "edge_id": "E02",
+      "edge_id": "E12",
       "from_domain_id": "D1",
       "to_domain_id": "D2",
       "model_id": "MODEL-TEP-01",
@@ -152,7 +152,7 @@
       "validated_at_tick": 90
     },
     {
-      "edge_id": "E03",
+      "edge_id": "E23",
       "from_domain_id": "D2",
       "to_domain_id": "D3",
       "model_id": "MODEL-TEP-01",
