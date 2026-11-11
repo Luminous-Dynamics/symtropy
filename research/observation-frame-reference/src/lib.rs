@@ -18,7 +18,12 @@ pub const MAX_EVENTS: usize = 1_000_000;
 const FRAME_HASH_DOMAIN: &[u8] = b"symtropy-observation-frame-reference-v1\0";
 const EVENT_HASH_DOMAIN: &[u8] = b"symtropy-observation-event-stream-v1\0";
 const OBSERVABLE_SET_HASH_DOMAIN: &[u8] = b"symtropy-observable-set-profile-v1\0";
-const CLAIM_CEILING: &str = "Finite structural validation and canonical identity of the supplied reference representation only; no source authentication, sensor calibration, freshness, numerical health, model credibility, physical truth, engineering acceptance, safety, certification, or actuation authority.";
+const CLAIM_CEILING: &str = concat!(
+    "Finite structural validation and canonical identity of the supplied reference ",
+    "representation only; no source authentication, sensor calibration, freshness, ",
+    "numerical health, model credibility, physical truth, engineering acceptance, ",
+    "safety, certification, or actuation authority.",
+);
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
