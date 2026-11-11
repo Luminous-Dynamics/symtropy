@@ -23,12 +23,12 @@ The synthetic scalar measurand retains:
 
 The P0 task bound is conservative (k u + b). We do not RSS-combine a bounded systematic effect with a stochastic term. Missing systematic bound or its evidence is UNRESOLVED, not zero. This is a one-dimensional mechanics oracle, not a full 3D point/pose covariance, registration covariance or shared-view correlation model. Those remain with survey owner #1607 and are required for P1.
 
-Qualified reference validation also binds disjoint calibration and holdout group IDs, an exact calibration-fit receipt and a frozen-parameter digest. The evaluator rejects overlapping calibration/holdout groups and any fit that was not frozen before holdout evaluation. This is a synthetic anti-leakage gate; it does not prove real-world independence of survey faces or sessions.
+Qualified reference validation binds separate calibration and holdout survey-group IDs, an exact calibration-fit receipt and a frozen-parameter digest. Group IDs must be non-empty, unique within each partition, and disjoint across partitions. Independent reference lineage IDs remain a separate requirement. The evaluator rejects overlapping calibration/holdout groups and any fit that was not frozen before holdout evaluation. This is a synthetic anti-leakage gate; it does not prove real-world independence of survey faces or sessions.
 
 ## Frozen corpus and tests
 
-- 31 synthetic cases.
-- 13 Rust unit tests.
+- 32 synthetic cases.
+- 14 Rust unit tests.
 - Negative controls cover occlusion, visible-but-not-captured surfaces, missing/mixed/contradictory returns, invalid/stale/missing calibration, duplicate/correlated reference lineage, out-of-domain range/incidence/surface/environment, malformed sensor profile, missing systematic bound, missing bound evidence, negative bound, task-specific insufficiency and invalid uncertainty.
 - The fixture uses digest-shaped identifiers and synthetic numbers. Digests are not authenticated producer evidence.
 
