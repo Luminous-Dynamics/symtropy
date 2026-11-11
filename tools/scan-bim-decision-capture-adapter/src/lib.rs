@@ -121,10 +121,8 @@ fn capture_gate(
     let model_revision = string_at(binding, "model_revision").unwrap_or("");
     let expected_model_revision = string_at(asset, "model_revision").unwrap_or("");
     let requirement_revision = string_at(binding, "requirement_revision").unwrap_or("");
-    let expected_requirement_revision =
-        string_at(asset, "requirement_revision").unwrap_or("");
-    let measurement_receipt_sha =
-        string_at(binding, "measurement_receipt_sha256").unwrap_or("");
+    let expected_requirement_revision = string_at(asset, "requirement_revision").unwrap_or("");
+    let measurement_receipt_sha = string_at(binding, "measurement_receipt_sha256").unwrap_or("");
 
     let sensor_profile_id = string_at(binding, "sensor_profile_id").unwrap_or("");
     let sensor_profile_sha = string_at(binding, "sensor_profile_sha256").unwrap_or("");
@@ -218,7 +216,12 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
     let validator = match validator_for(&schema_value) {
         Ok(validator) => validator,
         Err(error) => {
-            fail(&mut failures, "SCHEMA_COMPILE_FAILED", "$", error.to_string());
+            fail(
+                &mut failures,
+                "SCHEMA_COMPILE_FAILED",
+                "$",
+                error.to_string(),
+            );
             return empty_report(corpus_bytes, schema_bytes, failures);
         }
     };
@@ -236,7 +239,12 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
     }
 
     let Some(root) = corpus_value.as_object() else {
-        fail(&mut failures, "CORPUS_ROOT_INVALID", "$", "Expected object.");
+        fail(
+            &mut failures,
+            "CORPUS_ROOT_INVALID",
+            "$",
+            "Expected object.",
+        );
         return empty_report(corpus_bytes, schema_bytes, failures);
     };
     let corpus_id = string_at(&corpus_value, "corpus_id").map(ToOwned::to_owned);
@@ -423,7 +431,12 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
     let mut generic_root: Value = match serde_json::from_str(EMBEDDED_DECISION_IMPACT_CORPUS) {
         Ok(value) => value,
         Err(error) => {
-            fail(&mut failures, "GENERIC_CORPUS_EMBEDDED_INVALID", "$", error.to_string());
+            fail(
+                &mut failures,
+                "GENERIC_CORPUS_EMBEDDED_INVALID",
+                "$",
+                error.to_string(),
+            );
             return empty_report(corpus_bytes, schema_bytes, failures);
         }
     };
@@ -478,8 +491,7 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
         }
     }
 
-    let decision_impact_receipt =
-        serde_json::to_value(&decision_summary).unwrap_or(Value::Null);
+    let decision_impact_receipt = serde_json::to_value(&decision_summary).unwrap_or(Value::Null);
     let decision_impact_cases_passed = decision_summary.cases_passed;
     failures.sort_by(|a, b| (&a.path, &a.code, &a.detail).cmp(&(&b.path, &b.code, &b.detail)));
     let core = AdapterCore {
@@ -542,7 +554,11 @@ mod tests {
     }
 
     fn has_code(report: &AdapterReport, expected: &str) -> bool {
-        report.core.failures.iter().any(|failure| failure.code == expected)
+        report
+            .core
+            .failures
+            .iter()
+            .any(|failure| failure.code == expected)
     }
 
     #[test]
