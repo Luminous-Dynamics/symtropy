@@ -1,0 +1,46 @@
+name: Shipyard Digital Twin Commissioning
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/shipyard-digital-twin-commissioning/**"
+      - "benchmarks/shipyard/digital-twin/**"
+      - "docs/tech/SHIPYARD_DT_COMMISSIONING_V0_1*"
+      - ".github/workflows/shipyard-digital-twin-commissioning.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-digital-twin-commissioning-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify synthetic twin commissioning and telemetry envelopes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-digital-twin-commissioning/Cargo.toml --all -- --check
+
+      - name: Run commissioning tests
+        run: cargo test --locked --manifest-path crates/tools/shipyard-digital-twin-commissioning/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-digital-twin-commissioning/Cargo.toml --all-targets -- -D warnings
+
+      - name: Execute the valid heterogeneous-stream commissioning fixture
+        run: cargo run --locked --manifest-path crates/tools/shipyard-digital-twin-commissioning/Cargo.toml -- benchmarks/shipyard/digital-twin/commissioning-valid-v0.1.json
+
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
