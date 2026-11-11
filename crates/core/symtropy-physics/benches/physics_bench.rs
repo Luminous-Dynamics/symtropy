@@ -236,8 +236,8 @@ fn bench_legacy_scalar_inertia_3d(c: &mut Criterion) {
 
 fn bench_validated_principal_inertia_3d(c: &mut Criterion) {
     let mut body = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.1, 1.0);
-    body.inertia = SVector::from([1.0, 2.0, 4.0]);
-    body.inv_inertia = SVector::from([1.0, 0.5, 0.25]);
+    body.inertia = SVector::from([2.0, 3.0, 4.0]);
+    body.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
     let impulse = Bivector::<3>::from_wedge(
         &SVector::from([0.7, -0.2, 0.4]),
         &SVector::from([-0.3, 0.8, 0.1]),
