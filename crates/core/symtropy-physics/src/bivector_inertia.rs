@@ -1412,7 +1412,7 @@ mod tests {
     }
 
     #[test]
-    fn 3d_inertia_tensor_adapter_roundtrips_products_of_inertia_and_energy() {
+    fn inertia_tensor_3d_adapter_roundtrips_products_of_inertia_and_energy() {
         let inertia_tensor = SMatrix::<f64, 3, 3>::new(
             46.0, -6.0, 0.0,
             -6.0, 46.0, 0.0,
@@ -1423,7 +1423,10 @@ mod tests {
         assert!((recovered - inertia_tensor).norm() < 1.0e-12);
 
         let omega = SVector::from([0.7, -1.1, 0.4]);
-        let angular_state = angular_vector_to_bivector(&omega);
+        let mut angular_state = Bivector::<3>::zero();
+        angular_state.set(1, 2, omega[0]);
+        angular_state.set(0, 2, -omega[1]);
+        angular_state.set(0, 1, omega[2]);
         let tensor_energy = 0.5 * omega.dot(&(inertia_tensor * omega));
         let operator_energy = operator.kinetic_energy(&angular_state).unwrap();
         assert!((operator_energy - tensor_energy).abs() < 1.0e-12);
