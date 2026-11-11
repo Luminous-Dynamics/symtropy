@@ -131,6 +131,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: marine-engine-fault-audit-${{ github.run_id }}
-          path: ${{ env.AUDIT_REPORT }}
+          path: $RUNNER_TEMP/marine-engine-fault-audit.json
           if-no-files-found: error
           retention-days: 90
