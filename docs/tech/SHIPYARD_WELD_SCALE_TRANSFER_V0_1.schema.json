@@ -62,7 +62,11 @@
         "thickness_max_mm",
         "boundary_class",
         "output_scope",
-        "coordinate_frame"
+        "coordinate_frame",
+        "output_definition_id",
+        "datum_id",
+        "measurement_operator_id",
+        "measurement_calibration_digest_sha256"
       ],
       "properties": {
         "material_family": {
@@ -119,6 +123,22 @@
         "coordinate_frame": {
           "type": "string",
           "minLength": 1
+        },
+        "output_definition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "datum_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_operator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_calibration_digest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
@@ -150,7 +170,8 @@
         "output_scope",
         "validation_status",
         "model_digest_sha256",
-        "parameter_set_digest_sha256"
+        "parameter_set_digest_sha256",
+        "output_definition_id"
       ],
       "properties": {
         "model_id": {
@@ -183,6 +204,10 @@
         "parameter_set_digest_sha256": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
+        },
+        "output_definition_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
@@ -210,7 +235,11 @@
         "model_form_uncertainty_units",
         "transfer_uncertainty_units",
         "evidence_digest_sha256",
-        "validated_at_tick"
+        "validated_at_tick",
+        "output_definition_id",
+        "error_metric_id",
+        "measurement_operator_id",
+        "measurement_calibration_digest_sha256"
       ],
       "properties": {
         "edge_id": {
@@ -311,6 +340,22 @@
         "validated_at_tick": {
           "type": "integer",
           "minimum": 0
+        },
+        "output_definition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "error_metric_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_operator_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measurement_calibration_digest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       }
     },
@@ -322,7 +367,9 @@
         "requested_output_scope",
         "decision_cutoff_tick",
         "maximum_total_uncertainty_units",
-        "required_minimum_coverage_permille"
+        "required_minimum_coverage_permille",
+        "requested_output_definition_id",
+        "required_error_metric_id"
       ],
       "properties": {
         "target_domain_id": {
@@ -345,6 +392,14 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 1000
+        },
+        "requested_output_definition_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_error_metric_id": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }
