@@ -80,6 +80,18 @@ struct DispositionRecord {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct BridgeNegativeControlRecord {
+    control_id: String,
+    expected_error: String,
+    exit_code: Option<i32>,
+    receipt_file_written: bool,
+    policy_input_artifact_count: usize,
+    expected_error_observed: bool,
+    fail_closed: bool,
+    stderr_excerpt: String,
+}
+
+#[derive(Debug, Clone, Serialize)]
 struct AppliedActionRecord {
     action_receipt_id: String,
     action_receipt_sha256: String,
@@ -130,6 +142,8 @@ struct EpisodeReport {
     fresh_observations: usize,
     fresh_process_renderer_replay_exact: bool,
     fresh_process_symthaea_bridge_replay_exact: bool,
+    bridge_negative_control_count: usize,
+    bridge_negative_controls_fail_closed: bool,
     branch_evidence_audit_valid: bool,
     stale_actor_replay_negative_control_rejected: bool,
     branch_evidence_finding_count: usize,
@@ -636,13 +650,145 @@ fn validate_bridge_output(
     Ok((receipt_chain_valid, artifact_chain_valid))
 }
 
+fn count_regular_files(path: &Path) -> Result<usize, Box<dyn Error>> {
+    if !path.exists() {
+        return Ok(0);
+    }
+    let mut count = 0_usize;
+    for entry in fs::read_dir(path)? {
+        if entry?.file_type()?.is_file() {
+            count += 1;
+        }
+    }
+    Ok(count)
+}
+
+fn run_bridge_negative_controls(
+    episode_dir: &Path,
+    bridge_binary: &Path,
+    base_request: &Value,
+) -> Result<(usize, bool), Box<dyn Error>> {
+    let negative_root = episode_dir.join("bridge-negative-controls");
+    fs::create_dir_all(&negative_root)?;
+
+    let mut corrupt_bytes = fs::read(episode_dir.join("frames/frame_0001.rgb"))?;
+    if corrupt_bytes.is_empty() {
+        return Err("cannot construct pixel-corruption negative control from an empty frame".into());
+    }
+    corrupt_bytes[0] ^= 0x01;
+    fs::write(negative_root.join("pixel-corrupt.rgb"), &corrupt_bytes)?;
+
+    let mut controls: Vec<(String, String, Value)> = Vec::new();
+
+    let mut stale_replay = base_request.clone();
+    stale_replay["observations"][0]["pixels_file"] = json!("frames/frame_0002.rgb");
+    controls.push((
+        "stale-frame-reuse".to_string(),
+        "UpstreamFrameMismatch".to_string(),
+        stale_replay,
+    ));
+
+    let mut pixel_corruption = base_request.clone();
+    pixel_corruption["observations"][0]["pixels_file"] =
+        json!("bridge-negative-controls/pixel-corrupt.rgb");
+    controls.push((
+        "pixel-corruption".to_string(),
+        "UpstreamFrameMismatch".to_string(),
+        pixel_corruption,
+    ));
+
+    let mut calibration_mismatch = base_request.clone();
+    calibration_mismatch["observations"][0]["upstream"]["camera_calibration_sha256"] =
+        json!("f".repeat(64));
+    controls.push((
+        "camera-calibration-mismatch".to_string(),
+        "UpstreamCalibrationMismatch".to_string(),
+        calibration_mismatch,
+    ));
+
+    let mut clock_regression = base_request.clone();
+    clock_regression["observations"][0]["timestamp_us"] = json!(0);
+    controls.push((
+        "capture-clock-mismatch".to_string(),
+        "UpstreamTimestampMismatch".to_string(),
+        clock_regression,
+    ));
+
+    let mut sequence_zero = base_request.clone();
+    sequence_zero["observations"][0]["sequence"] = json!(0);
+    sequence_zero["observations"][0]["upstream"]["sequence"] = json!(0);
+    controls.push((
+        "zero-sequence".to_string(),
+        "UpstreamSequenceMismatch".to_string(),
+        sequence_zero,
+    ));
+
+    let mut receipt_tamper = base_request.clone();
+    receipt_tamper["observations"][0]["upstream"]["receipt_sha256"] = json!("e".repeat(64));
+    controls.push((
+        "receipt-commitment-tamper".to_string(),
+        "UpstreamReceiptCommitmentMismatch".to_string(),
+        receipt_tamper,
+    ));
+
+    let mut records = Vec::with_capacity(controls.len());
+    let mut all_fail_closed = true;
+
+    for (control_id, expected_error, request) in controls {
+        let request_path = episode_dir.join(format!("negative-{control_id}-request.json"));
+        let control_dir = negative_root.join(&control_id);
+        let receipt_path = control_dir.join("receipts.json");
+        let policy_inputs_dir = control_dir.join("policy-inputs");
+        write_json(&request_path, &request)?;
+
+        let output = Command::new(bridge_binary)
+            .arg(&request_path)
+            .arg(&receipt_path)
+            .arg(&policy_inputs_dir)
+            .output()?;
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let receipt_file_written = receipt_path.exists();
+        let artifact_count = count_regular_files(&policy_inputs_dir)?;
+        let expected_error_observed = stderr.contains(&expected_error);
+        let fail_closed = !output.status.success()
+            && !receipt_file_written
+            && artifact_count == 0
+            && expected_error_observed;
+        if !fail_closed {
+            all_fail_closed = false;
+        }
+        records.push(BridgeNegativeControlRecord {
+            control_id,
+            expected_error,
+            exit_code: output.status.code(),
+            receipt_file_written,
+            policy_input_artifact_count: artifact_count,
+            expected_error_observed,
+            fail_closed,
+            stderr_excerpt: stderr.chars().take(512).collect(),
+        });
+    }
+
+    write_json(
+        &negative_root.join("negative-control-results.json"),
+        &records,
+    )?;
+    if !all_fail_closed {
+        return Err(
+            "one or more Symthaea bridge negative controls did not fail before receipt/HDC artifact creation"
+                .into(),
+        );
+    }
+    Ok((records.len(), all_fail_closed))
+}
+
 fn invoke_symthaea_bridge(
     episode_dir: &Path,
     bridge_config: Value,
     vision_config: Value,
     observations: Vec<Value>,
     bridge_binary: &Path,
-) -> Result<(usize, bool, u64, u64, bool, bool), Box<dyn Error>> {
+) -> Result<(usize, bool, u64, u64, bool, bool, usize, bool), Box<dyn Error>> {
     let request_path = episode_dir.join("episode-request.json");
     let bridge_dir = episode_dir.join("symthaea-bridge");
     let first_receipts = bridge_dir.join("bridge-receipts.json");
@@ -651,11 +797,17 @@ fn invoke_symthaea_bridge(
     let replay_receipts = replay_dir.join("bridge-receipts.json");
     let replay_policy_inputs = replay_dir.join("policy-inputs");
 
+    let mut bridge_config = bridge_config;
+    let expected_calibration = observations
+        .first()
+        .and_then(|observation| observation["upstream"]["camera_calibration_sha256"].as_str())
+        .ok_or("first renderer observation is missing its calibration digest")?;
+    bridge_config["expected_camera_calibration_sha256"] = json!(expected_calibration);
     let request = json!({
         "schema_version": 1,
         "bridge_config": bridge_config,
         "vision_config": vision_config,
-        "observations": observations
+        "observations": observations.clone()
     });
     write_json(&request_path, &request)?;
 
@@ -719,6 +871,9 @@ fn invoke_symthaea_bridge(
         return Err("Symthaea bridge did not preserve frozen-learning evidence".into());
     }
 
+    let (negative_control_count, negative_controls_fail_closed) =
+        run_bridge_negative_controls(episode_dir, bridge_binary, &request)?;
+
     write_json(
         &bridge_dir.join("fresh-process-replay-comparison.json"),
         &json!({
@@ -736,6 +891,8 @@ fn invoke_symthaea_bridge(
         after,
         receipt_valid && artifact_valid,
         replay_exact,
+        negative_control_count,
+        negative_controls_fail_closed,
     ))
 }
 
@@ -1069,6 +1226,8 @@ fn run_parent(
         training_after,
         bridge_chain_valid,
         bridge_replay_exact,
+        bridge_negative_control_count,
+        bridge_negative_controls_fail_closed,
     ) = invoke_symthaea_bridge(
             &episode_dir,
             bridge_config,
@@ -1094,6 +1253,8 @@ fn run_parent(
         fresh_observations: fresh_count,
         fresh_process_renderer_replay_exact: replay_exact,
         fresh_process_symthaea_bridge_replay_exact: bridge_replay_exact,
+        bridge_negative_control_count,
+        bridge_negative_controls_fail_closed,
         branch_evidence_audit_valid: branch_audit_valid,
         stale_actor_replay_negative_control_rejected: stale_actor_rejected,
         branch_evidence_finding_count: branch_audit_findings,
