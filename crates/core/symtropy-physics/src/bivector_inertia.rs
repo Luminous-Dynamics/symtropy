@@ -975,6 +975,90 @@ mod tests {
     }
 
     #[test]
+    fn uniform_mass_scaling_preserves_angular_state_and_scales_energy() {
+        let base_second_moment = SMatrix::<f64, 3, 3>::new(
+            1.4, 0.12, -0.08,
+            0.12, 2.2, 0.17,
+            -0.08, 0.17, 3.1,
+        );
+        let base = BivectorInertia::<3>::from_second_moment(base_second_moment).unwrap();
+        let mut angular_state = Bivector::<3>::zero();
+        angular_state.set(0, 1, 0.3);
+        angular_state.set(0, 2, -0.7);
+        angular_state.set(1, 2, 0.2);
+        let base_momentum = base.angular_momentum(&angular_state).unwrap();
+        let base_energy = base.kinetic_energy(&angular_state).unwrap();
+
+        for scale in [1.0e-12, 1.0, 1.0e12] {
+            let scaled = BivectorInertia::<3>::from_second_moment(base_second_moment * scale)
+                .unwrap();
+            let scaled_momentum = scaled.angular_momentum(&angular_state).unwrap();
+            assert!(
+                (scaled_momentum.add(&base_momentum.scale(-scale))).norm()
+                    <= 2.0e-11 * base_momentum.norm().max(1.0) * scale,
+                "momentum mass-scaling mismatch at {scale:e}"
+            );
+            let recovered = scaled
+                .angular_velocity_from_momentum(&scaled_momentum, 1.0e-12)
+                .unwrap();
+            assert!(
+                recovered.add(&angular_state.scale(-1.0)).norm() < 2.0e-11,
+                "angular state changed under mass scale {scale:e}"
+            );
+            let scaled_energy = scaled.kinetic_energy(&angular_state).unwrap();
+            let relative_energy_error = (scaled_energy / (base_energy * scale) - 1.0).abs();
+            assert!(
+                relative_energy_error < 2.0e-11,
+                "energy mass-scaling mismatch at {scale:e}: relative={relative_energy_error:e}"
+            );
+        }
+    }
+
+    #[test]
+    fn rotational_inverse_effective_mass_scales_inversely_with_mass() {
+        let base = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            2.0,
+            SVector::new(1.4, 0.9, 0.5),
+        )
+        .unwrap();
+        let offset = SVector::new(0.7, -0.25, 0.4);
+        let direction = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let base_value = base
+            .rotational_inverse_effective_mass(&offset, &direction, 1e-12)
+            .unwrap();
+
+        for scale in [1.0e-12, 1.0, 1.0e12] {
+            let scaled = BivectorInertia::<3>::uniform_solid_ellipsoid(
+                2.0 * scale,
+                SVector::new(1.4, 0.9, 0.5),
+            )
+            .unwrap();
+            let observed = scaled
+                .rotational_inverse_effective_mass(&offset, &direction, 1e-12)
+                .unwrap();
+            let expected = base_value / scale;
+            assert!(
+                ((observed - expected) / expected).abs() < 2.0e-11,
+                "inverse effective mass has wrong mass scaling at {scale:e}: observed={observed:e}, expected={expected:e}"
+            );
+        }
+    }
+
+    #[test]
+    fn operator_rejects_dimensions_outside_bivector_capacity() {
+        assert_eq!(
+            BivectorInertia::<1>::from_second_moment(SMatrix::<f64, 1, 1>::identity())
+                .unwrap_err(),
+            RotationalInertiaError::InvalidDimension
+        );
+        assert_eq!(
+            BivectorInertia::<10>::from_second_moment(SMatrix::<f64, 10, 10>::identity())
+                .unwrap_err(),
+            RotationalInertiaError::InvalidDimension
+        );
+    }
+
+    #[test]
     fn rotated_operator_rejects_improper_rotor() {
         let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
         let mut reflection = SMatrix::<f64, 3, 3>::identity();
