@@ -196,9 +196,8 @@ fn canonical_json(value: &Value) -> Result<Vec<u8>, String> {
     serde_json::to_vec(value).map_err(|error| format!("canonical JSON serialization: {error}"))
 }
 
-fn canonical_service_contract(contract: &ServiceContract) -> Result<Vec<u8>, String> {
-    let mut value = serde_json::to_value(contract)
-        .map_err(|error| format!("service contract serialization: {error}"))?;
+fn canonical_service_contract(contract: &Value) -> Result<Vec<u8>, String> {
+    let mut value = contract.clone();
     value["contract_sha256"] = Value::String(String::new());
     canonical_json(&value)
 }
@@ -481,6 +480,10 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
     let value: Value =
         serde_json::from_slice(corpus_bytes).map_err(|error| format!("corpus JSON: {error}"))?;
     validate_schema(&validator, &value)?;
+    let contract_value = value
+        .get("service_contract")
+        .cloned()
+        .ok_or_else(|| "service contract is missing".to_owned())?;
     let mut corpus: Corpus =
         serde_json::from_value(value).map_err(|error| format!("corpus decode: {error}"))?;
     if corpus.schema_version != CORPUS_VERSION
@@ -499,7 +502,7 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
     {
         return Err("service contract identity, unit, minimum or digest is invalid".to_owned());
     }
-    let actual_contract_digest = sha256(&canonical_service_contract(&corpus.service_contract)?);
+    let actual_contract_digest = sha256(&canonical_service_contract(&contract_value)?);
     if actual_contract_digest != corpus.service_contract.contract_sha256 {
         return Err("service contract digest does not match its canonical contents".to_owned());
     }
