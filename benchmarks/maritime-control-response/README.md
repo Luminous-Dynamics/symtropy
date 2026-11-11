@@ -27,7 +27,7 @@ The benchmark lists four known fault classes: intake-manifold leakage and multip
 
 ## Read-only value of information: choose the next evidence, not the next action
 
-The exposed `active_probe` module ranks additional candidate evidence by expected information gain over an explicit competing-hypothesis prior. For each candidate, it computes the entropy before acquisition, expected entropy after each possible observation, and expected information gain. A deterministic utility adjusts that gain by declared cost, delay and risk scales after hard eligibility checks. The candidate manifest binds its outcome likelihood table, model/calibration references, hypothesis prior, cost, delay, risk and authority-evidence reference.
+The exposed `active_probe` module ranks additional candidate evidence by expected information gain over an explicit competing-hypothesis prior. For each candidate, it computes the entropy before acquisition, expected entropy after each possible observation, and expected information gain. A deterministic utility adjusts that gain by declared cost, delay and risk scales after hard eligibility checks. The candidate manifest binds its outcome likelihood table, model/calibration references, hypothesis prior, cost, delay, risk-assessment digest and authority-evidence reference.
 
 Three candidate classes are explicit:
 
@@ -35,7 +35,7 @@ Three candidate classes are explicit:
 - **Operator inspection:** eligible only when the policy enables it and the caller supplies a human-authorized state plus an authority-evidence reference.
 - **Controlled perturbation:** always excluded. It requires a separate safety case, hazard analysis, asset-owner review and explicit control authority; this selector cannot authorize or execute it.
 
-The selector records rejected candidates and reasons, rejects zero-information probes by default, uses deterministic tie-breaking and returns `execution_performed=false` and `actuation_authorized=false`. The authority digest is only a content reference: signer identity, permission scope, expiry, revocation and issuer authority must be verified upstream. Likelihood-model and calibration digests likewise bind evidence but do not prove that the statistical model is calibrated.
+The selector records rejected candidates and reasons, rejects zero-information probes by default, uses deterministic tie-breaking and returns `execution_performed=false` and `actuation_authorized=false`. The authority digest is only a content reference: signer identity, permission scope, expiry, revocation and issuer authority must be verified upstream. The risk score is a caller-supplied policy input, not a calibrated probability; its assessment method, reviewer, scope, expiry and revocation must be independently verified upstream. Likelihood-model, calibration and risk-assessment digests bind evidence but do not prove statistical calibration or safety.
 
 The active evidence comparator protocol is frozen in [active-evidence-selection-v0.1.json](active-evidence-selection-v0.1.json), schema version v0.2. It compares no additional evidence, cheapest eligible, maximum information gain, information gain per cost, seeded-random eligible, and the risk-adjusted worst-case information-gain selector over the *same* eligible candidate set.
 
@@ -95,7 +95,7 @@ The small 26-recording training corpus cannot substantiate 99% calibration per f
 
 ## Required benchmark tournament
 
-The machine-readable protocol is frozen in [`tournament-v0.1.json`](tournament-v0.1.json). It enumerates the eight comparators, split protocols, metric definitions, non-compensatory evidence gates and research targets. It is marked `protocol_only_not_executed`; the targets are aspirations, not measured performance.
+The machine-readable protocol is frozen in [`tournament-v0.1.json`](tournament-v0.1.json). It enumerates nine comparators, split protocols, metric definitions, non-compensatory evidence gates and research targets. In addition to the Fault Diagnosis Toolbox analytical reference and matched state-only/control-aware baselines, it adds a required reproduction track for the six LiU-ICE solutions reported in the 2025 Control Engineering Practice benchmark paper. It is marked `protocol_only_not_executed`; the targets are aspirations, not measured performance.
 
 Evaluate on common frozen recordings/splits, same channel availability, equivalent model capacity and disclosed compute:
 
@@ -107,6 +107,7 @@ Evaluate on common frozen recordings/splits, same channel availability, equivale
 6. Command-conditioned response model with regime and disturbance context.
 7. Gated/control-aware fusion and multi-class regime discrimination.
 8. Calibrated selective / unknown-fault rejection baseline.
+9. The six published LiU-ICE solutions from Jung et al. (2025), reproduced individually wherever their exact method/configuration details can be recovered. [Paper: Control Engineering Practice 164, 106427](https://doi.org/10.1016/j.conengprac.2025.106427)..
 
 The official page requires a MATLAB or Python competition interface and an input call for every sample; an earlier output cannot be changed after it is returned. The Rust streaming contract enforces this temporal shape, but a Python/MATLAB adapter and golden-vector parity gate are still missing. This Rust crate is an independent evaluator and evidence-verification component, not a direct submission.
 
@@ -133,6 +134,12 @@ The standards context is supportive, not a certification claim. [ISO 13379-1:202
 5. **Make streaming correctness measurable:** zero sample gaps, zero cardinality mismatches, zero retrospective output changes, and a replay-valid receipt chain. Report p50/p95/p99 per-sample latency and memory at a declared reference machine.
 
 The current numeric targets remain aspirational: +0.05 official score over the best faithfully reproduced matched baseline with FAR no worse; +5 percentage points event recall at the same false-alarm budget; p95 event confirmation latency no more than 5 seconds or 20% below the best matched baseline; ≤5% false-known rate on independent unknown-fault episodes; and zero false-unique-root-cause claims when multiple hypotheses remain admissible. No result is claimed yet.
+### Literature and deployment-readiness context
+
+The benchmark's nearest published reference is not a generic industrial vendor model: Jung et al. (2025) document six solutions to this same engine-diagnosis benchmark. Those six methods must be recovered and run as matched comparators before claiming a LiU-ICE SOTA gain. The 2026 marine control-aware domain-adversarial paper is an adjacent direction, but its published abstract describes a thermodynamic simulation study and explicitly says that real-engine validation is absent; it is not a directly matched LiU-ICE baseline.
+
+A 2026 survey of 26 industrial CPS/ICS anomaly-detection studies defines nine deployability criteria and reports that detection accuracy is evaluated far more consistently than other real-world deployment criteria. This supports a wider scorecard here: streaming latency and bounded memory, missing-data behaviour, OOD and calibration, failure recovery, auditability, data/asset integration, authority boundaries and maintenance workflow—not accuracy alone. [Deployability survey](https://doi.org/10.1007/s10207-026-01330-1).
+
 ## Report beyond the leaderboard
 
 Every run should be serialized against [`benchmark-run-manifest.schema.json`](benchmark-run-manifest.schema.json). It binds dataset bytes and recording membership, split membership, comparator configuration, model artifact, evaluator revision, dependency lock, protocol/seed manifest, metric outputs and the independent-unit uncertainty method. A score without these bindings is not a qualified result.
