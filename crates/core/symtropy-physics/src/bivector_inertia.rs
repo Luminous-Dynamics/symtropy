@@ -1039,7 +1039,8 @@ mod tests {
             let expected = base_value / scale;
             assert!(
                 ((observed - expected) / expected).abs() < 2.0e-11,
-                "inverse effective mass has wrong mass scaling at {scale:e}: observed={observed:e}, expected={expected:e}"
+                "inverse effective mass has wrong mass scaling at {scale:e}: \
+                 observed={observed:e}, expected={expected:e}"
             );
         }
     }
