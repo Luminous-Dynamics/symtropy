@@ -16,6 +16,7 @@
 
 pub mod angular_dynamics;
 pub mod articulation;
+pub mod bivector_inertia;
 pub mod body;
 pub mod broadphase;
 pub mod ccd;
@@ -45,6 +46,7 @@ pub use compound_inertia_3d::{
 };
 pub use mass_properties_3d::{MassProperties3, MassProperties3Error};
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
+pub use bivector_inertia::{BivectorInertia, RotationalInertiaError};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
 pub use constraint::Constraint;
