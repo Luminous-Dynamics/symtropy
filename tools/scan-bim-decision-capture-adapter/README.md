@@ -39,6 +39,13 @@ The embedded test suite includes negative controls for sensor-profile ID and dig
 - missing action-to-capture binding;
 - unknown input fields.
 
+
+## Determinism and expected-profile binding
+
+Each building case declares the expected sensor-profile ID and SHA-256 in its asset binding. Every capture action must match both values; a syntactically valid but different profile ID or digest is unqualified. This is a synthetic profile-contract check, not proof that the external profile bytes are authentic or that the instrument is calibrated.
+
+Case results are sorted by case ID and capture-gate results by action ID before the decision receipt is hashed. The exact input SHA-256 remains byte-order-sensitive. Regression tests reverse the case array and a case's capture-binding array to verify that equivalent input permutations preserve the semantic core receipt while changing the input digest.
+
 ## Claim ceiling
 
 All building IDs, sensor profiles, poses, digests, states, requirements and cost/time bases in the frozen corpus are synthetic. The adapter validates consistency and gate behaviour only. It does not authenticate producer artifacts, prove a pose is physically reachable, calibrate a sensor, establish visibility in a real building, validate measurement uncertainty or establish real acquisition cost. Those claims require independent upstream evidence from #1607/#4292/#4589 and real-world validation.
