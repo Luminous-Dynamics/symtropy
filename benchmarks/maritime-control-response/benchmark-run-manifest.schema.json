@@ -234,7 +234,8 @@
         "shift_axis",
         "shift_holdout_manifest_sha256",
         "independent_test_recordings",
-        "active_evidence_selection"
+        "active_evidence_selection",
+        "streaming_contract"
       ],
       "properties": {
         "protocol_sha256": {
@@ -494,6 +495,112 @@
               "type": "boolean"
             }
           }
+        },
+        "streaming_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "stream_manifest_sha256",
+            "model_sha256",
+            "receipt_chain_sha256",
+            "input_sample_count",
+            "output_receipt_count",
+            "historical_output_mutation_count",
+            "sample_sequence_gap_count",
+            "competition_interface_compliance",
+            "adapter_source_sha256"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "liu-ice-streaming-contract-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "public_benchmark_executed",
+                "qualified"
+              ]
+            },
+            "stream_manifest_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "model_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "receipt_chain_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "input_sample_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "output_receipt_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "historical_output_mutation_count": {
+              "const": 0
+            },
+            "sample_sequence_gap_count": {
+              "const": 0
+            },
+            "input_output_cardinality_mismatch_count": {
+              "const": 0
+            },
+            "invalid_probability_output_count": {
+              "const": 0
+            },
+            "poisoned_session_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "competition_interface_compliance": {
+              "enum": [
+                "not_evaluated",
+                "python_compatible",
+                "matlab_compatible",
+                "incompatible"
+              ]
+            },
+            "adapter_source_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
         }
       }
     },
@@ -675,6 +782,45 @@
         },
         "epistemic_robustness_qualified": {
           "type": "boolean"
+        },
+        "input_sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_receipt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "historical_output_mutation_count": {
+          "const": 0
+        },
+        "sample_sequence_gap_count": {
+          "const": 0
+        },
+        "input_output_cardinality_mismatch_count": {
+          "const": 0
+        },
+        "receipt_chain_validation_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "p95_per_sample_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "p99_per_sample_latency_ms": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
         }
       }
     },
@@ -834,6 +980,28 @@
                     "type": "null"
                   }
                 }
+              },
+              "streaming_contract": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "input_sample_count": {
+                    "const": 0
+                  },
+                  "output_receipt_count": {
+                    "const": 0
+                  },
+                  "historical_output_mutation_count": {
+                    "const": 0
+                  },
+                  "sample_sequence_gap_count": {
+                    "const": 0
+                  },
+                  "input_output_cardinality_mismatch_count": {
+                    "const": 0
+                  }
+                }
               }
             }
           }
@@ -923,6 +1091,45 @@
                     "const": false
                   },
                   "controlled_perturbations_recommended": {
+                    "const": 0
+                  }
+                }
+              },
+              "streaming_contract": {
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "public_benchmark_executed",
+                      "qualified"
+                    ]
+                  },
+                  "stream_manifest_sha256": {
+                    "type": "string"
+                  },
+                  "model_sha256": {
+                    "type": "string"
+                  },
+                  "receipt_chain_sha256": {
+                    "type": "string"
+                  },
+                  "input_sample_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "output_receipt_count": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "historical_output_mutation_count": {
+                    "const": 0
+                  },
+                  "sample_sequence_gap_count": {
+                    "const": 0
+                  },
+                  "input_output_cardinality_mismatch_count": {
+                    "const": 0
+                  },
+                  "invalid_probability_output_count": {
                     "const": 0
                   }
                 }
