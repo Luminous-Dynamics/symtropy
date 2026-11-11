@@ -10,7 +10,8 @@
     "learner": "https://github.com/Luminous-Dynamics/symthaea/issues/11414",
     "visual_input_bridge": "https://github.com/Luminous-Dynamics/symthaea/pull/11480",
     "experience_selection": "https://github.com/Luminous-Dynamics/symtropy/issues/4550",
-    "paired_deployment_fault_campaign": "https://github.com/Luminous-Dynamics/symtropy/issues/4681"
+    "paired_deployment_fault_campaign": "https://github.com/Luminous-Dynamics/symtropy/issues/4681",
+    "degradation_recovery_envelope": "https://github.com/Luminous-Dynamics/symtropy/issues/4657"
   },
   "claim_ceiling": "Protocol only. No model, renderer, driving performance, safety or transfer result is claimed by this manifest.",
   "hypotheses": [
@@ -278,6 +279,23 @@
       "protocol": "NVIDIA deployment recipe reports 160–190 ms depending on reasoning amount. Reference hardware: DRIVE AGX Thor-X; DRIVE OS 7.2.7.0; CUDA 13.4; TensorRT 11.3.1.9; TensorRT Edge-LLM/DFlash2 accelerated workflow. This is a vendor-declared deployment measurement, not an independently reproduced result. Do not compare to other hardware or incomplete stage timings.",
       "source": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
       "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "luminous_degradation_recovery_envelope_2026_11_11",
+      "class": "prospective_fault_envelope_protocol",
+      "name": "Luminous Degradation-and-Recovery Envelope v0.1",
+      "metric_values": null,
+      "capabilities": [
+        "paired clean/faulted closed-loop trace accounting",
+        "event-specific detection and containment latency",
+        "recovery quorum and premature recovery checks",
+        "camera, stale replay, pixel corruption, calibration, clock and compute fault families",
+        "independent, cascaded and declared common-cause event provenance",
+        "seven-family deterministic severity sweep generator"
+      ],
+      "protocol": "Software trace auditor and schedule generator; 35 scheduled events for seven fault families × five severity control values. No simulator injector or model performance is included in v0.1.",
+      "source": "https://github.com/Luminous-Dynamics/symtropy/issues/4657",
+      "independent_symtropy_reproduction": false
     }
   ],
   "benchmark_ladder": [
@@ -394,6 +412,22 @@
         "confidence_intervals",
         "operational_coverage"
       ]
+    },
+    {
+      "id": "degradation_recovery_envelope",
+      "priority": 12,
+      "task": "paired clean/faulted closed-loop deployment perturbations with event-specific detection, containment and recovery; consume #4657 protocol and report each family/severity independently",
+      "metric_family": [
+        "fault_event_detection_latency",
+        "fault_event_containment_latency",
+        "stale_or_corrupt_policy_input_acceptance",
+        "healthy_recovery_quorum_latency",
+        "premature_recovery",
+        "clean_control_false_positive_degradation",
+        "faulted_and_clean_deadline_miss",
+        "per_fault_family_and_severity_tail",
+        "measured_inference_energy_and_latency"
+      ]
     }
   ],
   "budget_dimensions": [
@@ -424,7 +458,10 @@
     "sensor_drop_and_occlusion_fraction",
     "per_episode_outcome_records",
     "scenario_cluster_identity",
-    "training_compute_energy_and_gpu_hours"
+    "training_compute_energy_and_gpu_hours",
+    "fault_schedule_and_severity_manifest_sha256",
+    "fault_injection_count_by_family_and_severity",
+    "recovery_quorum_ticks_and_platform_deadlines"
   ],
   "outcome_families": [
     "native_benchmark_metrics",
@@ -450,7 +487,11 @@
     "worst_case_fault_family_performance",
     "paired_episode_cluster_bootstrap",
     "scenario_family_stratified_confidence_interval",
-    "paired_clean_perturbed_effect_size"
+    "paired_clean_perturbed_effect_size",
+    "fault_detection_and_containment_by_event_id",
+    "degradation_area_and_duration_by_fault_severity",
+    "recovery_latency_and_quorum_by_event",
+    "common_cause_and_cascaded_fault_response"
   ],
   "prospective_targets": {
     "status": "not_measured",
@@ -473,7 +514,12 @@
     "model_or_checkpoint_mutates_during_frozen_evaluation",
     "average_score_hides_worst_family_regression",
     "active_sampler_uses_more_labels_or_transitions_without_accounting",
-    "renderer_or_simulator_revision_changes_without_new_experiment_identity"
+    "renderer_or_simulator_revision_changes_without_new_experiment_identity",
+    "one_fault_event_claims_another_events_detection_or_containment",
+    "common_cause_or_cascade_parentage_is_misdeclared",
+    "fault_detection_or_containment_reference_precedes_fault_onset",
+    "normal_mode_restored_before_healthy_observation_quorum",
+    "severity_sweep_omits_a_fault_family_or_reuses_duplicate_levels"
   ],
   "sources": [
     {
@@ -595,6 +641,12 @@
       "url": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
       "published": "2026-11-10",
       "source_type": "NVIDIA deployment technical blog"
+    },
+    {
+      "id": "bench2drive_robust_2026",
+      "url": "https://arxiv.org/abs/2605.18059",
+      "published": "2026-05-18",
+      "source_type": "arXiv closed-loop deployment robustness benchmark"
     }
   ],
   "statistical_method": {
