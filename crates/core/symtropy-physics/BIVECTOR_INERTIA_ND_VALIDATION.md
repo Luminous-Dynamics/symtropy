@@ -59,6 +59,15 @@ where `T` is the stored-bivector representation of the physical applied torque. 
 - Parallel-axis composition with centered offsets, point-mass translation invariance (including small geometry far from world origin), and offset-centering negative control.
 - Invalid dimensions outside `2 <= D <= 9`, asymmetric/indefinite/zero-mass/degenerate inputs, invalid tolerance, singular rotation planes, zero impulse direction, improper Rotor, non-finite intermediates and overflow controls.
 
+## Mathematical prior art and novelty boundary
+
+The arbitrary-dimensional bivector formulation is established mathematics, not a new claim of this PR. Edward Parker's corrected 2024 paper, *The Ricci decomposition of the inertia tensor for a rigid body in arbitrary spatial dimensions*, derives the rank-4 inertia operator on `Lambda^2(R^D)` and proves its Weyl component vanishes: the physical inertia operator is fully determined by a symmetric rank-2 tensor (the Schouten/Ricci contraction). The paper also notes that the most efficient evaluation can skip materializing the rank-4 operator and apply the rank-2 tensor directly to the angular bivector.
+
+Reference: https://doi.org/10.1007/s10773-023-05505-7 (published 28 Dec 2023; correction published 12 Feb 2024).
+
+Symtropy's `I(B) = B*S + S*B` is the Rotor-sign form of that compact action: `B` is the stored generator for `exp(-B)`, physical point velocity is `-B*r`, and the bivector coordinates use the offset-first `r wedge j` convention. This PR's contribution is an executable Rust reference with fail-closed numerical admission, explicit frame/sign semantics, contact effective-mass and energy identities, scale/covariance/negative controls, and bounded D=2..9 test coverage. Do not claim the underlying N-D inertia formula or its rank-2 sufficiency as novel.
+
+
 ## Promotion boundaries
 
 Passing this reference's tests would establish an independently inspectable N-dimensional inertia operator, not production anisotropic rigid-body dynamics. Promotion still requires:
