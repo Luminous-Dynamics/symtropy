@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/degradation-recovery-campaign-v1.schema.json",
+  "title": "Degradation and recovery benchmark campaign v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "campaign_id",
+    "benchmark_revision",
+    "evaluator_revision",
+    "clock_id",
+    "policy_deadline_us",
+    "clean_control",
+    "faulted_run",
+    "events"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "benchmark_revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "evaluator_revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "clock_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "policy_deadline_us": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "clean_control": {
+      "$ref": "#/$defs/run"
+    },
+    "faulted_run": {
+      "$ref": "#/$defs/run"
+    },
+    "events": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": {
+        "$ref": "#/$defs/event"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "run": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "disposition",
+        "scenario_seed_sha256",
+        "environment_randomness_sha256",
+        "expected_tick_count",
+        "ticks"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "disposition": {
+          "enum": [
+            "complete",
+            "failed",
+            "incomplete",
+            "censored"
+          ]
+        },
+        "scenario_seed_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "environment_randomness_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "expected_tick_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10000000
+        },
+        "ticks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 10000000,
+          "items": {
+            "$ref": "#/$defs/tick"
+          }
+        }
+      }
+    },
+    "tick": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tick",
+        "capture_timestamp_us",
+        "delivered_timestamp_us",
+        "conditions",
+        "policy_input_accepted",
+        "fault_detected",
+        "degraded_mode",
+        "fallback_active",
+        "safe_stop_complete",
+        "normal_mode",
+        "decision_latency_us",
+        "inference_energy_uj"
+      ],
+      "properties": {
+        "tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "capture_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delivered_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "conditions": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "clean",
+              "delayed",
+              "missing",
+              "stale",
+              "corrupt",
+              "calibration_mismatch",
+              "clock_violation",
+              "compute_overrun"
+            ]
+          }
+        },
+        "policy_input_accepted": {
+          "type": "boolean"
+        },
+        "fault_detected": {
+          "type": "boolean"
+        },
+        "degraded_mode": {
+          "type": "boolean"
+        },
+        "fallback_active": {
+          "type": "boolean"
+        },
+        "safe_stop_complete": {
+          "type": "boolean"
+        },
+        "normal_mode": {
+          "type": "boolean"
+        },
+        "decision_latency_us": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "inference_energy_uj": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "kind",
+        "start_tick",
+        "end_tick",
+        "severity_ppm",
+        "detection_deadline_ticks",
+        "containment_deadline_ticks",
+        "max_accepted_frame_age_us",
+        "recovery_healthy_quorum_ticks"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "kind": {
+          "enum": [
+            "camera_drop",
+            "frame_delay",
+            "stale_replay",
+            "pixel_corruption",
+            "calibration_shift",
+            "clock_drift",
+            "compute_overrun"
+          ]
+        },
+        "start_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "severity_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "detection_deadline_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "containment_deadline_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "max_accepted_frame_age_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recovery_healthy_quorum_ticks": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "clean_control and faulted_run share scenario_seed_sha256, environment_randomness_sha256 and expected_tick_count.",
+    "Every run's ticks contain each sequence exactly once from 1 through expected_tick_count.",
+    "For each fault event, every tick in its inclusive exposure interval carries its expected condition.",
+    "Missing, stale, corrupt, calibration-mismatch and clock-violation inputs are never accepted by policy.",
+    "A delayed frame may be accepted only when its delivery age is at or below the event's max_accepted_frame_age_us.",
+    "Fault detection and containment deadlines are measured from the event start tick and must be fixed before evaluation.",
+    "Return to normal_mode requires the configured number of consecutive healthy observations after fault clearance.",
+    "A valid digest proves only syntactic consistency, not the authenticity or truth of source data."
+  ]
+}
