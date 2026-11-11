@@ -6,6 +6,8 @@ Parent issue: https://github.com/Luminous-Dynamics/symtropy/issues/4752
 
 ## Contract
 
+Choose one declared control volume before recording a baseline. For this crate's convention, positive external port work means energy flows **into** that control volume. A positive storage change is permitted only to the extent explained by the conservative lower bound on energy supplied through that external port plus the separately justified uncertainty allowance. Reverse the port orientation explicitly when the physical sign convention differs; do not silently flip signs.
+
 For each accepted interval:
 
     delta_storage = S_(k+1) - S_k
