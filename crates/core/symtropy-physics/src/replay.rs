@@ -112,8 +112,6 @@ pub fn apply_commands<const D: usize>(
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BodySnapshot<const D: usize> {
     pub handle: BodyHandle,
-    /// Optional runtime identity hint; not a canonical engineering subject.
-    pub net_id: Option<NetId>,
     pub body_type: BodyType,
     pub translation: [u64; D],
     pub rotation: [[u64; D]; D],
@@ -138,7 +136,6 @@ impl<const D: usize> BodySnapshot<D> {
 
         Self {
             handle: body.handle,
-            net_id: body.net_id,
             body_type: body.body_type,
             translation,
             rotation,
@@ -179,7 +176,45 @@ pub struct WorldSnapshot<const D: usize> {
     pub collision_events: Vec<CollisionEventSnapshot<D>>,
 }
 
+/// Optional runtime identity for one body in a [WorldSnapshotWithRuntimeIds].
+///
+/// NetId is a scoped runtime hint, not a canonical engineering subject.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BodyRuntimeIdentitySnapshot {
+    pub handle: BodyHandle,
+    pub net_id: Option<NetId>,
+}
+
+/// Additive identity-enriched snapshot that leaves [WorldSnapshot] and
+/// [BodySnapshot] layout unchanged for existing consumers.
+///
+/// body_identities is aligned with snapshot.bodies and retains explicit
+/// None values so absence is not confused with a missing sidecar entry.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorldSnapshotWithRuntimeIds<const D: usize> {
+    pub snapshot: WorldSnapshot<D>,
+    pub body_identities: Vec<BodyRuntimeIdentitySnapshot>,
+}
+
 impl<const D: usize> WorldSnapshot<D> {
+    /// Capture the existing bitwise snapshot plus an aligned optional-NetId
+    /// sidecar without changing the existing snapshot struct layout.
+    pub fn capture_with_runtime_ids(world: &PhysicsWorld<D>) -> WorldSnapshotWithRuntimeIds<D> {
+        let snapshot = Self::capture(world);
+        let body_identities = snapshot
+            .bodies
+            .iter()
+            .map(|body| BodyRuntimeIdentitySnapshot {
+                handle: body.handle,
+                net_id: world.body(body.handle).and_then(|source| source.net_id),
+            })
+            .collect();
+        WorldSnapshotWithRuntimeIds {
+            snapshot,
+            body_identities,
+        }
+    }
+
     pub fn capture(world: &PhysicsWorld<D>) -> Self {
         let mut bodies: Vec<_> = world.bodies.iter().map(BodySnapshot::from_body).collect();
         bodies.sort_by_key(|b| b.handle);
@@ -205,36 +240,48 @@ mod tests {
     use symtropy_math::Point;
 
     #[test]
-    fn body_snapshot_preserves_optional_net_id() {
-        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
-        let handle = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
-        world.body_mut(handle).expect("body exists").net_id = Some(NetId(42));
-
-        let snapshot = BodySnapshot::from_body(world.body(handle).expect("body exists"));
-        assert_eq!(snapshot.handle, handle);
-        assert_eq!(snapshot.net_id, Some(NetId(42)));
-    }
-
-    #[test]
-    fn world_snapshot_preserves_present_and_absent_net_ids() {
+    fn runtime_identity_sidecar_preserves_present_and_absent_net_ids() {
         let mut world = PhysicsWorld::<2>::new(SVector::zeros());
         let identified = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
         let unidentified = world.add_sphere(Point::new([3.0, 0.0]), 1.0, 1.0);
         world.body_mut(identified).expect("identified body").net_id = Some(NetId(77));
 
-        let snapshot = WorldSnapshot::capture(&world);
-        let identified_snapshot = snapshot
-            .bodies
-            .iter()
-            .find(|body| body.handle == identified)
-            .expect("identified body snapshot");
-        let unidentified_snapshot = snapshot
-            .bodies
-            .iter()
-            .find(|body| body.handle == unidentified)
-            .expect("unidentified body snapshot");
+        let snapshot = WorldSnapshot::capture_with_runtime_ids(&world);
+        assert_eq!(snapshot.snapshot.bodies.len(), 2);
+        assert_eq!(snapshot.body_identities.len(), 2);
+        assert_eq!(
+            snapshot.body_identities[0].handle,
+            snapshot.snapshot.bodies[0].handle
+        );
+        assert_eq!(
+            snapshot.body_identities[1].handle,
+            snapshot.snapshot.bodies[1].handle
+        );
 
-        assert_eq!(identified_snapshot.net_id, Some(NetId(77)));
-        assert_eq!(unidentified_snapshot.net_id, None);
+        let identified_identity = snapshot
+            .body_identities
+            .iter()
+            .find(|identity| identity.handle == identified)
+            .expect("identified sidecar entry");
+        let unidentified_identity = snapshot
+            .body_identities
+            .iter()
+            .find(|identity| identity.handle == unidentified)
+            .expect("unidentified sidecar entry");
+
+        assert_eq!(identified_identity.net_id, Some(NetId(77)));
+        assert_eq!(unidentified_identity.net_id, None);
+    }
+
+    #[test]
+    fn runtime_identity_capture_leaves_existing_snapshot_unchanged() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        world.body_mut(handle).expect("body").net_id = Some(NetId(42));
+
+        let ordinary = WorldSnapshot::capture(&world);
+        let enriched = WorldSnapshot::capture_with_runtime_ids(&world);
+        assert_eq!(ordinary, enriched.snapshot);
+        assert_eq!(ordinary.bodies.len(), enriched.body_identities.len());
     }
 }
