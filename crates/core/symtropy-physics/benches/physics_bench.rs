@@ -4,6 +4,10 @@
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
+use symtropy_physics::action_horizon::{
+    ActionExecutionMode, ActionHorizonRequest, HorizonConstraint, HorizonEvidence,
+    select_action_horizon,
+};
 use symtropy_physics::PhysicsWorld;
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
@@ -219,6 +223,94 @@ fn bench_physics_step_500_bodies(c: &mut Criterion) {
     });
 }
 
+// ═══ Evidence-bounded action-horizon selector ═══
+
+fn make_action_horizon_request(
+    execution_mode: ActionExecutionMode,
+    p99_latency_ns: u64,
+    unknown_thermal_bound: bool,
+) -> ActionHorizonRequest {
+    let remaining_ns = [
+        50_000_000,
+        45_000_000,
+        40_000_000,
+        35_000_000,
+        30_000_000,
+        25_000_000,
+        20_000_000,
+        18_000_000,
+    ];
+    let bounds = std::array::from_fn(|index| {
+        if index == 6 && unknown_thermal_bound {
+            HorizonEvidence::unknown("thermal model unavailable")
+                .expect("unknown fixture must have a reason")
+        } else {
+            HorizonEvidence::qualified(
+                remaining_ns[index],
+                HorizonConstraint::ALL[index].as_str(),
+                "criterion-application-monotonic-epoch",
+            )
+            .expect("qualified fixture must have source and timebase identities")
+        }
+    });
+
+    ActionHorizonRequest {
+        bounds,
+        controller_period_ns: 1_000_000,
+        p99_total_latency_ns: p99_latency_ns,
+        latency_profile_id: "criterion-fixed-target-latency-profile".to_owned(),
+        execution_mode,
+    }
+}
+
+fn bench_action_horizon_queued_feasible(c: &mut Criterion) {
+    let request = make_action_horizon_request(
+        ActionExecutionMode::QueuedOpenLoop,
+        10_500_000,
+        false,
+    );
+    c.bench_function("action_horizon_queued_open_loop_8_bounds", |bench| {
+        bench.iter(|| {
+            black_box(
+                select_action_horizon(black_box(&request))
+                    .expect("fixture period and latency profile are valid"),
+            );
+        });
+    });
+}
+
+fn bench_action_horizon_split_timescale(c: &mut Criterion) {
+    let request = make_action_horizon_request(
+        ActionExecutionMode::SplitTimescaleLocalExpert,
+        250_000_000,
+        false,
+    );
+    c.bench_function("action_horizon_split_timescale_local_expert_8_bounds", |bench| {
+        bench.iter(|| {
+            black_box(
+                select_action_horizon(black_box(&request))
+                    .expect("fixture period and latency profile are valid"),
+            );
+        });
+    });
+}
+
+fn bench_action_horizon_unknown_rejection(c: &mut Criterion) {
+    let request = make_action_horizon_request(
+        ActionExecutionMode::QueuedOpenLoop,
+        10_500_000,
+        true,
+    );
+    c.bench_function("action_horizon_unknown_thermal_rejection_8_bounds", |bench| {
+        bench.iter(|| {
+            black_box(
+                select_action_horizon(black_box(&request))
+                    .expect("fixture period and latency profile are valid"),
+            );
+        });
+    });
+}
+
 criterion_group!(
     benches,
     // GJK per shape
@@ -232,6 +324,10 @@ criterion_group!(
     bench_epa_sphere_sphere,
     // Raycast
     bench_raycast_100_bodies,
+    // Evidence-bounded action horizon: queued, split-timescale and Unknown rejection
+    bench_action_horizon_queued_feasible,
+    bench_action_horizon_split_timescale,
+    bench_action_horizon_unknown_rejection,
     // Physics step at scale
     bench_physics_step_10_bodies,
     bench_physics_step_100_bodies,
