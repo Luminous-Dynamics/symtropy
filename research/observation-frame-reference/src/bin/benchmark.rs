@@ -28,7 +28,7 @@ struct BenchmarkResult {
 }
 
 fn digest(character: char) -> String {
-    std::iter::repeat(character).take(64).collect()
+    std::iter::repeat_n(character, 64).collect()
 }
 
 fn synthetic_frame(entity_count: usize, event_count: usize) -> ObservationFrameInputV1 {
@@ -99,7 +99,7 @@ fn synthetic_frame(entity_count: usize, event_count: usize) -> ObservationFrameI
 }
 
 fn percentile(samples: &[u128], percentile: usize) -> u128 {
-    let rank = samples.len() * percentile.div_ceil(100);
+    let rank = (samples.len() * percentile).div_ceil(100).max(1);
     samples[rank.saturating_sub(1).min(samples.len() - 1)]
 }
 
