@@ -27,6 +27,7 @@ impl ScaleTier {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct DomainSignature {
     pub material_family: String,
     pub material_grade: String,
@@ -122,12 +123,14 @@ impl DomainSignature {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct DomainNode {
     pub domain_id: String,
     pub signature: DomainSignature,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct ModelRecord {
     pub model_id: String,
     pub revision: String,
@@ -140,6 +143,7 @@ pub struct ModelRecord {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct BridgeEdge {
     pub edge_id: String,
     pub from_domain_id: String,
@@ -165,6 +169,7 @@ pub struct BridgeEdge {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct TransferRequest {
     pub target_domain_id: String,
     pub requested_output_scope: String,
@@ -174,6 +179,7 @@ pub struct TransferRequest {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct TransferManifest {
     pub schema_version: String,
     pub model: ModelRecord,
@@ -219,6 +225,7 @@ pub enum TransferReason {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct BridgePathReport {
     pub edge_ids: Vec<String>,
     pub domain_ids: Vec<String>,
@@ -229,6 +236,7 @@ pub struct BridgePathReport {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct TransferDecision {
     pub disposition: TransferDisposition,
     pub reason: Option<TransferReason>,
@@ -404,12 +412,13 @@ fn empty_decision(
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
 pub struct CorpusSummary {
     pub benchmark_id: String,
     pub cases: usize,
     pub positive: usize,
     pub negative: usize,
-    pub corpus_digest: String,
+    pub corpus_fingerprint_fnv1a64: String,
 }
 
 pub fn validate_corpus(bytes: &[u8]) -> Result<CorpusSummary, String> {
@@ -466,7 +475,7 @@ pub fn validate_corpus(bytes: &[u8]) -> Result<CorpusSummary, String> {
         cases: cases.len(),
         positive,
         negative,
-        corpus_digest: format!("{:x}", fnv1a64(bytes)),
+        corpus_fingerprint_fnv1a64: format!("{:x}", fnv1a64(bytes)),
     })
 }
 
@@ -1088,7 +1097,10 @@ mod tests {
     #[test]
     fn target_thickness_outside_source_domain_requires_a_bridge() {
         let mut manifest = base_manifest();
-        manifest.domains[3].signature = signature(ScaleTier::BeadOrCoupon, 35, 38);
+        manifest.domains[3].signature = signature(ScaleTier::BlockAssembly, 35, 38);
+        manifest.bridge_edges[2].changed_factors = manifest.domains[2]
+            .signature
+            .changed_factors(&manifest.domains[3].signature);
         let result = evaluate_transfer(&manifest);
         assert_eq!(result.disposition, TransferDisposition::AdmittedWithBridgeChain);
     }
