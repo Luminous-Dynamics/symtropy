@@ -29,6 +29,7 @@ pub mod joints;
 pub mod manifold_gen;
 pub mod raycast;
 pub mod replay;
+pub mod spatial_inertia_3d;
 pub mod support_map;
 pub mod world;
 
@@ -42,4 +43,7 @@ pub use epa::EpaResult;
 pub use integrator::nan_zeroed_count;
 pub use joints::{BallJoint, FixedJoint, HingeJoint, MotorDrive, PrismaticJoint};
 pub use replay::{ReplayTape, WorldCommand, WorldSnapshot, apply_commands};
+pub use spatial_inertia_3d::{
+    FrameId, ReferencePointId, SpatialInertia3, SpatialInertia3Error,
+};
 pub use world::{NoOpCallback, PhysicsCallback, PhysicsWorld};
