@@ -9,6 +9,10 @@ description = "Independent Rust evaluator for command-conditioned industrial eng
 
 [workspace]
 
+[[bin]]
+name = "marine-dataset-audit"
+path = "src/bin/marine_dataset_audit.rs"
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
