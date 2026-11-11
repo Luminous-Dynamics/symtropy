@@ -1,0 +1,129 @@
+{
+  "schema_version": "liu-ice-streaming-contract-v0.1",
+  "status": "protocol_only_not_executed",
+  "source_benchmark": "LIU-ICE-DX37",
+  "interface": {
+    "invocation": "one new time-ordered sample per input call",
+    "output": "one detection boolean and five non-negative isolation probabilities in order f_pic, f_pim, f_waf, f_iml, f_x",
+    "no_fault_output": "detection=false requires all five isolation values to be zero",
+    "fault_output": "detection=true requires the five isolation probabilities to sum to one within 1e-6",
+    "historical_output_mutation": false,
+    "missing_signal_policy": "missing channels stay absent; no nominal-value imputation is provided by the contract"
+  },
+  "stream_invariants": {
+    "recording_identity": "one immutable recording identity per streaming session",
+    "model_identity": "one frozen model SHA-256 per streaming session",
+    "sample_sequence": "sample indices are contiguous and timestamps strictly increase",
+    "exactly_one_receipt_per_accepted_sample": true,
+    "append_only": true,
+    "output_identity_matches_input": true,
+    "no_future_input_access": true,
+    "no_retrospective_label_access": true,
+    "model_error": "poison session because hidden state may have changed before the error",
+    "invalid_model_output": "poison session and reject subsequent samples until explicit reconciliation/reinitialization",
+    "sample_validation_error": "reject before model invocation; session remains usable",
+    "recovery": "new session after a model-side error requires external reconciliation and an explicit new session identity"
+  },
+  "receipt": {
+    "schema_version": "liu-ice-streaming-diagnosis-receipt-v1",
+    "fields": [
+      "recording_id",
+      "sample_index",
+      "time_seconds",
+      "model_sha256",
+      "input_sha256",
+      "output",
+      "output_sha256",
+      "previous_receipt_sha256",
+      "receipt_sha256"
+    ],
+    "hash_domains": [
+      "symtropy-liu-ice-streaming-input-v1",
+      "symtropy-liu-ice-streaming-output-v1",
+      "symtropy-liu-ice-streaming-receipt-v1"
+    ],
+    "tamper_detection": "recompute output and receipt digests and verify previous-receipt linkage in strict sample order",
+    "limitation": "hash chaining provides integrity and ordering, not signer authentication, trusted timestamps, secure process isolation or proof that sensor bytes are truthful"
+  },
+  "implementation": {
+    "rust_module": "src/streaming_contract.rs",
+    "trait": "StreamingDiagnoser::input",
+    "wrapper": "StreamingDiagnosisSession",
+    "status": "implemented_source_not_compiled",
+    "synthetic_tests": [
+      "one input one output",
+      "append-only prior result",
+      "monotonic sequence",
+      "recording binding",
+      "input validation",
+      "invalid output poisons",
+      "model failure poisons",
+      "receipt tamper",
+      "unknown isolation slot"
+    ]
+  },
+  "competition_adapter": {
+    "official_languages": [
+      "Python",
+      "MATLAB"
+    ],
+    "rust_core_direct_submission_compatible": false,
+    "adapter_status": "not_implemented",
+    "required_adapter_gates": [
+      "one Python/MATLAB Input(sample) call per official sample",
+      "exact boolean plus five-float output shape and class order",
+      "no output revisions after a sample returns",
+      "same model and calibration artifact digests as Rust core",
+      "golden-vector parity across Rust and adapter implementations",
+      "offline execution without unapproved licensed dependencies"
+    ]
+  },
+  "required_metrics": [
+    "input_sample_count",
+    "output_receipt_count",
+    "input_output_cardinality_mismatch_count",
+    "sample_sequence_gap_count",
+    "historical_output_mutation_count",
+    "invalid_probability_output_count",
+    "poisoned_session_count",
+    "receipt_chain_validation_rate",
+    "p50_p95_p99_per_sample_latency",
+    "peak_memory_bytes"
+  ],
+  "hard_gates": [
+    "exactly one output receipt per accepted input sample",
+    "no previous output can be modified by the streaming API",
+    "no future command, controller mode or retrospective annotation can enter the current prediction",
+    "non-monotonic and skipped sample indices fail before model invocation",
+    "invalid output and uncertain model errors poison the session",
+    "detection=false requires a zero isolation vector",
+    "detection=true requires a normalized five-class vector",
+    "unknown-fault probability remains represented in slot five",
+    "receipt chain binds model identity, input digest, output digest and prior receipt",
+    "hash integrity is not presented as signer authentication or physical truth",
+    "Python/MATLAB adapter compliance is separate from Rust-core contract compliance"
+  ],
+  "research_targets_not_achieved": [
+    {
+      "id": "sample_interface_correctness",
+      "target": "Zero input/output cardinality mismatches, sample gaps, historical-output mutations or probability-contract violations across the full frozen replay suite.",
+      "status": "aspirational"
+    },
+    {
+      "id": "receipt_replay",
+      "target": "100% receipt-chain verification across deterministic replay of every accepted sample and exact model identity.",
+      "status": "aspirational"
+    },
+    {
+      "id": "stream_latency",
+      "target": "P95 per-sample end-to-end inference and receipt latency below 10 ms on declared reference hardware at 20 Hz input, without queue growth.",
+      "status": "aspirational"
+    },
+    {
+      "id": "adapter_parity",
+      "target": "Exact output parity on all golden vectors between Rust core and Python/MATLAB competition adapter.",
+      "status": "aspirational"
+    }
+  ],
+  "claim_ceiling": "Rust source contract and synthetic tests only until exact-head compile/tests, public dataset audit, trained model run, and a compliant Python/MATLAB adapter are independently verified."
+}
