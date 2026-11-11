@@ -328,6 +328,13 @@ impl<const D: usize> BivectorInertia<D> {
         if mass_a < 0.0 || mass_b < 0.0 || mass_a + mass_b <= 0.0 {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
+        // A massless component cannot carry a nonzero second-moment tensor.
+        // This preserves mass/inertia consistency when combining components.
+        if (mass_a == 0.0 && inertia_a.second_moment.iter().any(|value| *value != 0.0))
+            || (mass_b == 0.0 && inertia_b.second_moment.iter().any(|value| *value != 0.0))
+        {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        }
 
         let total_mass = mass_a + mass_b;
         if !total_mass.is_finite() || total_mass <= 0.0 {
@@ -387,6 +394,13 @@ impl<const D: usize> BivectorInertia<D> {
             if *mass < 0.0 {
                 return Err(RotationalInertiaError::InvalidMassProperties);
             }
+        }
+        // Zero-mass samples have no physical effect and must not define the
+        // numerical origin; a remote zero-mass point could otherwise cause
+        // overflow when subtracting the first sample from positive-mass data.
+        samples.retain(|(_, mass)| *mass > 0.0);
+        if samples.is_empty() {
+            return Err(RotationalInertiaError::InvalidMassProperties);
         }
         // Floating-point accumulation must not depend on mesh/point-cloud
         // iterator order. Sort by position then mass using total ordering.
@@ -866,6 +880,46 @@ mod tests {
         assert_eq!(
             BivectorInertia::<3>::from_point_masses(samples).unwrap_err(),
             RotationalInertiaError::NonFinite
+        );
+    }
+
+    #[test]
+    fn combine_rejects_nonzero_inertia_with_zero_component_mass() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
+        let zero_inertia = BivectorInertia::<3>::from_second_moment(SMatrix::zeros()).unwrap();
+        assert_eq!(
+            BivectorInertia::<3>::combine_at_common_center(
+                0.0,
+                &inertia,
+                &SVector::zeros(),
+                1.0,
+                &zero_inertia,
+                &SVector::zeros(),
+            )
+            .unwrap_err(),
+            RotationalInertiaError::InvalidMassProperties
+        );
+    }
+
+    #[test]
+    fn point_mass_constructor_ignores_zero_mass_samples_for_reference_origin() {
+        let samples = [
+            (SVector::<f64, 3>::new(-f64::MAX, 0.0, 0.0), 0.0),
+            (SVector::<f64, 3>::new(f64::MAX, 0.0, 0.0), 1.0),
+        ];
+        let inertia = BivectorInertia::<3>::from_point_masses(samples).unwrap();
+        assert_eq!(*inertia.second_moment(), SMatrix::<f64, 3, 3>::zeros());
+    }
+
+    #[test]
+    fn point_mass_constructor_rejects_all_zero_mass_samples() {
+        let samples = [
+            (SVector::<f64, 3>::new(-1.0, 0.0, 0.0), 0.0),
+            (SVector::<f64, 3>::new(1.0, 0.0, 0.0), 0.0),
+        ];
+        assert_eq!(
+            BivectorInertia::<3>::from_point_masses(samples).unwrap_err(),
+            RotationalInertiaError::InvalidMassProperties
         );
     }
 
