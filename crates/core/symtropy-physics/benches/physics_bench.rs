@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 use criterion::{Criterion, black_box, criterion_group, criterion_main};
-use nalgebra::SVector;
+use nalgebra::{SMatrix, SVector};
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
-use symtropy_physics::PhysicsWorld;
+use symtropy_physics::{
+    FrameId, PhysicsWorld, ReferencePointId, SpatialInertia3,
+};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
 
@@ -219,6 +221,101 @@ fn bench_physics_step_500_bodies(c: &mut Criterion) {
     });
 }
 
+// ═══ Spatial inertia reference microbenchmarks ═══
+
+fn bench_spatial_inertia_sample() -> SpatialInertia3 {
+    SpatialInertia3::new(
+        FrameId(1),
+        ReferencePointId(10),
+        4.0,
+        SVector::new(0.25, -0.1, 0.4),
+        SMatrix::new(
+            1.2, 0.1, 0.05,
+            0.1, 1.6, 0.08,
+            0.05, 0.08, 2.1,
+        ),
+    )
+    .expect("valid benchmark spatial inertia")
+}
+
+fn bench_spatial_inertia_matrix_build(c: &mut Criterion) {
+    let inertia = bench_spatial_inertia_sample();
+    c.bench_function("spatial_inertia_3d_build_6x6", |bench| {
+        bench.iter(|| black_box(inertia.spatial_mass_matrix().unwrap()));
+    });
+}
+
+fn bench_spatial_inertia_dense_apply(c: &mut Criterion) {
+    let inertia = bench_spatial_inertia_sample();
+    let matrix = inertia.spatial_mass_matrix().unwrap();
+    let twist = SVector::from([0.3, -0.2, 0.5, 1.1, -0.4, 0.7]);
+    c.bench_function("spatial_inertia_3d_cached_6x6_apply", |bench| {
+        bench.iter(|| black_box(matrix * black_box(twist)));
+    });
+}
+
+fn bench_spatial_inertia_checked_apply(c: &mut Criterion) {
+    let inertia = bench_spatial_inertia_sample();
+    let twist = SVector::from([0.3, -0.2, 0.5, 1.1, -0.4, 0.7]);
+    c.bench_function("spatial_inertia_3d_checked_twist_to_momentum", |bench| {
+        bench.iter(|| black_box(inertia.spatial_momentum(&twist).unwrap()));
+    });
+}
+
+fn bench_spatial_inertia_energy(c: &mut Criterion) {
+    let inertia = bench_spatial_inertia_sample();
+    let twist = SVector::from([0.3, -0.2, 0.5, 1.1, -0.4, 0.7]);
+    c.bench_function("spatial_inertia_3d_checked_kinetic_energy", |bench| {
+        bench.iter(|| black_box(inertia.kinetic_energy(&twist).unwrap()));
+    });
+}
+
+fn bench_spatial_inertia_reference_shift(c: &mut Criterion) {
+    let inertia = bench_spatial_inertia_sample();
+    let offset = SVector::new(-0.4, 0.7, 0.2);
+    c.bench_function("spatial_inertia_3d_reference_point_shift", |bench| {
+        bench.iter(|| {
+            black_box(
+                inertia
+                    .shift_reference_point(ReferencePointId(11), &offset)
+                    .unwrap(),
+            );
+        });
+    });
+}
+
+fn bench_spatial_inertia_frame_reexpression(c: &mut Criterion) {
+    use symtropy_math::{Bivector, Rotor};
+    let inertia = bench_spatial_inertia_sample();
+    let mut generator = Bivector::<3>::zero();
+    generator.set(0, 1, 0.2);
+    generator.set(0, 2, -0.3);
+    generator.set(1, 2, 0.1);
+    let rotation = Rotor::from_bivector(&generator);
+    c.bench_function("spatial_inertia_3d_frame_reexpression", |bench| {
+        bench.iter(|| black_box(inertia.reexpress(FrameId(2), &rotation).unwrap()));
+    });
+}
+
+fn bench_spatial_inertia_composition(c: &mut Criterion) {
+    let first = bench_spatial_inertia_sample();
+    let second = SpatialInertia3::new(
+        FrameId(1),
+        ReferencePointId(10),
+        2.0,
+        SVector::new(-0.6, 0.2, -0.1),
+        SMatrix::new(
+            0.7, 0.04, 0.0,
+            0.04, 0.9, 0.03,
+            0.0, 0.03, 1.1,
+        ),
+    )
+    .expect("valid second benchmark inertia");
+    c.bench_function("spatial_inertia_3d_compose_at_common_reference", |bench| {
+        bench.iter(|| black_box(first.compose_at_common_reference(&second).unwrap()));
+    });
+}
+
 criterion_group!(
     benches,
     // GJK per shape
@@ -237,5 +334,13 @@ criterion_group!(
     bench_physics_step_100_bodies,
     bench_physics_step_500_bodies,
     bench_physics_step_2d,
+    // Spatial inertia reference operations
+    bench_spatial_inertia_matrix_build,
+    bench_spatial_inertia_dense_apply,
+    bench_spatial_inertia_checked_apply,
+    bench_spatial_inertia_energy,
+    bench_spatial_inertia_reference_shift,
+    bench_spatial_inertia_frame_reexpression,
+    bench_spatial_inertia_composition,
 );
 criterion_main!(benches);
