@@ -126,6 +126,8 @@ pub struct BodySnapshot<const D: usize> {
     pub rotational_inertia_model: RotationalInertiaModel,
     pub rotational_inertia_operator_invalidated: bool,
     pub rotational_inertia_operator_mass_bits: Option<u64>,
+    /// Mass generation against which the body's diagonal/full mass properties were derived.
+    pub mass_properties_mass_bits: Option<u64>,
     pub rotational_inertia_approximate: bool,
     pub sleeping: bool,
     pub sleep_counter: u32,
@@ -162,6 +164,7 @@ impl<const D: usize> BodySnapshot<D> {
             rotational_inertia_model: body.rotational_inertia_model(),
             rotational_inertia_operator_invalidated: body.rotational_inertia_operator_invalidated,
             rotational_inertia_operator_mass_bits: body.rotational_inertia_operator_mass_bits,
+            mass_properties_mass_bits: body.mass_properties_mass_bits,
             rotational_inertia_approximate: body.rotational_inertia_approximate,
             sleeping: body.sleeping,
             sleep_counter: body.sleep_counter,
@@ -256,6 +259,28 @@ mod rotational_mass_property_replay_tests {
             snapshot_b.rotational_inertia_operator_bits
         );
         assert_ne!(snapshot_a, snapshot_b);
+    }
+
+    #[test]
+    fn body_snapshot_distinguishes_stale_diagonal_mass_provenance() {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(10),
+            Point::origin(),
+            0.1,
+            1.0,
+        );
+        let valid = BodySnapshot::from_body(&body);
+        body.mass += 0.1;
+        let stale = BodySnapshot::from_body(&body);
+
+        assert_eq!(valid.mass_properties_mass_bits, Some(1.0_f64.to_bits()));
+        assert_eq!(stale.mass_properties_mass_bits, Some(1.0_f64.to_bits()));
+        assert_eq!(stale.mass_kg_bits, 1.1_f64.to_bits());
+        assert_eq!(
+            stale.rotational_inertia_model,
+            RotationalInertiaModel::InvalidPrincipalMoments
+        );
+        assert_ne!(valid, stale);
     }
 
     #[test]
