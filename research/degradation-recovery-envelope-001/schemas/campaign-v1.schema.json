@@ -13,7 +13,8 @@
     "policy_deadline_us",
     "clean_control",
     "faulted_run",
-    "events"
+    "events",
+    "fault_schedule_visible_to_policy"
   ],
   "properties": {
     "schema_version": {
@@ -56,6 +57,9 @@
       "items": {
         "$ref": "#/$defs/event"
       }
+    },
+    "fault_schedule_visible_to_policy": {
+      "type": "boolean"
     }
   },
   "$defs": {
@@ -277,6 +281,7 @@
     "Fault detection and containment deadlines are measured from the event start tick and must be fixed before evaluation.",
     "Return to normal_mode requires the configured number of consecutive healthy observations after fault clearance.",
     "A valid digest proves only syntactic consistency, not the authenticity or truth of source data.",
-    "Fault detection and containment references identify exact fault event IDs; a generic system-level flag cannot satisfy multiple unrelated events."
+    "Fault detection and containment references identify exact fault event IDs; a generic system-level flag cannot satisfy multiple unrelated events.",
+    "fault_schedule_visible_to_policy must be false; this is a declared control and does not authenticate the policy's actual observations."
   ]
 }
