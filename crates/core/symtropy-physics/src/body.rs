@@ -276,7 +276,29 @@ mod compound_com_tests {
         )
     }
 
-    fn assert_support_preserved(before: &[SVector<f64, 3>], body: &RigidBody<3>) {
+    fn original_child_world_support(
+        body: &RigidBody<3>,
+        direction: &SVector<f64, 3>,
+    ) -> SVector<f64, 3> {
+        let compound = body
+            .collider
+            .as_any()
+            .downcast_ref::<symtropy_math::CompoundShape<3>>()
+            .expect("merge_toolhead always stores a compound collider");
+        let (child_transform, shape) = compound
+            .children()
+            .first()
+            .expect("original collider remains the first compound child");
+        let world_from_child = body.transform.compose(child_transform);
+        let child_direction = world_from_child
+            .rotation
+            .reverse()
+            .rotate_vector(direction);
+        let local_support = shape.support(&child_direction);
+        world_from_child.transform_point(&Point(local_support)).0
+    }
+
+    fn assert_original_geometry_preserved(before: &[SVector<f64, 3>], body: &RigidBody<3>) {
         let directions = [
             SVector::from([1.0, 0.0, 0.0]),
             SVector::from([0.0, 1.0, 0.0]),
@@ -285,10 +307,10 @@ mod compound_com_tests {
             SVector::from([-2.0, 0.5, 1.0]),
         ];
         for (index, direction) in directions.iter().enumerate() {
-            let after = body.world_support(direction);
+            let after = original_child_world_support(body, direction);
             assert!(
                 (after - before[index]).norm() < 2.0e-10,
-                "world support moved in direction {direction:?}: before={:?}, after={after:?}",
+                "original child geometry moved in direction {direction:?}: before={:?}, after={after:?}",
                 before[index]
             );
         }
@@ -331,7 +353,7 @@ mod compound_com_tests {
             (body.transform.translation.0 - expected_world_translation).norm() < 1.0e-12,
             "COM translation was not rotated from body frame into world frame"
         );
-        assert_support_preserved(&before, &body);
+        assert_original_geometry_preserved(&before, &body);
     }
 
     #[test]
@@ -354,7 +376,7 @@ mod compound_com_tests {
             Box::new(Sphere::new(Point::origin(), 0.15)),
             0.7,
         );
-        assert_support_preserved(&initial, &body);
+        assert_original_geometry_preserved(&initial, &body);
 
         let after_first = directions
             .iter()
@@ -365,7 +387,7 @@ mod compound_com_tests {
             Box::new(Sphere::new(Point::origin(), 0.1)),
             0.3,
         );
-        assert_support_preserved(&after_first, &body);
+        assert_original_geometry_preserved(&after_first, &body);
         assert_support_preserved(&initial, &body);
     }
 }
