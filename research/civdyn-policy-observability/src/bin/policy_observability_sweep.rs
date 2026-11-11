@@ -3,8 +3,8 @@
 
 use civdyn_policy_observability::{
     evaluate_policy, known_mar_propensity_mean, robust_comparison, worst_case_regret_upper_bound,
-    CandidateRecord, EvaluatorRecord, IdentifiedInterval, MissingReason, MissingnessMechanism,
-    ObservationAssumption, PolicyEvaluation, RobustComparison,
+    CandidateRecord, EvaluatorRecord, MissingReason, MissingnessMechanism,
+    ObservationAssumption, PolicyEvaluation,
 };
 
 const SUPPORT_LOWER: u64 = 0;
@@ -180,14 +180,4 @@ fn main() {
     .expect("known propensity estimate");
     emit("mar_positive_control", &mar_eval, None, Some(mar_estimate));
 
-    let _comparison_contract: RobustComparison = robust_comparison(
-        &IdentifiedInterval {
-            lower: 0.0,
-            upper: 100.0,
-        },
-        &IdentifiedInterval {
-            lower: 50.0,
-            upper: 50.0,
-        },
-    );
 }
