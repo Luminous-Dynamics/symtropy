@@ -789,6 +789,39 @@ mod tests {
     }
 
     #[test]
+    fn hypothesis_manifest_is_independent_of_input_order() {
+        let forward = hypotheses();
+        let reverse = forward.iter().cloned().rev().collect::<Vec<_>>();
+        assert_eq!(
+            hypothesis_manifest_sha256(&forward).unwrap(),
+            hypothesis_manifest_sha256(&reverse).unwrap()
+        );
+    }
+
+    #[test]
+    fn active_evidence_protocol_preserves_non_execution_and_authority_boundaries() {
+        let protocol: serde_json::Value =
+            serde_json::from_str(include_str!("../active-evidence-selection-v0.1.json")).unwrap();
+        assert_eq!(
+            protocol["schema_version"],
+            "liu-ice-active-evidence-selection-v0.1"
+        );
+        assert_eq!(protocol["status"], "protocol_only_not_executed");
+        assert_eq!(protocol["comparators"].as_array().unwrap().len(), 6);
+        assert_eq!(protocol["candidate_classes"]["controlled_perturbation"]["eligible"], false);
+        assert_eq!(protocol["evidence_boundaries"]["authority_status"]
+            .as_str()
+            .unwrap()
+            .contains("upstream mandatory checks"), true);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 10);
+        assert!(protocol["research_targets_not_achieved"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|target| target["status"] == "aspirational"));
+    }
+
+    #[test]
     fn duplicate_hypotheses_are_rejected_before_evidence_selection() {
         let mut hypotheses = hypotheses();
         hypotheses.push(hypotheses[0].clone());
