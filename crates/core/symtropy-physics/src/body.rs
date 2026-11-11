@@ -61,6 +61,8 @@ pub struct RigidBody<const D: usize> {
     pub rotational_inertia_operator: Option<RotationalInertiaOperator<D>>,
     /// Set when a mass-distribution change invalidates the attached operator.
     pub rotational_inertia_operator_invalidated: bool,
+    /// True when compound mass properties use the legacy approximation.
+    pub rotational_inertia_approximate: bool,
     pub collider: Box<dyn Shape<D>>,
     pub friction: f64,
     pub restitution: f64,
@@ -107,6 +109,7 @@ impl<const D: usize> RigidBody<D> {
             inv_inertia,
             rotational_inertia_operator: None,
             rotational_inertia_operator_invalidated: false,
+            rotational_inertia_approximate: false,
             collider,
             friction: 0.5,
             restitution: 0.2,
@@ -227,6 +230,9 @@ impl<const D: usize> RigidBody<D> {
         if self.rotational_inertia_operator.is_some() {
             return RotationalInertiaModel::ValidatedSpatialBivectorOperator;
         }
+        if self.rotational_inertia_approximate {
+            return RotationalInertiaModel::MeanInertiaApproximation;
+        }
         if D != 3 {
             return RotationalInertiaModel::MeanInertiaApproximation;
         }
@@ -246,6 +252,7 @@ impl<const D: usize> RigidBody<D> {
     ) -> Self {
         self.rotational_inertia_operator = Some(operator);
         self.rotational_inertia_operator_invalidated = false;
+        self.rotational_inertia_approximate = false;
         self
     }
 
@@ -256,6 +263,7 @@ impl<const D: usize> RigidBody<D> {
     ) {
         self.rotational_inertia_operator = Some(operator);
         self.rotational_inertia_operator_invalidated = false;
+        self.rotational_inertia_approximate = false;
         self.wake();
     }
 
@@ -273,7 +281,7 @@ impl<const D: usize> RigidBody<D> {
         if D != 3 {
             return false;
         }
-        (0..3).all(|axis| {
+        let positive_and_reciprocal = (0..3).all(|axis| {
             let moment = self.inertia[axis];
             let inverse = self.inv_inertia[axis];
             moment.is_finite()
@@ -281,7 +289,18 @@ impl<const D: usize> RigidBody<D> {
                 && inverse.is_finite()
                 && inverse > 0.0
                 && (moment * inverse - 1.0).abs() <= 1.0e-8
-        })
+        });
+        if !positive_and_reciprocal {
+            return false;
+        }
+
+        // A physically realizable 3D principal-inertia triplet must satisfy
+        // the rigid-body triangle inequalities. Reject impossible synthetic
+        // combinations rather than describing them as exact mass properties.
+        let tolerance = 1.0e-10 * self.inertia.iter().copied().fold(1.0_f64, f64::max);
+        self.inertia[0] + self.inertia[1] + tolerance >= self.inertia[2]
+            && self.inertia[0] + self.inertia[2] + tolerance >= self.inertia[1]
+            && self.inertia[1] + self.inertia[2] + tolerance >= self.inertia[0]
     }
 
     /// Apply the inverse rotational inertia operator to a world-space angular
@@ -505,6 +524,12 @@ impl<const D: usize> RigidBody<D> {
 
         self.transform.translation.0 += com_offset;
 
+        // The compatibility merge uses a simplified scalar toolhead inertia,
+        // not a composite central-second-moment derivation. Report it as an
+        // approximation even when the resulting three stored moments happen
+        // to be equal.
+        self.rotational_inertia_approximate = true;
+
         // Toolhead mass changes invalidate any previously certified full
         // inertia operator. Do not silently keep using stale mass properties.
         if self.rotational_inertia_operator.is_some() {
@@ -654,6 +679,17 @@ mod rotational_inertia_tests {
             &body.apply_inverse_angular_inertia(&impulse),
             &impulse.scale(0.5),
             1.0e-12,
+        );
+    }
+
+    #[test]
+    fn impossible_principal_moment_triplet_is_rejected() {
+        let mut body = anisotropic_body();
+        body.inertia = SVector::from([1.0, 1.0, 3.0]);
+        body.inv_inertia = SVector::from([1.0, 1.0, 1.0 / 3.0]);
+        assert_eq!(
+            body.rotational_inertia_model(),
+            RotationalInertiaModel::InvalidPrincipalMoments
         );
     }
 
