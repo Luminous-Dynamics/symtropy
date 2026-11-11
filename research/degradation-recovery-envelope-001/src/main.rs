@@ -11,7 +11,7 @@ use std::fs;
 use std::path::Path;
 
 use degradation_recovery_envelope::{
-    AuditReport, Campaign, audit_campaign, standard_fault_schedule,
+    AuditReport, Campaign, audit_campaign, severity_sweep_schedule, standard_fault_schedule,
 };
 use serde_json::json;
 
@@ -36,6 +36,56 @@ fn write_report(path: &Path, report: &AuditReport) -> Result<(), Box<dyn Error>>
 
 fn run() -> Result<i32, Box<dyn Error>> {
     let args = env::args().skip(1).collect::<Vec<_>>();
+    if args
+        .first()
+        .is_some_and(|value| value == "generate-severity-sweep")
+    {
+        if args.len() != 9 {
+            return Err(
+                "usage: degradation-recovery-envelope generate-severity-sweep <first-start-tick> <spacing-ticks> <exposure-ticks> <detection-deadline-ticks> <containment-deadline-ticks> <recovery-quorum-ticks> <severity-ppm-csv> <output.json>"
+                    .into(),
+            );
+        }
+        let parse = |index: usize, name: &str| -> Result<u64, Box<dyn Error>> {
+            args[index]
+                .parse::<u64>()
+                .map_err(|error| format!("invalid {name}: {error}").into())
+        };
+        let severities = args[7]
+            .split(',')
+            .map(|value| {
+                value
+                    .trim()
+                    .parse::<u32>()
+                    .map_err(|error| format!("invalid severity {value:?}: {error}"))
+            })
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| format!("cannot parse severity sweep: {error}"))?;
+        let events = severity_sweep_schedule(
+            parse(1, "first-start-tick")?,
+            parse(2, "spacing-ticks")?,
+            parse(3, "exposure-ticks")?,
+            parse(4, "detection-deadline-ticks")?,
+            parse(5, "containment-deadline-ticks")?,
+            parse(6, "recovery-quorum-ticks")?,
+            &severities,
+        )
+        .map_err(|error| format!("cannot generate severity sweep: {error}"))?;
+        let output_path = Path::new(&args[8]);
+        if let Some(parent) = output_path
+            .parent()
+            .filter(|parent| !parent.as_os_str().is_empty())
+        {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(output_path, serde_json::to_vec_pretty(&events)?)?;
+        println!(
+            "generated {} isolated fault/severity events; schedule: {}",
+            events.len(),
+            output_path.display()
+        );
+        return Ok(0);
+    }
     if args
         .first()
         .is_some_and(|value| value == "generate-schedule")
@@ -77,7 +127,7 @@ fn run() -> Result<i32, Box<dyn Error>> {
     }
     if args.len() != 2 {
         return Err(
-            "usage: degradation-recovery-envelope <campaign.json> <report.json>\n       degradation-recovery-envelope generate-schedule <first-start-tick> <spacing-ticks> <exposure-ticks> <detection-deadline-ticks> <containment-deadline-ticks> <recovery-quorum-ticks> <output.json>".into(),
+            "usage: degradation-recovery-envelope <campaign.json> <report.json>\n       degradation-recovery-envelope generate-schedule <first-start-tick> <spacing-ticks> <exposure-ticks> <detection-deadline-ticks> <containment-deadline-ticks> <recovery-quorum-ticks> <output.json>\n       degradation-recovery-envelope generate-severity-sweep <first-start-tick> <spacing-ticks> <exposure-ticks> <detection-deadline-ticks> <containment-deadline-ticks> <recovery-quorum-ticks> <severity-ppm-csv> <output.json>".into(),
         );
     }
     let input_path = Path::new(&args[0]);
@@ -151,6 +201,23 @@ mod tests {
         assert!(rendered.get("clean_control_inference_energy").is_some());
         assert!(rendered.get("faulted_inference_energy").is_some());
         assert!(rendered.get("composite_score").is_none());
+    }
+
+    #[test]
+    fn cli_exposes_severity_sweep_generator() {
+        let events = severity_sweep_schedule(
+            10,
+            5,
+            3,
+            1,
+            1,
+            2,
+            &[100_000, 500_000, 1_000_000],
+        )
+        .unwrap();
+        assert_eq!(events.len(), 21);
+        assert_eq!(events[0].severity_ppm, 100_000);
+        assert_eq!(events[2].severity_ppm, 1_000_000);
     }
 
     #[test]
