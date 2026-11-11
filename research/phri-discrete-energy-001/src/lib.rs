@@ -247,7 +247,7 @@ impl DiscreteEnergyObserver {
             cumulative_uncertainty_allowance_j,
             cumulative_residual_j,
             maximum_prefix_deficit_j,
-            prefix_within_declared_energy_bound: cumulative_residual_j <= 0.0,
+            prefix_within_declared_energy_bound: maximum_prefix_deficit_j == 0.0,
         })
     }
 
@@ -393,6 +393,7 @@ mod tests {
         let second = observer.record(step(102, 1_020, 7.0, 2.0)).unwrap();
         assert_eq!(second.cumulative_residual_j, -1.0);
         assert_eq!(second.maximum_prefix_deficit_j, 1.0);
+        assert!(!second.prefix_within_declared_energy_bound);
         assert_eq!(observer.maximum_prefix_deficit_j(), 1.0);
     }
 
