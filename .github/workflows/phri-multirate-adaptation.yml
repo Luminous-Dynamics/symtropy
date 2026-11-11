@@ -1,0 +1,35 @@
+name: PHRI Multirate Adaptation Reference
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/phri-multirate-adaptation-001/**"
+      - ".github/workflows/phri-multirate-adaptation.yml"
+  push:
+    branches: ["research/phri-multirate-adaptation-001"]
+    paths:
+      - "research/phri-multirate-adaptation-001/**"
+      - ".github/workflows/phri-multirate-adaptation.yml"
+
+concurrency:
+  group: phri-multirate-adaptation-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference:
+    name: Proposal admission reference (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/phri-multirate-adaptation-001/Cargo.toml -- --check
+      - name: Test proposal admission
+        run: cargo test --locked --manifest-path research/phri-multirate-adaptation-001/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/phri-multirate-adaptation-001/Cargo.toml --all-targets -- -D warnings
