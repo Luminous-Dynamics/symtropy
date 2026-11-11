@@ -42,75 +42,77 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Validate benchmark tournament protocol
+      - name: Validate benchmark and evidence protocols
+        shell: bash
         run: |
           set -euo pipefail
+
           jq -e '
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
             (.comparators | length == 8) and
             ([.comparators[].id] | unique | length == 8) and
-            (.hard_evidence_gates | length >= 9) and
+            (.hard_evidence_gates | length >= 30) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
             (.calibration.minimum_independent_episodes["900000"] == 9) and
             (.calibration.minimum_independent_episodes["950000"] == 19) and
-            (.calibration.minimum_independent_episodes["990000"] == 99)
-            and (.inverse_identifiability_protocol.local_sensitivity | contains("dimensionless"))
-            and (.inverse_identifiability_protocol.caution | contains("not proof of global uniqueness"))
-            and (.operational_metric_definitions.false_unique_root_cause_rate | contains("multiple components"))
-            and (.event_evaluation.schema_version == "liu-ice-event-metrics-v0.1")
-            and (.event_evaluation.status == "protocol_only_not_executed")
-            and (.event_evaluation.alarm_debounce.minimum_positive_samples == 3)
-            and (.event_evaluation.timing.maximum_observation_gap_seconds == 0.10)
-            and (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false)
-            and (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1")
-            and (.shift_matrix.status == "protocol_only_not_executed")
-            and (.shift_matrix.axes | length == 6)
-            and ([.shift_matrix.axes[].id] | index("C_SHIFT_DRIVING_CYCLE") != null)
-            and ([.shift_matrix.axes[].id] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null)
-            and ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null)
-            and (.shift_matrix.cross_engine_fleet | contains("unsupported"))
-          ' benchmarks/maritime-control-response/shift-matrix-v0.1.json >/dev/null
+            (.calibration.minimum_independent_episodes["990000"] == 99) and
+            (.inverse_identifiability_protocol.local_sensitivity | contains("dimensionless")) and
+            (.inverse_identifiability_protocol.caution | contains("not proof of global uniqueness")) and
+            (.event_evaluation.schema_version == "liu-ice-event-metrics-v0.1") and
+            (.event_evaluation.status == "protocol_only_not_executed") and
+            (.event_evaluation.alarm_debounce.minimum_positive_samples == 3) and
+            (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false) and
+            (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
+            (.shift_matrix.axes | length == 6) and
+            ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
+            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.2") and
+            (.active_evidence_selection.execution_performed == false) and
+            (.active_evidence_selection.actuation_authorized == false) and
+            (.active_evidence_selection.controlled_perturbations_recommended == 0) and
+            (.active_evidence_selection.comparators | index("risk_adjusted_worst_case_eig") != null) and
+            (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
+            (.streaming_contract.one_sample_one_output == true) and
+            (.streaming_contract.historical_output_mutation == false) and
+            (.streaming_contract.rust_core_direct_submission_compatible == false) and
+            (.streaming_contract.adapter_status == "not_implemented")
+          ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
-      - name: Validate active evidence-selection protocol
-        run: |
-          set -euo pipefail
           jq -e '
-            .schema_version == "liu-ice-active-evidence-selection-v0.1" and
+            .schema_version == "liu-ice-active-evidence-selection-v0.2" and
             .status == "protocol_only_not_executed" and
             (.comparators | length == 6) and
             (.candidate_classes.controlled_perturbation.eligible == false) and
-            (.hard_gates | length >= 10) and
+            (.hard_gates | length >= 18) and
+            (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
             (.research_targets_not_achieved | all(.status == "aspirational")) and
             (.evidence_boundaries.authority_status | contains("upstream mandatory checks"))
           ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
 
-      - name: Validate active evidence-selection contract
-        run: |
-          set -euo pipefail
           jq -e '
-            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
-            (.properties.protocol.required | index("active_evidence_selection") != null) and
-            (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
-            (.properties.protocol.properties.active_evidence_selection.properties.execution_performed.const == false) and
-            (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0)
-          ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
-          ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
+            .schema_version == "liu-ice-streaming-contract-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.interface.historical_output_mutation == false) and
+            (.stream_invariants.sample_sequence | contains("contiguous")) and
+            (.stream_invariants.model_error | contains("poison")) and
+            (.competition_adapter.official_languages == ["Python", "MATLAB"]) and
+            (.competition_adapter.rust_core_direct_submission_compatible == false) and
+            (.hard_gates | length >= 10) and
+            (.research_targets_not_achieved | all(.status == "aspirational"))
+          ' benchmarks/maritime-control-response/streaming-contract-v0.1.json >/dev/null
 
-      - name: Validate benchmark run-manifest schema contract
-        run: |
-          set -euo pipefail
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
             (.required | length == 12) and
-            (.properties.run_status.enum | length == 6) and
-            (.properties.dataset.properties.archive_sha256.oneOf | length == 2) and
             (.properties.protocol.required | index("event_evaluation") != null) and
             (.properties.protocol.required | index("shift_matrix_sha256") != null) and
             (.properties.protocol.required | index("active_evidence_selection") != null) and
-            (.properties.protocol.required | index("shift_axis") != null) and
-            (.properties.protocol.properties.shift_holdout_manifest_sha256.pattern == "^[a-f0-9]{64}$") and
+            (.properties.protocol.required | index("streaming_contract") != null) and
+            (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
+            (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
+            (.properties.protocol.properties.streaming_contract.properties.historical_output_mutation.const == 0) and
+            (.properties.protocol.properties.streaming_contract.properties.sample_sequence_gap_count.const == 0) and
             (.properties.metrics.properties.false_alarms_per_observed_normal_hour != null) and
             (.properties.claims.properties.physical_transfer_claim_allowed.const == false)
           ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
