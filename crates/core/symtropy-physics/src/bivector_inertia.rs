@@ -967,8 +967,8 @@ mod tests {
 
     #[test]
     fn finite_state_that_overflows_momentum_or_energy_is_rejected() {
-        let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0e200, 1.0e100).unwrap();
-        let huge = Bivector::<3>::unit_plane(0, 1).scale(1.0e100);
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0e200, 1.0e-50).unwrap();
+        let huge = Bivector::<3>::unit_plane(0, 1).scale(1.0e300);
         assert_eq!(
             inertia.angular_momentum(&huge).unwrap_err(),
             RotationalInertiaError::NonFinite
