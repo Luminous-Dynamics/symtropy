@@ -143,6 +143,7 @@ pub struct AuditReport {
     pub faulted_observed_ticks: usize,
     pub fault_event_count: usize,
     pub clean_control_false_positive_ticks: u64,
+    pub clean_control_deadline_miss_ticks: u64,
     pub faulted_stale_or_corrupt_acceptances: u64,
     pub faulted_deadline_miss_ticks: u64,
     pub clean_control_decision_latency: LatencySummary,
@@ -192,6 +193,11 @@ enum Finding {
     PrematureRecovery,
     FalsePositiveDegradation,
     CleanControlNotClean,
+    CleanControlNotNormal,
+    DecisionLatencyMissing,
+    InferenceEnergyMissing,
+    UndeclaredFaultCondition,
+    FaultEventReferenceBeforeOnset,
 }
 
 impl Finding {
@@ -234,6 +240,11 @@ impl Finding {
             Self::PrematureRecovery => "premature_recovery",
             Self::FalsePositiveDegradation => "false_positive_degradation",
             Self::CleanControlNotClean => "clean_control_not_clean",
+            Self::CleanControlNotNormal => "clean_control_not_normal",
+            Self::DecisionLatencyMissing => "decision_latency_missing",
+            Self::InferenceEnergyMissing => "inference_energy_missing",
+            Self::UndeclaredFaultCondition => "undeclared_fault_condition",
+            Self::FaultEventReferenceBeforeOnset => "fault_event_reference_before_onset",
         }
     }
 }
@@ -366,6 +377,12 @@ fn validate_run(run: &RunTrace, expected_ticks: u64, findings: &mut BTreeSet<Fin
         if tick.delivered_timestamp_us < tick.capture_timestamp_us {
             findings.insert(Finding::DeliveryBeforeCapture);
         }
+        if tick.decision_latency_us.is_none() {
+            findings.insert(Finding::DecisionLatencyMissing);
+        }
+        if tick.inference_energy_uj.is_none() {
+            findings.insert(Finding::InferenceEnergyMissing);
+        }
         if tick.conditions.is_empty() {
             findings.insert(Finding::EmptyObservationConditions);
         }
@@ -435,7 +452,8 @@ fn event_metrics(
 
     let mut healthy_run = 0_u64;
     let mut recovery_tick = None;
-    for (tick, record) in run_ticks.range((event.end_tick + 1)..) {
+    if let Some(first_recovery_tick) = event.end_tick.checked_add(1) {
+        for (tick, record) in run_ticks.range(first_recovery_tick..) {
         if is_healthy_tick(record, policy_deadline_us) {
             healthy_run += 1;
         } else {
@@ -447,6 +465,7 @@ fn event_metrics(
         if record.normal_mode && healthy_run >= event.recovery_healthy_quorum_ticks {
             recovery_tick = Some(*tick);
             break;
+        }
         }
     }
     if recovery_tick.is_none() {
@@ -633,8 +652,13 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         findings.insert(Finding::FalsePositiveDegradation);
     }
     for tick in &campaign.clean_control.ticks {
-        if tick.conditions.as_slice() != [ObservationCondition::Clean] {
+        if tick.conditions.as_slice() != [ObservationCondition::Clean]
+            || !tick.policy_input_accepted
+        {
             findings.insert(Finding::CleanControlNotClean);
+        }
+        if !tick.normal_mode || containment_active(tick) {
+            findings.insert(Finding::CleanControlNotNormal);
         }
     }
     for tick in &campaign.faulted_run.ticks {
@@ -694,6 +718,19 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         ));
     }
 
+    for tick in &campaign.faulted_run.ticks {
+        for condition in tick.conditions.iter().copied().filter(|condition| *condition != ObservationCondition::Clean) {
+            let declared = campaign.events.iter().any(|event| {
+                (event.start_tick..=event.end_tick).contains(&tick.tick)
+                    && expected_condition(event.kind) == condition
+            });
+            if !declared {
+                findings.insert(Finding::UndeclaredFaultCondition);
+            }
+        }
+    }
+
+    let events_by_id = campaign.events.iter().map(|event| (event.event_id.as_str(), event)).collect::<std::collections::BTreeMap<_, _>>();
     let known_event_ids = campaign.events.iter().map(|event| event.event_id.as_str()).collect::<BTreeSet<_>>();
     for tick in campaign
         .clean_control
@@ -709,6 +746,12 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
                 }
                 if !known_event_ids.contains(reference.as_str()) {
                     findings.insert(Finding::UnknownEventReference);
+                }
+                if events_by_id
+                    .get(reference.as_str())
+                    .is_some_and(|event| tick.tick < event.start_tick)
+                {
+                    findings.insert(Finding::FaultEventReferenceBeforeOnset);
                 }
             }
         }
@@ -730,6 +773,15 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
                     &tick.conditions,
                     &[ObservationCondition::Stale, ObservationCondition::Corrupt],
                 )
+        })
+        .count() as u64;
+    let clean_control_deadline_misses = campaign
+        .clean_control
+        .ticks
+        .iter()
+        .filter(|tick| {
+            tick.decision_latency_us
+                .is_some_and(|latency| latency > campaign.policy_deadline_us)
         })
         .count() as u64;
     let faulted_deadline_misses = campaign
@@ -757,6 +809,7 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         faulted_observed_ticks: campaign.faulted_run.ticks.len(),
         fault_event_count: campaign.events.len(),
         clean_control_false_positive_ticks: control_false_positive_ticks,
+        clean_control_deadline_miss_ticks: clean_control_deadline_misses,
         faulted_stale_or_corrupt_acceptances: stale_or_corrupt_acceptances,
         faulted_deadline_miss_ticks: faulted_deadline_misses,
         clean_control_decision_latency: clean_latency,
@@ -970,6 +1023,47 @@ mod tests {
         let report = audit_campaign(&input);
         assert!(has(&report, "fault_undetected"));
         assert!(has(&report, "containment_deadline_missed"));
+    }
+
+    #[test]
+    fn rejects_clean_control_that_never_returns_to_normal_mode() {
+        let mut input = campaign();
+        input.clean_control.ticks[4].normal_mode = false;
+        input.clean_control.ticks[4].degraded_mode = true;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "clean_control_not_normal"));
+        assert!(has(&report, "false_positive_degradation"));
+    }
+
+    #[test]
+    fn rejects_missing_per_tick_latency_or_energy_evidence() {
+        let mut input = campaign();
+        input.faulted_run.ticks[2].decision_latency_us = None;
+        input.faulted_run.ticks[3].inference_energy_uj = None;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "decision_latency_missing"));
+        assert!(has(&report, "inference_energy_missing"));
+    }
+
+    #[test]
+    fn rejects_fault_condition_without_a_scheduled_event() {
+        let mut input = campaign();
+        input.faulted_run.ticks[5].conditions = vec![
+            ObservationCondition::Clean,
+            ObservationCondition::ComputeOverrun,
+        ];
+        let report = audit_campaign(&input);
+        assert!(has(&report, "clean_condition_mixed_with_fault"));
+        assert!(has(&report, "undeclared_fault_condition"));
+    }
+
+    #[test]
+    fn rejects_detection_reference_before_fault_onset() {
+        let mut input = campaign();
+        input.faulted_run.ticks[0].fault_detection_event_ids =
+            vec!["camera-drop-1".to_string()];
+        let report = audit_campaign(&input);
+        assert!(has(&report, "fault_event_reference_before_onset"));
     }
 
     #[test]
