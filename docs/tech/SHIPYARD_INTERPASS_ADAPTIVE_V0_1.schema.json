@@ -174,7 +174,8 @@
         "maximum_observation_age_ticks",
         "future_information_used",
         "model_domain_supported",
-        "live_execution_requested"
+        "live_execution_requested",
+        "maximum_accepted_uncertainty_units"
       ],
       "properties": {
         "decision_at_tick": {
@@ -193,6 +194,10 @@
         },
         "live_execution_requested": {
           "const": false
+        },
+        "maximum_accepted_uncertainty_units": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
