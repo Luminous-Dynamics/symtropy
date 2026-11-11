@@ -85,6 +85,59 @@ pub enum CompoundInertia3Error {
     InvalidBivectorOperator(RotationalInertiaError),
 }
 
+/// Compute the 3D parallel-axis tensor in mass-weighted coordinates.
+/// This avoids squaring a tiny geometric offset before multiplying by a
+/// large mass, and rejects any nonzero contribution that underflows.
+fn checked_parallel_axis_tensor(
+    mass: f64,
+    offset: &SVector<f64, 3>,
+) -> Result<SMatrix<f64, 3, 3>, CompoundInertia3Error> {
+    if !mass.is_finite() || mass < 0.0 || !vector_is_finite(offset) {
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    if mass == 0.0 {
+        return Ok(SMatrix::<f64, 3, 3>::zeros());
+    }
+    let weighted_offset = offset * mass.sqrt();
+    if !vector_is_finite(&weighted_offset) {
+        return Err(CompoundInertia3Error::UnrepresentableTensor);
+    }
+    for axis in 0..3 {
+        if offset[axis] != 0.0 && weighted_offset[axis] == 0.0 {
+            return Err(CompoundInertia3Error::UnrepresentableTensor);
+        }
+    }
+
+    // In 3D, the diagonal term for axis i is the sum of the two
+    // mass-weighted squared offsets on the other axes. Evaluate these
+    // directly instead of subtracting two nearly equal norm/outer terms.
+    let mut parallel_axis = SMatrix::<f64, 3, 3>::zeros();
+    for row in 0..3 {
+        for axis in 0..3 {
+            if axis == row {
+                continue;
+            }
+            let term = weighted_offset[axis] * weighted_offset[axis];
+            if weighted_offset[axis] != 0.0 && term == 0.0 {
+                return Err(CompoundInertia3Error::UnrepresentableTensor);
+            }
+            parallel_axis[(row, row)] += term;
+            if !parallel_axis[(row, row)].is_finite() {
+                return Err(CompoundInertia3Error::UnrepresentableTensor);
+            }
+        }
+        for column in (row + 1)..3 {
+            let term = weighted_offset[row] * weighted_offset[column];
+            if weighted_offset[row] != 0.0 && weighted_offset[column] != 0.0 && term == 0.0 {
+                return Err(CompoundInertia3Error::UnrepresentableTensor);
+            }
+            parallel_axis[(row, column)] = -term;
+            parallel_axis[(column, row)] = -term;
+        }
+    }
+    Ok(parallel_axis)
+}
+
 impl CompoundMassProperties3 {
     /// Compose a set of child mass properties in a deterministic `part_id` order.
     pub fn compose(parts: &[CompoundMassPart3]) -> Result<Self, CompoundInertia3Error> {
@@ -156,15 +209,7 @@ impl CompoundMassProperties3 {
             if !vector_is_finite(&d) {
                 return Err(CompoundInertia3Error::UnrepresentableCenterOfMass);
             }
-            let d2 = d.dot(&d);
-            if !d2.is_finite() || d2 < 0.0 {
-                return Err(CompoundInertia3Error::UnrepresentableTensor);
-            }
-
-            let parallel_axis = (identity * d2 - d * d.transpose()) * part.properties.mass;
-            if !matrix_is_finite(&parallel_axis) {
-                return Err(CompoundInertia3Error::UnrepresentableTensor);
-            }
+            let parallel_axis = checked_parallel_axis_tensor(part.properties.mass, &d)?;
 
             let contribution = rotated_tensor + parallel_axis;
             let next_tensor = tensor + contribution;
@@ -428,6 +473,32 @@ mod tests {
         let forward = CompoundMassProperties3::compose(&[a.clone(), b.clone()]).unwrap();
         let reverse = CompoundMassProperties3::compose(&[b, a]).unwrap();
         assert_eq!(forward, reverse);
+    }
+
+    #[test]
+    fn compound_parallel_axis_term_is_scale_safe_before_squaring_offsets() {
+        let properties = MassProperties3 {
+            mass: 1.0e300,
+            center_of_mass: SVector::zeros(),
+            principal_inertia: crate::angular_dynamics::PrincipalInertia3::new([1.0e-200; 3])
+                .unwrap(),
+        };
+        let parts = [
+            part(1, [-1.0e-200, 0.0, 0.0], Rotor::identity(), properties),
+            part(2, [1.0e-200, 0.0, 0.0], Rotor::identity(), properties),
+        ];
+        let compound = CompoundMassProperties3::compose(&parts).unwrap();
+        let expected_transverse = 2.0e-100;
+        assert!(
+            (compound.inertia_tensor_body[(1, 1)] / expected_transverse - 1.0).abs() < 1.0e-12,
+            "scale-safe parallel-axis term was lost: Iyy={:e}",
+            compound.inertia_tensor_body[(1, 1)]
+        );
+        assert!(
+            (compound.inertia_tensor_body[(2, 2)] / expected_transverse - 1.0).abs() < 1.0e-12,
+            "scale-safe parallel-axis term was lost: Izz={:e}",
+            compound.inertia_tensor_body[(2, 2)]
+        );
     }
 
     #[test]
