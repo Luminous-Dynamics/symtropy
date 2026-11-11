@@ -829,7 +829,8 @@ mod tests {
         let l_dot = Bivector::<3>::from_matrix(&l_dot_matrix);
         assert!(
             l_dot.add(&torque.scale(-1.0)).norm() < 2.0e-11,
-            "instantaneous angular-momentum derivative must equal applied torque: got={l_dot:?}, expected={torque:?}"
+            "instantaneous angular-momentum derivative must equal applied torque: \
+             got={l_dot:?}, expected={torque:?}"
         );
     }
 
@@ -949,6 +950,32 @@ mod tests {
             )
             .unwrap_err(),
             RotationalInertiaError::InvalidMassProperties
+        );
+    }
+
+    #[test]
+    fn rotated_operator_rejects_improper_rotor() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
+        let mut reflection = SMatrix::<f64, 3, 3>::identity();
+        reflection[(0, 0)] = -1.0;
+        let invalid = Rotor::from_matrix(reflection);
+        assert_eq!(
+            inertia.rotated_by(&invalid).unwrap_err(),
+            RotationalInertiaError::InvalidRotation
+        );
+    }
+
+    #[test]
+    fn finite_state_that_overflows_momentum_or_energy_is_rejected() {
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(1.0e200, 1.0e100).unwrap();
+        let huge = Bivector::<3>::unit_plane(0, 1).scale(1.0e100);
+        assert_eq!(
+            inertia.angular_momentum(&huge).unwrap_err(),
+            RotationalInertiaError::NonFinite
+        );
+        assert_eq!(
+            inertia.kinetic_energy(&huge).unwrap_err(),
+            RotationalInertiaError::NonFinite
         );
     }
 
