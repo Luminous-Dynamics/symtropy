@@ -184,6 +184,7 @@ enum Finding {
     RecoveryNotObserved,
     PrematureRecovery,
     FalsePositiveDegradation,
+    CleanControlNotClean,
 }
 
 impl Finding {
@@ -220,6 +221,7 @@ impl Finding {
             Self::RecoveryNotObserved => "recovery_not_observed",
             Self::PrematureRecovery => "premature_recovery",
             Self::FalsePositiveDegradation => "false_positive_degradation",
+            Self::CleanControlNotClean => "clean_control_not_clean",
         }
     }
 }
@@ -519,6 +521,11 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
     if control_false_positive_ticks > 0 {
         findings.insert(Finding::FalsePositiveDegradation);
     }
+    for tick in &campaign.clean_control.ticks {
+        if tick.conditions.as_slice() != [ObservationCondition::Clean] {
+            findings.insert(Finding::CleanControlNotClean);
+        }
+    }
     for tick in &campaign.faulted_run.ticks {
         let active_fault = campaign
             .events
@@ -774,6 +781,24 @@ mod tests {
         let report = audit_campaign(&input);
         assert!(has(&report, "fault_undetected"));
         assert!(has(&report, "containment_deadline_missed"));
+    }
+
+    #[test]
+    fn rejects_clean_control_with_sensor_fault_conditions() {
+        let mut input = campaign();
+        input.clean_control.ticks[2].conditions = vec![ObservationCondition::Stale];
+        input.clean_control.ticks[2].policy_input_accepted = false;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "clean_control_not_clean"));
+    }
+
+    #[test]
+    fn rejects_tick_zero_and_out_of_range_sequences_as_sequence_errors() {
+        let mut input = campaign();
+        input.faulted_run.ticks[0].tick = 0;
+        input.faulted_run.ticks[1].tick = 99;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "tick_sequence_mismatch"));
     }
 
     #[test]
