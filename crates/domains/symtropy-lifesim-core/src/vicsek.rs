@@ -2041,18 +2041,20 @@ mod tests {
     #[test]
     fn periodic_cell_index_never_omits_brute_force_radius_neighbours() {
         let fixtures = [
-            (10.0, 1.0, 100),
-            (10.0, 4.9, 50),
-            (10.0, 8.0, 20),
-            (10.0, 0.0, 20),
-            (10.0, 1.0e-12, 20),
+            (10.0, 1.0, 100, true),
+            (10.0, 4.9, 50, true),
+            (10.0, 8.0, 20, true),
+            (10.0, 0.0, 20, false),
+            (10.0, 1.0e-12, 20, false),
+            (10.0, 11.0, 20, false),
         ];
-        for (box_size, radius, count) in fixtures {
+        for (box_size, radius, count, expect_index) in fixtures {
             let mut rng = XorShift64::new(0xC311_1D3);
             let positions: Vec<(f64, f64)> = (0..count)
                 .map(|_| (rng.next_unit() * box_size, rng.next_unit() * box_size))
                 .collect();
             let index = PeriodicNeighborIndex::new(&positions, box_size, radius);
+            assert_eq!(index.is_some(), expect_index, "box={box_size} radius={radius}");
             if let Some(index) = index {
                 for (focal, &position) in positions.iter().enumerate() {
                     let candidates = index.candidates(position);
