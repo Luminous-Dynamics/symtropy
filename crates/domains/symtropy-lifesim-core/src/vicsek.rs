@@ -33,6 +33,17 @@ pub struct VicsekParticle {
     pub heading_rad: f64,
 }
 
+/// Neighbour-time convention used by the synchronous heading update.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VicsekUpdateRule {
+    /// Select neighbours from positions at time t, align, then move using the new heading.
+    CurrentPositionAlignment,
+    /// First move using headings at time t, select neighbours at t+dt, then align using
+    /// the neighbours' headings at time t. This is the next-position-neighbour convention
+    /// discussed in the 2026 Vicsek cluster-topology erratum.
+    NextPositionAlignment,
+}
+
 /// Parameters for one discrete-time Vicsek system.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct VicsekConfig {
@@ -49,6 +60,8 @@ pub struct VicsekConfig {
     /// At each update, a perturbation is sampled uniformly from
     /// [-angular_noise_width_rad/2, +angular_noise_width_rad/2].
     pub angular_noise_width_rad: f64,
+    /// Exact update convention; do not compare results across conventions without tagging it.
+    pub update_rule: VicsekUpdateRule,
 }
 
 impl Default for VicsekConfig {
@@ -59,6 +72,7 @@ impl Default for VicsekConfig {
             speed: 0.03,
             dt: 1.0,
             angular_noise_width_rad: 0.2,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
         }
     }
 }
@@ -292,35 +306,66 @@ impl VicsekModel {
         &self.particles
     }
 
-    /// Advance one synchronous Vicsek update.
+    /// Advance one synchronous Vicsek update under the configured neighbour-time rule.
     ///
-    /// Every new heading is calculated from the previous particle configuration. Only
-    /// after all headings are computed are positions advanced and wrapped periodically.
+    /// `CurrentPositionAlignment` uses neighbours at t, aligns, then moves using the new
+    /// heading. `NextPositionAlignment` first predicts positions at t+dt using headings at
+    /// t, chooses neighbours from those future positions, then computes each new heading
+    /// from the neighbours' headings at t. Both modes update all particles from one frozen
+    /// previous state; neither mode observes partially updated particles.
     pub fn step(&mut self) -> Result<VicsekMetrics, VicsekError> {
         let next_tick = self.tick.checked_add(1).ok_or(VicsekError::TickOverflow)?;
         let previous = self.particles.clone();
-        let mut next = Vec::with_capacity(previous.len());
+        let distance = self.config.speed * self.config.dt;
 
-        for particle in &previous {
+        let neighbour_positions: Vec<(f64, f64)> = match self.config.update_rule {
+            VicsekUpdateRule::CurrentPositionAlignment => previous
+                .iter()
+                .map(|particle| (particle.x, particle.y))
+                .collect(),
+            VicsekUpdateRule::NextPositionAlignment => previous
+                .iter()
+                .map(|particle| {
+                    (
+                        add_periodic(
+                            particle.x,
+                            distance * particle.heading_rad.cos(),
+                            self.config.box_size,
+                        ),
+                        add_periodic(
+                            particle.y,
+                            distance * particle.heading_rad.sin(),
+                            self.config.box_size,
+                        ),
+                    )
+                })
+                .collect(),
+        };
+
+        let mut next = Vec::with_capacity(previous.len());
+        for (index, particle) in previous.iter().enumerate() {
             let mut sum_cos = 0.0;
             let mut sum_sin = 0.0;
-            for neighbor in &previous {
+            for (neighbor_index, neighbor) in previous.iter().enumerate() {
+                let (neighbor_x, neighbor_y) = neighbour_positions[neighbor_index];
                 let (dx, dy) = periodic_displacement(
-                    particle.x,
-                    particle.y,
-                    neighbor.x,
-                    neighbor.y,
+                    neighbour_positions[index].0,
+                    neighbour_positions[index].1,
+                    neighbor_x,
+                    neighbor_y,
                     self.config.box_size,
                 );
                 if dx.hypot(dy) <= self.config.interaction_radius {
+                    // In either convention, the interaction graph is selected according
+                    // to the configured position time, while alignment uses headings from t.
                     sum_cos += neighbor.heading_rad.cos();
                     sum_sin += neighbor.heading_rad.sin();
                 }
             }
 
-            // The particle itself is always a neighbour for a non-negative radius, so
-            // this vector should not be exactly empty. Retain the old heading if numerical
-            // cancellation makes its magnitude indistinguishable from zero.
+            // The particle itself is always a neighbour for a non-negative radius. Retain
+            // the old heading if numerical cancellation makes the vector indistinguishable
+            // from zero.
             let alignment = if sum_cos.abs() <= f64::EPSILON && sum_sin.abs() <= f64::EPSILON {
                 particle.heading_rad
             } else {
@@ -328,17 +373,22 @@ impl VicsekModel {
             };
             let noise = self.config.angular_noise_width_rad * (self.rng.next_unit() - 0.5);
             let heading = wrap_angle(alignment + noise);
-            let distance = self.config.speed * self.config.dt;
-            let x = add_periodic(
-                particle.x,
-                distance * heading.cos(),
-                self.config.box_size,
-            );
-            let y = add_periodic(
-                particle.y,
-                distance * heading.sin(),
-                self.config.box_size,
-            );
+
+            let (x, y) = match self.config.update_rule {
+                VicsekUpdateRule::CurrentPositionAlignment => (
+                    add_periodic(
+                        particle.x,
+                        distance * heading.cos(),
+                        self.config.box_size,
+                    ),
+                    add_periodic(
+                        particle.y,
+                        distance * heading.sin(),
+                        self.config.box_size,
+                    ),
+                ),
+                VicsekUpdateRule::NextPositionAlignment => neighbour_positions[index],
+            };
             next.push(VicsekParticle {
                 x,
                 y,
@@ -616,6 +666,7 @@ mod tests {
                 speed: 0.0,
                 dt: 1.0,
                 angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
             },
             7,
         )
@@ -647,6 +698,7 @@ mod tests {
                 speed: 0.0,
                 dt: 1.0,
                 angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
             },
             17,
         )
@@ -673,6 +725,7 @@ mod tests {
                 speed: 0.0,
                 dt: 1.0,
                 angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
             },
             11,
         )
@@ -706,6 +759,7 @@ mod tests {
             speed: 3.5,
             dt: 2.0,
             angular_noise_width_rad: std::f64::consts::PI,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
         };
         let mut model = VicsekModel::random_uniform(48, config, 42).unwrap();
         let reports = model.run_steps(100).unwrap();
@@ -757,6 +811,7 @@ mod tests {
                 speed: f64::MAX / 4.0,
                 dt: 1.0,
                 angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
             },
             1,
         )
