@@ -529,6 +529,7 @@ fn assess_likelihood_uncertainty(
         return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
     }
     let mut scenario_ids = BTreeSet::new();
+    let mut reference_outcome_ids: Option<BTreeSet<String>> = None;
     let mut weight_sum = 0.0;
     let mut weighted_information_gain = 0.0;
     let mut worst_case_information_gain = f64::INFINITY;
@@ -546,6 +547,18 @@ fn assess_likelihood_uncertainty(
             &scenario.outcomes,
             hypothesis_count,
         )?;
+        let outcome_ids = scenario
+            .outcomes
+            .iter()
+            .map(|outcome| outcome.outcome_id.clone())
+            .collect::<BTreeSet<_>>();
+        if reference_outcome_ids
+            .as_ref()
+            .is_some_and(|reference| reference != &outcome_ids)
+        {
+            return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        }
+        reference_outcome_ids.get_or_insert(outcome_ids);
         let (gain, _) = expected_information_gain(prior, &scenario.outcomes)
             .map_err(|_| ProbeError::InvalidInformationGain(candidate.candidate_id.clone()))?;
         weight_sum += scenario.scenario_weight;
