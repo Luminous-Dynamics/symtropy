@@ -69,8 +69,13 @@ jobs:
       - name: Run deterministic anisotropic mechanics campaign
         env:
           SYMTROPY_SOURCE_SHA: ${{ github.sha }}
+        run: cargo run --locked --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9 > anisotropic-reference.csv
+
+      - name: Write execution manifest
+        if: always()
+        env:
+          SYMTROPY_SOURCE_SHA: ${{ github.sha }}
         run: |
-          cargo run --locked --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9 > anisotropic-reference.csv
           {
             printf 'source_sha=%s\n' "$SYMTROPY_SOURCE_SHA"
             printf 'workflow_run_id=%s\n' "$GITHUB_RUN_ID"
