@@ -1,21 +1,6 @@
 name: Anisotropic Reference Qualification
 
 on:
-  pull_request:
-    paths:
-      - '.github/workflows/anisotropic-reference.yml'
-      - 'crates/core/symtropy-math/Cargo.toml'
-      - 'crates/core/symtropy-math/src/bivector.rs'
-      - 'crates/core/symtropy-physics/Cargo.toml'
-      - 'crates/core/symtropy-physics/src/angular_dynamics.rs'
-      - 'crates/core/symtropy-physics/src/bivector_inertia.rs'
-      - 'crates/core/symtropy-physics/src/compound_inertia_3d.rs'
-      - 'crates/core/symtropy-physics/src/mass_properties_3d.rs'
-      - 'crates/core/symtropy-physics/tests/angular_convention_reference.rs'
-      - 'crates/core/symtropy-physics/examples/anisotropic_reference_campaign.rs'
-      - 'crates/core/symtropy-physics/*_VALIDATION.md'
-      - 'crates/core/symtropy-physics/README.md'
-      - 'Cargo.lock'
   push:
     branches: [ 'main' ]
     paths:
