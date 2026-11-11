@@ -1,0 +1,344 @@
+{
+  "schema_version": 1,
+  "campaign_id": "paired-fault-campaign-v1",
+  "benchmark_id": "bench2drive-robust-v1",
+  "evaluator_revision": "robust-eval-v1",
+  "expected_pair_ids": [
+    "pair-001"
+  ],
+  "metric_definitions": [
+    {
+      "metric_id": "driving_score",
+      "direction": "higher_is_better",
+      "unit": "points"
+    },
+    {
+      "metric_id": "p99_latency_ms",
+      "direction": "lower_is_better",
+      "unit": "ms"
+    }
+  ],
+  "pairs": [
+    {
+      "pair_id": "pair-001",
+      "clean": {
+        "run_id": "clean-1",
+        "context": {
+          "benchmark_id": "bench2drive-robust-v1",
+          "evaluator_revision": "robust-eval-v1",
+          "scenario_id": "scenario-crossing-pedestrian",
+          "route_id": "route-001",
+          "map_revision": "map-v1",
+          "environment_revision": "env-v1",
+          "simulator_revision": "sim-v1",
+          "model_code_revision": "model-commit-1",
+          "checkpoint_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "recurrent_state_policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "actor_policy_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "action_schema_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "observation_schema_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "dataset_split_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "environment_seed_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "actor_random_stream_manifest_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "exogenous_randomness_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "action_space_id": "vehicle-control-v1",
+          "inference_hardware_id": "same-gpu-rig",
+          "inference_power_profile": "fixed-tdp-profile",
+          "inference_precision": "fp16",
+          "runtime_config_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "input_privileges": [
+            "camera_rgb",
+            "vehicle_state"
+          ],
+          "teacher_privileges": [],
+          "trainable_parameters": 2000000,
+          "training_simulator_transitions": 1000000,
+          "training_gpu_seconds": 7200,
+          "training_energy_milliwatt_hours": 500000,
+          "human_intervention_seconds": 3600
+        },
+        "disposition": "completed",
+        "expected_episodes": 5,
+        "completed_episodes": 5,
+        "failed_episodes": 0,
+        "incomplete_episodes": 0,
+        "censored_episodes": 0,
+        "timed_out_episodes": 0,
+        "observation_trace_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "metrics": {
+          "driving_score": {
+            "value": 90,
+            "lower_95": 89.5,
+            "upper_95": 90.5,
+            "samples": 5
+          },
+          "p99_latency_ms": {
+            "value": 30,
+            "lower_95": null,
+            "upper_95": null,
+            "samples": 5
+          }
+        },
+        "fault_events": [],
+        "recovery": null,
+        "fault": null
+      },
+      "perturbed": {
+        "run_id": "perturbed-1",
+        "context": {
+          "benchmark_id": "bench2drive-robust-v1",
+          "evaluator_revision": "robust-eval-v1",
+          "scenario_id": "scenario-crossing-pedestrian",
+          "route_id": "route-001",
+          "map_revision": "map-v1",
+          "environment_revision": "env-v1",
+          "simulator_revision": "sim-v1",
+          "model_code_revision": "model-commit-1",
+          "checkpoint_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "recurrent_state_policy_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "actor_policy_set_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "action_schema_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "observation_schema_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "dataset_split_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "environment_seed_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "actor_random_stream_manifest_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "exogenous_randomness_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "action_space_id": "vehicle-control-v1",
+          "inference_hardware_id": "same-gpu-rig",
+          "inference_power_profile": "fixed-tdp-profile",
+          "inference_precision": "fp16",
+          "runtime_config_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+          "input_privileges": [
+            "camera_rgb",
+            "vehicle_state"
+          ],
+          "teacher_privileges": [],
+          "trainable_parameters": 2000000,
+          "training_simulator_transitions": 1000000,
+          "training_gpu_seconds": 7200,
+          "training_energy_milliwatt_hours": 500000,
+          "human_intervention_seconds": 3600
+        },
+        "disposition": "completed",
+        "expected_episodes": 5,
+        "completed_episodes": 5,
+        "failed_episodes": 0,
+        "incomplete_episodes": 0,
+        "censored_episodes": 0,
+        "timed_out_episodes": 0,
+        "observation_trace_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+        "metrics": {
+          "driving_score": {
+            "value": 72,
+            "lower_95": 71.5,
+            "upper_95": 72.5,
+            "samples": 5
+          },
+          "p99_latency_ms": {
+            "value": 55,
+            "lower_95": null,
+            "upper_95": null,
+            "samples": 5
+          }
+        },
+        "fault_events": [
+          {
+            "event_id": "missing-frame-100",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 100,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-101",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 101,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-102",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 102,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-103",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 103,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-104",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 104,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-105",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 105,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-106",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 106,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-107",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 107,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-108",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 108,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-109",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 109,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-110",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 110,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-111",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 111,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-112",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 112,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-113",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 113,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-114",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 114,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-115",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 115,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-116",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 116,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-117",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 117,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-118",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 118,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          },
+          {
+            "event_id": "missing-frame-119",
+            "fault_family": "camera_burst_drop",
+            "kind": "observed_missing_frame",
+            "tick": 119,
+            "affected_channel": "front_camera",
+            "sampled_value_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          }
+        ],
+        "recovery": {
+          "disposition": "recovered",
+          "fault_onset_tick": 100,
+          "fault_restored_tick": 120,
+          "stable_from_tick": 125,
+          "stability_window_ticks": 20,
+          "stability_envelope_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "fault": {
+          "family": "camera_burst_drop",
+          "duration_ticks": 20,
+          "onset_tick": 100,
+          "burst_probability": 0.01,
+          "schedule_seed_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+        }
+      }
+    }
+  ]
+}
