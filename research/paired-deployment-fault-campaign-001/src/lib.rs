@@ -374,6 +374,7 @@ impl FaultCampaign {
         if duplicate(&metric_ids) {
             findings.push(Finding::DuplicateMetricDefinition);
         }
+        metric_ids.sort();
 
         for pair in &self.pairs {
             self.audit_pair(pair, &metric_ids, &mut findings);
@@ -461,9 +462,14 @@ impl FaultCampaign {
             if !nonempty(&event.event_id) || !nonempty(&event.affected_channel) {
                 findings.push(Finding::InvalidFaultEventIdentity);
             }
+            let schedule_end = fault.onset_tick().saturating_add(fault.duration_ticks());
+            let event_is_in_window = if event.kind == FaultEventKind::FaultRestored {
+                event.tick >= fault.onset_tick() && event.tick <= schedule_end
+            } else {
+                event.tick >= fault.onset_tick() && event.tick < schedule_end
+            };
             if event.fault_family != family
-                || event.tick < fault.onset_tick()
-                || event.tick >= fault.onset_tick().saturating_add(fault.duration_ticks())
+                || !event_is_in_window
                 || !is_sha256_hex(&event.sampled_value_sha256)
                 || !is_sha256_hex(&event.evidence_sha256)
             {
