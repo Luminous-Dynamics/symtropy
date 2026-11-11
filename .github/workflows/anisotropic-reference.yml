@@ -45,6 +45,9 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
+      - name: Test expanded-storage math primitives
+        run: cargo test --locked -p symtropy-math --lib --features nd-bivector-9
+
       - name: Test N-dimensional reference with expanded bivector storage
         run: cargo test --locked -p symtropy-physics --lib --features nd-bivector-9
 
