@@ -88,7 +88,7 @@ fn constrained_hinge_motor_impulse<const D: usize>(
 
     // Cholesky factorization also checks symmetry and positive definiteness.
     let mut lower = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF * MAX_HINGE_ROTATIONAL_DOF];
-    let symmetry_tolerance = 1.0e-9 * matrix_scale.max(1.0);
+    let symmetry_tolerance = 1.0e-9 * matrix_scale;
     for row in 0..dof {
         for column in 0..=row {
             let a = effective_inverse[row * MAX_HINGE_ROTATIONAL_DOF + column];
@@ -494,6 +494,62 @@ mod tests {
         assert_eq!(
             b.rotational_inertia_model(),
             crate::body::RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+    }
+
+    #[test]
+    fn dynamic_dynamic_hinge_reaction_preserves_relative_single_plane_motion() {
+        use crate::mass_properties::RotationalInertiaOperator;
+
+        let operator_a = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+            4.0, 0.5, 0.0,
+            0.5, 3.0, 0.25,
+            0.0, 0.25, 2.0,
+        ])
+        .unwrap();
+        let operator_b = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+            2.0, -0.2, 0.1,
+            -0.2, 5.0, 0.3,
+            0.1, 0.3, 3.0,
+        ])
+        .unwrap();
+        let mut a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(10),
+            Point::origin(),
+            0.1,
+            1.0,
+        )
+        .with_rotational_inertia_operator(operator_a);
+        let mut b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(11),
+            Point::origin(),
+            0.1,
+            1.0,
+        )
+        .with_rotational_inertia_operator(operator_b);
+
+        let motor = super::super::MotorDrive {
+            target_pos: 0.0,
+            target_vel: 1.0,
+            kp: 0.0,
+            kd: 10.0,
+            max_force: 100.0,
+        };
+        let joint = HingeJoint::new(BodyHandle(10), BodyHandle(11), 0, 1)
+            .with_motor(motor);
+
+        joint.solve_velocity(&mut a, &mut b, 0.1, None);
+
+        for (i, j) in [(0, 2), (1, 2)] {
+            let relative = b.angular_velocity.get(i, j) - a.angular_velocity.get(i, j);
+            assert!(
+                relative.abs() < 1.0e-10,
+                "relative forbidden hinge plane ({i},{j}) changed by {relative}"
+            );
+        }
+        assert!(
+            (b.angular_velocity.get(0, 1) - a.angular_velocity.get(0, 1)) > 0.0,
+            "motor must still create relative velocity in its allowed plane"
         );
     }
 
