@@ -331,7 +331,10 @@ pub fn assess_solution<const N: usize>(
     let condition_inf_estimate = lu.condition_inf(matrix)?;
     let condition_times_backward_error = condition_inf_estimate * normwise_backward_error;
     let forward_error_bound_estimate = if condition_times_backward_error < 1.0 {
-        Some(condition_times_backward_error / (1.0 - condition_times_backward_error))
+        Some(
+            2.0 * condition_times_backward_error
+                / (1.0 - condition_times_backward_error),
+        )
     } else {
         None
     };
@@ -393,6 +396,9 @@ mod tests {
         assert_eq!(envelope.status, EnvelopeStatusV1::InformativeEstimate);
 
         let bound = envelope.forward_error_bound_estimate.unwrap();
+        let expected_bound = 2.0 * envelope.condition_times_backward_error
+            / (1.0 - envelope.condition_times_backward_error);
+        assert_eq!(bound, expected_bound);
         let observed =
             vector_inf(&[computed[0] - exact[0], computed[1] - exact[1]]) / vector_inf(&exact);
         assert!(observed <= bound + 1.0e-14);
