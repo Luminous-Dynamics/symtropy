@@ -12,7 +12,7 @@
 use nalgebra::SVector;
 use serde::{Deserialize, Serialize};
 
-use crate::body::BodyType;
+use crate::body::{BodyType, RotationalInertiaModel};
 use crate::world::PhysicsWorld;
 
 /// A quantitative snapshot of world-level physical invariants and health.
@@ -42,6 +42,18 @@ pub struct InvariantSnapshot<const D: usize> {
     pub max_penetration_depth: f64,
     /// Number of bodies whose state contains a NaN or infinity.
     pub non_finite_body_count: usize,
+    /// Dynamic bodies using validated full bivector inertia operators.
+    #[serde(default)]
+    pub validated_bivector_operator_body_count: usize,
+    /// Dynamic 3D bodies using the diagonal principal-axis fallback.
+    #[serde(default)]
+    pub principal_axes_world_space_3d_body_count: usize,
+    /// Dynamic bodies using the explicitly approximate mean-inertia fallback.
+    #[serde(default)]
+    pub mean_inertia_approximation_body_count: usize,
+    /// Dynamic bodies with invalid or stale rotational mass properties.
+    #[serde(default)]
+    pub invalid_rotational_inertia_body_count: usize,
 }
 
 impl<const D: usize> InvariantSnapshot<D> {
@@ -49,6 +61,7 @@ impl<const D: usize> InvariantSnapshot<D> {
     /// supplied proper-rotation tolerance.
     pub fn is_numerically_healthy(&self, rotation_tolerance: f64) -> bool {
         self.non_finite_body_count == 0
+            && self.invalid_rotational_inertia_body_count == 0
             && self.max_rotation_orthogonality_error <= rotation_tolerance
             && self.max_rotation_determinant_error <= rotation_tolerance
     }
@@ -65,6 +78,10 @@ impl<const D: usize> InvariantSnapshot<D> {
             max_rotation_orthogonality_error: later.max_rotation_orthogonality_error,
             max_rotation_determinant_error: later.max_rotation_determinant_error,
             non_finite_body_count: later.non_finite_body_count,
+            validated_bivector_operator_body_count: later.validated_bivector_operator_body_count,
+            principal_axes_world_space_3d_body_count: later.principal_axes_world_space_3d_body_count,
+            mean_inertia_approximation_body_count: later.mean_inertia_approximation_body_count,
+            invalid_rotational_inertia_body_count: later.invalid_rotational_inertia_body_count,
         }
     }
 }
@@ -79,6 +96,14 @@ pub struct InvariantDrift<const D: usize> {
     pub max_rotation_orthogonality_error: f64,
     pub max_rotation_determinant_error: f64,
     pub non_finite_body_count: usize,
+    #[serde(default)]
+    pub validated_bivector_operator_body_count: usize,
+    #[serde(default)]
+    pub principal_axes_world_space_3d_body_count: usize,
+    #[serde(default)]
+    pub mean_inertia_approximation_body_count: usize,
+    #[serde(default)]
+    pub invalid_rotational_inertia_body_count: usize,
 }
 
 impl<const D: usize> InvariantDrift<D> {
@@ -107,6 +132,10 @@ impl<const D: usize> PhysicsWorld<D> {
         let mut max_rotation_orthogonality_error = 0.0_f64;
         let mut max_rotation_determinant_error = 0.0_f64;
         let mut non_finite_body_count = 0;
+        let mut validated_bivector_operator_body_count = 0;
+        let mut principal_axes_world_space_3d_body_count = 0;
+        let mut mean_inertia_approximation_body_count = 0;
+        let mut invalid_rotational_inertia_body_count = 0;
 
         for body in &self.bodies {
             let position = body.transform.translation.0;
@@ -128,6 +157,22 @@ impl<const D: usize> PhysicsWorld<D> {
 
             if body.body_type != BodyType::Dynamic {
                 continue;
+            }
+
+            match body.rotational_inertia_model() {
+                RotationalInertiaModel::ValidatedSpatialBivectorOperator => {
+                    validated_bivector_operator_body_count += 1;
+                }
+                RotationalInertiaModel::PrincipalAxesWorldSpace3D => {
+                    principal_axes_world_space_3d_body_count += 1;
+                }
+                RotationalInertiaModel::MeanInertiaApproximation => {
+                    mean_inertia_approximation_body_count += 1;
+                }
+                RotationalInertiaModel::InvalidPrincipalMoments => {
+                    invalid_rotational_inertia_body_count += 1;
+                }
+                RotationalInertiaModel::StaticOrKinematic => {}
             }
 
             dynamic_mass += body.mass;
@@ -164,6 +209,10 @@ impl<const D: usize> PhysicsWorld<D> {
             max_rotation_determinant_error,
             max_penetration_depth,
             non_finite_body_count,
+            validated_bivector_operator_body_count,
+            principal_axes_world_space_3d_body_count,
+            mean_inertia_approximation_body_count,
+            invalid_rotational_inertia_body_count,
         }
     }
 }
@@ -208,6 +257,52 @@ mod tests {
         let drift = before.drift_to(&after);
         assert!((drift.linear_momentum_error_norm() - 5.0).abs() < 1e-12);
         assert!((drift.absolute_energy_drift - 12.5).abs() < 1e-12);
+    }
+
+    #[test]
+    fn snapshot_reports_validated_operator_and_invalidated_mass_properties() {
+        use crate::mass_properties::RotationalInertiaOperator;
+
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        let exact = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(40),
+            Point::origin(),
+            0.5,
+            1.0,
+        ).with_rotational_inertia_operator(
+            RotationalInertiaOperator::<3>::isotropic(1.0).unwrap(),
+        );
+        world.add_body(exact);
+
+        let mut stale = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(41),
+            Point::new([2.0, 0.0, 0.0]),
+            0.5,
+            1.0,
+        ).with_rotational_inertia_operator(
+            RotationalInertiaOperator::<3>::isotropic(1.0).unwrap(),
+        );
+        stale.merge_toolhead(
+            symtropy_math::Transform::identity(),
+            Box::new(symtropy_math::Sphere::unit()),
+            0.25,
+        );
+        world.add_body(stale);
+
+        let snapshot = world.invariant_snapshot();
+        assert_eq!(snapshot.validated_bivector_operator_body_count, 1);
+        assert_eq!(snapshot.invalid_rotational_inertia_body_count, 1);
+        assert!(!snapshot.is_numerically_healthy(1e-9));
+    }
+
+    #[test]
+    fn snapshot_reports_higher_dimensional_fallback_as_approximate() {
+        let mut world = PhysicsWorld::<4>::new(SVector::zeros());
+        world.add_sphere(Point::origin(), 0.5, 1.0);
+        let snapshot = world.invariant_snapshot();
+        assert_eq!(snapshot.mean_inertia_approximation_body_count, 1);
+        assert_eq!(snapshot.validated_bivector_operator_body_count, 0);
+        assert!(snapshot.is_numerically_healthy(1e-9));
     }
 
     #[test]
