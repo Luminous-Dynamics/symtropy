@@ -496,6 +496,28 @@ mod tests {
     }
 
     #[test]
+    fn finite_energy_reserve_supports_only_temporary_repair() {
+        let mut finite_reserve = config();
+        finite_reserve.initial_energy = 0.25;
+        finite_reserve.energy_harvest_rate = 0.0;
+        let mut system = MaintenanceSystem::new(
+            finite_reserve,
+            MaintenanceMode::ProportionalFeedback { gain_per_time: 2.0 },
+        )
+        .unwrap();
+
+        let first = system.step(damage(0.4)).unwrap();
+        assert!((first.repair_applied - 0.25).abs() < 1.0e-12);
+        assert_eq!(system.energy(), 0.0);
+
+        let second = system.step(MaintenanceInput::default()).unwrap();
+        assert!(second.repair_requested > 0.0);
+        assert_eq!(second.repair_applied, 0.0);
+        assert!(second.unmet_repair > 0.0);
+        assert!(system.integrity() < 1.0);
+    }
+
+    #[test]
     fn zero_disturbance_does_not_trigger_feedback_repair() {
         let mut system = MaintenanceSystem::new(
             config(),
