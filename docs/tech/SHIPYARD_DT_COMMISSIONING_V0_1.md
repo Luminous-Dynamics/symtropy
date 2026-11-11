@@ -29,7 +29,7 @@ For every stream, the evaluator verifies:
 - source and transformation receipt digests;
 - fidelity residual and measurement coverage.
 
-At the twin level it verifies unique required streams, exact observations for every required stream, no unexpected observations, configuration digest and permitted capabilities. The output is a deterministic report with per-stream metrics and violations. All streams must declare the twin-wide master clock. A hard-coded capability ceiling prevents the input manifest from granting itself command authority. Maximum authority is read-only telemetry; no robot command, WPS modification, acceptance or release capability is granted.
+At the twin level it verifies unique required streams, exact observations for every required stream, no unexpected observations, configuration digest and permitted capabilities. The output is a deterministic report with per-stream metrics and violations. All streams must declare the twin-wide master clock. A hard-coded capability ceiling prevents the input manifest from granting itself command authority; even a manifest that lists an elevated action as permitted is rejected. Maximum authority is read-only telemetry; no robot command, WPS modification, acceptance or release capability is granted.
 
 ## Files
 
