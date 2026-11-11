@@ -18,7 +18,9 @@
     "url": "https://doi.org/10.1111/gbi.70045",
     "source_data_status": "AVAILABLE_FROM_CORRESPONDING_AUTHOR_UPON_REASONABLE_REQUEST",
     "article_license_note": "The authors state that a CC BY license was applied to the Author Accepted Manuscript version. This does not automatically license unpublished raw images, measurement tables or derived data. Obtain and record artifact-specific terms.",
-    "supporting_information": "gbi70045-sup-0001-FigureS1-S4.docx; includes SEM photomicrographs and EDS/XRD supporting figures; obtain from publisher and verify file-level rights before redistribution."
+    "supporting_information": "gbi70045-sup-0001-FigureS1-S4.docx; includes SEM photomicrographs and EDS/XRD supporting figures; obtain from publisher and verify file-level rights before redistribution.",
+    "data_availability_statement": "The supporting data are available from the corresponding author upon reasonable request. Supporting information gbi70045-sup-0001-FigureS1-S4.docx is listed by the publisher and contains SEM photomicrographs and EDS/XRD figures; direct download was unavailable during this research pass.",
+    "supporting_information_access": "Publisher lists a 2.8 MB DOCX supporting-information file; automated fetch returned HTTP 403. No supporting file was downloaded or materialized."
   },
   "scientific_scope": {
     "known_abiotic_preparation": true,
@@ -34,7 +36,8 @@
       "intelligence",
       "sentience",
       "consciousness"
-    ]
+    ],
+    "procedure_naturalism": "The authors explicitly state that the laboratory production procedure is not geochemically naturalistic. The paper does not demonstrate that these chemical gardens have formed in nature; it notes plausible settings and existing natural structures that have been proposed as chemical gardens."
   },
   "preparation": {
     "iron_precursor": {
@@ -137,7 +140,19 @@
         "cross_section_morphology",
         "sinuosity",
         "clustering"
-      ]
+      ],
+      "sample_hierarchy": {
+        "measurement_count_per_sample": 300,
+        "image_count_per_sample_max": 50,
+        "independent_treatment_replicate_count": "NOT_REPORTED",
+        "clustering_levels": [
+          "preparation_batch",
+          "maturation_tube",
+          "SEM_image",
+          "filament"
+        ],
+        "inference_rule": "Resample or split at the highest independent physical preparation/treatment unit, not at filament or image level. If only one tube exists per temperature, this source cannot support an independent held-out-temperature generalization claim."
+      }
     },
     "eds": {
       "instrument": "Oxford Instruments EDS integrated with SEM",
@@ -187,7 +202,76 @@
     ],
     "biologic_comparator": {
       "material": "Leptothrix ochracea iron-oxidising bacterial sheaths",
-      "limitation": "The authors explicitly state this comparator should not be considered representative of all biological microstructures."
+      "comparator_source_doi": "10.1111/gbi.70029",
+      "claim": "The authors state that analogous biological sheaths could not be observed after maturation at 280_C, whereas chemical-garden filaments remained discernible at 300_C.",
+      "caveat": "This comparator is not representative of all biological structures, and cross-study sample sizes and preparation replication must be verified before quantitative classifier training."
+    },
+    "quantitative_morphology": {
+      "filament_length_mean_um_by_temperature": {
+        "50": 42.39,
+        "100": 41.77,
+        "150": 39.23,
+        "200": 41.6,
+        "250": 24.94,
+        "300": 28.79,
+        "350": null,
+        "unheated": 46.2
+      },
+      "filament_length_sd_um_by_temperature": {
+        "50": 37.59,
+        "100": 44.98,
+        "150": 42.03,
+        "200": 41.43,
+        "250": 21.18,
+        "300": 32.75,
+        "350": null,
+        "unheated": 50.49
+      },
+      "filament_width_mean_um_by_temperature": {
+        "50": 2.66,
+        "100": 2.45,
+        "150": 2.55,
+        "200": 4.06,
+        "250": 3.26,
+        "300": 3.83,
+        "350": null,
+        "unheated": 2.63
+      },
+      "filament_width_sd_um_by_temperature": {
+        "50": 0.29,
+        "100": 0.41,
+        "150": 0.34,
+        "200": 0.71,
+        "250": 0.65,
+        "300": 0.62,
+        "350": null,
+        "unheated": 0.37
+      },
+      "length_t_test_p_vs_unheated": {
+        "50": 0.3,
+        "100": 0.26,
+        "150": 0.07,
+        "200": 0.22,
+        "250": "<0.00001",
+        "300": "<0.00001",
+        "350": null
+      },
+      "width_t_test_p_vs_unheated": {
+        "50": 0.81,
+        "100": 0.28,
+        "150": 0.64,
+        "200": "<0.00001",
+        "250": "<0.00001",
+        "300": "<0.00001",
+        "350": null
+      },
+      "statistical_caveat": "The article reports independent two-tailed Student's t-tests across n=300 filaments. Because the number of independent physical treatment replicates is not stated and observations are nested within images/tubes, OLI must not interpret the filament-level p-values as replicated treatment-level inference without author confirmation."
+    },
+    "mineralogy_by_temperature": {
+      "unheated": "Two broad peaks associated with poorly crystalline two-line ferrihydrite; no crystalline silica peaks observed (amorphous silica may be present).",
+      "50_to_250_C": "Ferrihydrite peaks persist; crystalline silica phases not observed.",
+      "300_C": "High-intensity cristobalite and tridymite peaks; two low-intensity peaks tentatively identified as haematite. Iron phase cannot be confidently established due likely overlap with silica peaks.",
+      "350_C": "Cristobalite and tridymite observed; no iron-bearing XRD phase confidently observed. EDS indicates iron-rich filament remains/cross-sections, but full morphology is difficult to discern."
     }
   },
   "benchmark_tasks": [
@@ -223,7 +307,7 @@
         "false_positive_rate",
         "uncertainty"
       ],
-      "anti_leakage": "Hold out entire maturation temperatures or independent maturation runs."
+      "anti_leakage": "Never split by individual filaments or image crops. The independent unit is the preparation batch / reaction vessel / maturation tube. Temperature-held-out tests are admissible only if multiple independent tubes/batches per temperature are available; otherwise report leave-one-temperature-out as descriptive stress testing, not an independent generalization estimate."
     },
     {
       "id": "MULTIMODAL_DISCRIMINATION",
@@ -264,7 +348,9 @@
     "xrd_raw_data_materialized": false,
     "checksums": null,
     "access_action": "Request original data and measurement tables from corresponding author; record exact terms, file hashes and sample IDs before ingestion.",
-    "note": "Article methods and reported findings are source-pinned; underlying sample-level data have not been acquired."
+    "note": "Article methods and reported findings are source-pinned; underlying sample-level data have not been acquired.",
+    "author_request_status": "NOT_SENT",
+    "data_access_statement": "Supporting data available from corresponding author upon reasonable request; request raw SEM images, ImageJ measurements, EDS maps/spectra, XRD patterns, instrument settings, sample/tube hierarchy and the exact biological comparator dataset."
   },
   "acceptance": {
     "known_truth_abiotic_preparation_documented": true,
@@ -273,6 +359,46 @@
     "independent_replication_required": true,
     "instrument_metadata_required": true,
     "false_negative_observability_metadata_required": true,
-    "no_morphology_only_biogenicity_claim": true
+    "no_morphology_only_biogenicity_claim": true,
+    "pseudoreplication_audit_required": true,
+    "experimental_unit_hierarchy_required": true
+  },
+  "experimental_unit_audit": {
+    "reported_hydrous_pyrolysis_tubes": 7,
+    "temperature_treatments_C": [
+      50,
+      100,
+      150,
+      200,
+      250,
+      300,
+      350
+    ],
+    "tube_to_temperature_mapping": "The methods state that seven tubes were used and the tubes were heated across seven temperatures. One tube per temperature is a reasonable reading, but this mapping and whether independent preparation replicates existed must be confirmed with the authors.",
+    "independent_reactor_or_tube_replicates_per_temperature": "NOT_REPORTED_IN_ARTICLE_TEXT_EXAMINED",
+    "images_per_sample_up_to": 50,
+    "filament_measurements_per_sample": 300,
+    "inferential_unit_warning": "The 300 filament measurements are nested within one treatment sample and up to 50 image fields. They are not 300 independent biological/abiotic treatment replicates. Any OLI reanalysis must preserve image and sample nesting and must not use filaments as independent n for between-treatment generalization.",
+    "required_hierarchical_data": [
+      "preparation_batch_id",
+      "reaction_vessel_id",
+      "maturation_tube_id",
+      "temperature_C",
+      "image_id",
+      "field_of_view",
+      "magnification",
+      "filament_id",
+      "length_um",
+      "maximum_width_um",
+      "branching_annotation",
+      "anastomosis_annotation",
+      "measurement_operator"
+    ],
+    "author_confirmation_required": [
+      "number of independent chemical-garden preparation batches",
+      "number of independent tubes/reactors per temperature",
+      "whether 300 filament measurements per temperature come from one or multiple physical specimens",
+      "whether unheated baseline has independent preparation replicates"
+    ]
   }
 }
