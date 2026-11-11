@@ -84,7 +84,7 @@ Absolute residuals remain useful diagnostics, but they cannot decide physical ad
 
 Zero-scale handling is explicit: an exactly zero residual maps to zero; a nonzero violation with no nonzero reference scale maps to infinity and is rejected. The active-set candidate checks use these normalized criteria rather than absolute, dimensioned cutoffs. Absolute residual outputs remain available and must not be interpreted as cross-unit acceptance scores.
 
-The new regression suite checks the one-contact step at uniform mass scales `1e-12`, `1`, and `1e12`, and checks normalized feasibility/complementarity invariance under uniform velocity-unit scaling. This is not a proof of invariance under arbitrary mixed generalized-coordinate scaling or badly conditioned coordinate changes. Those require coordinate-aware characteristic scales and separate metamorphic tests.
+The new regression suite checks the one-contact step at uniform mass scales `1e-12`, `1`, and `1e12`, and checks normalized feasibility/complementarity invariance under uniform velocity and impulse rescaling. This is not a proof of invariance under arbitrary mixed generalized-coordinate scaling or badly conditioned coordinate changes. Those require coordinate-aware characteristic scales and separate metamorphic tests.
 
 Still outstanding: a normalized energy/work ledger (including contact work and frictional dissipation), error bounds under nonzero restitution and friction, and independent KKT residual comparison on a broader corpus. The current reference remains frictionless, zero restitution, fixed-J, single-step and small-island only.
 
