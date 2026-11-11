@@ -70,7 +70,7 @@ Every decision carries a fixed-size receipt containing all eight bounds, source 
 
 The Rust module is `crates/core/symtropy-physics/src/action_horizon.rs` and is exported from the crate.
 
-It includes 15 authored deterministic tests for:
+It includes 16 authored deterministic tests for:
 - exact minimum and floor arithmetic;
 - tied active constraints;
 - Unknown rejection for every required constraint;
@@ -80,7 +80,7 @@ It includes 15 authored deterministic tests for:
 - split-timescale operation despite remote deliberation latency;
 - exact and fractional p99 cycle rounding;
 - zero safe horizon and zero controller period;
-- empty source/timebase/reason/latency-profile identities;
+- empty source/timebase/reason/latency-profile identities, including direct enum-construction bypass attempts;
 - canonical receipt order.
 
 Criterion cases are authored for feasible queued mode, split-timescale mode, and Unknown-thermal rejection. They are latency measurements only; they do not qualify physical validity. These tests and benchmarks have not been compiled or executed in the current environment.
