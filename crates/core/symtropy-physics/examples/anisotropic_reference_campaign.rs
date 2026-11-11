@@ -186,19 +186,27 @@ fn asymmetric_top_convergence_campaign() -> usize {
 
 fn euler_top_body_derivative(
     omega_body: &SVector<f64, 3>,
-    principal_moments: &[f64; 3],
+    principal_moments: [f64; 3],
 ) -> SVector<f64, 3> {
     let angular_momentum = SVector::from([
         principal_moments[0] * omega_body[0],
         principal_moments[1] * omega_body[1],
         principal_moments[2] * omega_body[2],
     ]);
-    let torque_free_rhs = angular_momentum.cross(omega_body);
+    let rhs = angular_momentum.cross(omega_body);
     SVector::from([
-        torque_free_rhs[0] / principal_moments[0],
-        torque_free_rhs[1] / principal_moments[1],
-        torque_free_rhs[2] / principal_moments[2],
+        rhs[0] / principal_moments[0],
+        rhs[1] / principal_moments[1],
+        rhs[2] / principal_moments[2],
     ])
+}
+
+fn skew3(vector: &SVector<f64, 3>) -> SMatrix<f64, 3, 3> {
+    SMatrix::new(
+        0.0, -vector[2], vector[1],
+        vector[2], 0.0, -vector[0],
+        -vector[1], vector[0], 0.0,
+    )
 }
 
 fn rk4_euler_top_body(
@@ -206,35 +214,45 @@ fn rk4_euler_top_body(
     principal_moments: [f64; 3],
     duration: f64,
     requested_dt: f64,
-) -> SVector<f64, 3> {
+) -> (SMatrix<f64, 3, 3>, SVector<f64, 3>) {
     let steps = (duration / requested_dt).round() as usize;
     let dt = duration / steps as f64;
+    let mut rotation = SMatrix::<f64, 3, 3>::identity();
     let mut omega = initial_omega;
     for _ in 0..steps {
-        let k1 = euler_top_body_derivative(&omega, &principal_moments);
-        let k2 = euler_top_body_derivative(
-            &(omega + k1 * (0.5 * dt)),
-            &principal_moments,
-        );
-        let k3 = euler_top_body_derivative(
-            &(omega + k2 * (0.5 * dt)),
-            &principal_moments,
-        );
-        let k4 = euler_top_body_derivative(
-            &(omega + k3 * dt),
-            &principal_moments,
-        );
-        omega += (k1 + k2 * 2.0 + k3 * 2.0 + k4) * (dt / 6.0);
+        let k1_rotation = rotation * skew3(&omega);
+        let k1_omega = euler_top_body_derivative(&omega, principal_moments);
+
+        let rotation_2 = rotation + k1_rotation * (0.5 * dt);
+        let omega_2 = omega + k1_omega * (0.5 * dt);
+        let k2_rotation = rotation_2 * skew3(&omega_2);
+        let k2_omega = euler_top_body_derivative(&omega_2, principal_moments);
+
+        let rotation_3 = rotation + k2_rotation * (0.5 * dt);
+        let omega_3 = omega + k2_omega * (0.5 * dt);
+        let k3_rotation = rotation_3 * skew3(&omega_3);
+        let k3_omega = euler_top_body_derivative(&omega_3, principal_moments);
+
+        let rotation_4 = rotation + k3_rotation * dt;
+        let omega_4 = omega + k3_omega * dt;
+        let k4_rotation = rotation_4 * skew3(&omega_4);
+        let k4_omega = euler_top_body_derivative(&omega_4, principal_moments);
+
+        rotation += (
+            k1_rotation + k2_rotation * 2.0 + k3_rotation * 2.0 + k4_rotation
+        ) * (dt / 6.0);
+        omega += (k1_omega + k2_omega * 2.0 + k3_omega * 2.0 + k4_omega)
+            * (dt / 6.0);
     }
-    omega
+    (rotation, omega)
 }
 
-fn production_body_omega_after(
+fn production_top_state_after(
     dt: f64,
     initial_body_omega: SVector<f64, 3>,
     principal_moments: [f64; 3],
     duration: f64,
-) -> SVector<f64, 3> {
+) -> (SMatrix<f64, 3, 3>, SVector<f64, 3>) {
     let inertia = PrincipalInertia3::new(principal_moments).expect("positive moments");
     let mut rotation = Rotor::<3>::identity();
     let mut angular_velocity = angular_vector_to_bivector(&initial_body_omega);
@@ -251,70 +269,95 @@ fn production_body_omega_after(
         rotation = step.rotation;
         angular_velocity = step.angular_velocity;
     }
-    rotation
+    let omega_body = rotation
         .reverse()
-        .rotate_vector(&bivector_to_angular_vector(&angular_velocity))
+        .rotate_vector(&bivector_to_angular_vector(&angular_velocity));
+    (rotation.to_matrix(), omega_body)
 }
 
 fn asymmetric_top_rk4_reference_campaign() -> usize {
     let principal_moments = [1.0, 1.7, 2.8];
     let initial_omega = SVector::from([0.9, -0.6, 0.35]);
     let duration = 1.0;
-    // Independent body-frame Euler equations integrated with RK4. Verify
-    // the reference itself by halving its already-small timestep.
-    let reference = rk4_euler_top_body(
+    // Independent body-frame Euler equations plus Rdot = R*[omega_body]x.
+    let (reference_rotation, reference_omega) = rk4_euler_top_body(
         initial_omega,
         principal_moments,
         duration,
         1.0e-5,
     );
-    let reference_half_step = rk4_euler_top_body(
+    let (reference_rotation_half, reference_omega_half) = rk4_euler_top_body(
         initial_omega,
         principal_moments,
         duration,
         5.0e-6,
     );
+    let reference_self_error =
+        (reference_rotation - reference_rotation_half).norm()
+            + (reference_omega - reference_omega_half).norm();
     let mut failures = 0;
     failures += report(
         "asymmetric_top_rk4_reference_convergence",
         "dt_1e-5_vs_5e-6",
-        (reference - reference_half_step).norm(),
+        reference_self_error,
         0.0,
         1.0e-11,
     );
 
-    let coarse = production_body_omega_after(
+    let (coarse_rotation, coarse_omega) = production_top_state_after(
         1.0e-2,
         initial_omega,
         principal_moments,
         duration,
     );
-    let fine = production_body_omega_after(
+    let (fine_rotation, fine_omega) = production_top_state_after(
         2.5e-3,
         initial_omega,
         principal_moments,
         duration,
     );
-    let coarse_error = (coarse - reference).norm();
-    let fine_error = (fine - reference).norm();
+    let coarse_rotation_error = (coarse_rotation - reference_rotation).norm();
+    let fine_rotation_error = (fine_rotation - reference_rotation).norm();
+    let coarse_omega_error = (coarse_omega - reference_omega).norm();
+    let fine_omega_error = (fine_omega - reference_omega).norm();
     failures += report(
-        "asymmetric_top_rk4_trajectory_error",
+        "asymmetric_top_rk4_attitude_error",
         "production_dt_1e-2",
-        coarse_error,
+        coarse_rotation_error,
         0.0,
         5.0e-3,
     );
     failures += report(
-        "asymmetric_top_rk4_trajectory_error",
+        "asymmetric_top_rk4_attitude_error",
         "production_dt_2p5e-3",
-        fine_error,
+        fine_rotation_error,
+        0.0,
+        1.0e-3,
+    );
+    failures += report(
+        "asymmetric_top_rk4_angular_velocity_error",
+        "production_dt_1e-2",
+        coarse_omega_error,
+        0.0,
+        5.0e-3,
+    );
+    failures += report(
+        "asymmetric_top_rk4_angular_velocity_error",
+        "production_dt_2p5e-3",
+        fine_omega_error,
         0.0,
         1.0e-3,
     );
     failures += report_minimum(
-        "asymmetric_top_rk4_refinement_ratio",
+        "asymmetric_top_rk4_attitude_refinement_ratio",
         "coarse_over_fine",
-        coarse_error / fine_error.max(f64::MIN_POSITIVE),
+        coarse_rotation_error / fine_rotation_error.max(f64::MIN_POSITIVE),
+        3.0,
+    );
+    failures += report_minimum(
+        "asymmetric_top_rk4_angular_velocity_refinement_ratio",
+        "coarse_over_fine",
+        coarse_omega_error / fine_omega_error.max(f64::MIN_POSITIVE),
         3.0,
     );
     failures
