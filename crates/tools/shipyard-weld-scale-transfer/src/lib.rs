@@ -225,6 +225,50 @@ pub enum TransferReason {
     GraphExceedsOracleBounds,
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct UncertaintyComponents {
+    pub measurement_uncertainty_units: u64,
+    pub parameter_uncertainty_units: u64,
+    pub boundary_uncertainty_units: u64,
+    pub model_form_uncertainty_units: u64,
+    pub transfer_uncertainty_units: u64,
+}
+
+impl UncertaintyComponents {
+    fn checked_add(&self, other: &Self) -> Option<Self> {
+        Some(Self {
+            measurement_uncertainty_units: self
+                .measurement_uncertainty_units
+                .checked_add(other.measurement_uncertainty_units)?,
+            parameter_uncertainty_units: self
+                .parameter_uncertainty_units
+                .checked_add(other.parameter_uncertainty_units)?,
+            boundary_uncertainty_units: self
+                .boundary_uncertainty_units
+                .checked_add(other.boundary_uncertainty_units)?,
+            model_form_uncertainty_units: self
+                .model_form_uncertainty_units
+                .checked_add(other.model_form_uncertainty_units)?,
+            transfer_uncertainty_units: self
+                .transfer_uncertainty_units
+                .checked_add(other.transfer_uncertainty_units)?,
+        })
+    }
+
+    fn total(&self) -> Option<u64> {
+        [
+            self.measurement_uncertainty_units,
+            self.parameter_uncertainty_units,
+            self.boundary_uncertainty_units,
+            self.model_form_uncertainty_units,
+            self.transfer_uncertainty_units,
+        ]
+        .into_iter()
+        .try_fold(0_u64, |total, value| total.checked_add(value))
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct BridgePathReport {
@@ -232,6 +276,7 @@ pub struct BridgePathReport {
     pub domain_ids: Vec<String>,
     pub changed_factors: Vec<String>,
     pub cumulative_uncertainty_units: u64,
+    pub uncertainty_components: UncertaintyComponents,
     pub minimum_empirical_coverage_permille: u16,
     pub maximum_error_milli: u64,
 }
@@ -289,18 +334,14 @@ fn is_in_domain(source: &DomainSignature, target: &DomainSignature) -> bool {
         && source.contains_thickness_range(target)
 }
 
-fn edge_uncertainty(edge: &BridgeEdge) -> Result<u64, TransferReason> {
-    [
-        edge.measurement_uncertainty_units,
-        edge.parameter_uncertainty_units,
-        edge.boundary_uncertainty_units,
-        edge.model_form_uncertainty_units,
-        edge.transfer_uncertainty_units,
-    ]
-    .into_iter()
-    .try_fold(0_u64, |total, value| {
-        total.checked_add(value).ok_or(TransferReason::NumericOverflow)
-    })
+fn edge_uncertainty(edge: &BridgeEdge) -> UncertaintyComponents {
+    UncertaintyComponents {
+        measurement_uncertainty_units: edge.measurement_uncertainty_units,
+        parameter_uncertainty_units: edge.parameter_uncertainty_units,
+        boundary_uncertainty_units: edge.boundary_uncertainty_units,
+        model_form_uncertainty_units: edge.model_form_uncertainty_units,
+        transfer_uncertainty_units: edge.transfer_uncertainty_units,
+    }
 }
 
 fn validate_edge(
@@ -353,7 +394,7 @@ fn validate_edge(
     if expected != actual || has_duplicates(&actual) {
         return Err(TransferReason::BridgeChangedFactorsMismatch);
     }
-    edge_uncertainty(edge)
+    Ok(edge_uncertainty(edge))
 }
 
 fn enumerate_paths(
@@ -697,6 +738,7 @@ pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
     let mut accepted = Vec::new();
     let mut first_failure = None;
     for path in &paths {
+        let mut uncertainty_components = UncertaintyComponents::default();
         let mut total_uncertainty = 0_u64;
         let mut minimum_coverage = 1_000_u16;
         let mut maximum_error = 0_u64;
@@ -729,8 +771,14 @@ pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
                 break;
             };
             match validate_edge(edge, from, to, manifest) {
-                Ok(uncertainty) => {
-                    let Some(sum) = total_uncertainty.checked_add(uncertainty) else {
+                Ok(edge_components) => {
+                    let Some(combined) = uncertainty_components.checked_add(&edge_components) else {
+                        first_failure = Some(TransferReason::NumericOverflow);
+                        valid = false;
+                        break;
+                    };
+                    uncertainty_components = combined;
+                    let Some(sum) = uncertainty_components.total() else {
                         first_failure = Some(TransferReason::NumericOverflow);
                         valid = false;
                         break;
@@ -763,6 +811,7 @@ pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
                 domain_ids,
                 changed_factors,
                 cumulative_uncertainty_units: total_uncertainty,
+                uncertainty_components,
                 minimum_empirical_coverage_permille: minimum_coverage,
                 maximum_error_milli: maximum_error,
             });
@@ -971,6 +1020,23 @@ mod tests {
         let path = result.selected_path.expect("validated bridge path");
         assert_eq!(path.edge_ids, vec!["E01", "E12", "E23"]);
         assert_eq!(path.domain_ids, vec!["D0", "D1", "D2", "D3"]);
+        assert_eq!(path.cumulative_uncertainty_units, 45);
+    }
+
+    #[test]
+    fn bridge_path_preserves_each_uncertainty_component() {
+        let result = evaluate_transfer(&base_manifest());
+        let path = result.selected_path.expect("validated bridge path");
+        assert_eq!(
+            path.uncertainty_components,
+            UncertaintyComponents {
+                measurement_uncertainty_units: 3,
+                parameter_uncertainty_units: 6,
+                boundary_uncertainty_units: 9,
+                model_form_uncertainty_units: 12,
+                transfer_uncertainty_units: 15,
+            }
+        );
         assert_eq!(path.cumulative_uncertainty_units, 45);
     }
 
