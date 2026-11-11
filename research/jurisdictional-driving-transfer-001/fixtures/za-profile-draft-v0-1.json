@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "profile_id": "ZA-source-skeleton-v0-1",
+  "jurisdiction_code": "ZA",
+  "profile_status": "draft",
+  "traffic_side": "left",
+  "steering_wheel_side": "unknown",
+  "roundabout_circulation": "unknown",
+  "sign_standard": "SADC/SA Road Traffic Signs Manual — exact applicable edition pending review",
+  "effective_from": null,
+  "effective_to": null,
+  "rule_bundle_sha256": null,
+  "sources": [
+    {
+      "source_id": "za-government-left-traffic-guidance",
+      "authority": "South African Department of Tourism",
+      "title": "Safety and Travel Tips — Exploring Mzansi by Road",
+      "url": "https://www.tourism.gov.za/Pages/Safety--Travel-Tips-Info.aspx",
+      "source_kind": "government_guidance",
+      "edition_or_revision": null,
+      "published_date": null,
+      "effective_from": null,
+      "effective_to": null,
+      "content_sha256": null,
+      "verification_status": "not_reviewed",
+      "supported_rule_ids": [
+        "traffic-side-left"
+      ]
+    },
+    {
+      "source_id": "za-traffic-signs-manual-v4c1",
+      "authority": "South African Department of Transport",
+      "title": "SADC Road Traffic Signs Manual, Volume 4, Chapter 1",
+      "url": "https://www.transport.gov.za/wp-content/uploads/2023/02/V4C1.pdf",
+      "source_kind": "traffic_sign_manual",
+      "edition_or_revision": "Third Edition; exact local adoption/revision pending review",
+      "published_date": null,
+      "effective_from": null,
+      "effective_to": null,
+      "content_sha256": null,
+      "verification_status": "not_reviewed",
+      "supported_rule_ids": [
+        "road-sign-standard-reference"
+      ]
+    },
+    {
+      "source_id": "za-national-road-traffic-act-1996",
+      "authority": "South African Government",
+      "title": "National Road Traffic Act 93 of 1996 — current consolidated applicability pending review",
+      "url": "https://www.gov.za/documents/national-road-traffic-act",
+      "source_kind": "statute",
+      "edition_or_revision": "Act 93 of 1996; amendments and commencement status require legal review",
+      "published_date": null,
+      "effective_from": null,
+      "effective_to": null,
+      "content_sha256": null,
+      "verification_status": "not_reviewed",
+      "supported_rule_ids": []
+    }
+  ],
+  "notes": [
+    "Draft source skeleton only; not policy eligible.",
+    "Left-hand traffic is supported by the cited government guidance; this is not a detailed maneuver rule pack.",
+    "The official traffic-sign manual and National Road Traffic Act source pages require exact revision, effective-date, content digest and legal applicability review before policy use.",
+    "Vehicle steering-wheel position and roundabout circulation are explicitly unknown; do not infer either from traffic side."
+  ]
+}
