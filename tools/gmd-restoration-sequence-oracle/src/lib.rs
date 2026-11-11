@@ -650,8 +650,7 @@ fn validate_exclusive_resources(
     steps: &[RestorationStep],
     violations: &mut Vec<ScheduleViolation>,
 ) {
-    for left_index in 0..steps.len() {
-        let left = &steps[left_index];
+    for (left_index, left) in steps.iter().enumerate() {
         let left_finish = left.start_offset_seconds + left.duration_seconds;
         for right in steps.iter().skip(left_index + 1) {
             let right_finish = right.start_offset_seconds + right.duration_seconds;
@@ -722,10 +721,8 @@ mod tests {
         service_id: &str,
         start: u64,
         duration: u64,
-        transient_p: f64,
-        transient_q: f64,
-        steady_p: f64,
-        steady_q: f64,
+        transient_load: (f64, f64),
+        steady_load: (f64, f64),
         resources: &[&str],
     ) -> RestorationStep {
         RestorationStep {
@@ -735,10 +732,10 @@ mod tests {
             duration_seconds: duration,
             prerequisite_step_ids: Vec::new(),
             exclusive_resource_ids: resources.iter().map(|id| (*id).to_owned()).collect(),
-            transient_active_kw: transient_p,
-            transient_reactive_kvar_magnitude: transient_q,
-            steady_active_kw: steady_p,
-            steady_reactive_kvar_magnitude: steady_q,
+            transient_active_kw: transient_load.0,
+            transient_reactive_kvar_magnitude: transient_load.1,
+            steady_active_kw: steady_load.0,
+            steady_reactive_kvar_magnitude: steady_load.1,
             authority_state: AuthorityState::Approved,
         }
     }
@@ -775,8 +772,8 @@ mod tests {
     }
 
     fn two_step_schedule() -> RestorationScenario {
-        let hospital = step("hospital", "hospital-critical-power", 0, 600, 30.0, 10.0, 20.0, 10.0, &["crew-a"]);
-        let mut water = step("water", "hospital-water", 600, 600, 20.0, 10.0, 40.0, 20.0, &["crew-a"]);
+        let hospital = step("hospital", "hospital-critical-power", 0, 600, (30.0, 10.0), (20.0, 10.0), &["crew-a"]);
+        let mut water = step("water", "hospital-water", 600, 600, (20.0, 10.0), (40.0, 20.0), &["crew-a"]);
         water.prerequisite_step_ids.push("hospital".to_owned());
         scenario(vec![hospital, water])
     }
@@ -835,24 +832,24 @@ mod tests {
 
     #[test]
     fn overlapping_use_of_one_crew_is_rejected() {
-        let first = step("first", "hospital", 0, 600, 10.0, 0.0, 10.0, 0.0, &["crew-a"]);
-        let second = step("second", "water", 300, 600, 10.0, 0.0, 10.0, 0.0, &["crew-a"]);
+        let first = step("first", "hospital", 0, 600, (10.0, 0.0), (10.0, 0.0), &["crew-a"]);
+        let second = step("second", "water", 300, 600, (10.0, 0.0), (10.0, 0.0), &["crew-a"]);
         let result = assess_restoration(&scenario(vec![first, second])).unwrap();
         assert!(result.violations.iter().any(|item| item.kind == ViolationKind::SharedResourceConflict && item.start_offset_seconds == 300 && item.end_offset_seconds == 600));
     }
 
     #[test]
     fn exact_resource_handoff_at_completion_is_not_an_overlap() {
-        let first = step("first", "hospital", 0, 600, 10.0, 0.0, 5.0, 0.0, &["crew-a"]);
-        let second = step("second", "water", 600, 600, 10.0, 0.0, 5.0, 0.0, &["crew-a"]);
+        let first = step("first", "hospital", 0, 600, (10.0, 0.0), (5.0, 0.0), &["crew-a"]);
+        let second = step("second", "water", 600, 600, (10.0, 0.0), (5.0, 0.0), &["crew-a"]);
         let result = assess_restoration(&scenario(vec![first, second])).unwrap();
         assert!(!result.violations.iter().any(|item| item.kind == ViolationKind::SharedResourceConflict));
     }
 
     #[test]
     fn prerequisite_must_finish_before_dependent_step_starts() {
-        let first = step("first", "hospital", 0, 600, 10.0, 0.0, 5.0, 0.0, &[]);
-        let mut second = step("second", "water", 300, 300, 10.0, 0.0, 5.0, 0.0, &[]);
+        let first = step("first", "hospital", 0, 600, (10.0, 0.0), (5.0, 0.0), &[]);
+        let mut second = step("second", "water", 300, 300, (10.0, 0.0), (5.0, 0.0), &[]);
         second.prerequisite_step_ids.push("first".to_owned());
         let result = assess_restoration(&scenario(vec![first, second])).unwrap();
         assert!(result.violations.iter().any(|item| item.kind == ViolationKind::DependencyNotFinished));
@@ -860,15 +857,15 @@ mod tests {
 
     #[test]
     fn unknown_prerequisite_is_rejected() {
-        let mut item = step("first", "hospital", 0, 600, 10.0, 0.0, 5.0, 0.0, &[]);
+        let mut item = step("first", "hospital", 0, 600, (10.0, 0.0), (5.0, 0.0), &[]);
         item.prerequisite_step_ids.push("missing".to_owned());
         assert_eq!(assess_restoration(&scenario(vec![item])), Err(RestorationError::UnknownPrerequisite));
     }
 
     #[test]
     fn cyclic_dependencies_are_rejected() {
-        let mut first = step("first", "hospital", 0, 300, 10.0, 0.0, 5.0, 0.0, &[]);
-        let mut second = step("second", "water", 300, 300, 10.0, 0.0, 5.0, 0.0, &[]);
+        let mut first = step("first", "hospital", 0, 300, (10.0, 0.0), (5.0, 0.0), &[]);
+        let mut second = step("second", "water", 300, 300, (10.0, 0.0), (5.0, 0.0), &[]);
         first.prerequisite_step_ids.push("second".to_owned());
         second.prerequisite_step_ids.push("first".to_owned());
         assert_eq!(assess_restoration(&scenario(vec![first, second])), Err(RestorationError::DependencyCycle));
@@ -942,13 +939,13 @@ mod tests {
 
     #[test]
     fn step_beyond_horizon_is_rejected() {
-        let item = step("late", "hospital", 3_000, 1_000, 10.0, 0.0, 5.0, 0.0, &[]);
+        let item = step("late", "hospital", 3_000, 1_000, (10.0, 0.0), (5.0, 0.0), &[]);
         assert_eq!(assess_restoration(&scenario(vec![item])), Err(RestorationError::StepOutsideHorizon));
     }
 
     #[test]
     fn zero_duration_step_is_rejected() {
-        let item = step("instant", "hospital", 0, 0, 10.0, 0.0, 5.0, 0.0, &[]);
+        let item = step("instant", "hospital", 0, 0, (10.0, 0.0), (5.0, 0.0), &[]);
         assert_eq!(assess_restoration(&scenario(vec![item])), Err(RestorationError::InvalidStepDuration));
     }
 
@@ -970,7 +967,7 @@ mod tests {
     fn baseline_power_is_included_in_every_interval() {
         let mut input = two_step_schedule();
         input.steps.clear();
-        input.steps.push(step("single", "hospital", 0, 600, 20.0, 0.0, 0.0, 0.0, &[]));
+        input.steps.push(step("single", "hospital", 0, 600, (20.0, 0.0), (0.0, 0.0), &[]));
         input.baseline_load.active_kw = 15.0;
         let result = assess_restoration(&input).unwrap();
         assert_eq!(result.maximum_active_kw, 35.0);
