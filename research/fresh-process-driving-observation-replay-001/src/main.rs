@@ -1788,6 +1788,42 @@ mod tests {
     }
 
     #[test]
+    fn degradation_campaign_preserves_real_fixture_drop_delay_and_recovery_events() {
+        let campaign = degradation_campaign_value();
+        assert_eq!(campaign["faulted_run"]["expected_tick_count"], EXPECTED_TICKS);
+        let ticks = campaign["faulted_run"]["ticks"].as_array().unwrap();
+        assert_eq!(ticks.len(), 20);
+        let delayed = &ticks[(DELAYED_TICK - 1) as usize];
+        assert_eq!(delayed["conditions"], json!(["delayed"]));
+        assert_eq!(delayed["policy_input_accepted"], true);
+        assert_eq!(
+            delayed["delivered_timestamp_us"].as_u64().unwrap()
+                - delayed["capture_timestamp_us"].as_u64().unwrap(),
+            3_500
+        );
+        let missing = &ticks[(MISSING_TICK - 1) as usize];
+        assert_eq!(missing["conditions"], json!(["missing"]));
+        assert_eq!(missing["policy_input_accepted"], false);
+        assert_eq!(
+            missing["fault_detection_event_ids"],
+            json!(["camera-drop-011"])
+        );
+        assert_eq!(campaign["events"].as_array().unwrap().len(), 2);
+        assert_eq!(campaign["fault_schedule_visible_to_policy"], false);
+    }
+
+    #[test]
+    fn degradation_negative_control_changes_only_missing_frame_acceptance() {
+        let mut campaign = degradation_campaign_value();
+        let missing = &mut campaign["faulted_run"]["ticks"][(MISSING_TICK - 1) as usize];
+        assert_eq!(missing["conditions"], json!(["missing"]));
+        assert_eq!(missing["policy_input_accepted"], false);
+        missing["policy_input_accepted"] = json!(true);
+        assert_eq!(missing["conditions"], json!(["missing"]));
+        assert_eq!(missing["policy_input_accepted"], true);
+    }
+
+    #[test]
     fn bridge_configuration_requires_the_declared_camera_episode() {
         let bridge_config = json!({
             "identity": {
