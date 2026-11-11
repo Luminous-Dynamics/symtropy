@@ -606,6 +606,7 @@ fn relative_negative_residual(values: &[f64], delassus: &Matrix, contact_rhs: &[
             let diagonal = delassus[(row, row)].abs();
             let coupled_velocity_scale = contact_rhs[row].abs()
                 + (0..values.len())
+                    .filter(|col| *col != row)
                     .map(|col| delassus[(row, col)].abs() * values[col].abs())
                     .sum::<f64>();
             let local_impulse_scale = if diagonal > 0.0 {
