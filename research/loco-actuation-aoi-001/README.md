@@ -47,3 +47,12 @@ The reference returns this age interval per observation/modality. If the interva
 The exact-timestamp API remains available as a degenerate-interval path. Four additional tests cover bounded uncertainty, overlapping event-order uncertainty, invalid/cross-clock intervals, and per-modality age bounds. The crate now has thirteen authored tests.
 
 Uncertainty is only the declared timestamp/instrumentation interval. This does not qualify the physical truth of the clock, capture exposure, actuator latch timestamp, or clock synchronization. Those must be established by the instrumentation and upstream clock/certificate owners.
+
+
+## Uncertainty-preserving mission summaries
+
+V0.2 adds bounded AoI hold segments and a time-weighted lower/upper summary. Each segment carries a minimum and maximum possible starting age; both envelopes evolve with unit slope while the command remains held. The summary returns lower and upper bounds for mean, P50, P95, P99 and maximum age.
+
+This prevents timestamp uncertainty from being collapsed when a mission-level AoI distribution is constructed. Summaries should still be computed per actuator/control stream; callers should not pool different actuator rates or modalities into one scalar unless the benchmark explicitly defines that aggregation.
+
+Two additional deterministic tests cover interval-summary propagation and invalid/overflowing bounds. The crate now has fifteen authored tests.
