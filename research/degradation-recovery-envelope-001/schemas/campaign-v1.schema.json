@@ -118,7 +118,8 @@
         "delivered_timestamp_us",
         "conditions",
         "policy_input_accepted",
-        "fault_detected",
+        "fault_detection_event_ids",
+        "containment_event_ids",
         "degraded_mode",
         "fallback_active",
         "safe_stop_complete",
@@ -158,9 +159,6 @@
         "policy_input_accepted": {
           "type": "boolean"
         },
-        "fault_detected": {
-          "type": "boolean"
-        },
         "degraded_mode": {
           "type": "boolean"
         },
@@ -186,6 +184,24 @@
             "null"
           ],
           "minimum": 0
+        },
+        "fault_detection_event_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "containment_event_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
         }
       }
     },
@@ -260,6 +276,7 @@
     "A delayed frame may be accepted only when its delivery age is at or below the event's max_accepted_frame_age_us.",
     "Fault detection and containment deadlines are measured from the event start tick and must be fixed before evaluation.",
     "Return to normal_mode requires the configured number of consecutive healthy observations after fault clearance.",
-    "A valid digest proves only syntactic consistency, not the authenticity or truth of source data."
+    "A valid digest proves only syntactic consistency, not the authenticity or truth of source data.",
+    "Fault detection and containment references identify exact fault event IDs; a generic system-level flag cannot satisfy multiple unrelated events."
   ]
 }
