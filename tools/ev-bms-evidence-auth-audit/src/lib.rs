@@ -761,20 +761,32 @@ mod tests {
 
     #[test]
     fn payload_change_after_signing_fails_signature_verification() {
+        let original = report();
+        assert_eq!(
+            row(&original, "evt-valid-001").authenticity_state,
+            "AUTHENTICATED_AND_AUTHORIZED"
+        );
         let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus JSON");
         let event = corpus["events"]
             .as_array_mut()
             .unwrap()
             .iter_mut()
-            .find(|event| event["claims"]["event_id"] == "evt-signature-tamper-003")
-            .unwrap();
-        event["claims"]["firmware_sha256"] = Value::String(
-            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".into(),
-        );
+            .find(|event| event["claims"]["event_id"] == "evt-valid-001")
+            .expect("known-valid signed event");
+        let original_digest = event["claims"]["firmware_sha256"]
+            .as_str()
+            .expect("firmware digest")
+            .to_owned();
+        let changed_digest = if original_digest == "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" {
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        } else {
+            "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        };
+        event["claims"]["firmware_sha256"] = Value::String(changed_digest.into());
         let bytes = serde_json::to_vec(&corpus).expect("tampered corpus");
         let report = audit_corpus(SCHEMA, &bytes).expect("tamper becomes a rejected row");
         assert_eq!(
-            row(&report, "evt-signature-tamper-003").authenticity_state,
+            row(&report, "evt-valid-001").authenticity_state,
             "REJECTED_SIGNATURE"
         );
     }
