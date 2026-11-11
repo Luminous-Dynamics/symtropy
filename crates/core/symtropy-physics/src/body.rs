@@ -267,7 +267,12 @@ impl<const D: usize> RigidBody<D> {
                 self.transform.rotation.to_matrix()[(row, col)]
             });
             let impulse_local = rotation.transpose() * impulse_world;
-            let delta_local = self.inv_inertia.component_mul(&impulse_local);
+            let inverse_principal = SVector::<f64, 3>::new(
+                self.inv_inertia[0],
+                self.inv_inertia[1],
+                self.inv_inertia[2],
+            );
+            let delta_local = inverse_principal.component_mul(&impulse_local);
             let delta_world = rotation * delta_local;
             let mut result = Bivector::<D>::zero();
             result.set(0, 1, delta_world[2]);
@@ -322,7 +327,17 @@ impl<const D: usize> RigidBody<D> {
         );
 
         let omega_local = rotation.transpose() * omega_world;
-        let momentum_local = self.inertia.component_mul(&omega_local);
+        let principal_moments = SVector::<f64, 3>::new(
+            self.inertia[0],
+            self.inertia[1],
+            self.inertia[2],
+        );
+        let inverse_principal = SVector::<f64, 3>::new(
+            self.inv_inertia[0],
+            self.inv_inertia[1],
+            self.inv_inertia[2],
+        );
+        let momentum_local = principal_moments.component_mul(&omega_local);
         let momentum_world = rotation * momentum_local;
 
         let gyroscopic = SVector::<f64, 3>::new(
@@ -332,7 +347,7 @@ impl<const D: usize> RigidBody<D> {
         );
         let net_torque_world = torque_world - gyroscopic;
         let net_torque_local = rotation.transpose() * net_torque_world;
-        let alpha_local = self.inv_inertia.component_mul(&net_torque_local);
+        let alpha_local = inverse_principal.component_mul(&net_torque_local);
         let alpha_world = rotation * alpha_local;
 
         let mut result = Bivector::<D>::zero();
