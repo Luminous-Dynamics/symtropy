@@ -122,12 +122,17 @@ pub struct TreatmentAssignment {
 
 /// Enumerate a two-stage randomized saturation design exactly.
 ///
-/// Stage 1 chooses each cluster's treated count uniformly from 0..=cluster size.
-/// Stage 2 chooses uniformly among all subsets having that treated count.
-/// Every binary assignment is retained with its design probability.
+/// Stage 1 independently selects a cluster-level saturation probability from
+/// the frozen levels {0, 0.5, 1}, uniformly within each cluster. Stage 2
+/// independently assigns each unit in that cluster using its selected
+/// Bernoulli probability. The marginal exact probability of every assignment
+/// is retained; all 2^n assignments have positive probability because 0.5 is
+/// among the saturation levels.
 pub fn enumerate_two_stage_saturation_design(
     network: &ClusteredNetwork,
 ) -> Result<Vec<TreatmentAssignment>, NetworkInterferenceError> {
+    const SATURATION_LEVELS: [f64; 3] = [0.0, 0.5, 1.0];
+
     let node_count = network.node_count();
     if node_count > MAX_EXACT_DESIGN_NODES {
         return Err(NetworkInterferenceError::ExactDesignTooLarge {
@@ -136,116 +141,55 @@ pub fn enumerate_two_stage_saturation_design(
         });
     }
 
-    let mut cluster_options = Vec::with_capacity(network.cluster_count());
-    let mut cluster_members = Vec::with_capacity(network.cluster_count());
-    for members in network.cluster_members() {
-        cluster_members.push(members.clone());
-        let cluster_size = members.len();
-        let mut options = Vec::new();
-        for treated_count in 0..=cluster_size {
-            let combinations = choose_nodes(members, treated_count);
-            if combinations.is_empty() {
-                return Err(NetworkInterferenceError::InvalidMechanism);
-            }
-            let probability = 1.0
-                / (cluster_size + 1) as f64
-                / combinations.len() as f64;
-            for combination in combinations {
-                options.push((combination, probability));
-            }
-        }
-        cluster_options.push(options);
-    }
+    let assignment_count = 1_usize << node_count;
+    let mut assignments = Vec::with_capacity(assignment_count);
+    for bits in 0..assignment_count {
+        let treated: Vec<bool> = (0..node_count)
+            .map(|node| ((bits >> node) & 1) == 1)
+            .collect();
+        let mut assignment_probability = 1.0_f64;
 
-    let mut assignments = Vec::new();
-    let mut treated = vec![false; node_count];
-    enumerate_cluster_products(
-        &cluster_options,
-        &cluster_members,
-        0,
-        &mut treated,
-        1.0,
-        &mut assignments,
-    );
+        for members in network.cluster_members() {
+            let cluster_probability = SATURATION_LEVELS
+                .iter()
+                .map(|saturation| {
+                    let conditional_probability = members.iter().fold(
+                        1.0_f64,
+                        |probability, node| {
+                            probability
+                                * if treated[*node] {
+                                    *saturation
+                                } else {
+                                    1.0 - *saturation
+                                }
+                        },
+                    );
+                    conditional_probability / SATURATION_LEVELS.len() as f64
+                })
+                .sum::<f64>();
+            assignment_probability *= cluster_probability;
+        }
+
+        if !assignment_probability.is_finite() || assignment_probability <= 0.0 {
+            return Err(NetworkInterferenceError::InvalidAssignmentProbability);
+        }
+        assignments.push(TreatmentAssignment {
+            treated,
+            probability: assignment_probability,
+        });
+    }
 
     let probability_mass: f64 = assignments
         .iter()
         .map(|assignment| assignment.probability)
         .sum();
-    if assignments.is_empty()
+    if assignments.len() != assignment_count
         || !probability_mass.is_finite()
         || (probability_mass - 1.0).abs() > 1.0e-12
     {
         return Err(NetworkInterferenceError::InvalidAssignmentProbability);
     }
     Ok(assignments)
-}
-
-fn choose_nodes(nodes: &[usize], count: usize) -> Vec<Vec<usize>> {
-    fn visit(
-        nodes: &[usize],
-        count: usize,
-        start: usize,
-        current: &mut Vec<usize>,
-        output: &mut Vec<Vec<usize>>,
-    ) {
-        if current.len() == count {
-            output.push(current.clone());
-            return;
-        }
-        let remaining = count - current.len();
-        if nodes.len().saturating_sub(start) < remaining {
-            return;
-        }
-        for (index, node) in nodes
-            .iter()
-            .enumerate()
-            .take(nodes.len() - remaining + 1)
-            .skip(start)
-        {
-            current.push(*node);
-            visit(nodes, count, index + 1, current, output);
-            current.pop();
-        }
-    }
-
-    let mut output = Vec::new();
-    visit(nodes, count, 0, &mut Vec::new(), &mut output);
-    output
-}
-
-fn enumerate_cluster_products(
-    cluster_options: &[Vec<(Vec<usize>, f64)>],
-    cluster_members: &[Vec<usize>],
-    cluster_index: usize,
-    treated: &mut [bool],
-    probability: f64,
-    output: &mut Vec<TreatmentAssignment>,
-) {
-    if cluster_index == cluster_options.len() {
-        output.push(TreatmentAssignment {
-            treated: treated.to_vec(),
-            probability,
-        });
-        return;
-    }
-
-    for (selected, conditional_probability) in &cluster_options[cluster_index] {
-        for node in &cluster_members[cluster_index] {
-            treated[*node] = false;
-        }
-        for node in selected {
-            treated[*node] = true;
-        }
-        enumerate_cluster_products(
-            cluster_options,
-            cluster_members,
-            cluster_index + 1,
-            treated,
-            probability * conditional_probability,
-            output,
-        );
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
