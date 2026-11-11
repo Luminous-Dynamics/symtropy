@@ -587,9 +587,11 @@ mod tests {
         .unwrap();
 
         let expected_rotation = global.compose(&reference.rotation);
-        let rotation_error = (transformed.rotation.to_matrix() - expected_rotation.to_matrix()).norm();
+        let rotation_error =
+            (transformed.rotation.to_matrix() - expected_rotation.to_matrix()).norm();
         assert!(rotation_error < 2.0e-11, "rotation covariance error={rotation_error:e}");
-        let expected_omega = global.rotate_vector(&bivector_to_angular_vector(&reference.angular_velocity));
+        let reference_omega = bivector_to_angular_vector(&reference.angular_velocity);
+        let expected_omega = global.rotate_vector(&reference_omega);
         assert!(vec_close(
             &bivector_to_angular_vector(&transformed.angular_velocity),
             &expected_omega,
