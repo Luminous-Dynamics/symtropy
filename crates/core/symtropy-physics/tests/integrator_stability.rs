@@ -39,8 +39,7 @@ fn constant_acceleration_matches_the_exact_discrete_update() {
     let n = steps as f64;
     let elapsed = n * dt;
     let expected_velocity = v0 + acceleration * elapsed;
-    let expected_position =
-        x0 + v0 * elapsed + acceleration * (0.5 * dt * dt * n * (n + 1.0));
+    let expected_position = x0 + v0 * elapsed + acceleration * (0.5 * dt * dt * n * (n + 1.0));
 
     assert!(
         (body.linear_velocity - expected_velocity).norm() < 1.0e-12,
@@ -66,7 +65,11 @@ fn free_fall_position_error(dt: f64) -> f64 {
 
     let mut body = RigidBody::<3>::dynamic_sphere(
         BodyHandle(2),
-        Point::new([initial_position[0], initial_position[1], initial_position[2]]),
+        Point::new([
+            initial_position[0],
+            initial_position[1],
+            initial_position[2],
+        ]),
         0.1,
         1.0,
     );
