@@ -648,10 +648,10 @@ mod tests {
 
         let mismatched = JacobiMapEvidence {
             normalization_id: "different-area-convention".into(),
-            ..right
+            ..right.clone()
         };
         assert_eq!(compare_maps(&left, &mismatched), Err(AuditError::NormalizationMismatch));
-        let wrong_branch = JacobiMapEvidence { branch_id: "other-branch".into(), ..mismatched };
+        let wrong_branch = JacobiMapEvidence { branch_id: "other-branch".into(), ..mismatched.clone() };
         assert_eq!(compare_maps(&left, &wrong_branch), Err(AuditError::BranchMismatch));
         let wrong_point = JacobiMapEvidence { branch_parameter: 1.0, ..right.clone() };
         assert_eq!(compare_maps(&left, &wrong_point), Err(AuditError::ParameterMismatch));
