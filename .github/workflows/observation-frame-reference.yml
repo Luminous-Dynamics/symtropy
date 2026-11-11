@@ -55,11 +55,12 @@ jobs:
         run: |
           set -euo pipefail
           package="research/observation-frame-reference"
-          cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- "$package/fixtures/machine-test-01.json" > /tmp/observation-first.json
-          cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- "$package/fixtures/machine-test-01.json" > /tmp/observation-second.json
-          cmp /tmp/observation-first.json /tmp/observation-second.json
-          grep -q '"claim_ceiling":' /tmp/observation-first.json
-          sha256sum /tmp/observation-first.json
+          mkdir -p "$package/target/receipts"
+          cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- "$package/fixtures/machine-test-01.json" > "$package/target/receipts/first.json"
+          cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- "$package/fixtures/machine-test-01.json" > "$package/target/receipts/second.json"
+          cmp "$package/target/receipts/first.json" "$package/target/receipts/second.json"
+          grep -q '"claim_ceiling":' "$package/target/receipts/first.json"
+          sha256sum "$package/target/receipts/first.json"
 
       - name: Preserve benchmark and known-answer receipt
         if: always()
@@ -68,7 +69,7 @@ jobs:
           name: observation-frame-reference-${{ github.sha }}
           path: |
             research/observation-frame-reference/target/benchmark-results.jsonl
-            /tmp/observation-first.json
+            research/observation-frame-reference/target/receipts/
           if-no-files-found: warn
           retention-days: 30
 
