@@ -605,6 +605,37 @@ mod tests {
     }
 
     #[test]
+    fn observable_set_profile_is_independent_of_measurement_values() {
+        let mut input = fixture();
+        let original =
+            compute_observable_set_sha256(&input.entities).expect("original profile");
+        input.entities[0].observables[0].value = Some(
+            ObservationValueV1::Binary64Bits("4000000000000000".to_string())
+        );
+        assert_eq!(
+            original,
+            compute_observable_set_sha256(&input.entities).expect("changed value profile")
+        );
+    }
+
+    #[test]
+    fn unavailable_channel_remains_a_member_of_the_observable_set() {
+        let mut input = fixture();
+        let original =
+            compute_observable_set_sha256(&input.entities).expect("original profile");
+        let observation = &mut input.entities[0].observables[0];
+        observation.source_class = ObservationSourceClass::Unavailable;
+        observation.value = None;
+        observation.source_ref_sha256 = None;
+        observation.uncertainty = None;
+        observation.unavailable_reason = Some("sensor disconnected".to_string());
+        assert_eq!(
+            original,
+            compute_observable_set_sha256(&input.entities).expect("unavailable channel profile")
+        );
+    }
+
+    #[test]
     fn observable_set_digest_rejects_channel_membership_or_unit_mismatch() {
         let mut input = fixture();
         input.entities[0].observables[0].unit = "cm".to_string();
