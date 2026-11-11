@@ -148,6 +148,29 @@ We report two axes, never one composite:
 
 The LVM names are our proposed operationalization; we do not claim they reproduce the paper's exact VM-0…5 criteria without reviewing its full text. A rich model with weak evidence must not be presented as decision-ready. Every level is bound to an exact task, requirement profile, model revision, data population and evidence window.
 
+## Standards and interchange maturity (November 2026)
+
+The continuity audit must not collapse schema validity, information delivery, geometry equivalence and physical truth into one "IFC valid" label.
+
+- **IFC 4.3.2.0 / IFC 4.3 ADD2** is the current official published IFC baseline, aligned with ISO 16739-1:2024. Use it for current normative exchange tests where the source workflow can legitimately export that profile.
+- **IFC 4.4** remains a working draft. buildingSMART approved the integration plan for ISO submission in September 2026; approval of that plan is not publication/adoption of IFC 4.4. Pin an exact IFC 4.4 development build only as a forward-compatibility experiment, never as the normative compliance baseline.
+- **IDS v1.0** is a final standard for specifying and checking information requirements. Its current scope does not cover geometry checking, computed/dynamic values, external-data checks or complete as-built comparison. IDS success is therefore an information-delivery result, not a geometry, survey or physical-state qualification.
+
+Benchmark exchange as separate gates: STEP parse, selected IFC schema, IDS XSD/semantic support, IFC-vs-IDS conformance, IFC↔element-graph correspondence, geometry/topology equivalence, round-trip editability, and evidence/uncertainty retention. A tool may pass schema and IDS while losing an opening relationship, placement, physical identity or the observation lineage supporting a measured claim.
+
+For representation changes, add transformation-fidelity measurements rather than a binary pass:
+- Property Retention Ratio (PRR);
+- Semantic Fidelity Index (SFI);
+- Schema Compliance Rate (SCR);
+- Attribute Degradation Score (ADS);
+- Exchange Latency (EL);
+- identity and relation/topology retention;
+- evidence provenance and uncertainty-reference retention.
+
+These proposed metrics are reported independently, with denominators, unsupported-feature counts and exact software/schema versions. A syntax-valid IFC must never be counted as evidence-preserving round-trip success.
+
+**Reference baseline:** buildingSMART's official IFC release information and IFC4.4 development documents; IDS v1.0 final-standard announcement and specification limitations; the 2026 interoperability transformation-fidelity study. See https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/, https://standards.buildingsmart.org/IFC/DEV/IFC4_4/HTML/, https://www.buildingsmart.org/standards/standards-committee-consultation/, https://www.buildingsmart.org/information-delivery-specification-ids-v1-0-is-approved-as-a-final-standard/, https://github.com/buildingSMART/IDS/blob/development/Documentation/UserManual/specifications.md, and https://doi.org/10.1016/j.rineng.2026.112704.
+
 ## P1 evaluation
 
 1. Compose the audit with #4271's exact IFC/IDS and controlled edit/round-trip outputs.
