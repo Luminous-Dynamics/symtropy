@@ -401,11 +401,7 @@ mod tests {
     use super::*;
 
     fn exact_two_by_two() -> (Matrix<2>, Vector<2>, Vector<2>) {
-        (
-            [[4.0, 1.0], [2.0, 3.0]],
-            [1.0, 2.0],
-            [0.1, 0.6],
-        )
+        ([[4.0, 1.0], [2.0, 3.0]], [1.0, 2.0], [0.1, 0.6])
     }
 
     #[test]
@@ -420,10 +416,8 @@ mod tests {
         assert_eq!(envelope.status, EnvelopeStatusV1::InformativeEstimate);
 
         let bound = envelope.forward_error_bound_estimate.unwrap();
-        let observed = vector_inf(&[
-            computed[0] - exact[0],
-            computed[1] - exact[1],
-        ]) / vector_inf(&exact);
+        let observed =
+            vector_inf(&[computed[0] - exact[0], computed[1] - exact[1]]) / vector_inf(&exact);
         assert!(observed <= bound + 1.0e-14);
     }
 
@@ -432,8 +426,7 @@ mod tests {
         let (matrix, rhs, exact) = exact_two_by_two();
         let computed = [exact[0] + 1.0e-3, exact[1]];
         let envelope =
-            assess_solution(&matrix, &rhs, &computed, ErrorEnvelopeProfileV1::default())
-                .unwrap();
+            assess_solution(&matrix, &rhs, &computed, ErrorEnvelopeProfileV1::default()).unwrap();
 
         let observed = vector_inf(&[
             computed[0] - exact[0],
@@ -456,10 +449,7 @@ mod tests {
         let envelope = assess_solution(&matrix, &rhs, &exact_solution, profile).unwrap();
 
         assert!((envelope.condition_inf_estimate - 1.0e9).abs() < 1.0);
-        assert_eq!(
-            envelope.status,
-            EnvelopeStatusV1::OutsideConditionEnvelope
-        );
+        assert_eq!(envelope.status, EnvelopeStatusV1::OutsideConditionEnvelope);
     }
 
     #[test]
@@ -545,8 +535,7 @@ mod tests {
         let (matrix, rhs, exact) = exact_two_by_two();
         let perturbed = [exact[0] + 1.0e-4, exact[1]];
         let first =
-            assess_solution(&matrix, &rhs, &perturbed, ErrorEnvelopeProfileV1::default())
-                .unwrap();
+            assess_solution(&matrix, &rhs, &perturbed, ErrorEnvelopeProfileV1::default()).unwrap();
 
         let scale = 1.0e6;
         let scaled_matrix = matrix.map(|row| row.map(|value| value * scale));
@@ -559,9 +548,7 @@ mod tests {
         )
         .unwrap();
 
-        assert!(
-            (first.normwise_backward_error - second.normwise_backward_error).abs() < 1.0e-15
-        );
+        assert!((first.normwise_backward_error - second.normwise_backward_error).abs() < 1.0e-15);
         assert!((first.condition_inf_estimate - second.condition_inf_estimate).abs() < 1.0e-12);
     }
 
