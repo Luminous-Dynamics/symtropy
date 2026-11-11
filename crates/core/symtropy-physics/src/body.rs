@@ -558,8 +558,8 @@ mod rotational_inertia_tests {
             0.1,
             1.0,
         );
-        body.inertia = SVector::from([1.0, 2.0, 4.0]);
-        body.inv_inertia = SVector::from([1.0, 0.5, 0.25]);
+        body.inertia = SVector::from([2.0, 3.0, 4.0]);
+        body.inv_inertia = SVector::from([0.5, 1.0 / 3.0, 0.25]);
         body.angular_damping = 0.0;
         body
     }
@@ -716,8 +716,8 @@ mod rotational_inertia_tests {
         let mut about_z = Bivector::zero();
         about_z.set(0, 1, 1.0);
 
-        assert!((body.apply_inverse_angular_inertia(&about_x).get(1, 2) - 1.0).abs() < 1e-12);
-        assert!((body.apply_inverse_angular_inertia(&about_y).get(0, 2) - 0.5).abs() < 1e-12);
+        assert!((body.apply_inverse_angular_inertia(&about_x).get(1, 2) - 0.5).abs() < 1e-12);
+        assert!((body.apply_inverse_angular_inertia(&about_y).get(0, 2) - (1.0 / 3.0)).abs() < 1e-12);
         assert!((body.apply_inverse_angular_inertia(&about_z).get(0, 1) - 0.25).abs() < 1e-12);
     }
 
@@ -734,8 +734,8 @@ mod rotational_inertia_tests {
         let delta = body.apply_inverse_angular_inertia(&world_x_impulse);
 
         // After a +90° Z rotation, world X aligns with local -Y,
-        // whose principal moment is 2.
-        assert!((delta.get(1, 2) - 0.5).abs() < 1e-12);
+        // whose principal moment is 3.
+        assert!((delta.get(1, 2) - (1.0 / 3.0)).abs() < 1e-12);
         assert!(delta.get(0, 2).abs() < 1e-12);
         assert!(delta.get(0, 1).abs() < 1e-12);
     }
@@ -752,9 +752,9 @@ mod rotational_inertia_tests {
         world_x_impulse.set(1, 2, 1.0);
         let delta = body.apply_inverse_angular_inertia(&world_x_impulse);
 
-        // R diag(1, 1/2, 1/4) R^T * e_x = (3/4, 1/4, 0).
-        assert!((delta.get(1, 2) - 0.75).abs() < 1e-12);
-        assert!((delta.get(0, 2) + 0.25).abs() < 1e-12);
+        // R diag(1/2, 1/3, 1/4) R^T * e_x = (5/12, 1/12, 0).
+        assert!((delta.get(1, 2) - (5.0 / 12.0)).abs() < 1e-12);
+        assert!((delta.get(0, 2) + (1.0 / 12.0)).abs() < 1e-12);
         assert!(delta.get(0, 1).abs() < 1e-12);
     }
 
