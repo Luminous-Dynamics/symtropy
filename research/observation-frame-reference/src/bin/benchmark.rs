@@ -281,9 +281,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nth(1)
         .map(|value| value.parse::<usize>())
         .transpose()?
-        .unwrap_or(5);
-    if !(3..=20).contains(&samples) {
-        return Err("sample count must be between 3 and 20".into());
+        .unwrap_or(1_000);
+    if !(1_000..=2_000).contains(&samples) {
+        return Err("sample count must be between 1000 and 2000 for meaningful p99 reporting".into());
     }
 
     for (entities, observables_per_entity, events) in
