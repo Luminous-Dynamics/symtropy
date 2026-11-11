@@ -126,12 +126,22 @@ fn capture_gate(
 
     let sensor_profile_id = string_at(binding, "sensor_profile_id").unwrap_or("");
     let sensor_profile_sha = string_at(binding, "sensor_profile_sha256").unwrap_or("");
+    let expected_sensor_profile_id =
+        string_at(asset, "expected_sensor_profile_id").unwrap_or("");
+    let expected_sensor_profile_sha =
+        string_at(asset, "expected_sensor_profile_sha256").unwrap_or("");
     let pose_revision = string_at(binding, "pose_revision").unwrap_or("");
     let pose_sha = string_at(binding, "pose_evidence_sha256").unwrap_or("");
     let visibility_sha = string_at(binding, "visibility_receipt_sha256").unwrap_or("");
 
     if sensor_profile_id.trim().is_empty() || !is_sha256(sensor_profile_sha) {
         reasons.insert("SENSOR_PROFILE_BINDING_INVALID");
+    }
+    if sensor_profile_id != expected_sensor_profile_id {
+        reasons.insert("CAPTURE_SENSOR_PROFILE_ID_MISMATCH");
+    }
+    if sensor_profile_sha != expected_sensor_profile_sha {
+        reasons.insert("CAPTURE_SENSOR_PROFILE_DIGEST_MISMATCH");
     }
     if pose_revision.trim().is_empty() || !is_sha256(pose_sha) {
         reasons.insert("POSE_EVIDENCE_BINDING_INVALID");
@@ -574,6 +584,56 @@ mod tests {
         assert_eq!(report.core.unqualified_capture_count, 1);
         assert_eq!(report.core.decision_impact_cases_passed, 8);
         assert_eq!(report.receipt_sha256.len(), 64);
+    }
+
+    #[test]
+    fn sensor_profile_id_must_match_building_contract() {
+        let mut corpus = fixture();
+        corpus["cases"][0]["capture_bindings"][0]["sensor_profile_id"] =
+            Value::String("tls-other-profile".to_owned());
+        let report = validate_adapter_bytes(&bytes(&corpus), EMBEDDED_ADAPTER_SCHEMA.as_bytes());
+        assert!(!report.core.passed);
+        let gate = report
+            .core
+            .cases
+            .iter()
+            .find(|case| case.case_id == "SPR-V-001")
+            .unwrap()
+            .capture_bindings
+            .iter()
+            .find(|binding| binding.action_id == "targeted-clearance-survey")
+            .unwrap();
+        assert_eq!(gate.status, "unqualified");
+        assert!(
+            gate.reason_codes
+                .contains(&"CAPTURE_SENSOR_PROFILE_ID_MISMATCH".to_owned())
+        );
+        assert!(has_code(&report, "DECISION_RECOMMENDS_UNQUALIFIED_CAPTURE"));
+    }
+
+    #[test]
+    fn sensor_profile_digest_must_match_building_contract() {
+        let mut corpus = fixture();
+        corpus["cases"][0]["capture_bindings"][0]["sensor_profile_sha256"] =
+            Value::String("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee".to_owned());
+        let report = validate_adapter_bytes(&bytes(&corpus), EMBEDDED_ADAPTER_SCHEMA.as_bytes());
+        assert!(!report.core.passed);
+        let gate = report
+            .core
+            .cases
+            .iter()
+            .find(|case| case.case_id == "SPR-V-001")
+            .unwrap()
+            .capture_bindings
+            .iter()
+            .find(|binding| binding.action_id == "targeted-clearance-survey")
+            .unwrap();
+        assert_eq!(gate.status, "unqualified");
+        assert!(
+            gate.reason_codes
+                .contains(&"CAPTURE_SENSOR_PROFILE_DIGEST_MISMATCH".to_owned())
+        );
+        assert!(has_code(&report, "DECISION_RECOMMENDS_UNQUALIFIED_CAPTURE"));
     }
 
     #[test]
