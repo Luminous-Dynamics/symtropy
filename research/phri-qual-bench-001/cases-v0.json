@@ -1,0 +1,257 @@
+{
+  "schema_version": "1.0.0",
+  "program": "PHRI-QUAL-BENCH-001",
+  "status": "scenario_manifest_only_not_executed",
+  "units": {
+    "time": "s",
+    "length": "m",
+    "force": "N",
+    "torque": "N_m",
+    "energy": "J",
+    "power": "W",
+    "stiffness_translation": "N_m",
+    "stiffness_rotation": "N_m_per_rad",
+    "pressure": "Pa"
+  },
+  "required_run_identity": [
+    "source_sha",
+    "plant_model_digest",
+    "geometry_revision_digest",
+    "actuator_revision_digest",
+    "controller_period_s",
+    "integration_method",
+    "sensor_profile_digest",
+    "clock_domain_id",
+    "boot_epoch",
+    "port_id",
+    "spatial_frame_id",
+    "payload_digest",
+    "trajectory_digest",
+    "disturbance_seed",
+    "numeric_precision",
+    "compiler_identity",
+    "solver_configuration_digest",
+    "hardware_identity",
+    "safety_case_revision",
+    "stop_policy_revision"
+  ],
+  "comparison_regimes": [
+    "matched_common_parameterization",
+    "native_method_expressivity"
+  ],
+  "baseline_arms": [
+    "fixed_full_matrix_impedance",
+    "energy_tank_or_passivity_observer",
+    "dinc_diagonal_vic_qp",
+    "dinc_generalized_eigenbasis_compliance",
+    "muehlbauer_passive_matrix_shared_control",
+    "poignonec_passivity_constrained_nmpc",
+    "luminous_diagonal_vic_reference",
+    "luminous_basis_free_candidate"
+  ],
+  "scenarios": [
+    {
+      "id": "matrix-repeated-eigenvalues",
+      "domain": "optimizer",
+      "purpose": "Test matrix-coordinate continuity at repeated generalized eigenvalues.",
+      "seeded_faults": [],
+      "required_assertions": [
+        "symmetric_output",
+        "psd_barrier_rechecked",
+        "passivity_rechecked",
+        "no_basis_identity_dependency"
+      ]
+    },
+    {
+      "id": "matrix-near-crossings",
+      "domain": "optimizer",
+      "purpose": "Sweep eigenvalue gaps through numerical resolution and crossings.",
+      "seeded_faults": [
+        "eigenvalue_gap_sweep"
+      ],
+      "required_assertions": [
+        "finite_output_or_explicit_abstention",
+        "no_false_feasible",
+        "reconstruction_residual_reported"
+      ]
+    },
+    {
+      "id": "matrix-rotating-compliance",
+      "domain": "optimizer",
+      "purpose": "Rotate physical compliance directions smoothly while stiffness remains smooth.",
+      "seeded_faults": [
+        "rotating_eigenspace"
+      ],
+      "required_assertions": [
+        "matrix_tracking_error_reported",
+        "basis_flip_count_reported_for_basis_method",
+        "coordinate_covariance_reported"
+      ]
+    },
+    {
+      "id": "matrix-offdiagonal-updates",
+      "domain": "optimizer",
+      "purpose": "Exercise coupled off-diagonal stiffness-rate decisions.",
+      "seeded_faults": [
+        "off_diagonal_rate"
+      ],
+      "required_assertions": [
+        "full_matrix_constraints_rechecked",
+        "expressivity_regime_declared"
+      ]
+    },
+    {
+      "id": "matrix-inertia-conditioning",
+      "domain": "optimizer",
+      "purpose": "Increase task-inertia condition number and vary Jacobian conditioning.",
+      "seeded_faults": [
+        "condition_number_sweep"
+      ],
+      "required_assertions": [
+        "conditioning_reported",
+        "solver_residual_reported",
+        "explicit_infeasibility_allowed"
+      ]
+    },
+    {
+      "id": "optimizer-degenerate-states",
+      "domain": "optimizer",
+      "purpose": "Exercise zero and near-zero task error, velocity, and damping dissipation.",
+      "seeded_faults": [
+        "zero_velocity",
+        "zero_error",
+        "near_zero_state"
+      ],
+      "required_assertions": [
+        "degenerate_case_classified",
+        "no_nan_inf_acceptance",
+        "no_false_feasible"
+      ]
+    },
+    {
+      "id": "rate-barrier-infeasibility",
+      "domain": "optimizer",
+      "purpose": "Create empty or boundary-only intersections between passivity and rate constraints.",
+      "seeded_faults": [
+        "upper_rate_cap",
+        "lower_rate_barrier"
+      ],
+      "required_assertions": [
+        "infeasible_or_boundary_only_explicit",
+        "no_silent_constraint_relaxation"
+      ]
+    },
+    {
+      "id": "sampled-data-ports",
+      "domain": "execution_energy",
+      "purpose": "Compare continuous prediction with finite-step measured energy across variable sample periods.",
+      "seeded_faults": [
+        "zero_order_hold",
+        "integration_step_sweep",
+        "parameter_step",
+        "actuator_delay"
+      ],
+      "required_assertions": [
+        "every_prefix_residual_reported",
+        "actual_applied_output_used",
+        "uncertainty_bound_method_declared"
+      ]
+    },
+    {
+      "id": "sample-provenance-faults",
+      "domain": "execution_energy",
+      "purpose": "Challenge temporal, identity and measurement validity.",
+      "seeded_faults": [
+        "clock_reset",
+        "clock_skew",
+        "stale_packet",
+        "duplicate_packet",
+        "reordered_packet",
+        "saturation",
+        "profile_mismatch"
+      ],
+      "required_assertions": [
+        "invalid_evidence_rejected",
+        "unknown_not_zero",
+        "observer_state_unchanged_on_rejection"
+      ]
+    },
+    {
+      "id": "nullspace-energy",
+      "domain": "execution_energy",
+      "purpose": "Exercise null-space motion while task-space energy appears satisfied.",
+      "seeded_faults": [
+        "nullspace_motion"
+      ],
+      "required_assertions": [
+        "task_and_nullspace_energy_reported_separately",
+        "no_full_robot_passivity_claim_from_task_only"
+      ]
+    },
+    {
+      "id": "tactile-contact-migration",
+      "domain": "tactile_metrology",
+      "purpose": "Move contact across the tile at constant reference load.",
+      "seeded_faults": [
+        "contact_migration"
+      ],
+      "required_assertions": [
+        "force_bias_reported",
+        "contact_area_method_declared",
+        "cop_error_reported"
+      ]
+    },
+    {
+      "id": "tactile-curvature-and-seams",
+      "domain": "tactile_metrology",
+      "purpose": "Exercise surface curvature, multi-tile registration and seam transitions.",
+      "seeded_faults": [
+        "curvature_sweep",
+        "tile_seam",
+        "registration_offset"
+      ],
+      "required_assertions": [
+        "geometry_revision_bound",
+        "seam_discontinuity_reported",
+        "uncertainty_coverage_reported"
+      ]
+    },
+    {
+      "id": "tactile-shear-slip-drift",
+      "domain": "tactile_metrology",
+      "purpose": "Measure cross-axis effects, slip, creep, hysteresis and thermal drift.",
+      "seeded_faults": [
+        "tangential_load",
+        "slip",
+        "dwell",
+        "temperature_cycle"
+      ],
+      "required_assertions": [
+        "unsupported_shear_not_inferred",
+        "slip_metric_declared",
+        "drift_reported"
+      ]
+    },
+    {
+      "id": "agency-stop-refusal",
+      "domain": "agency",
+      "purpose": "Exercise independent wearer-owned stop and refusal under adaptation.",
+      "seeded_faults": [
+        "stop_during_transition",
+        "conflicting_task_objective"
+      ],
+      "required_assertions": [
+        "stop_latency_reported",
+        "no_action_after_stop_receipt",
+        "no_tactile_consent_inference"
+      ]
+    }
+  ],
+  "result_requirements": [
+    "preserve_raw_trace_or_content_digest",
+    "record_all_failures_and_exclusions",
+    "report_worst_prefix_energy_not_only_final_total",
+    "report_p50_p95_p99_max_when_meaningful",
+    "no_composite_score_that_trades_safety_or_agency_against_task_success"
+  ]
+}
