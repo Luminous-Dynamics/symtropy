@@ -445,22 +445,36 @@ pub fn solve_diagonal_passivity_rate_qp(
     let mut lower = [0.0_f64; 12];
     let mut upper = [0.0_f64; 12];
     let mut reference = [0.0_f64; 12];
-    let mut weights = request.objective_weights;
+    let weights = request.objective_weights;
     let mut damping_power_rhs_w = 0.0_f64;
 
-    for index in 0..6 {
-        let base_inertia = request.base_inertia[index];
-        let inertia_scale = request.inertia_scale[index];
-        let min_scale = request.minimum_inertia_scale[index];
-        let stiffness = request.stiffness[index];
-        let error = request.error[index];
-        let velocity = request.error_velocity[index];
-        let alpha_decay = request.inertia_decay_rate[index];
-        let stiffness_decay = request.stiffness_decay_rate[index];
-        let alpha_rate_ref = request.inertia_reference_rate[index];
-        let stiffness_rate_ref = request.stiffness_reference_rate[index];
-        let alpha_rate_max = request.inertia_max_rate[index];
-        let stiffness_rate_max = request.stiffness_max_rate[index];
+    for (index, values) in request.base_inertia.iter()
+        .zip(request.inertia_scale.iter())
+        .zip(request.minimum_inertia_scale.iter())
+        .zip(request.stiffness.iter())
+        .zip(request.error.iter())
+        .zip(request.error_velocity.iter())
+        .zip(request.inertia_decay_rate.iter())
+        .zip(request.stiffness_decay_rate.iter())
+        .zip(request.inertia_reference_rate.iter())
+        .zip(request.stiffness_reference_rate.iter())
+        .zip(request.inertia_max_rate.iter())
+        .zip(request.stiffness_max_rate.iter())
+        .enumerate()
+    {
+        let (((((((((((base_inertia, inertia_scale), min_scale), stiffness), error), velocity), alpha_decay), stiffness_decay), alpha_rate_ref), stiffness_rate_ref), alpha_rate_max), stiffness_rate_max) = values;
+        let base_inertia = *base_inertia;
+        let inertia_scale = *inertia_scale;
+        let min_scale = *min_scale;
+        let stiffness = *stiffness;
+        let error = *error;
+        let velocity = *velocity;
+        let alpha_decay = *alpha_decay;
+        let stiffness_decay = *stiffness_decay;
+        let alpha_rate_ref = *alpha_rate_ref;
+        let stiffness_rate_ref = *stiffness_rate_ref;
+        let alpha_rate_max = *alpha_rate_max;
+        let stiffness_rate_max = *stiffness_rate_max;
 
         if !base_inertia.is_finite() || base_inertia <= 0.0
             || !inertia_scale.is_finite() || inertia_scale <= 0.0
@@ -550,11 +564,14 @@ pub fn solve_diagonal_passivity_rate_qp(
     if unconstrained_lhs > damping_power_rhs_w {
         projection_active = true;
         let mut upper_multiplier = 0.0_f64;
-        for index in 0..12 {
-            let coefficient = coefficients[index];
-            if coefficient > 0.0 {
-                let threshold = (reference[index] - lower[index]).max(0.0)
-                    * weights[index] / coefficient;
+        for ((coefficient, reference_rate), (lower_rate, weight)) in coefficients
+            .iter()
+            .zip(reference.iter())
+            .zip(lower.iter().zip(weights.iter()))
+        {
+            if *coefficient > 0.0 {
+                let threshold = (*reference_rate - *lower_rate).max(0.0)
+                    * *weight / *coefficient;
                 if !threshold.is_finite() {
                     return Err(VirtualImpedanceError::ArithmeticOverflow);
                 }
