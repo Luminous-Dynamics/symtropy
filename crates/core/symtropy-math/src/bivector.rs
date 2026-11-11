@@ -222,6 +222,17 @@ mod tests {
     use super::*;
 
     #[test]
+    fn storage_capacity_is_explicit_and_feature_gated() {
+        let expected_components = if cfg!(feature = "nd-bivector-9") { 36 } else { 6 };
+        let expected_dimension = if cfg!(feature = "nd-bivector-9") { 9 } else { 4 };
+        assert_eq!(Bivector::<3>::MAX_SUPPORTED_DIMENSION, expected_dimension);
+        assert_eq!(
+            std::mem::size_of::<Bivector<3>>(),
+            expected_components * std::mem::size_of::<f64>()
+        );
+    }
+
+    #[test]
     fn num_components() {
         assert_eq!(Bivector::<2>::num_components(), 1);
         assert_eq!(Bivector::<3>::num_components(), 3);
