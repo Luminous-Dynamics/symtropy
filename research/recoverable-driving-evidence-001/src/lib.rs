@@ -4,8 +4,8 @@
 //! evidence, run a simulator, establish physical causality, train a policy, or
 //! certify safety.
 
-use std::collections::{BTreeMap, BTreeSet};
 use serde::Deserialize;
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const MAX_EPISODES: usize = 100_000;
 pub const MAX_BRANCHES: usize = 100_000;
@@ -227,10 +227,7 @@ fn id_set(values: impl IntoIterator<Item = String>) -> BTreeSet<String> {
     values.into_iter().collect()
 }
 
-fn validate_parent_graph(
-    branches: &BTreeMap<String, &BranchRecord>,
-    findings: &mut Vec<Finding>,
-) {
+fn validate_parent_graph(branches: &BTreeMap<String, &BranchRecord>, findings: &mut Vec<Finding>) {
     let mut marks: BTreeMap<String, u8> = BTreeMap::new();
     for start in branches.keys() {
         if marks.get(start).copied().unwrap_or(0) == 2 {
@@ -300,14 +297,9 @@ fn validate_branch_pair(branch: &BranchRecord, parent: &BranchRecord, findings: 
             if actor.action_digest != previous.action_digest {
                 findings.push(Finding::ReplayedActorActionChanged);
             }
-            let randomness_is_present = actor
-                .randomness_digest
-                .as_deref()
-                .is_some_and(nonempty);
-            let parent_randomness_is_present = previous
-                .randomness_digest
-                .as_deref()
-                .is_some_and(nonempty);
+            let randomness_is_present = actor.randomness_digest.as_deref().is_some_and(nonempty);
+            let parent_randomness_is_present =
+                previous.randomness_digest.as_deref().is_some_and(nonempty);
             if !randomness_is_present || !parent_randomness_is_present {
                 findings.push(Finding::ReplayedActorRandomnessMissing);
             } else if actor.randomness_digest != previous.randomness_digest {
@@ -365,7 +357,12 @@ fn validate_information_fields(
     query_inputs: bool,
     findings: &mut Vec<Finding>,
 ) {
-    if duplicate(&fields.iter().map(|field| field.field_id.clone()).collect::<Vec<_>>()) {
+    if duplicate(
+        &fields
+            .iter()
+            .map(|field| field.field_id.clone())
+            .collect::<Vec<_>>(),
+    ) {
         if query_inputs {
             findings.push(Finding::DuplicateQueryInput);
         } else {
@@ -439,10 +436,26 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
     };
 
     for (name, value) in [
-        ("episodes", campaign.expected_episode_ids.len().max(campaign.episodes.len())),
-        ("branches", campaign.expected_branch_ids.len().max(campaign.branches.len())),
+        (
+            "episodes",
+            campaign
+                .expected_episode_ids
+                .len()
+                .max(campaign.episodes.len()),
+        ),
+        (
+            "branches",
+            campaign
+                .expected_branch_ids
+                .len()
+                .max(campaign.branches.len()),
+        ),
     ] {
-        let limit = if name == "episodes" { MAX_EPISODES } else { MAX_BRANCHES };
+        let limit = if name == "episodes" {
+            MAX_EPISODES
+        } else {
+            MAX_BRANCHES
+        };
         if value > limit {
             findings.push(Finding::BoundExceeded(name));
         }
@@ -454,7 +467,11 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
     if campaign.expected_episode_ids.iter().any(|id| !nonempty(id)) {
         findings.push(Finding::EmptyIdentity("expected_episode_id"));
     }
-    if campaign.episodes.iter().any(|episode| !nonempty(&episode.episode_id)) {
+    if campaign
+        .episodes
+        .iter()
+        .any(|episode| !nonempty(&episode.episode_id))
+    {
         findings.push(Finding::EmptyIdentity("episode_id"));
     }
     if duplicate(&campaign.expected_branch_ids) {
@@ -463,10 +480,22 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
     if campaign.expected_branch_ids.iter().any(|id| !nonempty(id)) {
         findings.push(Finding::EmptyIdentity("expected_branch_id"));
     }
-    if duplicate(&campaign.episodes.iter().map(|episode| episode.episode_id.clone()).collect::<Vec<_>>()) {
+    if duplicate(
+        &campaign
+            .episodes
+            .iter()
+            .map(|episode| episode.episode_id.clone())
+            .collect::<Vec<_>>(),
+    ) {
         findings.push(Finding::DuplicateEpisode);
     }
-    if duplicate(&campaign.branches.iter().map(|branch| branch.branch_id.clone()).collect::<Vec<_>>()) {
+    if duplicate(
+        &campaign
+            .branches
+            .iter()
+            .map(|branch| branch.branch_id.clone())
+            .collect::<Vec<_>>(),
+    ) {
         findings.push(Finding::DuplicateBranch);
     }
 
@@ -488,8 +517,11 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
         findings.push(Finding::UnexpectedBranch);
     }
 
-    let episodes_by_id: BTreeSet<&str> =
-        campaign.episodes.iter().map(|episode| episode.episode_id.as_str()).collect();
+    let episodes_by_id: BTreeSet<&str> = campaign
+        .episodes
+        .iter()
+        .map(|episode| episode.episode_id.as_str())
+        .collect();
     let branches_by_id: BTreeMap<String, &BranchRecord> = campaign
         .branches
         .iter()
@@ -501,8 +533,14 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
             ("branch_id", branch.branch_id.as_str()),
             ("episode_id", branch.episode_id.as_str()),
             ("checkpoint_digest", branch.checkpoint_digest.as_str()),
-            ("recurrent_state_policy_id", branch.recurrent_state_policy_id.as_str()),
-            ("observation_history_digest", branch.observation_history_digest.as_str()),
+            (
+                "recurrent_state_policy_id",
+                branch.recurrent_state_policy_id.as_str(),
+            ),
+            (
+                "observation_history_digest",
+                branch.observation_history_digest.as_str(),
+            ),
             ("simulator_revision", branch.simulator_revision.as_str()),
             ("intervention_digest", branch.intervention_digest.as_str()),
         ] {
@@ -539,7 +577,15 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
             findings.push(Finding::BoundExceeded("query_fields_per_branch"));
         }
 
-        if duplicate(&branch.expected_actor_ids) || duplicate(&branch.actor_responses.iter().map(|a| a.actor_id.clone()).collect::<Vec<_>>()) {
+        if duplicate(&branch.expected_actor_ids)
+            || duplicate(
+                &branch
+                    .actor_responses
+                    .iter()
+                    .map(|a| a.actor_id.clone())
+                    .collect::<Vec<_>>(),
+            )
+        {
             findings.push(Finding::DuplicateActor);
         }
         if branch.expected_actor_ids.iter().any(|id| !nonempty(id)) {
@@ -561,21 +607,41 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
             {
                 findings.push(Finding::EmptyIdentity("actor_response"));
             }
-            if actor.origin == ActorResponseOrigin::Replayed && actor.randomness_digest.as_ref().is_some_and(|value| !nonempty(value)) {
+            if actor.origin == ActorResponseOrigin::Replayed
+                && actor
+                    .randomness_digest
+                    .as_ref()
+                    .is_some_and(|value| !nonempty(value))
+            {
                 findings.push(Finding::EmptyIdentity("actor_randomness_digest"));
             }
         }
 
         if duplicate(&branch.expected_random_event_ids)
-            || duplicate(&branch.random_events.iter().map(|event| event.event_id.clone()).collect::<Vec<_>>())
+            || duplicate(
+                &branch
+                    .random_events
+                    .iter()
+                    .map(|event| event.event_id.clone())
+                    .collect::<Vec<_>>(),
+            )
         {
             findings.push(Finding::DuplicateRandomEvent);
         }
-        if branch.expected_random_event_ids.iter().any(|id| !nonempty(id)) {
+        if branch
+            .expected_random_event_ids
+            .iter()
+            .any(|id| !nonempty(id))
+        {
             findings.push(Finding::EmptyIdentity("expected_random_event_id"));
         }
         let expected_events = id_set(branch.expected_random_event_ids.clone());
-        let observed_events = id_set(branch.random_events.iter().map(|event| event.event_id.clone()));
+        let observed_events = id_set(
+            branch
+                .random_events
+                .iter()
+                .map(|event| event.event_id.clone()),
+        );
         for _ in expected_events.difference(&observed_events) {
             findings.push(Finding::MissingExpectedRandomEvent);
         }
@@ -583,7 +649,10 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
             findings.push(Finding::UnexpectedRandomEvent);
         }
         for event in &branch.random_events {
-            if !nonempty(&event.event_id) || !nonempty(&event.key_digest) || !nonempty(&event.sampled_value_digest) {
+            if !nonempty(&event.event_id)
+                || !nonempty(&event.key_digest)
+                || !nonempty(&event.sampled_value_digest)
+            {
                 findings.push(Finding::EmptyIdentity("random_event"));
             }
         }
@@ -608,12 +677,7 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
             if query.outcome_available_tick <= query.issued_tick {
                 findings.push(Finding::QueryOutcomeNotAfterIssue);
             }
-            validate_information_fields(
-                &query.inputs,
-                query.issued_tick,
-                true,
-                &mut findings,
-            );
+            validate_information_fields(&query.inputs, query.issued_tick, true, &mut findings);
         }
     }
 
@@ -636,10 +700,18 @@ pub fn validate_campaign(campaign: &CampaignRecord) -> ValidationReport {
                 Some(parent) => validate_branch_pair(branch, parent, &mut findings),
             }
         } else {
-            if branch.actor_responses.iter().any(|actor| actor.origin == ActorResponseOrigin::Replayed) {
+            if branch
+                .actor_responses
+                .iter()
+                .any(|actor| actor.origin == ActorResponseOrigin::Replayed)
+            {
                 findings.push(Finding::MissingParentActorForReplay);
             }
-            if branch.random_events.iter().any(|event| event.shared_with_parent) {
+            if branch
+                .random_events
+                .iter()
+                .any(|event| event.shared_with_parent)
+            {
                 findings.push(Finding::DeclaredSharedKeyMismatch);
             }
         }
@@ -718,7 +790,11 @@ mod tests {
             outcome_tick: 20,
             intervention_digest: "action-root".to_string(),
             expected_actor_ids: vec!["lead-vehicle".to_string()],
-            actor_responses: vec![actor(ActorResponseOrigin::Recomputed, "actor-input-1", "actor-action-1")],
+            actor_responses: vec![actor(
+                ActorResponseOrigin::Recomputed,
+                "actor-input-1",
+                "actor-action-1",
+            )],
             expected_random_event_ids: vec!["weather-noise".to_string()],
             random_events: vec![exogenous_event()],
             policy_input_fields: vec![InformationField {
@@ -743,7 +819,11 @@ mod tests {
             outcome_tick: 21,
             intervention_digest: action.to_string(),
             expected_actor_ids: vec!["lead-vehicle".to_string()],
-            actor_responses: vec![actor(ActorResponseOrigin::Recomputed, actor_input, "actor-action-child")],
+            actor_responses: vec![actor(
+                ActorResponseOrigin::Recomputed,
+                actor_input,
+                "actor-action-child",
+            )],
             expected_random_event_ids: vec!["weather-noise".to_string()],
             random_events: vec![{
                 let mut event = exogenous_event();
@@ -762,7 +842,11 @@ mod tests {
     fn valid_campaign() -> CampaignRecord {
         CampaignRecord {
             expected_episode_ids: vec!["episode-1".to_string()],
-            expected_branch_ids: vec!["root".to_string(), "yield".to_string(), "proceed".to_string()],
+            expected_branch_ids: vec![
+                "root".to_string(),
+                "yield".to_string(),
+                "proceed".to_string(),
+            ],
             episodes: vec![EpisodeRecord {
                 episode_id: "episode-1".to_string(),
                 disposition: EpisodeDisposition::Completed,
@@ -862,8 +946,11 @@ mod tests {
     #[test]
     fn rejects_replayed_actor_action_when_policy_input_changes() {
         let mut campaign = valid_campaign();
-        campaign.branches[1].actor_responses[0] =
-            actor(ActorResponseOrigin::Replayed, "changed-actor-input", "actor-action-1");
+        campaign.branches[1].actor_responses[0] = actor(
+            ActorResponseOrigin::Replayed,
+            "changed-actor-input",
+            "actor-action-1",
+        );
         let report = validate_campaign(&campaign);
         assert!(has(&report, Finding::ReplayedActorInputChanged));
     }
@@ -871,8 +958,11 @@ mod tests {
     #[test]
     fn accepts_replayed_actor_action_when_policy_input_and_output_are_identical() {
         let mut campaign = valid_campaign();
-        campaign.branches[1].actor_responses[0] =
-            actor(ActorResponseOrigin::Replayed, "actor-input-1", "actor-action-1");
+        campaign.branches[1].actor_responses[0] = actor(
+            ActorResponseOrigin::Replayed,
+            "actor-input-1",
+            "actor-action-1",
+        );
         let report = validate_campaign(&campaign);
         assert!(!has(&report, Finding::ReplayedActorInputChanged));
         assert!(!has(&report, Finding::ReplayedActorActionChanged));
@@ -951,11 +1041,13 @@ mod tests {
     #[test]
     fn rejects_empty_policy_field_identity() {
         let mut campaign = valid_campaign();
-        campaign.branches[0].policy_input_fields.push(InformationField {
-            field_id: " ".to_string(),
-            source_role: InformationSourceRole::PolicyVisible,
-            available_tick: 10,
-        });
+        campaign.branches[0]
+            .policy_input_fields
+            .push(InformationField {
+                field_id: " ".to_string(),
+                source_role: InformationSourceRole::PolicyVisible,
+                available_tick: 10,
+            });
         let report = validate_campaign(&campaign);
         assert!(has(&report, Finding::EmptyIdentity("information_field")));
     }
@@ -963,16 +1055,20 @@ mod tests {
     #[test]
     fn rejects_evaluator_only_and_future_policy_fields() {
         let mut campaign = valid_campaign();
-        campaign.branches[0].policy_input_fields.push(InformationField {
-            field_id: "oracle-collision".to_string(),
-            source_role: InformationSourceRole::EvaluatorOnly,
-            available_tick: 10,
-        });
-        campaign.branches[0].policy_input_fields.push(InformationField {
-            field_id: "future-frame".to_string(),
-            source_role: InformationSourceRole::PolicyVisible,
-            available_tick: 11,
-        });
+        campaign.branches[0]
+            .policy_input_fields
+            .push(InformationField {
+                field_id: "oracle-collision".to_string(),
+                source_role: InformationSourceRole::EvaluatorOnly,
+                available_tick: 10,
+            });
+        campaign.branches[0]
+            .policy_input_fields
+            .push(InformationField {
+                field_id: "future-frame".to_string(),
+                source_role: InformationSourceRole::PolicyVisible,
+                available_tick: 11,
+            });
         let report = validate_campaign(&campaign);
         assert!(has(&report, Finding::PolicyFieldNotVisible));
         assert!(has(&report, Finding::PolicyFieldFromFuture));
@@ -1034,10 +1130,18 @@ mod tests {
     #[test]
     fn failed_incomplete_and_censored_episodes_remain_in_denominator() {
         let mut campaign = valid_campaign();
-        campaign.expected_episode_ids.extend(["episode-2".to_string(), "episode-3".to_string()]);
+        campaign
+            .expected_episode_ids
+            .extend(["episode-2".to_string(), "episode-3".to_string()]);
         campaign.episodes.extend([
-            EpisodeRecord { episode_id: "episode-2".to_string(), disposition: EpisodeDisposition::Failed },
-            EpisodeRecord { episode_id: "episode-3".to_string(), disposition: EpisodeDisposition::Censored },
+            EpisodeRecord {
+                episode_id: "episode-2".to_string(),
+                disposition: EpisodeDisposition::Failed,
+            },
+            EpisodeRecord {
+                episode_id: "episode-3".to_string(),
+                disposition: EpisodeDisposition::Censored,
+            },
         ]);
         campaign.expected_branch_ids = vec!["root".to_string()];
         campaign.branches = vec![root_branch()];
@@ -1085,12 +1189,17 @@ mod tests {
         campaign.expected_episode_ids.push(" ".to_string());
         campaign.expected_branch_ids.push("".to_string());
         campaign.branches[0].expected_actor_ids.push("".to_string());
-        campaign.branches[0].expected_random_event_ids.push(" ".to_string());
+        campaign.branches[0]
+            .expected_random_event_ids
+            .push(" ".to_string());
         let report = validate_campaign(&campaign);
         assert!(has(&report, Finding::EmptyIdentity("expected_episode_id")));
         assert!(has(&report, Finding::EmptyIdentity("expected_branch_id")));
         assert!(has(&report, Finding::EmptyIdentity("expected_actor_id")));
-        assert!(has(&report, Finding::EmptyIdentity("expected_random_event_id")));
+        assert!(has(
+            &report,
+            Finding::EmptyIdentity("expected_random_event_id")
+        ));
     }
 
     #[test]
