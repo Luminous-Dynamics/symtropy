@@ -7,6 +7,15 @@
   "required": [
     "schema_version",
     "campaign_id",
+    "model_id",
+    "model_status",
+    "model_revision",
+    "checkpoint_sha256",
+    "hardware_id",
+    "inference_precision",
+    "power_profile",
+    "energy_measurement_method",
+    "policy_visible_inputs",
     "benchmark_revision",
     "evaluator_revision",
     "clock_id",
@@ -60,6 +69,63 @@
     },
     "fault_schedule_visible_to_policy": {
       "type": "boolean"
+    },
+    "model_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "model_status": {
+      "enum": [
+        "trained_policy",
+        "untrained_input_bridge",
+        "synthetic_reference"
+      ]
+    },
+    "model_revision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "checkpoint_sha256": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/sha256"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "hardware_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "inference_precision": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "power_profile": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "energy_measurement_method": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "policy_visible_inputs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 128
+      }
     }
   },
   "$defs": {
@@ -279,6 +345,33 @@
     "fault_schedule_visible_to_policy must be false; this is a declared control and does not authenticate the policy's actual observations.",
     "Every expected tick has measured decision latency and inference energy; null/missing telemetry is rejected by the auditor and cannot count toward recovery.",
     "Clean-control ticks must be clean, accepted, and remain in normal mode with no degraded, fallback or safe-stop state.",
-    "Each non-clean fault condition in the faulted trace must be covered by a declared active fault event."
+    "Each non-clean fault condition in the faulted trace must be covered by a declared active fault event.",
+    "A trained_policy campaign requires the exact checkpoint SHA-256; untrained input-bridge fixtures must declare their model_status and may use checkpoint_sha256=null.",
+    "hardware_id, inference_precision, power_profile and energy_measurement_method are required to interpret energy/latency values.",
+    "policy_visible_inputs must exactly enumerate the model's declared inputs; the evaluator does not authenticate the runtime input wiring."
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "model_status": {
+            "const": "trained_policy"
+          }
+        },
+        "required": [
+          "model_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "checkpoint_sha256": {
+            "$ref": "#/$defs/sha256"
+          }
+        },
+        "required": [
+          "checkpoint_sha256"
+        ]
+      }
+    }
   ]
 }
