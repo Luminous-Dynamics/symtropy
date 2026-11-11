@@ -63,6 +63,80 @@ fn sensor_timebase_qualified(sensor:&Value,domain:&Value,profile:&Value,evidence
         && uncertainty<=maximum && hex64(digest)
         && domain["qualification_state"]=="qualified"
 }
+
+fn validate_clock_qualification(input:&Value,clock:&Value,clock_sha256:&str)->Check<()>{
+    let p="$.clock_qualification";
+    allowed_keys(clock,&["schema_version","qualification_id","evidence_class","timebase_id","clock_domain",
+        "declared_timestamp_uncertainty_ms","layout_maximum_timestamp_uncertainty_ms","uncertainty_source",
+        "mapping_method","hardware_clock_measurements_present","claim_ceiling"],p)?;
+    if txt(clock,"schema_version",p)?!="0.1.0"{return Err(err("CLOCK_SCHEMA_VERSION",p,"expected schema 0.1.0"));}
+    if !hex64(clock_sha256){return Err(err("CLOCK_FILE_SHA256","$.execution.clock_qualification_sha256","expected lowercase SHA-256"));}
+    let qual_id=txt(clock,"qualification_id",p)?;
+    let tb_id=txt(clock,"timebase_id",p)?;
+    let clock_domain=txt(clock,"clock_domain",p)?;
+    let evidence_class=txt(input,"evidence_class","$")?;
+    if txt(clock,"evidence_class",p)?!=evidence_class{return Err(err("CLOCK_EVIDENCE_CLASS_MISMATCH",p,"clock and case evidence classes differ"));}
+    if txt(&input["operating_domain"],"measurement_timebase_id","$.operating_domain")?!=tb_id{
+        return Err(err("CLOCK_TIMEBASE_ID_MISMATCH",p,"clock timebase differs from operating domain"));
+    }
+    let domain_max=input["operating_domain"]["maximum_timestamp_uncertainty_ms"].as_f64()
+        .filter(|x|x.is_finite()&&*x>=0.0).ok_or_else(||err("DOMAIN_TIMEBASE_LIMIT","$.operating_domain.maximum_timestamp_uncertainty_ms","invalid bound"))?;
+    let profile_max=input["layout_profile"]["maximum_timestamp_uncertainty_ms"].as_f64()
+        .filter(|x|x.is_finite()&&*x>=0.0).ok_or_else(||err("PROFILE_TIMEBASE_LIMIT","$.layout_profile.maximum_timestamp_uncertainty_ms","invalid bound"))?;
+    let clock_max=clock["layout_maximum_timestamp_uncertainty_ms"].as_f64()
+        .filter(|x|x.is_finite()&&*x>=0.0).ok_or_else(||err("CLOCK_LAYOUT_LIMIT",p,"invalid bound"))?;
+    let declared=clock["declared_timestamp_uncertainty_ms"].as_f64()
+        .filter(|x|x.is_finite()&&*x>=0.0).ok_or_else(||err("CLOCK_DECLARED_UNCERTAINTY",p,"invalid bound"))?;
+    if (domain_max-profile_max).abs()>1e-9||(profile_max-clock_max).abs()>1e-9{
+        return Err(err("TIMEBASE_LIMIT_MISMATCH",p,"operating-domain, layout-profile and clock-artifact maxima must match"));
+    }
+    let hardware=boolean(clock,"hardware_clock_measurements_present",p)?;
+    let uncertainty_source=txt(clock,"uncertainty_source",p)?;
+    let mapping_method=txt(clock,"mapping_method",p)?;
+    let _=txt(clock,"claim_ceiling",p)?;
+    let synthetic=evidence_class=="SYNTHETIC_CONFORMANCE_FIXTURE";
+    if synthetic{
+        if uncertainty_source!="synthetic_fixture"||mapping_method!="identity_mapping_within_one_declared_synthetic_clock_domain"||hardware{
+            return Err(err("SYNTHETIC_CLOCK_CLAIM_MISMATCH",p,"synthetic clock must declare identity mapping and no hardware measurements"));
+        }
+    }else{
+        if uncertainty_source=="synthetic_fixture"||mapping_method=="identity_mapping_within_one_declared_synthetic_clock_domain"{
+            return Err(err("MEASURED_CLOCK_CLAIM_MISMATCH",p,"measured case cannot use synthetic clock semantics"));
+        }
+        if !matches!(uncertainty_source,"measured_offset_bound"|"instrument_specification"|"vendor_specification"){
+            return Err(err("MEASURED_CLOCK_UNCERTAINTY_SOURCE",p,"unsupported measured clock uncertainty source"));
+        }
+        if uncertainty_source=="measured_offset_bound"&&!hardware{
+            return Err(err("CLOCK_MEASUREMENT_MISSING",p,"measured offset bound requires recorded hardware clock measurements"));
+        }
+    }
+    let mut installed=0usize;
+    for (i,sensor) in input["sensors"].as_array().ok_or_else(||err("SENSOR_INVENTORY","$.sensors","expected array"))?.iter().enumerate(){
+        if sensor["installed"]!=true{continue;}
+        installed+=1;
+        let at=format!("$.sensors[{i}]");
+        if txt(sensor,"timebase_id",&at)?!=tb_id||txt(sensor,"timebase_qualification_artifact_id",&at)?!=qual_id
+            ||txt(sensor,"timebase_qualification_sha256",&at)?!=clock_sha256
+            ||txt(sensor,"timestamp_uncertainty_source",&at)?!=uncertainty_source{
+            return Err(err("CLOCK_ARTIFACT_SENSOR_BINDING",&at,"sensor does not bind the exact clock qualification artifact"));
+        }
+        let state=txt(sensor,"timebase_qualification_state",&at)?;
+        if (synthetic&&state!="synthetic_conformance")||(!synthetic&&state!="qualified"){
+            return Err(err("CLOCK_SENSOR_QUALIFICATION_STATE",&at,"sensor qualification state differs from artifact class"));
+        }
+        let uncertainty=sensor["timestamp_uncertainty_ms"].as_f64().filter(|x|x.is_finite()&&*x>=0.0)
+            .ok_or_else(||err("CLOCK_SENSOR_UNCERTAINTY",&at,"installed sensor needs finite timestamp uncertainty"))?;
+        if uncertainty+1e-9<declared||uncertainty-profile_max>1e-9{
+            return Err(err("CLOCK_SENSOR_UNCERTAINTY_RANGE",&at,"sensor uncertainty must be between common-timebase uncertainty and layout maximum"));
+        }
+        if synthetic&&txt(sensor,"clock_domain",&at)?!=clock_domain{
+            return Err(err("SYNTHETIC_CLOCK_DOMAIN_MISMATCH",&at,"identity mapping requires the declared synthetic clock domain"));
+        }
+    }
+    if installed==0{return Err(err("NO_INSTALLED_CLOCKED_SENSORS","$.sensors","at least one installed sensor must bind the common timebase"));}
+    Ok(())
+}
+
 fn validate_input(input:&Value)->Check<()>{
     if !input.is_object(){return Err(err("EXPECTED_OBJECT","$","case must be an object"));}
     allowed_keys(input,&["schema_version","assessment_id","generated_at","evidence_class","asset","operating_domain","evidence_digests","layout_profile","sensors","states","required_fault_pairs","responses","common_cause_scenarios","claim_ceiling"],"$")?;
@@ -86,12 +160,10 @@ fn validate_input(input:&Value)->Check<()>{
     }
     let digests=&input["evidence_digests"];
     allowed_keys(digests,&["sensor_topology_sha256","fault_model_sha256","evaluator_sha256","dataset_sha256","split_manifest_sha256","model_sha256"],"$.evidence_digests")?;
-    for k in ["sensor_topology_sha256","fault_model_sha256","evaluator_sha256"]{
-        if !hex64(txt(digests,k,"$.evidence_digests")?){return Err(err("EVIDENCE_SHA256",&format!("$.evidence_digests.{k}"),"expected lowercase SHA-256"));}
-    }
-    for k in ["dataset_sha256","split_manifest_sha256","model_sha256"]{
-        if let Some(v)=digests.get(k).filter(|v|!v.is_null()){
-            if !v.as_str().is_some_and(hex64){return Err(err("OPTIONAL_SHA256",&format!("$.evidence_digests.{k}"),"expected null or lowercase SHA-256"));}
+    for k in ["sensor_topology_sha256","fault_model_sha256","evaluator_sha256","dataset_sha256","split_manifest_sha256","model_sha256"]{
+        if !digests.get(k).is_some_and(Value::is_null){
+            return Err(err("UNBOUND_EVIDENCE_DIGEST",&format!("$.evidence_digests.{k}"),
+                "v0.1 has no separate artifact bytes for this digest; keep it null rather than inventing a SHA-256"));
         }
     }
     let profile=&input["layout_profile"];
@@ -101,6 +173,11 @@ fn validate_input(input:&Value)->Check<()>{
         .ok_or_else(||err("INDEPENDENCE_THRESHOLD","$.layout_profile.minimum_independent_principles_for_critical_pairs","must be positive"))?;
     if profile["maximum_timestamp_uncertainty_ms"].as_f64().is_none_or(|x|!x.is_finite()||x<0.0){
         return Err(err("PROFILE_TIMEBASE_LIMIT","$.layout_profile.maximum_timestamp_uncertainty_ms","must be a finite non-negative millisecond bound"));
+    }
+    let domain_max=regime["maximum_timestamp_uncertainty_ms"].as_f64().unwrap();
+    let profile_max=profile["maximum_timestamp_uncertainty_ms"].as_f64().unwrap();
+    if (domain_max-profile_max).abs()>1e-9{
+        return Err(err("TIMEBASE_LIMIT_MISMATCH","$.operating_domain.maximum_timestamp_uncertainty_ms","operating-domain and layout-profile bounds must match"));
     }
     let sensors=array(input,"sensors","$")?;
     if sensors.is_empty(){return Err(err("EMPTY_SENSOR_INVENTORY","$.sensors","at least one sensor required"));}
@@ -391,16 +468,34 @@ fn signature_evidence(input:&Value,fault_id:&str)->Vec<Value>{
         "artifact_id":artifact,"sha256":sha,"evidence_role":role,"channel_ids":channels.into_iter().collect::<Vec<_>>()
     })).collect()
 }
-fn fault_assessments(input:&Value,report:&EvaluationReport)->Vec<Value>{
+
+fn maximal_ambiguity_cliques(adjacency:&BTreeMap<String,BTreeSet<String>>)->Vec<Vec<String>>{
+    fn visit(current:&mut BTreeSet<String>,mut possible:BTreeSet<String>,mut excluded:BTreeSet<String>,
+        adjacency:&BTreeMap<String,BTreeSet<String>>,output:&mut Vec<Vec<String>>){
+        if possible.is_empty()&&excluded.is_empty(){if current.len()>1{output.push(current.iter().cloned().collect());}return;}
+        let pivot=possible.union(&excluded).cloned().max_by_key(|node|adjacency.get(node).map(|n|possible.intersection(n).count()).unwrap_or(0));
+        let empty=BTreeSet::new();
+        let neighbors=pivot.as_ref().and_then(|node|adjacency.get(node)).unwrap_or(&empty);
+        let candidates:Vec<String>=possible.difference(neighbors).cloned().collect();
+        for node in candidates{
+            let n=adjacency.get(&node).cloned().unwrap_or_default();
+            current.insert(node.clone());
+            visit(current,possible.intersection(&n).cloned().collect(),excluded.intersection(&n).cloned().collect(),adjacency,output);
+            current.remove(&node);possible.remove(&node);excluded.insert(node);
+        }
+    }
+    let mut out=Vec::new();
+    visit(&mut BTreeSet::new(),adjacency.keys().cloned().collect(),BTreeSet::new(),adjacency,&mut out);
+    out.sort();out.dedup();out
+}
+fn fault_assessments(input:&Value,report:&EvaluationReport)->(Vec<Value>,Vec<Value>){
     let reference=input["layout_profile"]["reference_state_id"].as_str().unwrap();
     let states=input["states"].as_array().unwrap();
-    let in_domain:Vec<&str>=states.iter()
-        .filter(|s|s["state_class"]!="OUT_OF_DOMAIN"&&s["state_id"]!=reference)
+    let in_domain:Vec<&str>=states.iter().filter(|s|s["state_class"]!="OUT_OF_DOMAIN"&&s["state_id"]!=reference)
         .map(|s|s["state_id"].as_str().unwrap()).collect();
-    let mut detectable=BTreeSet::new();
-    for fault in &in_domain{
-        if pair_status(report,reference,fault)==Some("IDENTIFIABLE"){detectable.insert((*fault).to_owned());}
-    }
+    let detectable:BTreeSet<String>=in_domain.iter().copied()
+        .filter(|fault|pair_status(report,reference,fault)==Some("IDENTIFIABLE"))
+        .map(str::to_owned).collect();
     let mut adjacency:BTreeMap<String,BTreeSet<String>>=BTreeMap::new();
     for pair in &report.pair_results{
         if pair.status=="NOT_IDENTIFIABLE"&&detectable.contains(&pair.state_a_id)&&detectable.contains(&pair.state_b_id){
@@ -408,62 +503,57 @@ fn fault_assessments(input:&Value,report:&EvaluationReport)->Vec<Value>{
             adjacency.entry(pair.state_b_id.clone()).or_default().insert(pair.state_a_id.clone());
         }
     }
-    let mut visited=BTreeSet::new();let mut components:Vec<Vec<String>>=Vec::new();
-    for node in adjacency.keys(){
-        if visited.contains(node){continue;}
-        let mut stack=vec![node.clone()];let mut component=BTreeSet::new();
-        while let Some(current)=stack.pop(){
-            if !visited.insert(current.clone()){continue;}
-            component.insert(current.clone());
-            if let Some(neighbors)=adjacency.get(&current){for neighbor in neighbors{if !visited.contains(neighbor){stack.push(neighbor.clone());}}}
-        }
-        if component.len()>1{components.push(component.into_iter().collect());}
-    }
-    components.sort();
-    let mut component_for:BTreeMap<String,(String,Vec<String>)>=BTreeMap::new();
-    for (index,component) in components.into_iter().enumerate(){
+    // Pairwise ambiguity is not transitive: maximal cliques retain overlapping
+    // ambiguity sets without merging a non-transitive chain.
+    let cliques=maximal_ambiguity_cliques(&adjacency);
+    let mut memberships:BTreeMap<String,Vec<String>>=BTreeMap::new();
+    let mut candidates:BTreeMap<String,BTreeSet<String>>=BTreeMap::new();
+    let mut classes_out=Vec::new();
+    for (index,clique) in cliques.iter().enumerate(){
         let class_id=format!("AMBIGUITY_CLASS_{:04}",index+1);
-        for fault in &component{component_for.insert(fault.clone(),(class_id.clone(),component.clone()));}
+        let mut pairs=Vec::new();
+        for i in 0..clique.len(){for j in (i+1)..clique.len(){
+            pairs.push(json!({"fault_a":clique[i],"fault_b":clique[j],"state":"non_isolable"}));
+        }}
+        classes_out.push(json!({"ambiguity_class_id":class_id,"candidate_fault_ids":clique,"pairwise_non_isolable_pairs":pairs}));
+        for fault in clique{
+            memberships.entry(fault.clone()).or_default().push(class_id.clone());
+            candidates.entry(fault.clone()).or_default().extend(clique.iter().cloned());
+        }
     }
-    states.iter().filter(|state|state["state_id"]!=reference).map(|state|{
+    for ids in memberships.values_mut(){ids.sort();}
+    let fault_out=states.iter().filter(|state|state["state_id"]!=reference).map(|state|{
         let id=state["state_id"].as_str().unwrap();
         let class=state["state_class"].as_str().unwrap();
-        let component=component_for.get(id);
-        let baseline_status=pair_status(report,reference,id);
-        let regime_qualification=input["operating_domain"]["qualification_state"].as_str().unwrap_or("not_evaluated");
-        let disposition=if class=="OUT_OF_DOMAIN"||regime_qualification=="unsupported"{
-            "unsupported_regime"
-        }else if regime_qualification!="qualified"{
-            "not_evaluated"
-        }else if let Some((_,_))=component{
-            "ambiguity_class"
-        }else{
-            match baseline_status{
+        let classes=memberships.get(id).cloned().unwrap_or_default();
+        let baseline=pair_status(report,reference,id);
+        let qualification=input["operating_domain"]["qualification_state"].as_str().unwrap_or("not_evaluated");
+        let disposition=if class=="OUT_OF_DOMAIN"||qualification=="unsupported"{"unsupported_regime"}
+            else if qualification!="qualified"{"not_evaluated"}
+            else if !classes.is_empty(){"ambiguity_class"}
+            else{match baseline{
                 None|Some("INSUFFICIENT_EVIDENCE")=>"not_evaluated",
                 Some("NOT_IDENTIFIABLE")=>"unobservable",
                 Some("IDENTIFIABLE")=>{
-                    let other_faults:Vec<&str>=in_domain.iter().copied().filter(|other|*other!=id).collect();
-                    let mut unresolved=false;let mut ambiguous=false;
-                    for other in other_faults{
+                    let mut unresolved=false;let mut indistinguishable=false;
+                    for other in in_domain.iter().copied().filter(|x|*x!=id){
                         match pair_status(report,id,other){
-                            Some("NOT_IDENTIFIABLE")=>ambiguous=true,
+                            Some("NOT_IDENTIFIABLE")=>indistinguishable=true,
                             Some("INSUFFICIENT_EVIDENCE")|None=>unresolved=true,
                             _=>{}
                         }
                     }
-                    if ambiguous{"detectable_not_isolable"}else if unresolved{"not_evaluated"}else{"observable_and_isolable"}
-                }
-                _=>"not_evaluated"
-            }
-        };
-        let (ambiguity_id,candidates)=component.map(|(class,ids)|(json!(class),ids.clone())).unwrap_or((Value::Null,Vec::new()));
-        json!({
-            "fault_id":id,"state":disposition,"ambiguity_class_id":ambiguity_id,
-            "candidate_fault_ids":candidates,"signature_evidence":signature_evidence(input,id),
-            "review_state":"human_review_required"
-        })
-    }).collect()
+                    if indistinguishable{"detectable_not_isolable"}else if unresolved{"not_evaluated"}else{"observable_and_isolable"}
+                },_=>"not_evaluated"
+            }};
+        let one=if classes.len()==1{json!(classes[0])}else{Value::Null};
+        let candidates=candidates.get(id).map(|x|x.iter().cloned().collect::<Vec<_>>()).unwrap_or_default();
+        json!({"fault_id":id,"state":disposition,"ambiguity_class_id":one,"ambiguity_class_ids":classes,
+            "candidate_fault_ids":candidates,"signature_evidence":signature_evidence(input,id),"review_state":"human_review_required"})
+    }).collect();
+    (fault_out,classes_out)
 }
+
 fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
     let asset=&input["asset"];let domain=&input["operating_domain"];let digests=&input["evidence_digests"];
     let sensors:Vec<Value>=input["sensors"].as_array().unwrap().iter().map(|s|json!({
@@ -484,13 +574,14 @@ fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
     let timebase_qualified_count=input["sensors"].as_array().unwrap().iter()
         .filter(|s|s["installed"]==true&&sensor_timebase_qualified(s,domain,profile,evidence_class)).count();
     let installed_count=input["sensors"].as_array().unwrap().iter().filter(|s|s["installed"]==true).count();
+    let (fault_report,ambiguity_report)=fault_assessments(input,base);
     let metric=|id:&str,value:usize|json!({"metric_id":id,"value":value,"unit":"count","stratum":stratum,"sample_count":0});
     json!({
         "schema_version":"0.1.0","assessment_id":input["assessment_id"],"generated_at":input["generated_at"],
         "asset":{"asset_id":asset["asset_id"],"asset_class":asset["asset_class"],"vessel_id":asset["vessel_id"],"engine_id":asset["engine_id"],"configuration_revision":asset["configuration_revision"],"configuration_sha256":asset["configuration_sha256"]},
         "operating_domain":{"regime_id":domain["regime_id"],"description":domain["description"],"qualification_state":domain["qualification_state"],"load_percent":domain["load_percent"],"speed_rpm":domain["speed_rpm"],"transient_state":domain["transient_state"],"measurement_timebase_id":domain["measurement_timebase_id"],"maximum_timestamp_uncertainty_ms":profile["maximum_timestamp_uncertainty_ms"]},
         "evidence_digests":{"sensor_topology_sha256":digests["sensor_topology_sha256"],"fault_model_sha256":digests["fault_model_sha256"],"evaluator_sha256":digests["evaluator_sha256"],"dataset_sha256":digests["dataset_sha256"],"split_manifest_sha256":digests["split_manifest_sha256"],"model_sha256":digests["model_sha256"]},
-        "sensor_inventory":sensors,"fault_assessments":fault_assessments(input,base),"pair_assessments":pair_assessments(input,base),"sensor_loss_scenarios":scenarios,
+        "sensor_inventory":sensors,"fault_assessments":fault_report,"ambiguity_classes":ambiguity_report,"pair_assessments":pair_assessments(input,base),"sensor_loss_scenarios":scenarios,
         "metrics":[metric("installed_sensor_count",base.channel_count),metric("independent_evidence_group_count",base.independence_group_count),
             metric("state_hypothesis_count",base.state_count),metric("required_fault_pair_count",base.required_pair_count),
             metric("identifiable_fault_pair_count",base.identifiable_pair_count),metric("non_identifiable_fault_pair_count",base.not_identifiable_pair_count),
@@ -502,8 +593,9 @@ fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
     })
 }
 
-pub fn evaluate_maritime_case(input:&Value)->Check<Value>{
+pub fn evaluate_maritime_case(input:&Value,clock:&Value,clock_sha256:&str)->Check<Value>{
     validate_input(input)?;
+    validate_clock_qualification(input,clock,clock_sha256)?;
     let empty_sensors=BTreeSet::new();
     let empty_dependencies=BTreeSet::new();
     let (base_case,parent)=make_parent_and_case(input,&empty_sensors,&empty_dependencies)?;
@@ -530,13 +622,14 @@ pub fn evaluate_maritime_case(input:&Value)->Check<Value>{
     Ok(make_report(input,&base,scenarios))
 }
 
-pub fn evaluate_and_bind_execution(input:&Value,source_commit:&str,case_sha256:&str)->Check<Value>{
+pub fn evaluate_and_bind_execution(input:&Value,clock:&Value,source_commit:&str,case_sha256:&str,clock_sha256:&str)->Check<Value>{
     if source_commit.len()!=40||!source_commit.bytes().all(|b|b.is_ascii_digit()||(b'a'..=b'f').contains(&b)){
         return Err(err("INVALID_SOURCE_COMMIT","$.execution.source_commit","expected lowercase 40-hex commit"));
     }
     if !hex64(case_sha256){return Err(err("INVALID_CASE_DIGEST","$.execution.case_sha256","expected lowercase SHA-256"));}
-    let mut report=evaluate_maritime_case(input)?;
-    report["execution"]=json!({"source_commit":source_commit,"case_sha256":case_sha256});
+    let mut report=evaluate_maritime_case(input,clock,clock_sha256)?;
+    report["execution"]=json!({"source_commit":source_commit,"case_sha256":case_sha256,
+        "clock_qualification_id":clock["qualification_id"],"clock_qualification_sha256":clock_sha256,"timebase_id":clock["timebase_id"]});
     Ok(report)
 }
 
@@ -546,23 +639,28 @@ mod tests{
     fn fixture()->Value{
         serde_json::from_str(include_str!("../../../../benchmarks/maritime-observability/maritime-observability-case-v0.1.json")).expect("fixture JSON")
     }
+    fn clock_fixture()->Value{
+        serde_json::from_str(include_str!("../../../../benchmarks/maritime-observability/synthetic-clock-qualification-v0.1.json")).expect("clock fixture JSON")
+    }
+    fn clock_sha()->&'static str{"b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"}
+    fn eval(input:&Value)->Check<Value>{evaluate_maritime_case(input,&clock_fixture(),clock_sha())}
     #[test]
     fn synthetic_maritime_case_maps_to_generic_evaluator(){
-        let r=evaluate_maritime_case(&fixture()).expect("adapter evaluates");
+        let r=eval(&fixture()).expect("adapter evaluates");
         assert_eq!(r["pair_assessments"].as_array().unwrap().len(),11);
         assert_eq!(r["fault_assessments"].as_array().unwrap().len(),5);
         assert_eq!(r["authority_boundary"]["actuation"],false);
     }
     #[test]
     fn gateway_loss_recomputes_and_withdraws_pair_isolability(){
-        let r=evaluate_maritime_case(&fixture()).expect("adapter evaluates");
+        let r=eval(&fixture()).expect("adapter evaluates");
         assert_eq!(r["sensor_loss_scenarios"][0]["assessment_state"],"recomputed");
         assert!(!r["sensor_loss_scenarios"][0]["lost_isolability_pairs"].as_array().unwrap().is_empty());
     }
     #[test]
     fn expired_exhaust_temperature_calibration_removes_only_its_supported_pair(){
         let mut c=fixture();c["sensors"][2]["calibration_state"]=json!("expired");
-        let r=evaluate_maritime_case(&c).expect("abstention is a valid report");
+        let r=eval(&c).expect("abstention is a valid report");
         let p=r["pair_assessments"].as_array().unwrap().iter().find(|p|p["fault_a"]=="ENGINE_NORMAL_STEADY"&&p["fault_b"]=="ENGINE_COOLING_RESTRICTION").unwrap();
         assert_ne!(p["state"],"isolable");
     }
@@ -570,13 +668,13 @@ mod tests{
     fn derived_signal_is_not_promoted_to_independent_measurement(){
         let mut c=fixture();c["sensors"][0]["source_role"]=json!("derived");
         c["sensors"][0]["derived_from_channel_ids"]=json!(["shaft-speed"]);
-        let r=evaluate_maritime_case(&c).expect("derived channel remains non-independent");
+        let r=eval(&c).expect("derived channel remains non-independent");
         let p=r["pair_assessments"].as_array().unwrap().iter().find(|p|p["fault_a"]=="ENGINE_NORMAL_STEADY"&&p["fault_b"]=="ENGINE_FUEL_INJECTION_FAULT").unwrap();
         assert!(!p["evidence_refs"].as_array().unwrap().iter().any(|e|e["channel_ids"][0]=="fuel-rail-pressure"));
     }
     #[test]
     fn per_fault_output_distinguishes_detection_from_isolation_and_preserves_ambiguity(){
-        let r=evaluate_maritime_case(&fixture()).unwrap();
+        let r=eval(&fixture()).unwrap();
         let assessments=r["fault_assessments"].as_array().unwrap();
         let find=|id:&str|assessments.iter().find(|x|x["fault_id"]==id).unwrap();
         assert_eq!(find("ENGINE_FUEL_INJECTION_FAULT")["state"],"observable_and_isolable");
@@ -593,16 +691,16 @@ mod tests{
         for response in c["responses"].as_array_mut().unwrap().iter_mut().filter(|r|r["state_id"]=="ENGINE_FUEL_INJECTION_FAULT"){
             response["evidence_role"]=json!("MODEL_ESTIMATE");
         }
-        let r=evaluate_maritime_case(&c).unwrap();
+        let r=eval(&c).unwrap();
         let p=r["pair_assessments"].as_array().unwrap().iter().find(|p|p["fault_a"]=="ENGINE_NORMAL_STEADY"&&p["fault_b"]=="ENGINE_FUEL_INJECTION_FAULT").unwrap();
         assert_eq!(p["state"],"not_evaluated");
     }
     #[test]
     fn unknown_fields_and_duplicate_response_ids_fail_closed(){
         let mut c=fixture();c["responses"][0]["unreviewed_override"]=json!(true);
-        assert!(evaluate_maritime_case(&c).is_err());
+        assert!(eval(&c).is_err());
         c=fixture();c["responses"][1]["response_id"]=c["responses"][0]["response_id"].clone();
-        assert!(evaluate_maritime_case(&c).is_err());
+        assert!(eval(&c).is_err());
     }
     #[test]
     fn reversed_duplicate_fault_pair_is_rejected(){
@@ -611,16 +709,16 @@ mod tests{
         let a=duplicate["fault_a"].clone();duplicate["fault_a"]=duplicate["fault_b"].clone();duplicate["fault_b"]=a;
         duplicate["pair_id"]=json!("reversed-duplicate");
         c["required_fault_pairs"].as_array_mut().unwrap().push(duplicate);
-        assert!(evaluate_maritime_case(&c).is_err());
+        assert!(eval(&c).is_err());
     }
     #[test]
     fn required_pair_matrix_must_cover_fault_isolation_not_only_normal_detection(){
         let mut c=fixture();c["required_fault_pairs"].as_array_mut().unwrap().pop();
-        assert!(evaluate_maritime_case(&c).is_err());
+        assert!(eval(&c).is_err());
     }
     #[test]
     fn report_preserves_configuration_and_authority_boundary(){
-        let r=evaluate_maritime_case(&fixture()).unwrap();
+        let r=eval(&fixture()).unwrap();
         assert_eq!(r["asset"]["configuration_revision"],"engine-r1");
         assert_eq!(r["authority_boundary"]["read_only"],true);
         assert_eq!(r["authority_boundary"]["maintenance_authorization"],false);
@@ -629,8 +727,8 @@ mod tests{
     #[test]
     fn exact_execution_bindings_are_required(){
         let c=fixture();
-        assert!(evaluate_and_bind_execution(&c,&"d".repeat(40),&"e".repeat(64)).is_ok());
-        assert!(evaluate_and_bind_execution(&c,"not-a-commit",&"e".repeat(64)).is_err());
+        assert!(evaluate_and_bind_execution(&c,&clock_fixture(),&"d".repeat(40),&"e".repeat(64),clock_sha()).is_ok());
+        assert!(evaluate_and_bind_execution(&c,&clock_fixture(),"not-a-commit",&"e".repeat(64),clock_sha()).is_err());
     }
     #[test]
     fn unqualified_sensor_timebase_is_excluded_from_physical_evidence(){
@@ -639,7 +737,7 @@ mod tests{
         c["sensors"][0]["timebase_qualification_sha256"]=Value::Null;
         c["sensors"][0]["timebase_qualification_artifact_id"]=Value::Null;
         c["sensors"][0]["timestamp_uncertainty_ms"]=Value::Null;
-        let r=evaluate_maritime_case(&c).unwrap();
+        let r=eval(&c).unwrap();
         assert_eq!(r["metrics"].as_array().unwrap().iter()
             .find(|m|m["metric_id"]=="timebase_unqualified_installed_sensor_count").unwrap()["value"],1);
         assert!(!r["pair_assessments"].as_array().unwrap().iter()
@@ -650,7 +748,7 @@ mod tests{
     fn uncertainty_above_declared_layout_bound_is_not_qualified(){
         let mut c=fixture();
         c["sensors"][0]["timestamp_uncertainty_ms"]=json!(6.0);
-        let r=evaluate_maritime_case(&c).unwrap();
+        let r=eval(&c).unwrap();
         assert_eq!(r["metrics"].as_array().unwrap().iter()
             .find(|m|m["metric_id"]=="timebase_unqualified_installed_sensor_count").unwrap()["value"],1);
         assert!(!r["pair_assessments"].as_array().unwrap().iter()
@@ -660,7 +758,7 @@ mod tests{
     #[test]
     fn unqualified_operating_domain_does_not_emit_fault_diagnoses(){
         let mut c=fixture();c["operating_domain"]["qualification_state"]=json!("not_evaluated");
-        let r=evaluate_maritime_case(&c).unwrap();
+        let r=eval(&c).unwrap();
         for fault in r["fault_assessments"].as_array().unwrap(){
             if fault["fault_id"]!="ENGINE_UNKNOWN_OUT_OF_DOMAIN" {
                 assert_eq!(fault["state"],"not_evaluated");
@@ -672,13 +770,58 @@ mod tests{
     fn model_estimate_role_is_preserved_in_report_not_renamed_simulation(){
         let mut c=fixture();
         c["responses"][0]["evidence_role"]=json!("MODEL_ESTIMATE");
-        let r=evaluate_maritime_case(&c).unwrap();
+        let r=eval(&c).unwrap();
         let fault=r["fault_assessments"].as_array().unwrap().iter().find(|f|f["fault_id"]=="ENGINE_NORMAL_STEADY").unwrap();
         assert!(fault["signature_evidence"].as_array().unwrap()
             .iter().any(|e|e["evidence_role"]=="model_estimate"));
     }
+
+    #[test]
+    fn clock_artifact_semantics_and_hash_must_match_every_installed_sensor(){
+        let c=fixture();let mut clock=clock_fixture();
+        clock["timebase_id"]=json!("other-timebase");
+        assert!(evaluate_maritime_case(&c,&clock,clock_sha()).is_err());
+        clock=clock_fixture();clock["layout_maximum_timestamp_uncertainty_ms"]=json!(10);
+        assert!(evaluate_maritime_case(&c,&clock,clock_sha()).is_err());
+        clock=clock_fixture();assert!(evaluate_maritime_case(&c,&clock,&"f".repeat(64)).is_err());
+    }
+    #[test]
+    fn synthetic_identity_mapping_requires_one_declared_clock_domain(){
+        let mut c=fixture();c["sensors"][1]["clock_domain"]=json!("different-sensor-clock");
+        assert!(eval(&c).is_err());
+    }
+    #[test]
+    fn operating_and_layout_uncertainty_limits_cannot_diverge(){
+        let mut c=fixture();c["operating_domain"]["maximum_timestamp_uncertainty_ms"]=json!(10);
+        assert!(eval(&c).is_err());
+    }
+    #[test]
+    fn ambiguity_sets_are_pairwise_cliques_not_connected_components(){
+        let mut c=fixture();
+        let ranges=[
+            ("ENGINE_NORMAL_STEADY",10.0,11.0),
+            ("ENGINE_TURBOCHARGER_DEGRADATION",0.0,2.0),
+            ("ENGINE_FUEL_INJECTION_FAULT",1.0,3.0),
+            ("ENGINE_COOLING_RESTRICTION",2.5,4.0)
+        ];
+        for response in c["responses"].as_array_mut().unwrap(){
+            if let Some((_,lo,hi))=ranges.iter().find(|(id,_,_)|response["state_id"]==*id){
+                response["value_lower"]=json!(lo);response["value_upper"]=json!(hi);
+            }
+        }
+        let report=eval(&c).unwrap();
+        let classes=report["ambiguity_classes"].as_array().unwrap();
+        assert_eq!(classes.len(),2);
+        assert!(classes.iter().all(|class|class["candidate_fault_ids"].as_array().unwrap().len()==2));
+        let faults=report["fault_assessments"].as_array().unwrap();
+        let get=|id:&str|faults.iter().find(|fault|fault["fault_id"]==id).unwrap();
+        assert_eq!(get("ENGINE_FUEL_INJECTION_FAULT")["ambiguity_class_ids"].as_array().unwrap().len(),2);
+        assert!(get("ENGINE_FUEL_INJECTION_FAULT")["ambiguity_class_id"].is_null());
+        assert!(!get("ENGINE_TURBOCHARGER_DEGRADATION")["candidate_fault_ids"].as_array().unwrap().contains(&json!("ENGINE_COOLING_RESTRICTION")));
+        assert!(!get("ENGINE_COOLING_RESTRICTION")["candidate_fault_ids"].as_array().unwrap().contains(&json!("ENGINE_TURBOCHARGER_DEGRADATION")));
+    }
     #[test]
     fn same_input_is_deterministic(){
-        let c=fixture();assert_eq!(evaluate_maritime_case(&c).unwrap(),evaluate_maritime_case(&c).unwrap());
+        let c=fixture();assert_eq!(eval(&c).unwrap(),eval(&c).unwrap());
     }
 }
