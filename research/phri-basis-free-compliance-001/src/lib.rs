@@ -429,6 +429,11 @@ pub struct BasisFreeRateOptimizationReceipt {
     pub passivity_residual_w: f64,
     pub passivity_slack_w: f64,
     pub passivity_complementarity_residual: f64,
+    pub scalar_stationarity_residual: f64,
+    pub scalar_complementarity_residual: f64,
+    pub matrix_stationarity_residual: f64,
+    pub cone_dual_minimum_eigenvalue: f64,
+    pub cone_complementarity_residual: f64,
     pub epsilon_rate_lower_bound: f64,
     pub stiffness_barrier_matrix: Symmetric3,
     pub minimum_stiffness_barrier_eigenvalue: f64,
@@ -1004,8 +1009,87 @@ pub fn optimize_basis_free_compliance_rate(
     }
     let passivity_complementarity_residual =
         (multiplier * independent.passivity_lhs_w).abs();
+
+    // Reconstruct the cone KKT multiplier in whitened coordinates:
+    // Y = w_K * (X - ProjInput), with Y >= 0 and
+    // <Y, X + kappa_K I> = 0 at the exact projection.
+    let rank_one_scale = multiplier / (2.0 * request.stiffness_rate_weight);
+    let mut projection_input = stiffness_reference;
+    for row in 0..3 {
+        for column in 0..3 {
+            projection_input[row][column] -= rank_one_scale * z[row] * z[column];
+        }
+    }
+    let mut cone_dual = candidate.whitened_stiffness_rate;
+    for row in 0..3 {
+        for column in 0..3 {
+            cone_dual[row][column] =
+                request.stiffness_rate_weight
+                    * (candidate.whitened_stiffness_rate[row][column]
+                        - projection_input[row][column]);
+        }
+    }
+    let (cone_dual_eigenvalues, _) = symmetric_eigen_3(cone_dual)?;
+    let cone_dual_minimum_eigenvalue = cone_dual_eigenvalues
+        .into_iter()
+        .fold(f64::INFINITY, f64::min);
+    let cone_dual_scale = dense_max_abs(cone_dual);
+    if cone_dual_minimum_eigenvalue < -request.matrix_tolerance * cone_dual_scale {
+        return Err(BasisFreeOptimizerError::IndependentPostCheckFailed);
+    }
+
+    let mut shifted_cone_primal = candidate.whitened_stiffness_rate;
+    for axis in 0..3 {
+        shifted_cone_primal[axis][axis] -= stiffness_lower_eigenvalue;
+    }
+    let cone_complementarity_matrix = multiply_dense3(shifted_cone_primal, cone_dual);
+    let cone_complementarity_residual = cone_complementarity_matrix
+        .iter()
+        .flatten()
+        .map(|value| value * value)
+        .sum::<f64>()
+        .sqrt();
+
+    let scalar_gradient = request.epsilon_rate_weight
+        * (candidate.epsilon_rate - request.epsilon_rate_reference)
+        + multiplier * a;
+    let scalar_scale = 1.0 + epsilon_lower.abs() + candidate.epsilon_rate.abs();
+    let scalar_active =
+        candidate.epsilon_rate - epsilon_lower <= 32.0 * f64::EPSILON * scalar_scale;
+    let scalar_dual = if scalar_active {
+        scalar_gradient.max(0.0)
+    } else {
+        0.0
+    };
+    let scalar_stationarity_residual = (scalar_gradient - scalar_dual).abs();
+    let scalar_complementarity_residual =
+        (scalar_dual * (candidate.epsilon_rate - epsilon_lower)).abs();
+
+    let mut matrix_stationarity = [[0.0; 3]; 3];
+    for row in 0..3 {
+        for column in 0..3 {
+            matrix_stationarity[row][column] =
+                request.stiffness_rate_weight
+                    * (candidate.whitened_stiffness_rate[row][column]
+                        - stiffness_reference[row][column])
+                    + 0.5 * multiplier * z[row] * z[column]
+                    - cone_dual[row][column];
+        }
+    }
+    let matrix_stationarity_residual = matrix_stationarity
+        .iter()
+        .flatten()
+        .map(|value| value * value)
+        .sum::<f64>()
+        .sqrt();
+
     if !minimum_stiffness_barrier_eigenvalue.is_finite()
         || !passivity_complementarity_residual.is_finite()
+        || !scalar_stationarity_residual.is_finite()
+        || !scalar_complementarity_residual.is_finite()
+        || !matrix_stationarity_residual.is_finite()
+        || !cone_dual_minimum_eigenvalue.is_finite()
+        || !cone_complementarity_residual.is_finite()
     {
         return Err(BasisFreeOptimizerError::ArithmeticOverflow);
     }
@@ -1017,6 +1101,11 @@ pub fn optimize_basis_free_compliance_rate(
         passivity_residual_w: independent.passivity_lhs_w,
         passivity_slack_w: independent.passivity_slack_w,
         passivity_complementarity_residual,
+        scalar_stationarity_residual,
+        scalar_complementarity_residual,
+        matrix_stationarity_residual,
+        cone_dual_minimum_eigenvalue,
+        cone_complementarity_residual,
         epsilon_rate_lower_bound: epsilon_lower,
         stiffness_barrier_matrix: independent.stiffness_barrier_matrix,
         minimum_stiffness_barrier_eigenvalue,
