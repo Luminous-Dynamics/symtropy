@@ -67,7 +67,7 @@ The dependency-free Rust auditor then checks:
 - pinned per-experiment and per-dataset-size failure counts;
 - deterministic aggregate CSV summary.
 
-The auditor does not recompute TV from state-level distributions: the upstream result JSON stores only aggregate ATV/WTV, not the complete per-state distributions. An independent re-computation of TV requires additional state-level output from the upstream runner. This is recorded as an evidence limitation, not approximated.
+The auditor does not recompute TV from state-level distributions: the upstream result JSON stores only aggregate ATV/WTV, not the complete per-state distributions. It can therefore verify the finite aggregate values and compare them with policy value, but cannot independently regenerate the statewise TV calculation. An independent re-computation of TV requires additional state-level output from the upstream runner. This is recorded as an evidence limitation, not approximated.
 
 ## Run locally
 
@@ -112,6 +112,33 @@ Each individual manifest includes its own seed, model/pattern, training budget, 
 The exact producer code was inspected and pinned. `experiments/PPO_baseline.jl` declares `RUNS = 0`, `N_FRAMES = 1` and `SEED = 1500` at this commit. Its unmodified execution therefore generates no PPO training runs and cannot generate the stacked records with `n_frames = 149`. The training implementation exists in `src/PPO.jl` (`train_PPO_agent` and `sample_ppo_hparams`), and the shared frame-stacking module exists, but the pinned experiment tree contains no dedicated stacked-PPO experiment entrypoint. The artifact normalizer now verifies exact Git blob IDs for the producer implementation, frame-stacking module, logger, missingness model and Julia project, and asserts the disabled producer state.
 
 The result JSON files themselves record the seed, hyperparameters, training steps, evaluation episode count and aggregate return mean/std, but they do not record the generating source commit, environment-lock digest, raw episode returns or an immutable run receipt. Thus the 242 files are **pinned result artifacts**, not a fully reproducible baseline run matrix. The checked-in baseline entrypoint is not sufficient to regenerate them. A faithful reproduction requires a versioned, executable runner with non-zero run count, explicit stacked configuration, source/environment digests, seed schedule, raw evaluation episode outputs and an independently checked run manifest.
+
+## Policy-value / observation-fit analysis (per-cell, not pooled)
+
+The adapter also emits a separate 150-row per-cell summary (five experiment bundles × ten dataset sizes × three assumed missingness classes). It reports completed/exception counts, the distribution of successful per-seed policy returns, average TV, average worst-state TV, and a within-bundle normalized policy value:
+
+`(candidate mean return - random policy mean) / (SARSOP true-M mean - random policy mean)`
+
+The normalization anchors are taken from the corresponding result bundle. It is descriptive and conditional on completed runs; it is not a confidence interval, and the summary retains the number of exception rows in every cell. ICU and Predator scores are not pooled.
+
+A few source-derived examples illustrate why both axes are needed:
+
+| Bundle / sample size / assumed mechanism | Finished | Normalized policy value | Mean average TV | Mean worst-state TV |
+|---|---:|---:|---:|---:|
+| ICU simple MAR / 10 / MAR | 9 of 20 | 0.9306 | 0.4383 | 0.7683 |
+| ICU simple MAR / 10,000,000 / MAR | 20 of 20 | 0.9986 | 0.00067 | 0.00160 |
+| ICU identifiable MNAR / 10,000,000 / MNAR (AIMI) | 20 of 20 | 0.9977 | 0.00252 | 0.01333 |
+| Predator unidentifiable MNAR / 10,000,000 / MNAR (AIMI) | 20 of 20 | 0.9093 | 0.8273 | 0.9525 |
+
+The Predator unidentifiable-MNAR example is particularly instructive: the normalized policy value remains around 0.91, while the learned observation function is still very far from the true function (average/worst-state TV around 0.83/0.95). A policy-value-only leaderboard would hide this failure. Conversely, the ICU simple-MAR low-sample cell's value is calculated over only 9 successful runs; it must not be read as a 20-run estimate.
+
+These statistics are recomputed from the pinned run rows and baseline anchors. They are not independently reproduced upstream plots, and they do not include confidence intervals or independent coverage/power analysis. The audit output and tests preserve all failed rows.
+
+To generate the per-cell table after normalizing the upstream artifacts:
+
+```bash
+cargo run --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- --policy-summary /tmp/miss-mdp.tsv
+```
 
 ## Next step beyond the paper
 
