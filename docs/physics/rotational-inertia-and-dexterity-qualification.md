@@ -103,6 +103,53 @@ The differentiator should be **capability with attribution and evidence**:
 - unknown outcomes or stale mass properties stop qualification rather than silently downgrading the claim;
 - component-level tests predict application-level performance and quantify where the prediction fails.
 
+### F. General-purpose humanoid qualification
+
+A humanoid must be benchmarked as an integrated body, not as a hand attached to a walking demo. Use the emerging **NIST Humanoid Robot Baseline Performance Benchmark** to establish a low-footprint comparison for locomotion, manipulation/dexterity, coordinated loco-manipulation, confined-space whole-body control, and basic scene/task reasoning. NIST describes this as a benchmark under development and is seeking industry/research participation; it is not yet a mature public leaderboard.
+
+Use the **Fraunhofer IPA six-module humanoid benchmark** as the industrial-readiness counterpart:
+1. Technologies and basic capabilities: sensors, AI models, grippers, walking speed, grip force and manageable loads.
+2. Complex capabilities: stairs, obstacle navigation, movement/force precision and reaction time.
+3. Cleanroom suitability: particle emission, outgassing and cleanability (ISO 14644).
+4. Functional safety: stability, collision-force limitation, obstacle detection and fault response.
+5. Cybersecurity: vulnerability management, secure lifecycle, network security and penetration resistance.
+6. Energy efficiency: runtime and energy consumption at standstill, walking, incline and loaded walking.
+
+Fraunhofer reports an initial Unitree G1 EDU-4 evaluation with the Dex3-1 hand: 2 h 49 min maximum operation while standing and 1 h 49 min in a typical mixed standing/walking scenario. Its report also describes collision forces exceeding 500 N in tested conditions and a Bluetooth vulnerability in the evaluated software version that has since been resolved. Treat those figures as a specific test/configuration result, not a universal property of every G1 or firmware release. The key lesson is that stability, collision behaviour, cybersecurity and energy must be measured under named conditions.
+
+Public manufacturer specifications are useful context but must be confirmed under common fixtures:
+- Boston Dynamics' 2026 Atlas specification lists 1.9 m height, 90 kg mass, 56 DoF, tactile fingers/palm, 360-degree camera view, 4 h battery life (2 h with heavy lifting) and autonomous battery swap in 3 min.
+- Figure's official Figure 03 page lists 1.73 m height, 61 kg mass, 20 kg payload, 5 h runtime and 1.2 m/s speed. Payload and runtime conditions need to be measured together rather than interpreted as simultaneous maximum-load endurance.
+
+Humanoid programme targets (aspirational, not current results):
+- **Capability:** 100% completion of the selected NIST baseline tasks under declared operating conditions; report task-level reliability, completion time and recovery rate, not only best-run success.
+- **Whole-body manipulation:** 90%+ completion over a pre-registered loco-manipulation suite with randomized object poses, friction, lighting and moderate terrain changes; publish failures and confidence intervals.
+- **Physical safety:** no breach of application-specific force/pressure/energy envelopes during the declared human-contact test set; characterize worst-case impact, trapping, pinch, unexpected restart and power-loss behaviour.
+- **Resilience:** safe stop and bounded safe state under sensor loss, actuator fault, network loss, clock drift, low battery, localization uncertainty and adversarial command injection. Safe functions must not depend on a remote model or cloud service.
+- **Cybersecurity:** zero known unresolved critical/high exploitable issues at release; signed firmware, measured boot, update rollback protection, component SBOM, vulnerability disclosure and reproducible patch provenance.
+- **Operational endurance:** publish Wh/task, Wh/km, Wh/kg payload-hour, thermal derating, charge/swap time, availability, recovery interventions and maintenance minutes per operating hour.
+- **Repairability:** hot-swappable modules where appropriate, configuration/serial traceability, calibrated post-repair acceptance tests and an auditable service history.
+- **Human compatibility:** test predictable approach, non-threatening motion profiles, personal-space compliance, explicit consent before touch, clear stop/withdrawal cues and non-coercive interaction. A robot should not infer consent from silence or conversational compliance.
+
+The "diplomatic" property should be a measurable interaction contract: minimize force and surprise, create space, communicate intended actions, accept refusal, defer to human agency, and fail safe under ambiguity. Do not optimize social persuasiveness or task completion at the expense of consent and safety.
+
+### G. Resilience and safety assurance
+
+Treat the safety controller as an independent authority boundary, not a policy prompt. The high-level planner may propose actions; a deterministic safety supervisor checks contact force, speed, stability, workspace, thermal, battery, human proximity and actuator health before motion is permitted. On uncertainty, stale state, missing sensors or untrusted commands, it blocks new hazardous actuation and enters the prequalified safe state.
+
+For industrial humanoid applications, track **ISO 10218-1:2025 and ISO 10218-2:2025** as the current industrial robot and application/cell safety standards. For service/personal-care humanoids, **ISO/FDIS 13482 (Edition 2, 2026)** is in the approval stage and is intended to replace ISO 13482:2014; it is not yet safe to cite the final draft as a published standard. For external limb prostheses/orthoses, track ISO 22523:2006 and its replacement ISO/FDIS 22523 separately. Standards applicability depends on use case; industrial, service and medical applications have different scopes.
+
+The engineering digital thread should link each robot configuration to:
+- geometry revision and mass-property source;
+- actuator, gearbox, bearing, sensor, battery and material lots;
+- firmware/model hashes and signed configuration;
+- calibration, inspection and service events;
+- simulation model and calibration residuals;
+- safety requirements, hazards, controls and independent test reports;
+- benchmark conditions, raw telemetry, uncertainty and result digests.
+
+No benchmark score substitutes for hazard analysis, system integration validation, independent safety assessment or regulatory obligations.
+
 ## Execution status for this branch
 
 Implemented in the research branch:
@@ -125,6 +172,13 @@ Queued, skipped, cancelled or failed CI is not a pass. Publish exact commit and 
 
 ## References
 
+- NIST Humanoid Robot Baseline Performance Benchmark: https://www.nist.gov/el/intelligent-systems-division-73500/humanoid-robot-baseline-performance-benchmark
+- Fraunhofer IPA humanoid benchmark: https://www.ipa.fraunhofer.de/en/press-media/press_releases/benchmark-for-humanoid-robots.html
+- Boston Dynamics Atlas specifications: https://bostondynamics.com/wp-content/uploads/2026/01/atlas-spec-sheet.pdf
+- Figure 03 official specifications: https://www.figure.ai/figure
+- ISO 10218-1:2025: https://www.iso.org/standard/73933.html
+- ISO 10218-2:2025: https://www.iso.org/standard/73934.html
+- ISO/FDIS 13482: https://committee.iso.org/standard/83498.html
 - POMDAR (IEEE RA-L, Nov 2026): https://doi.org/10.1109/LRA.2026.3735899
 - POMDAR benchmark site: https://srl-ethz.github.io/POMDAR/
 - HAND ERC multi-level benchmarks: https://hand-erc.github.io/benchmarking/benchmarks.html
