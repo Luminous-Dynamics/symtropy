@@ -413,8 +413,9 @@ impl VicsekModel {
         // pairwise neighbour count when normalizing the local mean heading vector.
         let local_orders: Vec<f64> = (0..count)
             .map(|index| {
-                local_sum_cos[index].hypot(local_sum_sin[index])
-                    / (neighbor_counts[index] + 1) as f64
+                (local_sum_cos[index].hypot(local_sum_sin[index])
+                    / (neighbor_counts[index] + 1) as f64)
+                    .clamp(0.0, 1.0)
             })
             .collect();
         let mean_local_polar_order =
