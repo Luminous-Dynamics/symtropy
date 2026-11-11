@@ -1,0 +1,36 @@
+name: Kerr rustfmt source export
+
+on:
+  push:
+    branches:
+      - research/kerr-horizon-event-localization-v0.1
+    paths:
+      - "crates/domains/symtropy-relativity/src/**"
+      - ".github/workflows/kerr-rustfmt-export.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  format-export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Apply rustfmt to relativity crate
+        run: cargo fmt --manifest-path crates/domains/symtropy-relativity/Cargo.toml
+      - name: Export formatted Kerr source files
+        uses: actions/upload-artifact@v4
+        with:
+          name: kerr-rustfmt-source
+          path: |
+            crates/domains/symtropy-relativity/src/kerr_events.rs
+            crates/domains/symtropy-relativity/src/kerr_geodesic.rs
+            crates/domains/symtropy-relativity/src/kerr_integrator.rs
+            crates/domains/symtropy-relativity/src/lib.rs
+          if-no-files-found: error
+          retention-days: 2
