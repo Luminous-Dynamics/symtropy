@@ -780,6 +780,37 @@ fn budget_differences(baseline: &ResultCard, candidate: &ResultCard) -> Vec<Stri
         (Some(left), Some(right)) if (left - right).abs() <= 1e-9 => {}
         _ => differences.push("training_energy_kwh_unmatched_or_unreported".to_string()),
     }
+    for (field, left_present, right_present) in [
+        (
+            "trainable_parameters_unreported",
+            baseline.model.trainable_parameters.is_some(),
+            candidate.model.trainable_parameters.is_some(),
+        ),
+        (
+            "inference_energy_unreported",
+            baseline.compute.inference_energy_joules_per_frame.is_some(),
+            candidate.compute.inference_energy_joules_per_frame.is_some(),
+        ),
+        (
+            "inference_p99_latency_unreported",
+            baseline.compute.inference_p99_ms.is_some(),
+            candidate.compute.inference_p99_ms.is_some(),
+        ),
+        (
+            "peak_memory_unreported",
+            baseline.compute.peak_memory_bytes.is_some(),
+            candidate.compute.peak_memory_bytes.is_some(),
+        ),
+        (
+            "deadline_miss_rate_unreported",
+            baseline.compute.deadline_miss_rate.is_some(),
+            candidate.compute.deadline_miss_rate.is_some(),
+        ),
+    ] {
+        if !left_present || !right_present {
+            differences.push(field.to_string());
+        }
+    }
     if baseline.compute.hardware_id != candidate.compute.hardware_id {
         differences.push("inference_hardware_id".to_string());
     }
@@ -1100,6 +1131,29 @@ mod tests {
         assert!(comparison
             .budget_differences
             .contains(&"simulator_transitions".to_string()));
+    }
+
+    #[test]
+    fn missing_inference_resource_measurements_prevent_matched_label() {
+        let mut baseline = card("baseline", 90.0, None, None, None);
+        let mut candidate = card("candidate", 91.0, None, None, None);
+        baseline.compute.deadline_miss_rate = None;
+        candidate.compute.deadline_miss_rate = None;
+        let comparison = compare_metric(
+            &baseline,
+            &candidate,
+            "driving_score",
+            MetricDirection::HigherIsBetter,
+        ).unwrap();
+        assert_eq!(comparison.class, ComparisonClass::CapabilityFrontierOnly);
+        for expected in [
+            "inference_energy_unreported",
+            "inference_p99_latency_unreported",
+            "peak_memory_unreported",
+            "deadline_miss_rate_unreported",
+        ] {
+            assert!(comparison.budget_differences.iter().any(|item| item == expected));
+        }
     }
 
     #[test]
