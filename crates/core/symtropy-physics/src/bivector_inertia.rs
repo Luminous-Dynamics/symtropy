@@ -270,15 +270,14 @@ impl<const D: usize> BivectorInertia<D> {
         &self.second_moment
     }
 
-    /// Map Symtropy's stored angular state B to the stored-sign angular
-    /// momentum L = B*S + S*B = -H_phys. Rotor::from_bivector(B) integrates
-    /// exp(-B), so the associated physical point velocity is -B*r and the
-    /// physical spatial angular momentum is H_phys = -L.
-    ///
-    /// The output uses the same lexicographic (i,j), i<j plane ordering as
-    /// Bivector<D>. This map is symmetric and positive semidefinite when S
-    /// is a physically valid centered mass second-moment matrix. Pass the
-    /// stored RigidBody.angular_velocity directly; do not negate it here.
+    /// Map Symtropy's stored angular state B to physical angular momentum:
+    /// `L = B*S + S*B`, where `S` is the centered second-moment matrix.
+    /// The antisymmetric matrix representation of `L` is the negative of the
+    /// conventional cross-product matrix, while its lexicographic bivector
+    /// coordinates `(i,j), i<j` map to the physical axial angular-momentum
+    /// vector. This mirrors the Rotor convention `exp(-B)` and point velocity
+    /// `-B*r`. Pass the stored `RigidBody.angular_velocity` directly; do not
+    /// negate it here.
     pub fn angular_momentum(
         &self,
         angular_velocity: &Bivector<D>,
@@ -423,13 +422,14 @@ impl<const D: usize> BivectorInertia<D> {
     /// spatial angular-momentum bivector is represented in this stored basis
     /// by L = I(B) = B*S + S*B. Differentiating this expression gives:
     ///
-    ///   I(dot(B)) = [B, L] - torque_accumulator
-    ///   dot(L) = -torque_accumulator
+    ///   I(dot(B)) = [B, L] + torque_accumulator
+    ///   dot(L) = torque_accumulator
     ///
-    /// `torque_accumulator` is the physical torque's skew-matrix
-    /// representation built by the impulse-first wedge convention. Since
-    /// `L=I(B)` is the negative of physical spatial angular momentum in the
-    /// stored-B convention, its derivative enters with a negative sign.
+    /// `torque_accumulator` is the physical torque in the stored-bivector
+    /// convention, built by the offset-first `r wedge j` impulse rule from
+    /// #4619. Its matrix representation is the negative of the conventional
+    /// cross-product matrix, just like the matrix representation of the
+    /// physical angular-momentum bivector.
     /// The supplied inertia, B, and torque must all be expressed in the same
     /// coordinate frame. For spatial/world-frame state, rotate body-space
     /// mass moments with `rotated_by` before evaluating this method.
@@ -594,7 +594,7 @@ mod tests {
         omega.set(0, 1, 1.0); // rotation about axis 2: moment 1 + 2
         omega.set(0, 2, 2.0); // rotation about axis 1: moment 1 + 4
         omega.set(1, 2, -1.0); // rotation about axis 0: moment 2 + 4
-        let momentum = inertia.angular_momentum(&omega);
+        let momentum = inertia.angular_momentum(&omega).unwrap();
 
         assert!((momentum.get(0, 1) - 3.0).abs() < 1e-12);
         assert!((momentum.get(0, 2) - 10.0).abs() < 1e-12);
@@ -608,7 +608,7 @@ mod tests {
             SMatrix::<f64, 3, 3>::new(2.0, 0.25, 0.0, 0.25, 3.0, 0.0, 0.0, 0.0, 4.0);
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let omega = Bivector::<3>::unit_plane(0, 2);
-        let momentum = inertia.angular_momentum(&omega);
+        let momentum = inertia.angular_momentum(&omega).unwrap();
 
         assert!((momentum.get(0, 2) - 6.0).abs() < 1e-12);
         assert!((momentum.get(1, 2) - 0.25).abs() < 1e-12);
@@ -656,7 +656,7 @@ mod tests {
             BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.5, 0.9, 0.4))
                 .unwrap();
         let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.71);
-        let world_inertia = body_inertia.rotated_by(&rotation);
+        let world_inertia = body_inertia.rotated_by(&rotation).unwrap();
 
         let mut b_body = Bivector::<3>::zero();
         b_body.set(0, 1, 0.8);
@@ -821,7 +821,7 @@ mod tests {
         omega.set(0, 2, -1.2);
         omega.set(1, 2, 0.35);
 
-        let momentum = inertia.angular_momentum(&omega);
+        let momentum = inertia.angular_momentum(&omega).unwrap();
         let recovered = inertia
             .angular_velocity_from_momentum(&momentum, 1e-12)
             .unwrap();
