@@ -523,6 +523,45 @@ mod tests {
     }
 
     #[test]
+    fn metadata_protocol_and_file_manifest_schema_are_frozen_separately() {
+        let protocol: serde_json::Value = serde_json::from_str(include_str!(
+            "../external-marine-engine-dataset-v0.1.json"
+        ))
+        .unwrap();
+        let schema: serde_json::Value = serde_json::from_str(include_str!(
+            "../external-dataset-file-manifest.schema.json"
+        ))
+        .unwrap();
+        assert_eq!(
+            protocol["schema_version"],
+            "symtropy-marine-external-dataset-track-v0.1"
+        );
+        assert_eq!(protocol["status"], "metadata_audited_archive_not_audited");
+        assert_eq!(protocol["dataset"]["doi"], MARINE_DATASET_DOI);
+        assert_eq!(protocol["dataset"]["license"], "CC-BY-4.0");
+        assert_eq!(protocol["dataset"]["files"]["csv_count"], 16);
+        assert_eq!(protocol["dataset"]["files"]["baseline_reference_files"], 1);
+        assert_eq!(protocol["dataset"]["files"]["fault_scenario_files"], 15);
+        assert_eq!(protocol["fault_scenarios"].as_array().unwrap().len(), 5);
+        assert!(protocol["research_targets_not_achieved"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|target| target["status"] == "aspirational"));
+        assert_eq!(
+            schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
+        );
+        assert_eq!(schema["properties"]["files"]["minItems"], 16);
+        assert_eq!(schema["properties"]["files"]["maxItems"], 16);
+        assert_eq!(schema["properties"]["files"]["items"]["properties"]["header_rows"]["const"], 3);
+        assert_eq!(
+            schema["properties"]["files"]["items"]["properties"]["recorded_column_count"]["enum"],
+            serde_json::json!([70, 73])
+        );
+    }
+
+    #[test]
     fn valid_file_manifest_replays_expected_inventory_and_missingness() {
         let result = manifest().validate().unwrap();
         assert_eq!(result.file_count, 16);
