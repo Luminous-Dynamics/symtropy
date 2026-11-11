@@ -165,6 +165,27 @@ The benchmark's nearest published reference is not a generic industrial vendor m
 
 A 2026 survey of 26 industrial CPS/ICS anomaly-detection studies defines nine deployability criteria and reports that detection accuracy is evaluated far more consistently than other real-world deployment criteria. This supports a wider scorecard here: streaming latency and bounded memory, missing-data behaviour, OOD and calibration, failure recovery, auditability, data/asset integration, authority boundaries and maintenance workflow—not accuracy alone. [Deployability survey](https://doi.org/10.1007/s10207-026-01330-1).
 
+## Published same-benchmark reference: six 2024 solutions (paper published 2025)
+
+The baseline tournament now contains six named methods from Jung et al., [A fault diagnosis benchmark of technical systems with incomplete data — six solutions](https://doi.org/10.1016/j.conengprac.2025.106427), Control Engineering Practice 164 (2025), article 106427. These were presented at the IFAC Safeprocess 2024 LiU-ICE challenge. The machine-readable source is [published-six-solution-baselines-v0.1.json](published-six-solution-baselines-v0.1.json).
+
+| Published solution | Method family | Historical mean 1−FAR | Historical TDR | Historical TIR |
+|---|---|---:|---:|---:|
+| 1 — CAREngine | Healthy-model residuals, adaptive bounds, EWMA, QDA detection, Nystroem/LSVC isolation | 92.2% | 87.3% | 50.1% |
+| 2 — RLS/open-set residuals | Four local RLS models, coefficient residual signatures, MSO/fault-sensitivity and open-set detectors | 100.0% | 83.1% | 85.5% |
+| 3 — distribution/KL matching | Gaussian window descriptors, KL similarity, historical distributions and unknown thresholds | 58.4% | 84.5% | 48.8% |
+| 4 — residual/ANFIS | Healthy model, residual limits, cumulative alarm-density confirmation, four ANFIS isolators | 99.9% | 97.2% | 68.0% |
+| 5 — CCDNN | Deep multi-view feature learning with canonical-correlation constraint and redundancy filtering | 30.5% | 87.4% | 37.2% |
+| 6 — VAE/SVM ensemble | VAE fault detection, VAE known-fault isolation, one-class SVM unknown signal | 36.2% | 78.6% | 42.3% |
+
+These published means show why optimizing accuracy alone is inadequate: solution 4 had the highest historical mean detection (97.2%) and 99.9% one-minus-FAR, while solution 2 had the highest historical top-ranked isolation (85.5%) but lower detection (83.1%). Solution 5's mean one-minus-FAR was only 30.5% despite an 87.4% TDR. They are reference points for reproduction, not performance claims for this codebase.
+
+**Metric and protocol warning.** The 2025 paper's historical TIR is the fraction of detected faults where the true class ranked highest. Current DX2026 FIA is the average probability assigned to the true diagnosis over correctly detected faulty samples. TIR is not current FIA and the published values cannot be converted to the current official total score. The 2025 comparison used its own challenge data release and evaluation protocol; the current DX2026 task has a defined Python streaming interface and current official metric. Reproduce the old paper protocol separately, then evaluate each faithful method again on the same current DX2026 data, split, sample interface and official scorer as new methods.
+
+The six baselines have separate IDs in the machine-readable tournament and separate family values in the run schema. The acceptance record must say `faithful_reproduction`, `reimplementation`, `unavailable_source_artifacts` or `not_started`; do not describe an approximation as a reproduction. Recovery is required for each method's feature selection, channel use, preprocessing, model architecture, threshold/window settings, training/calibration split, online update order and compute. The paper's own observations are useful falsification leads: dynamic end-of-cycle residual false alarms, residual sensitivity overlap caused by feedback, poor generalization to held-out fault magnitudes, sensitivity to environmental ambient conditions, and VAE detector-to-isolator error propagation.
+
+The current DX2026 comparison uses the official sample-wise FAR/TDR/FIA/total score as its primary cross-team metric, plus event-level latency/false alarms, magnitude/cycle robustness, unknown-fault false-known and abstention, calibration, resource usage and streaming correctness. Only matched, current-protocol results can establish a SOTA comparison.
+
 ## Report beyond the leaderboard
 
 Every run should be serialized against [`benchmark-run-manifest.schema.json`](benchmark-run-manifest.schema.json). It binds dataset bytes and recording membership, split membership, comparator configuration, model artifact, evaluator revision, dependency lock, protocol/seed manifest, metric outputs and the independent-unit uncertainty method. A score without these bindings is not a qualified result.
