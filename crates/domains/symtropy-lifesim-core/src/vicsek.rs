@@ -18,7 +18,7 @@
 //! not a high-performance spatial-index implementation or an empirical animal-flocking
 //! model.
 
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::error::Error;
 use std::f64::consts::TAU;
 use std::fmt;
@@ -630,11 +630,25 @@ impl VicsekModel {
                 .collect(),
         };
 
+        // The periodic cell index prunes distant candidates but never changes the
+        // exact visibility predicate. Candidate indices are sorted before summation so
+        // floating-point accumulation order matches the brute-force reference.
+        let spatial_index = PeriodicNeighborIndex::new(
+            &neighbour_positions,
+            self.config.box_size,
+            self.config.interaction_radius,
+        );
+
         let mut next = Vec::with_capacity(previous.len());
         for (index, particle) in previous.iter().enumerate() {
             let mut sum_cos = 0.0;
             let mut sum_sin = 0.0;
-            for (neighbor_index, neighbor) in previous.iter().enumerate() {
+            let candidates = spatial_index.as_ref().map_or_else(
+                || (0..previous.len()).collect::<Vec<_>>(),
+                |grid| grid.candidates(neighbour_positions[index]),
+            );
+            for neighbor_index in candidates {
+                let neighbor = previous[neighbor_index];
                 let (neighbor_x, neighbor_y) = neighbour_positions[neighbor_index];
                 if neighbor_index == index
                     || self.perceives(
@@ -1106,6 +1120,89 @@ pub fn run_paired_heading_intervention(
         response_threshold: RESPONSE_THRESHOLD,
         steps: response_rows,
     })
+}
+
+/// Deterministic periodic cell index for candidate-neighbour pruning.
+///
+/// A cell is at least as wide as the interaction radius, so the 3×3 stencil around a
+/// focal cell contains every possible neighbour. Extra candidates are filtered by the
+/// exact minimum-image distance/visual-sector predicate. The cell map is sparse; for
+/// extremely small radii where the required grid would be unreasonable, construction
+/// returns None and the caller uses the all-pairs reference scan.
+#[derive(Debug, Clone)]
+struct PeriodicNeighborIndex {
+    cell_count: usize,
+    cell_width: f64,
+    buckets: HashMap<(usize, usize), Vec<usize>>,
+}
+
+impl PeriodicNeighborIndex {
+    const MAX_CELL_COUNT_PER_AXIS: usize = 1_000_000;
+
+    fn new(
+        positions: &[(f64, f64)],
+        box_size: f64,
+        interaction_radius: f64,
+    ) -> Option<Self> {
+        if interaction_radius <= 0.0 {
+            return None;
+        }
+        let ratio = (box_size / interaction_radius).floor().max(1.0);
+        if !ratio.is_finite() || ratio > Self::MAX_CELL_COUNT_PER_AXIS as f64 {
+            return None;
+        }
+        let cell_count = ratio as usize;
+        let cell_width = box_size / cell_count as f64;
+        if !cell_width.is_finite() || cell_width < interaction_radius {
+            return None;
+        }
+
+        let mut buckets: HashMap<(usize, usize), Vec<usize>> = HashMap::new();
+        for (index, &(x, y)) in positions.iter().enumerate() {
+            let cell = (
+                cell_coordinate(x, cell_width, cell_count),
+                cell_coordinate(y, cell_width, cell_count),
+            );
+            buckets.entry(cell).or_default().push(index);
+        }
+        Some(Self {
+            cell_count,
+            cell_width,
+            buckets,
+        })
+    }
+
+    fn candidates(&self, position: (f64, f64)) -> Vec<usize> {
+        let center_x = cell_coordinate(position.0, self.cell_width, self.cell_count) as isize;
+        let center_y = cell_coordinate(position.1, self.cell_width, self.cell_count) as isize;
+        let count = self.cell_count as isize;
+        let mut cells = Vec::with_capacity(9);
+        for offset_y in -1isize..=1 {
+            for offset_x in -1isize..=1 {
+                let cell = (
+                    (center_x + offset_x).rem_euclid(count) as usize,
+                    (center_y + offset_y).rem_euclid(count) as usize,
+                );
+                cells.push(cell);
+            }
+        }
+        cells.sort_unstable();
+        cells.dedup();
+
+        let mut candidates = Vec::new();
+        for cell in cells {
+            if let Some(indices) = self.buckets.get(&cell) {
+                candidates.extend(indices.iter().copied());
+            }
+        }
+        candidates.sort_unstable();
+        candidates.dedup();
+        candidates
+    }
+}
+
+fn cell_coordinate(position: f64, cell_width: f64, cell_count: usize) -> usize {
+    ((position / cell_width).floor() as usize).min(cell_count - 1)
 }
 
 fn periodic_displacement(
@@ -1920,6 +2017,138 @@ mod tests {
                 && metrics.connected_pair_fraction.is_none()
                 && metrics.largest_cluster_fraction.is_finite()
         }));
+    }
+
+    #[test]
+    fn periodic_cell_index_never_omits_brute_force_radius_neighbours() {
+        let fixtures = [
+            (10.0, 1.0, 100),
+            (10.0, 4.9, 50),
+            (10.0, 8.0, 20),
+            (10.0, 0.0, 20),
+            (10.0, 1.0e-12, 20),
+        ];
+        for (box_size, radius, count) in fixtures {
+            let mut rng = XorShift64::new(0xC311_1D3);
+            let positions: Vec<(f64, f64)> = (0..count)
+                .map(|_| (rng.next_unit() * box_size, rng.next_unit() * box_size))
+                .collect();
+            let index = PeriodicNeighborIndex::new(&positions, box_size, radius);
+            if let Some(index) = index {
+                for (focal, &position) in positions.iter().enumerate() {
+                    let candidates = index.candidates(position);
+                    assert!(candidates.windows(2).all(|pair| pair[0] < pair[1]));
+                    assert!(candidates.contains(&focal));
+                    for (target, &target_position) in positions.iter().enumerate() {
+                        let (dx, dy) = periodic_displacement(
+                            position.0,
+                            position.1,
+                            target_position.0,
+                            target_position.1,
+                            box_size,
+                        );
+                        if dx.hypot(dy) <= radius {
+                            assert!(
+                                candidates.binary_search(&target).is_ok(),
+                                "radius neighbour omitted: box={box_size} radius={radius} focal={focal} target={target}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn indexed_step_matches_brute_force_for_metric_and_visual_perception() {
+        let config = VicsekConfig {
+            box_size: 12.0,
+            interaction_radius: 2.5,
+            speed: 0.35,
+            dt: 1.0,
+            angular_noise_width_rad: 0.4,
+            update_rule: VicsekUpdateRule::NextPositionAlignment,
+        };
+        let particles: Vec<VicsekParticle> = (0..32)
+            .map(|index| VicsekParticle {
+                x: ((index * 7 % 31) as f64 / 31.0) * config.box_size,
+                y: ((index * 13 % 29) as f64 / 29.0) * config.box_size,
+                heading_rad: ((index * 17 % 37) as f64 / 37.0) * TAU,
+            })
+            .collect();
+        for perception in [
+            VicsekPerception::MetricRadius,
+            VicsekPerception::VisualSector {
+                half_aperture_rad: std::f64::consts::FRAC_PI_3,
+                offset_rad: std::f64::consts::PI,
+            },
+        ] {
+            let model = VicsekModel::new_with_perception(
+                particles.clone(),
+                config,
+                0xC311_1D3,
+                perception,
+            )
+            .unwrap();
+            let indexed = model.clone();
+            let mut expected = model.clone();
+            let mut actual = indexed.clone();
+
+            // Test-only all-pairs reference update preserving the same PRNG stream.
+            let previous = expected.particles.clone();
+            let distance = expected.config.speed * expected.config.dt;
+            let neighbour_positions: Vec<(f64, f64)> = match expected.config.update_rule {
+                VicsekUpdateRule::CurrentPositionAlignment => previous
+                    .iter()
+                    .map(|particle| (particle.x, particle.y))
+                    .collect(),
+                VicsekUpdateRule::NextPositionAlignment => previous
+                    .iter()
+                    .map(|particle| (
+                        add_periodic(particle.x, distance * particle.heading_rad.cos(), expected.config.box_size),
+                        add_periodic(particle.y, distance * particle.heading_rad.sin(), expected.config.box_size),
+                    ))
+                    .collect(),
+            };
+            let mut next = Vec::with_capacity(previous.len());
+            for (focal_index, focal) in previous.iter().enumerate() {
+                let mut sum_cos = 0.0;
+                let mut sum_sin = 0.0;
+                for (target_index, target) in previous.iter().enumerate() {
+                    if target_index == focal_index
+                        || expected.perceives(
+                            neighbour_positions[focal_index],
+                            focal.heading_rad,
+                            neighbour_positions[target_index],
+                        )
+                    {
+                        sum_cos += target.heading_rad.cos();
+                        sum_sin += target.heading_rad.sin();
+                    }
+                }
+                let alignment = if sum_cos.abs() <= f64::EPSILON && sum_sin.abs() <= f64::EPSILON {
+                    focal.heading_rad
+                } else {
+                    sum_sin.atan2(sum_cos)
+                };
+                let noise = expected.config.angular_noise_width_rad * (expected.rng.next_unit() - 0.5);
+                let heading = wrap_angle(alignment + noise);
+                let (x, y) = match expected.config.update_rule {
+                    VicsekUpdateRule::CurrentPositionAlignment => (
+                        add_periodic(focal.x, distance * heading.cos(), expected.config.box_size),
+                        add_periodic(focal.y, distance * heading.sin(), expected.config.box_size),
+                    ),
+                    VicsekUpdateRule::NextPositionAlignment => neighbour_positions[focal_index],
+                };
+                next.push(VicsekParticle { x, y, heading_rad: heading });
+            }
+            expected.particles = next;
+            expected.tick += 1;
+
+            actual.step().unwrap();
+            assert_eq!(actual.particles, expected.particles);
+            assert_eq!(actual.rng, expected.rng);
+        }
     }
 
     #[test]
