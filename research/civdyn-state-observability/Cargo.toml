@@ -11,3 +11,7 @@ name = "miss-mdp-audit"
 path = "src/main.rs"
 
 [dependencies]
+
+[[bin]]
+name = "miss-mdp-ppo-audit"
+path = "src/ppo_audit.rs"
