@@ -172,6 +172,63 @@ struct CorpusResult {
     passed: bool,
     claim_ceiling: String,
     cases: Vec<CaseResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    counterfactuals: Option<CounterfactualReport>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Copy, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+enum CounterfactualKind {
+    NuisanceInvariance,
+    PhysicalChangeSensitivity,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CounterfactualManifest {
+    schema_version: String,
+    claim_ceiling: String,
+    pairs: Vec<CounterfactualPair>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct CounterfactualPair {
+    pair_id: String,
+    kind: CounterfactualKind,
+    control_case_id: String,
+    treatment_case_id: String,
+    intervention_json_pointers: Vec<String>,
+    expected_control_disposition: String,
+    expected_control_reason_codes: Vec<String>,
+    expected_treatment_disposition: String,
+    expected_treatment_reason_codes: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct CounterfactualPairResult {
+    pair_id: String,
+    kind: CounterfactualKind,
+    control_case_id: String,
+    treatment_case_id: String,
+    intervention_json_pointers: Vec<String>,
+    control_disposition: String,
+    control_reason_codes: Vec<String>,
+    treatment_disposition: String,
+    treatment_reason_codes: Vec<String>,
+    matches_expected: bool,
+}
+
+#[derive(Debug, Serialize)]
+struct CounterfactualReport {
+    schema_version: String,
+    manifest_sha256: String,
+    pair_count: usize,
+    matched_pairs: usize,
+    mismatched_pairs: usize,
+    passed: bool,
+    claim_ceiling: String,
+    pairs: Vec<CounterfactualPairResult>,
 }
 
 fn is_sha256(value: &str) -> bool {
@@ -673,29 +730,310 @@ fn evaluate_corpus(bytes: &[u8]) -> Result<CorpusResult, Box<dyn Error>> {
         passed: mismatched_cases == 0,
         claim_ceiling: corpus.claim_ceiling,
         cases: results,
+        counterfactuals: None,
     })
 }
 
-fn parse_args() -> Result<PathBuf, Box<dyn Error>> {
+fn json_pointer_tokens(pointer: &str) -> Result<Vec<String>, String> {
+    if !pointer.starts_with('/') || pointer.ends_with('/') {
+        return Err(format!("invalid JSON pointer: {pointer}"));
+    }
+    let mut tokens = Vec::new();
+    for raw in pointer[1..].split('/') {
+        let mut decoded = String::new();
+        let mut chars = raw.chars();
+        while let Some(character) = chars.next() {
+            if character == '~' {
+                match chars.next() {
+                    Some('0') => decoded.push('~'),
+                    Some('1') => decoded.push('/'),
+                    _ => return Err(format!("invalid JSON pointer escape: {pointer}")),
+                }
+            } else {
+                decoded.push(character);
+            }
+        }
+        tokens.push(decoded);
+    }
+    if tokens.is_empty() || tokens.iter().any(String::is_empty) {
+        return Err(format!("empty JSON pointer token: {pointer}"));
+    }
+    Ok(tokens)
+}
+
+fn remove_json_pointer(value: &mut serde_json::Value, pointer: &str) -> Result<serde_json::Value, String> {
+    let tokens = json_pointer_tokens(pointer)?;
+    let (last, parents) = tokens
+        .split_last()
+        .ok_or_else(|| format!("empty JSON pointer: {pointer}"))?;
+    let mut parent = value;
+    for token in parents {
+        parent = match parent {
+            serde_json::Value::Object(map) => map
+                .get_mut(token)
+                .ok_or_else(|| format!("JSON pointer does not exist: {pointer}"))?,
+            serde_json::Value::Array(items) => {
+                let index = token
+                    .parse::<usize>()
+                    .map_err(|_| format!("invalid array index in JSON pointer: {pointer}"))?;
+                items
+                    .get_mut(index)
+                    .ok_or_else(|| format!("JSON pointer does not exist: {pointer}"))?
+            }
+            _ => return Err(format!("JSON pointer traverses a scalar: {pointer}")),
+        };
+    }
+    match parent {
+        serde_json::Value::Object(map) => map
+            .remove(last)
+            .ok_or_else(|| format!("JSON pointer does not exist: {pointer}")),
+        _ => Err(format!(
+            "counterfactual intervention must target an object field: {pointer}"
+        )),
+    }
+}
+
+fn evaluate_counterfactual_manifest(
+    corpus_bytes: &[u8],
+    manifest_bytes: &[u8],
+) -> Result<CounterfactualReport, Box<dyn Error>> {
+    let corpus: Corpus = serde_json::from_slice(corpus_bytes)?;
+    let corpus_value: serde_json::Value = serde_json::from_slice(corpus_bytes)?;
+    let manifest: CounterfactualManifest = serde_json::from_slice(manifest_bytes)?;
+    if manifest.schema_version != "0.1" || manifest.claim_ceiling.trim().is_empty() {
+        return Err("unsupported or incomplete counterfactual manifest identity".into());
+    }
+    if manifest.pairs.is_empty() || manifest.pairs.len() > 256 {
+        return Err("counterfactual manifest must contain 1..=256 pairs".into());
+    }
+
+    let raw_cases: BTreeMap<&str, &serde_json::Value> = corpus_value
+        .get("cases")
+        .and_then(serde_json::Value::as_array)
+        .ok_or("corpus cases array missing")?
+        .iter()
+        .map(|case| {
+            let id = case
+                .get("case_id")
+                .and_then(serde_json::Value::as_str)
+                .ok_or("case_id missing in raw corpus")?;
+            Ok((id, case))
+        })
+        .collect::<Result<_, Box<dyn Error>>>()?;
+    let typed_cases: BTreeMap<&str, &Case> = corpus
+        .cases
+        .iter()
+        .map(|case| (case.case_id.as_str(), case))
+        .collect();
+
+    let mut pair_ids: BTreeSet<String> = BTreeSet::new();
+    let mut treatment_ids: BTreeSet<String> = BTreeSet::new();
+    let mut pairs = manifest.pairs;
+    pairs.sort_by(|left, right| left.pair_id.cmp(&right.pair_id));
+    let mut results = Vec::with_capacity(pairs.len());
+
+    for pair in pairs {
+        if pair.pair_id.trim().is_empty() || !pair_ids.insert(pair.pair_id.clone()) {
+            return Err(format!("empty or duplicate counterfactual pair id: {}", pair.pair_id).into());
+        }
+        if pair.control_case_id == pair.treatment_case_id
+            || !treatment_ids.insert(pair.treatment_case_id.clone())
+        {
+            return Err(format!("counterfactual case reused or self-paired: {}", pair.pair_id).into());
+        }
+        if pair.intervention_json_pointers.is_empty() {
+            return Err(format!("counterfactual pair has no declared intervention: {}", pair.pair_id).into());
+        }
+        if pair.kind == CounterfactualKind::NuisanceInvariance
+            && pair.intervention_json_pointers.len() != 1
+        {
+            return Err(format!("nuisance pair must declare exactly one intervention: {}", pair.pair_id).into());
+        }
+        let mut unique_pointers = BTreeSet::new();
+        for pointer in &pair.intervention_json_pointers {
+            json_pointer_tokens(pointer)?;
+            if !unique_pointers.insert(pointer.as_str()) {
+                return Err(format!("duplicate intervention pointer in pair: {}", pair.pair_id).into());
+            }
+        }
+
+        let control_raw = raw_cases
+            .get(pair.control_case_id.as_str())
+            .ok_or_else(|| format!("unknown control case in pair {}", pair.pair_id))?;
+        let treatment_raw = raw_cases
+            .get(pair.treatment_case_id.as_str())
+            .ok_or_else(|| format!("unknown treatment case in pair {}", pair.pair_id))?;
+        let control = typed_cases
+            .get(pair.control_case_id.as_str())
+            .ok_or_else(|| format!("typed control case missing in pair {}", pair.pair_id))?;
+        let treatment = typed_cases
+            .get(pair.treatment_case_id.as_str())
+            .ok_or_else(|| format!("typed treatment case missing in pair {}", pair.pair_id))?;
+
+        if control.split_group_id != treatment.split_group_id {
+            return Err(format!("counterfactual pair crosses split groups: {}", pair.pair_id).into());
+        }
+        if control_raw.get("reference") != treatment_raw.get("reference") {
+            return Err(format!("counterfactual pair changes reference world: {}", pair.pair_id).into());
+        }
+
+        let mut control_candidate = control_raw
+            .get("candidate")
+            .cloned()
+            .ok_or_else(|| format!("control candidate missing in pair {}", pair.pair_id))?;
+        let mut treatment_candidate = treatment_raw
+            .get("candidate")
+            .cloned()
+            .ok_or_else(|| format!("treatment candidate missing in pair {}", pair.pair_id))?;
+        for pointer in &pair.intervention_json_pointers {
+            let control_value = remove_json_pointer(&mut control_candidate, pointer)?;
+            let treatment_value = remove_json_pointer(&mut treatment_candidate, pointer)?;
+            if control_value == treatment_value {
+                return Err(format!(
+                    "declared intervention is not different between pair cases: {} at {}",
+                    pair.pair_id, pointer
+                )
+                .into());
+            }
+        }
+        if control_candidate != treatment_candidate {
+            return Err(format!(
+                "pair candidates differ outside declared intervention pointer(s): {}",
+                pair.pair_id
+            )
+            .into());
+        }
+
+        let (control_disposition, control_reason_codes) = evaluate(control);
+        let (treatment_disposition, treatment_reason_codes) = evaluate(treatment);
+        match pair.kind {
+            CounterfactualKind::NuisanceInvariance => {
+                if !matches!(
+                    pair.expected_control_disposition.as_str(),
+                    "ADMIT_CANDIDATE_DELTA" | "NO_CHANGE_SUPPORTED"
+                ) {
+                    return Err(format!(
+                        "nuisance control must be either a qualified-change or no-change control: {}",
+                        pair.pair_id
+                    )
+                    .into());
+                }
+                if matches!(
+                    pair.expected_treatment_disposition.as_str(),
+                    "ADMIT_CANDIDATE_DELTA" | "REAL_CHANGE_CANDIDATE"
+                ) {
+                    return Err(format!(
+                        "nuisance treatment may not expect physical-change admission: {}",
+                        pair.pair_id
+                    )
+                    .into());
+                }
+                if matches!(
+                    treatment_disposition.as_str(),
+                    "ADMIT_CANDIDATE_DELTA" | "REAL_CHANGE_CANDIDATE"
+                ) {
+                    return Err(format!(
+                        "nuisance-only treatment yielded a physical-change admission: {}",
+                        pair.pair_id
+                    )
+                    .into());
+                }
+            }
+            CounterfactualKind::PhysicalChangeSensitivity => {
+                if pair.expected_control_disposition != "NO_CHANGE_SUPPORTED"
+                    || pair.expected_treatment_disposition != "ADMIT_CANDIDATE_DELTA"
+                {
+                    return Err(format!(
+                        "physical-change pair requires no-change control and qualified change treatment: {}",
+                        pair.pair_id
+                    )
+                    .into());
+                }
+                if control.survey_evidence.survey_product_status != EvidenceStatus::Qualified
+                    || treatment.survey_evidence.survey_product_status != EvidenceStatus::Qualified
+                    || control.survey_evidence.change_estimate.status != EvidenceStatus::Qualified
+                    || treatment.survey_evidence.change_estimate.status != EvidenceStatus::Qualified
+                    || control.survey_evidence.registration_stability != RegistrationStabilityStatus::Stable
+                    || treatment.survey_evidence.registration_stability != RegistrationStabilityStatus::Stable
+                {
+                    return Err(format!(
+                        "physical-change sensitivity pair requires qualified survey/change/registration evidence: {}",
+                        pair.pair_id
+                    )
+                    .into());
+                }
+            }
+        }
+
+        let matches_expected = control_disposition == pair.expected_control_disposition
+            && control_reason_codes == pair.expected_control_reason_codes
+            && treatment_disposition == pair.expected_treatment_disposition
+            && treatment_reason_codes == pair.expected_treatment_reason_codes
+            && control_disposition == control.expected.disposition
+            && control_reason_codes == control.expected.reason_codes
+            && treatment_disposition == treatment.expected.disposition
+            && treatment_reason_codes == treatment.expected.reason_codes;
+
+        results.push(CounterfactualPairResult {
+            pair_id: pair.pair_id,
+            kind: pair.kind,
+            control_case_id: pair.control_case_id,
+            treatment_case_id: pair.treatment_case_id,
+            intervention_json_pointers: pair.intervention_json_pointers,
+            control_disposition,
+            control_reason_codes,
+            treatment_disposition,
+            treatment_reason_codes,
+            matches_expected,
+        });
+    }
+
+    let matched_pairs = results.iter().filter(|pair| pair.matches_expected).count();
+    let mismatched_pairs = results.len() - matched_pairs;
+    Ok(CounterfactualReport {
+        schema_version: manifest.schema_version,
+        manifest_sha256: sha256_hex(manifest_bytes),
+        pair_count: results.len(),
+        matched_pairs,
+        mismatched_pairs,
+        passed: mismatched_pairs == 0,
+        claim_ceiling: manifest.claim_ceiling,
+        pairs: results,
+    })
+}
+
+fn parse_args() -> Result<(PathBuf, PathBuf), Box<dyn Error>> {
     let mut args = env::args().skip(1);
     let mut corpus = PathBuf::from("docs/research/built-asset/scan-bim/v0.1/corpus.json");
+    let mut counterfactuals =
+        PathBuf::from("docs/research/built-asset/scan-bim/v0.1/counterfactual-pairs.json");
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--corpus" => corpus = args.next().ok_or("--corpus requires a path")?.into(),
+            "--counterfactuals" => {
+                counterfactuals = args.next().ok_or("--counterfactuals requires a path")?.into()
+            }
             "--help" | "-h" => {
-                println!("scan-bim-admission-oracle [--corpus PATH]");
+                println!(
+                    "scan-bim-admission-oracle [--corpus PATH] [--counterfactuals PATH]"
+                );
                 std::process::exit(0);
             }
             unknown => return Err(format!("unknown argument: {unknown}").into()),
         }
     }
-    Ok(corpus)
+    Ok((corpus, counterfactuals))
 }
 
 fn run() -> Result<bool, Box<dyn Error>> {
-    let corpus_path = parse_args()?;
-    let bytes = fs::read(corpus_path)?;
-    let report = evaluate_corpus(&bytes)?;
+    let (corpus_path, counterfactual_path) = parse_args()?;
+    let corpus_bytes = fs::read(corpus_path)?;
+    let counterfactual_bytes = fs::read(counterfactual_path)?;
+    let mut report = evaluate_corpus(&corpus_bytes)?;
+    let counterfactual_report =
+        evaluate_counterfactual_manifest(&corpus_bytes, &counterfactual_bytes)?;
+    report.passed = report.passed && counterfactual_report.passed;
+    report.counterfactuals = Some(counterfactual_report);
     println!("{}", serde_json::to_string_pretty(&report)?);
     Ok(report.passed)
 }
@@ -718,6 +1056,8 @@ mod tests {
 
     const FIXTURE: &str =
         include_str!("../../../docs/research/built-asset/scan-bim/v0.1/corpus.json");
+    const COUNTERFACTUALS: &str =
+        include_str!("../../../docs/research/built-asset/scan-bim/v0.1/counterfactual-pairs.json");
 
     #[test]
     fn frozen_corpus_matches_dispositions_and_reason_codes() {
@@ -726,6 +1066,102 @@ mod tests {
         assert_eq!(report.matched_expected_cases, 40);
         assert_eq!(report.mismatched_cases, 0);
         assert!(report.passed);
+    }
+
+    #[test]
+    fn counterfactual_manifest_matches_all_declared_pairs() {
+        let report = evaluate_counterfactual_manifest(
+            FIXTURE.as_bytes(),
+            COUNTERFACTUALS.as_bytes(),
+        )
+        .expect("counterfactual fixture validates");
+        assert_eq!(report.pair_count, 14);
+        assert_eq!(report.matched_pairs, 7);
+        assert_eq!(report.mismatched_pairs, 0);
+        assert!(report.passed);
+    }
+
+    #[test]
+    fn counterfactual_pair_order_does_not_change_report() {
+        let original = evaluate_counterfactual_manifest(
+            FIXTURE.as_bytes(),
+            COUNTERFACTUALS.as_bytes(),
+        )
+        .expect("counterfactual fixture validates");
+        let mut manifest: serde_json::Value =
+            serde_json::from_str(COUNTERFACTUALS).expect("manifest parses");
+        manifest["pairs"].as_array_mut().unwrap().reverse();
+        let reversed_bytes = serde_json::to_vec(&manifest).expect("manifest serializes");
+        let reversed = evaluate_counterfactual_manifest(FIXTURE.as_bytes(), &reversed_bytes)
+            .expect("reversed pair order validates");
+        let original_value = serde_json::to_value(original).unwrap();
+        let reversed_value = serde_json::to_value(reversed).unwrap();
+        assert_eq!(original_value["pairs"], reversed_value["pairs"]);
+        assert_eq!(original_value["pair_count"], reversed_value["pair_count"]);
+        assert_eq!(original_value["passed"], reversed_value["passed"]);
+    }
+
+    #[test]
+    fn no_change_nuisance_pairs_never_admit_physical_change() {
+        let report = evaluate_counterfactual_manifest(
+            FIXTURE.as_bytes(),
+            COUNTERFACTUALS.as_bytes(),
+        )
+        .expect("no-change nuisance pairs validate");
+        for pair_id in [
+            "CF-012-no-change-registration-drift",
+            "CF-013-no-change-estimate-unresolved",
+            "CF-014-no-change-checkpoint-unresolved",
+        ] {
+            let pair = report
+                .pairs
+                .iter()
+                .find(|pair| pair.pair_id == pair_id)
+                .expect("no-change nuisance pair exists");
+            assert_eq!(pair.control_disposition, "NO_CHANGE_SUPPORTED");
+            assert_eq!(
+                pair.treatment_disposition,
+                "REQUEST_ADDITIONAL_OBSERVATION"
+            );
+            assert_ne!(pair.treatment_disposition, "ADMIT_CANDIDATE_DELTA");
+            assert_ne!(pair.treatment_disposition, "REAL_CHANGE_CANDIDATE");
+        }
+    }
+
+    #[test]
+    fn one_factor_pair_rejects_undeclared_candidate_mutation() {
+        let mut corpus: serde_json::Value =
+            serde_json::from_str(FIXTURE).expect("corpus parses");
+        let case = corpus["cases"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|case| case["case_id"] == "SB-026")
+            .expect("registration drift fixture");
+        case["candidate"]["elements"][1]["deviation_mm"] =
+            serde_json::Value::from(23.0);
+        let bytes = serde_json::to_vec(&corpus).expect("corpus serializes");
+        assert!(evaluate_counterfactual_manifest(&bytes, COUNTERFACTUALS.as_bytes()).is_err());
+    }
+
+    #[test]
+    fn nuisance_pair_cannot_claim_physical_change_admission() {
+        let mut manifest: serde_json::Value =
+            serde_json::from_str(COUNTERFACTUALS).expect("manifest parses");
+        manifest["pairs"][0]["expected_treatment_disposition"] =
+            serde_json::Value::String("ADMIT_CANDIDATE_DELTA".to_owned());
+        let bytes = serde_json::to_vec(&manifest).expect("manifest serializes");
+        assert!(evaluate_counterfactual_manifest(FIXTURE.as_bytes(), &bytes).is_err());
+    }
+
+    #[test]
+    fn duplicate_counterfactual_pair_ids_are_rejected() {
+        let mut manifest: serde_json::Value =
+            serde_json::from_str(COUNTERFACTUALS).expect("manifest parses");
+        let first = manifest["pairs"][0].clone();
+        manifest["pairs"].as_array_mut().unwrap().push(first);
+        let bytes = serde_json::to_vec(&manifest).expect("manifest serializes");
+        assert!(evaluate_counterfactual_manifest(FIXTURE.as_bytes(), &bytes).is_err());
     }
 
     #[test]
