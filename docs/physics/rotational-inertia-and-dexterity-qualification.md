@@ -165,6 +165,44 @@ The engineering digital thread should link each robot configuration to:
 
 No benchmark score substitutes for hazard analysis, system integration validation, independent safety assessment or regulatory obligations.
 
+### 2026-11 benchmark and industry update
+
+**POMDAR and HAND ERC remain the physical-hand spine.** POMDAR is now in IEEE RA-L 11(11), November 2026. Keep its official correctness/speed score and fixture version unchanged; add separate reliability, energy, force-control, slip recovery, held-out object and service metrics. HAND ERC's application/system/hand/component hierarchy is the right attribution model: it lets us explain whether a performance change came from hand morphology, component, wrist, control, arm or application assumption.
+
+**HandsOn gives a quantitative generalization baseline.** Its best trained multi-task checkpoint, OpenWAM, reaches 29.1% task-macro success on Core-50 (1,453/5,000 episodes); its 95% bootstrap interval is 28.0–30.1% over episodes and 22.8–36.0% over tasks plus episodes. Tool-use and precision-fit tasks remain weak. Transfer-16 has no training demonstrations and must be reported separately. A meaningful target is not a speculative universal score: first reproduce the published checkpoint/protocol, then seek at least a 1.5× relative Core-50 improvement with the same task, observation, action, training and evaluation budgets, while improving Transfer-16 rather than overfitting Core-50.
+
+**Bench2Dex is a useful bimanual policy protocol.** The current leaderboard describes 26 long-horizon tasks, 12 embodiments and four robustness channels. It reports stable success rate (SR), latched stage completion rate (LSCR) and success-conditioned efficiency; a ranked comparison needs all three complete overall metrics. The reference protocol uses 50 episodes per task and channel. Partial channel results are useful diagnostics but are not a leaderboard-equivalent result. Luminous should target a complete 4-channel report and at least 1.5× relative SR/LSCR improvement over a reproduced matched baseline, without worse success-conditioned efficiency.
+
+**BiDex-100 adds a broad held-out suite.** It contains 106 tasks, five capability axes, two embodiments, 8,080 success-validated teleoperated demonstrations and controlled OOD variants. Its protocol uses 50 in-domain and 50 OOD rollouts per task per model. Use it for instruction following, few-shot/data efficiency, long-horizon composition, memory and OOD robustness; publish axes separately rather than collapsing them into one average.
+
+These simulation policy suites are not equivalent to POMDAR hardware testing, human ADL studies or physical humanoid operation. Simulation success cannot qualify grip force, impact resilience, energy, wearer comfort or safety.
+
+### Current industry comparison
+
+Manufacturer specifications are valuable design references, not independent performance measurements:
+- TASKA CX lists weight from 430 g, IP67, up to 29 N thumb force, 23 N finger force, 25 kg overall carry load and built-in 40° wrist flexion/extension. Carry load is not a grip-force value.
+- Ottobock's bebionic sheet lists 433 g (small EQD) and 616 g (medium EQD), with static closed-hand force of 152 N and static thumb force of 40 N in that configuration. Its force measurement definitions differ from TASKA's.
+- Boston Dynamics' 2026 Atlas sheet lists 90 kg, 56 DoF, tactile fingers/palm, 4 h nominal runtime and 2 h with heavy lifting, plus an autonomous battery swap. Figure's official Figure 03 page lists 61 kg, 20 kg payload, 5 h runtime and 1.2 m/s speed.
+
+Do not compare these headline figures as though they were measured under the same load, speed, payload, environment or duty cycle. Build a common task/energy/force/durability fixture and report the full operating envelope. The Luminous competitive target is more validated task capability per unit mass and energy, with lower maintenance burden and an explicit safety/agency contract—not a bigger single grip-force number.
+
+### Standards and South African regulatory update
+
+- ISO 10218-1:2025 and ISO 10218-2:2025 are published industrial-robot and application/cell safety standards.
+- ISO/FDIS 13482 Edition 2 (2026) is still in the approval phase for service robots with physical human contact; it excludes industrial and medical applications.
+- ISO 22523:2006 remains the published/current external limb prosthesis and orthosis standard while ISO/FDIS 22523 Edition 2 (2026) is in approval.
+- IEC 80601-2-78:2019 plus Amendment 1:2024 is the published medical rehabilitation/assessment robot standard; a second edition is under development. Its scope excludes external limb prostheses, for which ISO 22523 is the relevant standard family.
+- ISO 14971:2019 was reviewed and confirmed in 2025 and remains current for medical-device risk management.
+- SAHPRA's current Medical Device Classification Guideline is SAHPGL-MD-04 Version 5, dated 28 February 2025. Product-specific intended use and classification determine licensing/registration obligations; a research prototype is not automatically a marketed medical device.
+
+Standards references are not certification claims. Use a qualified regulatory/safety professional to map each exact product and intended use to the applicable requirements.
+
+### JointLab physical bridge
+
+The first physical qualification unit should be one instrumented rotary joint, not a complete humanoid. A proposed measurement contract now lives in [JointLab physical qualification protocol](../robotics/jointlab-physical-qualification-protocol.md). It specifies synchronized output torque/angle, DC-bus voltage/current, temperatures, vibration, four-quadrant testing, uncertainty, load/speed maps, blind simulation-to-physical correlation, fault/recovery tests and service requalification.
+
+The key energy identity is measured joint mechanical power \(P_{mech}=\tau\omega\) versus measured electrical input \(P_{elec}=VI\) at named boundaries. Negative mechanical work does not prove electrical regeneration. A regeneration claim requires measured electrical return at the relevant bus boundary.
+
 ### Runtime performance harness
 
 Criterion cases are now added for:
@@ -186,9 +224,9 @@ This is a deliberately small provenance guard; it does not infer arbitrary colli
 
 ### Hinge motor constraint coupling
 
-A full off-diagonal inertia operator can cause an impulse commanded in the hinge's allowed plane to generate relative angular velocity in forbidden planes. A motor update that applies only the allowed-plane impulse therefore violates the hinge's own constraint. The current implementation now solves the fixed-size relative inverse-inertia system for a total impulse whose allowed component equals the motor command and whose reaction components cancel forbidden relative motion. It uses stack storage for up to 36 bivector degrees of freedom and fails closed for singular/non-finite systems.
+A full off-diagonal inertia operator can cause an impulse commanded in the hinge's allowed plane to generate relative angular velocity in forbidden planes. The motor therefore solves a fixed-storage relative effective-inertia system: the allowed-plane impulse remains exactly the actuator command, while forbidden-plane reaction impulses cancel coupling. The passive hinge constraint separately solves the reduced forbidden-plane effective-inertia block, restricted to constraint reaction coordinates. It replaces the old equal velocity split, records the resulting kinetic-energy loss as constraint dissipation, and leaves the allowed plane free.
 
-Regression gates cover a static base and two dynamic asymmetric endpoints. Both require zero relative response in forbidden planes and non-zero response in the allowed plane. This is a constrained generalized effective-inertia solve, not a per-axis impulse split.
+The motor work ledger uses the full generalized impulse and full endpoint bivectors, including reaction components. Per-link midpoint work must match each link's rotational kinetic-energy change, while the sum matches net motor work when the ideal hinge constraints are satisfied. Both solvers use stack storage for up to 36 bivector degrees of freedom and fail closed on invalid, singular or non-finite inertia. Regression gates cover static/dynamic and dynamic/dynamic asymmetric endpoints, forbidden-plane rejection, and energy accounting.
 
 ## Execution status for this branch
 
@@ -196,10 +234,13 @@ Implemented in the research branch:
 - full validated bivector inertia operator module and spatial-frame view;
 - optional full operator on `RigidBody`, with diagonal/legacy fallbacks explicitly classified;
 - angular integration, impulse response and rotational kinetic energy routed through the selected model;
-- contact effective mass and hinge motor endpoint response routed through the same model;
-- stale-operator invalidation for toolhead mass changes;
+- contact effective mass, passive hinge reactions and hinge motor response routed through the same model;
+- per-endpoint hinge work includes all generalized/reaction impulse components and is checked against link energy change;
+- stale-operator invalidation for mass changes and toolhead merges;
+- replay snapshots include mass, full operator coefficient bits, model selection and provenance flags;
 - diagnostics for exact, approximate and invalid inertia model paths;
-- deterministic analytic tests for off-diagonal coupling, frame transport, energy, contact response and invalidation.
+- Criterion benchmarks for scalar fallback, 3D principal axes, 3D/9D bivector operators and an anisotropic contact-heavy world step;
+- deterministic analytic tests for off-diagonal coupling, frame transport, energy, contact response, constrained hinge behavior, passive dissipation and invalidation.
 
 Not yet established:
 - exact-head cargo fmt, compile, Clippy or test success;
@@ -212,6 +253,13 @@ Queued, skipped, cancelled or failed CI is not a pass. Publish exact commit and 
 
 ## References
 
+- TASKA CX official specifications: https://www.taskaprosthetics.com/products/taska-cx/
+- Ottobock bebionic technical data: https://shop.ottobock.us/medias/20729-bebionic-Product-Brief-2022-01-D-hi.pdf
+- SAHPRA Medical Device Classification Guideline SAHPGL-MD-04 Version 5: https://www.sahpra.org.za/?dlp_document=guideline-for-classification-of-medical-devices-and-ivds
+- ISO 14971:2019: https://www.iso.org/standard/72704.html
+- IEC 80601-2-78:2019 + AMD1:2024: https://webstore.iec.ch/en/publication/69618
+- JointLab cartridge owner: https://github.com/Luminous-Dynamics/symtropy/issues/4337
+- JointLab physical qualification protocol: docs/robotics/jointlab-physical-qualification-protocol.md
 - NVIDIA GR00T 2 research results (Nov 2026): https://research.nvidia.com/labs/gear/gr00t-2/
 - NVIDIA CoRL 2026 robotics/benchmark announcement (Nov 9, 2026): https://blogs.nvidia.com/blog/robotics-simulation-advancements-corl/
 - NIST Humanoid Robot Baseline Performance Benchmark: https://www.nist.gov/el/intelligent-systems-division-73500/humanoid-robot-baseline-performance-benchmark
