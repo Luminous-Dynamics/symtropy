@@ -1203,6 +1203,7 @@ mod tests {
         let mut input = campaign();
         input.faulted_run.ticks[2].degraded_mode = false;
         input.faulted_run.ticks[2].fallback_active = false;
+        input.faulted_run.ticks[3].containment_event_ids.clear();
         let report = audit_campaign(&input);
         assert!(has(&report, "containment_reference_without_state"));
         assert!(has(&report, "containment_deadline_missed"));
