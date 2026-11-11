@@ -2133,6 +2133,92 @@ mod tests {
         );
     }
 
+    fn canonical_field(evaluation: KerrCanonicalEvaluation) -> [f64; 8] {
+        [
+            evaluation.derivative.coordinates[0],
+            evaluation.derivative.coordinates[1],
+            evaluation.derivative.coordinates[2],
+            evaluation.derivative.coordinates[3],
+            evaluation.derivative.momenta[0],
+            evaluation.derivative.momenta[1],
+            evaluation.derivative.momenta[2],
+            evaluation.derivative.momenta[3],
+        ]
+    }
+
+    fn perturb_canonical_state(
+        state: KerrCanonicalState,
+        component: usize,
+        amount: f64,
+    ) -> KerrCanonicalState {
+        let mut q = state.coordinates;
+        let mut p = state.momenta;
+        match component {
+            0 => q.time_over_m += amount,
+            1 => q.radius_over_m += amount,
+            2 => q.theta_rad += amount,
+            3 => q.azimuth_rad += amount,
+            4..=7 => p[component - 4] += amount,
+            _ => unreachable!("canonical state has eight components"),
+        }
+        KerrCanonicalState {
+            coordinates: KerrMinoState::new(
+                q.time_over_m, q.radius_over_m, q.theta_rad, q.azimuth_rad,
+            ),
+            momenta: p,
+        }
+    }
+
+    #[test]
+    fn canonical_flow_linearization_matches_independent_central_differences() {
+        let black_hole = hole(0.7);
+        let canonical = KerrCanonicalHamiltonian::new(black_hole);
+        let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
+        let coordinates = KerrMinoState::new(0.0, 10.0, 1.0, 0.0);
+        let state = canonical.state_from_separated(
+            coordinates,
+            constants,
+            KerrMinoDirection::Decreasing,
+            KerrMinoDirection::Increasing,
+        ).unwrap();
+        let linearization = canonical.linearize(state).unwrap();
+        assert!(linearization.symplectic_lie_residual < 2e-10);
+
+        // This finite-difference bundle is only an independent test oracle;
+        // production linearization uses the second-order AD metric derivatives.
+        for column in 0..8 {
+            let step = 2e-5 * match column {
+                0 | 3 => 1.0,
+                1 => state.coordinates.radius_over_m.abs().max(1.0),
+                2 => 1.0,
+                4..=7 => state.momenta[column - 4].abs().max(1.0),
+                _ => unreachable!(),
+            };
+            let plus = perturb_canonical_state(state, column, step);
+            let minus = perturb_canonical_state(state, column, -step);
+            let plus_field = canonical_field(canonical.evaluate(plus).unwrap());
+            let minus_field = canonical_field(canonical.evaluate(minus).unwrap());
+            for row in 0..8 {
+                let finite_difference = (plus_field[row] - minus_field[row]) / (2.0 * step);
+                close(linearization.jacobian[row][column], finite_difference, 2e-6);
+            }
+        }
+    }
+
+    #[test]
+    fn ingoing_chart_flow_linearization_preserves_hamiltonian_structure() {
+        let black_hole = hole(0.9);
+        let canonical = KerrCanonicalHamiltonian::new(black_hole);
+        let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
+        let coordinates = KerrMinoState::new(0.0, 3.0, 1.0, 0.2);
+        let state = canonical.ingoing_state_from_separated(
+            coordinates, constants, KerrMinoDirection::Increasing,
+        ).unwrap();
+        let linearization = canonical.linearize_ingoing(state).unwrap();
+        assert!(linearization.symplectic_lie_residual < 2e-9);
+        close(linearization.evaluation.hamiltonian, 0.0, 2e-9);
+    }
+
     #[test]
     fn asymptotic_screen_map_round_trips_in_equatorial_and_inclined_views() {
         for inclination in [
