@@ -28,7 +28,7 @@ The update is synchronous and uses an Euler-style drift plus Gaussian increment.
 3. **Zero swarm spread:** if (D_{max}=0), the per-agent noise weights are set to zero and the degeneracy is reported.
 4. **Equal fitness:** a zero shifted-weight sum falls back to the unweighted centroid.
 5. **Flat consensus trend:** if the two consensus windows are equal, sigma is not updated; the implementation does not evaluate 0/0.
-6. **Transactional movement update:** proposed positions, RNG state, consensus history and successor observation cache commit only if all successor observations are valid. Successfully acquired initial observations and their evaluation cost are retained even if a later successor observation fails; agent positions, RNG, and tick remain unchanged. This avoids both partial movement and underreported sensor cost.
+6. **Transactional movement update:** proposed positions, RNG state, consensus history and successor observation cache commit only if all successor observations are valid. Successfully acquired initial observations and their evaluation cost are retained even if a later successor observation fails. A partial successor batch also counts every attempted agent observation through the failing call; agent positions, RNG, and tick remain unchanged. This avoids both partial movement and underreported sensor cost.
 7. **Consensus-window semantics:** \`PublishedEqualHalfIntervals\` uses two disjoint equal halves over \`tau_steps\` samples; \`RepositoryMatlabInclusiveEndpoints\` uses \`tau_steps + 1\` samples, an early half of \`tau_steps/2 + 1\`, a late half of \`tau_steps/2\`, and first updates at tick \`tau_steps + 1\`.
 7. **Measurement cost:** the first update counts initial observations plus successor observations; later updates reuse the cached observation and count only newly observed positions.
 
@@ -36,7 +36,7 @@ The independent Rust PRNG (xorshift64 + Box-Muller) is not MATLAB's RNG. It supp
 
 ## Tests added
 
-The source includes twelve tests for:
+The source includes thirteen tests for:
 - the two equation variants being distinct and producing different one-step social trajectories;
 - paper-style and MATLAB-inclusive consensus-window conventions updating at their separately declared first ticks;
 - trajectory divergence under the two kernels;
@@ -51,7 +51,7 @@ The source includes twelve tests for:
 - failed successor observation preserves agent/RNG/tick state while retaining the cost and cache for already acquired initial observations;
 - minimum agent count and consensus-window configuration.
 
-These are source-level tests. Rust formatting, compilation, unit execution and exact-head CI remain pending. The twelve tests are source-level additions only.
+These are source-level tests. Rust formatting, compilation, unit execution and exact-head CI remain pending. The thirteen tests are source-level additions only.
 
 ## What has not yet been reproduced
 
