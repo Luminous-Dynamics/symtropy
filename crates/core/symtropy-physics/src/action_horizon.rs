@@ -127,6 +127,8 @@ pub enum ActionExecutionMode {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ActionHorizonRequest {
     pub bounds: [HorizonEvidence; ACTION_HORIZON_CONSTRAINT_COUNT],
+    /// Application-monotonic instant at which every remaining horizon was evaluated.
+    pub evaluation_time_ns: u64,
     /// Frozen low-level controller period in nanoseconds.
     pub controller_period_ns: u64,
     /// Measured p99 observation-cutoff-to-controller-admission latency.
@@ -204,6 +206,7 @@ pub struct ActionHorizonSelection<'a> {
     // Private fields prevent callers from fabricating or mutating an admissible
     // selector result before it is bound into an ActionCommitment.
     disposition: HorizonDisposition,
+    evaluated_at_ns: u64,
     bounds: [HorizonBoundReceipt<'a>; ACTION_HORIZON_CONSTRAINT_COUNT],
     common_timebase_id: Option<&'a str>,
     safe_horizon_ns: Option<u64>,
@@ -302,6 +305,7 @@ pub fn select_action_horizon<'a>(
 
     let mut selection = ActionHorizonSelection {
         disposition: HorizonDisposition::UnqualifiedEvidence,
+        evaluated_at_ns: request.evaluation_time_ns,
         bounds: receipts,
         common_timebase_id: common_timebase,
         safe_horizon_ns: None,
@@ -374,6 +378,10 @@ impl ActionHorizonSelection<'_> {
         self.disposition
     }
 
+    pub const fn evaluated_at_ns(&self) -> u64 {
+        self.evaluated_at_ns
+    }
+
     pub fn bounds(&self) -> &[HorizonBoundReceipt<'_>; ACTION_HORIZON_CONSTRAINT_COUNT] {
         &self.bounds
     }
@@ -438,6 +446,7 @@ pub enum ActionCommitmentError {
     MissingTimebase,
     MissingSelectedCycles,
     DurationOverflow,
+    EvaluationTimeMismatch,
     ExpiryOverflow,
     ExceedsSafeHorizon,
     ZeroSequenceNumber,
@@ -450,6 +459,7 @@ impl core::fmt::Display for ActionCommitmentError {
             Self::MissingTimebase => write!(f, "admissible selection has no common timebase"),
             Self::MissingSelectedCycles => write!(f, "admissible selection has no selected cycles"),
             Self::DurationOverflow => write!(f, "selected action duration overflowed nanoseconds"),
+            Self::EvaluationTimeMismatch => write!(f, "commit time differs from horizon evaluation time"),
             Self::ExpiryOverflow => write!(f, "action commitment expiry overflowed nanoseconds"),
             Self::ExceedsSafeHorizon => write!(f, "selected duration exceeds the safe horizon"),
             Self::ZeroSequenceNumber => write!(f, "action commitment sequence number must be non-zero"),
@@ -512,6 +522,9 @@ pub fn create_action_commitment<'a>(
             | HorizonDisposition::AdmissibleSplitTimescale
     ) {
         return Err(ActionCommitmentError::SelectionNotAdmissible);
+    }
+    if committed_at_ns != selection.evaluated_at_ns {
+        return Err(ActionCommitmentError::EvaluationTimeMismatch);
     }
     let timebase_id = selection
         .common_timebase_id
@@ -690,6 +703,7 @@ mod tests {
         bounds[6] = HorizonEvidence::unknown(HorizonConstraint::ThermalDerating, "motor thermal state has no qualified estimate").unwrap();
         let request = ActionHorizonRequest {
             bounds,
+            evaluation_time_ns: 100,
             controller_period_ns: 10,
             p99_total_latency_ns: 20,
             latency_profile_id: "p99-profile/test-target-a".to_owned(),
@@ -711,6 +725,7 @@ mod tests {
             bounds[index] = HorizonEvidence::unknown(HorizonConstraint::ALL[index], "not supplied").unwrap();
             let result = select_action_horizon(&ActionHorizonRequest {
                 bounds,
+                evaluation_time_ns: 100,
                 controller_period_ns: 1,
                 p99_total_latency_ns: 1,
                 latency_profile_id: "p99-profile/test-target-a".to_owned(),
@@ -942,6 +957,7 @@ mod action_commitment_tests {
         });
         ActionHorizonSelection {
             disposition: HorizonDisposition::AdmissibleQueuedOpenLoop,
+            evaluated_at_ns: 1_000,
             bounds,
             common_timebase_id: Some("application-epoch-1"),
             safe_horizon_ns: Some(95),
@@ -970,8 +986,8 @@ mod action_commitment_tests {
     #[test]
     fn commitment_binds_proposal_configuration_timebase_and_expiry() {
         let receipt = commitment();
-        assert_eq!(receipt.selected_cycles, 9);
-        assert_eq!(receipt.expires_at_ns, 1_090);
+        assert_eq!(receipt.selected_cycles(), 9);
+        assert_eq!(receipt.expires_at_ns(), 1_090);
         assert_eq!(
             receipt.validate(1_089, "application-epoch-1", &[0x11; 32], &[0x22; 32], 6),
             Ok(())
@@ -1051,9 +1067,23 @@ mod action_commitment_tests {
     }
 
     #[test]
+    fn commitment_cannot_reuse_a_selection_after_evidence_evaluation() {
+        assert_eq!(
+            create_action_commitment(
+                valid_selection(),
+                [0; 32],
+                [0; 32],
+                1,
+                1_001,
+            ),
+            Err(ActionCommitmentError::EvaluationTimeMismatch)
+        );
+    }
+
+    #[test]
     fn commitment_rejects_expiry_overflow() {
         let mut selection = valid_selection();
-        selection.selected_cycles = Some(9);
+        selection.evaluated_at_ns = u64::MAX - 50;
         assert_eq!(
             create_action_commitment(selection, [0; 32], [0; 32], 1, u64::MAX - 50),
             Err(ActionCommitmentError::ExpiryOverflow)
