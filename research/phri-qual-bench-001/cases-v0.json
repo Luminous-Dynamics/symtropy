@@ -253,5 +253,372 @@
     "report_worst_prefix_energy_not_only_final_total",
     "report_p50_p95_p99_max_when_meaningful",
     "no_composite_score_that_trades_safety_or_agency_against_task_success"
+  ],
+  "optimizer_known_answers": [
+    {
+      "id": "qp-coupled-epsilon-stiffness-active",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 1,
+        "epsilon_min": 0,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          1,
+          0,
+          0
+        ],
+        "error_velocity": [
+          1,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": 2,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": 1,
+      "expected": {
+        "epsilon_rate": -0.5,
+        "stiffness_rate": {
+          "xx": 0.5,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 1
+      },
+      "rationale": "One active affine passivity constraint; both rate references project onto the shared boundary. Exact solution for the declared Euclidean/Frobenius weights."
+    },
+    {
+      "id": "qp-stiffness-only-active",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 1,
+        "epsilon_min": 0.5,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          1,
+          0,
+          0
+        ],
+        "error_velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": 2,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": 0.3,
+      "expected": {
+        "epsilon_rate": 0.3,
+        "stiffness_rate": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 1
+      },
+      "rationale": "Zero task velocity makes the inertia-rate contribution inactive; passivity caps the error-direction stiffness rate at zero."
+    },
+    {
+      "id": "qp-epsilon-only-active",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 1,
+        "epsilon_min": 0.5,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          0,
+          0,
+          0
+        ],
+        "error_velocity": [
+          1,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": 0.5,
+      "expected": {
+        "epsilon_rate": 0,
+        "stiffness_rate": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 1
+      },
+      "rationale": "Zero task error makes the stiffness-rate contribution inactive; the rate optimizer projects epsilon_dot to the passivity boundary."
+    },
+    {
+      "id": "qp-zero-state-constraint-inactive",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 1,
+        "epsilon_min": 0.5,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          0,
+          0,
+          0
+        ],
+        "error_velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": -2,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": -0.25,
+      "expected": {
+        "epsilon_rate": -0.25,
+        "stiffness_rate": {
+          "xx": -1,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 0
+      },
+      "rationale": "Passivity is identically inactive at zero error and velocity; only the Loewner lower-rate barrier projects the reference matrix."
+    },
+    {
+      "id": "qp-epsilon-minimum-boundary",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 0.5,
+        "epsilon_min": 0.5,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          0,
+          0,
+          0
+        ],
+        "error_velocity": [
+          1,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": -0.3,
+          "yy": -0.2,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": 0.75,
+      "expected": {
+        "epsilon_rate": 0,
+        "stiffness_rate": {
+          "xx": -0.3,
+          "yy": -0.2,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 0.7
+      },
+      "rationale": "At epsilon=epsilon_min and zero damping, the scalar passivity and decay constraints force epsilon_dot=0. Because error is zero, stiffness optimization remains independent; handle directly instead of seeking an infinite dual multiplier."
+    }
   ]
 }
