@@ -103,7 +103,7 @@ Run the deterministic CSV campaign with:
 cargo run --release --example anisotropic_reference_campaign -p symtropy-physics
 ```
 
-It checks analytic top dynamics, timestep refinement, an independent RK4 Euler-top trajectory, contact/energy identities, D=2/3/4/9 inversion, mass scaling, body-frame/world-frame contact equivalence, point-cloud determinism and scale-safe mass-property construction. It is a reference qualification campaign, not a production PhysicsWorld throughput benchmark.
+It checks analytic top dynamics, timestep refinement, an independent RK4 Euler-top attitude and angular-velocity trajectory, contact/energy identities, D=2/3/4/9 inversion, mass scaling, body-frame/world-frame contact equivalence, point-cloud determinism and scale-safe mass-property construction. It is a reference qualification campaign, not a production PhysicsWorld throughput benchmark.
 
 
 ## PhysicsCallback — Custom Force Modulation
