@@ -117,10 +117,10 @@ jobs:
 
         with Path("/tmp/civdyn-policy-observability.csv").open(newline="", encoding="utf-8") as handle:
             reader = csv.DictReader(handle)
-            assert reader.fieldnames is not None and len(reader.fieldnames) == 22
+            assert reader.fieldnames is not None and len(reader.fieldnames) == 32
             rows = list(reader)
 
-        assert len(rows) == 5
+        assert len(rows) == 6
         assert all(row["truth_contained"] == "true" for row in rows)
 
         by_key = {(row["scenario_id"], row["policy_id"]): row for row in rows}
@@ -133,6 +133,11 @@ jobs:
         assert adverse["identified_upper"] == "100.000"
         assert adverse["robust_comparison_vs_reference"] == "unresolved"
         assert adverse["true_stratum_gap"] == "50.000"
+        assert adverse["missing_telemetry_unavailable_units"] == "1"
+        assert adverse["missing_policy_suppressed_units"] == "2"
+        assert adverse["high_need_identified_lower"] == "50.000"
+        assert adverse["high_need_identified_upper"] == "100.000"
+        assert adverse["high_need_observation_coverage"] == "0.500"
         assert transparent["true_mean"] == "60.000"
         assert transparent["complete_case_mean"] == "60.000"
 
@@ -143,11 +148,33 @@ jobs:
         assert hidden["robust_comparison_vs_reference"] == "unresolved"
         assert steady["true_mean"] == "60.000"
 
+        mixed = by_key[("mixed_mechanism", "mixed_observation")]
+        assert mixed["true_mechanism"] == "mixed"
+        assert mixed["true_mean"] == "45.000"
+        assert mixed["identified_lower"] == "42.500"
+        assert mixed["identified_upper"] == "92.500"
+        assert mixed["missing_nonresponse_units"] == "1"
+        assert mixed["missing_policy_suppressed_units"] == "1"
+        assert mixed["propensity_units"] == "2"
+        assert mixed["missing_propensity_units"] == "2"
+        assert mixed["high_need_true_mean"] == "50.000"
+        assert mixed["high_need_identified_lower"] == "45.000"
+        assert mixed["high_need_identified_upper"] == "95.000"
+        assert mixed["general_true_mean"] == "40.000"
+        assert mixed["general_identified_lower"] == "40.000"
+        assert mixed["general_identified_upper"] == "90.000"
+
         mar = by_key[("mar_positive_control", "mar_known_propensity")]
         assert mar["true_mean"] == "50.000"
         assert mar["known_mar_ht_mean"] == "50.000"
         assert mar["identified_lower"] == "25.000"
         assert mar["identified_upper"] == "75.000"
+        assert mar["propensity_units"] == "4"
+        assert mar["missing_propensity_units"] == "0"
+        assert mar["minimum_propensity_bps"] == "5000"
+        assert mar["maximum_propensity_bps"] == "5000"
+        assert mar["high_need_observation_coverage"] == "0.500"
+        assert mar["general_observation_coverage"] == "0.500"
 
         print("CIVDYN policy observability contract passed: selection-induced rank reversals, honest bounds, subgroup reporting, MAR positive control and deterministic replay.")
         PY
