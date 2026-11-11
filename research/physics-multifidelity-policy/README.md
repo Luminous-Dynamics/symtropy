@@ -1,4 +1,4 @@
-# Symtropy physics multi-fidelity policy — V0
+# Symtropy physics multi-fidelity policy — schema v3
 
 A small, isolated Rust research tool for deterministic admission and escalation among a finite set of already-declared physics model candidates.
 
@@ -25,7 +25,8 @@ A candidate is admissible only when all gates pass:
    - Any candidate labelled `analytic_oracle` must carry its analytic anchor receipt; any candidate labelled `independently_validated` must carry at least one validation receipt. Evidence labels without their matching receipts are rejected.
 3. The declared validity envelope contains the scenario and horizon.
 4. Hard constraints are explicitly `within_bounds`.
-5. Residual and uncertainty upper bounds satisfy the requested limits.
+5. Solver residual and uncertainty upper bounds satisfy the requested limits.
+6. Model-form, geometry/representation, and discretization error bounds each satisfy their own limits, and their conservative sum fits the total physical-model error budget.
 6. p95 wall time and peak memory fit the declared budgets.
 7. Source, capability, mapping and model-passport digests are present and well-formed.
 
@@ -52,7 +53,7 @@ This is **not** a safety classifier: above/below has no universal pass/fail mean
 At runtime the monitor requires an observation-bound decision estimate when the policy has a decision boundary. It recomputes the interval classification using the exact same threshold and margin. An observed interval that becomes unresolved, or switches from above to below (or vice versa), causes abstention and requires fresh state-bound admission. Missing estimates, unexpected estimates without a configured boundary, and quantity/unit/reference-frame mismatches are rejected. Runtime observation does not inherit a previous decision merely because the original model was admitted.
 
 
-Schema version 2 adds `decision_boundary`, `decision_estimate` and per-candidate `decision_class` output. The bundled fixture remains an exploratory synthetic-only software test with no decision boundary or physical claim.
+Schema version 3 adds independent physical model-error gates for governing-model form, geometry/representation and discretization, plus a conservative total bound. The policy records the component vector and the sum in each candidate evaluation. It does not collapse the components into a weighted fidelity score. The earlier decision-boundary fields remain available. The bundled fixture remains an exploratory synthetic-only software test with no decision boundary or physical claim.
 
 ## Important limits
 
@@ -76,3 +77,11 @@ The intended owners remain:
 - #4446 for counterexample generation, differential execution and minimized failures.
 
 Do not create duplicate capability censuses, scenario identities or physics evidence ledgers here. The next step is an independently reviewed adapter from these existing authorities into this policy's input schema.
+
+## Physical error vector (schema v3)
+
+The required quantity now carries four limits: one each for model-form error, geometry/representation error, discretization error, and the total. Every candidate declares the corresponding three component upper bounds in the required quantity's unit and reference frame. The policy records the component vector and its arithmetic sum in the candidate evaluation.
+
+The three components are treated as separate gates, not interchangeable kinds of fidelity. An accurate integrator cannot compensate for an unvalidated constitutive law or a coarse geometric mass/contact representation. The total gate is the conservative sum of the non-negative bounds; components cannot cancel. The existing solver residual and uncertainty gates remain separate.
+
+This is still a finite-input policy: the caller must supply defensible, evidence-backed bounds. It does not estimate model-form error, mass-property error, discretization error or uncertainty itself.
