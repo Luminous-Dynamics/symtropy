@@ -492,7 +492,7 @@ mod tests {
         let mut index = 1usize;
         let mut missing_count = 0usize;
         for (family, count) in families {
-            for local_index in 0..count {
+            for _local_index in 0..count {
                 let anomaly_only =
                     family == MarineFaultFamily::InjectionValveNozzleClogging;
                 let has_missing = missing_count < 5;
@@ -507,7 +507,6 @@ mod tests {
                     has_missing,
                 ));
                 index += 1;
-                let _ = local_index;
             }
         }
         MarineExternalDatasetManifest {
@@ -574,17 +573,18 @@ mod tests {
     #[test]
     fn anomaly_only_nozzle_files_cannot_claim_event_latency() {
         let mut invalid = manifest();
-        let nozzle = invalid
-            .files
-            .iter_mut()
-            .find(|file| file.fault_family == Some(MarineFaultFamily::InjectionValveNozzleClogging))
-            .unwrap();
-        nozzle.event_latency_eligible = true;
+        let nozzle_id = {
+            let nozzle = invalid
+                .files
+                .iter_mut()
+                .find(|file| file.fault_family == Some(MarineFaultFamily::InjectionValveNozzleClogging))
+                .unwrap();
+            nozzle.event_latency_eligible = true;
+            nozzle.file_id.clone()
+        };
         assert_eq!(
             invalid.validate(),
-            Err(ExternalDatasetError::InvalidEventLatencyEligibility(
-                nozzle.file_id.clone()
-            ))
+            Err(ExternalDatasetError::InvalidEventLatencyEligibility(nozzle_id))
         );
     }
 
