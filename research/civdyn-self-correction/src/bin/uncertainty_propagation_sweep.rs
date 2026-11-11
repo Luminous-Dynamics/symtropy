@@ -7,7 +7,7 @@ use civdyn_self_correction::uncertainty_propagation::{
     propagate_linear_uncertainty,
 };
 
-const CSV_COLUMNS: usize = 21;
+const CSV_COLUMNS: usize = 23;
 
 fn csv_field(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
@@ -96,22 +96,24 @@ fn emit(scenario: &str, result: &PropagatedUncertainty) {
         .map(|row| fmt_values(row.iter().copied()))
         .collect::<Vec<_>>()
         .join("/");
-    let source_receipts = result
-        .output_state
-        .uncertainty_sources
-        .iter()
-        .map(|source| {
-            format!(
-                "{}~{}~{}~{}~{}",
-                source.source_id,
-                source.kind.name(),
-                source.source_digest,
-                source.affected_variable_ids.join(";"),
-                source.dependence_group_id.as_deref().unwrap_or("none")
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("|");
+    let format_sources = |sources: &[UncertaintySourceReceipt]| {
+        sources
+            .iter()
+            .map(|source| {
+                format!(
+                    "{}~{}~{}~{}~{}",
+                    source.source_id,
+                    source.kind.name(),
+                    source.source_digest,
+                    source.affected_variable_ids.join(";"),
+                    source.dependence_group_id.as_deref().unwrap_or("none")
+                )
+            })
+            .collect::<Vec<_>>()
+            .join("|")
+    };
+    let input_source_receipts = format_sources(&result.input_uncertainty_sources);
+    let output_source_receipts = format_sources(&result.output_state.uncertainty_sources);
 
     for (index, variable) in result.output_state.variables.iter().enumerate() {
         let covariance_row = fmt_values(
@@ -146,8 +148,10 @@ fn emit(scenario: &str, result: &PropagatedUncertainty) {
             result.protocol_digest.clone(),
             jacobian_rows.clone(),
             variable.measurement_unit.clone(),
+            result.input_uncertainty_sources.len().to_string(),
+            input_source_receipts.clone(),
             result.output_state.uncertainty_sources.len().to_string(),
-            source_receipts.clone(),
+            output_source_receipts.clone(),
             result.jacobian.first().map_or(0, Vec::len).to_string(),
             result.output_state.variables.len().to_string(),
         ];
@@ -299,7 +303,7 @@ fn cases() -> Result<Vec<(&'static str, PropagatedUncertainty)>, Box<dyn std::er
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!(
-        "scenario,output_state_id,output_variable_id,output_estimate,output_variance,standard_uncertainty,covariance_row,correlation_row,input_state_id,input_variable_ids,input_source_ids,input_covariance_flat,transform_id,transform_digest,protocol_digest,jacobian,measurement_unit,source_count,source_receipts,input_dimension,output_dimension"
+        "scenario,output_state_id,output_variable_id,output_estimate,output_variance,standard_uncertainty,covariance_row,correlation_row,input_state_id,input_variable_ids,input_source_ids,input_covariance_flat,transform_id,transform_digest,protocol_digest,jacobian,measurement_unit,input_source_count,input_source_receipts,output_source_count,output_source_receipts,input_dimension,output_dimension"
     );
     for (scenario, result) in cases()? {
         emit(scenario, &result);
