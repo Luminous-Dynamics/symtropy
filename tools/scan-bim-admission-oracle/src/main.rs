@@ -191,11 +191,16 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
     if survey_evidence.asset_id != candidate.asset_id
         || survey_evidence.base_model_revision != candidate.base_model_revision
         || survey_evidence.frame_id != candidate.frame_id
-        || !is_sha256(&survey_evidence.survey_product_sha256)
     {
         return decision(
             "STALE_OR_INVALID_EVIDENCE",
-            "SURVEY_EVIDENCE_SCOPE_MISMATCH_OR_INVALID_PRODUCT_DIGEST",
+            "SURVEY_EVIDENCE_SCOPE_MISMATCH",
+        );
+    }
+    if !is_sha256(&survey_evidence.survey_product_sha256) {
+        return decision(
+            "STALE_OR_INVALID_EVIDENCE",
+            "SURVEY_PRODUCT_DIGEST_INVALID",
         );
     }
     match survey_evidence.survey_product_status {
@@ -829,6 +834,53 @@ mod tests {
             evaluate(case).1,
             vec!["INDEPENDENT_CHECKPOINT_EVIDENCE_MISSING_OR_INVALID".to_owned()]
         );
+    }
+
+    #[test]
+    fn survey_receipts_must_bind_to_exact_asset_revision_and_frame() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
+        let case = corpus
+            .cases
+            .iter()
+            .find(|item| item.case_id == "SB-029")
+            .expect("survey scope mismatch fixture");
+        assert_eq!(evaluate(case).0, "STALE_OR_INVALID_EVIDENCE");
+        assert_eq!(evaluate(case).1, vec!["SURVEY_EVIDENCE_SCOPE_MISMATCH".to_owned()]);
+    }
+
+    #[test]
+    fn qualified_upstream_receipts_require_valid_digests() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
+        let change = corpus
+            .cases
+            .iter()
+            .find(|item| item.case_id == "SB-031")
+            .expect("missing change receipt fixture");
+        assert_eq!(evaluate(change).1, vec!["CHANGE_ESTIMATE_RECEIPT_MISSING_OR_INVALID".to_owned()]);
+
+        let registration = corpus
+            .cases
+            .iter()
+            .find(|item| item.case_id == "SB-032")
+            .expect("missing registration receipt fixture");
+        assert_eq!(evaluate(registration).1, vec!["REGISTRATION_STABILITY_RECEIPT_MISSING_OR_INVALID".to_owned()]);
+    }
+
+    #[test]
+    fn unresolved_upstream_products_or_checkpoints_cannot_pass() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
+        for (case_id, reason) in [
+            ("SB-033", "INDEPENDENT_CHECKPOINT_EVIDENCE_UNRESOLVED"),
+            ("SB-034", "SURVEY_PRODUCT_UNRESOLVED"),
+        ] {
+            let case = corpus
+                .cases
+                .iter()
+                .find(|item| item.case_id == case_id)
+                .expect("unresolved evidence fixture");
+            assert_eq!(evaluate(case).0, "REQUEST_ADDITIONAL_OBSERVATION");
+            assert_eq!(evaluate(case).1, vec![reason.to_owned()]);
+        }
     }
 
     #[test]
