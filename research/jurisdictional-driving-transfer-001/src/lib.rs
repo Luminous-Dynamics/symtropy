@@ -188,7 +188,18 @@ fn valid_iso_date(value: &str) -> bool {
     let Ok(day) = parts[2].parse::<u32>() else {
         return false;
     };
-    year >= 1900 && (1..=12).contains(&month) && (1..=31).contains(&day)
+    if year < 1900 || !(1..=12).contains(&month) || day == 0 {
+        return false;
+    }
+    let leap_year = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let max_day = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap_year => 29,
+        2 => 28,
+        _ => return false,
+    };
+    day <= max_day
 }
 
 fn validate_date_pair(
@@ -577,6 +588,17 @@ mod tests {
             transformation: "mirror_about_road_centerline".to_string(),
             note: "Geometry/intent fixture only; local sign/rule bundles are independently versioned.".to_string(),
         }
+    }
+
+    #[test]
+    fn validates_gregorian_dates_and_leap_years() {
+        assert!(valid_iso_date("2024-02-29"));
+        assert!(valid_iso_date("2026-11-11"));
+        assert!(!valid_iso_date("2025-02-29"));
+        assert!(!valid_iso_date("2026-04-31"));
+        assert!(!valid_iso_date("2026-13-01"));
+        assert!(!valid_iso_date("2026-00-01"));
+        assert!(!valid_iso_date("2026-11-00"));
     }
 
     #[test]
