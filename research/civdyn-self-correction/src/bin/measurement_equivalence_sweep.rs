@@ -8,7 +8,7 @@ use civdyn_self_correction::measurement_equivalence::{
     SameProtocolEvidence, SurveyInvarianceEvidence, assess_measurement_equivalence,
 };
 
-const CSV_COLUMNS: usize = 36;
+const CSV_COLUMNS: usize = 37;
 
 fn csv_field(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
@@ -163,8 +163,10 @@ fn emit_report(scenario: &str, report: &MeasurementEquivalenceReport) {
             claim.status.name().to_string(),
             claim.reason.name().to_string(),
             report
-                .achieved_invariance
-                .map(|value| value.name().to_string())
+                .invariance_levels
+                .map(|levels| {
+                    levels.iter().map(|level| level.name()).collect::<Vec<_>>().join(";")
+                })
                 .unwrap_or_default(),
             report.anchor_item_ids.join(";"),
             report.non_invariant_item_ids.join(";"),
@@ -173,6 +175,7 @@ fn emit_report(scenario: &str, report: &MeasurementEquivalenceReport) {
             optional(report.mean_equivalence_margin.map(|value| format!("{value:.6}"))),
             slope_ci.clone(),
             optional(report.slope_equivalence_margin.map(|value| format!("{value:.6}"))),
+            optional(report.individual_error_lower_bound.map(|value| format!("{value:.6}"))),
             optional(report.individual_error_upper_bound.map(|value| format!("{value:.6}"))),
             optional(report.individual_score_margin.map(|value| format!("{value:.6}"))),
         ]);
@@ -192,7 +195,7 @@ fn emit_case(
 
 fn main() {
     println!(
-        "scenario,evidence_kind,left_measurement_id,right_measurement_id,construct_id,construct_version,family,measurement_unit,left_population_id,right_population_id,left_context_id,right_context_id,left_operationalization_digest,right_operationalization_digest,left_instrument_digest,right_instrument_digest,evidence_digest,data_digest,protocol_digest,analysis_digest,calibration_receipt_digest,bridge_design,confidence_level,claim,status,reason,achieved_invariance,anchor_item_ids,non_invariant_item_ids,group_sample_sizes,mean_bias_ci,mean_equivalence_margin,slope_ci,slope_equivalence_margin,individual_error_upper_bound,individual_score_margin"
+        "scenario,evidence_kind,left_measurement_id,right_measurement_id,construct_id,construct_version,family,measurement_unit,left_population_id,right_population_id,left_context_id,right_context_id,left_operationalization_digest,right_operationalization_digest,left_instrument_digest,right_instrument_digest,evidence_digest,data_digest,protocol_digest,analysis_digest,calibration_receipt_digest,bridge_design,confidence_level,claim,status,reason,invariance_levels,anchor_item_ids,non_invariant_item_ids,group_sample_sizes,mean_bias_ci,mean_equivalence_margin,slope_ci,slope_equivalence_margin,individual_error_lower_bound,individual_error_upper_bound,individual_score_margin"
     );
 
     let exact = measurement(
