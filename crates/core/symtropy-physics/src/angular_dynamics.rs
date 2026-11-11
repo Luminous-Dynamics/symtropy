@@ -494,6 +494,48 @@ mod tests {
         assert!(fine < 0.02, "fine-step energy drift too large: {fine:e}");
     }
 
+    fn symmetric_top_precession_error(dt: f64) -> f64 {
+        let inertia = PrincipalInertia3::new([1.0, 1.0, 2.0]).unwrap();
+        let mut rotation = Rotor::<3>::identity();
+        let mut omega = angular_vector_to_bivector(&SVector::from([0.8, 0.0, 0.7]));
+        let duration = 1.2;
+        let steps = (duration / dt).round() as usize;
+
+        for _ in 0..steps {
+            let step = step_principal_inertia(
+                &rotation,
+                &omega,
+                inertia,
+                &SVector::zeros(),
+                dt,
+            )
+            .unwrap();
+            rotation = step.rotation;
+            omega = step.angular_velocity;
+        }
+
+        let omega_body = rotation
+            .reverse()
+            .rotate_vector(&bivector_to_angular_vector(&omega));
+        let precession_rate = (2.0_f64 - 1.0) / 1.0 * 0.7;
+        let phase = precession_rate * duration;
+        let expected = SVector::from([0.8 * phase.cos(), 0.8 * phase.sin(), 0.7]);
+        (omega_body - expected).norm()
+    }
+
+    #[test]
+    fn symmetric_top_matches_analytic_body_frame_precession_and_converges() {
+        // I1 = I2 = 1, I3 = 2; omega_3 = 0.7. The transverse body-frame
+        // angular velocity precesses at ((I3 - I1) / I1) * omega_3 = 0.7 rad/s.
+        let coarse = symmetric_top_precession_error(0.001);
+        let fine = symmetric_top_precession_error(0.00025);
+        assert!(
+            fine < coarse * 0.3,
+            "quarter-step refinement should reduce precession error: coarse={coarse:e}, fine={fine:e}"
+        );
+        assert!(fine < 2.0e-4, "fine-step symmetric-top error={fine:e}");
+    }
+
     #[test]
     fn body_orientation_changes_world_response_for_anisotropic_inertia() {
         let inertia = PrincipalInertia3::new([1.0, 4.0, 9.0]).unwrap();
