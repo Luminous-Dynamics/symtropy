@@ -5,6 +5,7 @@ on:
     paths:
       - "research/civdyn-self-correction/**"
       - "research/civdyn-resource-ledger/**"
+      - "research/civdyn-active-sensing/**"
       - ".github/workflows/civdyn-self-correction.yml"
   push:
     paths:
@@ -428,4 +429,87 @@ jobs:
               assert row["protocol_digest"]
               assert row["model_adequacy_role"] in {"validation", "challenge"}
           print("Decision-VOI CSV valid: no model priors, discrimination distinguished from decision value, worst-case regret reduction, budget gate and exact prediction lineage.")
+          PY
+
+  active-sensing-reference:
+    name: CIVDYN Active Sensing Reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy,rustfmt
+      - name: Check active-sensing formatting
+        run: cargo fmt --manifest-path research/civdyn-active-sensing/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --all-targets -- -D warnings
+      - name: Compile and test active sensing reference
+        run: |
+          cargo check --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --all-targets
+          cargo test --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --all-targets
+      - name: Verify active-sensing sweep and deterministic replay
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep > /tmp/civdyn-active-sensing.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep > /tmp/civdyn-active-sensing-replay.csv
+          cmp /tmp/civdyn-active-sensing.csv /tmp/civdyn-active-sensing-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-active-sensing.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              assert reader.fieldnames is not None and len(reader.fieldnames) == 26
+              rows = list(reader)
+
+          summary = {row["sensor_id"]: row for row in rows if row["record_type"] == "sensor_summary"}
+          assert set(summary) == {
+              "remote_telemetry",
+              "independent_field_inspection",
+              "uninformative_status_check",
+              "over_budget_lab_test",
+          }
+
+          baseline_regrets = {float(row["baseline_worst_regret"]) for row in summary.values()}
+          assert baseline_regrets == {15.0}
+          assert {row["baseline_policy_id"] for row in summary.values()} == {"repair"}
+          assert {row["recommended"] for row in summary.values() if row["sensor_id"] == "independent_field_inspection"} == {"true"}
+
+          field = summary["independent_field_inspection"]
+          assert field["status"] == "evaluated"
+          assert field["energy_cost_service_units"] == "1.000000"
+          assert field["maximum_latency_service_loss"] == "3.000000"
+          assert field["maximum_total_penalty_service_units"] == "4.000000"
+          assert field["worst_case_post_sensing_regret"] == "4.000000"
+          assert field["regret_reduction"] == "11.000000"
+          assert field["recommended"] == "true"
+
+          remote = summary["remote_telemetry"]
+          assert remote["status"] == "evaluated"
+          assert remote["worst_case_post_sensing_regret"] == "20.000000"
+          assert remote["regret_reduction"] == "-5.000000"
+          assert remote["recommended"] == "false"
+          missing = [row for row in rows if row["record_type"] == "observation_partition" and row["sensor_id"] == "remote_telemetry" and row["observation_id"] == "missing"]
+          assert len(missing) == 1
+          assert missing[0]["partition_world_count"] == "2"
+          assert set(missing[0]["world_ids"].split(";")) == {"degraded", "healthy_sensor_fault"}
+
+          unknown = summary["uninformative_status_check"]
+          assert unknown["worst_case_post_sensing_regret"] == "15.000000"
+          assert unknown["regret_reduction"] == "0.000000"
+          assert unknown["recommended"] == "false"
+
+          expensive = summary["over_budget_lab_test"]
+          assert expensive["status"] == "over_budget"
+          assert expensive["affordable"] == "false"
+          assert expensive["recommended"] == "false"
+
+          audit = [row for row in rows if row["record_type"] == "evaluator_prediction_audit" and row["sensor_id"] == "remote_telemetry" and row["observation_id"] == "missing"]
+          assert len(audit) == 2
+          assert {row["evaluator_missing_cause"] for row in audit} == {"common_cause_power_loss", "telemetry_network_fault"}
+          assert all(row["prediction_receipt_digest"] for row in audit)
+
+          print("CIVDYN active-sensing contract passed: minimax baseline, common-cause missingness, world-dependent delay cost, hard service floors, over-budget rejection and deterministic replay.")
           PY
