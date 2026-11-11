@@ -319,6 +319,9 @@ impl LinearTransform {
 pub struct PropagatedUncertainty {
     pub output_state: UncertaintyState,
     pub input_state_id: String,
+    pub input_variables: Vec<UncertaintyVariable>,
+    pub input_estimates: Vec<f64>,
+    pub input_covariance: CovarianceMatrix,
     pub transform_id: String,
     pub transform_digest: String,
     pub protocol_digest: String,
@@ -479,6 +482,9 @@ pub fn propagate_linear_uncertainty(
     Ok(PropagatedUncertainty {
         output_state,
         input_state_id: input.state_id.clone(),
+        input_variables: input.variables.clone(),
+        input_estimates: input.estimates.clone(),
+        input_covariance: input.covariance.clone(),
         transform_id: transform.transform_id.clone(),
         transform_digest: transform.transform_digest.clone(),
         protocol_digest: transform.protocol_digest.clone(),
