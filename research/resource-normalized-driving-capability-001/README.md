@@ -161,6 +161,19 @@ Never let the anytime allocator receive extra compute in the equal-compute compa
 
 Primary outcomes remain separate: native task score, transitions/human minutes per skill gate, rollout cost, marginal regret reduction, p99 latency, energy, recovery and worst-family performance. Do not fit post-hoc weights to claim a combined win.
 
+## Jurisdiction and local-rule transfer
+
+The new [#4774 jurisdictional transfer track](https://github.com/Luminous-Dynamics/symtropy/issues/4774) adds an explicit domain shift: left-hand vs right-hand traffic, regional sign/marking semantics and locally sourced rules.
+
+Three evidence classes are kept separate:
+- **TrafficSignBench:** closed-loop sign-compliant destination (SCD) task/metric. Its SCD result must not be collapsed into ordinary route Driving Score.
+- **GeoDrive-Bench:** open-loop regional driving-reasoning QA. Its six listed countries do not include South Africa; QA accuracy is not closed-loop driving competence.
+- **ZA source profile:** a draft source-qualified record that declares left-hand traffic from official South African tourism guidance and separately records the Department of Transport sign manual and National Road Traffic Act source references. All sources are currently marked not reviewed; exact applicable revisions, amendments, commencement/effective dates and content digests remain unresolved. This profile is explicitly not policy eligible.
+
+The first experiment is zero-shot LHT/RHT transfer plus fixed-budget adaptation. It separates traffic geometry, legal semantics and interaction ecology. A coordinate-mirror fixture validates geometry and task-identity plumbing only; it does not transform or certify local laws, signs, right-of-way rules or actor behaviour. Steering-wheel handedness and roundabout circulation are independent profile fields, not inferences from traffic side.
+
+The v0.1 source/profile validator and fixtures are under [`research/jurisdictional-driving-transfer-001/`](https://github.com/Luminous-Dynamics/symtropy/tree/main/research/jurisdictional-driving-transfer-001). A profile can be structurally valid as a draft without being policy eligible. Policy eligibility requires legally reviewed statute and traffic-sign-manual source records, explicit effective dates and digests plus a versioned rule-bundle digest. The validator checks declared structure; it does not fetch/authenticate sources or decide legal interpretation.
+
 ## What to measure
 
 ### Capability
@@ -221,7 +234,7 @@ The critical comparison is not simply “score under a camera drop.” It is the
 
 ## Files
 
-- `benchmark_manifest_v0_1.json`: comparator register, model arms, metrics, budget dimensions, benchmark ladder, negative controls and prospective targets.
+- `benchmark_manifest_v0_1.json`: 16 comparator records, nine model/learning arms, 15 benchmark stages, metrics, resource dimensions, negative controls and prospective targets.
 - `result_card.schema.json`: schema for per-run normalized evidence records.
 - `result_card.template.json`: an explicit not-run template; null values are not measurements.
 
