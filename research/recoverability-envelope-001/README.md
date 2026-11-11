@@ -64,6 +64,7 @@ Every tick has:
 - camera and vehicle-state observation ages (null means not observed, never silently fresh);
 - inference duration and control deadline;
 - detected fault IDs;
+- explicit fault IDs that caused fallback (required on fallback ticks; forbidden otherwise);
 - operating mode (nominal / degraded / fallback);
 - independently supplied oracle outcome (within envelope / degraded within envelope / constraint violation / unscored).
 
@@ -84,7 +85,8 @@ This conservative rule intentionally prevents an event from being declared recov
 
 Per fault:
 - detected, detection tick and detection delay;
-- fallback observed, fallback tick and fallback delay;
+- fallback observed, attributed fallback tick and fallback delay;
+- deadline misses during the event versus an explicit per-fault miss budget;
 - recovery tick and recovery latency;
 - fallback ticks until recovery;
 - degraded ticks during the event;
