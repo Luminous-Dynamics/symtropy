@@ -42,7 +42,7 @@ jobs:
             .robust_dominance_pair_count == 2 and
             .robust_frontier_count == 3 and
             .robust_frontier_candidate_ids == ["baseline","eco-route","fast-route"] and
-            .source_grade == "SYNTHETIC_ONLY" and
+            .source_grade == "MIXED_OR_INDETERMINATE" and
             any(.candidates[]; .candidate_id == "load-shed" and
               .disposition == "INSUFFICIENT_SERVICE" and
               .frontier_eligible == false) and
