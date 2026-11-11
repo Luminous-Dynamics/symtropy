@@ -424,7 +424,10 @@
     "paired_clean_perturbed_episode_identity",
     "fault_recovery_time_ms",
     "control_age_ms_under_inference_delay",
-    "sensor_drop_and_occlusion_fraction"
+    "sensor_drop_and_occlusion_fraction",
+    "per_episode_outcome_records",
+    "scenario_cluster_identity",
+    "training_compute_energy_and_gpu_hours"
   ],
   "outcome_families": [
     "native_benchmark_metrics",
@@ -447,7 +450,10 @@
     "safe_fallback_and_degraded_mode_success",
     "control_age_and_action_deadline_miss_rate",
     "speed_command_adherence_under_dynamic_interactions",
-    "worst_case_fault_family_performance"
+    "worst_case_fault_family_performance",
+    "paired_episode_cluster_bootstrap",
+    "scenario_family_stratified_confidence_interval",
+    "paired_clean_perturbed_effect_size"
   ],
   "prospective_targets": {
     "status": "not_measured",
@@ -581,5 +587,30 @@
       "published": "2026-05",
       "source_type": "third-party leaderboard snapshot; not primary organizer source"
     }
-  ]
+  ],
+  "statistical_method": {
+    "paired_unit": "episode_id",
+    "cluster_unit": "scenario_cluster_id",
+    "strata": "scenario_family",
+    "pairing_requirements": [
+      "identical episode IDs",
+      "identical scenario family, scenario cluster and disposition for each episode",
+      "explicit finite non-null native metric for every paired episode",
+      "same evaluator, split, seed manifest, policy inputs and teacher privileges"
+    ],
+    "estimator": "mean of scenario-cluster means of candidate-minus-baseline native metric differences",
+    "resampling": "10,000 deterministic percentile-bootstrap replicates; sample scenario clusters with replacement within each scenario_family while preserving family cluster counts",
+    "confidence_level": 0.95,
+    "random_seed": "first 64 bits of frozen seed_manifest_sha256",
+    "advantage_rule": {
+      "higher_is_better": "95% interval lower bound > 0",
+      "lower_is_better": "95% interval upper bound < 0"
+    },
+    "non_inferiority_rule": {
+      "higher_is_better": "95% interval lower bound >= -margin",
+      "lower_is_better": "95% interval upper bound <= margin"
+    },
+    "claim_ceiling": "Unadjusted percentile bootstrap interval, not multiplicity-adjusted; one primary metric must be preregistered. This is benchmark uncertainty, not safety assurance.",
+    "missing_data": "Reject paired inferential comparison when any episode is unmatched or its requested metric is null; never silently drop or impute an episode."
+  }
 }
