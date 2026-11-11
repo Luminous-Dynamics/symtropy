@@ -142,11 +142,7 @@ fn emit_result(
             scenario.to_string(),
             format!("{:.8}", result.likelihood_ratio_bound),
             stratum.modifier_id.clone(),
-            stratum
-                .source_support
-                .then(|| stratum.control.as_ref().map(|_| "source-supported".to_string()))
-                .flatten()
-                .unwrap_or_else(|| "unsupported".to_string()),
+            stratum.source_support.to_string(),
             stratum.target_population_count.to_string(),
             format!("{:.10}", stratum.target_population_share),
             fmt(stratum.control.as_ref().map(|arm| arm.source_risk)),
