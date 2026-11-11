@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EvidenceClass {
@@ -9,15 +9,6 @@ pub enum EvidenceClass {
     Simulation,
     PhysicalMeasurement,
     IndependentLaboratory,
-}
-
-impl EvidenceClass {
-    fn is_physical(&self) -> bool {
-        matches!(
-            self,
-            Self::PhysicalMeasurement | Self::IndependentLaboratory
-        )
-    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
