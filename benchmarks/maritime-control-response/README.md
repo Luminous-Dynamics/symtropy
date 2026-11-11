@@ -2,8 +2,8 @@
 
 **Parent owner:** Symtropy issue #4628, MARITIME-CONTROL-AWARE-DIAGNOSIS-001  
 **External benchmark:** [LiU-ICE Industrial Fault Diagnosis Benchmark 2026](https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index), DX37  
-**Status:** independent Rust evaluator primitives plus synthetic event-contract tests; dataset payload not yet audited and no benchmark score claimed  
-**Claim ceiling:** typed semantics, synthetic contract behavior, and exact score-formula implementation only; no trained model, public-data execution, or physical validation claim
+**Status:** Rust evaluator, synthetic event tests, robust read-only evidence selector and append-only streaming contract authored; exact-head compilation and public data execution not verified  
+**Claim ceiling:** source contracts and synthetic fixtures only; no trained model, public-data score, competition submission, or physical validation claim
 
 ## External benchmark fit
 
@@ -37,8 +37,27 @@ Three candidate classes are explicit:
 
 The selector records rejected candidates and reasons, rejects zero-information probes by default, uses deterministic tie-breaking and returns `execution_performed=false` and `actuation_authorized=false`. The authority digest is only a content reference: signer identity, permission scope, expiry, revocation and issuer authority must be verified upstream. Likelihood-model and calibration digests likewise bind evidence but do not prove that the statistical model is calibrated.
 
-The active evidence comparator protocol is frozen in [active-evidence-selection-v0.1.json](active-evidence-selection-v0.1.json). It compares no additional evidence, cheapest eligible, maximum information gain, information gain per cost, seeded-random eligible, and the risk-adjusted information-gain selector over the *same* eligible candidate set. Synthetic contract tests establish only mathematical behavior and fail-closed gates—not physical diagnostic utility or safety.
+The active evidence comparator protocol is frozen in [active-evidence-selection-v0.1.json](active-evidence-selection-v0.1.json), schema version v0.2. It compares no additional evidence, cheapest eligible, maximum information gain, information gain per cost, seeded-random eligible, and the risk-adjusted worst-case information-gain selector over the *same* eligible candidate set.
 
+A single point estimate of probe likelihood can be dangerously optimistic. The selector now accepts multiple calibrated likelihood scenarios over the same hypothesis space, computes scenario-weighted expected information gain, and—more importantly—uses the **minimum scenario-specific information gain** for eligibility and utility. A probe that is informative only under the nominal model but useless under a plausible degraded/noisy scenario is rejected. One-scenario results are marked not epistemically robust-qualified. Scenario weights must be positive and sum to one; every scenario must normalize for every hypothesis; the scenario set and calibration references are frozen before confirmatory outcomes.
+
+This is a robust lower-bound decision rule, not a proof that the declared scenarios cover reality. The caller still has to construct and independently calibrate the scenario set. The selector records rejected candidates, reasons, expected and worst-case gains, and the evidence digests. It does not acquire observations, conduct inspections, operate actuators or grant authority. Synthetic contract tests establish only mathematical behavior and fail-closed gates—not physical diagnostic utility or safety.
+
+## Append-only streaming diagnosis contract
+
+The official interface is streaming: it supplies one sample at a time and expects a boolean detection output plus five isolation values in the order `f_pic`, `f_pim`, `f_waf`, `f_iml`, `f_x`. A later sample may update the current diagnosis but may not rewrite an output already returned for a previous timestamp. The official submission implementation is required to be Python or MATLAB.
+
+The Rust module `streaming_contract` provides the equivalent model-agnostic core contract:
+
+- A session binds one recording identity and one frozen model SHA-256.
+- Each accepted input produces exactly one output and a content-addressed receipt. The five-slot probability contract is checked at the boundary.
+- Sample indices must be contiguous; timestamps must strictly increase. Invalid input is rejected before the model is invoked.
+- If the stateful model errors or returns an invalid output after invocation, the session is poisoned. It cannot continue with uncertain internal state until an external reconciliation and new session.
+- A receipt chain binds model identity, input digest, output payload/digest and previous receipt. Historical outputs are returned as immutable values; the API has no retrospective update method.
+
+The receipt chain provides tamper-evident ordering, not signer authentication, trusted time, secure isolation or proof that sensor bytes are truthful. The selector and streaming wrapper are separate: the active-evidence module never executes observations or interventions.
+
+The protocol is frozen in [streaming-contract-v0.1.json](streaming-contract-v0.1.json). The Rust core is **not** a direct LiU-ICE competition submission. A Python or MATLAB adapter still needs exact output parity on golden vectors, streaming/no-rewrite tests and dependency/license review. Adapter compliance is a separate acceptance gate, not something inferred from the Rust tests.
 ## Orthogonal out-of-distribution (OOD) experiments
 
 The benchmark now distinguishes condition shift (C), fault-semantic shift (F), and their combination (C+F). This is not a cosmetic taxonomy: the system must demonstrate both known-class retention under new conditions and rejection of faults outside the training label space. The 2026 mechanical OOD survey explicitly separates these deployment requirements, while LiU-ICE provides a concrete condition-shift opportunity: the public training recordings use WLTP, evaluation may include other cycles, and ambient pressure/temperature vary between recordings for non-fault reasons.
@@ -89,8 +108,31 @@ Evaluate on common frozen recordings/splits, same channel availability, equivale
 7. Gated/control-aware fusion and multi-class regime discrimination.
 8. Calibrated selective / unknown-fault rejection baseline.
 
-The official page describes a MATLAB or Python competition interface. This Rust crate is an independent evaluator and evidence-verification component, not a submission-ready competition interface. A separate adapter or method reproduction is necessary for direct entry.
+The official page requires a MATLAB or Python competition interface and an input call for every sample; an earlier output cannot be changed after it is returned. The Rust streaming contract enforces this temporal shape, but a Python/MATLAB adapter and golden-vector parity gate are still missing. This Rust crate is an independent evaluator and evidence-verification component, not a direct submission.
 
+## Industry comparison and the route beyond current practice
+
+Commercial marine and industrial predictive-maintenance services already combine real-time asset data, anomaly detection, trend analysis, engineering expertise and maintenance workflows. Examples include [Wärtsilä Expert Insight](https://www.wartsila.com/marine/services/lifecycle-agreements/expert-insight-service), [Siemens Senseye](https://www.siemens.com/en-us/products/industrial-digitalization-services/senseye-predictive-maintenance/), and [ABB Ability Digital Powertrain Insights](https://www.abb.com/global/en/areas/motion/services/asset-health-and-monitoring/abb-ability-digital-powertrain-insights). These are capability descriptions from vendors, not independent accuracy benchmarks.
+
+| Industry capability | Publicly described practice | Symtropy research differentiator to prove |
+|---|---|---|
+| Wärtsilä Expert Insight | Vessel data, AI and rule-based diagnostics combined with expert analysis; recommendations and crew/shore collaboration | Explicit command-intent / actuator-feedback / plant-response separation; competing-cause ambiguity; independently replayable event and diagnosis evidence |
+| Siemens Senseye | Scalable cloud ML condition monitoring, broad asset/data integration, risk insights and maintenance prioritization | Deterministic sample-level output receipts, fail-closed unknowns, calibrated per-regime response envelopes and explicit OOD-shift claims |
+| ABB Ability Digital Powertrain Insights | Real-time asset-health dashboards, anomaly detection, trend analysis and multi-site/fleet visibility | Worst-case calibrated value-of-information ranking, no-retroactive-output guarantees and independent measurement of diagnostic delay/false-alarm burden |
+
+Do **not** claim Symtropy beats these offerings on uptime, accuracy, avoided cost or fleet performance: public product pages do not supply matched LiU-ICE scores or comparable independently audited metrics. Nor should this workstream be positioned as a replacement for OEM support. The competitive thesis is narrower and testable: make the diagnosis process itself more falsifiable, uncertainty-aware, temporally accountable and evidence-replayable, then demonstrate that these properties improve outcomes on matched datasets and testbeds.
+
+The standards context is supportive, not a certification claim. [ISO 13379-1:2025](https://www.iso.org/standard/88027.html) provides general guidance for machine-system diagnostic approaches where state is described by operational inputs and responses. The 2026 [mechanical OOD survey](https://doi.org/10.1007/s10462-026-11722-3) distinguishes condition shift, fault-semantic shift and combined shift; the 2026 [Annual Review of fault diagnosis in dynamical systems](https://doi.org/10.1146/annurev-control-030123-015422) reviews behavioral-set views, robust filters and active input design. These establish important research directions—not measured superiority of this implementation.
+
+### Measurable ways to exceed a leaderboard baseline
+
+1. **Same score, earlier alarm:** raise event recall and reduce p95 confirmation latency at the same or lower false alarms per observed normal hour. Preserve the official sample score for comparability, but do not optimize it alone.
+2. **Known-class retention plus unknown-fault restraint:** evaluate C-shift, F-shift and joint C+F separately. A model that labels every anomaly as a known class is not open-world capable; a model that rejects every difficult case is not useful either. Report risk-coverage and false-known rate together.
+3. **Diagnose only what is identifiable:** report the admissible hypothesis set, sensitivity rank and conditioning. The benchmark explicitly says its provided signals do not uniquely determine all engine-model parameters; a single optimizer minimum cannot override that limitation.
+4. **Ask for the most valuable next evidence:** compare worst-case information-gain selection with cheapest-only, EIG-only, EIG-per-cost and seeded-random choices on the identical authorized candidate set. Measure realized uncertainty reduction and cost-to-identification.
+5. **Make streaming correctness measurable:** zero sample gaps, zero cardinality mismatches, zero retrospective output changes, and a replay-valid receipt chain. Report p50/p95/p99 per-sample latency and memory at a declared reference machine.
+
+The current numeric targets remain aspirational: +0.05 official score over the best faithfully reproduced matched baseline with FAR no worse; +5 percentage points event recall at the same false-alarm budget; p95 event confirmation latency no more than 5 seconds or 20% below the best matched baseline; ≤5% false-known rate on independent unknown-fault episodes; and zero false-unique-root-cause claims when multiple hypotheses remain admissible. No result is claimed yet.
 ## Report beyond the leaderboard
 
 Every run should be serialized against [`benchmark-run-manifest.schema.json`](benchmark-run-manifest.schema.json). It binds dataset bytes and recording membership, split membership, comparator configuration, model artifact, evaluator revision, dependency lock, protocol/seed manifest, metric outputs and the independent-unit uncertainty method. A score without these bindings is not a qualified result.
@@ -101,7 +143,7 @@ A test bench with one engine supports within-engine drive-cycle/magnitude genera
 
 ## Claim boundaries and next steps
 
-- The official training ZIP has not been downloaded or audited in this workstream. No data SHA, trained model score or competition score is claimed.
+- The official training ZIP is linked by the benchmark page, but attempts to retrieve the binary archive in this environment failed; it has not been downloaded, hashed or audited in this workstream. No data SHA, trained model score or competition score is claimed.
 - The public landing page does not establish a redistribution licence for the archive. Do not republish the data until licensing is confirmed.
 - Inspect the archive, variable dictionary, sampling/time semantics, data completeness and fault-label rules before freezing feature and split manifests.
 - Compare published baselines only under a recovered, matched protocol. Mark unreproduced paper scores as literature references.
