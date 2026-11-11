@@ -281,7 +281,10 @@
         "detection_deadline_ticks",
         "containment_deadline_ticks",
         "max_accepted_frame_age_us",
-        "recovery_healthy_quorum_ticks"
+        "recovery_healthy_quorum_ticks",
+        "causality",
+        "causal_group_id",
+        "parent_event_id"
       ],
       "properties": {
         "event_id": {
@@ -328,6 +331,29 @@
         "recovery_healthy_quorum_ticks": {
           "type": "integer",
           "minimum": 1
+        },
+        "causality": {
+          "enum": [
+            "independent",
+            "common_cause",
+            "cascaded"
+          ]
+        },
+        "causal_group_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "parent_event_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "maxLength": 256
         }
       }
     }
