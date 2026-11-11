@@ -46,6 +46,59 @@ jobs:
         cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit-replay.csv
         cmp /tmp/miss-mdp-audit.csv /tmp/miss-mdp-audit-replay.csv
         grep -F 'TOTAL,all,all,NA,3000,2877,123,0.959000,120,3,0,10,40,1,123' /tmp/miss-mdp-audit.csv
+    - name: Audit per-cell policy value, missingness TV and run failures
+      run: |
+        set -euo pipefail
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-audit -- --policy-summary /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-policy-summary.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-audit -- --policy-summary /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-policy-summary-replay.csv
+        cmp /tmp/miss-mdp-policy-summary.csv /tmp/miss-mdp-policy-summary-replay.csv
+        python3 - <<'PY'
+        import csv
+        import math
+        from pathlib import Path
+
+        with Path("/tmp/miss-mdp-policy-summary.csv").open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            assert reader.fieldnames is not None and len(reader.fieldnames) == 15
+            rows = list(reader)
+
+        assert len(rows) == 150
+        by_key = {(row["experiment_id"], int(row["dataset_size"]), row["assumed_missingness"]): row for row in rows}
+        assert len(by_key) == 150
+
+        for row in rows:
+            assert int(row["finished"]) + int(row["exceptions"]) == 20
+            if int(row["finished"]) > 0:
+                for key in ("mean_return", "median_return", "minimum_return", "maximum_return", "mean_average_tv", "mean_worst_tv", "normalized_policy_value", "oracle_anchor", "random_anchor"):
+                    assert math.isfinite(float(row[key]))
+                assert float(row["minimum_return"]) <= float(row["median_return"]) <= float(row["maximum_return"])
+                assert float(row["minimum_return"]) <= float(row["mean_return"]) <= float(row["maximum_return"])
+                expected = (float(row["mean_return"]) - float(row["random_anchor"])) / (float(row["oracle_anchor"]) - float(row["random_anchor"]))
+                assert math.isclose(float(row["normalized_policy_value"]), expected, rel_tol=1e-8, abs_tol=1e-8)
+            else:
+                assert row["mean_return"] == "" and row["normalized_policy_value"] == ""
+
+        icu_smar_small = by_key[("icu/smar", 10, "MAR")]
+        assert icu_smar_small["finished"] == "9"
+        assert icu_smar_small["exceptions"] == "11"
+        assert math.isclose(float(icu_smar_small["normalized_policy_value"]), 0.930564355, abs_tol=1e-8)
+
+        icu_smar_large = by_key[("icu/smar", 10000000, "MAR")]
+        assert icu_smar_large["finished"] == "20"
+        assert icu_smar_large["exceptions"] == "0"
+        assert math.isclose(float(icu_smar_large["normalized_policy_value"]), 0.998560304, abs_tol=1e-8)
+        assert math.isclose(float(icu_smar_large["mean_average_tv"]), 0.000671432, abs_tol=1e-8)
+        assert math.isclose(float(icu_smar_large["mean_worst_tv"]), 0.001598136, abs_tol=1e-8)
+
+        predator_unident = by_key[("predator-factored/mnar-unident", 10000000, "MNAR")]
+        assert predator_unident["finished"] == "20"
+        assert predator_unident["exceptions"] == "0"
+        assert math.isclose(float(predator_unident["normalized_policy_value"]), 0.909338052, abs_tol=1e-8)
+        assert math.isclose(float(predator_unident["mean_average_tv"]), 0.827299736, abs_tol=1e-8)
+        assert math.isclose(float(predator_unident["mean_worst_tv"]), 0.9525, abs_tol=1e-8)
+
+        print("Miss-MDP policy summary passed: 150 cells, denominator retention, matched per-experiment normalization, TV/policy-value separation and known-answer replay.")
+        PY
     - name: Audit and replay the pinned PPO/stacked-PPO artifact matrix
       run: |
         set -euo pipefail
