@@ -622,7 +622,7 @@ mod rotational_inertia_tests {
         let mut body = anisotropic_body().with_rotational_inertia_operator(operator);
         body.merge_toolhead(
             Transform::identity(),
-            Box::new(Sphere::unit()),
+            Box::new(symtropy_math::Sphere::unit()),
             0.25,
         );
         assert_eq!(
