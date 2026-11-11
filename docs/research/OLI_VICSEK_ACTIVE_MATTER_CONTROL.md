@@ -111,6 +111,12 @@ The current branch implements:
 
 Disconnected pairs are not assigned an arbitrary infinite or sentinel path length. The path-length mean is `None` when the graph has no connected pairs, and the connected-pair fraction communicates fragmentation separately. Cluster area/perimeter and finite-size scaling are still future extensions.
 
+### Common-driver confounding control
+
+The reference model now exposes `apply_common_heading_impulse`, which applies the same exogenous angular input to every particle and returns a separate `CommonFieldIntervention` receipt. It does not create interaction edges, move positions, or consume random numbers.
+
+The frozen three-particle control has interaction radius zero. A shared (+pi/3) environmental impulse changes all three headings identically, while the instantaneous interaction graph remains three isolated vertices. This produces coordinated co-change with no direct agent-to-agent influence. It complements the single-particle intervention/sham controls and gives the Symthaea causal benchmark a known common-driver negative case.
+
 ### Controlled influence interventions
 
 `VicsekModel::intervene_heading` applies an explicit heading intervention and returns a receipt with the tick, particle index, previous heading and imposed heading. It does not advance or reset the random stream. The benchmark clones the exact pre-intervention state to produce a sham; the intervention and sham then consume identical future random draws.
