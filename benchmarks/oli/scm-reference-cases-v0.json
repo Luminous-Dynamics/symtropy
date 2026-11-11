@@ -17,7 +17,7 @@
     "rng_compatible_with_matlab": false,
     "update_order": "synchronous; all agents update from a shared previous-state snapshot",
     "function_evaluation_accounting": "initial observations are cached; first step counts initial plus successor observations; each subsequent step counts the newly observed successor positions",
-    "transactional_update": true,
+    "transactional_update": "Agent positions, RNG, tick, successor cache and consensus history commit only after the complete successor observation batch validates. Successfully acquired initial observations and their function-evaluation cost remain cached/countable if a later successor batch fails; no partial movement commits.",
     "function_evaluation_contract": "Step candidates and successor observations are built locally; positions, RNG state, cache, tick, history and counters commit only if all successor observations validate."
   },
   "equation_variants": [
@@ -187,8 +187,8 @@
       "purpose": "Inject a failure during successor observation and ensure no partial model-state commit.",
       "agent_count": 3,
       "injected_failure": "landscape evaluator fails on first successor observation after initial three-agent observation",
-      "expected": "ScmModel including positions, random stream, tick, observation cache and evaluation count is unchanged",
-      "test": "failed_successor_observation_does_not_commit_partial_state"
+      "expected": "On a successor observation error, agent positions, RNG and tick remain unchanged; the completed initial observations remain cached and exactly agent_count initial function evaluations remain in the cost ledger.",
+      "test": "failed_successor_observation_preserves_motion_but_accounts_initial_measurements"
     },
     {
       "id": "FITNESS_BOUNDS",
