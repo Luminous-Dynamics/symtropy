@@ -2,8 +2,8 @@
 
 **Parent owner:** Symtropy issue #4628, MARITIME-CONTROL-AWARE-DIAGNOSIS-001  
 **External benchmark:** [LiU-ICE Industrial Fault Diagnosis Benchmark 2026](https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index), DX37  
-**Status:** independent Rust evaluator primitives; dataset payload not yet audited and no benchmark score claimed  
-**Claim ceiling:** typed semantics, synthetic contract behavior, and exact score-formula implementation only
+**Status:** independent Rust evaluator primitives plus synthetic event-contract tests; dataset payload not yet audited and no benchmark score claimed  
+**Claim ceiling:** typed semantics, synthetic contract behavior, and exact score-formula implementation only; no trained model, public-data execution, or physical validation claim
 
 ## External benchmark fit
 
@@ -24,6 +24,18 @@ The benchmark lists four known fault classes: intake-manifold leakage and multip
 - Command-conditioned response residual evaluation with distinct command-availability, prediction and physical-observation timestamps. It requires command availability at or before prediction, response strictly after prediction, a bounded response horizon, and command freshness measured at prediction time. Missing, stale, future, unsupported and uncalibrated states are not normal. A residual mismatch never independently claims an actuator fault.
 - Split-conformal calibration using one maximum standardized residual per independent recording/episode, not 20 Hz samples or overlapping windows.
 - Calibration receipts retain their sorted episode identities and maximum residuals. Their digests and finite-sample order statistic are recomputed; the threshold must match the frozen model, regime, training manifest and split manifest.
+
+## Event-level metrics: time-to-diagnosis, not row count
+
+The sample-level competition score can reward a detector that raises a late alarm, or conceal repeated alerts inside one fault episode. The exposed Rust module `event_metrics` adds a separate episode-level view:
+
+- Debounced positive samples become alarm episodes. The protocol requires three positives, merges positive observations no more than 0.15 seconds apart, and timestamps confirmation at the third positive.
+- Each alarm can match at most one annotated fault event. An alarm must start at or after the true onset and confirm by both the configured latency deadline and the event end. A pre-onset alarm remains a false alarm; it cannot be relabelled as early detection.
+- Reports include event recall, mean/median/p95/max confirmation latency, false alarms per observed normal hour, duplicate alarms during detected events, late alarms during missed events, short transient bursts, and event-level isolation quality.
+- Normal exposure is computed only from adjacent observed intervals no larger than 0.10 seconds, less the time covered by fault events. Long missing-data gaps are excluded rather than treated as healthy operating time.
+- Event onset/offset must come from a source-bound annotation or independent injection record. The benchmark page says faults begin at approximately 120 seconds; that prose is not exact ground truth and is never hard-coded as an event label.
+
+The initial LiU-ICE configuration is a frozen protocol choice, not a result or an optimized operating point. Sensitivity analyses belong on validation data; changing thresholds after confirmatory results invalidates the run. Report uncertainty with recording-level or engine-run-level resampling, not sample-row bootstrap. The training archive and event annotations have not yet been audited, so all event targets remain aspirational.
 
 ## Statistical constraint
 
@@ -52,7 +64,7 @@ The official page describes a MATLAB or Python competition interface. This Rust 
 
 Every run should be serialized against [`benchmark-run-manifest.schema.json`](benchmark-run-manifest.schema.json). It binds dataset bytes and recording membership, split membership, comparator configuration, model artifact, evaluator revision, dependency lock, protocol/seed manifest, metric outputs and the independent-unit uncertainty method. A score without these bindings is not a qualified result.
 
-Always report FAR, TDR, FIA and official total score, but do not stop there. Add event recall, false alarms per recording-hour, detection latency, per-fault/per-cycle performance, unknown-fault false-known rate, ambiguity/abstention, risk-coverage, interval coverage and sharpness, worst-regime performance, model size, inference latency and resource use. Group uncertainty by independent recording/engine campaign, never by rows.
+Always report FAR, TDR, FIA and official total score, but do not stop there. Add event recall, false alarms per observed normal hour, detection latency, per-fault/per-cycle performance, unknown-fault false-known rate, ambiguity/abstention, risk-coverage, interval coverage and sharpness, worst-regime performance, model size, inference latency and resource use. Group uncertainty by independent recording/engine campaign, never by rows.
 
 A test bench with one engine supports within-engine drive-cycle/magnitude generalization. It does not establish transfer to another engine, vessel or fleet.
 
