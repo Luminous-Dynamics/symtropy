@@ -58,7 +58,11 @@
           "response",
           "response_envelope",
           "actuator_feedback",
-          "expected_disposition"
+          "expected_disposition",
+          "prediction_timestamp_evidence_id",
+          "prediction_timestamp_evidence_sha256",
+          "prediction_timestamp_capture_point",
+          "prediction_qualified_uncertainty_bound_ms"
         ],
         "properties": {
           "case_id": {
@@ -83,7 +87,21 @@
               "timebase_id",
               "qualification_state",
               "qualification_id",
-              "qualification_sha256"
+              "qualification_sha256",
+              "time_scale",
+              "synchronization_method",
+              "timing_profile_id",
+              "clock_source_id",
+              "integrity_state",
+              "valid_from_ms",
+              "valid_until_ms",
+              "qualified_at_ms",
+              "qualified_at_uncertainty_ms",
+              "max_offset_bound_ms",
+              "max_drift_bound_ppm",
+              "path_asymmetry_bound_ms",
+              "measurement_evidence_id",
+              "measurement_evidence_sha256"
             ],
             "properties": {
               "timebase_id": {
@@ -103,6 +121,74 @@
                 "minLength": 1
               },
               "qualification_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "time_scale": {
+                "enum": [
+                  "UTC",
+                  "TAI",
+                  "MONOTONIC",
+                  "ENGINE_RELATIVE"
+                ]
+              },
+              "synchronization_method": {
+                "enum": [
+                  "IEEE_1588_PTP",
+                  "IRIG_B",
+                  "GNSS_DISCIPLINED",
+                  "COMMON_DAQ_CLOCK",
+                  "OTHER_QUALIFIED"
+                ]
+              },
+              "timing_profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clock_source_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "integrity_state": {
+                "enum": [
+                  "ATTESTED",
+                  "NOT_ATTESTED",
+                  "COMPROMISED"
+                ]
+              },
+              "valid_from_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "valid_until_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "qualified_at_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "qualified_at_uncertainty_ms": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "max_offset_bound_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "max_drift_bound_ppm": {
+                "type": "number",
+                "minimum": 0
+              },
+              "path_asymmetry_bound_ms": {
+                "type": "number",
+                "minimum": 0
+              },
+              "measurement_evidence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "measurement_evidence_sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
               }
@@ -128,7 +214,11 @@
               "timebase_id",
               "timestamp_uncertainty_ms",
               "quality",
-              "dependency_groups"
+              "dependency_groups",
+              "timestamp_evidence_id",
+              "timestamp_evidence_sha256",
+              "timestamp_capture_point",
+              "qualified_uncertainty_bound_ms"
             ],
             "properties": {
               "signal_id": {
@@ -181,6 +271,28 @@
                   "type": "string",
                   "minLength": 1
                 }
+              },
+              "timestamp_evidence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "timestamp_capture_point": {
+                "enum": [
+                  "HARDWARE_CAPTURE",
+                  "DAQ_CAPTURE",
+                  "CONTROLLER_SCAN",
+                  "GATEWAY_RECEIVE",
+                  "HOST_RECEIVE",
+                  "RECONSTRUCTED"
+                ]
+              },
+              "qualified_uncertainty_bound_ms": {
+                "type": "integer",
+                "minimum": 0
               }
             }
           },
@@ -196,7 +308,11 @@
               "timebase_id",
               "timestamp_uncertainty_ms",
               "quality",
-              "dependency_groups"
+              "dependency_groups",
+              "timestamp_evidence_id",
+              "timestamp_evidence_sha256",
+              "timestamp_capture_point",
+              "qualified_uncertainty_bound_ms"
             ],
             "properties": {
               "signal_id": {
@@ -249,6 +365,28 @@
                   "type": "string",
                   "minLength": 1
                 }
+              },
+              "timestamp_evidence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "timestamp_capture_point": {
+                "enum": [
+                  "HARDWARE_CAPTURE",
+                  "DAQ_CAPTURE",
+                  "CONTROLLER_SCAN",
+                  "GATEWAY_RECEIVE",
+                  "HOST_RECEIVE",
+                  "RECONSTRUCTED"
+                ]
+              },
+              "qualified_uncertainty_bound_ms": {
+                "type": "integer",
+                "minimum": 0
               }
             }
           },
@@ -265,7 +403,11 @@
               "timestamp_uncertainty_ms",
               "quality",
               "dependency_groups",
-              "derived_from_signal_ids"
+              "derived_from_signal_ids",
+              "timestamp_evidence_id",
+              "timestamp_evidence_sha256",
+              "timestamp_capture_point",
+              "qualified_uncertainty_bound_ms"
             ],
             "properties": {
               "signal_id": {
@@ -326,6 +468,28 @@
                   "type": "string",
                   "minLength": 1
                 }
+              },
+              "timestamp_evidence_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "timestamp_evidence_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "timestamp_capture_point": {
+                "enum": [
+                  "HARDWARE_CAPTURE",
+                  "DAQ_CAPTURE",
+                  "CONTROLLER_SCAN",
+                  "GATEWAY_RECEIVE",
+                  "HOST_RECEIVE",
+                  "RECONSTRUCTED"
+                ]
+              },
+              "qualified_uncertainty_bound_ms": {
+                "type": "integer",
+                "minimum": 0
               }
             }
           },
@@ -345,7 +509,9 @@
               "lower",
               "mean",
               "upper",
-              "unit"
+              "unit",
+              "temporal_provenance_id",
+              "temporal_provenance_sha256"
             ],
             "properties": {
               "model_id": {
@@ -395,6 +561,14 @@
               "unit": {
                 "type": "string",
                 "minLength": 1
+              },
+              "temporal_provenance_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "temporal_provenance_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
               }
             }
           },
@@ -412,7 +586,11 @@
                   "timebase_id",
                   "timestamp_uncertainty_ms",
                   "quality",
-                  "dependency_groups"
+                  "dependency_groups",
+                  "timestamp_evidence_id",
+                  "timestamp_evidence_sha256",
+                  "timestamp_capture_point",
+                  "qualified_uncertainty_bound_ms"
                 ],
                 "properties": {
                   "signal_id": {
@@ -465,6 +643,28 @@
                       "type": "string",
                       "minLength": 1
                     }
+                  },
+                  "timestamp_evidence_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "timestamp_evidence_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "timestamp_capture_point": {
+                    "enum": [
+                      "HARDWARE_CAPTURE",
+                      "DAQ_CAPTURE",
+                      "CONTROLLER_SCAN",
+                      "GATEWAY_RECEIVE",
+                      "HOST_RECEIVE",
+                      "RECONSTRUCTED"
+                    ]
+                  },
+                  "qualified_uncertainty_bound_ms": {
+                    "type": "integer",
+                    "minimum": 0
                   }
                 }
               },
@@ -481,6 +681,28 @@
               "NOT_EVALUATED",
               "INVALID_CONTRACT"
             ]
+          },
+          "prediction_timestamp_evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction_timestamp_evidence_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "prediction_timestamp_capture_point": {
+            "enum": [
+              "HARDWARE_CAPTURE",
+              "DAQ_CAPTURE",
+              "CONTROLLER_SCAN",
+              "GATEWAY_RECEIVE",
+              "HOST_RECEIVE",
+              "RECONSTRUCTED"
+            ]
+          },
+          "prediction_qualified_uncertainty_bound_ms": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       }

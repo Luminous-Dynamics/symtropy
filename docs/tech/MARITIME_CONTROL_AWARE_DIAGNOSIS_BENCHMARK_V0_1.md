@@ -229,3 +229,21 @@ If uncertainty intervals overlap a causal boundary, the result is NOT_EVALUATED.
 This software contract does not implement PTP or prove a vessel's clock network. IEEE 1588 defines precise synchronization for heterogeneous networked measurement/control clocks, but installation-specific offset, drift, path asymmetry, timestamp location and end-to-end latency still require measured qualification: https://standards.ieee.org/ieee/1588/6825/. See also the 2026 review of IRIG-B, SNTP and PTP for industrial facilities: https://doi.org/10.1109/MIAS.2026.3682180.
 
 The frozen evaluator corpus now contains 25 synthetic cases, including overlapping command/prediction intervals, overlapping response/prediction intervals, unqualified/unmapped timebases, stale input hidden by timestamp uncertainty, response-horizon ambiguity, definitely future commands, arithmetic overflow and a boundary case where order remains provable. These fixtures are fabricated conformance cases, not clock measurements from a vessel.
+
+
+## Timing provenance and clock-qualification evidence — P0.3
+
+P0.2 proved interval ordering only after accepting a declared timebase qualification and per-signal uncertainty number. P0.3 makes the evidence behind those declarations inspectable.
+
+The timebase qualification binds its time scale (TAI/UTC/monotonic/engine-relative), synchronization method and profile, clock-source identity and integrity disposition, qualification measurement artifact ID/digest, measured offset/drift/path-asymmetry bounds, qualification measurement time and validity interval. It must already exist and remain valid at prediction time.
+
+Every command, context, response and prediction timestamp also binds a timing-path evidence ID/digest, capture point (hardware, DAQ, controller scan, gateway, host or reconstructed), and a qualified path uncertainty bound. The declared timestamp uncertainty may not understate that path bound. The response model's training/issue timestamps bind separate temporal-provenance evidence.
+
+A common timebase identifier alone is not proof that distinct sensor, controller, DAQ and gateway paths have been traceably mapped. The complete path bound must account for clock offset/drift, path asymmetry, timestamp capture location, acquisition latency and timestamp resolution. Compromised, unattested, expired, future or inadequately evidenced clock state cannot establish causal ordering.
+
+IEEE 1588-2019 defines the Precision Time Protocol for networked measurement/control clocks and supports high-accuracy synchronization where properly designed; its amendment portfolio includes IEEE 1588h-2026, approved by the IEEE Standards Association. IEC 61588:2021 has a corrected 2026-01 version. Protocol conformance does not by itself qualify a particular engine's timestamp capture point, path asymmetry, clock integrity or signal-specific end-to-end uncertainty:
+- https://standards.ieee.org/ieee/1588/6825/
+- https://standards.ieee.org/ieee/1588h/11767/
+- https://webstore.iec.ch/en/publication/68542
+
+The frozen corpus now contains 30 synthetic cases. Five added timing-evidence falsification cases cover expired/future clock qualification, compromised clock integrity, understated signal-path uncertainty and invalid timestamp-evidence digests. All artifacts are fabricated conformance fixtures, not measurements of a real clock network or engine.

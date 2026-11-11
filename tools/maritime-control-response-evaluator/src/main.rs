@@ -58,14 +58,16 @@ fn quality(v: &Value, at: &str) -> Check<&'static str> {
 struct Signal {
     role: String, value: f64, unit: String, observed_at_ms: u64,
     timebase_id: String, timestamp_uncertainty_ms: u64,
+    timestamp_evidence_id: String, timestamp_evidence_sha256: String,
+    timestamp_capture_point: String, qualified_uncertainty_bound_ms: u64,
     quality: String, dependencies: BTreeSet<String>, derived_from: BTreeSet<String>,
 }
 fn signal(v: &Value, at: &str, response: bool) -> Check<Signal> {
     let _signal_id = string(v, "signal_id", at)?;
     if response {
-        exact_keys(v, &["signal_id","role","value","unit","observed_at_ms","timebase_id","timestamp_uncertainty_ms","quality","dependency_groups","derived_from_signal_ids"], at)?;
+        exact_keys(v, &["signal_id","role","value","unit","observed_at_ms","timebase_id","timestamp_uncertainty_ms","timestamp_evidence_id","timestamp_evidence_sha256","timestamp_capture_point","qualified_uncertainty_bound_ms","quality","dependency_groups","derived_from_signal_ids"], at)?;
     } else {
-        exact_keys(v, &["signal_id","role","value","unit","observed_at_ms","timebase_id","timestamp_uncertainty_ms","quality","dependency_groups"], at)?;
+        exact_keys(v, &["signal_id","role","value","unit","observed_at_ms","timebase_id","timestamp_uncertainty_ms","timestamp_evidence_id","timestamp_evidence_sha256","timestamp_capture_point","qualified_uncertainty_bound_ms","quality","dependency_groups"], at)?;
     }
     let derived = if response { string_set(v,"derived_from_signal_ids",at)? } else { BTreeSet::new() };
     Ok(Signal {
@@ -73,6 +75,10 @@ fn signal(v: &Value, at: &str, response: bool) -> Check<Signal> {
         unit: string(v,"unit",at)?.to_owned(), observed_at_ms: unsigned(v,"observed_at_ms",at)?,
         timebase_id: string(v,"timebase_id",at)?.to_owned(),
         timestamp_uncertainty_ms: unsigned(v,"timestamp_uncertainty_ms",at)?,
+        timestamp_evidence_id: string(v,"timestamp_evidence_id",at)?.to_owned(),
+        timestamp_evidence_sha256: string(v,"timestamp_evidence_sha256",at)?.to_owned(),
+        timestamp_capture_point: string(v,"timestamp_capture_point",at)?.to_owned(),
+        qualified_uncertainty_bound_ms: unsigned(v,"qualified_uncertainty_bound_ms",at)?,
         quality: quality(v,at)?.to_owned(), dependencies: string_set(v,"dependency_groups",at)?,
         derived_from: derived,
     })
@@ -94,29 +100,78 @@ fn result(disposition: &str, reasons: &[&str], feedback: &str) -> Value {
 }
 fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String, Value)> {
     let at = "$.cases[]";
-    exact_keys(case,&["case_id","asset_configuration_id","regime_id","regime_qualified","timebase","prediction_time_ms","prediction_timestamp_uncertainty_ms","command","context","response","response_envelope","actuator_feedback","expected_disposition"],at)?;
+    exact_keys(case,&["case_id","asset_configuration_id","regime_id","regime_qualified","timebase","prediction_time_ms","prediction_timestamp_uncertainty_ms","prediction_timestamp_evidence_id","prediction_timestamp_evidence_sha256","prediction_timestamp_capture_point","prediction_qualified_uncertainty_bound_ms","command","context","response","response_envelope","actuator_feedback","expected_disposition"],at)?;
     let id = string(case,"case_id",at)?.to_owned();
     let prediction = unsigned(case,"prediction_time_ms",at)?;
     let configuration = string(case,"asset_configuration_id",at)?;
     let regime = string(case,"regime_id",at)?;
     let regime_qualified = boolean(case,"regime_qualified",at)?;
     let timebase = field(case,"timebase",at)?;
-    exact_keys(timebase,&["timebase_id","qualification_state","qualification_id","qualification_sha256"],&format!("{at}.timebase"))?;
+    exact_keys(timebase,&["timebase_id","qualification_state","qualification_id","qualification_sha256","time_scale","synchronization_method","timing_profile_id","clock_source_id","integrity_state","valid_from_ms","valid_until_ms","qualified_at_ms","qualified_at_uncertainty_ms","max_offset_bound_ms","max_drift_bound_ppm","path_asymmetry_bound_ms","measurement_evidence_id","measurement_evidence_sha256"],&format!("{at}.timebase"))?;
     let timebase_id = string(timebase,"timebase_id",&format!("{at}.timebase"))?;
     let clock_state = string(timebase,"qualification_state",&format!("{at}.timebase"))?;
     let clock_qualification_id = string(timebase,"qualification_id",&format!("{at}.timebase"))?;
     let clock_qualification_sha256 = string(timebase,"qualification_sha256",&format!("{at}.timebase"))?;
-    if !valid_hex(clock_qualification_sha256,64) {
+    let time_scale = string(timebase,"time_scale",&format!("{at}.timebase"))?;
+    let sync_method = string(timebase,"synchronization_method",&format!("{at}.timebase"))?;
+    let _timing_profile = string(timebase,"timing_profile_id",&format!("{at}.timebase"))?;
+    let _clock_source = string(timebase,"clock_source_id",&format!("{at}.timebase"))?;
+    let integrity_state = string(timebase,"integrity_state",&format!("{at}.timebase"))?;
+    let valid_from = unsigned(timebase,"valid_from_ms",&format!("{at}.timebase"))?;
+    let valid_until = unsigned(timebase,"valid_until_ms",&format!("{at}.timebase"))?;
+    let qualified_at = unsigned(timebase,"qualified_at_ms",&format!("{at}.timebase"))?;
+    let qualified_at_uncertainty = unsigned(timebase,"qualified_at_uncertainty_ms",&format!("{at}.timebase"))?;
+    let max_offset = number(timebase,"max_offset_bound_ms",&format!("{at}.timebase"))?;
+    let max_drift = number(timebase,"max_drift_bound_ppm",&format!("{at}.timebase"))?;
+    let path_asymmetry = number(timebase,"path_asymmetry_bound_ms",&format!("{at}.timebase"))?;
+    let _measurement_id = string(timebase,"measurement_evidence_id",&format!("{at}.timebase"))?;
+    let measurement_sha = string(timebase,"measurement_evidence_sha256",&format!("{at}.timebase"))?;
+    if !valid_hex(clock_qualification_sha256,64) || !valid_hex(measurement_sha,64) {
         return Ok((id,result("INVALID_CONTRACT",&["INVALID_CLOCK_QUALIFICATION_DIGEST"],"NOT_ASSESSED")));
+    }
+    if !matches!(time_scale,"UTC"|"TAI"|"MONOTONIC"|"ENGINE_RELATIVE")
+        || !matches!(sync_method,"IEEE_1588_PTP"|"IRIG_B"|"GNSS_DISCIPLINED"|"COMMON_DAQ_CLOCK"|"OTHER_QUALIFIED") {
+        return Ok((id,result("INVALID_CONTRACT",&["UNSUPPORTED_TIMEBASE_METHOD_OR_SCALE"],"NOT_ASSESSED")));
+    }
+    if max_offset < 0.0 || max_drift < 0.0 || path_asymmetry < 0.0 || integrity_state == "COMPROMISED" {
+        return Ok((id,result("INVALID_CONTRACT",&["INVALID_OR_COMPROMISED_CLOCK_QUALIFICATION"],"NOT_ASSESSED")));
+    }
+    if integrity_state != "ATTESTED" {
+        return Ok((id,result("NOT_EVALUATED",&["CLOCK_INTEGRITY_NOT_ATTESTED"],"NOT_ASSESSED")));
     }
     if clock_state != "QUALIFIED" {
         return Ok((id,result("NOT_EVALUATED",&["CLOCK_QUALIFICATION_UNAVAILABLE"],"NOT_ASSESSED")));
+    }
+    if valid_until < valid_from {
+        return Ok((id,result("INVALID_CONTRACT",&["CLOCK_QUALIFICATION_VALIDITY_INVERTED"],"NOT_ASSESSED")));
     }
     let prediction_uncertainty = unsigned(case,"prediction_timestamp_uncertainty_ms",at)?;
     let prediction_bounds = match time_bounds(prediction,prediction_uncertainty) {
         Some(bounds) => bounds,
         None => return Ok((id,result("INVALID_CONTRACT",&["PREDICTION_TIMESTAMP_INTERVAL_OVERFLOW"],"NOT_ASSESSED"))),
     };
+    let prediction_evidence_id = string(case,"prediction_timestamp_evidence_id",at)?;
+    let prediction_evidence_sha = string(case,"prediction_timestamp_evidence_sha256",at)?;
+    let prediction_capture_point = string(case,"prediction_timestamp_capture_point",at)?;
+    let prediction_qualified_bound = unsigned(case,"prediction_qualified_uncertainty_bound_ms",at)?;
+    if !valid_hex(prediction_evidence_sha,64)
+        || !matches!(prediction_capture_point,"HARDWARE_CAPTURE"|"DAQ_CAPTURE"|"CONTROLLER_SCAN"|"GATEWAY_RECEIVE"|"HOST_RECEIVE"|"RECONSTRUCTED")
+        || prediction_uncertainty < prediction_qualified_bound {
+        return Ok((id,result("INVALID_CONTRACT",&["PREDICTION_TIMESTAMP_EVIDENCE_INSUFFICIENT"],"NOT_ASSESSED")));
+    }
+    let qualification_time_bounds = match time_bounds(qualified_at,qualified_at_uncertainty) {
+        Some(bounds) => bounds,
+        None => return Ok((id,result("INVALID_CONTRACT",&["CLOCK_QUALIFICATION_TIME_OVERFLOW"],"NOT_ASSESSED"))),
+    };
+    if qualification_time_bounds.0 > prediction_bounds.1 {
+        return Ok((id,result("INVALID_CONTRACT",&["FUTURE_CLOCK_QUALIFICATION"],"NOT_ASSESSED")));
+    }
+    if qualification_time_bounds.1 > prediction_bounds.0 {
+        return Ok((id,result("NOT_EVALUATED",&["CLOCK_QUALIFICATION_ORDER_UNPROVEN"],"NOT_ASSESSED")));
+    }
+    if valid_from > prediction_bounds.0 || valid_until < prediction_bounds.1 {
+        return Ok((id,result("NOT_EVALUATED",&["CLOCK_QUALIFICATION_NOT_VALID_FOR_PREDICTION"],"NOT_ASSESSED")));
+    }
     let command = signal(field(case,"command",at)?,&format!("{at}.command"),false)?;
     let context = signal(field(case,"context",at)?,&format!("{at}.context"),false)?;
     let response = signal(field(case,"response",at)?,&format!("{at}.response"),true)?;
@@ -136,7 +191,7 @@ fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String,
         } else { "FEEDBACK_NOT_CURRENT" }
     };
     let envelope = field(case,"response_envelope",at)?;
-    exact_keys(envelope,&["model_id","configuration_id","regime_id","timebase_id","issued_at_ms","issued_at_uncertainty_ms","trained_through_ms","trained_through_uncertainty_ms","qualified","lower","mean","upper","unit"],&format!("{at}.response_envelope"))?;
+    exact_keys(envelope,&["model_id","configuration_id","regime_id","timebase_id","issued_at_ms","issued_at_uncertainty_ms","trained_through_ms","trained_through_uncertainty_ms","temporal_provenance_id","temporal_provenance_sha256","qualified","lower","mean","upper","unit"],&format!("{at}.response_envelope"))?;
     let model_id = string(envelope,"model_id",at)?;
     let envelope_config = string(envelope,"configuration_id",at)?;
     let envelope_regime = string(envelope,"regime_id",at)?;
@@ -145,7 +200,12 @@ fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String,
     let issued_uncertainty = unsigned(envelope,"issued_at_uncertainty_ms",at)?;
     let trained = unsigned(envelope,"trained_through_ms",at)?;
     let trained_uncertainty = unsigned(envelope,"trained_through_uncertainty_ms",at)?;
+    let temporal_provenance_id = string(envelope,"temporal_provenance_id",at)?;
+    let temporal_provenance_sha256 = string(envelope,"temporal_provenance_sha256",at)?;
     let model_qualified = boolean(envelope,"qualified",at)?;
+    if !valid_hex(temporal_provenance_sha256,64) {
+        return Ok((id,result("INVALID_CONTRACT",&["INVALID_MODEL_TEMPORAL_PROVENANCE_DIGEST"],feedback_state)));
+    }
     let lower = number(envelope,"lower",at)?;
     let mean = number(envelope,"mean",at)?;
     let upper = number(envelope,"upper",at)?;
@@ -158,6 +218,25 @@ fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String,
         || context.timebase_id != timebase_id
         || response.timebase_id != timebase_id {
         return Ok((id,result("NOT_EVALUATED",&["TIMEBASE_MAPPING_NOT_QUALIFIED"],feedback_state)));
+    }
+    for signal in [&command,&context,&response] {
+        if !valid_hex(&signal.timestamp_evidence_sha256,64) {
+            return Ok((id,result("INVALID_CONTRACT",&["INVALID_SIGNAL_TIMESTAMP_EVIDENCE_DIGEST"],feedback_state)));
+        }
+        if !matches!(signal.timestamp_capture_point.as_str(),"HARDWARE_CAPTURE"|"DAQ_CAPTURE"|"CONTROLLER_SCAN"|"GATEWAY_RECEIVE"|"HOST_RECEIVE"|"RECONSTRUCTED") {
+            return Ok((id,result("INVALID_CONTRACT",&["INVALID_TIMESTAMP_CAPTURE_POINT"],feedback_state)));
+        }
+        if signal.timestamp_uncertainty_ms < signal.qualified_uncertainty_bound_ms {
+            return Ok((id,result("INVALID_CONTRACT",&["TIMESTAMP_UNCERTAINTY_UNDERSTATES_QUALIFIED_PATH_BOUND"],feedback_state)));
+        }
+    }
+    if !feedback.is_null() {
+        let fb = signal(feedback,&format!("{at}.actuator_feedback"),false)?;
+        if fb.timebase_id != timebase_id || !valid_hex(&fb.timestamp_evidence_sha256,64)
+            || fb.timestamp_uncertainty_ms < fb.qualified_uncertainty_bound_ms
+            || !matches!(fb.timestamp_capture_point.as_str(),"HARDWARE_CAPTURE"|"DAQ_CAPTURE"|"CONTROLLER_SCAN"|"GATEWAY_RECEIVE"|"HOST_RECEIVE"|"RECONSTRUCTED") {
+            return Ok((id,result("NOT_EVALUATED",&["ACTUATOR_FEEDBACK_TIMING_NOT_QUALIFIED"],feedback_state)));
+        }
     }
     let command_bounds = match time_bounds(command.observed_at_ms,command.timestamp_uncertainty_ms) {
         Some(bounds) => bounds,
@@ -248,6 +327,21 @@ fn evaluate_case(case: &Value, max_age: u64, max_horizon: u64) -> Check<(String,
     out["timebase_id"] = json!(timebase_id);
     out["timebase_qualification_id"] = json!(clock_qualification_id);
     out["timebase_qualification_sha256"] = json!(clock_qualification_sha256);
+    out["timebase_method"] = json!(sync_method);
+    out["time_scale"] = json!(time_scale);
+    out["timebase_integrity_state"] = json!(integrity_state);
+    out["timebase_measurement_evidence_sha256"] = json!(measurement_sha);
+    out["model_temporal_provenance_id"] = json!(temporal_provenance_id);
+    out["model_temporal_provenance_sha256"] = json!(temporal_provenance_sha256);
+    out["prediction_timestamp_evidence"] = json!({
+        "evidence_id":prediction_evidence_id,"sha256":prediction_evidence_sha,
+        "capture_point":prediction_capture_point,"qualified_bound_ms":prediction_qualified_bound
+    });
+    out["signal_timestamp_evidence"] = json!({
+        "command": {"evidence_id":command.timestamp_evidence_id,"sha256":command.timestamp_evidence_sha256,"capture_point":command.timestamp_capture_point,"qualified_bound_ms":command.qualified_uncertainty_bound_ms},
+        "context": {"evidence_id":context.timestamp_evidence_id,"sha256":context.timestamp_evidence_sha256,"capture_point":context.timestamp_capture_point,"qualified_bound_ms":context.qualified_uncertainty_bound_ms},
+        "response": {"evidence_id":response.timestamp_evidence_id,"sha256":response.timestamp_evidence_sha256,"capture_point":response.timestamp_capture_point,"qualified_bound_ms":response.qualified_uncertainty_bound_ms}
+    });
     out["temporal_intervals_ms"] = json!({
         "command_available": [command_bounds.0,command_bounds.1],
         "context_observed": [context_bounds.0,context_bounds.1],
@@ -369,7 +463,7 @@ mod tests {
     fn corpus()->Value { serde_json::from_str(FROZEN).expect("frozen fixture JSON") }
     #[test]
     fn all_twenty_five_synthetic_cases_match_known_truth() {
-        let c=corpus(); let items=c["cases"].as_array().expect("cases"); assert_eq!(items.len(),25);
+        let c=corpus(); let items=c["cases"].as_array().expect("cases"); assert_eq!(items.len(),30);
         for case in items {
             let (id,out)=evaluate_case(case,2000,5000).expect("case evaluates");
             assert_eq!(out["disposition"],case["expected_disposition"],"{id}");
@@ -394,7 +488,7 @@ mod tests {
     #[test]
     fn timestamp_uncertainty_and_timebase_fail_closed() {
         let c=corpus();
-        for index in 16..25 {
+        for index in 16..30 {
             let (_,out)=evaluate_case(&c["cases"][index],2000,5000).unwrap();
             assert_eq!(out["disposition"],c["cases"][index]["expected_disposition"],"case {index}");
         }
@@ -417,6 +511,21 @@ mod tests {
         let (_,out)=evaluate_case(&c["cases"][0],2000,5000).unwrap();
         assert_eq!(out["disposition"],"NOT_EVALUATED");
         assert_eq!(out["reason_codes"][0],"CLOCK_QUALIFICATION_UNAVAILABLE");
+    }
+    #[test]
+    fn clock_qualification_and_signal_path_evidence_are_enforced() {
+        let mut c=corpus();
+        c["cases"][25]["timebase"]["valid_until_ms"]=json!(999);
+        assert_eq!(evaluate_case(&c["cases"][25],2000,5000).unwrap().1["disposition"],"NOT_EVALUATED");
+        c["cases"][26]["timebase"]["qualified_at_ms"]=json!(1200);
+        assert_eq!(evaluate_case(&c["cases"][26],2000,5000).unwrap().1["disposition"],"INVALID_CONTRACT");
+        c["cases"][27]["timebase"]["integrity_state"]=json!("COMPROMISED");
+        assert_eq!(evaluate_case(&c["cases"][27],2000,5000).unwrap().1["disposition"],"INVALID_CONTRACT");
+        c["cases"][28]["response"]["timestamp_uncertainty_ms"]=json!(0);
+        c["cases"][28]["response"]["qualified_uncertainty_bound_ms"]=json!(1);
+        assert_eq!(evaluate_case(&c["cases"][28],2000,5000).unwrap().1["disposition"],"INVALID_CONTRACT");
+        c["cases"][29]["response"]["timestamp_evidence_sha256"]=json!("bad");
+        assert_eq!(evaluate_case(&c["cases"][29],2000,5000).unwrap().1["disposition"],"INVALID_CONTRACT");
     }
     #[test]
     fn role_promotion_fails_closed() {

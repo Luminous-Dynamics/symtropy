@@ -22,7 +22,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -35,7 +39,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -49,7 +57,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -64,7 +76,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -77,16 +91,38 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "RESPONSE_CONSISTENT",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "same_command_low_load",
@@ -105,7 +141,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -118,7 +158,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -132,7 +176,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -147,7 +195,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "RESPONSE_CONSISTENT",
@@ -155,9 +205,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "same_command_high_load",
@@ -176,7 +244,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -189,7 +261,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -203,7 +279,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -218,7 +298,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "RESPONSE_CONSISTENT",
@@ -226,9 +308,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "different_command_same_response_a",
@@ -247,7 +347,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -260,7 +364,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -274,7 +382,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -289,7 +401,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "RESPONSE_CONSISTENT",
@@ -297,9 +411,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "different_command_same_response_b",
@@ -318,7 +450,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -331,7 +467,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -345,7 +485,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -360,7 +504,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "RESPONSE_CONSISTENT",
@@ -368,9 +514,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "physical_response_outside_envelope",
@@ -389,7 +553,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -402,7 +570,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -416,7 +588,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -431,7 +607,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "RESPONSE_MISMATCH_UNISOLATED",
@@ -439,9 +617,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "stale_physical_response",
@@ -460,7 +656,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -473,7 +673,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -487,7 +691,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -502,7 +710,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "NOT_EVALUATED",
@@ -510,9 +720,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "future_command_leakage",
@@ -531,7 +759,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -544,7 +776,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -558,7 +794,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -573,7 +813,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "INVALID_CONTRACT",
@@ -581,9 +823,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "configuration_mismatch",
@@ -602,7 +862,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -615,7 +879,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -629,7 +897,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -644,7 +916,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "NOT_EVALUATED",
@@ -652,9 +926,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "unsupported_maneuvering_regime",
@@ -673,7 +965,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -686,7 +982,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -700,7 +1000,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -715,7 +1019,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "NOT_EVALUATED",
@@ -723,9 +1029,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "common_gateway_dependency",
@@ -744,7 +1068,11 @@
           "shared-gateway"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -757,7 +1085,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -771,7 +1103,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -786,7 +1122,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "NOT_EVALUATED",
@@ -794,9 +1132,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "response_derived_from_command",
@@ -815,7 +1171,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -828,7 +1188,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -844,7 +1208,11 @@
           "fuel_index_command"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -859,7 +1227,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "NOT_EVALUATED",
@@ -867,9 +1237,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "future_trained_response_model",
@@ -888,7 +1276,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -901,7 +1293,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -915,7 +1311,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -930,7 +1330,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "INVALID_CONTRACT",
@@ -938,9 +1340,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "setpoint_promoted_to_physical_response",
@@ -959,7 +1379,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -972,7 +1396,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -986,7 +1414,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1001,7 +1433,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "INVALID_CONTRACT",
@@ -1009,9 +1443,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "response_outside_prediction_horizon",
@@ -1030,7 +1482,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1043,7 +1499,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1057,7 +1517,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1072,7 +1536,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "INVALID_CONTRACT",
@@ -1080,9 +1546,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "unqualified_response_model",
@@ -1101,7 +1585,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1114,7 +1602,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1128,7 +1620,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1143,7 +1639,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": null,
       "expected_disposition": "NOT_EVALUATED",
@@ -1151,9 +1649,27 @@
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "command_prediction_uncertainty_overlap",
@@ -1172,7 +1688,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 2
+        "timestamp_uncertainty_ms": 2,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 2
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1185,7 +1705,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1199,7 +1723,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1214,7 +1742,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -1227,16 +1757,38 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "NOT_EVALUATED",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 1
+      "prediction_timestamp_uncertainty_ms": 1,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 1
     },
     {
       "case_id": "response_prediction_uncertainty_overlap",
@@ -1255,7 +1807,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1268,7 +1824,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1282,7 +1842,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 2
+        "timestamp_uncertainty_ms": 2,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 2
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1297,7 +1861,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -1310,16 +1876,38 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "NOT_EVALUATED",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 1
+      "prediction_timestamp_uncertainty_ms": 1,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 1
     },
     {
       "case_id": "unmapped_context_timebase",
@@ -1338,7 +1926,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1351,7 +1943,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "unmapped-controller-clock",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1365,7 +1961,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1380,7 +1980,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -1393,16 +1995,38 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "NOT_EVALUATED",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "command_staleness_hidden_by_timestamp_uncertainty",
@@ -1421,7 +2045,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 600
+        "timestamp_uncertainty_ms": 600,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 600
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1434,7 +2062,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1448,7 +2080,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1463,7 +2099,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -1476,16 +2114,38 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "NOT_EVALUATED",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "response_horizon_unproven_by_timestamp_uncertainty",
@@ -1504,7 +2164,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1517,7 +2181,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1531,7 +2199,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 1000
+        "timestamp_uncertainty_ms": 1000,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 1000
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1546,7 +2218,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -1559,16 +2233,38 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "NOT_EVALUATED",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "future_command_definitely_after_prediction",
@@ -1587,7 +2283,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 1
+        "timestamp_uncertainty_ms": 1,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 1
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1600,7 +2300,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1614,7 +2318,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1629,7 +2337,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -1642,16 +2352,38 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "INVALID_CONTRACT",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 1
+      "prediction_timestamp_uncertainty_ms": 1,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 1
     },
     {
       "case_id": "unqualified_timebase",
@@ -1670,7 +2402,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1683,7 +2419,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1697,7 +2437,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1712,7 +2456,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -1725,23 +2471,45 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "NOT_EVALUATED",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "UNQUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 0
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     },
     {
       "case_id": "prediction_timestamp_interval_overflow",
       "asset_configuration_id": "engine-config-a",
       "regime_id": "steady-load",
       "regime_qualified": true,
-      "prediction_time_ms": 18446744073709551615,
+      "prediction_time_ms": 18446744073709552000,
       "command": {
         "signal_id": "fuel_index_command",
         "role": "CONTROL_INTENT",
@@ -1753,7 +2521,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1766,7 +2538,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1780,7 +2556,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1795,7 +2575,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -1808,16 +2590,38 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "INVALID_CONTRACT",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 1
+      "prediction_timestamp_uncertainty_ms": 1,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 1
     },
     {
       "case_id": "boundary_timestamp_order_proven",
@@ -1836,7 +2640,11 @@
           "controller-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 1
+        "timestamp_uncertainty_ms": 1,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 1
       },
       "context": {
         "signal_id": "engine_load_context",
@@ -1849,7 +2657,11 @@
           "load-sensor-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "response": {
         "signal_id": "shaft_speed_sensor",
@@ -1863,7 +2675,11 @@
         ],
         "derived_from_signal_ids": [],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 1
+        "timestamp_uncertainty_ms": 1,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 1
       },
       "response_envelope": {
         "model_id": "response-envelope-v1",
@@ -1878,7 +2694,9 @@
         "unit": "rpm",
         "timebase_id": "engine-run-canonical-ptp",
         "issued_at_uncertainty_ms": 0,
-        "trained_through_uncertainty_ms": 0
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
       },
       "actuator_feedback": {
         "signal_id": "rack_position_feedback",
@@ -1891,16 +2709,633 @@
           "rack-transducer-power"
         ],
         "timebase_id": "engine-run-canonical-ptp",
-        "timestamp_uncertainty_ms": 0
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
       },
       "expected_disposition": "RESPONSE_CONSISTENT",
       "timebase": {
         "timebase_id": "engine-run-canonical-ptp",
         "qualification_state": "QUALIFIED",
         "qualification_id": "synthetic-clock-qualification-v1",
-        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
       },
-      "prediction_timestamp_uncertainty_ms": 1
+      "prediction_timestamp_uncertainty_ms": 1,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 1
+    },
+    {
+      "case_id": "expired_timebase_qualification",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "expected_disposition": "NOT_EVALUATED",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 999,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
+    },
+    {
+      "case_id": "future_clock_qualification",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 1200,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
+    },
+    {
+      "case_id": "compromised_timebase_integrity",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "COMPROMISED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
+    },
+    {
+      "case_id": "signal_timestamp_bound_understated",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 1
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
+    },
+    {
+      "case_id": "invalid_signal_timestamp_evidence_digest",
+      "asset_configuration_id": "engine-config-a",
+      "regime_id": "steady-load",
+      "regime_qualified": true,
+      "prediction_time_ms": 1000,
+      "command": {
+        "signal_id": "fuel_index_command",
+        "role": "CONTROL_INTENT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "controller-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-fuel_index_command",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "CONTROLLER_SCAN",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "context": {
+        "signal_id": "engine_load_context",
+        "role": "DISTURBANCE_CONTEXT",
+        "value": 50,
+        "unit": "percent",
+        "observed_at_ms": 950,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "load-sensor-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-engine_load_context",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "response": {
+        "signal_id": "shaft_speed_sensor",
+        "role": "PHYSICAL_RESPONSE",
+        "value": 600,
+        "unit": "rpm",
+        "observed_at_ms": 2000,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "tachometer-power"
+        ],
+        "derived_from_signal_ids": [],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-shaft_speed_sensor",
+        "timestamp_evidence_sha256": "bad",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "response_envelope": {
+        "model_id": "response-envelope-v1",
+        "configuration_id": "engine-config-a",
+        "regime_id": "steady-load",
+        "issued_at_ms": 990,
+        "trained_through_ms": 900,
+        "qualified": true,
+        "lower": 595,
+        "mean": 600,
+        "upper": 605,
+        "unit": "rpm",
+        "timebase_id": "engine-run-canonical-ptp",
+        "issued_at_uncertainty_ms": 0,
+        "trained_through_uncertainty_ms": 0,
+        "temporal_provenance_id": "synthetic-model-temporal-lineage-v1",
+        "temporal_provenance_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "actuator_feedback": {
+        "signal_id": "rack_position_feedback",
+        "role": "ACTUATOR_FEEDBACK",
+        "value": 45,
+        "unit": "percent",
+        "observed_at_ms": 1900,
+        "quality": "CURRENT",
+        "dependency_groups": [
+          "rack-transducer-power"
+        ],
+        "timebase_id": "engine-run-canonical-ptp",
+        "timestamp_uncertainty_ms": 0,
+        "timestamp_evidence_id": "synthetic-path-rack_position_feedback",
+        "timestamp_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp_capture_point": "HARDWARE_CAPTURE",
+        "qualified_uncertainty_bound_ms": 0
+      },
+      "expected_disposition": "INVALID_CONTRACT",
+      "timebase": {
+        "timebase_id": "engine-run-canonical-ptp",
+        "qualification_state": "QUALIFIED",
+        "qualification_id": "synthetic-clock-qualification-v1",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "time_scale": "TAI",
+        "synchronization_method": "IEEE_1588_PTP",
+        "timing_profile_id": "synthetic-ptp-profile-v1",
+        "clock_source_id": "synthetic-grandmaster-1",
+        "integrity_state": "ATTESTED",
+        "valid_from_ms": 500,
+        "valid_until_ms": 100000,
+        "qualified_at_ms": 500,
+        "qualified_at_uncertainty_ms": 0,
+        "max_offset_bound_ms": 0.001,
+        "max_drift_bound_ppm": 0.1,
+        "path_asymmetry_bound_ms": 0.001,
+        "measurement_evidence_id": "synthetic-clock-measurement-v1",
+        "measurement_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      },
+      "prediction_timestamp_uncertainty_ms": 0,
+      "prediction_timestamp_evidence_id": "synthetic-prediction-timestamp-v1",
+      "prediction_timestamp_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "prediction_timestamp_capture_point": "HARDWARE_CAPTURE",
+      "prediction_qualified_uncertainty_bound_ms": 0
     }
   ],
   "counterfactual_pairs": [
