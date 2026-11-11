@@ -80,6 +80,10 @@ impl Default for MaintenanceInput {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MaintenanceStepReport {
     pub tick: u64,
+    /// Controller mechanism active during this exact update.
+    pub mode: MaintenanceMode,
+    /// Environmental energy availability supplied to this update, in [0, 1].
+    pub energy_availability: f64,
     pub integrity_before: f64,
     pub passive_decay_loss: f64,
     pub disturbance_damage_requested: f64,
@@ -350,6 +354,8 @@ impl MaintenanceSystem {
 
         Ok(MaintenanceStepReport {
             tick: self.tick,
+            mode: self.mode,
+            energy_availability: input.energy_availability,
             integrity_before,
             passive_decay_loss,
             disturbance_damage_requested: input.disturbance_damage,
