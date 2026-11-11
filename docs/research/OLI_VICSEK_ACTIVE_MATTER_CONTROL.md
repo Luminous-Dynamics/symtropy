@@ -26,6 +26,18 @@ This is a synthetic, known-rule active-particle model. It contains:
 
 A high polar-order score demonstrates collective directional alignment under local interaction rules. It does not establish biological life, agency, cognition, intelligence or consciousness. It is not a validated model of a particular animal flock, bacterial swarm, plasma, or extraterrestrial system.
 
+## 2026 topology benchmark comparator and erratum
+
+Rahman et al., *Topology and geometry of clusters in the Vicsek model across scales*, Physical Review Research 8, 033039 (10 July 2026), DOI [10.1103/hkrb-wpdr](https://doi.org/10.1103/hkrb-wpdr), analyze connected-component clusters as interaction-network subgraphs. They report scale-dependent relationships in average degree and path length, convergence of average clustering coefficient, and geometric scaling of cluster area and perimeter. This motivates reporting local and cluster-level structure rather than only global polar order.
+
+**Important correction:** the paper has an erratum published 27 October 2026, DOI [10.1103/b9yr-8wmv](https://doi.org/10.1103/b9yr-8wmv). Equation (2)'s neighbour-set time index was corrected: the heading at (t+\Delta t) is aligned using the neighbour set at (t+\Delta t), with velocities/headings at (t). The erratum says the physical interpretation is unchanged and the corrected result is indistinguishable from a forward-update method; a backward-update model yields different power-law scaling of mean degree and path length with cluster mass. OLI must record the exact update rule with every result.
+
+The implementation exposes two explicit rules:
+- `CurrentPositionAlignment`: select neighbours at positions (x(t)), compute all new headings from the previous heading state, then move along the new headings.
+- `NextPositionAlignment`: predict positions using headings at (t), select neighbours at predicted positions (x(t+\Delta t)), compute new headings from headings at (t), and retain the predicted positions.
+
+A deterministic fixture has two particles initially outside the interaction radius but inside it after moving along their old headings. The classic rule keeps them separate; the next-position rule couples them. This tests the semantic difference directly.
+
 ## Implementation
 
 Module: `crates/domains/symtropy-lifesim-core/src/vicsek.rs`
@@ -60,6 +72,9 @@ The low/high noise runs are exploratory finite-size cases. No universal critical
 ## Benchmark design
 
 - Compare local alignment against self-only and independent-particle controls.
+- Compare current-position and next-position neighbour-time rules; never pool results without recording the update convention.
+- Measure local and cluster polar order for systems whose opposing clusters cancel at global scale.
+- Future parity work against the 2026 topology paper should add clustering coefficient, mean path length, and cluster area/perimeter scaling. These are not yet implemented in the reference module.
 - Sweep interaction radius, speed, noise and particle density.
 - Report global polar order, local polar-order distribution, neighbour counts and spatial cluster statistics jointly. A globally disordered system may contain highly aligned local clusters whose directions cancel at system scale.
 - Measure transient behaviour and stationary windows separately.
