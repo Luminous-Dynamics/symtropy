@@ -56,6 +56,36 @@ Therefore:
 - Report the POMDAR score alongside raw correctness, speed, completion/failure state, per-task variation and uncertainty.
 - Keep independent-user prosthetic outcomes and direct-teleoperation mechanical dexterity as distinct evidence classes.
 
+## Luminous extension: capability and lifecycle scorecard
+
+The published POMDAR score remains unchanged. A Luminous evaluation should add a **separate result vector**, never a weighted composite that can hide a serious regression. Each metric needs its own protocol, denominator, measurement boundary, uncertainty and claim ceiling.
+
+| Dimension | Proposed measurement | Required evidence / controls |
+|---|---|---|
+| Repeatability and reliability | Per-task completion probability, failure/abort rates, repeatability across sessions and article revisions | Independent trial units; classify task failure, safety abort, operator abort and instrument failure separately; publish intervals and all denominators |
+| Energy per successful task | Electrical joules per admitted successful task, plus idle/standby energy where relevant | Synchronized voltage/current at a declared battery or DC-bus boundary; preserve unsuccessful attempts and separate motor-side, output-side and battery-side energy |
+| Force-control precision | Bias, MAE/RMSE, 95th-percentile absolute error, overshoot, settling time and force-band dwell time against a task-specific force target | Calibrated external force/torque reference; distinguish measured force from current-derived or model-estimated force |
+| Slip and recovery | Slip-detection delay, recovery probability, recovery time, peak force overshoot, object-drop rate and energy during recovery | Independently labelled slip events; positive/negative controls; preserve false alarms and missed events |
+| Held-out object transfer | Per-family task performance on objects withheld by geometry, size, compliance, surface and mass/material profile | Freeze development/validation/confirmatory object partitions before tuning; do not leak near-duplicate objects across partitions |
+| Calibration and maintenance burden | Calibration time, frequency, drift, repair time, component replacement time and return-to-qualified-service time | Exact serialized article/configuration generation; calibration provenance; repair and requalification events; report technician and wearer burden separately |
+| Wearer task utility and agency | User-selected meaningful-task completion, visual-attention demand, workload, fatigue, comfort, cancellations, unwanted initiation, preference and independent use | Separate human reference from robotic teleoperation; disability-led protocol; user-level results and subgroup variation; ethics/consent before recruitment |
+
+### Analysis rules
+
+- Report every metric per task, hand/article configuration, operator or participant stratum, and benchmark generation where applicable.
+- Use repeated trials to estimate reliability; do not treat control ticks or frames within one trial as independent experiments.
+- For repeated observations within a participant or article, use an analysis that respects clustering and session effects; publish the unit of analysis and interval method.
+- Treat failed, aborted, censored and instrument-invalid runs as distinct outcomes. Never silently drop them or assign a time penalty that the frozen protocol does not authorize.
+- For energy, keep electrical input, mechanical work at the actuator shaft, mechanical work at the joint output, and external load work separate. A simulated work estimate is not a battery-energy measurement.
+- For a candidate claim of “better”, preregister protected metrics and hard constraints. Require non-inferiority on protected dimensions plus an improvement on at least one declared target dimension; otherwise report a trade-off, not a universal win.
+- Define numerical acceptance thresholds after the first repeatable baseline campaign and measurement-system analysis. Do not invent universal force-error, latency, comfort or reliability thresholds before the instrument and task envelope are specified.
+
+### Benchmark separation
+
+POMDAR supplies standardized mechanical task throughput for the benchmark's tested hand/arm/operator configuration. The Luminous scorecard adds component, physical-energy, recovery, lifecycle and wearer-utility evidence. A higher Luminous utility result is not a higher official POMDAR score, and a higher POMDAR score does not by itself establish wearer benefit, clinical effectiveness, comfort, durability or repairability.
+
+The first implementation should be deliberately small: one instrumented JointLab article for actuator/energy/thermal/repair evidence and one licensed/rights-cleared POMDAR-native or independently authored hand-task subset. Integrate receipts into the existing PHYS-VALID-06 corpus; keep physical hand and wearer claims gated on actual hardware and governed studies.
+
 ## Attribution across benchmark levels
 
 HAND ERC's Multi-Level Hand Benchmarks v1 alpha (August 2026) separates application, system, hand and component levels to connect design decisions to practical outcomes: https://hand-erc.github.io/benchmarking/benchmarks.html . Reuse this attribution structure rather than creating a competing hand-benchmark taxonomy.
