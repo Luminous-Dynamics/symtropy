@@ -594,6 +594,46 @@ mod tests {
     }
 
     #[test]
+    fn streaming_protocol_freezes_no_rewrite_and_python_matlab_adapter_gap() {
+        let protocol: serde_json::Value =
+            serde_json::from_str(include_str!("../streaming-contract-v0.1.json")).unwrap();
+        assert_eq!(
+            protocol["schema_version"],
+            "liu-ice-streaming-contract-v0.1"
+        );
+        assert_eq!(protocol["status"], "protocol_only_not_executed");
+        assert_eq!(
+            protocol["interface"]["historical_output_mutation"],
+            false
+        );
+        assert_eq!(protocol["implementation"]["rust_module"], "src/streaming_contract.rs");
+        assert_eq!(
+            protocol["competition_adapter"]["rust_core_direct_submission_compatible"],
+            false
+        );
+        assert_eq!(
+            protocol["competition_adapter"]["adapter_status"],
+            "not_implemented"
+        );
+        assert!(protocol["competition_adapter"]["official_languages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|language| language == "Python"));
+        assert!(protocol["competition_adapter"]["official_languages"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|language| language == "MATLAB"));
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 10);
+        assert!(protocol["research_targets_not_achieved"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|target| target["status"] == "aspirational"));
+    }
+
+    #[test]
     fn detection_uses_all_five_slots_and_unknown_fault_is_not_silently_dropped() {
         struct UnknownFaultDiagnoser;
         impl StreamingDiagnoser for UnknownFaultDiagnoser {
