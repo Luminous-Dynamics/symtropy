@@ -62,6 +62,8 @@ for index in "${!paths[@]}"; do
       (.results.learning | length | tostring),
       ([.results.learning[] | select(.finished == true)] | length | tostring),
       ([.results.learning[] | select(has("exception"))] | length | tostring),
+      ([.results.learning[] | select(has("exception")) | .exception] | unique | join(";")),
+      ([.results.learning[] | select((.message // "") | contains("Failed discrete belief update: new probabilities sum to zero."))] | length | tostring),
       (.results.baseline | length | tostring),
       ([.results.baseline[] | select(.finished != true)] | length | tostring),
       (.results.mconst | length | tostring),
@@ -90,7 +92,9 @@ for index in "${!paths[@]}"; do
         (has("worst_total_variation") | tostring),
         (.average_total_variation // "" | tostring),
         (.worst_total_variation // "" | tostring),
-        (.mean // "" | tostring)
+        (.mean // "" | tostring),
+        (.exception // "" | tostring),
+        ((.message // "" | contains("Failed discrete belief update: new probabilities sum to zero.")) | tostring)
       ]
     | @tsv
   ' "$file"
