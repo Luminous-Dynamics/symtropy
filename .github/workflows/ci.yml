@@ -46,6 +46,54 @@ jobs:
         cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit-replay.csv
         cmp /tmp/miss-mdp-audit.csv /tmp/miss-mdp-audit-replay.csv
         grep -F 'TOTAL,all,all,NA,3000,2877,123,0.959000,120,3,0,10,40' /tmp/miss-mdp-audit.csv
+    - name: Audit and replay the pinned PPO/stacked-PPO artifact matrix
+      run: |
+        set -euo pipefail
+        bash scripts/audit_miss_mdp_ppo_reference.sh reference/missingness-mdps > /tmp/miss-mdp-ppo.tsv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-ppo-audit -- /tmp/miss-mdp-ppo.tsv > /tmp/miss-mdp-ppo-audit.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-ppo-audit -- /tmp/miss-mdp-ppo.tsv > /tmp/miss-mdp-ppo-audit-replay.csv
+        cmp /tmp/miss-mdp-ppo-audit.csv /tmp/miss-mdp-ppo-audit-replay.csv
+        python3 - <<'PY'
+        import csv
+        from pathlib import Path
+
+        with Path("/tmp/miss-mdp-ppo-audit.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+
+        assert len(rows) == 13
+        groups = {row["group"]: row for row in rows if row["group"] != "TOTAL"}
+        assert len(groups) == 12
+        expected = {
+            "experiments/logs_PPO/icu/mnar-ident": 20,
+            "experiments/logs_PPO/icu/mnar-unident": 20,
+            "experiments/logs_PPO/icu/smar": 20,
+            "experiments/logs_PPO/predator/mcar_search_big": 20,
+            "experiments/logs_PPO/predator/mnar-unident": 20,
+            "experiments/logs_PPO/predator/smar": 20,
+            "experiments/logs_PPO_stacked/icu/mnar-ident": 20,
+            "experiments/logs_PPO_stacked/icu/mnar-unident": 19,
+            "experiments/logs_PPO_stacked/icu/smar": 23,
+            "experiments/logs_PPO_stacked/predator/mcar_search_big": 20,
+            "experiments/logs_PPO_stacked/predator/mnar-unident": 20,
+            "experiments/logs_PPO_stacked/predator/smar": 20,
+        }
+        assert {key: int(row["run_count"]) for key, row in groups.items()} == expected
+        for row in groups.values():
+            assert row["run_count"] == row["unique_run_ids"]
+            assert int(row["unique_seeds"]) > 0
+            assert float(row["minimum_return"]) <= float(row["median_return"])
+            assert float(row["median_return"]) <= float(row["maximum_return"])
+            assert float(row["minimum_return"]) <= float(row["mean_return"])
+            assert float(row["mean_return"]) <= float(row["maximum_return"])
+            assert float(row["mean_reported_return_std"]) >= 0.0
+
+        total = next(row for row in rows if row["group"] == "TOTAL")
+        assert total["run_count"] == "242"
+        assert total["unique_run_ids"] == "242"
+        assert total["mean_return"] == "NA"
+        assert total["median_return"] == "NA"
+        print("PPO artifact contract passed: 242 run records, 12 groups, identity/budget integrity, seed coverage, return distributions and deterministic replay.")
+        PY
 
   test:
     # Living World exact-head qualification helpers have their own dedicated,
