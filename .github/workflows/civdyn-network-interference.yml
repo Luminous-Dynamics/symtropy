@@ -54,9 +54,9 @@ jobs:
           assert set(mappings) == {
               "full_network_within_between_counts",
               "within_cluster_only",
-              "weighted_neighbor_mean",
-              "treated_neighbor_threshold",
-              "truncated_canonical_neighbors",
+              "weighted_neighbor_mean_within_1_between_1",
+              "treated_neighbor_threshold_1",
+              "truncated_canonical_neighbors_1",
           }
 
           for row in rows:
