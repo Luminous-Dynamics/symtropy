@@ -99,41 +99,25 @@ impl<const D: usize> HingeJoint<D> {
     }
 }
 
-/// Effective inverse inertia about the world-space hinge axis.
+/// Mean inverse inertia used by the current rigid-body integrator.
 ///
-/// In 3D, the bivector plane's normal is the hinge axis. The body's diagonal
-/// principal inverse inertia is projected onto that axis in body-local space,
-/// accounting for the body's current orientation. In other dimensions this
-/// engine currently stores only a diagonal vector rather than a full rotational
-/// inertia operator; use the documented mean-inertia approximation.
-fn hinge_axis_inverse_inertia<const D: usize>(
-    body: &RigidBody<D>,
-    plane_axis_a: usize,
-    plane_axis_b: usize,
-) -> f64 {
+/// The current engine stores one principal-inertia scalar per spatial axis and
+/// applies their arithmetic-mean inverse to every bivector plane. Mirror that
+/// model here so a hinge motor impulse has the same semantics as
+/// `integrator::apply_angular_impulse`. This is exact only for isotropic
+/// bodies (such as spheres); it is not a full world-space inertia tensor.
+/// A future tensor/per-plane inertia implementation must update this helper
+/// and the integrator together.
+fn hinge_mean_inverse_inertia<const D: usize>(body: &RigidBody<D>) -> f64 {
     if !body.is_dynamic() {
         return 0.0;
     }
 
-    if D == 3 {
-        let axis_index = D - plane_axis_a - plane_axis_b;
-        let mut world_axis = SVector::<f64, D>::zeros();
-        world_axis[axis_index] = 1.0;
-        let local_axis = body
-            .transform
-            .rotation
-            .reverse()
-            .rotate_vector(&world_axis);
-        (0..D)
-            .map(|i| local_axis[i] * local_axis[i] * body.inv_inertia[i])
-            .sum()
+    let mean_inverse_inertia = body.inv_inertia.sum() / D as f64;
+    if mean_inverse_inertia.is_finite() && mean_inverse_inertia > 0.0 {
+        mean_inverse_inertia
     } else {
-        let mean_inertia = body.inertia.sum() / D as f64;
-        if mean_inertia.is_finite() && mean_inertia > 0.0 {
-            1.0 / mean_inertia
-        } else {
-            0.0
-        }
+        0.0
     }
 }
 
@@ -281,8 +265,8 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
                 - rel_angular_vel * motor.kd)
                 .clamp(-motor.max_force, motor.max_force);
 
-            let inverse_inertia_a = hinge_axis_inverse_inertia(body_a, pa, pb);
-            let inverse_inertia_b = hinge_axis_inverse_inertia(body_b, pa, pb);
+            let inverse_inertia_a = hinge_mean_inverse_inertia(body_a);
+            let inverse_inertia_b = hinge_mean_inverse_inertia(body_b);
             if inverse_inertia_a + inverse_inertia_b <= 1e-15 {
                 return;
             }
@@ -425,7 +409,7 @@ mod tests {
     }
 
     #[test]
-    fn motor_impulse_scales_each_dynamic_body_by_its_inverse_inertia() {
+    fn motor_impulse_scales_each_dynamic_body_by_engine_mean_inverse_inertia() {
         let mut a = RigidBody::<3>::dynamic_sphere(BodyHandle(0), Point::origin(), 0.5, 1.0);
         let mut b = RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::origin(), 0.5, 1.0);
         a.inertia = SVector::from([1.0, 1.0, 1.0]);
@@ -440,13 +424,14 @@ mod tests {
         joint.solve_velocity(&mut a, &mut b, 0.1, None);
 
         assert!((a.angular_velocity.get(0, 1) + 0.1).abs() < 1e-12);
-        assert!((b.angular_velocity.get(0, 1) - 0.05).abs() < 1e-12);
+        let expected_b_delta = 0.1 * (2.5 / 3.0);
+        assert!((b.angular_velocity.get(0, 1) - expected_b_delta).abs() < 1e-12);
         let relative_velocity = b.angular_velocity.get(0, 1) - a.angular_velocity.get(0, 1);
-        assert!((relative_velocity - 0.15).abs() < 1e-12);
+        assert!((relative_velocity - (0.1 + expected_b_delta)).abs() < 1e-12);
     }
 
     #[test]
-    fn motor_uses_hinge_axis_principal_inertia_in_three_dimensions() {
+    fn motor_uses_engine_mean_inverse_inertia_for_three_dimensional_body() {
         let mut a = RigidBody::<3>::static_body(
             BodyHandle(0),
             Point::origin(),
@@ -462,8 +447,9 @@ mod tests {
 
         joint.solve_velocity(&mut a, &mut b, 0.1, None);
 
-        // Plane (0, 1) rotates about Z, whose principal inertia is 4.
-        assert!((b.angular_velocity.get(0, 1) - 0.025).abs() < 1e-12);
+        // Current integrator uses mean inverse inertia across all three axes:
+        // (1.0 + 0.5 + 0.25) / 3 = 7/12.
+        assert!((b.angular_velocity.get(0, 1) - (0.1 * 7.0 / 12.0)).abs() < 1e-12);
     }
 
     #[test]
