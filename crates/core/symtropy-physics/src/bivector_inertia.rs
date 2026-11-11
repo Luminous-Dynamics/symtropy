@@ -874,6 +874,27 @@ mod tests {
     }
 
     #[test]
+    fn nine_dimensional_operator_roundtrips_all_36_rotation_planes() {
+        let semi_axes = SVector::<f64, 9>::from_fn(|axis, _| 0.5 + axis as f64 * 0.2);
+        let inertia = BivectorInertia::<9>::uniform_solid_ellipsoid(2.5, semi_axes).unwrap();
+        let mut angular_state = Bivector::<9>::zero();
+        for i in 0..9 {
+            for j in (i + 1)..9 {
+                angular_state.set(i, j, ((i + 1) as f64 * (j + 2) as f64).sin() * 0.3);
+            }
+        }
+        let momentum = inertia.angular_momentum(&angular_state).unwrap();
+        let recovered = inertia
+            .angular_velocity_from_momentum(&momentum, 1e-12)
+            .unwrap();
+        assert_eq!(Bivector::<9>::num_components(), 36);
+        assert!(
+            recovered.add(&angular_state.scale(-1.0)).norm() < 2.0e-11,
+            "D=9 inverse failed: recovered={recovered:?}, expected={angular_state:?}"
+        );
+    }
+
+    #[test]
     fn inverse_operator_recovers_coupled_world_frame_angular_velocity() {
         let second_moment =
             SMatrix::<f64, 3, 3>::new(2.0, 0.25, 0.1, 0.25, 3.0, 0.2, 0.1, 0.2, 4.0);
