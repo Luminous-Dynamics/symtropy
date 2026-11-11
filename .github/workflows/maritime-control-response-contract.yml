@@ -59,17 +59,23 @@ jobs:
             and (.inverse_identifiability_protocol.local_sensitivity | contains("dimensionless"))
             and (.inverse_identifiability_protocol.caution | contains("not proof of global uniqueness"))
             and (.operational_metric_definitions.false_unique_root_cause_rate | contains("multiple components"))
+            and (.event_evaluation.schema_version == "liu-ice-event-metrics-v0.1")
+            and (.event_evaluation.status == "protocol_only_not_executed")
+            and (.event_evaluation.alarm_debounce.minimum_positive_samples == 3)
+            and (.event_evaluation.timing.maximum_observation_gap_seconds == 0.10)
+            and (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false)
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
       - name: Validate benchmark run-manifest schema contract
         run: |
           set -euo pipefail
           jq -e '
-            .\$schema == "https://json-schema.org/draft/2020-12/schema" and
-            .schema_version == null and
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
             (.required | length == 12) and
             (.properties.run_status.enum | length == 6) and
             (.properties.dataset.properties.archive_sha256.oneOf | length == 2) and
+            (.properties.protocol.required | index("event_evaluation") != null) and
+            (.properties.metrics.properties.false_alarms_per_observed_normal_hour != null) and
             (.properties.claims.properties.physical_transfer_claim_allowed.const == false)
           ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
 
