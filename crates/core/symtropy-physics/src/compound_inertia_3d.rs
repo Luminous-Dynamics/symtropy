@@ -118,9 +118,7 @@ fn checked_parallel_axis_tensor(
                 continue;
             }
             let term = weighted_offset[axis] * weighted_offset[axis];
-            if !term.is_finite()
-                || (weighted_offset[axis] != 0.0 && term == 0.0)
-            {
+            if !term.is_finite() || (weighted_offset[axis] != 0.0 && term == 0.0) {
                 return Err(CompoundInertia3Error::UnrepresentableTensor);
             }
             parallel_axis[(row, row)] += term;
