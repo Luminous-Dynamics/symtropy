@@ -129,6 +129,9 @@ pub struct ActionHorizonRequest {
     pub bounds: [HorizonEvidence; ACTION_HORIZON_CONSTRAINT_COUNT],
     /// Application-monotonic instant at which every remaining horizon was evaluated.
     pub evaluation_time_ns: u64,
+    /// Requested policy action-prefix length in low-level control cycles.
+    /// The selector must accept or reject this exact K; it never clamps it.
+    pub requested_cycles: u64,
     /// Frozen low-level controller period in nanoseconds.
     pub controller_period_ns: u64,
     /// Measured p99 observation-cutoff-to-controller-admission latency.
@@ -145,6 +148,7 @@ pub enum HorizonInputError {
     EmptyTimebaseIdentity,
     EmptyUnknownReason,
     EmptyLatencyProfileIdentity,
+    ZeroRequestedCycles,
 }
 
 impl core::fmt::Display for HorizonInputError {
@@ -155,6 +159,7 @@ impl core::fmt::Display for HorizonInputError {
             Self::EmptyTimebaseIdentity => write!(f, "qualified horizon timebase identity is empty"),
             Self::EmptyUnknownReason => write!(f, "unknown horizon reason is empty"),
             Self::EmptyLatencyProfileIdentity => write!(f, "p99 latency profile identity is empty"),
+            Self::ZeroRequestedCycles => write!(f, "requested action prefix must contain at least one control cycle"),
         }
     }
 }
@@ -188,6 +193,10 @@ pub enum HorizonDisposition {
     InvalidEvidenceIdentity,
     /// The safe duration does not contain one complete control cycle.
     NoCompleteActionCycle,
+    /// The policy's requested prefix exceeds the qualified safe maximum.
+    RequestedHorizonExceedsBound,
+    /// The queued prefix is shorter than the minimum required to cover p99 latency.
+    RequestedHorizonBelowQueueCoverage,
     /// Required open-loop queue coverage exceeds the safe maximum.
     QueueCoverageInfeasible,
     /// Longest whole-cycle prefix fits every qualified horizon and covers p99.
@@ -236,6 +245,9 @@ pub fn select_action_horizon<'a>(
     }
     if request.latency_profile_id.trim().is_empty() {
         return Err(HorizonInputError::EmptyLatencyProfileIdentity);
+    }
+    if request.requested_cycles == 0 {
+        return Err(HorizonInputError::ZeroRequestedCycles);
     }
 
     let mut unknown_count = 0usize;
@@ -361,12 +373,24 @@ pub fn select_action_horizon<'a>(
                 selection.disposition = HorizonDisposition::QueueCoverageInfeasible;
                 return Ok(selection);
             }
+            if request.requested_cycles > k_max_safe_cycles {
+                selection.disposition = HorizonDisposition::RequestedHorizonExceedsBound;
+                return Ok(selection);
+            }
+            if request.requested_cycles < k_min {
+                selection.disposition = HorizonDisposition::RequestedHorizonBelowQueueCoverage;
+                return Ok(selection);
+            }
             selection.disposition = HorizonDisposition::AdmissibleQueuedOpenLoop;
-            selection.selected_cycles = Some(k_max_safe_cycles);
+            selection.selected_cycles = Some(request.requested_cycles);
         }
         ActionExecutionMode::SplitTimescaleLocalExpert => {
+            if request.requested_cycles > k_max_safe_cycles {
+                selection.disposition = HorizonDisposition::RequestedHorizonExceedsBound;
+                return Ok(selection);
+            }
             selection.disposition = HorizonDisposition::AdmissibleSplitTimescale;
-            selection.selected_cycles = Some(k_max_safe_cycles);
+            selection.selected_cycles = Some(request.requested_cycles);
         }
     }
 
@@ -651,6 +675,7 @@ mod tests {
         ActionHorizonRequest {
             bounds: qualified_bounds(values_ns),
             evaluation_time_ns: 100,
+            requested_cycles: if period_ns == 0 { 1 } else { values_ns.iter().copied().min().unwrap_or(1) / period_ns },
             controller_period_ns: period_ns,
             p99_total_latency_ns: p99_latency_ns,
             latency_profile_id: "p99-profile/test-target-a".to_owned(),
@@ -705,6 +730,7 @@ mod tests {
         let request = ActionHorizonRequest {
             bounds,
             evaluation_time_ns: 100,
+            requested_cycles: 2,
             controller_period_ns: 10,
             p99_total_latency_ns: 20,
             latency_profile_id: "p99-profile/test-target-a".to_owned(),
@@ -727,6 +753,7 @@ mod tests {
             let result = select_action_horizon(&ActionHorizonRequest {
                 bounds,
                 evaluation_time_ns: 100,
+                requested_cycles: 1,
                 controller_period_ns: 1,
                 p99_total_latency_ns: 1,
                 latency_profile_id: "p99-profile/test-target-a".to_owned(),
@@ -773,6 +800,7 @@ mod tests {
         let result = select_action_horizon(&ActionHorizonRequest {
             bounds,
             evaluation_time_ns: 100,
+            requested_cycles: 2,
             controller_period_ns: 10,
             p99_total_latency_ns: 20,
             latency_profile_id: "p99-profile/test-target-a".to_owned(),
@@ -841,6 +869,70 @@ mod tests {
         assert_eq!(result.k_max_safe_cycles, Some(4));
         assert_eq!(result.selected_cycles, Some(4));
         assert_eq!(result.disposition, HorizonDisposition::AdmissibleSplitTimescale);
+    }
+
+    #[test]
+    fn requested_prefix_is_preserved_when_inside_safe_interval() {
+        let mut request = request(
+            [300, 500, 500, 400, 350, 320, 450, 600],
+            ActionExecutionMode::QueuedOpenLoop,
+            50,
+            200,
+        );
+        request.requested_cycles = 5;
+        let result = select_action_horizon(&request).unwrap();
+        assert_eq!(result.k_min_queue_cycles, Some(4));
+        assert_eq!(result.k_max_safe_cycles, Some(6));
+        assert_eq!(result.selected_cycles, Some(5));
+        assert_eq!(result.active_constraints_iter().next(), Some(HorizonConstraint::ObservationFreshness));
+        assert_eq!(result.disposition, HorizonDisposition::AdmissibleQueuedOpenLoop);
+    }
+
+    #[test]
+    fn requested_prefix_above_safe_maximum_is_rejected_not_clamped() {
+        let mut request = request(
+            [300, 100, 500, 400, 350, 320, 450, 600],
+            ActionExecutionMode::QueuedOpenLoop,
+            25,
+            50,
+        );
+        request.requested_cycles = 5;
+        let result = select_action_horizon(&request).unwrap();
+        assert_eq!(result.k_max_safe_cycles, Some(4));
+        assert_eq!(result.selected_cycles, None);
+        assert_eq!(result.disposition, HorizonDisposition::RequestedHorizonExceedsBound);
+    }
+
+    #[test]
+    fn requested_queued_prefix_below_latency_coverage_is_rejected() {
+        let mut request = request(
+            [300, 500, 500, 400, 350, 320, 450, 600],
+            ActionExecutionMode::QueuedOpenLoop,
+            50,
+            200,
+        );
+        request.requested_cycles = 3;
+        let result = select_action_horizon(&request).unwrap();
+        assert_eq!(result.k_min_queue_cycles, Some(4));
+        assert_eq!(result.k_max_safe_cycles, Some(6));
+        assert_eq!(result.selected_cycles, None);
+        assert_eq!(result.disposition, HorizonDisposition::RequestedHorizonBelowQueueCoverage);
+    }
+
+    #[test]
+    fn queued_mode_rejects_when_latency_minimum_exceeds_safe_maximum() {
+        let mut request = request(
+            [300, 500, 500, 400, 350, 320, 150, 600],
+            ActionExecutionMode::QueuedOpenLoop,
+            50,
+            250,
+        );
+        request.requested_cycles = 4;
+        let result = select_action_horizon(&request).unwrap();
+        assert_eq!(result.k_min_queue_cycles, Some(5));
+        assert_eq!(result.k_max_safe_cycles, Some(3));
+        assert_eq!(result.selected_cycles, None);
+        assert_eq!(result.disposition, HorizonDisposition::QueueCoverageInfeasible);
     }
 
     #[test]
