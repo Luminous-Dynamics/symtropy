@@ -310,7 +310,7 @@ impl<const D: usize> BivectorInertia<D> {
     where
         I: IntoIterator<Item = (SVector<f64, D>, f64)>,
     {
-        if !(2..=9).contains(&D) {
+        if D < 2 || D > Bivector::<D>::MAX_SUPPORTED_DIMENSION {
             return Err(RotationalInertiaError::InvalidDimension);
         }
 
@@ -1528,6 +1528,11 @@ mod tests {
     fn dimensions_five_to_nine_require_research_feature() {
         assert_eq!(
             BivectorInertia::<5>::from_second_moment(SMatrix::<f64, 5, 5>::identity())
+                .unwrap_err(),
+            RotationalInertiaError::InvalidDimension,
+        );
+        assert_eq!(
+            BivectorInertia::<5>::from_point_masses([(SVector::<f64, 5>::zeros(), 1.0)])
                 .unwrap_err(),
             RotationalInertiaError::InvalidDimension,
         );
