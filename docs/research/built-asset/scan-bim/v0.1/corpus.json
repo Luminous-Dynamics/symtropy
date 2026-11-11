@@ -72,7 +72,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "NO_CHANGE_SUPPORTED",
@@ -153,7 +156,10 @@
           "target_ids": [
             "DOOR-A"
           ]
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "ADMIT_CANDIDATE_DELTA",
@@ -234,7 +240,10 @@
           "target_ids": [
             "DOOR-A"
           ]
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "STALE_OR_INVALID_EVIDENCE",
@@ -313,7 +322,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "PARTIAL_WITH_UNKNOWN",
@@ -394,7 +406,10 @@
           "target_ids": [
             "DOOR-A"
           ]
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "REQUEST_ADDITIONAL_OBSERVATION",
@@ -473,7 +488,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "PARTIAL_WITH_UNKNOWN",
@@ -552,7 +570,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "CONFLICTED_CORRESPONDENCE",
@@ -625,7 +646,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "REJECTED_TOPOLOGY",
@@ -705,7 +729,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "INSUFFICIENT_INDEPENDENT_EVIDENCE",
@@ -784,7 +811,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -865,7 +895,10 @@
           "target_ids": [
             "DOOR-UNKNOWN"
           ]
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "CONFLICTED_CORRESPONDENCE",
@@ -944,7 +977,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "STALE_OR_INVALID_EVIDENCE",
@@ -1023,7 +1059,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "STALE_OR_INVALID_EVIDENCE",
@@ -1104,7 +1143,10 @@
           "target_ids": [
             "DOOR-A"
           ]
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "REAL_CHANGE_CANDIDATE",
@@ -1188,7 +1230,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "REJECTED_TOPOLOGY",
@@ -1269,7 +1314,10 @@
           "target_ids": [
             "DOOR-A"
           ]
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "NOT_EVALUATED",
@@ -1351,7 +1399,10 @@
             "DOOR-A",
             "DOOR-A"
           ]
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -1440,7 +1491,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "CONFLICTED_CORRESPONDENCE",
@@ -1509,7 +1563,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "PARTIAL_WITH_UNKNOWN",
@@ -1588,7 +1645,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -1672,7 +1732,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -1756,7 +1819,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "REJECTED_TOPOLOGY",
@@ -1835,7 +1901,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "REAL_CHANGE_CANDIDATE",
@@ -1917,7 +1986,10 @@
           "target_ids": [
             "DOOR-A"
           ]
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "INVALID_INPUT",
@@ -2001,7 +2073,10 @@
           "operation": "none",
           "base_model_revision": "MODEL-R1",
           "target_ids": []
-        }
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "expected": {
         "disposition": "REJECTED_TOPOLOGY",
@@ -2009,6 +2084,258 @@
           "TOPOLOGY_RELATION_UNSUPPORTED"
         ]
       }
+    },
+    {
+      "case_id": "SB-026",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "drift_suspected",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expected": {
+        "disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+        "reason_codes": [
+          "REGISTRATION_DRIFT_OR_COMMON_MODE_SHIFT_UNRESOLVED"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-027",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "change_estimate_status": "unresolved",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "expected": {
+        "disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+        "reason_codes": [
+          "SURVEY_CHANGE_ESTIMATE_UNRESOLVED"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-028",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "survey_qualified": true,
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "change_estimate_status": "qualified",
+        "registration_stability_status": "stable",
+        "independent_checkpoint_evidence_sha256": null
+      },
+      "expected": {
+        "disposition": "STALE_OR_INVALID_EVIDENCE",
+        "reason_codes": [
+          "INDEPENDENT_CHECKPOINT_EVIDENCE_MISSING_OR_INVALID"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
     }
   ],
   "split_guard": {
@@ -2017,7 +2344,8 @@
       "synthetic-building-train-B"
     ],
     "evaluation_group_ids": [
-      "synthetic-building-heldout-C"
+      "synthetic-building-heldout-C",
+      "synthetic-building-heldout-D"
     ],
     "candidate_input_fields": [
       "observed_points",
