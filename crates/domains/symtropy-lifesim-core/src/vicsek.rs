@@ -815,6 +815,7 @@ mod tests {
                 speed: 0.0,
                 dt: 1.0,
                 angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
             },
             13,
         )
