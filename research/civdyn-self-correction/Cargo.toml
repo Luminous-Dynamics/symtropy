@@ -41,3 +41,7 @@ path = "src/bin/causal_transport_sweep.rs"
 [[bin]]
 name = "causal-transport-sensitivity-sweep"
 path = "src/bin/causal_transport_sensitivity_sweep.rs"
+
+[[bin]]
+name = "transport-decision-frontier-sweep"
+path = "src/bin/transport_decision_frontier_sweep.rs"

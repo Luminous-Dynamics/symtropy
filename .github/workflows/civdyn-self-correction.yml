@@ -402,3 +402,73 @@ jobs:
           assert len({row["target_population_digest"] for row in partial}) == 1
           print("Outcome-shift sensitivity CSV valid: Lambda=1 matches standardization, bounds widen monotonically, target-only strata remain worst-case, tipping point is bracketed and provenance is stable.")
           PY
+      - name: Verify threshold-aware causal transport decision frontier
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin transport-decision-frontier-sweep > /tmp/civdyn-transport-decision-frontier.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin transport-decision-frontier-sweep > /tmp/civdyn-transport-decision-frontier-replay.csv
+          cmp /tmp/civdyn-transport-decision-frontier.csv /tmp/civdyn-transport-decision-frontier-replay.csv
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-transport-decision-frontier.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 24
+          assert len(rows) == 15
+          thresholds = sorted({float(row["threshold"]) for row in rows})
+          assert thresholds == [0.0, 0.1, 0.2, 0.3, 0.5]
+          by_key = {(float(row["threshold"]), float(row["lambda"])): row for row in rows}
+          assert len(by_key) == 15
+
+          for delta in thresholds:
+              baseline = by_key[(delta, 1.0)]
+              shifted = by_key[(delta, 2.0)]
+              far_shifted = by_key[(delta, 4.0)]
+              expected_baseline = (
+                  "recommend_treatment" if delta <= 0.28 else "recommend_against_treatment"
+              )
+              assert baseline["decision"] == expected_baseline
+              assert shifted["decision"] == "indeterminate"
+              assert far_shifted["decision"] == "indeterminate"
+
+          expected_tipping = {
+              0.0: math.sqrt(23.0 / 9.0),
+              0.1: (-0.1 + math.sqrt(0.1**2 + 4.0 * 0.18 * 0.46)) / (2.0 * 0.18),
+              0.2: (-0.2 + math.sqrt(0.2**2 + 4.0 * 0.18 * 0.46)) / (2.0 * 0.18),
+          }
+          for delta, expected in expected_tipping.items():
+              row = by_key[(delta, 1.0)]
+              assert row["frontier_status"] == "tipping_point_found"
+              assert math.isclose(float(row["frontier_tipping_lambda"]), expected, abs_tol=2e-8)
+              assert float(row["frontier_lower_bracket"]) <= expected + 1e-9
+              assert float(row["frontier_upper_bracket"]) >= expected - 1e-9
+              assert float(row["frontier_upper_bracket"]) - float(row["frontier_lower_bracket"]) <= 1.1e-8
+
+          for delta in (0.3, 0.5):
+              row = by_key[(delta, 1.0)]
+              assert row["frontier_status"] == "not_robust_at_baseline"
+              assert row["baseline_decision"] == "recommend_against_treatment"
+              assert row["frontier_tipping_lambda"] == ""
+
+          radii = [float(by_key[(delta, 1.0)]["frontier_tipping_lambda"]) for delta in (0.0, 0.1, 0.2)]
+          assert radii[0] >= radii[1] >= radii[2]
+
+          for row in rows:
+              assert row["effect_unit"] == "risk_difference"
+              assert row["threshold_rationale"]
+              assert row["threshold_source_digest"] == f"sha256-minimum-benefit-threshold-{float(row['threshold']):.2f}"
+              assert row["sensitivity_scenario_digest"] == "sha256-predeclared-bernoulli-lambda-scenario"
+              assert row["source_data_digest"] == "sha256-causal-transport-source-rct"
+              assert row["target_population_digest"] == "sha256-causal-transport-target-population"
+              assert row["protocol_digest"] == "sha256-causal-transport-protocol-v0.1"
+              assert row["source_internal_validity"] == "supported_by_design"
+              assert row["selection_exchangeability"] == "unknown"
+              assert row["no_interference"] == "supported_by_design"
+              assert row["treatment_version_invariance"] == "supported_by_evidence"
+          print("Decision frontier CSV valid: five independently sourced benefit thresholds, monotone decision robustness, exact bracketed tipping points and stable source/sensitivity provenance.")
+          PY

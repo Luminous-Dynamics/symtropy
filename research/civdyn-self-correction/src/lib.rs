@@ -14,6 +14,7 @@ pub mod causal_drift;
 pub mod causal_identifiability;
 pub mod causal_transport;
 pub mod causal_transport_sensitivity;
+pub mod transport_decision_frontier;
 pub mod interference_identifiability;
 pub mod model_adequacy;
 pub mod noisy_causal_drift;

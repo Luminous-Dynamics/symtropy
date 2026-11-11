@@ -279,3 +279,26 @@ A target-only modifier stratum contributes its full [-1,1] effect range separate
 This is an exact binary-outcome specialization of the CLeaR 2026 bounded outcome likelihood-ratio idea, not the paper's general outcome-density algorithm. It does not estimate Lambda, fit target outcome densities, account for sampling uncertainty, or produce confidence intervals. The Lambda envelope is a sensitivity assumption, not something proved by its evidence digest. No real-world transportability claim follows from synthetic known answers.
 
 The CI sweep tests Lambda = 1, 2 and 4, monotone interval widening, the target-support partial-identification combination, the independently computed null tipping point, source/target provenance and byte-identical replay.
+
+
+## Scenario M: decision robustness under a minimum-benefit threshold
+
+The threshold-aware decision layer is in src/transport_decision_frontier.rs and the transport-decision-frontier-sweep binary. It advances [CIVDYN-TRANSPORT-DECISION-001 #4664](https://github.com/Luminous-Dynamics/symtropy/issues/4664), composing the causal effect sensitivity frontier with policy robustness.
+
+A predeclared decision threshold delta is kept distinct from the causal effect model. The threshold carries its own effect unit, rationale, source digest and evidence disposition. For a target risk-difference interval [L(Lambda), U(Lambda)]:
+- Recommend treatment only when L(Lambda) >= delta.
+- Recommend against treatment only when U(Lambda) < delta.
+- Otherwise return Indeterminate.
+- If the baseline Lambda=1 result is not a robust positive recommendation, return NotRobustAtBaseline.
+- If a baseline recommendation ceases to clear delta within the declared search horizon, use deterministic bisection to report the first decision tipping bracket.
+- If it still clears delta at the search horizon, return NoTippingPointWithinHorizon.
+
+Known-answer frontier for the full-support fixture:
+- delta=0.00: tipping Lambda is approximately 1.59861051.
+- delta=0.10: tipping Lambda is approximately 1.34478687.
+- delta=0.20: tipping Lambda is approximately 1.13683847.
+- delta=0.30 and 0.50: the baseline point effect (0.28) already fails the minimum-benefit threshold, so no robustness radius is claimed.
+
+Higher minimum-benefit thresholds cannot increase the allowable Lambda robustness radius. The sweep evaluates thresholds 0, 0.1, 0.2, 0.3 and 0.5 at Lambda 1, 2 and 4.
+
+This is a threshold-classification and sensitivity analysis, not a social-welfare function, cost-effectiveness model, justice assessment or policy optimizer. The threshold must be justified by a separate decision protocol. The module does not replace #4372's native-unit multi-objective feasibility and regret analysis.
