@@ -624,18 +624,19 @@ mod tests {
         assert!(result.split_manifest_sha256.is_some());
 
         let mut duplicate = valid;
-        duplicate
-            .split_manifest
-            .as_mut()
-            .unwrap()
-            .assignments[1]
-            .file_id = duplicate
+        let first_file_id = duplicate
             .split_manifest
             .as_ref()
             .unwrap()
             .assignments[0]
             .file_id
             .clone();
+        duplicate
+            .split_manifest
+            .as_mut()
+            .unwrap()
+            .assignments[1]
+            .file_id = first_file_id;
         assert_eq!(
             duplicate.validate(),
             Err(ExternalDatasetError::DuplicateSplitFile("file-00".into()))
