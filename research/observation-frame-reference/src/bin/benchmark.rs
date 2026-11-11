@@ -19,6 +19,7 @@ struct BenchmarkResult {
     rustc_version: String,
     github_sha: String,
     entity_count: usize,
+    observables_per_entity: usize,
     observable_count: usize,
     event_count: usize,
     warmup_runs: usize,
@@ -52,6 +53,7 @@ fn digest(character: char) -> String {
 
 fn synthetic_frame(
     entity_count: usize,
+    observables_per_entity: usize,
     event_count: usize,
 ) -> Result<ObservationFrameInputV1, Box<dyn std::error::Error>> {
     let entities = (0..entity_count)
@@ -67,19 +69,21 @@ fn synthetic_frame(
                     world_generation_id: "bench-generation".to_string(),
                     net_id: index as u64 + 1,
                 }),
-                observables: vec![ObservableV1 {
-                    observable_id: "position-x".to_string(),
-                    quantity_id: "position.x".to_string(),
-                    unit: "m".to_string(),
-                    value: Some(ObservationValueV1::Binary64Bits(
-                        "3ff0000000000000".to_string(),
-                    )),
-                    source_class: ObservationSourceClass::Synthetic,
-                    source_ref_sha256: None,
-                    source_time: None,
-                    uncertainty: None,
-                    unavailable_reason: None,
-                }],
+                observables: (0..observables_per_entity)
+                    .map(|channel| ObservableV1 {
+                        observable_id: format!("channel-{channel:02}"),
+                        quantity_id: format!("diagnostic.quantity-{channel:02}"),
+                        unit: "1".to_string(),
+                        value: Some(ObservationValueV1::Binary64Bits(
+                            "3ff0000000000000".to_string(),
+                        )),
+                        source_class: ObservationSourceClass::Synthetic,
+                        source_ref_sha256: None,
+                        source_time: None,
+                        uncertainty: None,
+                        unavailable_reason: None,
+                    })
+                    .collect(),
             }
         })
         .collect();
@@ -129,10 +133,11 @@ fn percentile(samples: &[u128], percentile: usize) -> u128 {
 
 fn run_profile(
     entity_count: usize,
+    observables_per_entity: usize,
     event_count: usize,
     samples: usize,
 ) -> Result<BenchmarkResult, Box<dyn std::error::Error>> {
-    let input = synthetic_frame(entity_count, event_count)?;
+    let input = synthetic_frame(entity_count, observables_per_entity, event_count)?;
     let input_bytes = serde_json::to_vec(&input)?.len();
     let initial_receipt = compile_observation_frame(input.clone())?;
     let buffer_identity = ObservationBufferIdentityV1 {
@@ -228,7 +233,7 @@ fn run_profile(
     let entities_per_second = entity_count as f64 * 1_000_000_000.0 / p50 as f64;
     let events_per_second = event_count as f64 * 1_000_000_000.0 / p50 as f64;
     Ok(BenchmarkResult {
-        profile: format!("entities-{entity_count}-events-{event_count}"),
+        profile: format!("entities-{entity_count}-observables-{observables_per_entity}-events-{event_count}"),
         architecture: std::env::consts::ARCH.to_string(),
         target_os: std::env::consts::OS.to_string(),
         runner_image_os: std::env::var("RUNNER_IMAGE_OS")
@@ -240,7 +245,8 @@ fn run_profile(
         github_sha: std::env::var("GITHUB_SHA")
             .unwrap_or_else(|_| "unrecorded-local-run".to_string()),
         entity_count,
-        observable_count: entity_count,
+        observables_per_entity,
+        observable_count: entity_count * observables_per_entity,
         event_count,
         warmup_runs: WARMUP_RUNS,
         samples,
@@ -278,8 +284,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         return Err("sample count must be between 3 and 20".into());
     }
 
-    for (entities, events) in [(1_000, 1_000), (10_000, 5_000), (100_000, 10_000)] {
-        let result = run_profile(entities, events, samples)?;
+    for (entities, observables_per_entity, events) in
+        [(1_000, 1, 1_000), (10_000, 4, 5_000), (100_000, 1, 10_000)]
+    {
+        let result = run_profile(entities, observables_per_entity, events, samples)?;
         println!("{}", serde_json::to_string(&result)?);
     }
     Ok(())
