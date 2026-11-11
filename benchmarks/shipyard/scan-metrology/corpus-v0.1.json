@@ -3,10 +3,11 @@
   "benchmark_id": "SHIPYARD-SCAN-METROLOGY-001",
   "cases": [
     {
-      "0": "positive_contract_control",
-      "1": "Accept the fully identified synthetic scan with in-envelope calibration, independent target agreement, adequate coverage and a bounded uncertainty budget.",
-      "2": "The known-answer synthetic scan should qualify.",
-      "case_id": "SMET-001"
+      "case_id": "SMET-001",
+      "class": "positive_contract_control",
+      "expected_disposition": "QUALIFIED",
+      "mutation": "Accept the fully identified synthetic scan with in-envelope calibration, independent target agreement, adequate coverage and a bounded uncertainty budget.",
+      "rationale": "The known-answer synthetic scan should qualify."
     },
     {
       "case_id": "SMET-002",
