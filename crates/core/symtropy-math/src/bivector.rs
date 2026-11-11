@@ -157,8 +157,13 @@ impl<const D: usize> Bivector<D> {
         result
     }
 
-    /// Apply this bivector (as angular velocity) to a vector.
-    /// Returns B · v (antisymmetric matrix × vector).
+    /// Apply the antisymmetric matrix represented by this bivector to a vector.
+    ///
+    /// Returns B * v. This is an algebraic matrix action, not automatically the
+    /// physical velocity of a material point under Symtropy's Rotor convention:
+    /// Rotor::from_bivector(B) advances by exp(-B), so physical point velocity
+    /// for the corresponding stored angular rate is -B * r. Use the physics
+    /// integrator's angular_point_velocity helper for that kinematic quantity.
     #[inline]
     pub fn apply_to_vector(&self, v: &SVector<f64, D>) -> SVector<f64, D> {
         self.to_matrix() * v
@@ -167,20 +172,16 @@ impl<const D: usize> Bivector<D> {
     /// Wedge product `a ∧ b`: the bivector representing the oriented plane
     /// spanned by `a` and `b`. Component `(i, j) = a_i*b_j - a_j*b_i`.
     ///
-    /// This is the dimension-agnostic replacement for the 3D cross product
-    /// used to compute torque/angular-impulse from a force/impulse applied
-    /// at an offset from the center of mass.
+    /// This is the dimension-agnostic exterior product. Its argument order
+    /// is purely algebraic: `a ∧ b = -(b ∧ a)`.
     ///
-    /// **Ordering matters** and is chosen to be consistent with
-    /// [`Self::apply_to_vector`]: given an impulse `j` applied at an offset
-    /// `r` from a body's center of mass, the correct torque bivector is
-    /// `Bivector::from_wedge(&j, &r)` (impulse first, offset second) — NOT
-    /// `from_wedge(&r, &j)`. With this ordering,
-    /// `(inv_inertia * Bivector::from_wedge(&j, &r)).apply_to_vector(&r)`
-    /// reproduces the standard `(inv_inertia * (r × j)) × r` lever-arm
-    /// identity from 3D rigid body dynamics (verified in
-    /// `wedge_matches_3d_lever_arm_identity` below); the reversed argument
-    /// order produces the negated (physically wrong) sign.
+    /// For a physical impulse `j` applied at world offset `r`, the stored
+    /// angular-impulse convention paired with `Rotor::from_bivector`'s
+    /// `exp(-B)` update is `r ∧ j` (offset first, impulse second). The
+    /// corresponding physical point-velocity change is `-B * r`. Prefer
+    /// `integrator::angular_impulse_from_point` and
+    /// `integrator::angular_point_velocity` in physics code so torque and
+    /// kinematic sign conventions remain paired.
     #[inline]
     pub fn from_wedge(a: &SVector<f64, D>, b: &SVector<f64, D>) -> Self {
         let mut bv = Self::zero();
@@ -324,43 +325,33 @@ mod tests {
         assert!(bv.norm() < 1e-14, "parallel vectors should wedge to zero");
     }
 
-    /// Verifies that `Bivector::from_wedge(&j, &r)` combined with
-    /// `apply_to_vector` reproduces the standard 3D lever-arm identity
-    /// `(inv_i * (r × j)) × r`, which for a unit-inertia body reduces to
-    /// `j * |r|^2 - r * (r·j)` (BAC-CAB expansion). This is the physical
-    /// contract the contact solver's angular-impulse code depends on: torque
-    /// bivector must be built as `from_wedge(&impulse, &r)`, NOT
-    /// `from_wedge(&r, &impulse)`.
+    /// Under the Rotor exp(-B) convention, physical angular impulse is
+    /// represented by r ∧ j and the corresponding point-velocity change is
+    /// -B*r. This must reproduce the standard 3D lever-arm response
+    /// j*|r|^2 - r*(r·j).
     #[test]
-    fn wedge_matches_3d_lever_arm_identity() {
+    fn wedge_matches_3d_lever_arm_identity_under_rotor_sign_convention() {
         let r = SVector::from([1.0, 0.0, 0.0]);
         let j = SVector::from([0.0, 1.0, 0.0]); // impulse along +Y, offset along +X
 
-        let torque = Bivector::<3>::from_wedge(&j, &r);
-        let delta_v_rot = torque.apply_to_vector(&r); // unit inverse-inertia
+        let torque = Bivector::<3>::from_wedge(&r, &j);
+        let delta_v_rot = -torque.apply_to_vector(&r); // unit inverse-inertia
 
-        // Expected: j * |r|^2 - r * (r·j) = (0,1,0)*1 - (1,0,0)*0 = (0,1,0)
         let expected = j * r.norm_squared() - r * r.dot(&j);
         assert!(
             (delta_v_rot - expected).norm() < 1e-14,
             "delta_v_rot = {delta_v_rot:?}, expected = {expected:?}"
         );
 
-        // The normal-direction (n = j here) component must be POSITIVE —
-        // this is the "effective mass" contribution used by the contact
-        // solver and must never be negative (would imply energy injection
-        // if flipped when combined with the solver's sign convention).
-        let n = j.normalize();
         assert!(
-            delta_v_rot.dot(&n) > 0.0,
-            "lever-arm contribution should be positive for this convention"
+            delta_v_rot.dot(&j.normalize()) > 0.0,
+            "lever-arm contribution must separate the bodies along the impulse direction"
         );
 
-        // Reversed argument order must give the negated (wrong) result.
-        let reversed = Bivector::<3>::from_wedge(&r, &j).apply_to_vector(&r);
+        let reversed = -Bivector::<3>::from_wedge(&j, &r).apply_to_vector(&r);
         assert!(
             (reversed + expected).norm() < 1e-14,
-            "reversed wedge order should negate the result"
+            "reversed wedge order must negate the physical response"
         );
     }
 }
