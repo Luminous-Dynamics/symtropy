@@ -809,7 +809,7 @@ mod tests {
         let corpus = fixture();
         let receipt = evaluate_corpus(&corpus, FIXTURE.as_bytes()).expect("evaluate corpus");
         assert!(receipt.core.passed, "{:#?}", receipt.core.cases);
-        assert_eq!(receipt.core.case_count, 32);
+        assert_eq!(receipt.core.case_count, 34);
         assert_eq!(receipt.core.mismatch_count, 0);
     }
 
