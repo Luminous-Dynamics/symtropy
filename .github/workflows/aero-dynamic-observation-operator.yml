@@ -1,0 +1,64 @@
+name: AER-01 dynamic observation operator
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-dynamic-observation-operator.yml"
+      - "tools/civil-aero-benchmark/dynamic-observation-operator/**"
+      - "tools/civil-aero-benchmark/dpw8-aepw4-reference-intake/dpw8-reference-catalog-v0.2.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-observation-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+          python3 --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/dynamic-observation-operator/Cargo.toml -- --check
+
+      - name: Run Rust observation contract and hostile tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/dynamic-observation-operator/Cargo.toml
+
+      - name: Generate DPW8 Test Case 3 observation readiness report
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/dynamic-observation-operator/Cargo.toml > dynamic-observation-audit.json
+
+      - name: Independently validate catalog and Rust report in Python
+        run: python3 tools/civil-aero-benchmark/dynamic-observation-operator/verify_independent.py --rust-output dynamic-observation-audit.json
+
+      - name: Create input and output digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/dpw8-aepw4-reference-intake/dpw8-reference-catalog-v0.2.json > dpw8-reference-catalog-v0.2.sha256
+          sha256sum dynamic-observation-audit.json > dynamic-observation-audit.sha256
+
+      - name: Retain source manifest, audit and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-dynamic-observation-operator-${{ github.sha }}
+          path: |
+            tools/civil-aero-benchmark/dpw8-aepw4-reference-intake/dpw8-reference-catalog-v0.2.json
+            dynamic-observation-audit.json
+            dpw8-reference-catalog-v0.2.sha256
+            dynamic-observation-audit.sha256
+          if-no-files-found: error
+          retention-days: 90
