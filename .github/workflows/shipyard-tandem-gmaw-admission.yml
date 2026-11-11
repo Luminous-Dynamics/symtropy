@@ -5,10 +5,9 @@ on:
     branches: ["main"]
     paths:
       - "crates/tools/shipyard-tandem-gmaw-admission/**"
+      - "crates/tools/shipyard-tandem-gmaw-admission/Cargo.lock"
       - "benchmarks/shipyard/tandem-gmaw/**"
       - "docs/tech/SHIPYARD_TANDEM_GMAW_DATA_ADMISSION_V0_1*"
-      - "Cargo.toml"
-      - "Cargo.lock"
       - "rust-toolchain.toml"
       - ".github/workflows/shipyard-tandem-gmaw-admission.yml"
   workflow_dispatch:
@@ -37,16 +36,16 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Check formatting
-        run: cargo fmt --all -- --check
+        run: cargo fmt --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml --all -- --check
 
       - name: Run metadata admission verifier tests
-        run: cargo test --locked -p shipyard-tandem-gmaw-admission
+        run: cargo test --locked --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml
 
       - name: Run Clippy with warnings denied
-        run: cargo clippy --locked -p shipyard-tandem-gmaw-admission --all-targets -- -D warnings
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml --all-targets -- -D warnings
 
       - name: Verify metadata-only source topology and rights gate
-        run: cargo run --locked -p shipyard-tandem-gmaw-admission
+        run: cargo run --locked --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml
 
       - name: Confirm verifier did not modify tracked inputs
         run: git diff --exit-code
