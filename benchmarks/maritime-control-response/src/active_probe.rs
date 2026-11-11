@@ -202,6 +202,16 @@ pub struct ProbePosteriorEntry {
     pub probability: f64,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[serde(deny_unknown_fields)]
+pub struct ProbeObservationLedger {
+    pub schema_version: String,
+    pub current_posterior_manifest_sha256: String,
+    /// Strictly sorted, unique observation receipt digests already applied.
+    pub applied_observation_receipt_sha256: Vec<String>,
+    pub ledger_sha256: String,
+}
+
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ProbeObservationUpdate {
     pub candidate_id: String,
@@ -209,6 +219,9 @@ pub struct ProbeObservationUpdate {
     pub observation_receipt_sha256: String,
     pub observed_outcome_id: String,
     pub prior_entropy_nats: f64,
+    pub previous_posterior_manifest_sha256: String,
+    pub posterior_manifest_sha256: String,
+    pub observation_ledger: ProbeObservationLedger,
     pub posterior_entropy_nats: f64,
     /// May be negative for an individual observation even though expected information gain is non-negative.
     pub realized_entropy_reduction_nats: f64,
@@ -257,6 +270,9 @@ pub enum ProbeError {
     CandidateNotEligibleOrSelected,
     SelectionReplayMismatch,
     InvalidObservationReceiptDigest,
+    InvalidObservationLedger,
+    ObservationLedgerPosteriorMismatch,
+    ObservationAlreadyApplied,
     ObservedOutcomeNotFound(String),
     ObservedOutcomeImpossible(String),
     InvalidInformationGain(String),
@@ -283,6 +299,9 @@ impl fmt::Display for ProbeError {
             Self::ObservationCandidateMismatch => write!(formatter, "observed result belongs to a different probe candidate manifest"),
             Self::CandidateNotEligibleOrSelected => write!(formatter, "observation candidate was not eligible and selected by the frozen evidence portfolio"),
             Self::SelectionReplayMismatch => write!(formatter, "selection portfolio or baseline does not replay from its frozen inputs"),
+            Self::InvalidObservationLedger => write!(formatter, "observation ledger identity, ordering or digest is invalid"),
+            Self::ObservationLedgerPosteriorMismatch => write!(formatter, "observation ledger does not bind the supplied current prior posterior"),
+            Self::ObservationAlreadyApplied => write!(formatter, "observation receipt has already been applied to this posterior chain"),
             Self::InvalidObservationReceiptDigest => write!(formatter, "observation receipt must be a lowercase SHA-256 digest"),
             Self::ObservedOutcomeNotFound(id) => write!(formatter, "observed outcome is not declared by the candidate likelihood model: {id}"),
             Self::ObservedOutcomeImpossible(id) => write!(formatter, "observed outcome has zero probability under the frozen prior and likelihood model: {id}"),
@@ -708,6 +727,65 @@ pub fn select_probe_baseline(
     })
 }
 
+/// Create the genesis ledger for a frozen prior/posterior distribution.
+pub fn new_probe_observation_ledger(
+    hypotheses: &[HypothesisPrior],
+) -> Result<ProbeObservationLedger, ProbeError> {
+    let canonical = canonical_hypotheses(hypotheses)?;
+    let posterior_manifest_sha256 = posterior_manifest_sha256(&canonical)?;
+    let mut ledger = ProbeObservationLedger {
+        schema_version: "symtropy-probe-observation-ledger-v1".into(),
+        current_posterior_manifest_sha256: posterior_manifest_sha256,
+        applied_observation_receipt_sha256: Vec::new(),
+        ledger_sha256: String::new(),
+    };
+    ledger.ledger_sha256 = observation_ledger_digest(&ledger)?;
+    Ok(ledger)
+}
+
+fn posterior_manifest_sha256(
+    hypotheses: &[HypothesisPrior],
+) -> Result<String, ProbeError> {
+    sha256_serializable(
+        b"symtropy-diagnostic-posterior-manifest-v1\\0",
+        &hypotheses
+            .iter()
+            .map(|hypothesis| (
+                hypothesis.hypothesis_id.as_str(),
+                hypothesis.prior_probability,
+            ))
+            .collect::<Vec<_>>(),
+    )
+}
+
+fn observation_ledger_digest(
+    ledger: &ProbeObservationLedger,
+) -> Result<String, ProbeError> {
+    sha256_serializable(
+        b"symtropy-diagnostic-observation-ledger-v1\\0",
+        &(
+            ledger.schema_version.as_str(),
+            ledger.current_posterior_manifest_sha256.as_str(),
+            &ledger.applied_observation_receipt_sha256,
+        ),
+    )
+}
+
+fn validate_observation_ledger(
+    ledger: &ProbeObservationLedger,
+) -> Result<(), ProbeError> {
+    if ledger.schema_version != "symtropy-probe-observation-ledger-v1"
+        || !is_sha256_hex(&ledger.current_posterior_manifest_sha256)
+        || !is_sha256_hex(&ledger.ledger_sha256)
+        || ledger.applied_observation_receipt_sha256.iter().any(|receipt| !is_sha256_hex(receipt))
+        || ledger.applied_observation_receipt_sha256.windows(2).any(|pair| pair[0] >= pair[1])
+        || observation_ledger_digest(ledger)? != ledger.ledger_sha256
+    {
+        return Err(ProbeError::InvalidObservationLedger);
+    }
+    Ok(())
+}
+
 /// Update a hypothesis distribution from an externally acquired observation.
 /// This function does not acquire evidence or execute a probe. The observation
 /// receipt must be independently created by the acquisition system and is
@@ -719,6 +797,7 @@ pub fn realize_probe_observation(
     policy: &ProbeSelectionPolicy,
     portfolio: &ProbePortfolio,
     selection: &ProbeBaselineSelection,
+    ledger: &ProbeObservationLedger,
     candidate: &DiagnosticProbeCandidate,
     expected_candidate_manifest_sha256: &str,
     observed_outcome_id: &str,
@@ -783,6 +862,18 @@ pub fn realize_probe_observation(
         return Err(ProbeError::HypothesisManifestMismatch(
             candidate.candidate_id.clone(),
         ));
+    }
+    validate_observation_ledger(ledger)?;
+    let previous_posterior_manifest_sha256 = posterior_manifest_sha256(&canonical_hypotheses)?;
+    if ledger.current_posterior_manifest_sha256 != previous_posterior_manifest_sha256 {
+        return Err(ProbeError::ObservationLedgerPosteriorMismatch);
+    }
+    if ledger
+        .applied_observation_receipt_sha256
+        .binary_search(&observation_receipt_sha256.to_owned())
+        .is_ok()
+    {
+        return Err(ProbeError::ObservationAlreadyApplied);
     }
     let (_, _, _, scenario_count, _) =
         assess_likelihood_uncertainty(candidate, &prior, hypothesis_ids.len())?;
@@ -903,13 +994,33 @@ pub fn realize_probe_observation(
             hypothesis_id,
             probability,
         })
-        .collect();
+        .collect::<Vec<_>>();
+    let posterior_as_hypotheses = posterior
+        .iter()
+        .map(|entry| HypothesisPrior {
+            hypothesis_id: entry.hypothesis_id.clone(),
+            prior_probability: entry.probability,
+        })
+        .collect::<Vec<_>>();
+    let posterior_manifest_sha256 =
+        posterior_manifest_sha256(&posterior_as_hypotheses)?;
+    let mut updated_ledger = ledger.clone();
+    updated_ledger.current_posterior_manifest_sha256 =
+        posterior_manifest_sha256.clone();
+    updated_ledger
+        .applied_observation_receipt_sha256
+        .push(observation_receipt_sha256.to_owned());
+    updated_ledger.applied_observation_receipt_sha256.sort();
+    updated_ledger.ledger_sha256 = observation_ledger_digest(&updated_ledger)?;
 
     Ok(ProbeObservationUpdate {
         candidate_id: candidate.candidate_id.clone(),
         candidate_manifest_sha256: candidate.candidate_manifest_sha256.clone(),
         observation_receipt_sha256: observation_receipt_sha256.to_owned(),
         observed_outcome_id: observed_outcome_id.to_owned(),
+        previous_posterior_manifest_sha256,
+        posterior_manifest_sha256,
+        observation_ledger: updated_ledger,
         prior_entropy_nats: prior_entropy,
         posterior_entropy_nats: posterior_entropy,
         realized_entropy_reduction_nats: prior_entropy - posterior_entropy,
