@@ -11,6 +11,7 @@ on:
     paths:
       - "research/civdyn-self-correction/**"
       - "research/civdyn-resource-ledger/**"
+      - "research/civdyn-active-sensing/**"
       - ".github/workflows/civdyn-self-correction.yml"
   workflow_dispatch:
 
