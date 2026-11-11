@@ -2049,13 +2049,13 @@
         ],
         "minimum_independent_lineages": 2,
         "calibration_reference_group_ids": [
-          "reference-a"
+          "calibration-face1-session1"
         ],
         "parameters_frozen_before_holdout": true,
         "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
         "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
         "holdout_reference_group_ids": [
-          "reference-a"
+          "calibration-face1-session1"
         ]
       },
       "measurement": {
@@ -2077,7 +2077,7 @@
       "expected": {
         "overall_disposition": "fail",
         "reason_codes": [
-          "CALIBRATION_HOLDOUT_LINEAGE_OVERLAP"
+          "CALIBRATION_HOLDOUT_GROUP_OVERLAP"
         ]
       }
     },
