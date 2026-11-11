@@ -10,6 +10,8 @@
 //! The transformed path does not reconstruct Cartesian coordinates to run the
 //! canonical solver. It evaluates the dense-coordinate equations directly.
 
+#![allow(clippy::needless_range_loop)]
+
 use std::fmt;
 
 pub type Vector3 = [f64; 3];
@@ -559,6 +561,7 @@ struct LambdaEvaluation {
     derivative: f64,
 }
 
+#[allow(clippy::too_many_arguments)]
 fn evaluate_multiplier(
     lambda: f64,
     h: f64,
@@ -845,7 +848,7 @@ fn admit_mass_metric(
             let normalized = (supplied[row][column] - supplied[column][row]).abs() / scale;
             defect = defect.max(normalized);
             effective[row][column] =
-                0.5 * (supplied[row][column] + supplied[column][row]);
+                0.5 * supplied[row][column] + 0.5 * supplied[column][row];
         }
     }
     if defect > profile.metric_symmetry_tolerance {
@@ -1311,7 +1314,7 @@ mod tests {
         let basis_inverse =
             inverse6(&basis, StepProfileV1::default().relative_pivot_tolerance).unwrap();
         let transformed_state =
-            transform_state_to_basis(state, &basis, &basis_inverse);
+            transform_state_to_basis(state, &basis_inverse);
         let transformed_mass =
             transformed_mass_metric(&mass_metric(masses), &basis);
         let transformed_map =
@@ -1399,7 +1402,7 @@ mod tests {
         )
         .unwrap();
         let transformed_state =
-            transform_state_to_basis(state, &basis, &basis_inverse);
+            transform_state_to_basis(state, &basis_inverse);
         let transformed_force = transform_force_covector(&basis, &force);
         let transformed_metric =
             transformed_mass_metric(&mass_metric(masses), &basis);
