@@ -1412,6 +1412,63 @@ mod tests {
     }
 
     #[test]
+    fn four_dimensional_inertia_is_covariant_under_global_so4_rotation() {
+        let second_moment = SMatrix::<f64, 4, 4>::new(
+            2.0, 0.2, 0.0, 0.1,
+            0.2, 3.0, 0.15, 0.0,
+            0.0, 0.15, 4.0, 0.25,
+            0.1, 0.0, 0.25, 5.0,
+        );
+        let body_inertia = BivectorInertia::<4>::from_second_moment(second_moment).unwrap();
+        let mut generator = Bivector::<4>::zero();
+        generator.set(0, 1, 0.23);
+        generator.set(0, 2, -0.17);
+        generator.set(0, 3, 0.11);
+        generator.set(1, 2, 0.19);
+        generator.set(1, 3, -0.21);
+        generator.set(2, 3, 0.14);
+        let global = Rotor::<4>::from_bivector(&generator);
+        let world_inertia = body_inertia.rotated_by(&global).unwrap();
+
+        let mut body_angular_state = Bivector::<4>::zero();
+        body_angular_state.set(0, 1, 0.7);
+        body_angular_state.set(0, 2, -0.4);
+        body_angular_state.set(0, 3, 0.2);
+        body_angular_state.set(1, 2, 1.1);
+        body_angular_state.set(1, 3, -0.8);
+        body_angular_state.set(2, 3, 0.35);
+        let rotation_matrix = global.to_matrix();
+        let world_angular_state = Bivector::from_matrix(
+            &(rotation_matrix * body_angular_state.to_matrix() * rotation_matrix.transpose()),
+        );
+
+        let body_momentum = body_inertia.angular_momentum(&body_angular_state).unwrap();
+        let world_momentum = world_inertia.angular_momentum(&world_angular_state).unwrap();
+        let expected_world_momentum = Bivector::from_matrix(
+            &(rotation_matrix * body_momentum.to_matrix() * rotation_matrix.transpose()),
+        );
+        assert!(
+            world_momentum.add(&expected_world_momentum.scale(-1.0)).norm() < 2.0e-10,
+            "SO(4) angular-momentum covariance failed"
+        );
+        assert!(
+            (world_inertia.kinetic_energy(&world_angular_state).unwrap()
+                - body_inertia.kinetic_energy(&body_angular_state).unwrap())
+                .abs()
+                < 2.0e-10,
+            "SO(4) kinetic-energy covariance failed"
+        );
+
+        let recovered = world_inertia
+            .angular_velocity_from_momentum(&world_momentum, 1.0e-12)
+            .unwrap();
+        assert!(
+            recovered.add(&world_angular_state.scale(-1.0)).norm() < 2.0e-10,
+            "SO(4) inverse failed to recover all six rotation-plane components"
+        );
+    }
+
+    #[test]
     fn inverse_operator_recovers_coupled_world_frame_angular_velocity() {
         let second_moment =
             SMatrix::<f64, 3, 3>::new(2.0, 0.25, 0.1, 0.25, 3.0, 0.2, 0.1, 0.2, 4.0);
