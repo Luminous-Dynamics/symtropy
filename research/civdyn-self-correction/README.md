@@ -205,3 +205,40 @@ This slice does not yet implement:
 7. Empirical data adapters or independent domain qualification.
 
 Run the model-adequacy-sweep binary using Cargo with the locked manifest at research/civdyn-self-correction/Cargo.toml. The existing CIVDYN workflow also runs this binary after formatting, strict Clippy, compilation and tests. These are engineering checks against frozen synthetic contracts only.
+
+
+## Scenario L: conditional interval-calibration profiles
+
+The multi-level calibration evaluator is in src/calibration_profile.rs with the calibration-profile-sweep binary. It advances [CIVDYN-CALIBRATION-001 #4477](https://github.com/Luminous-Dynamics/symtropy/issues/4477).
+
+The evaluator consumes at least two split-predictive AdequacyAssessment receipts at predeclared nominal central masses. Every profile point must reuse the exact same frozen model, calibration manifest, statistic registry, independent-unit roster, observations and per-statistic/per-unit draw-set identity. Prior-predictive reachability cannot qualify calibration.
+
+Each statistic and nominal level receives a separate receipt:
+- expected, assessed, covered and not-assessed independent-unit counts;
+- empirical coverage and signed empirical-minus-nominal gap;
+- pointwise, unadjusted 95% Wilson interval;
+- mean prediction-interval width in the statistic's native unit;
+- undercoverage, overcoverage, compatible-with-nominal or not-assessed status.
+
+The evaluator recomputes coverage counts and Wilson intervals from row-level StatisticAssessment receipts and checks the attached CoverageSummary. Changed model/draw/observation identities, missing/duplicate rows, changed interval mass, prior-predictive substitution and tampered summary values fail closed.
+
+### Known-answer conditional miscalibration
+
+A frozen five-draw predictive distribution is evaluated over 200 independent synthetic region units for each of two registered strata:
+- Group A has coverage counts 80, 120, 140 and 160 at nominal levels 50%, 80%, 90% and 95% (undercoverage at every level).
+- Group B has coverage counts 120, 180, 196 and 198 at those levels (overcoverage at every level).
+
+Both groups use the same model, observations, calibration identity, per-unit predictive draws and nominal levels. The profile must retain the opposing subgroup failures independently, not pool them into an apparently acceptable aggregate.
+
+The mean interval widths are reported separately (in the statistic's native units). Width is not optimized independently of coverage.
+
+### Statistical interpretation and limitations
+
+- Wilson intervals are pointwise and unadjusted for multiple statistic/level comparisons.
+- A Wilson interval containing nominal coverage is compatibility evidence, not proof of calibration.
+- The synthetic independent-unit assumption is explicit; real clustered/network/temporal observations require an appropriate sampling design or cluster-aware uncertainty analysis.
+- No automated conformal correction, importance weighting or target adaptation is implemented.
+- No causal intervention effect is validated by predictive interval coverage.
+- The benchmark is a diagnostic protocol fixture, not an empirical model-performance result or guarantee of domain transfer.
+
+Run calibration-profile-sweep using the locked workspace manifest. CI validates the 30-column named CSV, exact subgroup coverage counts, Wilson classifications, interval widths, common model/draw/observation lineage and byte-identical replay.
