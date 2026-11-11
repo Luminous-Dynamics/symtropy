@@ -1,0 +1,509 @@
+{
+  "corpus_version": "ev-bms-evidence-auth-corpus/0.1",
+  "policy": {
+    "maximum_clock_uncertainty_ms": 50,
+    "trusted_clock_sources": [
+      "secure_monotonic_attested",
+      "trusted_gateway_receive"
+    ]
+  },
+  "trusted_keys": [
+    {
+      "key_id": "bms-key-001",
+      "producer_id": "bms-device-001",
+      "producer_role": "BMS",
+      "public_key_hex": "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737",
+      "valid_from_ms": 1700000000000,
+      "valid_until_ms": null,
+      "revoked": false,
+      "authorized_event_types": [
+        "soc_snapshot",
+        "soh_estimate",
+        "cell_voltage_sample",
+        "temperature_sample",
+        "fault_diagnostic"
+      ]
+    },
+    {
+      "key_id": "bms-key-revoked",
+      "producer_id": "bms-device-revoked",
+      "producer_role": "BMS",
+      "public_key_hex": "a09aa5f47a6759802ff955f8dc2d2a14a5c99d23be97f864127ff9383455a4f0",
+      "valid_from_ms": 1700000000000,
+      "valid_until_ms": null,
+      "revoked": true,
+      "authorized_event_types": [
+        "soc_snapshot"
+      ]
+    },
+    {
+      "key_id": "bms-key-expired",
+      "producer_id": "bms-device-expired",
+      "producer_role": "BMS",
+      "public_key_hex": "17cb79fb2b4120f2b1ec65e4198d6e08b28e813feb01e4a400839b85e18080ce",
+      "valid_from_ms": 1700000000000,
+      "valid_until_ms": 1750000000000,
+      "revoked": false,
+      "authorized_event_types": [
+        "soc_snapshot"
+      ]
+    }
+  ],
+  "asset_bindings": [
+    {
+      "vehicle_ref": "synthetic-vehicle-001",
+      "pack_ref": "synthetic-pack-001",
+      "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  ],
+  "events": [
+    {
+      "claims": {
+        "event_id": "evt-valid-001",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot_attestation_ref": "boot-attestation-001",
+        "sequence": 1,
+        "nonce_hex": "00000000000000000000000000000001",
+        "observed_at_ms": 1800000000000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "9d84916f491b4edcb85e4e36975ace6a7f230e0971d74572ed0d0c05ec90d93e4d2e9307c959ac060516b04e0742875ea9f3f3177442accb59afeded3c35f204"
+    },
+    {
+      "claims": {
+        "event_id": "evt-replay-002",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot_attestation_ref": "boot-attestation-001",
+        "sequence": 1,
+        "nonce_hex": "00000000000000000000000000000001",
+        "observed_at_ms": 1800000001000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "6cc34d0afb9b7a72eed30f97c2e72191ca53a4a3fe06deb88fc16417c46d247d9503fd7bb8f8a8fd0a36b2a9939780832a3358472b47a432f24e0d624954ad08"
+    },
+    {
+      "claims": {
+        "event_id": "evt-signature-tamper-003",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot_attestation_ref": "boot-attestation-001",
+        "sequence": 2,
+        "nonce_hex": "00000000000000000000000000000002",
+        "observed_at_ms": 1800000002000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "07e86098a5d6896bdc4d6282a2d033e186041fb871d49e5d142ec27c2c064f0516c557e7b6f682f34efed505dc8e00dac913357230298953479af8742cb96604"
+    },
+    {
+      "claims": {
+        "event_id": "evt-unauthorized-service-004",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot_attestation_ref": "boot-attestation-001",
+        "sequence": 2,
+        "nonce_hex": "00000000000000000000000000000003",
+        "observed_at_ms": 1800000003000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "service_completion",
+          "channel": "service_completion",
+          "value": null,
+          "unit": null,
+          "evidence_class": "service_attestation",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "f833f0ea55b1b7397a1d6603de743f99e9cd9f3574d533e80f957b347ee7dce79ca9da3f026bf47c2b966a0eafae7330cc3cfca43d0411c92517caeefa2abb0e"
+    },
+    {
+      "claims": {
+        "event_id": "evt-revoked-key-005",
+        "producer_id": "bms-device-revoked",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-revoked",
+        "boot_epoch_id": "revoked-boot-001",
+        "boot_attestation_ref": "boot-attestation-001",
+        "sequence": 1,
+        "nonce_hex": "00000000000000000000000000000004",
+        "observed_at_ms": 1800000004000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "f3f3ccef1a9bf14855253489853b13b45c4814c3a9fe79468188acc15c2c7f6f5c0453e67f2a0ae2f321b052cb22e6306ee3d0d6f7597927ae0aeb45d22f4904"
+    },
+    {
+      "claims": {
+        "event_id": "evt-wrong-config-006",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot_attestation_ref": "boot-attestation-001",
+        "sequence": 3,
+        "nonce_hex": "00000000000000000000000000000005",
+        "observed_at_ms": 1800000005000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "5866c5da29c0e3662558c0507384808c7c3e0c85deaaeed0e45ebf256ac316abf9209208be36deafdaa9a55e527366d9802ab40ab6700f989d597c2373f8c709"
+    },
+    {
+      "claims": {
+        "event_id": "evt-untrusted-clock-007",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot_attestation_ref": "boot-attestation-001",
+        "sequence": 4,
+        "nonce_hex": "00000000000000000000000000000006",
+        "observed_at_ms": 1800000006000,
+        "clock_source": "bms_wall_clock",
+        "clock_uncertainty_ms": 500,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "c9f39227ff816c4a277e25b6767412cac3881e611f89968f60ad1224fccc84e5e78d147e97adb7ffe756ca5fef0efd932ecd742267fa694cefa92faeebcba201"
+    },
+    {
+      "claims": {
+        "event_id": "evt-unknown-boot-008",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-unattested-002",
+        "boot_attestation_ref": null,
+        "sequence": 1,
+        "nonce_hex": "00000000000000000000000000000007",
+        "observed_at_ms": 1800000007000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "806ea5fe759400c7faaab10834b18e0414aadba27a031ddb56a1a32fca0d8c3b11179caae0563ca761d5e612c06a9c7c2e5b7d05b96cf7cf5c1291573fb0ed02"
+    },
+    {
+      "claims": {
+        "event_id": "evt-calibration-expired-009",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot_attestation_ref": "boot-attestation-001",
+        "sequence": 5,
+        "nonce_hex": "00000000000000000000000000000008",
+        "observed_at_ms": 1800000008000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "expired",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "a4d805f5e7d1ea91861ba1b5c97ff1679cb51207ab731a68127b0ac83ddacde749817f6fddce5482dfc0a20e17a574553e278e637cb9f75d13c20e33e5fbea00"
+    },
+    {
+      "claims": {
+        "event_id": "evt-sensor-invalid-010",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot_attestation_ref": "boot-attestation-001",
+        "sequence": 6,
+        "nonce_hex": "00000000000000000000000000000009",
+        "observed_at_ms": 1800000009000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": false,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "b6475af83e1da0a78f559228bda1f255cb5ff48c651f9aa3ae56f85674ae6a90ce6d0fa3a4ad2a54e265b8c3b3f06ffc71f08d65e1f6fbb18b0bfc48fa1ffe0c"
+    },
+    {
+      "claims": {
+        "event_id": "evt-missing-signature-011",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot-attestation-ref": "boot-attestation-001",
+        "sequence": 7,
+        "nonce_hex": "0000000000000000000000000000000a",
+        "observed_at_ms": 1800000010000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": null
+    },
+    {
+      "claims": {
+        "event_id": "evt-valid-after-unsigned-012",
+        "producer_id": "bms-device-001",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-001",
+        "boot_epoch_id": "boot-session-001",
+        "boot-attestation-ref": "boot-attestation-001",
+        "sequence": 7,
+        "nonce_hex": "0000000000000000000000000000000b",
+        "observed_at_ms": 1800000011000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "f0e853d2f9d5e65b3b3870aea24aafb49902b25eba282ef301847be999e61383ad177dae6ca835bdd5514a3aecc616940a7e25a6c15583ac25a5c3d9d682e203"
+    },
+    {
+      "claims": {
+        "event_id": "evt-expired-key-013",
+        "producer_id": "bms-device-expired",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-expired",
+        "boot_epoch_id": "expired-boot-001",
+        "boot-attestation-ref": "boot-attestation-001",
+        "sequence": 1,
+        "nonce_hex": "0000000000000000000000000000000c",
+        "observed_at_ms": 1800000012000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "94e51eab473f1458df6a3077904493c5c37b0d6ad1d6daaef0296445507b36ca0e36184bd72d7bfb8a21c335f34de6bb02a45fb9c40e865d26c8f7ee73997905"
+    },
+    {
+      "claims": {
+        "event_id": "evt-unknown-key-014",
+        "producer_id": "bms-device-unknown",
+        "producer_role": "BMS",
+        "vehicle_ref": "synthetic-vehicle-001",
+        "pack_ref": "synthetic-pack-001",
+        "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "key_id": "bms-key-unknown",
+        "boot_epoch_id": "unknown-key-boot",
+        "boot-attestation-ref": "boot-attestation-001",
+        "sequence": 1,
+        "nonce_hex": "0000000000000000000000000000000d",
+        "observed_at_ms": 1800000013000,
+        "clock_source": "secure_monotonic_attested",
+        "clock_uncertainty_ms": 5,
+        "firmware_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "payload": {
+          "event_type": "soc_snapshot",
+          "channel": "pack_soc",
+          "value": 72.5,
+          "unit": "percent",
+          "evidence_class": "bms_reported",
+          "calibration_status": "current",
+          "sensor_valid": true,
+          "out_of_domain": false,
+          "protocol_ref": null,
+          "observation_digest": null
+        }
+      },
+      "signature_hex": "51cde3c9aa1b3e6b03c0063b4a2f21ce0d19a532d3d9e4205006ada053bd514afe35b4590e5e552e1ed826f6bee26c8f0525e107f004882de9a4f5bf9a9c2f0a"
+    }
+  ]
+}
