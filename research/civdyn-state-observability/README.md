@@ -76,7 +76,7 @@ Requirements: Git, jq and Rust toolchain.
 ```bash
 git clone https://github.com/ai-fm/missingness-mdps reference/missingness-mdps
 git -C reference/missingness-mdps checkout 186c454c8e1581adbbf3cbb49ed9e0df510356f4
-scripts/audit_miss_mdp_reference.sh reference/missingness-mdps > /tmp/miss-mdp.tsv
+bash scripts/audit_miss_mdp_reference.sh reference/missingness-mdps > /tmp/miss-mdp.tsv
 cargo run --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp.tsv
 ```
 
