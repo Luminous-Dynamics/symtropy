@@ -11,8 +11,8 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 
-use recoverable_driving_evidence::{validate_campaign, CampaignRecord, ReportDisposition};
-use serde_json::{json, Value};
+use recoverable_driving_evidence::{CampaignRecord, ReportDisposition, validate_campaign};
+use serde_json::{Value, json};
 
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
 
@@ -44,7 +44,10 @@ fn audit_value(input: &str) -> Result<(Value, bool), String> {
 }
 
 fn write_report(path: &Path, report: &Value) -> Result<(), Box<dyn Error>> {
-    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
         fs::create_dir_all(parent)?;
     }
     fs::write(path, serde_json::to_vec_pretty(report)?)?;
@@ -63,7 +66,8 @@ fn run() -> Result<i32, Box<dyn Error>> {
         return Err("campaign input must be a regular file no larger than 64 MiB".into());
     }
     let input = fs::read_to_string(input_path)?;
-    let (report, valid) = audit_value(&input).map_err(|error| format!("audit input rejected: {error}"))?;
+    let (report, valid) =
+        audit_value(&input).map_err(|error| format!("audit input rejected: {error}"))?;
     write_report(output_path, &report)?;
     println!(
         "campaign audit: {} ({} findings); report: {}",
@@ -180,9 +184,11 @@ mod tests {
         assert!(!valid);
         assert_eq!(report["disposition"], "rejected");
         let findings = report["findings"].as_array().unwrap();
-        assert!(findings.iter().any(|finding| {
-            finding.as_str() == Some("ReplayedActorInputChanged")
-        }));
+        assert!(
+            findings
+                .iter()
+                .any(|finding| { finding.as_str() == Some("ReplayedActorInputChanged") })
+        );
     }
 
     #[test]
