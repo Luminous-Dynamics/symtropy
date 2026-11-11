@@ -569,7 +569,7 @@ pub fn assess_measurement_equivalence(
 ) -> Result<MeasurementEquivalenceReport, MeasurementEquivalenceError> {
     validate_measurement_pair(left, right)?;
 
-    let (evidence_digest, evidence_kind, achieved_invariance, anchor_item_ids, non_invariant_item_ids, claims) =
+    let (evidence_digest, evidence_kind, invariance_levels, anchor_item_ids, non_invariant_item_ids, claims) =
         match evidence {
             MeasurementEquivalenceEvidence::SameProtocol(receipt) => {
                 if receipt.protocol_digest.trim().is_empty() {
@@ -770,6 +770,7 @@ pub fn assess_measurement_equivalence(
         mean_equivalence_margin,
         slope_ci,
         slope_equivalence_margin,
+        individual_error_lower_bound,
         individual_error_upper_bound,
         individual_score_margin,
     ) = match evidence {
@@ -779,6 +780,7 @@ pub fn assess_measurement_equivalence(
             None,
             receipt.calibration_receipt_digest.clone(),
             Vec::new(),
+            None,
             None,
             None,
             None,
@@ -802,6 +804,7 @@ pub fn assess_measurement_equivalence(
             None,
             None,
             None,
+            None,
         ),
         MeasurementEquivalenceEvidence::BridgeStudy(receipt) => (
             Some(receipt.data_digest.clone()),
@@ -815,6 +818,7 @@ pub fn assess_measurement_equivalence(
             Some(receipt.mean_equivalence_margin),
             Some((receipt.slope_ci_lower, receipt.slope_ci_upper)),
             Some(receipt.slope_equivalence_margin),
+            receipt.individual_error_lower_bound,
             receipt.individual_error_upper_bound,
             receipt.individual_score_margin,
         ),
