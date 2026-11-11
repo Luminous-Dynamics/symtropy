@@ -1158,7 +1158,7 @@
           "asset_id": "BLDG-SYNTH-01",
           "base_model_revision": "MODEL-R1",
           "frame_id": "LOCAL-ENU-01",
-          "survey_product_status": "qualified",
+          "survey_product_status": "invalid",
           "change_estimate": {
             "status": "qualified",
             "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
@@ -2566,7 +2566,7 @@
             "status": "qualified",
             "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
           },
-          "registration_stability": "stable",
+          "registration_stability": "drift_suspected",
           "registration_stability_receipt": {
             "status": "qualified",
             "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
@@ -2663,8 +2663,8 @@
           "frame_id": "LOCAL-ENU-01",
           "survey_product_status": "qualified",
           "change_estimate": {
-            "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "status": "unresolved",
+            "receipt_sha256": null
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
@@ -2773,7 +2773,7 @@
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": null
           }
         }
       },
