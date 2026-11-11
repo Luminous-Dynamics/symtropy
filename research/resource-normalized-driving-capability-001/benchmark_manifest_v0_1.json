@@ -223,6 +223,51 @@
       "protocol": "Historical protocol reference only; no current hosted submission path.",
       "source": "https://leaderboard.carla.org/evaluation_v2_0/",
       "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_robust_2026",
+      "class": "closed_loop_deployment_robustness_protocol",
+      "name": "Bench2Drive-Robust (2026)",
+      "metric_values": null,
+      "capabilities": [
+        "model-agnostic closed-loop extension for Bench2Drive-compatible fixed policies",
+        "GPS localization noise: 5 m and 15 m",
+        "inference/control delay: 100 ms, 200 ms and 500 ms using delayed action buffering",
+        "burst camera frame drops: 20 ticks and 60 ticks",
+        "partial camera occlusion: 50% and 80% masks",
+        "multiplicative speed-estimation noise: means 0.5 or 0.2 with standard deviation 0.2",
+        "reports degradation relative to clean baseline under each perturbation; perturbations evolve the closed-loop feedback trajectory"
+      ],
+      "protocol": "Separate paired clean/perturbed runs with pinned robustness seed and exact perturbation schedule; preserve each perturbation family/severity as its own metric. Do not turn relative degradation into an aggregate score without publishing weights.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "navsim_v2_ntr_third_party_snapshot_2026_05",
+      "class": "third_party_leaderboard_snapshot",
+      "name": "NAVSIM v2 End-to-End Test — NTR 2026.05 (SOTA2 snapshot)",
+      "metric_values": {
+        "nc": 99.4,
+        "epdms": 90.9
+      },
+      "protocol": "Third-party SOTA2 snapshot, marked updated five months before 2026-11-11. Native NAVSIM v2 end-to-end test track only. This is not an official NAVSIM organizer publication or an independent Symtropy reproduction; re-verify the active leaderboard and evaluator before using as a target.",
+      "source": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_speed_2026",
+      "class": "closed_loop_speed_conditioned_capability_protocol",
+      "name": "Bench2Drive-Speed",
+      "metric_values": null,
+      "capabilities": [
+        "desired-speed-conditioned driving",
+        "follow/overtake intent and speed adherence",
+        "2,100 CARLA scenarios reported by benchmark repository",
+        "evaluates continuous speed control separately from route success"
+      ],
+      "protocol": "Separate speed-conditioned protocol; pin exact repository commit, speed command distribution, scenario list and native speed-adherence metrics. Do not pool with standard Bench2Drive Driving Score.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive-Speed",
+      "independent_symtropy_reproduction": false
     }
   ],
   "benchmark_ladder": [
@@ -280,17 +325,30 @@
     {
       "id": "bench2drive_robust",
       "priority": 6,
-      "task": "Bench2Drive-Robust system perturbations",
+      "task": "Bench2Drive-Robust closed-loop deployment perturbations: burst frame drop (20/60 ticks), partial camera occlusion (50/80%), GPS noise (5/15 m), speed-estimation bias and control/inference delay (100/200/500 ms). Pair each perturbed run with the same clean scenario/seed and preserve each fault family/severity separately.",
       "metric_family": [
-        "camera_dropout",
-        "localization_noise",
-        "inference_delay",
-        "fault_family_success"
+        "native_score_by_fault_family_and_severity",
+        "relative_degradation_vs_paired_clean_baseline",
+        "recovery_time_and_safe_fallback_rate",
+        "residual_control_age_and_deadline_miss_rate",
+        "worst_fault_family_lower_tail_success"
+      ]
+    },
+    {
+      "id": "bench2drive_speed",
+      "priority": 7,
+      "task": "Bench2Drive-Speed desired-speed/follow/overtake conditioning; preserve native speed adherence and closed-loop outcomes separate from standard route score.",
+      "metric_family": [
+        "speed_tracking_error",
+        "speed_command_adherence",
+        "overtake_and_follow_success",
+        "comfort_and_jerk",
+        "route_success"
       ]
     },
     {
       "id": "navsim_v2",
-      "priority": 7,
+      "priority": 8,
       "task": "NAVSIM v2 native protocol; preserve end-to-end and planning tracks separately",
       "metric_family": [
         "native_pdms_or_epdms",
@@ -299,7 +357,7 @@
     },
     {
       "id": "world_in_world",
-      "priority": 8,
+      "priority": 9,
       "task": "closed-loop action-conditioned world model utility",
       "metric_family": [
         "task_success",
@@ -309,7 +367,7 @@
     },
     {
       "id": "hil_closed_course",
-      "priority": 9,
+      "priority": 10,
       "task": "staged hardware-in-the-loop and closed-course validation under independent authority",
       "metric_family": [
         "instrumented_fault_response",
@@ -319,7 +377,7 @@
     },
     {
       "id": "operational_safety",
-      "priority": 10,
+      "priority": 11,
       "task": "eventual fleet-scale mileage and incident-rate analysis after formal safety case",
       "metric_family": [
         "exposure_normalized_incident_rates",
@@ -347,7 +405,13 @@
     "peak_memory_bytes",
     "precision_and_quantization",
     "accelerator_and_power_profile",
-    "perception_world_model_planning_rta_overhead"
+    "perception_world_model_planning_rta_overhead",
+    "fault_campaign_seed_and_schedule_digest",
+    "fault_injection_events_per_episode",
+    "paired_clean_perturbed_episode_identity",
+    "fault_recovery_time_ms",
+    "control_age_ms_under_inference_delay",
+    "sensor_drop_and_occlusion_fraction"
   ],
   "outcome_families": [
     "native_benchmark_metrics",
@@ -364,7 +428,13 @@
     "training_and_inference_energy",
     "memory_and_model_size",
     "human_correction_minutes_and_simulator_transitions",
-    "replay_integrity_and_evidence_completeness"
+    "replay_integrity_and_evidence_completeness",
+    "fault_family_relative_degradation_vs_paired_clean_baseline",
+    "time_to_recover_after_fault_injection",
+    "safe_fallback_and_degraded_mode_success",
+    "control_age_and_action_deadline_miss_rate",
+    "speed_command_adherence_under_dynamic_interactions",
+    "worst_case_fault_family_performance"
   ],
   "prospective_targets": {
     "status": "not_measured",
@@ -449,6 +519,30 @@
       "url": "https://www.waymo.com/open/challenges/",
       "published": "status checked 2026-11-11",
       "source_type": "official dataset challenge status"
+    },
+    {
+      "id": "bench2drive_robust",
+      "url": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust",
+      "published": "2026-05",
+      "source_type": "benchmark repository and perturbation protocol"
+    },
+    {
+      "id": "bench2drive_robust_paper",
+      "url": "https://arxiv.org/abs/2605.18059",
+      "published": "2026-05-18",
+      "source_type": "arXiv benchmark paper"
+    },
+    {
+      "id": "bench2drive_speed",
+      "url": "https://github.com/Thinklab-SJTU/Bench2Drive-Speed",
+      "published": "2026",
+      "source_type": "benchmark repository"
+    },
+    {
+      "id": "navsim_ntr_third_party_snapshot",
+      "url": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test",
+      "published": "2026-05 snapshot; rechecked 2026-11-11",
+      "source_type": "third-party leaderboard aggregator"
     }
   ]
 }
