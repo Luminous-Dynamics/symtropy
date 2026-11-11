@@ -299,13 +299,22 @@ pub enum ExposureMapping {
 }
 
 impl ExposureMapping {
-    pub fn id(&self) -> &'static str {
+    pub fn id(&self) -> String {
         match self {
-            Self::FullNetwork => "full_network_within_between_counts",
-            Self::WithinClusterOnly => "within_cluster_only",
-            Self::WeightedNeighborMean { .. } => "weighted_neighbor_mean",
-            Self::Threshold { .. } => "treated_neighbor_threshold",
-            Self::TruncatedCanonicalNeighbors { .. } => "truncated_canonical_neighbors",
+            Self::FullNetwork => "full_network_within_between_counts".to_string(),
+            Self::WithinClusterOnly => "within_cluster_only".to_string(),
+            Self::WeightedNeighborMean {
+                within_weight,
+                between_weight,
+            } => format!(
+                "weighted_neighbor_mean_within_{within_weight}_between_{between_weight}"
+            ),
+            Self::Threshold {
+                minimum_treated_neighbors,
+            } => format!("treated_neighbor_threshold_{minimum_treated_neighbors}"),
+            Self::TruncatedCanonicalNeighbors { maximum_neighbors } => {
+                format!("truncated_canonical_neighbors_{maximum_neighbors}")
+            }
         }
     }
 
@@ -339,7 +348,7 @@ struct ExposureKey {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ExposureMappingSummary {
-    pub mapping_id: &'static str,
+    pub mapping_id: String,
     pub exposure_cell_count: usize,
     pub nonconstant_exposure_cell_count: usize,
     pub maximum_within_cell_outcome_range: f64,
