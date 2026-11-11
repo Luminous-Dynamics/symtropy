@@ -14,7 +14,7 @@
 use nalgebra::SVector;
 use symtropy_math::Bivector;
 
-use crate::body::{BodyHandle, BodyType, RigidBody};
+use crate::body::{BodyHandle, BodyType, RigidBody, RotationalInertiaModel};
 use crate::integrator;
 use crate::world::PhysicsWorld;
 
@@ -117,6 +117,15 @@ pub struct BodySnapshot<const D: usize> {
     pub rotation: [[u64; D]; D],
     pub linear_velocity: [u64; D],
     pub angular_velocity: [[u64; D]; D],
+    /// Bitwise dynamic mass and legacy principal-moment fallback.
+    pub mass_kg_bits: u64,
+    pub inertia_principal_bits: [u64; D],
+    pub inverse_inertia_principal_bits: [u64; D],
+    /// Complete validated body-frame operator in canonical row-major order.
+    pub rotational_inertia_operator_bits: Vec<u64>,
+    pub rotational_inertia_model: RotationalInertiaModel,
+    pub rotational_inertia_operator_invalidated: bool,
+    pub rotational_inertia_approximate: bool,
     pub sleeping: bool,
     pub sleep_counter: u32,
 }
@@ -141,6 +150,17 @@ impl<const D: usize> BodySnapshot<D> {
             rotation,
             linear_velocity,
             angular_velocity,
+            mass_kg_bits: body.mass.to_bits(),
+            inertia_principal_bits: std::array::from_fn(|i| body.inertia[i].to_bits()),
+            inverse_inertia_principal_bits: std::array::from_fn(|i| body.inv_inertia[i].to_bits()),
+            rotational_inertia_operator_bits: body
+                .rotational_inertia_operator
+                .as_ref()
+                .map(|operator| operator.as_row_major().iter().map(|value| value.to_bits()).collect())
+                .unwrap_or_default(),
+            rotational_inertia_model: body.rotational_inertia_model(),
+            rotational_inertia_operator_invalidated: body.rotational_inertia_operator_invalidated,
+            rotational_inertia_approximate: body.rotational_inertia_approximate,
             sleeping: body.sleeping,
             sleep_counter: body.sleep_counter,
         }
@@ -192,5 +212,78 @@ impl<const D: usize> WorldSnapshot<D> {
             bodies,
             collision_events,
         }
+    }
+}
+
+
+#[cfg(test)]
+mod rotational_mass_property_replay_tests {
+    use super::*;
+    use crate::mass_properties::RotationalInertiaOperator;
+    use symtropy_math::Point;
+
+    #[test]
+    fn body_snapshot_distinguishes_full_operator_coefficients() {
+        let operator_a = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+            4.0, 0.5, 0.0,
+            0.5, 3.0, 0.25,
+            0.0, 0.25, 2.0,
+        ]).unwrap();
+        let operator_b = RotationalInertiaOperator::<3>::try_from_row_major(vec![
+            4.0, 0.25, 0.0,
+            0.25, 3.0, 0.25,
+            0.0, 0.25, 2.0,
+        ]).unwrap();
+        let a = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(7),
+            Point::origin(),
+            0.1,
+            1.0,
+        ).with_rotational_inertia_operator(operator_a);
+        let b = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(7),
+            Point::origin(),
+            0.1,
+            1.0,
+        ).with_rotational_inertia_operator(operator_b);
+
+        let snapshot_a = BodySnapshot::from_body(&a);
+        let snapshot_b = BodySnapshot::from_body(&b);
+        assert_ne!(
+            snapshot_a.rotational_inertia_operator_bits,
+            snapshot_b.rotational_inertia_operator_bits
+        );
+        assert_ne!(snapshot_a, snapshot_b);
+    }
+
+    #[test]
+    fn body_snapshot_records_inertia_model_and_stale_operator_state() {
+        let operator = RotationalInertiaOperator::<3>::isotropic(1.0).unwrap();
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(8),
+            Point::origin(),
+            0.1,
+            1.0,
+        ).with_rotational_inertia_operator(operator);
+        let valid = BodySnapshot::from_body(&body);
+        assert_eq!(
+            valid.rotational_inertia_model,
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator
+        );
+        assert!(!valid.rotational_inertia_operator_invalidated);
+
+        body.merge_toolhead(
+            symtropy_math::Transform::identity(),
+            Box::new(symtropy_math::Sphere::unit()),
+            0.2,
+        );
+        let stale = BodySnapshot::from_body(&body);
+        assert!(stale.rotational_inertia_operator_invalidated);
+        assert!(stale.rotational_inertia_approximate);
+        assert_eq!(
+            stale.rotational_inertia_model,
+            RotationalInertiaModel::InvalidPrincipalMoments
+        );
+        assert_ne!(valid, stale);
     }
 }
