@@ -36,6 +36,8 @@ Sources are linked in `benchmark_manifest_v0_1.json`. Model-card figures and ven
 
 ## New benchmark tracks: deployment robustness and speed-conditioned control
 
+The Luminous degradation/recovery work is tracked separately in [Symtropy #4657](https://github.com/Luminous-Dynamics/symtropy/issues/4657) and consumes the same normalized result-card principles defined here.
+
 ### Bench2Drive-Robust
 
 The standard closed-loop score is not enough for a deployable system. Bench2Drive-Robust is a model-agnostic extension that holds a policy fixed and injects deployment perturbations into the closed-loop feedback loop. Its published settings include:
@@ -51,6 +53,20 @@ The standard closed-loop score is not enough for a deployable system. Bench2Driv
 Source: [Bench2Drive-Robust repository](https://github.com/Thinklab-SJTU/Bench2Drive-Robust) and [paper](https://arxiv.org/abs/2605.18059). These are benchmark perturbation settings, not universal real-world fault distributions.
 
 Our extension requires **paired clean and perturbed episodes**: same checkpoint, initial scenario, route, actor policies, seed manifest and data permissions; only the explicitly declared fault injection changes. Report native task metrics and relative degradation per fault family/severity, plus recovery time, control age, fallback outcomes and worst-family tails. Never combine different fault families into one robustness number without predeclared weights.
+
+### Luminous Degradation-and-Recovery Envelope
+
+The new [#4657 protocol](https://github.com/Luminous-Dynamics/symtropy/issues/4657) adds an event-centric view on top of deployment robustness. Bench2Drive-Robust provides important system perturbations; our extension measures the *full temporal response* to a fault:
+
+`fault onset -> event-specific detection -> containment -> degraded operation -> fault clearance -> healthy-observation quorum -> recovery`
+
+The standalone auditor currently covers camera drop, frame delay, stale replay, pixel corruption, calibration shift, clock drift and compute overrun. It preserves event IDs so one fault cannot claim another fault's detection or containment. It also represents independent, cascaded and declared common-cause events, and rejects premature normal-mode restoration, undeclared fault conditions, accepted stale/corrupt inputs, incomplete tick denominators and unmeasured per-tick latency/energy evidence.
+
+The severity-sweep generator schedules all seven families at five declared control levels (10%, 25%, 50%, 75%, 100%), producing 35 independent event windows. Those values are normalized experiment controls, not a claim that severity has a physically equivalent meaning across fault families. The generator does not inject faults or execute a simulator.
+
+**What to publish per fault:** detection latency, containment latency, stale/corrupt acceptance, degraded-mode duration, safe-stop/fallback result, recovery quorum and latency, false-positive degradation on clean controls, p95/p99 control latency, energy and worst-family tail. Keep those axes separate. A model that never resumes normal operation is not a recovery success; one that resumes too early is also a failure.
+
+The first v0.1 fixture is explicitly synthetic and uses an untrained input bridge, not a trained driver. Its latency and energy values exercise validation logic only and are not hardware measurements. See [the auditor README and fixture](https://github.com/Luminous-Dynamics/symtropy/tree/main/research/degradation-recovery-envelope-001).
 
 ### Bench2Drive-Speed
 
