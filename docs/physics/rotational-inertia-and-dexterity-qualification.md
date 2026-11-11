@@ -150,6 +150,25 @@ The engineering digital thread should link each robot configuration to:
 
 No benchmark score substitutes for hazard analysis, system integration validation, independent safety assessment or regulatory obligations.
 
+### Runtime performance harness
+
+Criterion cases are now added for:
+- the explicitly approximate scalar-mean baseline;
+- the frame-aware 3D principal-axis path;
+- the full 3D off-diagonal bivector operator;
+- the full 9D / 36-DOF operator;
+- a 10-body anisotropic contact-heavy world step.
+
+These fixtures report latency only. They must be run in release mode on named hardware with compiler/toolchain, OS, CPU governor, thread count, power mode, run count and confidence interval recorded. Do not compare a one-body microbenchmark with a full-world benchmark or compare different hardware. Report allocation counts and p50/p95/p99 where a stable harness is available.
+
+Performance gate: no performance regression threshold is accepted until the physics parity suite passes. Then establish the current exact-head baseline and require any optimization to preserve all analytical/contact/trajectory gates. The aim is not "faster than one engine" in the abstract; it is lower time and energy per validated task at equivalent fidelity and failure behaviour.
+
+### Hinge motor constraint coupling
+
+A full off-diagonal inertia operator can cause an impulse commanded in the hinge's allowed plane to generate relative angular velocity in forbidden planes. A motor update that applies only the allowed-plane impulse therefore violates the hinge's own constraint. The current implementation now solves the fixed-size relative inverse-inertia system for a total impulse whose allowed component equals the motor command and whose reaction components cancel forbidden relative motion. It uses stack storage for up to 36 bivector degrees of freedom and fails closed for singular/non-finite systems.
+
+Regression gates cover a static base and two dynamic asymmetric endpoints. Both require zero relative response in forbidden planes and non-zero response in the allowed plane. This is a constrained generalized effective-inertia solve, not a per-axis impulse split.
+
 ## Execution status for this branch
 
 Implemented in the research branch:
