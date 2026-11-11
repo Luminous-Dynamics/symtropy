@@ -10,6 +10,8 @@
     "dataset_doi",
     "dataset_license",
     "archive_sha256",
+    "archive_size_bytes",
+    "archive_md5",
     "dataset_index_sha256",
     "variable_dictionary_sha256",
     "normalization_script_sha256",
@@ -59,6 +61,14 @@
           "$ref": "#/$defs/split_manifest"
         }
       ]
+    },
+    "archive_md5": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{32}$"
+    },
+    "archive_size_bytes": {
+      "type": "integer",
+      "minimum": 1
     }
   },
   "$defs": {
