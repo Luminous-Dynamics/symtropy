@@ -72,3 +72,29 @@ Every cross-engine lane needs a semantic-admission record. If collision geometry
 ## Benchmark extension
 
 The next matched comparison should add the same frozen matrix problem to Symtropy's native step, MuJoCo's discrete integrator, and an independently assembled KKT/LCP reference. Compare velocity and impulse, metric/KKT residual, complementarity, next-step gap, energy/work balance, transition derivative, cost, and memory. Only compare a lane after semantic admission confirms contact law, constraint target, integration and damping equivalence.
+
+## Unit-aware contact residual contract
+
+Absolute residuals remain useful diagnostics, but they cannot decide physical admission across different unit systems. The solver now uses dimensionless acceptance residuals while retaining its absolute residual fields for traceability:
+
+- Effective-metric equation: for each generalized coordinate, divide `|M_hat v+ - M v - h f + h K q_error - J^T p|` by the largest absolute contributing term on that coordinate; report the maximum.
+- Dual feasibility: divide the largest negative impulse violation by the impulse vector infinity norm.
+- Primal feasibility: per contact row, divide the negative part of `J_i v+ - target_i` by `max(|J_i v+|, |target_i|)`.
+- Complementarity: for each row with positive impulse, divide `|p_i s_i|` by `|p_i| max(|J_i v+|, |target_i|)`; zero-impulse rows satisfy complementarity by construction.
+
+Zero-scale handling is explicit: an exactly zero residual maps to zero; a nonzero violation with no nonzero reference scale maps to infinity and is rejected. The active-set candidate checks use these normalized criteria rather than absolute, dimensioned cutoffs. Absolute residual outputs remain available and must not be interpreted as cross-unit acceptance scores.
+
+The new regression suite checks the one-contact step at uniform mass scales `1e-12`, `1`, and `1e12`, and checks normalized feasibility/complementarity invariance under uniform velocity-unit scaling. This is not a proof of invariance under arbitrary mixed generalized-coordinate scaling or badly conditioned coordinate changes. Those require coordinate-aware characteristic scales and separate metamorphic tests.
+
+Still outstanding: a normalized energy/work ledger (including contact work and frictional dissipation), error bounds under nonzero restitution and friction, and independent KKT residual comparison on a broader corpus. The current reference remains frictionless, zero restitution, fixed-J, single-step and small-island only.
+
+## Benchmark lanes — keep unlike workloads separate
+
+1. **Small constrained islands (CPU reference lane):** 1–10 contacts, 1–12 generalized DOFs; active-set enumeration versus independent KKT/LCP and MuJoCo discrete-step fixtures. Score physical error and normalized residuals before latency.
+2. **Many homogeneous worlds (throughput lane):** fixed-size batches of identical scenes, reporting worlds/s and simulated-seconds/s at fixed batch sizes. Separate CPU and GPU.
+3. **Heterogeneous robot batches:** mixed morphologies, joint counts, contact topologies and task lengths; report throughput, tail latency, padding/occupancy and per-world quality. This is the relevant lane for Newton Steel's heterogeneous-batch claims.
+4. **Large homogeneous rigid-body scenes:** 10k–500k bodies, pyramids, broad-phase-heavy and contact-dense scenes; report broad-phase, narrow-phase, solver and synchronization costs separately. This is the lane for Rapier/Nexus large-scene work, not the same leaderboard as small islands.
+5. **Engineering multiphysics:** FSI, granular/peridynamic, thermal and coupled implicit cases; compare against domain-specific Chrono capabilities with matched constitutive laws and boundary conditions.
+
+Every throughput lane must publish both fixed-batch comparisons and each engine's peak-throughput configuration. Pin hardware, driver, backend, precision, compiler, threads, solver/integrator settings, timestep, contact law, warmup, batch size and exact source revisions. Report p50/p95/p99/worst-case step time, memory, iterations, failure/rejection rate, and quality residuals alongside throughput.
+
