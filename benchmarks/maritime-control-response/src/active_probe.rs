@@ -427,7 +427,7 @@ pub fn rank_diagnostic_probes(
         .collect::<Vec<_>>();
     likelihood_calibration_catalogue.sort_by(|left, right| left.0.cmp(&right.0));
     let likelihood_calibration_catalogue_sha256 = sha256_serializable(
-        b"symtropy-diagnostic-likelihood-calibration-catalogue-v1\\0",
+        b"symtropy-diagnostic-likelihood-calibration-catalogue-v1\0",
         &likelihood_calibration_catalogue,
     )?;
     let likelihood_calibration_reviewed_by_independent_validator = !candidates.is_empty()
