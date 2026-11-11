@@ -435,6 +435,13 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
         });
     }
 
+    // Canonicalize semantically unordered case and binding collections before
+    // delegation/reporting. Exact input hashes remain byte-order sensitive.
+    generic_cases.sort_by(|left, right| {
+        string_at(left, "id").unwrap_or("").cmp(string_at(right, "id").unwrap_or(""))
+    });
+    adapter_cases.sort_by(|left, right| left.case_id.cmp(&right.case_id));
+
     // Preserve the existing decision corpus envelope, substituting only the
     // building-specific cases. The existing owner remains authoritative for
     // partitions, robust feasibility, Pareto and action recommendations.
@@ -584,6 +591,51 @@ mod tests {
         assert_eq!(report.core.unqualified_capture_count, 1);
         assert_eq!(report.core.decision_impact_cases_passed, 8);
         assert_eq!(report.receipt_sha256.len(), 64);
+    }
+
+    #[test]
+    fn adapter_case_order_does_not_change_semantic_report() {
+        let original = validate_adapter_bytes(
+            EMBEDDED_ADAPTER_CORPUS.as_bytes(),
+            EMBEDDED_ADAPTER_SCHEMA.as_bytes(),
+        );
+        let mut corpus = fixture();
+        corpus["cases"].as_array_mut().unwrap().reverse();
+        let reversed = validate_adapter_bytes(
+            &bytes(&corpus),
+            EMBEDDED_ADAPTER_SCHEMA.as_bytes(),
+        );
+        assert!(original.core.passed, "{:#?}", original.core.failures);
+        assert!(reversed.core.passed, "{:#?}", reversed.core.failures);
+        assert_eq!(
+            serde_json::to_value(&original.core).unwrap(),
+            serde_json::to_value(&reversed.core).unwrap()
+        );
+        assert_ne!(original.input_sha256, reversed.input_sha256);
+    }
+
+    #[test]
+    fn capture_binding_order_does_not_change_action_qualification() {
+        let original = validate_adapter_bytes(
+            EMBEDDED_ADAPTER_CORPUS.as_bytes(),
+            EMBEDDED_ADAPTER_SCHEMA.as_bytes(),
+        );
+        let mut corpus = fixture();
+        corpus["cases"][0]["capture_bindings"]
+            .as_array_mut()
+            .unwrap()
+            .reverse();
+        let reversed = validate_adapter_bytes(
+            &bytes(&corpus),
+            EMBEDDED_ADAPTER_SCHEMA.as_bytes(),
+        );
+        assert!(original.core.passed, "{:#?}", original.core.failures);
+        assert!(reversed.core.passed, "{:#?}", reversed.core.failures);
+        assert_eq!(
+            serde_json::to_value(&original.core).unwrap(),
+            serde_json::to_value(&reversed.core).unwrap()
+        );
+        assert_ne!(original.input_sha256, reversed.input_sha256);
     }
 
     #[test]
