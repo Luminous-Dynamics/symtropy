@@ -76,6 +76,14 @@ for the transformed-geometry contract, limitations, and external campaign. Publi
 research claims should follow that protocol and explicitly distinguish proven,
 experimental, and planned capabilities.
 
+## Checked 3D spatial inertia reference
+
+`SpatialInertia3` is an independent reference object that binds mass, COM offset, central inertia, `FrameId` and `ReferencePointId`. It constructs the 6×6 spatial mass matrix for twists `[omega; v_at_P]`, maps twists to spatial momentum, and computes kinetic energy. It also supports checked reference-point shifts, frame re-expression and composition at a shared point/frame.
+
+Run its tests with the normal crate test suite. See [`SPATIAL_INERTIA_3D_VALIDATION.md`](SPATIAL_INERTIA_3D_VALIDATION.md) for the about-point/frame equations, transformation contracts and promotion gates.
+
+**Boundary:** this is a reference layer only. Production `RigidBody` and `PhysicsWorld` still use their current representations; this does not wire a 6×6 spatial matrix into runtime integration or contact.
+
 ## PhysicsCallback — Custom Force Modulation
 
 ```rust
