@@ -169,16 +169,28 @@ cargo run --release --locked --bin capability-frontier -- driving_score maximize
 ```
 
 The tool:
-- validates resource fields, latency percentile order, SHA-256 syntax and exact episode disposition accounting;
+- validates resource fields, latency percentile order, SHA-256 syntax, unique per-episode IDs and exact aggregate/per-episode disposition accounting;
 - refuses to compare different benchmark IDs, protocol/evaluator revisions, holdout splits, seed manifests or policy/teacher input privileges;
-- reports `matched_capability` only when training exposure, human intervention, labels, inference hardware and precision are also matched;
-- reports `capability_frontier_only` when evaluation is aligned but training/compute budgets differ;
-- computes a metric-specific Pareto frontier over the native task metric, inference energy per frame, p99 latency and peak memory;
-- excludes cards missing any required frontier measurement rather than treating missing values as zero or as a benefit.
+- reports `matched_capability` only when training data/exposure, human interventions, teacher labels, training GPU-hours, training kWh, inference hardware, precision and measurement method are aligned and reported;
+- reports `capability_frontier_only` when evaluation is aligned but training/compute budgets differ or are unreported;
+- computes a metric-specific Pareto frontier over the native task metric, trainable parameters, training GPU-hours, training kWh, inference joules/frame, p99 latency and peak memory;
+- excludes cards missing any required frontier measurement rather than treating missing values as zero or as a benefit;
+- computes a deterministic 10,000-replicate, 95% paired bootstrap interval automatically for baseline/candidate comparisons.
 
-It reports native metric differences and resource ratios; it does not combine driving score, energy, latency, memory or safety into a fabricated single score. It is a result-card evaluator, not a statistical significance engine: confidence intervals and per-seed results must be reported separately before claiming statistical superiority.
+### Statistical comparison contract
 
-The test suite parses the not-run template and confirms that it is valid metadata with no performance metrics or episode outcomes.
+Every complete result card must carry one record per expected evaluation episode:
+`episode_id + scenario_family + scenario_cluster_id + disposition + explicit native metric values`.
+
+The comparison pairs **the exact same episode IDs** and rejects differences in scenario family, cluster identity or disposition. It does not silently intersect two different denominators or discard a null metric. Repeated rollouts/seeds from one scenario are averaged inside the scenario cluster before resampling; scenario clusters are then sampled with replacement inside each scenario-family stratum. This avoids treating adjacent frames or repeated rollouts of the same scene as independent evidence.
+
+The bootstrap seed is derived from the first 64 bits of the frozen seed-manifest SHA-256, and the output includes paired-episode count, scenario-cluster count, family count, exact seed, replicate count, candidate-minus-baseline point estimate, 95% interval and whether the interval lies wholly in the candidate-favorable direction. The interval is an unadjusted percentile interval; it is not a multiplicity-adjusted certification of superiority. Pre-register one primary metric and report all secondary/family metrics separately.
+
+To claim non-inferiority on a higher-is-better metric with margin (m), require the lower confidence bound on candidate-minus-baseline to be at least (-m). For a lower-is-better metric, require the upper bound to be no greater than (m). The existing point-estimate margin helper is only a screening calculation, not the final inferential test.
+
+The evaluator reports native metric differences, uncertainty and resource ratios; it does not combine driving score, energy, latency, memory or safety into a fabricated single score. The Pareto frontier is an efficiency/capability analysis, not a safety certificate.
+
+The current suite contains 21 Rust unit tests covering denominator accounting, episode pairing, cluster mismatch rejection, deterministic bootstrap, missing metrics, matched-budget classification, privilege mismatch, benchmark mismatch, Pareto trade-offs, incomplete measurements, protocol separation, margin direction and schema/template parsing.
 
 ## Claim ceiling
 
