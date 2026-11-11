@@ -1,6 +1,6 @@
 # PHRI-BASIS-FREE-COMPLIANCE-001 — matrix-coordinate passivity reference
 
-Status: small 3×3 synthetic constraint evaluator. No optimizer, robot controller, continuous-time theorem proof, sampled-data proof, physical measurement or human-contact qualification is claimed.
+Status: 3×3 synthetic constraint evaluator plus fixed-size continuous-time rate-optimizer reference. The optimizer uses Cholesky whitening, a pointwise symmetric Jacobi PSD-cone projection and a scalar dual bisection. It is not a robot controller. No continuous-time theorem proof, sampled-data proof, physical measurement or human-contact qualification is claimed.
 
 ## Candidate formulation
 
@@ -19,7 +19,7 @@ Candidate parameter barriers are:
     epsilon_dot >= -kappa_epsilon * (epsilon - epsilon_min)
     K_dot + kappa_K * K >= 0 in the Loewner/PSD order
 
-V0 implements an evaluator for a proposed rate pair, not the optimization. It validates the SPD task inertia and stiffness, PSD damping, scalar inertia-rate barrier, PSD stiffness-rate barrier and passivity residual.
+V0 first implemented an evaluator for a proposed rate pair. The research branch now also implements a fixed-size optimizer for the restricted scalar-inertia/full-symmetric-stiffness problem. It minimizes a strictly convex weighted objective in a Cholesky-whitened, congruence-invariant stiffness-rate metric, subject to one affine passivity half-space and the scalar/Loewner lower-rate barriers. A pointwise Jacobi eigensolver projects onto the shifted PSD cone; no eigenvector identity is tracked or differentiated between samples. The candidate is reconstructed in original coordinates and passed through the independent evaluator before a receipt is returned.
 
 ## Why basis-free
 
@@ -33,7 +33,7 @@ Symmetric 3×3 matrices use six stored coordinates. PSD is checked by all princi
 
 ## Regression coverage
 
-Nine authored deterministic tests cover:
+Seventeen authored deterministic tests cover:
 - PSD/SPD known answers;
 - repeated eigenvalues without eigenvector tracking;
 - off-diagonal stiffness-rate quadratic terms;
@@ -44,13 +44,15 @@ These tests are authored, not yet compiled or executed.
 
 ## Required next steps
 
-1. Derive the basis-free task-space dynamics and storage inequality independently from the chosen robot model.
-2. Implement the weighted matrix-rate QP/SDP with Loewner and application-specific rate bounds.
-3. Compare it against the Dinc generalized-eigenbasis QP on repeated/near-degenerate eigenvalue sequences and rotating eigenspaces.
-4. Quantify continuous-time analytical and discrete-time sampled passivity separately.
-5. Measure conditioning, feasibility, solver p99 latency and numerical residual under matched compute and plant conditions.
-6. Analyze null-space passivity separately; task-space passivity does not imply null-space passivity.
-7. Only then proceed from synthetic to phantom, bench, HIL and appropriately approved human-subject work.
+1. Independently review the exact task-space dynamics/storage derivation and Cholesky-whitened metric.
+2. Compile and run the Rust 1.96 format/test/strict-Clippy workflow on the exact branch head; tests and workflow are authored, not yet passed.
+3. Add KKT/primal/dual residual checks, validated numerical margins and adversarial conditioning/finite-precision fixtures.
+4. Implement the sampled parameter-rate barrier using the exact step period; discrete robot passivity remains a separate programme (#4752).
+5. Compare it against the Dinc generalized-eigenbasis QP and Mühlbauer passive matrix shared-control method under matched common-subspace and native-expressivity regimes.
+6. Quantify continuous-time analytical and discrete-time sampled passivity separately.
+7. Measure conditioning, feasibility, solver p99 latency and numerical residual under matched compute and plant conditions.
+8. Analyze null-space passivity separately; task-space passivity does not imply null-space passivity.
+9. Only then proceed from synthetic to phantom, bench, HIL and appropriately approved human-subject work.
 
 ## References
 
