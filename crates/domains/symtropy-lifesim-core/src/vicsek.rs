@@ -144,6 +144,7 @@ pub enum VicsekError {
         box_size: f64,
     },
     NonFiniteHeading { particle: usize },
+    NonFiniteCommonFieldImpulse(f64),
     ParticleIndexOutOfBounds { particle: usize, particle_count: usize },
     TickOverflow,
 }
@@ -170,6 +171,9 @@ impl fmt::Display for VicsekError {
             ),
             Self::NonFiniteHeading { particle } => {
                 write!(f, "particle {particle} has a non-finite heading")
+            }
+            Self::NonFiniteCommonFieldImpulse(value) => {
+                write!(f, "common-field heading impulse must be finite, got {value}")
             }
             Self::ParticleIndexOutOfBounds {
                 particle,
@@ -395,7 +399,7 @@ impl VicsekModel {
         heading_impulse_rad: f64,
     ) -> Result<CommonFieldIntervention, VicsekError> {
         if !heading_impulse_rad.is_finite() {
-            return Err(VicsekError::NonFiniteHeading { particle: usize::MAX });
+            return Err(VicsekError::NonFiniteCommonFieldImpulse(heading_impulse_rad));
         }
         let heading_impulse_rad = wrap_signed_angle(heading_impulse_rad);
         for particle in &mut self.particles {
@@ -1186,7 +1190,7 @@ mod tests {
         let mut model = VicsekModel::random_uniform(3, VicsekConfig::default(), 47).unwrap();
         assert!(matches!(
             model.apply_common_heading_impulse(f64::INFINITY),
-            Err(VicsekError::NonFiniteHeading { particle: usize::MAX })
+            Err(VicsekError::NonFiniteCommonFieldImpulse(value)) if value.is_infinite()
         ));
     }
 
