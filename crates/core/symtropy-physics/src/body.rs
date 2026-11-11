@@ -299,10 +299,7 @@ mod compound_com_tests {
             .get(child_index)
             .expect("requested compound child exists");
         let world_from_child = body.transform.compose(child_transform);
-        let child_direction = world_from_child
-            .rotation
-            .reverse()
-            .rotate_vector(direction);
+        let child_direction = world_from_child.rotation.reverse().rotate_vector(direction);
         let local_support = shape.support(&child_direction);
         world_from_child.transform_point(&Point(local_support)).0
     }
@@ -447,9 +444,10 @@ mod compound_com_tests {
         let fixed_world_point = SVector::from([-1.0, 0.5, 2.0]);
         let old_origin = body.transform.translation.0;
         let old_force = body.force_accumulator;
-        let torque_about_fixed_before = body.torque_accumulator.add(
-            &Bivector::from_wedge(&(old_origin - fixed_world_point), &old_force),
-        );
+        let torque_about_fixed_before = body.torque_accumulator.add(&Bivector::from_wedge(
+            &(old_origin - fixed_world_point),
+            &old_force,
+        ));
 
         body.merge_toolhead(
             Transform::from_translation(Point::new([1.2, -0.7, 0.4])),
@@ -458,14 +456,14 @@ mod compound_com_tests {
         );
 
         let new_origin = body.transform.translation.0;
-        let torque_about_fixed_after = body.torque_accumulator.add(
-            &Bivector::from_wedge(&(new_origin - fixed_world_point), &body.force_accumulator),
-        );
+        let torque_about_fixed_after = body.torque_accumulator.add(&Bivector::from_wedge(
+            &(new_origin - fixed_world_point),
+            &body.force_accumulator,
+        ));
         for i in 0..3 {
             for j in (i + 1)..3 {
                 assert!(
-                    (torque_about_fixed_after.get(i, j)
-                        - torque_about_fixed_before.get(i, j))
+                    (torque_about_fixed_after.get(i, j) - torque_about_fixed_before.get(i, j))
                         .abs()
                         < 1.0e-12,
                     "wrench moment about fixed world point changed in plane ({i},{j})"
