@@ -14,7 +14,9 @@
         "survey_revision": "access-survey-v1",
         "coordinate_frame_id": "synthetic-frame-1",
         "requirement_revision": "requirement-revision-1",
-        "decision_profile_id": "synthetic-building-task-1"
+        "decision_profile_id": "synthetic-building-task-1",
+        "expected_sensor_profile_id": "tls-synthetic-profile-1",
+        "expected_sensor_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "decision_case": {
         "id": "SPR-V-001",
@@ -301,7 +303,9 @@
         "survey_revision": "load-profile-v1",
         "coordinate_frame_id": "synthetic-frame-2",
         "requirement_revision": "requirement-revision-2",
-        "decision_profile_id": "synthetic-building-task-2"
+        "decision_profile_id": "synthetic-building-task-2",
+        "expected_sensor_profile_id": "tls-synthetic-profile-2",
+        "expected_sensor_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "decision_case": {
         "id": "SPR-V-002",
@@ -587,7 +591,9 @@
         "survey_revision": "utility-survey-v1",
         "coordinate_frame_id": "synthetic-frame-3",
         "requirement_revision": "requirement-revision-3",
-        "decision_profile_id": "synthetic-building-task-3"
+        "decision_profile_id": "synthetic-building-task-3",
+        "expected_sensor_profile_id": "tls-synthetic-profile-3",
+        "expected_sensor_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "decision_case": {
         "id": "SPR-V-003",
@@ -730,7 +736,9 @@
         "survey_revision": "repair-access-v1",
         "coordinate_frame_id": "synthetic-frame-4",
         "requirement_revision": "requirement-revision-4",
-        "decision_profile_id": "synthetic-building-task-4"
+        "decision_profile_id": "synthetic-building-task-4",
+        "expected_sensor_profile_id": "tls-synthetic-profile-4",
+        "expected_sensor_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "decision_case": {
         "id": "SPR-V-004",
@@ -862,7 +870,9 @@
         "survey_revision": "wall-fire-review-v1",
         "coordinate_frame_id": "synthetic-frame-5",
         "requirement_revision": "requirement-revision-5",
-        "decision_profile_id": "synthetic-building-task-5"
+        "decision_profile_id": "synthetic-building-task-5",
+        "expected_sensor_profile_id": "tls-synthetic-profile-5",
+        "expected_sensor_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "decision_case": {
         "id": "SPR-V-005",
@@ -1143,7 +1153,9 @@
         "survey_revision": "weather-profile-v2",
         "coordinate_frame_id": "synthetic-frame-6",
         "requirement_revision": "requirement-revision-6",
-        "decision_profile_id": "synthetic-building-task-6"
+        "decision_profile_id": "synthetic-building-task-6",
+        "expected_sensor_profile_id": "tls-synthetic-profile-6",
+        "expected_sensor_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "decision_case": {
         "id": "SPR-V-006",
@@ -1274,7 +1286,9 @@
         "survey_revision": "thermal-profile-v1",
         "coordinate_frame_id": "synthetic-frame-7",
         "requirement_revision": "requirement-revision-7",
-        "decision_profile_id": "synthetic-building-task-7"
+        "decision_profile_id": "synthetic-building-task-7",
+        "expected_sensor_profile_id": "tls-synthetic-profile-7",
+        "expected_sensor_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "decision_case": {
         "id": "SPR-V-007",
@@ -1465,7 +1479,9 @@
         "survey_revision": "ceiling-inspection-v1",
         "coordinate_frame_id": "synthetic-frame-8",
         "requirement_revision": "requirement-revision-8",
-        "decision_profile_id": "synthetic-building-task-8"
+        "decision_profile_id": "synthetic-building-task-8",
+        "expected_sensor_profile_id": "tls-synthetic-profile-8",
+        "expected_sensor_profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       },
       "decision_case": {
         "id": "SPR-V-008",
