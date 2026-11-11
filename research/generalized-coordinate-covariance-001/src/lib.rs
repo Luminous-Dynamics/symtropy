@@ -495,46 +495,6 @@ pub fn common_acceleration_force(masses: DumbbellMassesV1) -> Vector6 {
     ]
 }
 
-fn constraint_transpose_times(
-    map: &ConstraintMap,
-    vector: &Vector3,
-) -> Vector6 {
-    let mut result = [0.0; 6];
-    for column in 0..6 {
-        for row in 0..3 {
-            result[column] += map[row][column] * vector[row];
-        }
-    }
-    result
-}
-
-fn multiply_constraint_and_matrix(
-    map: &ConstraintMap,
-    matrix: &Matrix6,
-) -> [[f64; 6]; 3] {
-    let mut result = [[0.0; 6]; 3];
-    for row in 0..3 {
-        for column in 0..6 {
-            for inner in 0..6 {
-                result[row][column] += map[row][inner] * matrix[inner][column];
-            }
-        }
-    }
-    result
-}
-
-fn multiply3(left: &Matrix3, right: &Matrix3) -> Matrix3 {
-    let mut result = [[0.0; 3]; 3];
-    for row in 0..3 {
-        for column in 0..3 {
-            for inner in 0..3 {
-                result[row][column] += left[row][inner] * right[inner][column];
-            }
-        }
-    }
-    result
-}
-
 fn multiply3_vector(matrix: &Matrix3, vector: &Vector3) -> Vector3 {
     let mut result = [0.0; 3];
     for row in 0..3 {
@@ -623,16 +583,6 @@ fn evaluate_multiplier(
         free_midpoint_velocity,
         &scale6(&inverse_mass_times_constraint, h * lambda / 2.0),
     );
-    let mapped_midpoint_velocity = [
-        0.0 + midpoint_velocity[0],
-        midpoint_velocity[1],
-        midpoint_velocity[2],
-        midpoint_velocity[3],
-        midpoint_velocity[4],
-        midpoint_velocity[5],
-    ];
-    let _ = mapped_midpoint_velocity;
-
     // The constraint map is encoded through the relative-position update:
     // g(lambda) = r_bar dot A u. The caller reconstructs A*u separately below.
     // This helper only forms the derivative workspace for r_bar(lambda).
@@ -640,25 +590,6 @@ fn evaluate_multiplier(
     let midpoint_relative_prime = scale3(
         &solve3(&system, &delassus_times_relative, profile.relative_pivot_tolerance)?,
         coefficient,
-    );
-
-    let mut inverse_mass_times_prime = [0.0; 6];
-    for row in 0..6 {
-        for axis in 0..3 {
-            inverse_mass_times_prime[row] +=
-                inverse_mass_constraint_transpose[row][axis]
-                    * midpoint_relative_prime[axis];
-        }
-    }
-    let midpoint_velocity_prime = add6(
-        &scale6(
-            &inverse_mass_times_constraint,
-            h / 2.0,
-        ),
-        &scale6(
-            &inverse_mass_times_prime,
-            h * lambda / 2.0,
-        ),
     );
 
     // The caller supplies the relative velocity map through the fact that
@@ -1066,14 +997,6 @@ pub fn apply_rotation_to_force_covector(
     force: &Vector6,
 ) -> Vector6 {
     transpose6_times_vector(action_inverse, force)
-}
-
-fn identity6_times(value: f64) -> Matrix6 {
-    let mut result = [[0.0; 6]; 6];
-    for index in 0..6 {
-        result[index][index] = value;
-    }
-    result
 }
 
 #[cfg(test)]
