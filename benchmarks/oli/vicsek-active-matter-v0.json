@@ -114,7 +114,9 @@
       "expected": {
         "polar_order": "unchanged from initial value",
         "mean_neighbors_excluding_self": 0,
-        "cluster_count": 5
+        "cluster_count": 5,
+        "mean_local_polar_order": null,
+        "local_order_coverage_fraction": 0
       },
       "update_rule": "CurrentPositionAlignment"
     },
@@ -179,6 +181,57 @@
           "expected_polar_order": 1
         }
       }
+    },
+    {
+      "id": "OPPOSED_LOCAL_FLOCKS_GLOBAL_CANCELLATION",
+      "purpose": "Demonstrate that global polar order can be near zero even when distinct local groups are perfectly aligned",
+      "particle_count": 6,
+      "box_size": 20,
+      "interaction_radius": 1,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "seed": 13,
+      "particles": [
+        {
+          "x": 2,
+          "y": 2,
+          "heading_rad": 0
+        },
+        {
+          "x": 2.5,
+          "y": 2,
+          "heading_rad": 0
+        },
+        {
+          "x": 2,
+          "y": 2.5,
+          "heading_rad": 0
+        },
+        {
+          "x": 12,
+          "y": 12,
+          "heading_rad": 3.141592653589793
+        },
+        {
+          "x": 12.5,
+          "y": 12,
+          "heading_rad": 3.141592653589793
+        },
+        {
+          "x": 12,
+          "y": 12.5,
+          "heading_rad": 3.141592653589793
+        }
+      ],
+      "execution_steps": 0,
+      "expected": {
+        "global_polar_order": "<1e-12",
+        "local_order_coverage_fraction": 1,
+        "mean_local_polar_order": 1,
+        "cluster_count": 2,
+        "largest_cluster_fraction": 0.5
+      }
     }
   ],
   "observables": {
@@ -187,8 +240,8 @@
     "neighbor_count_variance": "Population variance of local neighbour counts",
     "cluster_count": "Connected components in the metric-neighbour graph",
     "largest_cluster_fraction": "Fraction of all particles in the largest connected component",
-    "mean_local_polar_order": "Mean local heading coherence over each particle's metric-neighbourhood, including itself",
-    "local_polar_order_variance": "Population variance of per-particle local polar-order values",
+    "mean_local_polar_order": "Mean polar order across only particles with at least one other neighbour; null if no particle has another neighbour",
+    "local_polar_order_variance": "Population variance of those supported local-order values; null if no supported local neighbourhood exists",
     "note": "Global polar order, local polar order and interaction/cluster statistics must be reported together. A globally disordered system may contain highly ordered local clusters.",
     "mean_cluster_size": "Mean number of particles per connected component of the current metric-neighbour graph",
     "cluster_size_variance": "Population variance of connected-component sizes",
@@ -196,7 +249,8 @@
     "cluster_polar_order_variance": "Population variance of per-component polar order",
     "mean_clustering_coefficient_status": "NOT_IMPLEMENTED; required for parity with 2026 topology/geometry paper",
     "mean_shortest_path_length_status": "NOT_IMPLEMENTED; required for parity with 2026 topology/geometry paper",
-    "cluster_area_perimeter_scaling_status": "NOT_IMPLEMENTED; research extension"
+    "cluster_area_perimeter_scaling_status": "NOT_IMPLEMENTED; research extension",
+    "local_order_coverage_fraction": "Fraction of particles with at least one other particle within the interaction radius"
   },
   "benchmark_tasks": [
     "Collective order versus independent-particle baseline",
@@ -207,13 +261,19 @@
     "Adversarial morphology-vs-mechanism test: high polar order must not be promoted to cognition or life",
     "Neighbour-time update-rule comparison: current-position versus next-position neighbour selection under identical seeds and parameter sets",
     "Locally ordered but globally cancelling clusters: opposite-heading clusters must show low global polar order but high local and within-cluster order",
-    "Cluster topology parity: degree, clustering coefficient and path-length scaling as a future qualification against the 2026 cluster topology paper"
+    "Cluster topology parity: degree, clustering coefficient and path-length scaling as a future qualification against the 2026 cluster topology paper",
+    "Local-versus-global order: detect multiple locally aligned groups whose orientations cancel globally",
+    "Local-order support: do not report perfect local order for isolated particles whose neighbourhood contains only themselves",
+    "Finite-size and density-scaling analysis across independent seeds",
+    "Causal coupling ablation: reduce or remove neighbour alignment while holding initial states and movement noise fixed"
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
     "Keep all frames from one seed and parameter setting in the same split.",
     "Report finite-size dependence and ensemble confidence intervals.",
-    "A test at unseen noise amplitude is not a test at unseen interaction rules; reserve whole rule variants for separate open-world evaluation."
+    "A test at unseen noise amplitude is not a test at unseen interaction rules; reserve whole rule variants for separate open-world evaluation.",
+    "The local-order statistic is undefined (null) when no particle has another neighbour; do not replace null with zero or one.",
+    "For all finite-size and parameter-sweep claims, independent seeds/trajectories—not frames—are the inferential units."
   ],
   "reproducibility": {
     "manifest_is_input_contract": true,
