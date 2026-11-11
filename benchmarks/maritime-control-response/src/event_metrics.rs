@@ -349,35 +349,32 @@ pub fn evaluate_event_metrics(
             if !row.detection {
                 continue;
             }
-            match current.as_mut() {
-                Some(run)
-                    if row.time_seconds
-                        - run.samples.last().expect("run has a sample").time_seconds
-                        <= config.alarm_merge_gap_seconds =>
+            let can_merge = current.as_ref().is_some_and(|run| {
+                row.time_seconds
+                    - run.samples.last().expect("run has a sample").time_seconds
+                    <= config.alarm_merge_gap_seconds
+            });
+            if can_merge {
+                current
+                    .as_mut()
+                    .expect("merge predicate requires an open run")
+                    .samples
+                    .push(row.clone());
+                continue;
+            }
+            if let Some(completed) = current.take() {
+                if let Some(alarm) =
+                    completed.to_alarm(config.minimum_positive_samples)
                 {
-                    run.samples.push(row.clone());
-                }
-                Some(_) => {
-                    let completed = current.take().expect("matched Some branch");
-                    if let Some(alarm) =
-                        completed.to_alarm(config.minimum_positive_samples)
-                    {
-                        all_alarms.push(alarm);
-                    } else {
-                        transient_burst_count += 1;
-                    }
-                    current = Some(PositiveRun {
-                        recording_id: recording_id.clone(),
-                        samples: vec![row.clone()],
-                    });
-                }
-                None => {
-                    current = Some(PositiveRun {
-                        recording_id: recording_id.clone(),
-                        samples: vec![row.clone()],
-                    });
+                    all_alarms.push(alarm);
+                } else {
+                    transient_burst_count += 1;
                 }
             }
+            current = Some(PositiveRun {
+                recording_id: recording_id.clone(),
+                samples: vec![row.clone()],
+            });
         }
         if let Some(completed) = current {
             if let Some(alarm) = completed.to_alarm(config.minimum_positive_samples) {
@@ -674,8 +671,15 @@ mod tests {
     #[test]
     fn late_alarm_during_fault_is_not_misreported_as_a_normal_period_false_alarm() {
         let observations = stream(&[220, 221, 222], 1);
-        let summary =
-            evaluate_event_metrics(&[window()], &[event()], &observations, &config()).unwrap();
+        let mut short_deadline = config();
+        short_deadline.maximum_detection_latency_seconds = 0.5;
+        let summary = evaluate_event_metrics(
+            &[window()],
+            &[event()],
+            &observations,
+            &short_deadline,
+        )
+        .unwrap();
         assert_eq!(summary.detected_event_count, 0);
         assert_eq!(summary.late_alarm_count_during_missed_events, 1);
         assert_eq!(summary.false_alarm_count, 0);
