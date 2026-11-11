@@ -90,6 +90,7 @@ pub struct TickTrace {
     pub inference_duration_us: u64,
     pub control_deadline_us: u64,
     pub detected_fault_ids: Vec<String>,
+    pub fallback_reason_fault_ids: Vec<String>,
     pub mode: OperatingMode,
     pub oracle_outcome: OracleOutcome,
 }
@@ -244,6 +245,24 @@ impl RecoveryEpisode {
                     tick.tick
                 ));
             }
+            if duplicate(&tick.fallback_reason_fault_ids) {
+                errors.push(format!(
+                    "tick {} contains duplicate fallback-reason fault IDs",
+                    tick.tick
+                ));
+            }
+            if tick.mode == OperatingMode::Fallback && tick.fallback_reason_fault_ids.is_empty() {
+                errors.push(format!(
+                    "fallback mode at tick {} must declare at least one fault reason",
+                    tick.tick
+                ));
+            }
+            if tick.mode != OperatingMode::Fallback && !tick.fallback_reason_fault_ids.is_empty() {
+                errors.push(format!(
+                    "non-fallback mode at tick {} cannot declare fallback reasons",
+                    tick.tick
+                ));
+            }
         }
 
         let mut ids = BTreeSet::new();
@@ -302,6 +321,25 @@ impl RecoveryEpisode {
                         if tick.tick < event.onset_tick || tick.tick > last_detection_tick {
                             errors.push(format!(
                                 "fault {} is detected outside its onset/detection window at tick {}",
+                                fault_id, tick.tick
+                            ));
+                        }
+                    }
+                }
+            }
+            for fault_id in &tick.fallback_reason_fault_ids {
+                match self.fault_events.iter().find(|event| event.fault_id == *fault_id) {
+                    None => errors.push(format!(
+                        "tick {} attributes fallback to unknown fault ID {:?}",
+                        tick.tick, fault_id
+                    )),
+                    Some(event) => {
+                        let last_fallback_tick = event
+                            .end_tick_exclusive
+                            .saturating_add(self.contract.max_fallback_delay_ticks);
+                        if tick.tick < event.onset_tick || tick.tick > last_fallback_tick {
+                            errors.push(format!(
+                                "fault {} is attributed as a fallback reason outside its onset/fallback window at tick {}",
                                 fault_id, tick.tick
                             ));
                         }
@@ -405,7 +443,11 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
     let fallback_tick = episode
         .trace
         .iter()
-        .find(|tick| tick.tick >= event.onset_tick && tick.mode == OperatingMode::Fallback)
+        .find(|tick| {
+            tick.tick >= event.onset_tick
+                && tick.mode == OperatingMode::Fallback
+                && tick.fallback_reason_fault_ids.iter().any(|id| id == &event.fault_id)
+        })
         .map(|tick| tick.tick);
     let fallback_delay_ticks = fallback_tick.map(|tick| tick.saturating_sub(event.onset_tick));
 
@@ -458,6 +500,7 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
             tick.tick >= event.onset_tick
                 && tick.tick < recovery_tick.unwrap_or(u64::MAX)
                 && tick.mode == OperatingMode::Fallback
+                && tick.fallback_reason_fault_ids.iter().any(|id| id == &event.fault_id)
         })
         .count() as u64;
 
@@ -627,6 +670,11 @@ mod tests {
                 inference_duration_us: if tick == 3 { 15_000 } else { 4_000 },
                 control_deadline_us: 10_000,
                 detected_fault_ids,
+                fallback_reason_fault_ids: match tick {
+                    3 => vec!["camera-drop".into(), "inference-delay".into()],
+                    4..=5 => vec!["inference-delay".into()],
+                    _ => vec![],
+                },
                 mode,
                 oracle_outcome: if active {
                     OracleOutcome::DegradedWithinEnvelope
@@ -666,6 +714,19 @@ mod tests {
             fault_events: events,
             trace,
         }
+    }
+
+    #[test]
+    fn fallback_is_attributed_only_to_the_faults_that_caused_it() {
+        let mut episode = valid_episode();
+        episode.trace[2].fallback_reason_fault_ids = vec!["inference-delay".into()];
+        episode.trace[3].fallback_reason_fault_ids = vec!["inference-delay".into()];
+        episode.trace[4].fallback_reason_fault_ids = vec!["inference-delay".into()];
+        let report = episode.evaluate().unwrap();
+        let camera = report.results.iter().find(|item| item.fault_id == "camera-drop").unwrap();
+        let compute = report.results.iter().find(|item| item.fault_id == "inference-delay").unwrap();
+        assert!(!camera.fallback_observed);
+        assert!(compute.fallback_observed);
     }
 
     #[test]
