@@ -67,7 +67,7 @@ impl std::error::Error for PassivityError {}
 /// Snapshot of the cumulative interaction-port energy balance.
 ///
 /// conservative_storage_lower_bound_j is:
-/// initial_storage_j + cumulative_port_work_j - energy_uncertainty_j.
+/// initial_energy_budget_j + cumulative_port_work_j - energy_uncertainty_j.
 /// A negative lower bound is evidence of a passivity deficit under the stated
 /// port/sign/model assumptions; it is not a complete stability or safety verdict.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -191,6 +191,7 @@ impl PassivityObserver {
             &sample.twist_robot,
         )?;
 
+        let has_previous_interval = self.previous_sample.is_some();
         let mut interval_minimum_work_j = 0.0_f64;
         let next_work = match (self.previous_sample, self.previous_power_w) {
             (Some(previous), Some(previous_power)) => {
@@ -234,19 +235,21 @@ impl PassivityObserver {
             + self.cumulative_port_work_j
             + interval_minimum_work_j
             - self.energy_uncertainty_j;
-        if !conservative_storage.is_finite() {
+        if !conservative_storage.is_finite() || !interval_minimum_storage.is_finite() {
             return Err(PassivityError::ArithmeticOverflow);
         }
         let endpoint_deficit = (-conservative_storage).max(0.0);
         let interval_deficit = (-interval_minimum_storage).max(0.0);
         let maximum_interval_deficit = endpoint_deficit.max(interval_deficit);
         let next_maximum_deficit = self.maximum_passivity_deficit_j.max(maximum_interval_deficit);
-        let next_violation_count = if maximum_interval_deficit > self.violation_tolerance_j {
+        let next_violation_count = if has_previous_interval
+            && maximum_interval_deficit > self.violation_tolerance_j
+        {
             self.violation_interval_count
                 .checked_add(1)
                 .ok_or(PassivityError::ArithmeticOverflow)?
         } else {
-            self.violation_sample_count
+            self.violation_interval_count
         };
         let next_sample_count = self
             .sample_count
@@ -383,13 +386,13 @@ mod tests {
     }
 
     fn observer(
-        initial_storage_j: f64,
+        initial_energy_budget_j: f64,
         uncertainty_j: f64,
         tolerance_j: f64,
     ) -> PassivityObserver {
         PassivityObserver::new(
             clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS,
-            initial_storage_j, uncertainty_j, tolerance_j,
+            initial_energy_budget_j, uncertainty_j, tolerance_j,
         )
             .unwrap()
     }
@@ -416,7 +419,7 @@ mod tests {
         assert!((result.conservative_storage_lower_bound_j + 0.5).abs() < 1.0e-12);
         assert!((result.passivity_deficit_j - 0.5).abs() < 1.0e-12);
         assert!((result.maximum_passivity_deficit_j - 0.5).abs() < 1.0e-12);
-        assert_eq!(result.violation_sample_count, 1);
+        assert_eq!(result.violation_interval_count, 1);
     }
 
     #[test]
@@ -560,6 +563,18 @@ mod tests {
         assert_eq!(
             subject.observe(wrong_profile),
             Err(PassivityError::MeasurementProfileMismatch)
+        );
+    }
+
+    #[test]
+    fn zero_profile_digest_and_zero_maximum_gap_are_rejected() {
+        assert_eq!(
+            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, [0; 32], MAX_GAP_NS, 1.0, 0.0, 0.0),
+            Err(PassivityError::InvalidMeasurementProfileDigest)
+        );
+        assert_eq!(
+            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, 0, 1.0, 0.0, 0.0),
+            Err(PassivityError::InvalidMaximumSampleGap)
         );
     }
 
