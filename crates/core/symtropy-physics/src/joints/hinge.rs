@@ -13,6 +13,147 @@ use nalgebra::SVector;
 
 use crate::body::{BodyHandle, RigidBody};
 use crate::constraint::Constraint;
+use symtropy_math::Bivector;
+
+/// Maximum bivector degrees of freedom supported by symtropy-math (D <= 9).
+const MAX_HINGE_ROTATIONAL_DOF: usize = 36;
+
+/// Build the total equal-and-opposite angular impulse for a hinge motor while
+/// enforcing zero relative velocity change in every forbidden hinge plane.
+///
+/// K = I_A^-1 + I_B^-1 maps a common generalized impulse to relative angular
+/// velocity. Solve K x = e_allowed and scale x so its allowed-plane component
+/// equals the commanded actuator impulse. The remaining components are ideal
+/// hinge reaction impulses that cancel off-diagonal inertia coupling.
+fn constrained_hinge_motor_impulse<const D: usize>(
+    body_a: &RigidBody<D>,
+    body_b: &RigidBody<D>,
+    plane_axis_a: usize,
+    plane_axis_b: usize,
+    commanded_impulse: f64,
+) -> Option<Bivector<D>> {
+    let dof = Bivector::<D>::num_components();
+    if dof == 0 || dof > MAX_HINGE_ROTATIONAL_DOF || !commanded_impulse.is_finite() {
+        return None;
+    }
+
+    let (allowed_a, allowed_b) = if plane_axis_a < plane_axis_b {
+        (plane_axis_a, plane_axis_b)
+    } else {
+        (plane_axis_b, plane_axis_a)
+    };
+    let mut planes = [(0usize, 0usize); MAX_HINGE_ROTATIONAL_DOF];
+    let mut allowed_index = None;
+    let mut plane_count = 0usize;
+    for i in 0..D {
+        for j in (i + 1)..D {
+            if plane_count >= MAX_HINGE_ROTATIONAL_DOF {
+                return None;
+            }
+            planes[plane_count] = (i, j);
+            if i == allowed_a && j == allowed_b {
+                allowed_index = Some(plane_count);
+            }
+            plane_count += 1;
+        }
+    }
+    if plane_count != dof {
+        return None;
+    }
+    let allowed_index = allowed_index?;
+
+    // Fixed stack matrix: no heap allocation in the real-time constraint path.
+    let mut effective_inverse = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF * MAX_HINGE_ROTATIONAL_DOF];
+    let mut matrix_scale = 0.0_f64;
+    for column in 0..dof {
+        let (i, j) = planes[column];
+        let mut unit_impulse = Bivector::<D>::zero();
+        unit_impulse.set(i, j, 1.0);
+        let response = body_a
+            .apply_inverse_angular_inertia(&unit_impulse)
+            .add(&body_b.apply_inverse_angular_inertia(&unit_impulse));
+        if !response.is_finite() {
+            return None;
+        }
+        for row in 0..dof {
+            let (row_i, row_j) = planes[row];
+            let value = response.get(row_i, row_j);
+            effective_inverse[row * MAX_HINGE_ROTATIONAL_DOF + column] = value;
+            matrix_scale = matrix_scale.max(value.abs());
+        }
+    }
+    if !matrix_scale.is_finite() || matrix_scale <= f64::MIN_POSITIVE {
+        return None;
+    }
+
+    // Cholesky factorization also checks symmetry and positive definiteness.
+    let mut lower = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF * MAX_HINGE_ROTATIONAL_DOF];
+    let symmetry_tolerance = 1.0e-9 * matrix_scale.max(1.0);
+    for row in 0..dof {
+        for column in 0..=row {
+            let a = effective_inverse[row * MAX_HINGE_ROTATIONAL_DOF + column];
+            let b = effective_inverse[column * MAX_HINGE_ROTATIONAL_DOF + row];
+            if (a - b).abs() > symmetry_tolerance {
+                return None;
+            }
+            let mut residual = 0.5 * (a + b);
+            for k in 0..column {
+                residual -= lower[row * MAX_HINGE_ROTATIONAL_DOF + k]
+                    * lower[column * MAX_HINGE_ROTATIONAL_DOF + k];
+            }
+            if row == column {
+                if !residual.is_finite() || residual <= 1.0e-14 * matrix_scale {
+                    return None;
+                }
+                lower[row * MAX_HINGE_ROTATIONAL_DOF + column] = residual.sqrt();
+            } else {
+                let diagonal = lower[column * MAX_HINGE_ROTATIONAL_DOF + column];
+                if !diagonal.is_finite() || diagonal <= f64::MIN_POSITIVE {
+                    return None;
+                }
+                lower[row * MAX_HINGE_ROTATIONAL_DOF + column] = residual / diagonal;
+            }
+        }
+    }
+
+    // Solve K x = e_allowed using the local Cholesky factor.
+    let mut forward = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF];
+    for row in 0..dof {
+        let mut rhs = if row == allowed_index { 1.0 } else { 0.0 };
+        for column in 0..row {
+            rhs -= lower[row * MAX_HINGE_ROTATIONAL_DOF + column] * forward[column];
+        }
+        forward[row] = rhs / lower[row * MAX_HINGE_ROTATIONAL_DOF + row];
+    }
+    let mut solution = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF];
+    for row in (0..dof).rev() {
+        let mut rhs = forward[row];
+        for column in (row + 1)..dof {
+            rhs -= lower[column * MAX_HINGE_ROTATIONAL_DOF + row] * solution[column];
+        }
+        solution[row] = rhs / lower[row * MAX_HINGE_ROTATIONAL_DOF + row];
+    }
+
+    let allowed_response = solution[allowed_index];
+    if !allowed_response.is_finite() || allowed_response <= f64::MIN_POSITIVE {
+        return None;
+    }
+    let scale = commanded_impulse / allowed_response;
+    if !scale.is_finite() {
+        return None;
+    }
+
+    let mut total_impulse = Bivector::<D>::zero();
+    for index in 0..dof {
+        let component = solution[index] * scale;
+        if !component.is_finite() {
+            return None;
+        }
+        let (i, j) = planes[index];
+        total_impulse.set(i, j, component);
+    }
+    Some(total_impulse)
+}
 
 /// Hinge joint: allows rotation around a single axis/plane only.
 ///
@@ -244,29 +385,38 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             // static endpoints and unequal endpoint inertias consistently
             // within that declared approximation.
             let impulse = torque * _dt;
-            let mut angular_impulse = symtropy_math::Bivector::<D>::zero();
-            angular_impulse.set(pa, pb, impulse);
+            let Some(total_angular_impulse) = constrained_hinge_motor_impulse(
+                body_a,
+                body_b,
+                pa,
+                pb,
+                impulse,
+            ) else {
+                // Invalid/singular inertia or two immovable endpoints: no
+                // actuator mutation and no work-ledger entry.
+                return;
+            };
 
-            // Capture endpoint velocities before applying the equal-and-
-            // opposite motor impulses so the energy ledger can attribute
-            // signed work to each dynamic body.
+            // The total impulse contains the allowed-plane motor impulse plus
+            // the forbidden-plane reaction needed to cancel inertia coupling.
+            // Its allowed component remains exactly the commanded actuator impulse.
             let omega_a_before = body_a.angular_velocity.get(pa, pb);
             let omega_b_before = body_b.angular_velocity.get(pa, pb);
             let delta_omega_a = body_a
-                .apply_inverse_angular_inertia(&angular_impulse.scale(-1.0))
+                .apply_inverse_angular_inertia(&total_angular_impulse.scale(-1.0))
                 .get(pa, pb);
             let delta_omega_b = body_b
-                .apply_inverse_angular_inertia(&angular_impulse)
+                .apply_inverse_angular_inertia(&total_angular_impulse)
                 .get(pa, pb);
 
             if body_a.is_dynamic() {
                 crate::integrator::apply_angular_impulse(
                     body_a,
-                    &angular_impulse.scale(-1.0),
+                    &total_angular_impulse.scale(-1.0),
                 );
             }
             if body_b.is_dynamic() {
-                crate::integrator::apply_angular_impulse(body_b, &angular_impulse);
+                crate::integrator::apply_angular_impulse(body_b, &total_angular_impulse);
             }
 
             // Record signed mechanical work per dynamic endpoint using
@@ -328,13 +478,18 @@ mod tests {
 
         joint.solve_velocity(&mut a, &mut b, 0.1, None);
 
-        // The commanded motor impulse occupies e01. Products of inertia in
-        // the validated operator couple the response into e02; a scalar-mean
-        // update would leave that component exactly zero.
+        // The commanded motor impulse occupies e01. Products of inertia
+        // require forbidden-plane reaction impulses, but the constrained
+        // solve keeps the relative response in the single allowed degree.
         assert!(b.angular_velocity.get(0, 1) > 0.0);
         assert!(
-            b.angular_velocity.get(0, 2).abs() > 1.0e-4,
-            "hinge motor bypassed the off-diagonal inertia coupling"
+            b.angular_velocity.get(0, 2).abs() < 1.0e-12
+                && b.angular_velocity.get(1, 2).abs() < 1.0e-12,
+            "hinge motor leaked cross-plane motion despite its reaction impulse"
+        );
+        assert!(
+            (b.angular_velocity.get(0, 1) - 0.25).abs() < 1.0e-10,
+            "constrained response should use the allowed-plane effective inertia"
         );
         assert_eq!(
             b.rotational_inertia_model(),
