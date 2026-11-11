@@ -834,7 +834,7 @@ mod tests {
     #[test]
     fn records_constraint_violations_without_hiding_them_in_one_score() {
         let mut episode = valid_episode();
-        episode.trace[3].oracle_outcome = OracleOutcome::ConstraintViolation;
+        episode.trace[2].oracle_outcome = OracleOutcome::ConstraintViolation;
         let report = episode.evaluate().unwrap();
         assert!(report.total_constraint_violation_ticks >= 1);
         assert_eq!(report.results[0].constraint_violation_ticks, 1);
@@ -879,12 +879,12 @@ mod tests {
     #[test]
     fn stable_recovery_requires_full_fault_envelope_clearance() {
         let mut episode = valid_episode();
-        for tick in episode.trace.iter_mut().filter(|tick| tick.tick == 6 || tick.tick == 7) {
-            tick.mode = OperatingMode::Nominal;
-            tick.oracle_outcome = OracleOutcome::WithinEnvelope;
-        }
+        episode.fault_events[1].end_tick_exclusive = 7;
+        // Tick 6 looks nominal but the second scheduled fault is still active.
+        episode.trace[5].mode = OperatingMode::Nominal;
+        episode.trace[5].oracle_outcome = OracleOutcome::WithinEnvelope;
         let report = episode.evaluate().unwrap();
-        assert_eq!(report.results[0].recovery_tick, Some(7));
-        assert_eq!(report.results[1].recovery_tick, Some(7));
+        assert_eq!(report.results[0].recovery_tick, Some(8));
+        assert_eq!(report.results[1].recovery_tick, Some(8));
     }
 }
