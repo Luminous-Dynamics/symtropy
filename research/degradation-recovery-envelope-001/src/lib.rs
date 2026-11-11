@@ -48,10 +48,25 @@ pub enum ObservationCondition {
     ComputeOverrun,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum FaultCausality {
+    #[default]
+    Independent,
+    CommonCause,
+    Cascaded,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct FaultEvent {
     pub event_id: String,
+    #[serde(default)]
+    pub causality: FaultCausality,
+    #[serde(default)]
+    pub causal_group_id: Option<String>,
+    #[serde(default)]
+    pub parent_event_id: Option<String>,
     pub kind: FaultKind,
     pub start_tick: u64,
     pub end_tick: u64,
@@ -118,6 +133,9 @@ pub struct Campaign {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct EventMetrics {
     pub event_id: String,
+    pub causality: FaultCausality,
+    pub causal_group_id: Option<String>,
+    pub parent_event_id: Option<String>,
     pub kind: FaultKind,
     pub start_tick: u64,
     pub end_tick: u64,
@@ -207,6 +225,12 @@ enum Finding {
     CleanConditionMixedWithFault,
     FaultScheduleOutOfBounds,
     DuplicateFaultEvent,
+    InvalidFaultCausality,
+    CommonCauseGroupTooSmall,
+    MissingCausalParent,
+    CausalParentAfterChild,
+    CausalParentCycle,
+    EmptyCausalGroupId,
     EmptyFaultEventId,
     InvalidFaultSeverity,
     ZeroRecoveryQuorum,
@@ -257,6 +281,12 @@ impl Finding {
             Self::CleanConditionMixedWithFault => "clean_condition_mixed_with_fault",
             Self::FaultScheduleOutOfBounds => "fault_schedule_out_of_bounds",
             Self::DuplicateFaultEvent => "duplicate_fault_event",
+            Self::InvalidFaultCausality => "invalid_fault_causality",
+            Self::CommonCauseGroupTooSmall => "common_cause_group_too_small",
+            Self::MissingCausalParent => "missing_causal_parent",
+            Self::CausalParentAfterChild => "causal_parent_after_child",
+            Self::CausalParentCycle => "causal_parent_cycle",
+            Self::EmptyCausalGroupId => "empty_causal_group_id",
             Self::EmptyFaultEventId => "empty_fault_event_id",
             Self::InvalidFaultSeverity => "invalid_fault_severity",
             Self::ZeroRecoveryQuorum => "zero_recovery_quorum",
@@ -526,6 +556,9 @@ fn event_metrics(
 
     EventMetrics {
         event_id: event.event_id.clone(),
+        causality: event.causality,
+        causal_group_id: event.causal_group_id.clone(),
+        parent_event_id: event.parent_event_id.clone(),
         kind: event.kind,
         start_tick: event.start_tick,
         end_tick: event.end_tick,
@@ -613,6 +646,9 @@ pub fn standard_fault_schedule(
         };
         events.push(FaultEvent {
             event_id: format!("{slug}-{start_tick}"),
+            causality: FaultCausality::Independent,
+            causal_group_id: None,
+            parent_event_id: None,
             kind,
             start_tick,
             end_tick,
@@ -628,6 +664,72 @@ pub fn standard_fault_schedule(
         });
     }
     Ok(events)
+}
+
+fn validate_fault_causality(events: &[FaultEvent], findings: &mut BTreeSet<Finding>) {
+    let by_id = events
+        .iter()
+        .map(|event| (event.event_id.as_str(), event))
+        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut common_groups = std::collections::BTreeMap::<&str, usize>::new();
+
+    for event in events {
+        match event.causality {
+            FaultCausality::Independent => {
+                if event.causal_group_id.is_some() || event.parent_event_id.is_some() {
+                    findings.insert(Finding::InvalidFaultCausality);
+                }
+            }
+            FaultCausality::CommonCause => {
+                if event.parent_event_id.is_some() {
+                    findings.insert(Finding::InvalidFaultCausality);
+                }
+                match event.causal_group_id.as_deref() {
+                    Some(group_id) if !group_id.trim().is_empty() => {
+                        *common_groups.entry(group_id).or_default() += 1;
+                    }
+                    _ => findings.insert(Finding::EmptyCausalGroupId),
+                }
+            }
+            FaultCausality::Cascaded => {
+                if event.causal_group_id.is_some() {
+                    findings.insert(Finding::InvalidFaultCausality);
+                }
+                match event.parent_event_id.as_deref() {
+                    Some(parent_id) if !parent_id.trim().is_empty() => match by_id.get(parent_id) {
+                        None => {
+                            findings.insert(Finding::MissingCausalParent);
+                        }
+                        Some(parent) if parent.start_tick > event.start_tick => {
+                            findings.insert(Finding::CausalParentAfterChild);
+                        }
+                        Some(_) => {}
+                    },
+                    _ => findings.insert(Finding::MissingCausalParent),
+                }
+            }
+        }
+    }
+
+    for count in common_groups.values() {
+        if *count < 2 {
+            findings.insert(Finding::CommonCauseGroupTooSmall);
+        }
+    }
+
+    for event in events.iter().filter(|event| event.causality == FaultCausality::Cascaded) {
+        let mut seen = BTreeSet::new();
+        let mut cursor = Some(event.event_id.as_str());
+        while let Some(event_id) = cursor {
+            if !seen.insert(event_id) {
+                findings.insert(Finding::CausalParentCycle);
+                break;
+            }
+            cursor = by_id
+                .get(event_id)
+                .and_then(|current| current.parent_event_id.as_deref());
+        }
+    }
 }
 
 pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
@@ -776,6 +878,8 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
             }
         }
     }
+
+    validate_fault_causality(&campaign.events, &mut findings);
 
     let mut event_ids = BTreeSet::new();
     let faulted_tick_map = tick_map(&campaign.faulted_run);
@@ -1099,6 +1203,9 @@ mod tests {
             },
             events: vec![FaultEvent {
                 event_id: "camera-drop-1".to_string(),
+                causality: FaultCausality::Independent,
+                causal_group_id: None,
+                parent_event_id: None,
                 kind: FaultKind::CameraDrop,
                 start_tick: 3,
                 end_tick: 4,
@@ -1330,6 +1437,9 @@ mod tests {
         let mut input = campaign();
         input.events[0] = FaultEvent {
             event_id: "frame-delay-1".to_string(),
+            causality: FaultCausality::Independent,
+            causal_group_id: None,
+            parent_event_id: None,
             kind: FaultKind::FrameDelay,
             start_tick: 3,
             end_tick: 4,
@@ -1370,6 +1480,61 @@ mod tests {
         let report = audit_campaign(&input);
         assert!(has(&report, "duplicate_fault_event"));
         assert!(has(&report, "invalid_fault_severity"));
+    }
+
+    #[test]
+    fn accepts_declared_common_cause_group_with_multiple_fault_events() {
+        let mut input = campaign();
+        let mut second = input.events[0].clone();
+        input.events[0].causality = FaultCausality::CommonCause;
+        input.events[0].causal_group_id = Some("shared-power-rail-1".to_string());
+        input.events[0].parent_event_id = None;
+        second.event_id = "clock-drift-1".to_string();
+        second.kind = FaultKind::ClockDrift;
+        second.causality = FaultCausality::CommonCause;
+        second.causal_group_id = Some("shared-power-rail-1".to_string());
+        second.parent_event_id = None;
+        input.events.push(second);
+        let report = audit_campaign(&input);
+        assert!(!has(&report, "common_cause_group_too_small"));
+        assert!(!has(&report, "invalid_fault_causality"));
+    }
+
+    #[test]
+    fn rejects_singleton_common_cause_group_and_missing_cascade_parent() {
+        let mut input = campaign();
+        input.events[0].causality = FaultCausality::CommonCause;
+        input.events[0].causal_group_id = Some("singleton-cause".to_string());
+        let report = audit_campaign(&input);
+        assert!(has(&report, "common_cause_group_too_small"));
+
+        input.events[0].causality = FaultCausality::Cascaded;
+        input.events[0].causal_group_id = None;
+        input.events[0].parent_event_id = Some("missing-parent".to_string());
+        let report = audit_campaign(&input);
+        assert!(has(&report, "missing_causal_parent"));
+    }
+
+    #[test]
+    fn rejects_causal_parent_after_child_and_cycles() {
+        let mut input = campaign();
+        let mut second = input.events[0].clone();
+        input.events[0].event_id = "fault-parent".to_string();
+        input.events[0].start_tick = 4;
+        input.events[0].end_tick = 4;
+        input.events[0].parent_event_id = Some("fault-child".to_string());
+        input.events[0].causality = FaultCausality::Cascaded;
+        input.events[0].causal_group_id = None;
+        second.event_id = "fault-child".to_string();
+        second.start_tick = 3;
+        second.end_tick = 3;
+        second.parent_event_id = Some("fault-parent".to_string());
+        second.causality = FaultCausality::Cascaded;
+        second.causal_group_id = None;
+        input.events.push(second);
+        let report = audit_campaign(&input);
+        assert!(has(&report, "causal_parent_after_child"));
+        assert!(has(&report, "causal_parent_cycle"));
     }
 
     #[test]
