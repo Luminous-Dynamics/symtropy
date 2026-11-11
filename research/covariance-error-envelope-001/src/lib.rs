@@ -222,6 +222,10 @@ fn factor<const N: usize>(
         }
     }
 
+    if lu.iter().flatten().any(|value| !value.is_finite()) {
+        return Err(EnvelopeErrorV1::ArithmeticOverflow);
+    }
+
     Ok(LuFactorV1 { lu, permutation })
 }
 
@@ -505,6 +509,34 @@ mod tests {
                 ErrorEnvelopeProfileV1::default()
             ),
             Err(EnvelopeErrorV1::NonFiniteMatrix)
+        );
+    }
+
+    #[test]
+    fn finite_inputs_whose_matrix_norm_overflows_are_rejected() {
+        let matrix = [[f64::MAX, f64::MAX], [0.0, 1.0]];
+        assert_eq!(
+            assess_solution(
+                &matrix,
+                &[1.0, 1.0],
+                &[0.0, 0.0],
+                ErrorEnvelopeProfileV1::default()
+            ),
+            Err(EnvelopeErrorV1::ArithmeticOverflow)
+        );
+    }
+
+    #[test]
+    fn finite_inputs_whose_residual_overflows_are_rejected() {
+        let matrix = [[1.0e200, 0.0], [0.0, 1.0]];
+        assert_eq!(
+            assess_solution(
+                &matrix,
+                &[1.0, 1.0],
+                &[1.0e200, 0.0],
+                ErrorEnvelopeProfileV1::default()
+            ),
+            Err(EnvelopeErrorV1::ArithmeticOverflow)
         );
     }
 
