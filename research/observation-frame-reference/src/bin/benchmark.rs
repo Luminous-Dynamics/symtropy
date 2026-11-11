@@ -2,7 +2,8 @@ use std::time::Instant;
 
 use serde::Serialize;
 use symtropy_observation_frame_reference::{
-    compile_observation_frame, compute_observable_set_sha256, FrameIdentityV1, ModelTimeV1,
+    compile_observation_frame, compute_observable_set_sha256, validate_borrowed_observation_view,
+    BorrowedObservationViewV1, FrameIdentityV1, ModelTimeV1, ObservationBufferIdentityV1,
     ObservableV1, ObservationEntityV1, ObservationEventV1, ObservationFrameInputV1,
     ObservationSourceClass, ObservationValueV1, RuntimeSubjectRefV1,
 };
@@ -34,6 +35,12 @@ struct BenchmarkResult {
     input_bytes_per_entity_including_events: f64,
     compile_entities_per_second_at_p50: f64,
     event_records_per_second_at_p50: f64,
+    borrowed_guard_valid_p50_ns: u128,
+    borrowed_guard_valid_p95_ns: u128,
+    borrowed_guard_valid_p99_ns: u128,
+    borrowed_guard_rebuild_reject_p50_ns: u128,
+    borrowed_guard_rebuild_reject_p95_ns: u128,
+    borrowed_guard_rebuild_reject_p99_ns: u128,
 }
 
 fn digest(character: char) -> String {
@@ -124,12 +131,32 @@ fn run_profile(
 ) -> Result<BenchmarkResult, Box<dyn std::error::Error>> {
     let input = synthetic_frame(entity_count, event_count)?;
     let input_bytes = serde_json::to_vec(&input)?.len();
+    let initial_receipt = compile_observation_frame(input.clone())?;
+    let buffer_identity = ObservationBufferIdentityV1 {
+        world_instance_id: "benchmark-world-instance".to_string(),
+        world_generation_id: "benchmark-generation-0001".to_string(),
+        rebuild_epoch: 1,
+        frame_sha256: initial_receipt.frame_sha256,
+        observable_set_sha256: input.identity.observable_set_sha256.clone(),
+    };
+    let borrowed_view = BorrowedObservationViewV1 {
+        view_id: "benchmark-engineering-view".to_string(),
+        source: buffer_identity.clone(),
+    };
+    let mut rebuilt_buffer = buffer_identity.clone();
+    rebuilt_buffer.rebuild_epoch += 1;
     let mut hostile = input.clone();
     hostile.entities[0].observables[0].unit.push_str("-mismatch");
 
     const WARMUP_RUNS: usize = 2;
     for _ in 0..WARMUP_RUNS {
         let receipt = compile_observation_frame(input.clone())?;
+        validate_borrowed_observation_view(&borrowed_view, &buffer_identity)?;
+        if validate_borrowed_observation_view(&borrowed_view, &rebuilt_buffer)
+            != Err(symtropy_observation_frame_reference::BorrowedViewError::RebuildEpochChanged)
+        {
+            return Err("borrowed view unexpectedly survived a rebuild".into());
+        }
         if receipt.entity_count != entity_count || receipt.event_count != event_count {
             return Err("benchmark warm-up receipt count mismatch".into());
         }
@@ -140,6 +167,8 @@ fn run_profile(
 
     let mut timings = Vec::with_capacity(samples);
     let mut reject_timings = Vec::with_capacity(samples);
+    let mut valid_guard_timings = Vec::with_capacity(samples);
+    let mut rebuild_guard_timings = Vec::with_capacity(samples);
 
     for _ in 0..samples {
         let candidate = input.clone();
@@ -162,10 +191,29 @@ fn run_profile(
             }
         }
         reject_timings.push(reject_start.elapsed().as_nanos().max(1));
+
+        let guard_start = Instant::now();
+        let valid_guard = validate_borrowed_observation_view(&borrowed_view, &buffer_identity);
+        std::hint::black_box(&valid_guard);
+        valid_guard?;
+        valid_guard_timings.push(guard_start.elapsed().as_nanos().max(1));
+
+        let rebuild_start = Instant::now();
+        let rebuild_guard =
+            validate_borrowed_observation_view(&borrowed_view, &rebuilt_buffer);
+        if rebuild_guard
+            != Err(symtropy_observation_frame_reference::BorrowedViewError::RebuildEpochChanged)
+        {
+            return Err("rebuild guard failed to reject stale view".into());
+        }
+        std::hint::black_box(&rebuild_guard);
+        rebuild_guard_timings.push(rebuild_start.elapsed().as_nanos().max(1));
     }
 
     timings.sort_unstable();
     reject_timings.sort_unstable();
+    valid_guard_timings.sort_unstable();
+    rebuild_guard_timings.sort_unstable();
     let p50 = percentile(&timings, 50);
     let entities_per_second = entity_count as f64 * 1_000_000_000.0 / p50 as f64;
     let events_per_second = event_count as f64 * 1_000_000_000.0 / p50 as f64;
@@ -198,6 +246,12 @@ fn run_profile(
         input_bytes_per_entity_including_events: input_bytes as f64 / entity_count as f64,
         compile_entities_per_second_at_p50: entities_per_second,
         event_records_per_second_at_p50: events_per_second,
+        borrowed_guard_valid_p50_ns: percentile(&valid_guard_timings, 50),
+        borrowed_guard_valid_p95_ns: percentile(&valid_guard_timings, 95),
+        borrowed_guard_valid_p99_ns: percentile(&valid_guard_timings, 99),
+        borrowed_guard_rebuild_reject_p50_ns: percentile(&rebuild_guard_timings, 50),
+        borrowed_guard_rebuild_reject_p95_ns: percentile(&rebuild_guard_timings, 95),
+        borrowed_guard_rebuild_reject_p99_ns: percentile(&rebuild_guard_timings, 99),
     })
 }
 
