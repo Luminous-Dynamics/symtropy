@@ -66,12 +66,18 @@ Use matched hardware, policy and plant:
 
 Ablate one architecture factor at a time. Preserve identical independent hardware interlocks and emergency stop.
 
+## Causal trace adapter
+
+The fixture input now includes a frozen `causal_identity` block with mission, robot, boot epoch, clock, scenario manifest, source-observation, decision, proposal, assurance, command, application, physical-transition and terminal IDs plus a strictly increasing event-sequence chain. The separate `configuration_and_calibration` block carries actuator/controller/policy/model/action-domain digests, sensor/torque/power/thermal calibration digests, sampling-spec and energy-boundary manifest digests, application receipt, decision calibration receipt, and expected/observed executed-prefix digests.
+
+These identifiers are intended to map directly into Symthaea [ROB-CAUSAL-MISSION-REPLAY-001](https://github.com/Luminous-Dynamics/symthaea/tree/research/rob-causal-mission-replay-001). The physical metrology protocol emits observations, decisions, action chunks, assurance records, actuator applications, physical transitions and terminal receipts; it does not invent IDs or rewrite upstream status. The clock relation field selects whether AoI may be computed or must remain Unknown.
+
 ## Synthetic known answers
 
 - `fixtures/joint_metrology_v0_1.json`
 - `fixtures/joint_metrology_v0_1.schema.json`
 
-Eight cases cover complete closure, actuator queue dwell, response delay independent of AoI, unknown clock mapping, incomplete energy boundary, missing thermal node, hidden physical-state reset and decision-regret expiry before hard physical limits. JSON and schema are parsed and semantically preflighted when authored; this is not JSON Schema validator execution or a physical trial.
+Nine cases cover complete closure, actuator queue dwell, response delay independent of AoI, unknown clock mapping, incomplete energy boundary, missing thermal node, hidden physical-state reset, decision-regret expiry before hard physical limits, and an independently isolated executed-prefix mismatch. JSON and schema are parsed and semantically preflighted when authored; this is not JSON Schema validator execution or a physical trial.
 
 ## Metrics
 
