@@ -1,0 +1,57 @@
+name: Behavioral-set diagnosability benchmark
+on:
+  push:
+    branches: ["research/maritime-behavioral-set-diagnosis-v0-1"]
+    paths:
+      - "tools/symtropy-behavioral-set-diagnosability-bench/**"
+      - "benchmarks/maritime-behavioral-set/**"
+      - "docs/research/maritime-behavioral-set/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/behavioral-set-diagnosability.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "tools/symtropy-behavioral-set-diagnosability-bench/**"
+      - "benchmarks/maritime-behavioral-set/**"
+      - "docs/research/maritime-behavioral-set/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/behavioral-set-diagnosability.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: behavioral-set-diagnosability-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy
+      - run: cargo test --locked -p symtropy-behavioral-set-diagnosability-bench
+      - run: cargo clippy --locked -p symtropy-behavioral-set-diagnosability-bench --all-targets -- -D warnings
+      - name: Execute frozen corpus and bind receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_commit="$(git rev-parse HEAD)"
+          test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          corpus="benchmarks/maritime-behavioral-set/trajectory-corpus-v0.1.json"
+          digest="$(sha256sum "$corpus" | awk '{print $1}')"
+          cargo run --quiet --locked -p symtropy-behavioral-set-diagnosability-bench -- "$corpus" --source-commit "$source_commit" --corpus-sha256 "$digest" > behavioral-set-receipt.json
+          jq -e --arg source "$source_commit" --arg digest "$digest" '.result == "pass" and .source_commit == $source and .corpus_sha256 == $digest and .case_count == 7 and .pair_count == 7' behavioral-set-receipt.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: behavioral-set-diagnosability-receipt
+          path: behavioral-set-receipt.json
+          if-no-files-found: error
+          retention-days: 90

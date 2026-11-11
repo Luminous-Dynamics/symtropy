@@ -1,0 +1,823 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "BEHAVIORAL-SET-DIAGNOSABILITY-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "cases": [
+    {
+      "case_id": "temporal-correlation-beats-marginal-envelope",
+      "configuration_id": "engine-cfg-synthetic-r1",
+      "operating_profile_id": "steady-load-profile-01",
+      "timebase": {
+        "timebase_id": "ptp-run-01",
+        "qualification_state": "qualified",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "maximum_timestamp_uncertainty_ms": 2,
+      "hypotheses": [
+        {
+          "fault_id": "fault-A",
+          "trajectory_tubes": [
+            {
+              "tube_id": "a1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure-sensor"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                0.98
+              ],
+              "value_upper": [
+                0.02,
+                1.02
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "tube_id": "a2",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure-sensor"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0.98,
+                -0.02
+              ],
+              "value_upper": [
+                1.02,
+                0.02
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "fault_id": "fault-B",
+          "trajectory_tubes": [
+            {
+              "tube_id": "b1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure-sensor"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                -0.02
+              ],
+              "value_upper": [
+                0.02,
+                0.02
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "tube_id": "b2",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure-sensor"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0.98,
+                0.98
+              ],
+              "value_upper": [
+                1.02,
+                1.02
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        }
+      ],
+      "required_pairs": [
+        {
+          "pair_id": "joint-vs-marginal",
+          "fault_a": "fault-A",
+          "fault_b": "fault-B",
+          "minimum_independent_principles": 1,
+          "expected_status": "BEHAVIORALLY_SEPARABLE",
+          "expected_marginal_envelope_separated": false
+        }
+      ]
+    },
+    {
+      "case_id": "one-tube-pair-overlaps",
+      "configuration_id": "engine-cfg-synthetic-r1",
+      "operating_profile_id": "steady-load-profile-01",
+      "timebase": {
+        "timebase_id": "ptp-run-01",
+        "qualification_state": "qualified",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "maximum_timestamp_uncertainty_ms": 2,
+      "hypotheses": [
+        {
+          "fault_id": "fault-A",
+          "trajectory_tubes": [
+            {
+              "tube_id": "a1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure-sensor"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                0.98
+              ],
+              "value_upper": [
+                0.02,
+                1.02
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "fault_id": "fault-B",
+          "trajectory_tubes": [
+            {
+              "tube_id": "b1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure-sensor"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                0.98
+              ],
+              "value_upper": [
+                0.02,
+                1.02
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        }
+      ],
+      "required_pairs": [
+        {
+          "pair_id": "overlap-case",
+          "fault_a": "fault-A",
+          "fault_b": "fault-B",
+          "minimum_independent_principles": 1,
+          "expected_status": "BEHAVIORALLY_AMBIGUOUS",
+          "expected_marginal_envelope_separated": false
+        }
+      ]
+    },
+    {
+      "case_id": "clock-uncertainty-erases-separation",
+      "configuration_id": "engine-cfg-synthetic-r1",
+      "operating_profile_id": "steady-load-profile-01",
+      "timebase": {
+        "timebase_id": "ptp-run-01",
+        "qualification_state": "qualified",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "maximum_timestamp_uncertainty_ms": 2,
+      "hypotheses": [
+        {
+          "fault_id": "fault-A",
+          "trajectory_tubes": [
+            {
+              "tube_id": "a1",
+              "measurement_principle": "shaft-speed",
+              "independence_group_id": "principle-speed",
+              "value_unit": "rpm",
+              "dependency_groups": [
+                "speed-power"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                1,
+                1
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                0
+              ],
+              "value_upper": [
+                0,
+                0
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "fault_id": "fault-B",
+          "trajectory_tubes": [
+            {
+              "tube_id": "b1",
+              "measurement_principle": "shaft-speed",
+              "independence_group_id": "principle-speed",
+              "value_unit": "rpm",
+              "dependency_groups": [
+                "speed-power"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                1,
+                1
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0.15,
+                0.15
+              ],
+              "value_upper": [
+                0.15,
+                0.15
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        }
+      ],
+      "required_pairs": [
+        {
+          "pair_id": "clock-uncertainty-case",
+          "fault_a": "fault-A",
+          "fault_b": "fault-B",
+          "minimum_independent_principles": 1,
+          "expected_status": "BEHAVIORALLY_AMBIGUOUS",
+          "expected_marginal_envelope_separated": false
+        }
+      ]
+    },
+    {
+      "case_id": "unqualified-timebase",
+      "configuration_id": "engine-cfg-synthetic-r1",
+      "operating_profile_id": "steady-load-profile-01",
+      "timebase": {
+        "timebase_id": "ptp-run-01",
+        "qualification_state": "unknown",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "maximum_timestamp_uncertainty_ms": 2,
+      "hypotheses": [
+        {
+          "fault_id": "fault-A",
+          "trajectory_tubes": [
+            {
+              "tube_id": "a1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                0
+              ],
+              "value_upper": [
+                0.02,
+                0.02
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "fault_id": "fault-B",
+          "trajectory_tubes": [
+            {
+              "tube_id": "b1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                1,
+                1
+              ],
+              "value_upper": [
+                1.02,
+                1.02
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        }
+      ],
+      "required_pairs": [
+        {
+          "pair_id": "clock-unknown",
+          "fault_a": "fault-A",
+          "fault_b": "fault-B",
+          "minimum_independent_principles": 1,
+          "expected_status": "NOT_EVALUATED",
+          "expected_marginal_envelope_separated": null
+        }
+      ]
+    },
+    {
+      "case_id": "sample-grid-mismatch",
+      "configuration_id": "engine-cfg-synthetic-r1",
+      "operating_profile_id": "steady-load-profile-01",
+      "timebase": {
+        "timebase_id": "ptp-run-01",
+        "qualification_state": "qualified",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "maximum_timestamp_uncertainty_ms": 2,
+      "hypotheses": [
+        {
+          "fault_id": "fault-A",
+          "trajectory_tubes": [
+            {
+              "tube_id": "a1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                0
+              ],
+              "value_upper": [
+                0.01,
+                0.01
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "fault_id": "fault-B",
+          "trajectory_tubes": [
+            {
+              "tube_id": "b1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "principle-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                90
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                1,
+                1
+              ],
+              "value_upper": [
+                1.01,
+                1.01
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        }
+      ],
+      "required_pairs": [
+        {
+          "pair_id": "no-time-warp",
+          "fault_a": "fault-A",
+          "fault_b": "fault-B",
+          "minimum_independent_principles": 1,
+          "expected_status": "NOT_EVALUATED",
+          "expected_marginal_envelope_separated": null
+        }
+      ]
+    },
+    {
+      "case_id": "shared-common-cause-collapses-principles",
+      "configuration_id": "engine-cfg-synthetic-r1",
+      "operating_profile_id": "steady-load-profile-01",
+      "timebase": {
+        "timebase_id": "ptp-run-01",
+        "qualification_state": "qualified",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "maximum_timestamp_uncertainty_ms": 2,
+      "hypotheses": [
+        {
+          "fault_id": "fault-A",
+          "trajectory_tubes": [
+            {
+              "tube_id": "a1",
+              "measurement_principle": "pressure",
+              "independence_group_id": "group-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "shared-gateway"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                0
+              ],
+              "value_upper": [
+                0.01,
+                0.01
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "tube_id": "a2",
+              "measurement_principle": "speed",
+              "independence_group_id": "group-speed",
+              "value_unit": "rpm",
+              "dependency_groups": [
+                "shared-gateway"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                0
+              ],
+              "value_upper": [
+                0.01,
+                0.01
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "fault_id": "fault-B",
+          "trajectory_tubes": [
+            {
+              "tube_id": "b1",
+              "measurement_principle": "pressure",
+              "independence_group_id": "group-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "shared-gateway"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                1,
+                1
+              ],
+              "value_upper": [
+                1.01,
+                1.01
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            {
+              "tube_id": "b2",
+              "measurement_principle": "speed",
+              "independence_group_id": "group-speed",
+              "value_unit": "rpm",
+              "dependency_groups": [
+                "shared-gateway"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                1,
+                1
+              ],
+              "value_upper": [
+                1.01,
+                1.01
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        }
+      ],
+      "required_pairs": [
+        {
+          "pair_id": "shared-common-cause",
+          "fault_a": "fault-A",
+          "fault_b": "fault-B",
+          "minimum_independent_principles": 2,
+          "expected_status": "INSUFFICIENT_INDEPENDENT_PRINCIPLES",
+          "expected_marginal_envelope_separated": true
+        }
+      ]
+    },
+    {
+      "case_id": "phase-alignment-not-permitted",
+      "configuration_id": "engine-cfg-synthetic-r1",
+      "operating_profile_id": "maneuver-profile-02",
+      "timebase": {
+        "timebase_id": "ptp-run-01",
+        "qualification_state": "qualified",
+        "qualification_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "maximum_timestamp_uncertainty_ms": 2,
+      "hypotheses": [
+        {
+          "fault_id": "fault-A",
+          "trajectory_tubes": [
+            {
+              "tube_id": "a1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "group-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                100
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                0,
+                0
+              ],
+              "value_upper": [
+                0.01,
+                0.01
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        },
+        {
+          "fault_id": "fault-B",
+          "trajectory_tubes": [
+            {
+              "tube_id": "b1",
+              "measurement_principle": "pressure-flow",
+              "independence_group_id": "group-pressure",
+              "value_unit": "bar",
+              "dependency_groups": [
+                "pressure"
+              ],
+              "timebase_id": "ptp-run-01",
+              "sample_offsets_ms": [
+                0,
+                90
+              ],
+              "timestamp_uncertainty_ms": [
+                0.01,
+                0.01
+              ],
+              "maximum_abs_slope_per_ms": [
+                0.1,
+                0.1
+              ],
+              "value_lower": [
+                1,
+                1
+              ],
+              "value_upper": [
+                1.01,
+                1.01
+              ],
+              "evidence_role": "SYNTHETIC_CONFORMANCE_FIXTURE",
+              "artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          ]
+        }
+      ],
+      "required_pairs": [
+        {
+          "pair_id": "phase-lock-preserved",
+          "fault_a": "fault-A",
+          "fault_b": "fault-B",
+          "minimum_independent_principles": 1,
+          "expected_status": "NOT_EVALUATED",
+          "expected_marginal_envelope_separated": null
+        }
+      ]
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "controller_write": false,
+    "actuation": false,
+    "maintenance_authorization": false,
+    "mode_transition": false,
+    "restriction_clearance": false
+  },
+  "claim_ceiling": "Synthetic uncertainty-bounded trajectory-tube conformance only. It does not validate a marine engine, diagnose a physical fault, qualify clocks or sensors, demonstrate cross-engine transfer, establish shipboard safety or authorize operation."
+}
