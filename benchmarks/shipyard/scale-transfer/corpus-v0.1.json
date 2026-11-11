@@ -183,7 +183,7 @@
     {
       "case_id": "SCALE-029",
       "class": "negative",
-      "mutation": "prediction uses a different output operator/datum scope than validation evidence",
+      "mutation": "requested output scope differs from the model's validation output",
       "expected_disposition": "ABSTAIN_OUTPUT_SCOPE"
     },
     {
