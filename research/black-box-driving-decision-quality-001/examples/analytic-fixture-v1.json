@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "expected_episode_ids": [
+    "episode-1"
+  ],
+  "expected_decision_ids": [
+    "decision-1"
+  ],
+  "expected_surrogate_event_ids": [
+    "event-1"
+  ],
+  "expected_prediction_ids": [
+    "prediction-1",
+    "prediction-2"
+  ],
+  "episodes": [
+    {
+      "episode_id": "episode-1",
+      "disposition": "completed"
+    }
+  ],
+  "decisions": [
+    {
+      "decision_id": "decision-1",
+      "episode_id": "episode-1",
+      "decision_tick": 10,
+      "selected_action_id": "accelerate",
+      "objective_id": "safety-progress-v1",
+      "objective_revision": "objective-rev-1",
+      "counterfactual_evaluator_revision": "counterfactual-evaluator-v1",
+      "simulator_revision": "sim-snapshot-v1",
+      "objective_cost_unit": "declared_cost_units",
+      "context": {
+        "scenario_family": "pedestrian_crossing",
+        "actor_class": "pedestrian",
+        "road_context": "urban_intersection",
+        "weather": "clear",
+        "visibility": "daylight",
+        "sensor_fault_family": "none",
+        "decision_mode": "yield_or_proceed"
+      },
+      "diagnostic_tags": [
+        "yielding_gap_misjudgment"
+      ],
+      "actions": [
+        {
+          "action_id": "accelerate",
+          "objective_cost": 0.5,
+          "hard_safety_violation": true,
+          "counterfactual_evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "action_id": "yield",
+          "objective_cost": 2,
+          "hard_safety_violation": false,
+          "counterfactual_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ]
+    }
+  ],
+  "surrogate_events": [
+    {
+      "event_id": "event-1",
+      "episode_id": "episode-1",
+      "decision_id": "decision-1",
+      "actor_a_id": "ego",
+      "actor_b_id": "pedestrian",
+      "gap_m": 8,
+      "closing_speed_mps": 4,
+      "analysis_horizon_s": 5,
+      "conflict_occupancy": {
+        "actor_a": {
+          "actor_id": "ego",
+          "enter_timestamp_us": 1000000,
+          "exit_timestamp_us": 1200000
+        },
+        "actor_b": {
+          "actor_id": "pedestrian",
+          "enter_timestamp_us": 1500000,
+          "exit_timestamp_us": 1800000
+        }
+      },
+      "measurement_source_revision": "surrogate-measurement-v1",
+      "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+    }
+  ],
+  "outcome_predictions": [
+    {
+      "prediction_id": "prediction-1",
+      "episode_id": "episode-1",
+      "decision_id": "decision-1",
+      "action_id": "yield",
+      "predicted_collision_probability": 0.1,
+      "realized_collision_within_horizon": false,
+      "prediction_horizon_s": 3,
+      "outcome_source": "forward_simulation",
+      "prediction_model_revision": "risk-model-v1",
+      "outcome_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    {
+      "prediction_id": "prediction-2",
+      "episode_id": "episode-1",
+      "decision_id": "decision-1",
+      "action_id": "accelerate",
+      "predicted_collision_probability": 0.8,
+      "realized_collision_within_horizon": true,
+      "prediction_horizon_s": 3,
+      "outcome_source": "forward_simulation",
+      "prediction_model_revision": "risk-model-v1",
+      "outcome_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+    }
+  ]
+}
