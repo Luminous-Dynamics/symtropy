@@ -1579,6 +1579,70 @@ mod tests {
         );
     }
 
+    #[cfg(feature = "nd-bivector-9")]
+    #[test]
+    fn nine_dimensional_inertia_is_covariant_under_global_so9_rotation() {
+        let factor = SMatrix::<f64, 9, 9>::from_fn(|row, column| {
+            if row == column {
+                1.0 + row as f64 * 0.13
+            } else {
+                0.015 * ((row + 1) as f64 * (column + 3) as f64).sin()
+            }
+        });
+        let second_moment = factor * factor.transpose();
+        let body_inertia = BivectorInertia::<9>::from_second_moment(second_moment).unwrap();
+
+        let mut generator = Bivector::<9>::zero();
+        let mut plane = 1.0_f64;
+        for row in 0..9 {
+            for column in (row + 1)..9 {
+                generator.set(row, column, 0.002 * (plane * 0.37).sin());
+                plane += 1.0;
+            }
+        }
+        let global = Rotor::<9>::from_bivector(&generator);
+        let world_inertia = body_inertia.rotated_by(&global).unwrap();
+        let rotation_matrix = global.to_matrix();
+
+        let mut body_angular_state = Bivector::<9>::zero();
+        let mut component = 0.0_f64;
+        for row in 0..9 {
+            for column in (row + 1)..9 {
+                body_angular_state.set(row, column, 0.12 * (component * 0.29 + 0.4).cos());
+                component += 1.0;
+            }
+        }
+        let world_angular_state = Bivector::from_matrix(
+            &(rotation_matrix * body_angular_state.to_matrix() * rotation_matrix.transpose()),
+        );
+
+        let body_momentum = body_inertia.angular_momentum(&body_angular_state).unwrap();
+        let world_momentum = world_inertia.angular_momentum(&world_angular_state).unwrap();
+        let expected_world_momentum = Bivector::from_matrix(
+            &(rotation_matrix * body_momentum.to_matrix() * rotation_matrix.transpose()),
+        );
+        assert!(
+            world_momentum.add(&expected_world_momentum.scale(-1.0)).norm() < 2.0e-9,
+            "SO(9) angular-momentum covariance failed"
+        );
+
+        let body_energy = body_inertia.kinetic_energy(&body_angular_state).unwrap();
+        let world_energy = world_inertia.kinetic_energy(&world_angular_state).unwrap();
+        assert!(
+            (world_energy - body_energy).abs() / body_energy.abs().max(f64::MIN_POSITIVE)
+                < 2.0e-10,
+            "SO(9) kinetic-energy covariance failed: body={body_energy:e}, world={world_energy:e}"
+        );
+
+        let recovered = world_inertia
+            .angular_velocity_from_momentum(&world_momentum, 1.0e-12)
+            .unwrap();
+        assert!(
+            recovered.add(&world_angular_state.scale(-1.0)).norm() < 2.0e-9,
+            "SO(9) inverse failed to recover all 36 rotation-plane components"
+        );
+    }
+
     #[test]
     fn inverse_operator_recovers_coupled_world_frame_angular_velocity() {
         let second_moment =
