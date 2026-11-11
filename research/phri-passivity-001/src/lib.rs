@@ -28,7 +28,10 @@ pub struct PortSample {
     pub sample_id: u64,
     pub at_ns: u64,
     pub clock: ClockDomain,
+    pub port_id: u64,
     pub frame_id: u64,
+    /// Digest of the exact port sensor/calibration/frame/time-alignment manifest.
+    pub measurement_profile_digest: [u8; 32],
     pub wrench_environment_on_robot: [f64; 6],
     pub twist_robot: [f64; 6],
 }
@@ -40,7 +43,12 @@ pub enum PassivityError {
     InvalidInitialStorage,
     InvalidEnergyUncertainty,
     InvalidTolerance,
+    InvalidMaximumSampleGap,
+    InvalidMeasurementProfileDigest,
     ClockDomainMismatch,
+    PortMismatch,
+    MeasurementProfileMismatch,
+    SampleGapExceeded,
     FrameMismatch,
     NonMonotonicTimestamp,
     NonMonotonicSampleId,
@@ -70,25 +78,31 @@ pub struct PassivitySnapshot {
     pub conservative_storage_lower_bound_j: f64,
     pub passivity_deficit_j: f64,
     pub maximum_passivity_deficit_j: f64,
-    /// Number of observed sample endpoints at which the deficit exceeded the
-    /// declared tolerance. This is not a count of independent physical events.
-    pub violation_sample_count: u64,
+    /// Number of sample intervals whose within-interval minimum deficit exceeded
+    /// the declared tolerance. This is not a count of independent physical events.
+    pub violation_interval_count: u64,
     pub last_port_power_into_robot_w: Option<f64>,
 }
 
 /// Integrates measured interaction-port power and tracks the passivity
-/// residual against a declared initial energy store and fixed uncertainty
+/// residual against a declared initial available-energy budget and fixed uncertainty
 /// allowance.
 ///
-/// Samples must use the same monotonic clock/boot epoch and spatial frame.
-/// The observer uses trapezoidal integration between consecutive samples.
+/// Samples must use the same monotonic clock/boot epoch, port, spatial frame,
+/// and measurement-profile digest. The profile digest binds instrument
+/// calibration, geometry/frame registration, filtering and time alignment.
+/// The observer uses trapezoidal integration and checks the minimum energy
+/// budget inside each piecewise-linear power interval, not just endpoints.
 /// This reference does not estimate wrench/twist, synchronize clocks, correct
 /// frame transforms, or model time-varying virtual-parameter storage.
 #[derive(Clone, Debug)]
 pub struct PassivityObserver {
     clock: ClockDomain,
     frame_id: u64,
-    initial_storage_j: f64,
+    initial_energy_budget_j: f64,
+    port_id: u64,
+    measurement_profile_digest: [u8; 32],
+    max_sample_gap_ns: u64,
     energy_uncertainty_j: f64,
     violation_tolerance_j: f64,
     first_timestamp_ns: Option<u64>,
@@ -96,7 +110,7 @@ pub struct PassivityObserver {
     previous_power_w: Option<f64>,
     cumulative_port_work_j: f64,
     maximum_passivity_deficit_j: f64,
-    violation_sample_count: u64,
+    violation_interval_count: u64,
     sample_count: u64,
 }
 
@@ -108,12 +122,15 @@ impl PassivityObserver {
     /// must derive and justify it for the actual measurement chain.
     pub fn new(
         clock: ClockDomain,
+        port_id: u64,
         frame_id: u64,
-        initial_storage_j: f64,
+        measurement_profile_digest: [u8; 32],
+        max_sample_gap_ns: u64,
+        initial_energy_budget_j: f64,
         energy_uncertainty_j: f64,
         violation_tolerance_j: f64,
     ) -> Result<Self, PassivityError> {
-        if !initial_storage_j.is_finite() || initial_storage_j < 0.0 {
+        if !initial_energy_budget_j.is_finite() || initial_energy_budget_j < 0.0 {
             return Err(PassivityError::InvalidInitialStorage);
         }
         if !energy_uncertainty_j.is_finite() || energy_uncertainty_j < 0.0 {
@@ -122,11 +139,20 @@ impl PassivityObserver {
         if !violation_tolerance_j.is_finite() || violation_tolerance_j < 0.0 {
             return Err(PassivityError::InvalidTolerance);
         }
+        if max_sample_gap_ns == 0 {
+            return Err(PassivityError::InvalidMaximumSampleGap);
+        }
+        if measurement_profile_digest == [0; 32] {
+            return Err(PassivityError::InvalidMeasurementProfileDigest);
+        }
 
         Ok(Self {
             clock,
+            port_id,
             frame_id,
-            initial_storage_j,
+            measurement_profile_digest,
+            max_sample_gap_ns,
+            initial_energy_budget_j,
             energy_uncertainty_j,
             violation_tolerance_j,
             first_timestamp_ns: None,
@@ -134,7 +160,7 @@ impl PassivityObserver {
             previous_power_w: None,
             cumulative_port_work_j: 0.0,
             maximum_passivity_deficit_j: 0.0,
-            violation_sample_count: 0,
+            violation_interval_count: 0,
             sample_count: 0,
         })
     }
@@ -151,14 +177,21 @@ impl PassivityObserver {
         if sample.clock != self.clock {
             return Err(PassivityError::ClockDomainMismatch);
         }
+        if sample.port_id != self.port_id {
+            return Err(PassivityError::PortMismatch);
+        }
         if sample.frame_id != self.frame_id {
             return Err(PassivityError::FrameMismatch);
+        }
+        if sample.measurement_profile_digest != self.measurement_profile_digest {
+            return Err(PassivityError::MeasurementProfileMismatch);
         }
         let power_w = port_power_into_robot_w(
             &sample.wrench_environment_on_robot,
             &sample.twist_robot,
         )?;
 
+        let mut interval_minimum_work_j = 0.0_f64;
         let next_work = match (self.previous_sample, self.previous_power_w) {
             (Some(previous), Some(previous_power)) => {
                 let elapsed_ns = sample
@@ -166,16 +199,25 @@ impl PassivityObserver {
                     .checked_sub(previous.at_ns)
                     .filter(|elapsed| *elapsed > 0)
                     .ok_or(PassivityError::NonMonotonicTimestamp)?;
+                if elapsed_ns > self.max_sample_gap_ns {
+                    return Err(PassivityError::SampleGapExceeded);
+                }
                 if sample.sample_id <= previous.sample_id {
                     return Err(PassivityError::NonMonotonicSampleId);
                 }
                 let dt_s = elapsed_ns as f64 * 1.0e-9;
                 let average_power_w = 0.5 * (previous_power + power_w);
                 let interval_work_j = average_power_w * dt_s;
+                interval_minimum_work_j = minimum_linear_power_prefix_work_j(
+                    previous_power,
+                    power_w,
+                    dt_s,
+                );
                 let total = self.cumulative_port_work_j + interval_work_j;
                 if !dt_s.is_finite()
                     || !average_power_w.is_finite()
                     || !interval_work_j.is_finite()
+                    || !interval_minimum_work_j.is_finite()
                     || !total.is_finite()
                 {
                     return Err(PassivityError::ArithmeticOverflow);
@@ -187,14 +229,20 @@ impl PassivityObserver {
         };
 
         let conservative_storage =
-            self.initial_storage_j + next_work - self.energy_uncertainty_j;
+            self.initial_energy_budget_j + next_work - self.energy_uncertainty_j;
+        let interval_minimum_storage = self.initial_energy_budget_j
+            + self.cumulative_port_work_j
+            + interval_minimum_work_j
+            - self.energy_uncertainty_j;
         if !conservative_storage.is_finite() {
             return Err(PassivityError::ArithmeticOverflow);
         }
-        let deficit = (-conservative_storage).max(0.0);
-        let next_maximum_deficit = self.maximum_passivity_deficit_j.max(deficit);
-        let next_violation_count = if deficit > self.violation_tolerance_j {
-            self.violation_sample_count
+        let endpoint_deficit = (-conservative_storage).max(0.0);
+        let interval_deficit = (-interval_minimum_storage).max(0.0);
+        let maximum_interval_deficit = endpoint_deficit.max(interval_deficit);
+        let next_maximum_deficit = self.maximum_passivity_deficit_j.max(maximum_interval_deficit);
+        let next_violation_count = if maximum_interval_deficit > self.violation_tolerance_j {
+            self.violation_interval_count
                 .checked_add(1)
                 .ok_or(PassivityError::ArithmeticOverflow)?
         } else {
@@ -207,7 +255,7 @@ impl PassivityObserver {
 
         self.cumulative_port_work_j = next_work;
         self.maximum_passivity_deficit_j = next_maximum_deficit;
-        self.violation_sample_count = next_violation_count;
+        self.violation_interval_count = next_violation_count;
         self.sample_count = next_sample_count;
         if self.first_timestamp_ns.is_none() {
             self.first_timestamp_ns = Some(sample.at_ns);
@@ -220,7 +268,7 @@ impl PassivityObserver {
 
     /// Return the current snapshot without changing observer state.
     pub fn snapshot(&self) -> PassivitySnapshot {
-        let conservative_storage = self.initial_storage_j + self.cumulative_port_work_j
+        let conservative_storage = self.initial_energy_budget_j + self.cumulative_port_work_j
             - self.energy_uncertainty_j;
         let deficit = (-conservative_storage).max(0.0);
         let elapsed_ns = match (self.first_timestamp_ns, self.previous_sample) {
@@ -235,7 +283,7 @@ impl PassivityObserver {
             conservative_storage_lower_bound_j: conservative_storage,
             passivity_deficit_j: deficit,
             maximum_passivity_deficit_j: self.maximum_passivity_deficit_j,
-            violation_sample_count: self.violation_sample_count,
+            violation_interval_count: self.violation_interval_count,
             last_port_power_into_robot_w: self.previous_power_w,
         }
     }
@@ -249,6 +297,33 @@ impl PassivityObserver {
     pub const fn frame_id(&self) -> u64 {
         self.frame_id
     }
+
+    /// Declared physical interaction port identity.
+    pub const fn port_id(&self) -> u64 {
+        self.port_id
+    }
+
+    /// Exact metrology/calibration/registration profile digest.
+    pub const fn measurement_profile_digest(&self) -> &[u8; 32] {
+        &self.measurement_profile_digest
+    }
+}
+
+fn minimum_linear_power_prefix_work_j(
+    power_start_w: f64,
+    power_end_w: f64,
+    duration_s: f64,
+) -> f64 {
+    let end_work_j = 0.5 * (power_start_w + power_end_w) * duration_s;
+    let mut minimum_work_j = 0.0_f64.min(end_work_j);
+
+    if power_start_w < 0.0 && power_end_w > 0.0 {
+        let fraction_to_zero = -power_start_w / (power_end_w - power_start_w);
+        let interior_work_j = 0.5 * power_start_w * fraction_to_zero * duration_s;
+        minimum_work_j = minimum_work_j.min(interior_work_j);
+    }
+
+    minimum_work_j
 }
 
 /// Compute one instantaneous wrench/twist power sample.
@@ -259,9 +334,9 @@ pub fn port_power_into_robot_w(
     twist_robot: &[f64; 6],
 ) -> Result<f64, PassivityError> {
     let mut power = 0.0;
-    for index in 0..6 {
-        let wrench = wrench_environment_on_robot[index];
-        let velocity = twist_robot[index];
+    for (wrench, velocity) in wrench_environment_on_robot.iter().zip(twist_robot.iter()) {
+        let wrench = *wrench;
+        let velocity = *velocity;
         if !wrench.is_finite() || !velocity.is_finite() {
             return Err(PassivityError::NonFinitePortSample);
         }
@@ -284,6 +359,11 @@ mod tests {
         }
     }
 
+    const PORT_ID: u64 = 5;
+    const FRAME_ID: u64 = 99;
+    const PROFILE_DIGEST: [u8; 32] = [0x44; 32];
+    const MAX_GAP_NS: u64 = 2_000_000_000;
+
     fn sample(
         sample_id: u64,
         at_ns: u64,
@@ -294,7 +374,9 @@ mod tests {
             sample_id,
             at_ns,
             clock: clock(),
-            frame_id: 99,
+            port_id: PORT_ID,
+            frame_id: FRAME_ID,
+            measurement_profile_digest: PROFILE_DIGEST,
             wrench_environment_on_robot: [force_x_n, 0.0, 0.0, 0.0, 0.0, 0.0],
             twist_robot: [velocity_x_mps, 0.0, 0.0, 0.0, 0.0, 0.0],
         }
@@ -305,7 +387,10 @@ mod tests {
         uncertainty_j: f64,
         tolerance_j: f64,
     ) -> PassivityObserver {
-        PassivityObserver::new(clock(), 99, initial_storage_j, uncertainty_j, tolerance_j)
+        PassivityObserver::new(
+            clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS,
+            initial_storage_j, uncertainty_j, tolerance_j,
+        )
             .unwrap()
     }
 
@@ -318,7 +403,7 @@ mod tests {
         assert!((result.cumulative_port_work_j - 1.0).abs() < 1.0e-12);
         assert!((result.conservative_storage_lower_bound_j - 1.5).abs() < 1.0e-12);
         assert_eq!(result.passivity_deficit_j, 0.0);
-        assert_eq!(result.violation_sample_count, 0);
+        assert_eq!(result.violation_interval_count, 0);
     }
 
     #[test]
@@ -437,17 +522,59 @@ mod tests {
     }
 
     #[test]
+    fn interior_negative_power_minimum_is_not_hidden_by_zero_net_interval_work() {
+        let mut subject = observer(0.1, 0.0, 1.0e-12);
+        subject.observe(sample(1, 0, -10.0, 0.1)).unwrap(); // -1 W
+        let result = subject.observe(sample(2, 2_000_000_000, 10.0, 0.1)).unwrap(); // +1 W
+
+        // Net trapezoidal work is zero, but the power crosses zero at 1 s and
+        // drains 0.5 J before replenishing it.
+        assert!(result.cumulative_port_work_j.abs() < 1.0e-12);
+        assert!(result.passivity_deficit_j.abs() < 1.0e-12);
+        assert!((result.maximum_passivity_deficit_j - 0.4).abs() < 1.0e-12);
+        assert_eq!(result.violation_interval_count, 1);
+    }
+
+    #[test]
+    fn excessive_sample_gap_is_unknown_and_does_not_mutate_state() {
+        let mut subject = observer(1.0, 0.0, 0.0);
+        subject.observe(sample(1, 0, 0.0, 0.0)).unwrap();
+        let before = subject.snapshot();
+        assert_eq!(
+            subject.observe(sample(2, MAX_GAP_NS + 1, 0.0, 0.0)),
+            Err(PassivityError::SampleGapExceeded)
+        );
+        assert_eq!(subject.snapshot(), before);
+    }
+
+    #[test]
+    fn wrong_port_and_measurement_profile_are_rejected() {
+        let mut subject = observer(1.0, 0.0, 0.0);
+        subject.observe(sample(1, 10, 0.0, 0.0)).unwrap();
+        let mut wrong_port = sample(2, 20, 0.0, 0.0);
+        wrong_port.port_id += 1;
+        assert_eq!(subject.observe(wrong_port), Err(PassivityError::PortMismatch));
+
+        let mut wrong_profile = sample(2, 20, 0.0, 0.0);
+        wrong_profile.measurement_profile_digest[0] ^= 0xff;
+        assert_eq!(
+            subject.observe(wrong_profile),
+            Err(PassivityError::MeasurementProfileMismatch)
+        );
+    }
+
+    #[test]
     fn storage_uncertainty_and_tolerance_are_validated() {
         assert!(matches!(
-            PassivityObserver::new(clock(), 99, -1.0, 0.0, 0.0),
+            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS, -1.0, 0.0, 0.0),
             Err(PassivityError::InvalidInitialStorage)
         ));
         assert!(matches!(
-            PassivityObserver::new(clock(), 99, 0.0, -0.1, 0.0),
+            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS, 0.0, -0.1, 0.0),
             Err(PassivityError::InvalidEnergyUncertainty)
         ));
         assert!(matches!(
-            PassivityObserver::new(clock(), 99, 0.0, 0.0, f64::NAN),
+            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS, 0.0, 0.0, f64::NAN),
             Err(PassivityError::InvalidTolerance)
         ));
     }
