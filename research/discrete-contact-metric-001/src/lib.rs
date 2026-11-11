@@ -316,8 +316,7 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         let primal_residual =
             relative_primal_feasibility(&normal_velocity, &target_velocity, &slack);
         let dual_residual = relative_negative_residual(&impulse, &delassus, &contact_rhs);
-        if dual_residual > SOLVE_TOLERANCE || primal_residual > SOLVE_TOLERANCE
-        {
+        if dual_residual > SOLVE_TOLERANCE || primal_residual > SOLVE_TOLERANCE {
             continue;
         }
 
@@ -938,10 +937,10 @@ mod tests {
             let scaled_slack = slack.map(|value| value * scale);
             let observed = (
                 relative_negative_residual(
-                &scaled_impulse,
-                &Matrix::identity(2),
-                &scaled_impulse,
-            ),
+                    &scaled_impulse,
+                    &Matrix::identity(2),
+                    &scaled_impulse,
+                ),
                 relative_primal_feasibility(&scaled_normal, &scaled_target, &scaled_slack),
                 relative_complementarity_residual(
                     &scaled_impulse,
