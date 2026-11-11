@@ -4,7 +4,7 @@
 use civdyn_self_correction::measurement_equivalence::{
     BridgeDesign, BridgeStudyEvidence, EvidenceDisposition, MeasurementClaim,
     MeasurementDefinition, MeasurementEquivalenceEvidence, MeasurementFamily,
-    MeasurementInvarianceEvidence, MeasurementGroup, MeasurementEquivalenceReport,
+    MeasurementGroup, MeasurementEquivalenceReport,
     SameProtocolEvidence, SurveyInvarianceEvidence, assess_measurement_equivalence,
 };
 
