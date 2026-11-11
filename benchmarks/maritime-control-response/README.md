@@ -25,6 +25,23 @@ The benchmark lists four known fault classes: intake-manifold leakage and multip
 - Split-conformal calibration using one maximum standardized residual per independent recording/episode, not 20 Hz samples or overlapping windows.
 - Calibration receipts retain their sorted episode identities and maximum residuals. Their digests and finite-sample order statistic are recomputed; the threshold must match the frozen model, regime, training manifest and split manifest.
 
+## Orthogonal out-of-distribution (OOD) experiments
+
+The benchmark now distinguishes condition shift (C), fault-semantic shift (F), and their combination (C+F). This is not a cosmetic taxonomy: the system must demonstrate both known-class retention under new conditions and rejection of faults outside the training label space. The 2026 mechanical OOD survey explicitly separates these deployment requirements, while LiU-ICE provides a concrete condition-shift opportunity: the public training recordings use WLTP, evaluation may include other cycles, and ambient pressure/temperature vary between recordings for non-fault reasons.
+
+The preregistered [shift-matrix-v0.1.json](shift-matrix-v0.1.json) contains six experiments:
+
+1. **C-shift / driving cycle:** whole-cycle holdout; all known fault classes remain in the label space.
+2. **C-shift / ambient envelope:** test whether ambient-only variation triggers false fault alarms. The ambient strata must be frozen from metadata before evaluation; if confounded with cycle or fault labels, the result is non-identifiable.
+3. **F-shift / held-out fault family:** exclude every recording of one family from fitting, feature selection and calibration; map it to the unknown slot during inference. This is a *surrogate* open-set test using a known family, not proof that a novel physical mechanism has been discovered.
+4. **C+F:** jointly hold out a fault family and a driving cycle. Separate C-only and F-only passes do not imply a combined-shift pass.
+5. **Magnitude shift:** withhold complete recordings from predeclared fault-magnitude bands while preserving the known family identity.
+6. **Sensor-chain shift:** distinguish documented sensor drift/dropout/calibration changes from synthetic corruption stress tests and from real plant faults.
+
+The public 26-recording training set (2–7 recordings per known family) is too small to support sweeping per-family/per-cycle 95% or 99% episode-level calibration. The finite-sample split-conformal requirements remain 19 independent episodes for 95% and 99 for 99% coverage; no amount of additional 20 Hz samples from the same recording fixes that independent-unit shortage. Underpowered strata are descriptive, not qualified. Cross-engine/fleet generalization remains unsupported until separate engine/fleet identities are available.
+
+Every run manifest binds the shift matrix digest, declared shift axis, holdout manifest digest and count of independent test recordings. A C-shift result cannot be presented as evidence of F-shift or C+F robustness.
+
 ## Event-level metrics: time-to-diagnosis, not row count
 
 The sample-level competition score can reward a detector that raises a late alarm, or conceal repeated alerts inside one fault episode. The exposed Rust module `event_metrics` adds a separate episode-level view:
