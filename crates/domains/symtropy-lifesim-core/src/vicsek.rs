@@ -257,9 +257,9 @@ pub struct VicsekMetrics {
     pub particle_count: usize,
     /// Magnitude of the mean unit heading vector, in [0, 1].
     pub polar_order: f64,
-    /// Mean number of other particles inside the interaction radius.
+    /// Mean number of other particles visible to each focal particle (mean out-degree).
     pub mean_neighbors_excluding_self: f64,
-    /// Population variance of the per-particle neighbour counts.
+    /// Population variance of focal-agent visible-neighbour counts (out-degree variance).
     pub neighbor_count_variance: f64,
     /// Fraction of particles with at least one other particle in their interaction neighbourhood.
     pub local_order_coverage_fraction: f64,
@@ -1224,6 +1224,128 @@ mod tests {
         assert_eq!(full_metrics.connected_pair_fraction, Some(1.0));
         assert_eq!(metrics.local_order_coverage_fraction, 1.0);
         assert!((metrics.mean_local_polar_order.unwrap() - 1.0).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn visual_sector_forward_and_flipped_offsets_select_opposite_neighbours() {
+        let config = VicsekConfig {
+            box_size: 12.0,
+            interaction_radius: 3.0,
+            speed: 0.0,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let visual = VicsekModel::new_with_perception(
+            vec![VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.0 }],
+            config,
+            61,
+            VicsekPerception::VisualSector {
+                half_aperture_rad: std::f64::consts::FRAC_PI_4,
+                offset_rad: 0.0,
+            },
+        )
+        .unwrap();
+
+        assert!(visual.perceives((5.0, 5.0), 0.0, (6.0, 5.0)));
+        assert!(!visual.perceives((5.0, 5.0), 0.0, (4.0, 5.0)));
+
+        let flipped = VicsekModel::new_with_perception(
+            vec![VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.0 }],
+            config,
+            61,
+            VicsekPerception::VisualSector {
+                half_aperture_rad: std::f64::consts::FRAC_PI_4,
+                offset_rad: std::f64::consts::PI,
+            },
+        )
+        .unwrap();
+
+        assert!(!flipped.perceives((5.0, 5.0), 0.0, (6.0, 5.0)));
+        assert!(flipped.perceives((5.0, 5.0), 0.0, (4.0, 5.0)));
+    }
+
+    #[test]
+    fn visual_sector_builds_directed_out_neighbours_and_weak_cluster_projection() {
+        let model = VicsekModel::new_with_perception(
+            vec![
+                VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle { x: 6.0, y: 5.0, heading_rad: 0.0 },
+            ],
+            VicsekConfig {
+                box_size: 12.0,
+                interaction_radius: 3.0,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            67,
+            VicsekPerception::VisualSector {
+                half_aperture_rad: std::f64::consts::FRAC_PI_4,
+                offset_rad: 0.0,
+            },
+        )
+        .unwrap();
+
+        let metrics = model.metrics();
+        assert_eq!(
+            metrics.perception,
+            VicsekPerception::VisualSector {
+                half_aperture_rad: std::f64::consts::FRAC_PI_4,
+                offset_rad: 0.0,
+            }
+        );
+        assert_eq!(
+            metrics.graph_semantics,
+            VicsekGraphSemantics::WeaklyConnectedProjectionOfDirectedVisibility
+        );
+        // The left particle sees the right particle; the right particle faces away.
+        assert_eq!(metrics.mean_neighbors_excluding_self, 0.5);
+        assert_eq!(metrics.neighbor_count_variance, 0.25);
+        assert_eq!(metrics.local_order_coverage_fraction, 0.5);
+        assert_eq!(metrics.mean_local_polar_order, Some(1.0));
+        // For topology only, either directed edge connects the weak component.
+        assert_eq!(metrics.cluster_count, 1);
+        assert_eq!(metrics.mean_cluster_size, 2.0);
+        assert_eq!(metrics.mean_shortest_path_length, Some(1.0));
+        assert_eq!(metrics.connected_pair_fraction, Some(1.0));
+    }
+
+    #[test]
+    fn visual_sector_rejects_invalid_aperture_and_offset() {
+        let particles = vec![VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 }];
+        let config = VicsekConfig::default();
+        assert!(matches!(
+            VicsekModel::new_with_perception(
+                particles.clone(),
+                config,
+                71,
+                VicsekPerception::VisualSector {
+                    half_aperture_rad: std::f64::consts::PI + 0.01,
+                    offset_rad: 0.0,
+                }
+            ),
+            Err(VicsekError::InvalidParameter {
+                name: "visual_half_aperture_rad",
+                ..
+            })
+        ));
+        assert!(matches!(
+            VicsekModel::new_with_perception(
+                particles,
+                config,
+                71,
+                VicsekPerception::VisualSector {
+                    half_aperture_rad: 0.5,
+                    offset_rad: f64::NAN,
+                }
+            ),
+            Err(VicsekError::InvalidParameter {
+                name: "visual_offset_rad",
+                ..
+            })
+        ));
     }
 
     #[test]
