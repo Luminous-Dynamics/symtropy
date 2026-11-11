@@ -26,7 +26,7 @@ The planner rejects a zero uncertainty bound and preserves five separate lower-i
 4. energy;
 5. robustness risk.
 
-It returns the nondominated Pareto set, not a weighted sum and not one automatically selected pass. Candidates must bind to the exact WID, joint revision, layer, predecessor pass, scan ID and procedure revision. Infeasible candidates are excluded with reasons. A stale/unregistered/low-coverage/high-occlusion/out-of-domain/future scan causes abstention.
+It returns the nondominated Pareto set, not a weighted sum and not one automatically selected pass. Candidates must bind to the exact WID, joint revision, layer, predecessor pass, scan ID, SHA-256 of scan bytes, SHA-256 of the registration/transform receipt, and procedure revision. In v0.1 these 32-byte values are synthetic contract identifiers, not hashes of the unavailable BAM raw files; a future measured adapter must calculate and verify them from authorized bytes and a reproducible transform chain. Infeasible candidates are excluded with reasons. A stale/unregistered/low-coverage/high-occlusion/out-of-domain/future scan causes abstention.
 
 All numeric quantities in v0 are **symbolic synthetic units**, not mm², deposited volume, joules, physical distortion or actual procedure limits. A procedure scope labelled synthetic is not a WPS/PQR/WPQT qualification.
 
@@ -36,7 +36,7 @@ All numeric quantities in v0 are **symbolic synthetic units**, not mm², deposit
 - `docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1.schema.json`: Draft 2020-12 input contract.
 - `docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1.md`: benchmark and claim-boundary protocol.
 - Focused CI runs rustfmt, tests and Clippy with warnings denied.
-- 22 Rust unit/mutation tests cover Pareto preservation, uncertainty, stale scan, wrong predecessor, low coverage, occlusion, registration error, future observation, stale observation, future leakage, OOD, measured-data rejection, live execution, procedure scope/revision, wrong scan, collision, resource infeasibility, duplicate candidates, no-feasible-plan and numeric overflow.
+- 26 Rust unit/mutation tests cover Pareto preservation, uncertainty, stale scan, wrong predecessor, low coverage, occlusion, registration error, future observation, stale observation, future leakage, OOD, measured-data rejection, live execution, procedure scope/revision, wrong scan, collision, resource infeasibility, duplicate candidates, no-feasible-plan and numeric overflow.
 
 This crate is an isolated nested Cargo workspace so it does not add another competing root Cargo.toml/Cargo.lock edit while the other three shipyard draft PRs are outstanding. It has no external crate dependencies.
 
