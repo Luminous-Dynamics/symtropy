@@ -63,7 +63,10 @@
       "source_value_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "target_value_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       "comparison_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "reason": null
+      "reason": null,
+      "canonical_value_sha256": null,
+      "semantic_finding_id": null,
+      "unit_comparison_finding_id": null
     },
     {
       "comparison_record_id": "CMP-THERMAL-001",
@@ -79,7 +82,8 @@
       "canonical_value_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "unit_comparison_finding_id": "UNIT-EQUIVALENCE-001",
       "comparison_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-      "reason": null
+      "reason": null,
+      "semantic_finding_id": null
     },
     {
       "comparison_record_id": "CMP-ACOUSTIC-001",
@@ -93,7 +97,10 @@
       "source_value_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
       "target_value_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
       "comparison_evidence_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
-      "reason": null
+      "reason": null,
+      "canonical_value_sha256": null,
+      "semantic_finding_id": null,
+      "unit_comparison_finding_id": null
     }
   ]
 }
