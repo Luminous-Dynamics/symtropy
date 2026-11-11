@@ -9,8 +9,10 @@
 //! is not symplectic.
 //!
 //! Supports exterior Boyer-Lindquist and horizon-regular ingoing Kerr charts.
-//! The affine parameter and canonical state are dimensionless. The caller
-//! supplies the initial canonical state; no observer tetrad is inferred.
+//! The affine parameter and canonical state are dimensionless. An optional
+//! variational path advances the full canonical fundamental matrix with the
+//! same step-doubling controller. The caller supplies the initial canonical
+//! state; no observer tetrad or optical screen basis is inferred.
 
 use core::fmt;
 
@@ -900,6 +902,78 @@ mod tests {
             <= distance(coarse.samples.last().unwrap().state, reference.samples.last().unwrap().state));
     }
 
+
+    fn perturb_state(state: KerrCanonicalState, component: usize, delta: f64) -> KerrCanonicalState {
+        let mut values = flatten(state);
+        values[component] += delta;
+        unflatten(values)
+    }
+
+    #[test]
+    fn variational_fundamental_matrix_tracks_neighbouring_integrated_rays() {
+        let black_hole = hole(0.7);
+        let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
+        let canonical = KerrCanonicalHamiltonian::new(black_hole);
+        let initial = canonical.state_from_separated(
+            KerrMinoState::new(0.0, 10.0, 1.0, 0.0),
+            constants,
+            KerrMinoDirection::Decreasing,
+            KerrMinoDirection::Increasing,
+        ).unwrap();
+        let integrator = KerrNullTrajectoryIntegrator::new(
+            black_hole, KerrIntegrationChart::BoyerLindquist, options(),
+        ).unwrap();
+
+        let variational = integrator.integrate_fundamental_matrix(initial, 0.05).unwrap();
+        assert!(variational.accepted_steps > 0);
+        assert!(variational.samples.len() > 1);
+        for index in 0..8 {
+            for column in 0..8 {
+                let expected = if index == column { 1.0 } else { 0.0 };
+                assert!((variational.samples[0].fundamental_matrix[index][column] - expected).abs() < 1e-14);
+            }
+        }
+        assert!(variational.maximum_fundamental_symplectic_residual < 1e-5);
+        assert!(variational.samples.iter().all(|sample|
+            sample.local_symplectic_lie_residual < 2e-10
+                && sample.fundamental_symplectic_residual.is_finite()));
+
+        // Compare the p_theta column of Phi with an independently integrated
+        // central finite-difference bundle. The production method evolves A*Phi.
+        let epsilon = 2e-5;
+        let plus = integrator.integrate(perturb_state(initial, 6, epsilon), 0.05).unwrap();
+        let minus = integrator.integrate(perturb_state(initial, 6, -epsilon), 0.05).unwrap();
+        let plus_final = flatten(plus.samples.last().unwrap().state);
+        let minus_final = flatten(minus.samples.last().unwrap().state);
+        let tangent = &variational.samples.last().unwrap().fundamental_matrix;
+        for row in 0..8 {
+            let finite_difference = (plus_final[row] - minus_final[row]) / (2.0 * epsilon);
+            let expected = tangent[row][6];
+            assert!(
+                (finite_difference - expected).abs() <= 2e-4 * (1.0 + finite_difference.abs()),
+                "row={row}, finite_difference={finite_difference:.12e}, tangent={expected:.12e}"
+            );
+        }
+    }
+
+    #[test]
+    fn variational_integrator_rejects_nonpositive_affine_interval() {
+        let black_hole = hole(0.5);
+        let constants = KerrNullConstants::new(1.0, 0.0, 0.0).unwrap();
+        let initial = KerrCanonicalHamiltonian::new(black_hole).state_from_separated(
+            KerrMinoState::new(0.0, 10.0, core::f64::consts::FRAC_PI_2, 0.0),
+            constants,
+            KerrMinoDirection::Decreasing,
+            KerrMinoDirection::Increasing,
+        ).unwrap();
+        let integrator = KerrNullTrajectoryIntegrator::new(
+            black_hole, KerrIntegrationChart::BoyerLindquist, options(),
+        ).unwrap();
+        assert!(matches!(
+            integrator.integrate_fundamental_matrix(initial, 0.0),
+            Err(KerrIntegratorError::InvalidAffineInterval(_))
+        ));
+    }
 
     #[test]
     fn trajectory_records_all_three_constraint_channels_at_each_sample() {
