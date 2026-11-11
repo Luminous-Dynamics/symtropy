@@ -204,7 +204,9 @@ impl UncertaintyState {
             }
         }
         self.covariance.validate(self.variables.len())?;
-        if self.uncertainty_sources.is_empty() {
+        if self.uncertainty_sources.is_empty()
+            && self.covariance.values.iter().flatten().any(|value| value.abs() > 0.0)
+        {
             return Err(UncertaintyPropagationError::MissingUncertaintySource);
         }
 
@@ -467,14 +469,45 @@ pub fn propagate_linear_uncertainty(
             measurement_unit: input.measurement_unit.clone(),
         })
         .collect();
+    let input_indices: std::collections::BTreeMap<&str, usize> = input
+        .variables
+        .iter()
+        .enumerate()
+        .map(|(index, variable)| (variable.variable_id.as_str(), index))
+        .collect();
+    let mut output_sources = Vec::new();
+    for source in &input.uncertainty_sources {
+        let affected_input_indices: Vec<usize> = source
+            .affected_variable_ids
+            .iter()
+            .filter_map(|variable_id| input_indices.get(variable_id.as_str()).copied())
+            .collect();
+        let affected_output_ids: Vec<String> = transform
+            .coefficients
+            .iter()
+            .enumerate()
+            .filter(|(_, row)| {
+                affected_input_indices
+                    .iter()
+                    .any(|input_index| row[*input_index] != 0.0)
+            })
+            .map(|(output_index, _)| transform.output_variable_ids[output_index].clone())
+            .collect();
+        if !affected_output_ids.is_empty() {
+            let mut propagated_source = source.clone();
+            propagated_source.affected_variable_ids = affected_output_ids;
+            output_sources.push(propagated_source);
+        }
+    }
     let output_state = UncertaintyState {
         state_id: transform.output_state_id.clone(),
         measurement_unit: input.measurement_unit.clone(),
         variables: output_variables,
         estimates: output_estimates,
         covariance: output_covariance.clone(),
-        uncertainty_sources: input.uncertainty_sources.clone(),
+        uncertainty_sources: output_sources,
     };
+    output_state.validate()?;
     let standard_uncertainties = (0..output_covariance.dimension())
         .map(|index| output_covariance.values[index][index].max(0.0).sqrt())
         .collect();
@@ -673,6 +706,48 @@ mod tests {
         assert_eq!(result.output_state.covariance.values, vec![vec![6.0]]);
         assert_eq!(result.standard_uncertainties, vec![6.0_f64.sqrt()]);
         assert_eq!(result.output_state.uncertainty_sources.len(), 2);
+    }
+
+    #[test]
+    fn propagated_output_state_remaps_uncertainty_sources_to_output_variables() {
+        let input = state(
+            "input-lineage",
+            &["water", "energy"],
+            &[10.0, 20.0],
+            vec![vec![1.0, 0.2], vec![0.2, 4.0]],
+            vec![
+                source("water-source", NumericUncertaintyKind::SamplingDesign, "sha256-water", &["water"], None),
+                source("energy-source", NumericUncertaintyKind::Measurement, "sha256-energy", &["energy"], None),
+            ],
+        );
+        let result = propagate_linear_uncertainty(
+            &input,
+            &transform(
+                &input,
+                &["combined", "water-only"],
+                vec![vec![1.0, 1.0], vec![1.0, 0.0]],
+                "lineage-remap",
+            ),
+        )
+        .expect("source lineage maps through transform");
+        result.output_state.validate().expect("output state is independently valid");
+        let water = result
+            .output_state
+            .uncertainty_sources
+            .iter()
+            .find(|source| source.source_id == "water-source")
+            .expect("water source retained");
+        assert_eq!(
+            water.affected_variable_ids,
+            vec!["combined".to_string(), "water-only".to_string()]
+        );
+        let energy = result
+            .output_state
+            .uncertainty_sources
+            .iter()
+            .find(|source| source.source_id == "energy-source")
+            .expect("energy source retained");
+        assert_eq!(energy.affected_variable_ids, vec!["combined".to_string()]);
     }
 
     #[test]
