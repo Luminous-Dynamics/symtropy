@@ -85,6 +85,9 @@ pub struct CandidateAudit {
     pub scenario_id: String,
     pub design_id: String,
     pub source_evidence_class: String,
+    pub service_evidence_class: String,
+    pub battery_energy_evidence_class: String,
+    pub elapsed_time_evidence_class: String,
     pub source_mission_status: String,
     pub disposition: String,
     pub frontier_eligible: bool,
@@ -436,6 +439,9 @@ fn resolve_candidate(
             scenario_id: scenario_id.to_owned(),
             design_id: design_id.to_owned(),
             source_evidence_class: source_evidence.to_owned(),
+            service_evidence_class: candidate.service_delivery.evidence_class.clone(),
+            battery_energy_evidence_class: candidate.battery_energy.evidence_class.clone(),
+            elapsed_time_evidence_class: candidate.elapsed_time.evidence_class.clone(),
             source_mission_status: mission_status.to_owned(),
             disposition,
             frontier_eligible,
@@ -581,16 +587,41 @@ pub fn audit_corpus(schema_bytes: &[u8], corpus_bytes: &[u8]) -> Result<AuditRep
             .filter(|candidate| candidate.audit.disposition == disposition)
             .count()
     };
-    let source_grade = if resolved
+    let has_unknown_evidence = resolved.iter().any(|candidate| {
+        candidate.audit.disposition == "INDETERMINATE"
+            || [
+                candidate.audit.source_evidence_class.as_str(),
+                candidate.audit.service_evidence_class.as_str(),
+                candidate.audit.battery_energy_evidence_class.as_str(),
+                candidate.audit.elapsed_time_evidence_class.as_str(),
+            ]
+            .contains(&"unknown")
+    });
+    let has_synthetic_evidence = resolved.iter().any(|candidate| {
+        [
+            candidate.audit.source_evidence_class.as_str(),
+            candidate.audit.service_evidence_class.as_str(),
+            candidate.audit.battery_energy_evidence_class.as_str(),
+            candidate.audit.elapsed_time_evidence_class.as_str(),
+        ]
+        .contains(&"synthetic")
+    });
+    let has_evidence_backed_inputs = resolved.iter().any(|candidate| {
+        [
+            candidate.audit.source_evidence_class.as_str(),
+            candidate.audit.service_evidence_class.as_str(),
+            candidate.audit.battery_energy_evidence_class.as_str(),
+            candidate.audit.elapsed_time_evidence_class.as_str(),
+        ]
         .iter()
-        .all(|candidate| candidate.audit.source_evidence_class == "synthetic")
-    {
-        "SYNTHETIC_ONLY"
-    } else if resolved.iter().any(|candidate| {
-        candidate.audit.source_evidence_class == "unknown"
-            || candidate.audit.disposition == "INDETERMINATE"
-    }) {
+        .any(|grade| !["synthetic", "unknown"].contains(grade))
+    });
+    let source_grade = if has_unknown_evidence {
         "MIXED_OR_INDETERMINATE"
+    } else if has_synthetic_evidence && has_evidence_backed_inputs {
+        "MIXED_SYNTHETIC_AND_EVIDENCE_BACKED"
+    } else if has_synthetic_evidence {
+        "SYNTHETIC_ONLY"
     } else {
         "EVIDENCE_BACKED_SCREEN_NOT_PHYSICAL_VALIDATION"
     };
@@ -821,4 +852,15 @@ mod tests {
         assert_eq!(audit.eligible_candidate_count, 0);
         assert!(audit.robust_frontier_candidate_ids.is_empty());
     }
+    #[test]
+    fn unknown_objective_evidence_makes_the_option_set_indeterminate() {
+        let mut corpus: Value = serde_json::from_slice(CORPUS).expect("corpus");
+        corpus["candidates"][0]["battery_energy"]["evidence_class"] = Value::String("unknown".into());
+        let bytes = serde_json::to_vec(&corpus).expect("unknown objective evidence");
+        let audit = audit_corpus(SCHEMA, &bytes).expect("indeterminate evidence is retained");
+        assert_eq!(audit.source_grade, "MIXED_OR_INDETERMINATE");
+        assert_eq!(candidate(&audit, "baseline").disposition, "INDETERMINATE");
+        assert_eq!(candidate(&audit, "baseline").battery_energy_evidence_class, "unknown");
+    }
+
 }
