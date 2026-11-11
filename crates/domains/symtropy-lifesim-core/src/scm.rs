@@ -745,6 +745,45 @@ mod tests {
         assert_eq!(second.total_function_evaluations, 9);
     }
 
+    struct UnboundedFitness;
+
+    impl ScmLandscape for UnboundedFitness {
+        fn fitness_and_gradient(&self, position: &[f64]) -> Result<(f64, Vec<f64>), String> {
+            Ok((1.1, vec![0.0; position.len()]))
+        }
+    }
+
+    #[test]
+    fn paper_and_repository_kernel_variants_change_the_social_trajectory() {
+        let agents = small_agents();
+        let paper_config = ScmConfig {
+            tau_steps: 4,
+            kernel: ScmInteractionKernel::PublishedHtmlEquation,
+            ..ScmConfig::default()
+        };
+        let repository_config = ScmConfig {
+            tau_steps: 4,
+            kernel: ScmInteractionKernel::RepositoryMatlabSource,
+            ..ScmConfig::default()
+        };
+        let mut paper = ScmModel::new(agents.clone(), paper_config, 101).unwrap();
+        let mut repository = ScmModel::new(agents, repository_config, 101).unwrap();
+
+        paper.step(&Flat).unwrap();
+        repository.step(&Flat).unwrap();
+
+        assert_ne!(paper.agents(), repository.agents());
+    }
+
+    #[test]
+    fn rejects_fitness_outside_dimensionless_unit_interval() {
+        let mut model = ScmModel::new(small_agents(), ScmConfig::default(), 103).unwrap();
+        assert!(matches!(
+            model.step(&UnboundedFitness),
+            Err(ScmError::InvalidLandscapeObservation { .. })
+        ));
+    }
+
     #[test]
     fn rejects_one_agent_and_odd_consensus_window() {
         assert!(matches!(
