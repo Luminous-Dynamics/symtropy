@@ -1154,6 +1154,96 @@ mod tests {
         assert_eq!(second.total_function_evaluations, 9);
     }
 
+    #[test]
+    fn complete_graph_matches_metric_radius_that_connects_every_agent() {
+        let agents = small_agents();
+        let complete_config = ScmConfig {
+            tau_steps: 4,
+            communication_topology: ScmCommunicationTopology::CompleteGraph,
+            ..ScmConfig::default()
+        };
+        let radius_config = ScmConfig {
+            tau_steps: 4,
+            communication_topology: ScmCommunicationTopology::MetricRadius { radius: 2.0 },
+            ..ScmConfig::default()
+        };
+        let mut complete = ScmModel::new(agents.clone(), complete_config, 211).unwrap();
+        let mut radius = ScmModel::new(agents, radius_config, 211).unwrap();
+
+        let complete_reports = complete.run_steps(&Quadratic, 12).unwrap();
+        let radius_reports = radius.run_steps(&Quadratic, 12).unwrap();
+
+        assert_eq!(complete.agents(), radius.agents());
+        assert_eq!(complete.sigma(), radius.sigma());
+        assert_eq!(complete.total_function_evaluations(), radius.total_function_evaluations());
+        for (left, right) in complete_reports.iter().zip(radius_reports.iter()) {
+            assert_eq!(left.consensus, right.consensus);
+            assert_eq!(left.centroid, right.centroid);
+            assert_eq!(left.mean_agent_distance, right.mean_agent_distance);
+            assert_eq!(left.maximum_pairwise_distance, right.maximum_pairwise_distance);
+            assert_eq!(left.mean_communicating_neighbors, 2.0);
+            assert_eq!(right.mean_communicating_neighbors, 2.0);
+        }
+    }
+
+    #[test]
+    fn ring_topology_reports_two_neighbors_per_agent_for_four_agent_ring() {
+        let agents = vec![
+            ScmAgent { position: vec![0.1, 0.1] },
+            ScmAgent { position: vec![0.8, 0.1] },
+            ScmAgent { position: vec![0.8, 0.8] },
+            ScmAgent { position: vec![0.1, 0.8] },
+        ];
+        let config = ScmConfig {
+            communication_topology: ScmCommunicationTopology::Ring,
+            ..ScmConfig::default()
+        };
+        let mut model = ScmModel::new(agents, config, 223).unwrap();
+        let report = model.step(&Flat).unwrap();
+
+        assert_eq!(report.mean_communicating_neighbors, 2.0);
+        assert_eq!(report.isolated_agents, 0);
+        assert_eq!(report.communication_topology, ScmCommunicationTopology::Ring);
+    }
+
+    #[test]
+    fn zero_radius_topology_is_a_no_communication_control() {
+        let agents = small_agents();
+        let config = ScmConfig {
+            communication_topology: ScmCommunicationTopology::MetricRadius { radius: 0.0 },
+            ..ScmConfig::default()
+        };
+        let mut model = ScmModel::new(agents.clone(), config, 227).unwrap();
+        let report = model.step(&Flat).unwrap();
+
+        assert_eq!(report.mean_communicating_neighbors, 0.0);
+        assert_eq!(report.isolated_agents, agents.len());
+        assert_eq!(report.locally_degenerate_spread_agents, agents.len());
+        assert!(report.swarm_spread_degenerate);
+        assert_eq!(
+            model.agents().iter().map(|agent| agent.position.clone()).collect::<Vec<_>>(),
+            agents.iter().map(|agent| agent.position.clone()).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn rejects_negative_metric_communication_radius() {
+        assert!(matches!(
+            ScmModel::new(
+                small_agents(),
+                ScmConfig {
+                    communication_topology: ScmCommunicationTopology::MetricRadius { radius: -0.1 },
+                    ..ScmConfig::default()
+                },
+                229
+            ),
+            Err(ScmError::InvalidParameter {
+                name: "communication_radius",
+                ..
+            })
+        ));
+    }
+
     struct UnboundedFitness;
 
     impl ScmLandscape for UnboundedFitness {
