@@ -97,3 +97,16 @@ The field's 2026 reviews also caution that physical validation methods and error
 
 Aspirational target: at least 5% improvement on one preregistered quality-adjusted outcome versus the strongest matched baseline, with no protected constraint violation or deterioration in other critical outcomes. This is not an achieved result. The BAM dataset's five WIDs remain a small exploratory cohort; WID-grouped evaluation and uncertainty reporting are mandatory.
 
+
+
+## Deformation-aware and collision-planning comparators
+
+**Zhang et al. (25 August 2026), DMOPP** (Applied Sciences 16(17), 8463; DOI 10.3390/app16178463) reports an XGBoost surrogate with R²=0.8447 and RMSE=0.0841 mm against held-out FE results and nominal 95% CV+ intervals with 97.12% empirical coverage. In three physical welding trials, mean maximum displacement at six measurement points fell from 1.2210 ± 0.1347 mm to 0.5490 ± 0.1204 mm (55.04% reduction). Keep its FE surrogate metrics separate from the three physical trials and do not compare directly to BAM's different joint/process.
+
+**Hong et al. (6 October 2026)** reports 20% shorter average transition path and 8% higher minimum clearance for a representative scenario, but single-attempt success declined from 97% to 52%; three retries raised effective success to 90.7%, with planning time approximately 25% higher. Our transition benchmark must report path length, clearance, first-attempt success, retry-adjusted success and planning latency together.
+
+**Wang et al. (October 2026)** reports path RMSE up to 0.1334 mm and torch-posture RMSE up to 0.8064° for online 6-DOF trajectory planning (DOI 10.1016/j.rcim.2026.103315). This is a trajectory comparator, not an inter-pass volume/quality result.
+
+A 2026 closed-loop robotic welding survey is indexed for February 2027 (DOI 10.1016/j.rcim.2026.103375); it is forthcoming as of 11 November 2026 and is not treated as currently published evidence.
+
+Mancini & Skriko's review (7 November 2026; DOI 10.1007/s40194-026-02695-6) stresses that there are few common large-structure benchmarks and that material/geometry/constraint heterogeneity makes direct leaderboard comparisons misleading. It identifies sparse reviewed coverage of aluminium (~10%) and high-strength steels (~1%), reinforcing the need for explicit domain coverage and local-to-global transfer tests.
