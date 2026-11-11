@@ -76,8 +76,8 @@ pub trait PhysicsCallback<const D: usize> {
     /// physical impacts (e.g., calculating trauma, adjusting internal state).
     fn on_collision(&mut self, event: &CollisionEvent<D>);
 
-    /// Called after each physics step to record energy dissipated.
-    fn record_dissipation(&mut self, energy: f64);
+    /// Record frictional kinetic energy dissipated by resolved contacts, in joules.
+    fn record_dissipation(&mut self, energy_joules: f64);
 
     /// Record mechanical work performed (or energy recovered) by an actuator.
     /// Positive work = energy consumed (motor driving motion).
@@ -1198,7 +1198,7 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
                     integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
 
-                    total_friction_dissipation += j_t.abs() * 0.1;
+                    // Impulse work gives the exact kinetic-energy change for this
                 }
             }
         }
