@@ -255,6 +255,15 @@ impl<const D: usize> BivectorInertia<D> {
         }
 
         let second_moments = semi_axes.map(|axis| mass * axis * axis / (D as f64 + 2.0));
+        // Positive finite mass and axes define a strictly positive tensor.
+        // Reject overflow and underflow rather than silently turning a
+        // representable input geometry into zero/negative rotational inertia.
+        if second_moments
+            .iter()
+            .any(|moment| !moment.is_finite() || *moment <= 0.0)
+        {
+            return Err(RotationalInertiaError::NonFinite);
+        }
         Self::from_second_moment(SMatrix::<f64, D, D>::from_diagonal(&second_moments))
     }
 
@@ -1061,6 +1070,24 @@ mod tests {
                 .angular_velocity_from_momentum(&Bivector::zero(), 0.0)
                 .unwrap_err(),
             RotationalInertiaError::InvalidTolerance
+        );
+        assert_eq!(
+            inertia
+                .angular_velocity_from_momentum(&Bivector::zero(), 1.0)
+                .unwrap_err(),
+            RotationalInertiaError::InvalidTolerance
+        );
+    }
+
+    #[test]
+    fn ellipsoid_constructor_rejects_underflowed_positive_moments() {
+        assert_eq!(
+            BivectorInertia::<3>::uniform_solid_ellipsoid(
+                1.0e-300,
+                SVector::new(1.0e-100, 1.0e-100, 1.0e-100),
+            )
+            .unwrap_err(),
+            RotationalInertiaError::NonFinite
         );
     }
 
