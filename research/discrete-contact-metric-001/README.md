@@ -49,13 +49,14 @@ solver's nonnegative impulse result rather than an absolute impulse cutoff.
 
 The regression suite checks a one-contact solution at mass scales
 `1e-12`, `1` and `1e12`, plus rejection of a small-magnitude but
-relatively asymmetric stiffness matrix. This is a narrow scale-covariance
-check, not a claim that every tolerance in the reference is dimensionless:
-the LCP feasibility and complementarity thresholds are still absolute and
-need a separate unit-/scale-normalized residual design before this crate can
-serve as a general numerical qualification oracle.
+relatively asymmetric stiffness matrix. The later **Unit-aware contact
+residual contract** section supersedes the original residual limitation: the
+active-set admission path now uses dimensionless dual, primal, complementarity
+and effective-metric equation residuals. Arbitrary mixed generalized-coordinate
+scaling, ill-conditioned coordinates and a normalized energy/work ledger remain
+open research limits.
 
-## Comparator snapshot — 2026-11-10
+## Comparator snapshot — 2026-11-11
 
 These are capability comparators, not interchangeable ground-truth solvers. Pin exact binaries/commits, precision, backend, contact law, integrator, timestep, and solver tolerances before comparing.
 
@@ -78,13 +79,13 @@ The next matched comparison should add the same frozen matrix problem to Symtrop
 Absolute residuals remain useful diagnostics, but they cannot decide physical admission across different unit systems. The solver now uses dimensionless acceptance residuals while retaining its absolute residual fields for traceability:
 
 - Effective-metric equation: for each generalized coordinate, divide `|M_hat v+ - M v - h f + h K q_error - J^T p|` by the largest absolute contributing term on that coordinate; report the maximum.
-- Dual feasibility: divide the largest negative impulse violation by the impulse vector infinity norm.
+- Dual feasibility: for each contact row i, divide `max(-p_i, 0)` by its own characteristic impulse scale `max(|p_i|, (|q_i| + Σ_{j ≠ i}|W_ij||p_j|)/|W_ii|)`, where `W = J M_hat^-1 J^T` and `q = target - J v_free`. Aggregate by the maximum row residual. This prevents a large unrelated contact impulse from hiding a smaller row's negative impulse.
 - Primal feasibility: per contact row, divide the negative part of `J_i v+ - target_i` by `max(|J_i v+|, |target_i|)`.
 - Complementarity: for each row with positive impulse, divide `|p_i s_i|` by `|p_i| max(|J_i v+|, |target_i|)`; zero-impulse rows satisfy complementarity by construction.
 
-Zero-scale handling is explicit: an exactly zero residual maps to zero; a nonzero violation with no nonzero reference scale maps to infinity and is rejected. The active-set candidate checks use these normalized criteria rather than absolute, dimensioned cutoffs. Absolute residual outputs remain available and must not be interpreted as cross-unit acceptance scores.
+Zero-scale handling is explicit: an exactly zero residual maps to zero; a nonzero violation with no nonzero reference scale maps to infinity and is rejected. The active-set candidate checks use these normalized criteria rather than absolute, dimensioned cutoffs. The dual scale is row-local, not the global impulse-vector infinity norm. Absolute residual outputs remain available and must not be interpreted as cross-unit acceptance scores.
 
-The new regression suite checks the one-contact step at uniform mass scales `1e-12`, `1`, and `1e12`, and checks normalized feasibility/complementarity invariance under uniform velocity and impulse rescaling. This is not a proof of invariance under arbitrary mixed generalized-coordinate scaling or badly conditioned coordinate changes. Those require coordinate-aware characteristic scales and separate metamorphic tests.
+The regression suite checks the one-contact step at uniform mass scales `1e-12`, `1`, and `1e12`; normalized feasibility/complementarity invariance under uniform velocity and impulse rescaling; and a mixed-scale negative control where a local negative impulse is 100% infeasible but would appear negligible under global-vector normalization. This is not a proof of invariance under arbitrary mixed generalized-coordinate scaling or badly conditioned coordinate changes. Those still require coordinate-aware characteristic scales and separate metamorphic tests.
 
 Still outstanding: a normalized energy/work ledger (including contact work and frictional dissipation), error bounds under nonzero restitution and friction, and independent KKT residual comparison on a broader corpus. The current reference remains frictionless, zero restitution, fixed-J, single-step and small-island only.
 
