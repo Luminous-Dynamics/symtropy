@@ -47,6 +47,15 @@ R_y = S^-1 R_q S
 R_y^T M_y R_y = M_y
 ```
 
+## Frozen machine-readable case
+
+The benchmark inputs and expected independent reference outputs are also frozen in:
+
+- `fixtures/covariance_case_v0.1.json` — exact dense integer basis matrices, physical state, masses, force covector, timestep, conditioning, golden one-step outputs and negative-control magnitudes;
+- `fixtures/covariance_case_v0.1.schema.json` — Draft 2020-12 structural schema.
+
+The fixture is independent of the Rust helper that procedurally constructs the two basis matrices. External adapters should load this fixture and bind their output receipts to its case ID and exact bytes. The embedded NumPy values remain reference expectations, not Rust execution evidence.
+
 ## Executable slice
 
 The reference solves the midpoint constrained equations directly in a six-dimensional generalized-coordinate representation.
