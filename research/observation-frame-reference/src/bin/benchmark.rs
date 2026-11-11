@@ -13,16 +13,20 @@ struct BenchmarkResult {
     profile: String,
     architecture: String,
     target_os: String,
+    runner_image_os: String,
+    runner_image_version: String,
+    cpu_model: String,
+    rustc_version: String,
     github_sha: String,
     entity_count: usize,
     observable_count: usize,
     event_count: usize,
     samples: usize,
-    p50_us: u128,
-    p95_us: u128,
-    p99_us: u128,
-    min_us: u128,
-    max_us: u128,
+    p50_ns: u128,
+    p95_ns: u128,
+    p99_ns: u128,
+    min_ns: u128,
+    max_ns: u128,
     input_bytes: usize,
     input_bytes_per_entity_including_events: f64,
     compile_entities_per_second_at_p50: f64,
@@ -127,28 +131,32 @@ fn run_profile(
         if receipt.entity_count != entity_count || receipt.event_count != event_count {
             return Err("benchmark receipt count mismatch".into());
         }
-        timings.push(elapsed.as_micros().max(1));
+        timings.push(elapsed.as_nanos().max(1));
     }
 
     timings.sort_unstable();
     let p50 = percentile(&timings, 50);
-    let entities_per_second = entity_count as f64 * 1_000_000.0 / p50 as f64;
-    let events_per_second = event_count as f64 * 1_000_000.0 / p50 as f64;
+    let entities_per_second = entity_count as f64 * 1_000_000_000.0 / p50 as f64;
+    let events_per_second = event_count as f64 * 1_000_000_000.0 / p50 as f64;
     Ok(BenchmarkResult {
         profile: format!("entities-{entity_count}-events-{event_count}"),
         architecture: std::env::consts::ARCH.to_string(),
         target_os: std::env::consts::OS.to_string(),
+        runner_image_os: std::env::var("RUNNER_IMAGE_OS").unwrap_or_else(|_| "unrecorded".to_string()),
+        runner_image_version: std::env::var("RUNNER_IMAGE_VERSION").unwrap_or_else(|_| "unrecorded".to_string()),
+        cpu_model: std::env::var("CPU_MODEL").unwrap_or_else(|_| "unrecorded".to_string()),
+        rustc_version: std::env::var("RUSTC_VERSION").unwrap_or_else(|_| "unrecorded".to_string()),
         github_sha: std::env::var("GITHUB_SHA")
             .unwrap_or_else(|_| "unrecorded-local-run".to_string()),
         entity_count,
         observable_count: entity_count,
         event_count,
         samples,
-        p50_us: p50,
-        p95_us: percentile(&timings, 95),
-        p99_us: percentile(&timings, 99),
-        min_us: timings[0],
-        max_us: timings[timings.len() - 1],
+        p50_ns: p50,
+        p95_ns: percentile(&timings, 95),
+        p99_ns: percentile(&timings, 99),
+        min_ns: timings[0],
+        max_ns: timings[timings.len() - 1],
         input_bytes,
         input_bytes_per_entity_including_events: input_bytes as f64 / entity_count as f64,
         compile_entities_per_second_at_p50: entities_per_second,
