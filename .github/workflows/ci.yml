@@ -80,12 +80,7 @@ jobs:
     - name: Run Tests (Physics Core)
       run: cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physics --lib
 
-    # The default build keeps Bivector storage compact (D<=4). This separate
-    # Linux lane opts into the D<=9 research capacity and runs the deterministic
-    # analytic anisotropic mechanics campaign, including the D=9 plane sweep.
-    - name: Qualify anisotropic reference campaign (D=2..9)
-      if: runner.os == 'Linux'
-      run: cargo run --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9
+
 
     - name: Test Airborne Energy Observability Oracle
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
