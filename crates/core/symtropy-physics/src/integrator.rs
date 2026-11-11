@@ -78,7 +78,7 @@ pub fn integrate<const D: usize>(body: &mut RigidBody<D>, gravity: &SVector<f64,
     // The 3D path rotates body-local principal moments into world space;
     // higher-dimensional compatibility paths remain explicitly approximate.
     let angular_acceleration =
-        body.apply_inverse_angular_inertia(&body.torque_accumulator);
+        body.angular_acceleration_from_torque(&body.torque_accumulator);
 
     // Update angular velocity
     body.angular_velocity = body
