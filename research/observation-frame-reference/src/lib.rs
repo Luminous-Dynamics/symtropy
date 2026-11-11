@@ -60,6 +60,8 @@ pub struct ModelTimeV1 {
 #[serde(deny_unknown_fields)]
 pub struct ObservationEntityV1 {
     pub scenario_entity_id: String,
+    /// True only when the entity is included in a claim-bearing observation scope.
+    pub claim_bearing: bool,
     pub coordinate_frame_id: String,
     pub binding_receipt_sha256: Option<String>,
     pub runtime_subject: Option<RuntimeSubjectRefV1>,
@@ -171,6 +173,7 @@ pub enum FrameError {
     DuplicateEventId(String),
     DuplicateRuntimeSubject(String),
     InvalidRuntimeSubject,
+    ClaimBearingSubjectMissing(String),
     InvalidObservationDisposition(String),
     InvalidBinary64Bits(String),
     InvalidUncertainty(String),
@@ -290,6 +293,13 @@ fn validate_frame(input: &ObservationFrameInputV1) -> Result<(), FrameError> {
         require_text(&entity.coordinate_frame_id, "coordinate_frame_id")?;
         if let Some(binding) = entity.binding_receipt_sha256.as_deref() {
             require_sha256(binding, "binding_receipt_sha256")?;
+        }
+        if entity.claim_bearing
+            && (entity.runtime_subject.is_none() || entity.binding_receipt_sha256.is_none())
+        {
+            return Err(FrameError::ClaimBearingSubjectMissing(
+                entity.scenario_entity_id.clone(),
+            ));
         }
         if let Some(subject) = &entity.runtime_subject {
             require_text(&subject.physical_authority_id, "physical_authority_id")?;
@@ -750,6 +760,26 @@ mod tests {
         let nan = compile_observation_frame(other_nan).expect("NaN payload");
         assert_ne!(positive.frame_sha256, negative.frame_sha256);
         assert_ne!(negative.frame_sha256, nan.frame_sha256);
+    }
+
+    #[test]
+    fn claim_bearing_entity_requires_a_stable_subject_and_binding_receipt() {
+        let mut input = fixture();
+        input.entities[0].runtime_subject = None;
+        assert!(matches!(
+            compile_observation_frame(input),
+            Err(FrameError::ClaimBearingSubjectMissing(_))
+        ));
+    }
+
+    #[test]
+    fn changed_run_identity_changes_frame_digest() {
+        let input = fixture();
+        let original = compile_observation_frame(input.clone()).expect("original");
+        let mut changed = input;
+        changed.identity.run_id = "machine-test-01-run-0002".to_string();
+        let next = compile_observation_frame(changed).expect("changed run");
+        assert_ne!(original.frame_sha256, next.frame_sha256);
     }
 
     #[test]
