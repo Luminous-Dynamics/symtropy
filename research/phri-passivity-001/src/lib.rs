@@ -54,6 +54,10 @@ pub enum PassivityError {
     NonMonotonicSampleId,
     NonFinitePortSample,
     ArithmeticOverflow,
+    InvalidEnergyBudget,
+    InvalidUpdateWeight,
+    InvalidUpdateBounds,
+    EnergyBudgetInfeasible,
 }
 
 impl fmt::Display for PassivityError {
@@ -375,6 +379,228 @@ pub struct VirtualParameterStorageDelta {
     pub uncredited_storage_release_j: f64,
 }
 
+/// A bounded proposed update for the diagonal virtual inertia/stiffness model.
+///
+/// Parameter order is [M0..M5, K0..K5]. Bounds are deltas and must already
+/// encode rate limits plus absolute minimum/maximum parameter limits.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct VirtualParameterUpdateRequest {
+    pub old: DiagonalVirtualImpedance,
+    pub desired_delta: [f64; 12],
+    pub lower_delta: [f64; 12],
+    pub upper_delta: [f64; 12],
+    /// Positive diagonal weights in the quadratic deviation objective.
+    pub objective_weights: [f64; 12],
+    pub error: [f64; 6],
+    pub relative_velocity: [f64; 6],
+    /// Available energy budget for positive parameter-induced storage change.
+    pub available_energy_budget_j: f64,
+}
+
+/// Fixed-size solution to the one-budget diagonal parameter projection.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct VirtualParameterUpdateSelection {
+    pub accepted_delta: [f64; 12],
+    pub parameter_energy_debit_j: f64,
+    /// Reported but not credited against the budget.
+    pub uncredited_storage_release_j: f64,
+    /// Dual multiplier for the active positive-storage budget constraint.
+    pub energy_budget_multiplier: f64,
+    pub budget_constraint_active: bool,
+}
+
+/// Project a desired diagonal parameter update onto a conservative energy budget.
+///
+/// Solves the separable convex problem:
+///
+/// minimize 0.5 * sum_i w_i * (delta_i - desired_i)^2
+/// subject to sum_i a_i * max(delta_i, 0) <= available_budget
+///            lower_i <= delta_i <= upper_i
+///
+/// where a_i = 0.5*v_i^2 for virtual inertia and 0.5*e_i^2 for stiffness.
+///
+/// Negative parameter changes are allowed but are not used to fund positive
+/// changes. The implementation uses the scalar KKT multiplier and 80 fixed
+/// bisection iterations. It is allocation-free and handles 12 diagonal
+/// parameters; it is not a general matrix-valued QP solver.
+pub fn project_diagonal_virtual_parameter_update(
+    request: VirtualParameterUpdateRequest,
+) -> Result<VirtualParameterUpdateSelection, VirtualImpedanceError> {
+    let mut coefficients = [0.0_f64; 12];
+    for index in 0..6 {
+        let mass = request.old.virtual_inertia[index];
+        let stiffness = request.old.stiffness[index];
+        let error = request.error[index];
+        let velocity = request.relative_velocity[index];
+
+        if !mass.is_finite() || mass <= 0.0 {
+            return Err(VirtualImpedanceError::NonPositiveVirtualInertia);
+        }
+        if !stiffness.is_finite() || stiffness < 0.0 {
+            return Err(VirtualImpedanceError::NegativeStiffness);
+        }
+        if !error.is_finite() || !velocity.is_finite() {
+            return Err(VirtualImpedanceError::NonFiniteErrorOrVelocity);
+        }
+        coefficients[index] = 0.5 * velocity * velocity;
+        coefficients[index + 6] = 0.5 * error * error;
+    }
+
+    if !request.available_energy_budget_j.is_finite()
+        || request.available_energy_budget_j < 0.0
+    {
+        return Err(VirtualImpedanceError::InvalidEnergyBudget);
+    }
+
+    let mut minimum_debit = 0.0_f64;
+    let mut maximum_multiplier = 0.0_f64;
+    let mut baseline = [0.0_f64; 12];
+
+    for index in 0..12 {
+        let desired = request.desired_delta[index];
+        let lower = request.lower_delta[index];
+        let upper = request.upper_delta[index];
+        let weight = request.objective_weights[index];
+        let coefficient = coefficients[index];
+
+        if !desired.is_finite() || !lower.is_finite() || !upper.is_finite() {
+            return Err(VirtualImpedanceError::NonFiniteParameter);
+        }
+        if !weight.is_finite() || weight <= 0.0 {
+            return Err(VirtualImpedanceError::InvalidUpdateWeight);
+        }
+        if lower > upper {
+            return Err(VirtualImpedanceError::InvalidUpdateBounds);
+        }
+
+        if index < 6 {
+            let old = request.old.virtual_inertia[index];
+            if old + lower <= 0.0 {
+                return Err(VirtualImpedanceError::InvalidUpdateBounds);
+            }
+        } else {
+            let old = request.old.stiffness[index - 6];
+            if old + lower < 0.0 {
+                return Err(VirtualImpedanceError::InvalidUpdateBounds);
+            }
+        }
+
+        let nonnegative_floor = lower.max(0.0);
+        minimum_debit += coefficient * nonnegative_floor;
+        if !minimum_debit.is_finite() {
+            return Err(VirtualImpedanceError::ArithmeticOverflow);
+        }
+
+        // The unconstrained minimizer is clipped to the box. For a parameter
+        // whose proposed change is non-positive and whose lower bound permits
+        // it, keep the negative/zero update independent of positive-energy
+        // budgeting; released storage is not converted into extra budget.
+        baseline[index] = if upper < 0.0 || (desired <= 0.0 && lower <= 0.0) {
+            desired.clamp(lower, upper.min(0.0))
+        } else {
+            desired.clamp(nonnegative_floor, upper)
+        };
+
+        if coefficient > 0.0 && baseline[index] > nonnegative_floor {
+            let threshold = (baseline[index] - nonnegative_floor) * weight / coefficient;
+            if !threshold.is_finite() {
+                return Err(VirtualImpedanceError::ArithmeticOverflow);
+            }
+            maximum_multiplier = maximum_multiplier.max(threshold);
+        }
+    }
+
+    if minimum_debit > request.available_energy_budget_j {
+        return Err(VirtualImpedanceError::EnergyBudgetInfeasible);
+    }
+
+    let baseline_debit = parameter_update_debit(&baseline, &coefficients);
+    if baseline_debit <= request.available_energy_budget_j {
+        let released = parameter_update_uncredited_release(&baseline, &coefficients);
+        return Ok(VirtualParameterUpdateSelection {
+            accepted_delta: baseline,
+            parameter_energy_debit_j: baseline_debit,
+            uncredited_storage_release_j: released,
+            energy_budget_multiplier: 0.0,
+            budget_constraint_active: false,
+        });
+    }
+
+    let mut lower_multiplier = 0.0_f64;
+    let mut upper_multiplier = maximum_multiplier;
+    for _ in 0..80 {
+        let midpoint = lower_multiplier + (upper_multiplier - lower_multiplier) * 0.5;
+        let candidate = parameter_update_at_multiplier(&request, &coefficients, midpoint);
+        let debit = parameter_update_debit(&candidate, &coefficients);
+        if debit > request.available_energy_budget_j {
+            lower_multiplier = midpoint;
+        } else {
+            upper_multiplier = midpoint;
+        }
+    }
+
+    let accepted_delta =
+        parameter_update_at_multiplier(&request, &coefficients, upper_multiplier);
+    let parameter_energy_debit_j = parameter_update_debit(&accepted_delta, &coefficients);
+    let uncredited_storage_release_j =
+        parameter_update_uncredited_release(&accepted_delta, &coefficients);
+    if !parameter_energy_debit_j.is_finite() || !uncredited_storage_release_j.is_finite() {
+        return Err(VirtualImpedanceError::ArithmeticOverflow);
+    }
+    if parameter_energy_debit_j > request.available_energy_budget_j + 1.0e-10 {
+        return Err(VirtualImpedanceError::ArithmeticOverflow);
+    }
+
+    Ok(VirtualParameterUpdateSelection {
+        accepted_delta,
+        parameter_energy_debit_j,
+        uncredited_storage_release_j,
+        energy_budget_multiplier: upper_multiplier,
+        budget_constraint_active: true,
+    })
+}
+
+fn parameter_update_at_multiplier(
+    request: &VirtualParameterUpdateRequest,
+    coefficients: &[f64; 12],
+    multiplier: f64,
+) -> [f64; 12] {
+    core::array::from_fn(|index| {
+        let desired = request.desired_delta[index];
+        let lower = request.lower_delta[index];
+        let upper = request.upper_delta[index];
+        let coefficient = coefficients[index];
+
+        if upper < 0.0 || (desired <= 0.0 && lower <= 0.0) {
+            desired.clamp(lower, upper.min(0.0))
+        } else {
+            let weight = request.objective_weights[index];
+            let floor = lower.max(0.0);
+            let projected = desired - multiplier * coefficient / weight;
+            projected.clamp(floor, upper)
+        }
+    })
+}
+
+fn parameter_update_debit(delta: &[f64; 12], coefficients: &[f64; 12]) -> f64 {
+    let mut debit = 0.0_f64;
+    for index in 0..12 {
+        debit += coefficients[index] * delta[index].max(0.0);
+    }
+    debit
+}
+
+fn parameter_update_uncredited_release(
+    delta: &[f64; 12],
+    coefficients: &[f64; 12],
+) -> f64 {
+    let mut released = 0.0_f64;
+    for index in 0..12 {
+        released += coefficients[index] * (-delta[index]).max(0.0);
+    }
+    released
+}
+
 /// Invalid diagonal virtual impedance data.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum VirtualImpedanceError {
@@ -593,6 +819,113 @@ mod tests {
             diagonal_virtual_parameter_storage_delta(nominal, nominal, [f64::NAN; 6], [0.0; 6]),
             Err(VirtualImpedanceError::NonFiniteErrorOrVelocity)
         );
+    }
+
+    fn update_request(
+        old: DiagonalVirtualImpedance,
+        desired_delta: [f64; 12],
+        lower_delta: [f64; 12],
+        upper_delta: [f64; 12],
+        error: [f64; 6],
+        velocity: [f64; 6],
+        budget_j: f64,
+    ) -> VirtualParameterUpdateRequest {
+        VirtualParameterUpdateRequest {
+            old,
+            desired_delta,
+            lower_delta,
+            upper_delta,
+            objective_weights: [1.0; 12],
+            error,
+            relative_velocity: velocity,
+            available_energy_budget_j: budget_j,
+        }
+    }
+
+    #[test]
+    fn parameter_projection_meets_exact_energy_budget_without_exceeding() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [100.0; 6],
+        };
+        let mut desired = [0.0; 12];
+        desired[6] = 100.0;
+        let request = update_request(
+            old, desired, [-0.0; 12], [200.0; 12],
+            [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0; 6], 5.0,
+        );
+        let result = project_diagonal_virtual_parameter_update(request).unwrap();
+
+        assert!((result.accepted_delta[6] - 40.0).abs() < 1.0e-8);
+        assert!((result.parameter_energy_debit_j - 5.0).abs() < 1.0e-8);
+        assert!(result.budget_constraint_active);
+        assert!(result.energy_budget_multiplier > 0.0);
+    }
+
+    #[test]
+    fn negative_parameter_changes_do_not_fund_positive_parameter_changes() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [200.0; 6],
+        };
+        let mut desired = [0.0; 12];
+        desired[6] = -100.0;
+        desired[7] = 100.0;
+        let mut lower = [-100.0; 12];
+        lower[6] = -200.0;
+        let mut upper = [0.0; 12];
+        upper[7] = 200.0;
+        let result = project_diagonal_virtual_parameter_update(update_request(
+            old, desired, lower, upper,
+            [0.5, 0.5, 0.0, 0.0, 0.0, 0.0], [0.0; 6], 5.0,
+        ))
+        .unwrap();
+
+        assert!((result.accepted_delta[6] + 100.0).abs() < 1.0e-8);
+        assert!((result.accepted_delta[7] - 40.0).abs() < 1.0e-8);
+        assert!((result.parameter_energy_debit_j - 5.0).abs() < 1.0e-8);
+        assert!((result.uncredited_storage_release_j - 12.5).abs() < 1.0e-8);
+    }
+
+    #[test]
+    fn parameter_projection_rejects_infeasible_positive_lower_bounds() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [100.0; 6],
+        };
+        let mut lower = [0.0; 12];
+        lower[6] = 50.0;
+        assert_eq!(
+            project_diagonal_virtual_parameter_update(update_request(
+                old, [100.0; 12], lower, [100.0; 12],
+                [0.5, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0; 6], 5.0,
+            )),
+            Err(VirtualImpedanceError::EnergyBudgetInfeasible)
+        );
+    }
+
+    #[test]
+    fn parameter_projection_preserves_box_and_physical_parameter_bounds() {
+        let old = DiagonalVirtualImpedance {
+            virtual_inertia: [1.0; 6],
+            stiffness: [100.0; 6],
+        };
+        let mut desired = [0.0; 12];
+        desired[0] = -2.0;
+        desired[6] = -200.0;
+        let mut lower = [-0.5; 12];
+        lower[0] = -0.9;
+        lower[6] = -100.0;
+        let upper = [0.5; 12];
+        let result = project_diagonal_virtual_parameter_update(update_request(
+            old, desired, lower, upper,
+            [0.0; 6], [0.0; 6], 0.0,
+        ))
+        .unwrap();
+
+        assert!(result.accepted_delta[0] > -1.0);
+        assert!(result.accepted_delta[6] >= -100.0);
+        assert_eq!(result.parameter_energy_debit_j, 0.0);
     }
 
     #[test]
