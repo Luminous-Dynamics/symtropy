@@ -290,7 +290,8 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
             let Some(active_impulse) = solve_spd(&active_matrix, &active_rhs) else {
                 continue;
             };
-            if relative_negative_residual(&active_impulse, &active_matrix, &active_rhs) > SOLVE_TOLERANCE {
+            if relative_negative_residual(&active_impulse, &active_matrix, &active_rhs)
+                > SOLVE_TOLERANCE
                 continue;
             }
             for (active_index, &contact_index) in active_indices.iter().enumerate() {
