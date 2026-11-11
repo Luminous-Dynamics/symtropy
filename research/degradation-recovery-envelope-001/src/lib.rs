@@ -267,8 +267,11 @@ fn contains_forbidden_input(conditions: &[ObservationCondition]) -> bool {
     )
 }
 
-fn is_healthy_tick(tick: &TickTrace) -> bool {
+fn is_healthy_tick(tick: &TickTrace, policy_deadline_us: u64) -> bool {
     tick.conditions.as_slice() == [ObservationCondition::Clean]
+        && tick.policy_input_accepted
+        && !tick.safe_stop_complete
+        && tick.decision_latency_us.is_some_and(|latency| latency <= policy_deadline_us)
         && tick.fault_detection_event_ids.is_empty()
         && !contains_any(
             &tick.conditions,
@@ -373,6 +376,7 @@ fn event_metrics(
     event: &FaultEvent,
     run_ticks: &std::collections::BTreeMap<u64, &TickTrace>,
     findings: &mut BTreeSet<Finding>,
+    policy_deadline_us: u64,
 ) -> EventMetrics {
     let exposure_ticks = event.end_tick - event.start_tick + 1;
     let expected = expected_condition(event.kind);
@@ -420,7 +424,7 @@ fn event_metrics(
     let mut healthy_run = 0_u64;
     let mut recovery_tick = None;
     for (tick, record) in run_ticks.range((event.end_tick + 1)..) {
-        if is_healthy_tick(record) {
+        if is_healthy_tick(record, policy_deadline_us) {
             healthy_run += 1;
         } else {
             healthy_run = 0;
@@ -666,7 +670,12 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         if event.recovery_healthy_quorum_ticks == 0 {
             findings.insert(Finding::ZeroRecoveryQuorum);
         }
-        events.push(event_metrics(event, &faulted_tick_map, &mut findings));
+        events.push(event_metrics(
+            event,
+            &faulted_tick_map,
+            &mut findings,
+            campaign.policy_deadline_us,
+        ));
     }
 
     let known_event_ids = campaign.events.iter().map(|event| event.event_id.as_str()).collect::<BTreeSet<_>>();
@@ -878,6 +887,18 @@ mod tests {
         input.faulted_run.ticks[2].conditions = vec![ObservationCondition::Clean];
         let report = audit_campaign(&input);
         assert!(has(&report, "expected_fault_condition_missing"));
+    }
+
+    #[test]
+    fn late_or_missing_decision_latency_does_not_advance_recovery_quorum() {
+        let mut input = campaign();
+        input.faulted_run.ticks[4].decision_latency_us = Some(150_000);
+        input.faulted_run.ticks[5].decision_latency_us = None;
+        input.faulted_run.ticks[6].normal_mode = false;
+        input.faulted_run.ticks[7].normal_mode = true;
+        let report = audit_campaign(&input);
+        assert_eq!(report.events[0].recovery_tick, Some(8));
+        assert!(!has(&report, "premature_recovery"));
     }
 
     #[test]
