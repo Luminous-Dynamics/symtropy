@@ -420,7 +420,9 @@ pub fn evaluate_event_metrics(
                 let true_probability = probabilities[event.target_isolation_index];
                 true_class_probabilities.push(true_probability);
                 let top1_correct = predicted == event.target_isolation_index;
-                isolation_correct_count += usize::from(top1_correct);
+                if top1_correct {
+                    isolation_correct_count += 1;
+                }
                 EventOutcome {
                     recording_id: event.recording_id.clone(),
                     event_id: event.event_id.clone(),
