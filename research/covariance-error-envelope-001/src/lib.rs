@@ -176,6 +176,9 @@ fn factor<const N: usize>(
     }
 
     let matrix_scale = matrix_inf(matrix);
+    if !matrix_scale.is_finite() {
+        return Err(EnvelopeErrorV1::ArithmeticOverflow);
+    }
     if matrix_scale == 0.0 {
         return Err(EnvelopeErrorV1::SingularPivot {
             column: 0,
@@ -184,6 +187,9 @@ fn factor<const N: usize>(
         });
     }
     let threshold = profile.relative_pivot_tolerance * matrix_scale;
+    if !threshold.is_finite() {
+        return Err(EnvelopeErrorV1::ArithmeticOverflow);
+    }
     let mut lu = *matrix;
     let mut permutation = std::array::from_fn(|index| index);
 
@@ -257,8 +263,10 @@ impl<const N: usize> LuFactorV1<N> {
                 inverse[row][column] = inverse_column[row];
             }
         }
-        let estimate = matrix_inf(original) * matrix_inf(&inverse);
-        if !estimate.is_finite() {
+        let original_norm = matrix_inf(original);
+        let inverse_norm = matrix_inf(&inverse);
+        let estimate = original_norm * inverse_norm;
+        if !original_norm.is_finite() || !inverse_norm.is_finite() || !estimate.is_finite() {
             return Err(EnvelopeErrorV1::ArithmeticOverflow);
         }
         Ok(estimate)
@@ -291,6 +299,16 @@ pub fn assess_solution<const N: usize>(
     let solution_norm = vector_inf(computed);
     let rhs_norm = vector_inf(rhs);
     let normwise_scale = matrix_norm * solution_norm + rhs_norm;
+    if product.iter().any(|value| !value.is_finite())
+        || residual.iter().any(|value| !value.is_finite())
+        || !residual_inf.is_finite()
+        || !matrix_norm.is_finite()
+        || !solution_norm.is_finite()
+        || !rhs_norm.is_finite()
+        || !normwise_scale.is_finite()
+    {
+        return Err(EnvelopeErrorV1::ArithmeticOverflow);
+    }
     let normwise_backward_error = if normwise_scale == 0.0 {
         if residual_inf == 0.0 {
             0.0
@@ -308,6 +326,9 @@ pub fn assess_solution<const N: usize>(
                 .map(|column| matrix[row][column].abs() * computed[column].abs())
                 .sum::<f64>();
         let numerator = residual[row].abs();
+        if !denominator.is_finite() || !numerator.is_finite() {
+            return Err(EnvelopeErrorV1::ArithmeticOverflow);
+        }
         let componentwise = if denominator == 0.0 {
             if numerator == 0.0 {
                 0.0
@@ -438,9 +459,9 @@ mod tests {
     }
 
     #[test]
-    fn vacuous_forward_bound_is_not_admitted() {
-        let (matrix, rhs, exact) = exact_two_by_two();
-        let perturbed = [100.0, -100.0];
+    fn weak_forward_estimate_is_not_admitted_as_informative() {
+        let (matrix, rhs, _exact) = exact_two_by_two();
+        let perturbed = [0.2, 0.6];
         let profile = ErrorEnvelopeProfileV1 {
             maximum_condition_times_backward_error: 0.1,
             ..ErrorEnvelopeProfileV1::default()
@@ -449,7 +470,17 @@ mod tests {
 
         assert_eq!(envelope.status, EnvelopeStatusV1::WeakEstimate);
         assert!(envelope.forward_error_bound_estimate.is_some());
-        let _ = exact;
+    }
+
+    #[test]
+    fn vacuous_forward_bound_is_reported_explicitly() {
+        let (matrix, rhs, _exact) = exact_two_by_two();
+        let computed = [100.0, -100.0];
+        let envelope =
+            assess_solution(&matrix, &rhs, &computed, ErrorEnvelopeProfileV1::default()).unwrap();
+
+        assert_eq!(envelope.status, EnvelopeStatusV1::VacuousEstimate);
+        assert!(envelope.forward_error_bound_estimate.is_none());
     }
 
     #[test]
