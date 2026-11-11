@@ -1,18 +1,17 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/battery_process_genealogy_v0_1.schema.json",
-  "title": "Battery process genealogy manifest v0.1",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/ev_battery_lineage_outcome_v0_1.schema.json",
+  "title": "EV battery lineage-to-outcome adapter v0.1",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schema_version",
     "manifest_id",
     "evidence_class",
-    "material_lots",
-    "process_events",
-    "specimens",
-    "cell_builds",
-    "test_links"
+    "cells",
+    "cell_tests",
+    "packs",
+    "mission_outcomes"
   ],
   "properties": {
     "schema_version": {
@@ -25,240 +24,76 @@
     "evidence_class": {
       "enum": [
         "synthetic_fixture",
-        "physical_record"
+        "declared_physical_records"
       ]
     },
-    "material_lots": {
+    "cells": {
       "type": "array",
       "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "lot_id",
-          "material_family",
-          "source_ref",
-          "received_at_ns"
-        ],
-        "properties": {
-          "lot_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "material_family": {
-            "type": "string",
-            "minLength": 1
-          },
-          "source_ref": {
-            "type": "string",
-            "minLength": 1
-          },
-          "received_at_ns": {
-            "type": "integer",
-            "minimum": 0
-          }
-        }
-      }
-    },
-    "process_events": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "event_id",
-          "stage",
-          "recipe_revision",
-          "equipment_id",
-          "timestamp_ns",
-          "parent_ids",
-          "child_ids",
-          "field_records"
-        ],
-        "properties": {
-          "event_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "stage": {
-            "enum": [
-              "slurry_preparation",
-              "coating",
-              "drying",
-              "calendering",
-              "slitting",
-              "cell_assembly",
-              "formation",
-              "aging",
-              "inspection"
-            ]
-          },
-          "recipe_revision": {
-            "type": "string",
-            "minLength": 1
-          },
-          "equipment_id": {
-            "type": "string",
-            "minLength": 1
-          },
-          "timestamp_ns": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "parent_ids": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "string"
-            }
-          },
-          "child_ids": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "string"
-            }
-          },
-          "field_records": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "field",
-                "value",
-                "unit",
-                "kind",
-                "evidence_ref"
-              ],
-              "properties": {
-                "field": {
-                  "type": "string"
-                },
-                "value": {
-                  "type": "string"
-                },
-                "unit": {
-                  "type": "string"
-                },
-                "kind": {
-                  "enum": [
-                    "measured",
-                    "calculated",
-                    "model_predicted",
-                    "operator_declared",
-                    "unknown",
-                    "synthetic_fixture"
-                  ]
-                },
-                "evidence_ref": {
-                  "type": "string"
-                },
-                "instrument_id": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "calibration_ref": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "specimens": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": [
-          "specimen_id",
-          "specimen_type",
-          "created_at_ns",
-          "created_by_event_id",
-          "parent_ids"
-        ],
-        "properties": {
-          "specimen_id": {
-            "type": "string"
-          },
-          "specimen_type": {
-            "type": "string"
-          },
-          "created_at_ns": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "created_by_event_id": {
-            "type": "string"
-          },
-          "parent_ids": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "string"
-            }
-          }
-        }
-      }
-    },
-    "cell_builds": {
-      "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": [
           "cell_id",
-          "created_at_ns",
           "configuration_ref",
-          "electrode_specimen_ids",
-          "assembly_event_id",
-          "formation_event_id",
-          "parent_ids"
+          "process_window_ref",
+          "material_lineage",
+          "process_structure_projection",
+          "interface_refs"
         ],
         "properties": {
           "cell_id": {
-            "type": "string"
-          },
-          "created_at_ns": {
-            "type": "integer",
-            "minimum": 0
+            "type": "string",
+            "minLength": 1
           },
           "configuration_ref": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
-          "electrode_specimen_ids": {
+          "process_window_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "material_lineage": {
+            "type": "object",
+            "required": [
+              "sample_lineage_id",
+              "mat013_schema_version",
+              "sample_scale",
+              "lineage_digest",
+              "source_evidence_ref"
+            ]
+          },
+          "process_structure_projection": {
+            "type": "object",
+            "required": [
+              "pspp_subject_id",
+              "pspp_schema_version",
+              "sample_lineage_id",
+              "realized_structure_ref",
+              "conditioned_property_evidence_refs",
+              "mat_uq_profile_ref"
+            ]
+          },
+          "interface_refs": {
             "type": "array",
             "minItems": 1,
             "items": {
-              "type": "string"
-            }
-          },
-          "assembly_event_id": {
-            "type": "string"
-          },
-          "formation_event_id": {
-            "type": "string"
-          },
-          "parent_ids": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "string"
+              "type": "object",
+              "required": [
+                "interface_subject_id",
+                "mat_interface_schema_version",
+                "interface_class",
+                "condition_state_ref",
+                "evidence_refs",
+                "mat_uq_profile_ref"
+              ]
             }
           }
         }
       }
     },
-    "test_links": {
+    "cell_tests": {
       "type": "array",
       "items": {
         "type": "object",
@@ -293,6 +128,109 @@
             "pattern": "^[a-f0-9]{64}$"
           },
           "result_evidence_class": {
+            "enum": [
+              "synthetic_fixture",
+              "assumption",
+              "vendor_claim",
+              "literature_reported",
+              "simulation",
+              "physical_measurement",
+              "independent_laboratory"
+            ]
+          }
+        }
+      }
+    },
+    "packs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pack_id",
+          "configuration_ref",
+          "topology_ref",
+          "cell_members"
+        ],
+        "properties": {
+          "pack_id": {
+            "type": "string"
+          },
+          "configuration_ref": {
+            "type": "string"
+          },
+          "topology_ref": {
+            "type": "string"
+          },
+          "cell_members": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "cell_id",
+                "cell_configuration_ref"
+              ],
+              "properties": {
+                "cell_id": {
+                  "type": "string"
+                },
+                "cell_configuration_ref": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "mission_outcomes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mission_id",
+          "pack_id",
+          "duty_cycle_ref",
+          "test_campaign_ref",
+          "system_boundary",
+          "outcome_evidence_ref",
+          "metrology_evidence_ref",
+          "raw_data_sha256",
+          "evidence_class"
+        ],
+        "properties": {
+          "mission_id": {
+            "type": "string"
+          },
+          "pack_id": {
+            "type": "string"
+          },
+          "duty_cycle_ref": {
+            "type": "string"
+          },
+          "test_campaign_ref": {
+            "type": "string"
+          },
+          "system_boundary": {
+            "enum": [
+              "pack",
+              "installed_vehicle",
+              "installed_system"
+            ]
+          },
+          "outcome_evidence_ref": {
+            "type": "string"
+          },
+          "metrology_evidence_ref": {
+            "type": "string"
+          },
+          "raw_data_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "evidence_class": {
             "enum": [
               "synthetic_fixture",
               "assumption",
