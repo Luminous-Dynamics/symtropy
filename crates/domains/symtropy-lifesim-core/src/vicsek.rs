@@ -261,6 +261,12 @@ pub struct VicsekMetrics {
     pub mean_neighbors_excluding_self: f64,
     /// Population variance of focal-agent visible-neighbour counts (out-degree variance).
     pub neighbor_count_variance: f64,
+    /// Number of directed visibility edges across all unordered particle pairs.
+    pub directed_interaction_edge_count: usize,
+    /// Number of unordered pairs for which visibility is mutual.
+    pub reciprocal_interaction_pair_count: usize,
+    /// Fraction of directed visibility edges that have a reciprocal counterpart; None if no edges.
+    pub interaction_reciprocity_fraction: Option<f64>,
     /// Fraction of particles with at least one other particle in their interaction neighbourhood.
     pub local_order_coverage_fraction: f64,
     /// Mean local polar order over particles with at least one other neighbour.
@@ -720,6 +726,8 @@ impl VicsekModel {
         let polar_order = (sum_cos.hypot(sum_sin) / count as f64).clamp(0.0, 1.0);
 
         let mut neighbor_counts = vec![0usize; count];
+        let mut directed_interaction_edge_count = 0usize;
+        let mut reciprocal_interaction_pair_count = 0usize;
         let mut adjacency = include_topology.then(|| vec![Vec::<usize>::new(); count]);
         let mut local_sum_cos: Vec<f64> = self
             .particles
@@ -742,13 +750,18 @@ impl VicsekModel {
 
                 if left_sees_right {
                     neighbor_counts[left] += 1;
+                    directed_interaction_edge_count += 1;
                     local_sum_cos[left] += b.heading_rad.cos();
                     local_sum_sin[left] += b.heading_rad.sin();
                 }
                 if right_sees_left {
                     neighbor_counts[right] += 1;
+                    directed_interaction_edge_count += 1;
                     local_sum_cos[right] += a.heading_rad.cos();
                     local_sum_sin[right] += a.heading_rad.sin();
+                }
+                if left_sees_right && right_sees_left {
+                    reciprocal_interaction_pair_count += 1;
                 }
 
                 // Topology statistics use the weakly connected projection for visual-sector
@@ -764,6 +777,14 @@ impl VicsekModel {
             }
         }
 
+        let interaction_reciprocity_fraction = if directed_interaction_edge_count == 0 {
+            None
+        } else {
+            Some(
+                (2 * reciprocal_interaction_pair_count) as f64
+                    / directed_interaction_edge_count as f64,
+            )
+        };
         let mean_neighbors = neighbor_counts.iter().sum::<usize>() as f64 / count as f64;
         let neighbor_count_variance = neighbor_counts
             .iter()
@@ -964,6 +985,9 @@ impl VicsekModel {
             polar_order,
             mean_neighbors_excluding_self: mean_neighbors,
             neighbor_count_variance,
+            directed_interaction_edge_count,
+            reciprocal_interaction_pair_count,
+            interaction_reciprocity_fraction,
             local_order_coverage_fraction,
             mean_local_polar_order,
             local_polar_order_variance,
@@ -1218,6 +1242,9 @@ mod tests {
         );
         assert_eq!(metrics.cluster_count, 1);
         assert_eq!(metrics.largest_cluster_fraction, 1.0);
+        assert_eq!(metrics.directed_interaction_edge_count, 30);
+        assert_eq!(metrics.reciprocal_interaction_pair_count, 15);
+        assert_eq!(metrics.interaction_reciprocity_fraction, Some(1.0));
         let full_metrics = model.metrics();
         assert_eq!(full_metrics.mean_clustering_coefficient, Some(1.0));
         assert_eq!(full_metrics.mean_shortest_path_length, Some(1.0));
@@ -1303,6 +1330,9 @@ mod tests {
         // The left particle sees the right particle; the right particle faces away.
         assert_eq!(metrics.mean_neighbors_excluding_self, 0.5);
         assert_eq!(metrics.neighbor_count_variance, 0.25);
+        assert_eq!(metrics.directed_interaction_edge_count, 1);
+        assert_eq!(metrics.reciprocal_interaction_pair_count, 0);
+        assert_eq!(metrics.interaction_reciprocity_fraction, Some(0.0));
         assert_eq!(metrics.local_order_coverage_fraction, 0.5);
         assert_eq!(metrics.mean_local_polar_order, Some(1.0));
         // For topology only, either directed edge connects the weak component.
