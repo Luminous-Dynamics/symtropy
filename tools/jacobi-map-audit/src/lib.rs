@@ -82,6 +82,8 @@ impl Matrix2 {
 #[serde(deny_unknown_fields)]
 pub struct JacobiMapEvidence {
     pub sample_id: String,
+    /// Canonical image/ray branch identity shared across implementations and samples.
+    pub branch_id: String,
     /// Monotone parameter along one continuously tracked ray/image branch.
     pub branch_parameter: f64,
     pub normalization_id: String,
@@ -95,6 +97,9 @@ impl JacobiMapEvidence {
     pub fn validate(&self) -> Result<(), AuditError> {
         if self.sample_id.trim().is_empty() {
             return Err(AuditError::EmptyField("sample_id"));
+        }
+        if self.branch_id.trim().is_empty() {
+            return Err(AuditError::EmptyField("branch_id"));
         }
         if self.normalization_id.trim().is_empty() {
             return Err(AuditError::EmptyField("normalization_id"));
@@ -133,6 +138,7 @@ impl JacobiMapEvidence {
             };
             return Ok(JacobiMapAnalysis {
                 sample_id: self.sample_id.clone(),
+                branch_id: self.branch_id.clone(),
                 branch_parameter: self.branch_parameter,
                 normalization_id: self.normalization_id.clone(),
                 determinant_sign: 0,
@@ -228,6 +234,7 @@ impl JacobiMapEvidence {
 
         Ok(JacobiMapAnalysis {
             sample_id: self.sample_id.clone(),
+            branch_id: self.branch_id.clone(),
             branch_parameter: self.branch_parameter,
             normalization_id: self.normalization_id.clone(),
             determinant_sign,
@@ -257,6 +264,7 @@ pub enum MapStatus {
 #[serde(deny_unknown_fields)]
 pub struct JacobiMapAnalysis {
     pub sample_id: String,
+    pub branch_id: String,
     pub branch_parameter: f64,
     pub normalization_id: String,
     pub determinant_sign: i8,
@@ -289,6 +297,7 @@ pub enum CausticBracketStatus {
 #[serde(deny_unknown_fields)]
 pub struct CausticBracket {
     pub status: CausticBracketStatus,
+    pub branch_id: String,
     pub normalization_id: String,
     pub lower_parameter: f64,
     pub upper_parameter: f64,
@@ -315,6 +324,9 @@ pub fn bracket_caustic(
     if left.normalization_id != right.normalization_id {
         return Err(AuditError::NormalizationMismatch);
     }
+    if left.branch_id != right.branch_id {
+        return Err(AuditError::BranchMismatch);
+    }
     if right.branch_parameter <= left.branch_parameter {
         return Err(AuditError::NonIncreasingBranchParameter);
     }
@@ -328,6 +340,7 @@ pub fn bracket_caustic(
 
     let base = |status, estimate, reason: &str| CausticBracket {
         status,
+        branch_id: left.branch_id.clone(),
         normalization_id: left.normalization_id.clone(),
         lower_parameter: left.branch_parameter,
         upper_parameter: right.branch_parameter,
@@ -393,6 +406,7 @@ pub fn bracket_caustic(
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct MapAgreement {
+    pub branch_id: String,
     pub normalization_id: String,
     pub absolute_frobenius_difference: f64,
     pub relative_frobenius_difference: f64,
@@ -409,6 +423,9 @@ pub fn compare_maps(
     right.validate()?;
     if left.normalization_id != right.normalization_id {
         return Err(AuditError::NormalizationMismatch);
+    }
+    if left.branch_id != right.branch_id {
+        return Err(AuditError::BranchMismatch);
     }
     let l = left.map.entries;
     let r = right.map.entries;
@@ -432,6 +449,7 @@ pub fn compare_maps(
         return Err(AuditError::NumericRange("map agreement"));
     }
     Ok(MapAgreement {
+        branch_id: left.branch_id.clone(),
         normalization_id: left.normalization_id.clone(),
         absolute_frobenius_difference: absolute,
         relative_frobenius_difference: relative,
@@ -446,6 +464,7 @@ pub enum AuditError {
     InvalidConditionLimit(f64),
     NumericRange(&'static str),
     NormalizationMismatch,
+    BranchMismatch,
     NonIncreasingBranchParameter,
 }
 
@@ -458,6 +477,7 @@ impl std::fmt::Display for AuditError {
             Self::InvalidConditionLimit(value) => write!(f, "maximum condition number must be finite and >= 1, got {value}"),
             Self::NumericRange(field) => write!(f, "numeric range exhausted while evaluating {field}"),
             Self::NormalizationMismatch => write!(f, "Jacobi maps use different source/observer area normalizations"),
+            Self::BranchMismatch => write!(f, "Jacobi maps refer to different tracked image branches"),
             Self::NonIncreasingBranchParameter => write!(f, "caustic samples must be strictly increasing along one tracked branch"),
         }
     }
@@ -487,6 +507,7 @@ mod tests {
     fn sample(id: &str, parameter: f64, entries: [[f64; 2]; 2], error: f64) -> JacobiMapEvidence {
         JacobiMapEvidence {
             sample_id: id.into(),
+            branch_id: "tracked-image-branch-0".into(),
             branch_parameter: parameter,
             normalization_id: "source-orthonormal-area-v1/observer-unit-angle-v1".into(),
             map: Matrix2 { entries },
@@ -598,6 +619,8 @@ mod tests {
             ..right
         };
         assert_eq!(compare_maps(&left, &mismatched), Err(AuditError::NormalizationMismatch));
+        let wrong_branch = JacobiMapEvidence { branch_id: "other-branch".into(), ..mismatched };
+        assert_eq!(compare_maps(&left, &wrong_branch), Err(AuditError::BranchMismatch));
     }
 
     #[test]
@@ -617,6 +640,9 @@ mod tests {
         right.branch_parameter = 2.0;
         right.normalization_id = "another-normalization".into();
         assert_eq!(bracket_caustic(&left, &right, DEFAULT_MAX_CONDITION_NUMBER), Err(AuditError::NormalizationMismatch));
+        right.normalization_id = left.normalization_id.clone();
+        right.branch_id = "another-branch".into();
+        assert_eq!(bracket_caustic(&left, &right, DEFAULT_MAX_CONDITION_NUMBER), Err(AuditError::BranchMismatch));
     }
 
     #[test]
