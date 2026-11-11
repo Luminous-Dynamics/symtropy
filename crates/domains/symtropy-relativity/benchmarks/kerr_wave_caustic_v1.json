@@ -62,12 +62,24 @@
       "arxiv": "2211.07469",
       "url": "https://github.com/iAART/aart",
       "role": "Geometric-optics lensing-band and image-branch comparator"
+    },
+    {
+      "id": "time_domain_kerr_lensing_2026",
+      "title": "Gravitational lensing of gravitational waves by a Kerr black hole",
+      "authors": "Jian-hua He",
+      "arxiv": "2610.39181",
+      "url": "https://arxiv.org/abs/2610.39181",
+      "date": "2026-10-29",
+      "status": "preprint",
+      "role": "Independent 1+1D time-domain spin -2 Teukolsky mode-sum reference for finite-duration GW packets and BBH coalescence signals on Kerr",
+      "required_reproduction": "Reproduce the stated Hanning-packet fixture and the separately specified BBH fixture with identical tetrad projection, modal coupling, grid, boundary, dissipation, time, and waveform-normalization conventions.",
+      "claim_boundary": "Preprint; the reported prompt/coda and mismatch values are reference-case observations, not universal physical bounds or an established community benchmark."
     }
   ],
   "scope_separation": {
     "canonical_caustic_math": "Universal local fold/cusp normal forms; independent of any Kerr solver.",
     "ray_derived_wave_optics": "Finite-frequency propagation from a declared arrival-time surface derived from Kerr null rays; not a thin-lens approximation unless explicitly specified.",
-    "full_wave_scattering": "Independent Kerr perturbation / MST scattering calculation with its own normalization and boundary conditions.",
+    "full_wave_scattering": "Independent full-wave calculation: frequency-domain MST/Teukolsky scattering and time-domain spin -2 Teukolsky mode-sum are separate reference routes with distinct source/boundary/normalization conventions. Compare only after mapping the full physical setup, tetrad, phase, time, source profile and observer extraction.",
     "non_claim": "Agreement between these different routes is tested only on matched geometries and observables; one route is not silently used as the other's oracle."
   },
   "conventions": {
@@ -159,7 +171,8 @@
     "references": [
       "strong_field_kerr_mst",
       "ray_traced_arrival_surfaces",
-      "full_wave_strong_field"
+      "full_wave_strong_field",
+      "time_domain_kerr_lensing_2026"
     ],
     "required_alignment": [
       "source-lens-observer geometry",
@@ -169,7 +182,14 @@
       "frequency range and mass scaling",
       "time and phase origin",
       "incident/observed amplitude normalization",
-      "boundary and absorption conditions"
+      "boundary and absorption conditions",
+      "localized hyperboloidal foliation and static field-redefinition convention for the time-domain comparison",
+      "Kinnersley tetrad and ZAMO-to-Kinnersley initial-data projection",
+      "spin-weighted spherical-harmonic basis and Wigner-D rotation conventions",
+      "j/m cutoffs, j-padding, and mode-coupling truncation",
+      "tortoise grid, foliation-time step, RK4, finite-difference stencils and Kreiss-Oliger coefficient",
+      "prompt and coda time-window definitions",
+      "BBH source waveform release, lensed/unlensed alignment window, PSD and fitting-factor maximization"
     ],
     "outputs": [
       "complex_amplification_factor",
@@ -179,7 +199,166 @@
       "polarization_mixing",
       "waveform_mismatch"
     ],
-    "non_comparable_status": "Unmatched"
+    "non_comparable_status": "Unmatched",
+    "time_domain_case": {
+      "reference_id": "time_domain_kerr_lensing_2026",
+      "numerical_method": {
+        "field": "spin-weight s=-2 Teukolsky perturbation",
+        "decomposition": "(1+1)D radial time evolution with spin-weighted spherical-harmonic expansion and Kerr-induced j coupling",
+        "foliation": "localized hyperboloidal height function with capped slope |u| <= 0.8",
+        "field_redefinition": "static invertible field redefinition used to remove the local antidamping term in the transformed evolution equation",
+        "spatial_grid": {
+          "coordinate": "tortoise x",
+          "xmin_over_m": -300,
+          "xmax_over_m": 800,
+          "spacing_over_m": 0.05
+        },
+        "time_grid": {
+          "foliation_time": "tau",
+          "step": 0.004,
+          "interval": 876,
+          "rk4_steps": 219000
+        },
+        "spatial_discretization": "fourth-order finite differences in the bulk; lower-order one-sided boundary treatment",
+        "time_integrator": "classical four-stage fourth-order Runge-Kutta",
+        "dissipation": {
+          "operator": "sixth-order Kreiss-Oliger",
+          "epsilon": 0.05
+        },
+        "mode_cutoffs": {
+          "initial_j_max": 256,
+          "evolution_j_max": 260,
+          "absolute_m_max": 256,
+          "coupled_modes": 68097
+        },
+        "mode_coupling_note": "The source-to-evolution field conversion couples multipoles with |delta j| <= 4; pad J_evolution to 260. The 68,097 count is for the stated misaligned mode configuration.",
+        "boundary": "finite-radius radiation boundary treatment; exact stencil and outer/inner boundary data must be transcribed from the paper before a comparison is accepted",
+        "parallel_layout": "MPI across decoupled m sectors; OpenMP across radial rows"
+      },
+      "hanning_packet_case": {
+        "spin_a_over_m": 0.7,
+        "incident_inclination_radians": [
+          0,
+          1.0471975511965976,
+          1.5707963267948966,
+          2.0943951023931953,
+          3.141592653589793
+        ],
+        "polarization_angle_gamma_e_radians": 1.0471975511965976,
+        "wave_frame_packet": {
+          "profile": "sin^2(pi*zeta_w/lambda)",
+          "length_lambda_over_m": 4,
+          "propagation_direction": "+z_w",
+          "amplitude_plus": 1,
+          "amplitude_cross": 1,
+          "initial_wavefront_z0_over_m": -400,
+          "initial_coordinate_time": 0
+        },
+        "observer": {
+          "type": "on_axis_downstream",
+          "z_w_over_m": 130
+        },
+        "output_polarizations": [
+          "h_plus",
+          "h_cross"
+        ],
+        "observer_extraction": "Recover h_plus/h_cross by double integration of the recorded outgoing Weyl scalar; pin integration constants and tetrad normalization.",
+        "time_windows": {
+          "prompt": {
+            "t_over_m": [
+              538,
+              555
+            ],
+            "expected_role": "early transmitted prompt pulse; compare transverse Gaussian profile and waveform"
+          },
+          "coda": {
+            "t_over_m": [
+              565,
+              622
+            ],
+            "expected_role": "late spin-/inclination-sensitive interference notches and diffractive modulations"
+          },
+          "snapshots_t_over_m": [
+            500,
+            530,
+            550
+          ]
+        },
+        "reported_interpretation": "The prompt profile is nearly spin-independent across the tested inclinations; the later coda distinguishes Kerr spins/inclinations and differs from the Schwarzschild baseline.",
+        "reproduction_outputs": [
+          "complex_outgoing_psi4",
+          "h_plus_time_series",
+          "h_cross_time_series",
+          "prompt_arrival_time_and_profile",
+          "coda_interference_notches",
+          "coda_phase_and_amplitude",
+          "transverse_beam_profile",
+          "modal_truncation_and_grid_refinement_diagnostics"
+        ]
+      },
+      "bbH_coalescence_case": {
+        "source": {
+          "type": "face_on_nonspinning_equal_mass_binary",
+          "component_masses_solar": [
+            22.5,
+            22.5
+          ],
+          "total_mass_solar": 45,
+          "waveform_reference": "NRHybSur3dq8 as specified by the paper; pin exact release and waveform file before reproduction"
+        },
+        "lens": {
+          "mass_solar": 157.5,
+          "spin_a_over_m": 0.7,
+          "comparison_baseline": "Schwarzschild lens with same mass"
+        },
+        "incident_polarization_angle_gamma_e_radians": 0,
+        "incidence_cases_radians": [
+          1.0471975511965976,
+          1.5707963267948966,
+          2.0943951023931953
+        ],
+        "observer": {
+          "type": "on_axis_downstream",
+          "z_w_over_m": 130
+        },
+        "strain_processing": {
+          "lensed_normalization": "unit peak amplitude",
+          "unlensed_alignment": "rescale to match lensed signal over early inspiral t in [-0.118,-0.063] seconds",
+          "mismatch": "1 - fitting_factor",
+          "fitting_factor": "maximize absolute noise-weighted complex overlap over relative time shift t0",
+          "psd": "Advanced LIGO O4 projected one-sided PSD",
+          "frequency_band_hz": [
+            20,
+            1024
+          ],
+          "polarizations": [
+            "h_plus",
+            "h_cross"
+          ]
+        },
+        "reported_reference_target": "Kerr-versus-Schwarzschild mismatch typically below 2.2e-5 for the paper's specified inspiral/merger comparison and inclination/polarization cases. Do not interpret this number as a coda mismatch, a universal Kerr-vs-Schwarzschild bound, or a general detector detectability claim.",
+        "required_outputs": [
+          "kerr_h_plus_and_h_cross",
+          "schwarzschild_h_plus_and_h_cross",
+          "unlensed_h_plus_and_h_cross",
+          "early_inspiral_alignment_receipt",
+          "noise_weighted_fitting_factor",
+          "mismatch_by_polarization_and_inclination",
+          "separate_post_merger_ringdown_and_coda_diagnostics"
+        ]
+      },
+      "qualification": {
+        "status": "planned_reproduction_case",
+        "paper_values": "targets to reproduce only after exact waveform, grid, tetrad, boundary, modal and normalization conventions are pinned",
+        "separate_scorecards": [
+          "prompt waveform fidelity",
+          "late-time coda fidelity",
+          "BBH inspiral/merger mismatch",
+          "post-merger/ringdown residual"
+        ],
+        "prohibition": "A small prompt or inspiral mismatch does not qualify the coda, ringdown, or spin-identifiability result."
+      }
+    }
   },
   "benchmark_sweeps": {
     "dimensionless_frequency": "M*omega; logarithmic sweep selected from exact reference paper domain",
@@ -222,7 +401,15 @@
     "finite-frequency asymptotic remainder",
     "source size/coherence and source-pattern approximation",
     "full-wave reference truncation/precision/model uncertainty",
-    "time/frequency sampling and detector response"
+    "time/frequency sampling and detector response",
+    "time-domain hyperboloidal coordinate and static field-redefinition equivalence",
+    "Kinnersley/ZAMO tetrad projection and spin-dyad/Wigner-D mode initialization",
+    "spherical-harmonic truncation, rotation-induced j coupling and m-sector reconstruction",
+    "tortoise-grid and foliation-time discretization, CFL stability and Kreiss-Oliger dissipation",
+    "finite-radius boundary reflection and outgoing-wave extraction",
+    "double integration of outgoing Weyl curvature into h_plus/h_cross and its integration constants",
+    "prompt/coda window selection and mode-dependent late-time truncation",
+    "BBH source-waveform surrogate, amplitude normalization, time alignment, PSD and fitting-factor conventions"
   ],
   "negative_controls": [
     {
@@ -272,6 +459,38 @@
     {
       "id": "incorrect_polarization_frame",
       "expected_failure": "PolarizationConventionMismatch"
+    },
+    {
+      "id": "insufficient_j_padding_after_zamo_kinnersley_projection",
+      "expected_failure": "AngularModeTruncation"
+    },
+    {
+      "id": "m_sector_or_wigner_d_rotation_convention_mismatch",
+      "expected_failure": "ModeOrientationMismatch"
+    },
+    {
+      "id": "boyer_lindquist_local_antidamping_left_uncontrolled",
+      "expected_failure": "TimeEvolutionInstability"
+    },
+    {
+      "id": "hyperboloidal_height_slope_or_static_field_redefinition_changed",
+      "expected_failure": "EvolutionOperatorMismatch"
+    },
+    {
+      "id": "finite_radius_boundary_reflection_contaminates_coda",
+      "expected_failure": "BoundaryContamination"
+    },
+    {
+      "id": "psi4_double_integration_constants_unpinned",
+      "expected_failure": "StrainReconstructionMismatch"
+    },
+    {
+      "id": "prompt_match_substituted_for_coda_match",
+      "expected_failure": "WindowQualificationMismatch"
+    },
+    {
+      "id": "paper_bbh_inspiral_merger_mismatch_used_as_ringdown_or_coda_gate",
+      "expected_failure": "ObservableScopeMismatch"
     }
   ],
   "prospective_acceptance": {
@@ -284,7 +503,10 @@
     "polarimetric_reproduction": "Plus/cross or spin-weighted output only when incident source pattern and reference polarization basis are pinned.",
     "time_domain": "Inverse transform reproduces source/observer time-domain wave packet within truncation, bandwidth and integration error.",
     "efficiency": "Runtime/memory compared only at matched complex amplitude/phase error and same source/geometry/frequency coverage.",
-    "abstention": "Unknown caustic type, unmatched source model, nonconverged oscillatory integral or missing phase derivatives returns a typed unresolved state."
+    "abstention": "Unknown caustic type, unmatched source model, nonconverged oscillatory integral or missing phase derivatives returns a typed unresolved state.",
+    "time_domain_kerr_reference": "Reproduce the paper's Hanning packet and BBH fixtures with exact source/geometry/tetrad/modal/grid/boundary/normalization matching; report prompt, coda, BBH inspiral/merger and post-merger/ringdown as separate scorecards.",
+    "prompt_vs_coda": "Prompt fidelity and coda fidelity must be qualified independently. A prompt match cannot compensate for a coda mismatch or unresolved mode truncation.",
+    "mode_and_grid_convergence": "Demonstrate separate convergence under j/m truncation, radial tortoise spacing, foliation-time step, outer boundary placement and KO dissipation variation; keep each error source separately visible."
   },
   "qualification_states": [
     "planned",
@@ -301,6 +523,7 @@
     "current_status": "not_run",
     "result_artifacts": [],
     "no_results_claimed": true,
-    "receipt_contract": "Reuse Symtropy #4237 response-manifest / run-receipt contract; this file is an input/expectation manifest, not a run receipt."
+    "receipt_contract": "Reuse Symtropy #4237 response-manifest / run-receipt contract; this file is an input/expectation manifest, not a run receipt.",
+    "time_domain_kerr_reference_status": "Reference specification authored; no time-domain Kerr Teukolsky solver, 68,097-mode calculation, wave packet or BBH reproduction is implemented or executed by this benchmark update."
   }
 }
