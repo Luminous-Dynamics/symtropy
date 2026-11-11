@@ -80,16 +80,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -180,16 +198,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -280,16 +316,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R0",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R0",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R0",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -378,16 +432,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -478,16 +550,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -576,16 +666,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -674,16 +782,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -766,16 +892,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -865,16 +1009,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -963,16 +1125,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -1063,16 +1243,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -1161,16 +1359,34 @@
           "survey_product_status": "invalid",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -1259,16 +1475,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "FRAME-OTHER"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "FRAME-OTHER"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "FRAME-OTHER"
+            }
           }
         }
       },
@@ -1359,16 +1593,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -1462,16 +1714,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -1562,16 +1832,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -1663,16 +1951,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -1771,16 +2077,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -1859,16 +2183,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -1957,16 +2299,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2060,16 +2420,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2163,16 +2541,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2261,16 +2657,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2362,16 +2776,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2465,16 +2897,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2564,16 +3014,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "drift_suspected",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2664,16 +3132,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "unresolved",
-            "receipt_sha256": null
+            "receipt_sha256": null,
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2764,16 +3250,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": null
+            "receipt_sha256": null,
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2864,16 +3368,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-STALE",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-STALE",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-STALE",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -2964,16 +3486,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "not-a-sha256",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "not-a-sha256",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "not-a-sha256",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -3064,16 +3604,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": null
+            "receipt_sha256": null,
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -3164,16 +3722,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": null
+            "receipt_sha256": null,
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -3264,16 +3840,34 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "unresolved",
-            "receipt_sha256": null
+            "receipt_sha256": null,
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -3364,16 +3958,34 @@
           "survey_product_status": "unresolved",
           "change_estimate": {
             "status": "qualified",
-            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "registration_stability": "stable",
           "registration_stability_receipt": {
             "status": "qualified",
-            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           },
           "independent_checkpoint": {
             "status": "qualified",
-            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
           }
         }
       },
@@ -3381,6 +3993,360 @@
         "disposition": "REQUEST_ADDITIONAL_OBSERVATION",
         "reason_codes": [
           "SURVEY_PRODUCT_UNRESOLVED"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-035",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "STALE-FRAME"
+            }
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
+          }
+        }
+      },
+      "expected": {
+        "disposition": "STALE_OR_INVALID_EVIDENCE",
+        "reason_codes": [
+          "CHANGE_ESTIMATE_RECEIPT_SCOPE_MISMATCH"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-036",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "OTHER-ASSET",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
+          }
+        }
+      },
+      "expected": {
+        "disposition": "STALE_OR_INVALID_EVIDENCE",
+        "reason_codes": [
+          "REGISTRATION_STABILITY_RECEIPT_SCOPE_MISMATCH"
+        ]
+      },
+      "split_group_id": "synthetic-building-heldout-D"
+    },
+    {
+      "case_id": "SB-037",
+      "reference": {
+        "asset_id": "BLDG-SYNTH-01",
+        "model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "tolerance_mm": 10,
+            "min_visible_fraction": 0.7,
+            "min_independent_lineages": 1
+          }
+        ],
+        "required_topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ]
+      },
+      "candidate": {
+        "asset_id": "BLDG-SYNTH-01",
+        "base_model_revision": "MODEL-R1",
+        "frame_id": "LOCAL-ENU-01",
+        "claims_unobserved_geometry": false,
+        "elements": [
+          {
+            "element_id": "WALL-A",
+            "class": "wall",
+            "deviation_mm": 2,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-A"
+            ]
+          },
+          {
+            "element_id": "DOOR-A",
+            "class": "door",
+            "deviation_mm": 24,
+            "uncertainty_mm": 1,
+            "visible_fraction": 0.95,
+            "lineage_ids": [
+              "scan-B"
+            ]
+          }
+        ],
+        "topology": [
+          {
+            "from": "WALL-A",
+            "to": "DOOR-A",
+            "relation": "hosts_opening"
+          }
+        ],
+        "delta": {
+          "operation": "modify",
+          "base_model_revision": "MODEL-R1",
+          "target_ids": [
+            "DOOR-A"
+          ]
+        },
+        "survey_evidence": {
+          "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "asset_id": "BLDG-SYNTH-01",
+          "base_model_revision": "MODEL-R1",
+          "frame_id": "LOCAL-ENU-01",
+          "survey_product_status": "qualified",
+          "change_estimate": {
+            "status": "qualified",
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
+          },
+          "registration_stability": "stable",
+          "registration_stability_receipt": {
+            "status": "qualified",
+            "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scope": {
+              "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
+          },
+          "independent_checkpoint": {
+            "status": "qualified",
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "scope": {
+              "survey_product_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+              "asset_id": "BLDG-SYNTH-01",
+              "base_model_revision": "MODEL-R1",
+              "frame_id": "LOCAL-ENU-01"
+            }
+          }
+        }
+      },
+      "expected": {
+        "disposition": "STALE_OR_INVALID_EVIDENCE",
+        "reason_codes": [
+          "INDEPENDENT_CHECKPOINT_RECEIPT_SCOPE_MISMATCH"
         ]
       },
       "split_group_id": "synthetic-building-heldout-D"
