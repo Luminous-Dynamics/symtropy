@@ -118,9 +118,9 @@ pub struct ScmAgent {
     pub position: Vec<f64>,
 }
 
-/// A landscape returns a scalar fitness to maximize and its gradient.
+/// A landscape returns a dimensionless fitness in [0, 1] to maximize and its gradient.
 ///
-/// The caller supplies a finite fitness and a gradient of matching dimensionality.
+/// The caller supplies a bounded fitness and a finite gradient of matching dimensionality.
 /// Out-of-domain points are handled by the declared conical barrier and do not invoke
 /// the landscape implementation.
 pub trait ScmLandscape {
@@ -311,8 +311,10 @@ impl ScmModel {
             .iter()
             .map(|observation| l2_norm(&observation.gradient))
             .collect();
-        let mean_gradient_norm =
-            gradient_norms.iter().sum::<f64>() / gradient_norms.len() as f64;
+        let mean_gradient_norm = gradient_norms
+            .iter()
+            .map(|value| *value / gradient_norms.len() as f64)
+            .sum::<f64>();
         let gradient_degenerate = !mean_gradient_norm.is_finite()
             || mean_gradient_norm <= self.config.numerical_epsilon;
         // xi = 1/mean(||grad V||) is singular when every gradient is zero.
@@ -484,6 +486,7 @@ impl ScmModel {
                     reason,
                 })?;
             if !fitness.is_finite()
+                || !(0.0..=1.0).contains(&fitness)
                 || gradient.len() != agent.position.len()
                 || gradient.iter().any(|value| !value.is_finite())
             {
@@ -591,7 +594,7 @@ fn consensus_state(
 }
 
 fn l2_norm(values: &[f64]) -> f64 {
-    values.iter().map(|value| value * value).sum::<f64>().sqrt()
+    values.iter().fold(0.0_f64, |norm, value| norm.hypot(*value))
 }
 
 /// Deterministic xorshift64 + Box-Muller Gaussian stream. This is not MATLAB's RNG and
