@@ -1,0 +1,446 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-WELD-DATASET-INTEROP-001",
+  "retrieval_date": "2026-11-11",
+  "raw_files_downloaded": false,
+  "raw_files_vendored": false,
+  "sources": [
+    {
+      "dataset_id": "bam-tandem-gmaw-2026",
+      "title": "Tandem-GMAW: advanced pulsed and short-circuiting process mode experimental data",
+      "source_uri": "https://zenodo.org/records/21824586",
+      "doi": "10.5281/zenodo.21824586",
+      "version": "2.0.0",
+      "domain": "shipbuilding_process_and_interpass_geometry",
+      "publisher": "Bundesanstalt für Materialforschung und -prüfung",
+      "access_mode": "public_record_raw_rights_pending",
+      "raw_file_license": "UNKNOWN",
+      "rights_status": "RIGHTS_PENDING",
+      "article_doi": "10.1016/j.dib.2026.113329",
+      "article_license": "CC-BY-4.0",
+      "article_license_scope": "article_text_and_metadata_only",
+      "raw_files_downloaded": false,
+      "raw_files_vendored": false,
+      "reported_size_gb": 4.5,
+      "independent_unit": "workpiece_id",
+      "independent_unit_count": 5,
+      "grouping_field": "workpiece_id",
+      "sessions_or_runs": 5,
+      "sample_count_label": "30 layer metadata rows; 5 workpieces x 6 layers",
+      "modality_classes": [
+        "robot_motion",
+        "process_voltage_current",
+        "power_source_leading_trailing",
+        "surface_scan_3d",
+        "video",
+        "thermocouple_t8_5"
+      ],
+      "modalities_have_distinct_sample_rates": true,
+      "label_authority_classes": [
+        "process_observation",
+        "surface_geometry_metrology",
+        "thermocouple_measurement"
+      ],
+      "verified_ndt_labels_present": false,
+      "expert_defect_labels_present": false,
+      "known_limitations": [
+        "Only five independent WIDs",
+        "No NDT disposition established by this source admission",
+        "Raw Zenodo licence field blank",
+        "L1 is single-wire root; L2-L6 tandem",
+        "Five t8/5 records unavailable and preserved as missing"
+      ]
+    },
+    {
+      "dataset_id": "intel-robotic-welding-multimodal",
+      "title": "Intel Robotic Welding Multimodal Dataset",
+      "source_uri": "https://huggingface.co/datasets/IntelLabs/Intel_Robotic_Welding_Multimodal_Dataset",
+      "doi": null,
+      "version": "main-card-current",
+      "domain": "automotive_multimodal_defect_annotation",
+      "publisher": "Intel Labs",
+      "access_mode": "gated_research_only",
+      "raw_file_license": "Intel Research Use License Agreement",
+      "rights_status": "RESEARCH_ONLY_NONCOMMERCIAL_GATED",
+      "article_doi": "10.48550/arXiv.2409.02290",
+      "article_license": "UNKNOWN",
+      "article_license_scope": "paper_metadata_only_until_independently_checked",
+      "raw_files_downloaded": false,
+      "raw_files_vendored": false,
+      "reported_size_gb": 39.9,
+      "independent_unit": "welding_session",
+      "independent_unit_count": 236,
+      "grouping_field": "session_or_weld_id",
+      "sessions_or_runs": 236,
+      "sample_count_label": "Over 4,000 annotated samples",
+      "modality_classes": [
+        "video",
+        "audio_flac_16khz",
+        "welding_sensor_timeseries",
+        "five_post_weld_images"
+      ],
+      "modalities_have_distinct_sample_rates": true,
+      "label_authority_classes": [
+        "intended_defect_category_annotation"
+      ],
+      "verified_ndt_labels_present": false,
+      "expert_defect_labels_present": false,
+      "label_count": 12,
+      "known_limitations": [
+        "Research use only; non-commercial",
+        "Gated access requires identity/contact agreement",
+        "Licence is non-transferable and non-sublicensable",
+        "Dataset card reports labels may be noisy and not expert post-weld validated",
+        "A sample may contain multiple defects",
+        "Scripted simultaneous trigger does not eliminate sensor/device response misalignment"
+      ]
+    },
+    {
+      "dataset_id": "gmaw-thermography-profilometry-2025",
+      "title": "Dataset for estimating reinforcement, width and penetration of the weld bead in the GMAW process using thermographic information",
+      "source_uri": "https://doi.org/10.6084/m9.figshare.28062602.v3",
+      "doi": "10.6084/m9.figshare.28062602.v3",
+      "version": "3",
+      "domain": "controlled_gmaw_thermography_geometry",
+      "publisher": "Data in Brief / University of Brasília authors",
+      "access_mode": "public_article_dataset_file_terms_pending",
+      "raw_file_license": "UNKNOWN_PENDING_ITEM_LEVEL_READBACK",
+      "rights_status": "RIGHTS_PENDING",
+      "article_doi": "10.1016/j.dib.2025.111883",
+      "article_license": "CC-BY-NC-4.0",
+      "article_license_scope": "published_article_only_until_item_level_terms_confirmed",
+      "raw_files_downloaded": false,
+      "raw_files_vendored": false,
+      "reported_size_gb": null,
+      "independent_unit": "experiment_run",
+      "independent_unit_count": 4,
+      "grouping_field": "experiment_run_id",
+      "sessions_or_runs": 4,
+      "sample_count_label": "Four experiment folders/runs (I-IV)",
+      "modality_classes": [
+        "thermographic_images_and_process_csv",
+        "laser_profilometer_scan_csv",
+        "macrographic_penetration_profile",
+        "processed_features"
+      ],
+      "modalities_have_distinct_sample_rates": true,
+      "label_authority_classes": [
+        "process_observation",
+        "surface_geometry_metrology",
+        "macrographic_measurement"
+      ],
+      "verified_ndt_labels_present": false,
+      "expert_defect_labels_present": false,
+      "known_limitations": [
+        "Only four independent experiment runs",
+        "Article licence is CC BY-NC; dataset item licence requires separate read-back",
+        "Penetration labels are macrographic/destructive section measurements, not NDT",
+        "Not a shipyard multi-pass T-GMAW domain"
+      ]
+    }
+  ],
+  "split_policy": {
+    "rule": "group by highest physical common identity; preserve all nested observations within the group",
+    "bam_group": "workpiece_id",
+    "intel_group": "welding_session_or_weld_id",
+    "thermography_group": "experiment_run_id",
+    "random_sample_split_allowed": false
+  },
+  "claim_policy": {
+    "process_observation_is_quality_truth": false,
+    "intended_defect_annotation_is_expert_verified": false,
+    "macrograph_is_ndt": false,
+    "verified_ndt_labels_present_in_seed_sources": false,
+    "cross_domain_accuracy_pooling_allowed": false,
+    "leave_one_domain_out_requires_semantically_matched_target": true
+  },
+  "controls": [
+    {
+      "control_id": "WDINT-001",
+      "class": "positive_contract_control",
+      "expected_disposition": "METADATA_ONLY_REGISTRY_VALID",
+      "mutation": "Register the three pinned dataset metadata cards without downloading or vendoring any raw source files; preserve distinct rights and label authority.",
+      "rationale": "The baseline admits metadata and provenance only."
+    },
+    {
+      "control_id": "WDINT-002",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ARTICLE_DATA_LICENSE",
+      "mutation": "Apply the BAM article's CC BY-4.0 licence to the separate Zenodo raw archive.",
+      "rationale": "Article text/metadata and raw archive have distinct rights records."
+    },
+    {
+      "control_id": "WDINT-003",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_INTEL_COMMERCIAL",
+      "mutation": "Train or use a commercial Luminous production model with the Intel research-use-only non-commercial dataset.",
+      "rationale": "The Intel Research Use License limits use to research and is not a commercial grant."
+    },
+    {
+      "control_id": "WDINT-004",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_INTEL_GATE",
+      "mutation": "Treat gated Intel data as unrestricted public data without accepting the access terms.",
+      "rationale": "Gated access and licence acceptance must be explicit."
+    },
+    {
+      "control_id": "WDINT-005",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_THERMO_ITEM_LICENSE",
+      "mutation": "Assume the GMAW Figshare file licence is CC BY-NC solely from the article copyright notice.",
+      "rationale": "Item/version-level terms must be read from the actual data record."
+    },
+    {
+      "control_id": "WDINT-006",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RAW_DOWNLOAD",
+      "mutation": "Download any raw files while the source rights state is pending or incompatible with the declared purpose.",
+      "rationale": "Metadata-only source registration is the allowed current state."
+    },
+    {
+      "control_id": "WDINT-007",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RAW_VENDoring",
+      "mutation": "Copy restricted or rights-pending raw files into the public repository.",
+      "rationale": "Raw data are not vendored in this benchmark."
+    },
+    {
+      "control_id": "WDINT-008",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_VERSION",
+      "mutation": "Replace an explicitly versioned DOI with a mutable latest-version URI without pinning the resolved version.",
+      "rationale": "The exact source version is part of provenance."
+    },
+    {
+      "control_id": "WDINT-009",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_GROUP_SPLIT",
+      "mutation": "Split BAM layers randomly across train and test despite only five WIDs.",
+      "rationale": "All observations from a WID remain within one split."
+    },
+    {
+      "control_id": "WDINT-010",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_GROUP_SPLIT",
+      "mutation": "Split Intel video frames or windows from one welding session across train and test.",
+      "rationale": "Group by session/weld identity."
+    },
+    {
+      "control_id": "WDINT-011",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_GROUP_SPLIT",
+      "mutation": "Split rows from one thermography experiment run across train and test.",
+      "rationale": "Group by full experiment run."
+    },
+    {
+      "control_id": "WDINT-012",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SAMPLE_INDEPENDENCE",
+      "mutation": "Count millions of time samples or frames as independent physical specimens.",
+      "rationale": "Sampling density does not increase independent unit count."
+    },
+    {
+      "control_id": "WDINT-013",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LABEL_AUTHORITY",
+      "mutation": "Treat Intel intended defect-category annotations as expert-verified defect truth.",
+      "rationale": "Dataset card reports labels may be noisy and lack expert post-weld validation."
+    },
+    {
+      "control_id": "WDINT-014",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_MULTI_LABEL",
+      "mutation": "Force a potentially multi-defect Intel weld into a mutually exclusive single-label truth.",
+      "rationale": "Preserve multi-label and uncertain-label semantics."
+    },
+    {
+      "control_id": "WDINT-015",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_NDT_PROMOTION",
+      "mutation": "Promote Intel intended defect categories to independent UT/RT/PAUT inspection results.",
+      "rationale": "No traceable NDT finding is established by the dataset card."
+    },
+    {
+      "control_id": "WDINT-016",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_MACROGRAPH_NDT",
+      "mutation": "Treat macrographic penetration profile as nondestructive testing acceptance.",
+      "rationale": "Macrograph is destructive section-specific measurement."
+    },
+    {
+      "control_id": "WDINT-017",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_PROCESS_QUALITY",
+      "mutation": "Infer fusion, penetration acceptance or defect absence from current/voltage alone.",
+      "rationale": "Process observations are not direct quality or NDT ground truth."
+    },
+    {
+      "control_id": "WDINT-018",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LABEL_POOLING",
+      "mutation": "Pool intended defect categories, macrograph measurements and NDT labels into one common accuracy denominator.",
+      "rationale": "Targets and label authority differ."
+    },
+    {
+      "control_id": "WDINT-019",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CADENCE",
+      "mutation": "Resample all modalities to one frequency and discard their original sampling intervals.",
+      "rationale": "Native sample cadence and timestamps remain separate."
+    },
+    {
+      "control_id": "WDINT-020",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ALIGNMENT",
+      "mutation": "Treat simultaneous trigger script as proof of a zero-offset common clock.",
+      "rationale": "Sensor response and device clock differences must be measured."
+    },
+    {
+      "control_id": "WDINT-021",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LATENCY",
+      "mutation": "Ignore sensor/device response latency when aligning audio, video and electrical signals.",
+      "rationale": "Clock offset and response delay are separate quantities."
+    },
+    {
+      "control_id": "WDINT-022",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ALIGNMENT_MISSING",
+      "mutation": "Interpolate across a missing block and record the interpolated sample as measured.",
+      "rationale": "Missingness remains explicit unless a declared transform permits imputation."
+    },
+    {
+      "control_id": "WDINT-023",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIME_ZERO",
+      "mutation": "Convert missing timestamp, unit or sensor channel to numeric zero.",
+      "rationale": "Unknown is not zero."
+    },
+    {
+      "control_id": "WDINT-024",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CIRCULAR_LABEL",
+      "mutation": "Predict defect annotations from a feature computed using the same label/post-weld image without declaring target leakage.",
+      "rationale": "Inputs and labels require provenance and leakage controls."
+    },
+    {
+      "control_id": "WDINT-025",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_GROUP_ID",
+      "mutation": "Use sample_id instead of physical session/specimen identity as the split group.",
+      "rationale": "The highest shared physical grouping level governs split isolation."
+    },
+    {
+      "control_id": "WDINT-026",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_BAM_INDEPENDENCE",
+      "mutation": "Treat the five BAM WIDs as five replicated examples per process-mode class.",
+      "rationale": "Some modes have only one independent WID; report the actual group count."
+    },
+    {
+      "control_id": "WDINT-027",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_BAM_CAUSAL",
+      "mutation": "Claim causal PMC/CMT superiority from the single BAM matched workpiece pair.",
+      "rationale": "One WID per mode is exploratory, not replicated causal evidence."
+    },
+    {
+      "control_id": "WDINT-028",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_GEOMETRY_METHOD",
+      "mutation": "Compare laser scan width with macrograph penetration as if they were the same measured output.",
+      "rationale": "Different modalities and physical scopes require distinct targets."
+    },
+    {
+      "control_id": "WDINT-029",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_UNCERTAINTY",
+      "mutation": "Report point accuracy without uncertainty or calibration by domain.",
+      "rationale": "Calibration/coverage and per-domain intervals are required."
+    },
+    {
+      "control_id": "WDINT-030",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_DOMAIN_TRANSFER",
+      "mutation": "Claim leave-one-domain-out success across targets that are not physically or semantically matched.",
+      "rationale": "Transfer results require matched output definitions."
+    },
+    {
+      "control_id": "WDINT-031",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_DOMAIN_IDENTITY",
+      "mutation": "Merge automotive, lab-flat GMAW and shipyard tandem-GMAW domains into a single process identity.",
+      "rationale": "Material, joint, process, position and equipment domain remain explicit."
+    },
+    {
+      "control_id": "WDINT-032",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_BAD_SELECTED_SAMPLE",
+      "mutation": "Drop failed or poor samples from a benchmark without reporting the selection rule and denominator.",
+      "rationale": "Selection and exclusions must be disclosed."
+    },
+    {
+      "control_id": "WDINT-033",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS_DERIVATIVE",
+      "mutation": "Release model weights, embeddings or feature stores derived from Intel material without checking the licence and distribution conditions.",
+      "rationale": "Training-derived artefacts can retain licence obligations."
+    },
+    {
+      "control_id": "WDINT-034",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_RIGHTS_DELETION",
+      "mutation": "Retain Intel source material or derivatives after a license termination/deletion obligation applies.",
+      "rationale": "Rights and retention lifecycle must be represented."
+    },
+    {
+      "control_id": "WDINT-035",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SOURCE_DIGEST",
+      "mutation": "Use a third-party mirror as the authoritative dataset source without matching the pinned record digest.",
+      "rationale": "Official source/version and file digests are required."
+    },
+    {
+      "control_id": "WDINT-036",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TRANSFORM",
+      "mutation": "Publish derived features without source digest, transform revision, configuration, units and output digest.",
+      "rationale": "Every derivative must be reproducible."
+    },
+    {
+      "control_id": "WDINT-037",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_MODALITY_AUTHORITY",
+      "mutation": "Treat a video/audio anomaly score as a verified weld-quality finding.",
+      "rationale": "Weak signals remain advisory labels unless independently validated."
+    },
+    {
+      "control_id": "WDINT-038",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_UNINSPECTED",
+      "mutation": "Label an uninspected weld as defect-free.",
+      "rationale": "Absence of an inspection label is not a negative label."
+    },
+    {
+      "control_id": "WDINT-039",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_REPAIR_LEAK",
+      "mutation": "Use post-repair or post-NDT outcomes as input features for an earlier prediction timestamp.",
+      "rationale": "Future outcome leakage is prohibited."
+    },
+    {
+      "control_id": "WDINT-040",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SAMPLE_DUPLICATE",
+      "mutation": "Include duplicated clips or repeated augmentations across train and test.",
+      "rationale": "Duplicate/near-duplicate source group identity must be retained."
+    },
+    {
+      "control_id": "WDINT-041",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_LICENSE_SCOPE",
+      "mutation": "Transfer an Intel non-commercial trained model into a commercial use case without a distinct permission basis.",
+      "rationale": "Commercial downstream rights are not granted by the Intel research licence."
+    }
+  ]
+}
