@@ -479,7 +479,12 @@ impl FaultCampaign {
         if duplicate(&event_ids) {
             findings.push(Finding::DuplicateFaultEvent);
         }
-        if let FaultSpec::CameraBurstDrop { duration_ticks, .. } = fault {
+        if let FaultSpec::CameraBurstDrop {
+            duration_ticks,
+            onset_tick,
+            ..
+        } = fault
+        {
             let missing_ticks = pair
                 .perturbed
                 .fault_events
@@ -490,8 +495,7 @@ impl FaultCampaign {
                 })
                 .map(|event| event.tick)
                 .collect::<BTreeSet<_>>();
-            let expected_missing_ticks = (*onset_tick
-                ..onset_tick.saturating_add(*duration_ticks))
+            let expected_missing_ticks = (*onset_tick..(*onset_tick).saturating_add(*duration_ticks))
                 .collect::<BTreeSet<_>>();
             if missing_ticks != expected_missing_ticks {
                 findings.push(Finding::CameraDropDenominatorMismatch);
