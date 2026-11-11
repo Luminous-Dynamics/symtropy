@@ -49,6 +49,10 @@ A separate balanced finite fixture has values 20, 20, 80, 80. One unit in each s
 
 A fourth finite fixture makes the population's observation process explicitly mixed: two units carry a declared MAR mechanism and two carry an MNAR mechanism. The evaluator reports the aggregate mechanism as `mixed`, while candidate estimators still receive only unit-level observation rows. The bounds remain [42.5, 92.5] around the true mean of 45; the benchmark does not pretend the MAR propensity values for two units identify the other two units' MNAR outcomes.
 
+## Output contract
+
+The sweep emits a deterministic 32-column CSV over six rows: both policy pairs for the two rank-reversal fixtures, one mixed-mechanism population, and one known-propensity positive control. It records overall and subgroup bounds/coverage, true subgroup means and inequality gap, reason-specific missingness counts, propensity coverage/range, interval comparison, and worst-case regret. The evaluator-only truth is reported solely for qualification and never passed to an estimator.
+
 ## Estimators and qualification
 
 For outcome support [L, U], observed weighted sum S, total population weight W, and missing weight M, the no-assumption finite-population bounds are:
@@ -66,6 +70,8 @@ The known-propensity estimator is an explicit positive-control path and rejects 
 - Unit IDs are unique per policy; policy IDs cannot be mixed in one estimate.
 - Every missing unit remains in the population denominator.
 - Outcome support and population weights are validated.
+- An observed value that disagrees with evaluator-only latent truth is rejected.
+- Mixed unit-level observation mechanisms remain visible as a mixed population; they are not forced into a single global label.
 - No hidden outcome or true-mechanism field is passed to candidate estimators.
 - Complete-case and missing-as-zero rank-reversal tests run in opposite selection directions.
 - All-missing policies return the full outcome-support interval and no complete-case estimate.
