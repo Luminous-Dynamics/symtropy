@@ -316,7 +316,7 @@ fn run_audit(input: &str) -> Result<String, String> {
 
     let mut total_finished = 0_usize;
     let mut total_exceptions = 0_usize;
-    let mut output = String::from("experiment_id,environment,true_mechanism,pomdp_states,learning_rows,finished_rows,exception_rows,learning_success_rate,exceptions_n10,exceptions_n50,exceptions_other,baseline_count,pomcp_count\n");
+    let mut output = String::from("experiment_id,environment,true_mechanism,pomdp_states,learning_rows,finished_rows,exception_rows,learning_success_rate,exceptions_n10,exceptions_n50,exceptions_other,baseline_count,pomcp_count,exception_class_count,known_belief_collapse_exception_rows\n");
 
     for expected in EXPECTED {
         let contract = contracts
