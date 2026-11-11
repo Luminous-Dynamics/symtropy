@@ -88,12 +88,76 @@
       "status": "research_candidate_requires_model_and_parameter_validation"
     },
     {
-      "id": "published_six_solution_liu_ice_reference_suite",
-      "family": "multi_method_reference_suite",
-      "role": "Reproduce the six LiU-ICE solutions reported from IFAC Safeprocess 2024 and documented in the 2025 Control Engineering Practice benchmark paper. Recover the exact architectures, channel use, splits and hyperparameters before matched comparison.",
+      "id": "published_solution_1_care_engine",
+      "family": "adaptive_residual_qda_lsvc",
+      "role": "CAREngine: healthy-only neural/linear residual models, segmented adaptive ±2σ bounds, EWMA diagnostic features, QDA detection, Nystroem+LSVC isolation.",
       "status": "reproduction_required",
-      "source": "https://doi.org/10.1016/j.conengprac.2025.106427",
-      "comparison_rule": "Same audited recordings, same permitted data access, same sample-wise streaming interface, same official metric implementation and compute disclosure."
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 92.2,
+        "tdr_percent": 87.3,
+        "tir_percent": 50.1
+      }
+    },
+    {
+      "id": "published_solution_2_rls_open_set_residuals",
+      "family": "rls_open_set_residuals",
+      "role": "Four RLS local engine models; time-varying coefficient residual signatures; MSO/fault-sensitivity analysis; open-set residual-insensitive-region detectors.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 100,
+        "tdr_percent": 83.1,
+        "tir_percent": 85.5
+      }
+    },
+    {
+      "id": "published_solution_3_distribution_kl_matching",
+      "family": "distribution_kl_matching",
+      "role": "Sliding-window Gaussian distribution descriptors with KL-divergence matching and thresholds for known/unknown residual patterns.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 58.4,
+        "tdr_percent": 84.5,
+        "tir_percent": 48.8
+      }
+    },
+    {
+      "id": "published_solution_4_residual_anfis",
+      "family": "residual_anfis",
+      "role": "Healthy-system model, residual thresholds, cumulative alarm-density confirmation, four dedicated ANFIS isolation models.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 99.9,
+        "tdr_percent": 97.2,
+        "tir_percent": 68
+      }
+    },
+    {
+      "id": "published_solution_5_ccdnn_multiview",
+      "family": "ccdnn_multiview",
+      "role": "Canonical-correlation-guided deep network with two views and redundancy filtering for correlated multivariate features.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 30.5,
+        "tdr_percent": 87.4,
+        "tir_percent": 37.2
+      }
+    },
+    {
+      "id": "published_solution_6_vae_svm_ensemble",
+      "family": "dual_vae_svm_ensemble",
+      "role": "Separate VAE/MLP detectors for fault detection and known-fault isolation plus a one-class SVM unknown-fault signal.",
+      "status": "reproduction_required",
+      "source": "10.1016/j.conengprac.2025.106427",
+      "historical_reference": {
+        "one_minus_far_percent": 36.2,
+        "tdr_percent": 78.6,
+        "tir_percent": 42.3
+      }
     }
   ],
   "primary_metrics": [
@@ -199,7 +263,13 @@
     "a diagnostic-evidence candidate is ineligible until its likelihood calibration has an independently reviewed receipt reference",
     "the selector distinguishes multi-scenario assessment from independent calibration review; scenario count does not qualify a likelihood model",
     "qualified decision-support runs bind the likelihood-calibration catalogue and upstream independent-review verification digest",
-    "upstream trust verifies calibration reviewer identity, independence, competence, signed report, scope and revocation"
+    "upstream trust verifies calibration reviewer identity, independence, competence, signed report, scope and revocation",
+    "all six published 2024 LiU-ICE solutions are represented as separate, named comparators rather than a single aggregate suite",
+    "historical paper scores are labelled as 2024 challenge literature and are never copied into current DX2026 score fields",
+    "historical TIR is never relabelled as current probability-based FIA",
+    "faithful reproduction records architecture, channel selection, preprocessing, training data, thresholds, split, model artifact, runtime and dependency digests",
+    "a reimplementation is labelled separately from a faithful reproduction; missing original artifacts and assumptions are disclosed",
+    "all reproduced and new methods are scored on the exact same current split, sample interface, official scorer and permitted data access before ranking"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -447,5 +517,18 @@
     "class_mapping_rule": "No direct sample-level class mapping. Reviewed component/function mappings only where dictionaries, units and fault mechanisms justify equivalence.",
     "engine_transfer": "unsupported: one MU323DGSC test-bench identity is not a multi-engine or fleet sample",
     "execution_status": "metadata_only_no_archive_sha_no_scores"
+  },
+  "published_comparator_reference": {
+    "path": "published-six-solution-baselines-v0.1.json",
+    "source": "Jung et al., Control Engineering Practice 164 (2025), 106427",
+    "doi": "10.1016/j.conengprac.2025.106427",
+    "challenge_iteration": "IFAC Safeprocess 2024 LiU-ICE",
+    "status": "literature_reference_not_reproduced",
+    "metric_semantics": {
+      "historical_tir": "Top-ranked true fault among detected fault events",
+      "current_dx2026_fia": "Average probability assigned to the true diagnosis among correctly detected faulty samples",
+      "comparability": "Historical TIR is not current DX2026 FIA; re-evaluate each reproduction on identical current data/splits with current official score."
+    },
+    "reproduction_required": true
   }
 }
