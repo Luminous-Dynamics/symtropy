@@ -386,7 +386,7 @@ fn event_metrics(
     }
 
     let detection_tick = run_ticks
-        .range(event.start_tick..=event.end_tick.saturating_add(event.detection_deadline_ticks))
+        .range(event.start_tick..)
         .find_map(|(tick, record)| {
             record
                 .fault_detection_event_ids
@@ -395,7 +395,7 @@ fn event_metrics(
                 .then_some(*tick)
         });
     let containment_tick = run_ticks
-        .range(event.start_tick..=event.end_tick.saturating_add(event.containment_deadline_ticks))
+        .range(event.start_tick..)
         .find_map(|(tick, record)| {
             record
                 .containment_event_ids
@@ -813,6 +813,30 @@ mod tests {
         input.faulted_run.ticks[5].normal_mode = false;
         let report = audit_campaign(&input);
         assert!(has(&report, "premature_recovery"));
+    }
+
+    #[test]
+    fn late_detection_is_counted_as_a_deadline_miss_not_as_undetected() {
+        let mut input = campaign();
+        input.faulted_run.ticks[2].fault_detection_event_ids.clear();
+        input.faulted_run.ticks[6].fault_detection_event_ids =
+            vec!["camera-drop-1".to_string()];
+        let report = audit_campaign(&input);
+        assert!(has(&report, "detection_deadline_missed"));
+        assert!(!has(&report, "fault_undetected"));
+        assert_eq!(report.events[0].detection_latency_ticks, Some(4));
+    }
+
+    #[test]
+    fn one_fault_event_cannot_claim_another_events_detection() {
+        let mut input = campaign();
+        input.faulted_run.ticks[2].fault_detection_event_ids =
+            vec!["unrelated-event".to_string()];
+        input.faulted_run.ticks[2].containment_event_ids =
+            vec!["unrelated-event".to_string()];
+        let report = audit_campaign(&input);
+        assert!(has(&report, "fault_undetected"));
+        assert!(has(&report, "unknown_event_reference"));
     }
 
     #[test]
