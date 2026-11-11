@@ -662,7 +662,7 @@ mod tests {
                 "fast-route".to_owned()
             ]
         );
-        assert_eq!(report.source_grade, "SYNTHETIC_ONLY");
+        assert_eq!(report.source_grade, "MIXED_OR_INDETERMINATE");
     }
 
     #[test]
@@ -781,8 +781,14 @@ mod tests {
             .find(|report| report["report_ref"] == source_ref)
             .unwrap();
         report["report"]["results"][0]["mission_functional_unit"] = Value::String("passenger-km per shift".into());
+        let new_report_digest = sha256(&canonical_json(&report["report"]).unwrap());
+        let new_result_digest = sha256(&canonical_json(&report["report"]["results"][0]).unwrap());
+        report["report_sha256"] = Value::String(new_report_digest.clone());
+        corpus["candidates"][0]["source_report_sha256"] = Value::String(new_report_digest);
+        corpus["candidates"][0]["source_result_sha256"] = Value::String(new_result_digest);
         let bytes = serde_json::to_vec(&corpus).expect("mixed service unit corpus");
-        assert!(audit_corpus(SCHEMA, &bytes).is_err());
+        let error = audit_corpus(SCHEMA, &bytes).expect_err("functional unit mismatch must reject");
+        assert!(error.contains("mission functional unit"));
     }
 
     #[test]
