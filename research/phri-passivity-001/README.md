@@ -62,7 +62,7 @@ The one-constraint convex projection uses a scalar KKT multiplier and 80 fixed b
     cargo test --locked --manifest-path research/phri-passivity-001/Cargo.toml
     cargo clippy --locked --manifest-path research/phri-passivity-001/Cargo.toml --all-targets -- -D warnings
 
-The current reference contains 26 authored deterministic tests covering:
+The current reference contains 29 authored deterministic tests covering:
 - signed wrench/twist power and energy balance;
 - irregular sample intervals and trapezoidal integration;
 - interior within-interval energy minima;
