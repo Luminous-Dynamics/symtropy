@@ -253,7 +253,7 @@
           "minLength": 1
         },
         "coordinate_unit": {
-          "const": "um"
+          "const": "mm"
         },
         "preparation": {
           "enum": [
