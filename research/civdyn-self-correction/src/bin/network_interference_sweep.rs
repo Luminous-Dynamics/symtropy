@@ -70,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             assess_exposure_mapping(&clustered, &assignments, &mechanism, mapping)?;
         emit(&[
             "exposure_mapping".to_string(),
-            mapping.id().to_string(),
+            mapping.id(),
             summary.mapping_id.to_string(),
             assignments.len().to_string(),
             format!("{probability_mass:.16}"),
