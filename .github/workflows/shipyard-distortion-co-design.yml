@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: ["main"]
     paths:
+      - "Cargo.toml"
       - "crates/tools/shipyard-distortion-co-design/**"
       - "crates/tools/shipyard-distortion-co-design/Cargo.lock"
       - "benchmarks/shipyard/distortion-co-design/**"
