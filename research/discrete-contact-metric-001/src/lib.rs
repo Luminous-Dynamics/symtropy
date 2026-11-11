@@ -606,34 +606,54 @@ fn dot(left: &[f64], right: &[f64]) -> f64 {
 /// This prevents a large impulse at an unrelated contact from masking a
 /// negative impulse at a much smaller contact scale.
 fn relative_negative_residual(values: &[f64], delassus: &Matrix, contact_rhs: &[f64]) -> f64 {
-    values
-        .iter()
-        .enumerate()
-        .map(|(row, value)| {
-            let violation = (-value).max(0.0);
-            if violation == 0.0 {
-                return 0.0;
-            }
+    let mut maximum = 0.0_f64;
+    for (row, value) in values.iter().enumerate() {
+        if !value.is_finite() || !contact_rhs[row].is_finite() {
+            return f64::INFINITY;
+        }
+        let violation = (-value).max(0.0);
+        if violation == 0.0 {
+            continue;
+        }
 
-            let diagonal = delassus[(row, row)].abs();
-            let coupled_velocity_scale = contact_rhs[row].abs()
-                + (0..values.len())
-                    .filter(|col| *col != row)
-                    .map(|col| delassus[(row, col)].abs() * values[col].abs())
-                    .sum::<f64>();
-            let local_impulse_scale = if diagonal > 0.0 {
-                coupled_velocity_scale / diagonal
-            } else {
-                0.0
-            };
-            let scale = value.abs().max(local_impulse_scale);
-            if scale > 0.0 && scale.is_finite() {
-                violation / scale
-            } else {
-                f64::INFINITY
+        let diagonal = delassus[(row, row)].abs();
+        if !diagonal.is_finite() {
+            return f64::INFINITY;
+        }
+        let mut coupled_velocity_scale = contact_rhs[row].abs();
+        for col in 0..values.len() {
+            if col == row {
+                continue;
             }
-        })
-        .fold(0.0_f64, f64::max)
+            let coupling = delassus[(row, col)].abs();
+            if !coupling.is_finite() || !values[col].is_finite() {
+                return f64::INFINITY;
+            }
+            let contribution = coupling * values[col].abs();
+            if !contribution.is_finite() {
+                return f64::INFINITY;
+            }
+            coupled_velocity_scale += contribution;
+            if !coupled_velocity_scale.is_finite() {
+                return f64::INFINITY;
+            }
+        }
+        let local_impulse_scale = if diagonal > 0.0 {
+            coupled_velocity_scale / diagonal
+        } else {
+            0.0
+        };
+        let scale = value.abs().max(local_impulse_scale);
+        if !scale.is_finite() || scale <= 0.0 {
+            return f64::INFINITY;
+        }
+        let relative = violation / scale;
+        if !relative.is_finite() {
+            return f64::INFINITY;
+        }
+        maximum = maximum.max(relative);
+    }
+    maximum
 }
 
 /// Dimensionless unilateral feasibility residual, normalized per contact row
@@ -646,23 +666,35 @@ fn relative_primal_feasibility(
     slack: &[f64],
     free_normal_velocity: &[f64],
 ) -> f64 {
-    normal_velocity
+    let mut maximum = 0.0_f64;
+    for (((normal, target), row_slack), free) in normal_velocity
         .iter()
         .zip(target_velocity)
         .zip(slack)
         .zip(free_normal_velocity)
-        .map(|(((normal, target), row_slack), free)| {
-            let violation = (-row_slack).max(0.0);
-            let scale = normal.abs().max(target.abs()).max(free.abs());
-            if violation == 0.0 {
-                0.0
-            } else if scale > 0.0 {
-                violation / scale
-            } else {
-                f64::INFINITY
-            }
-        })
-        .fold(0.0_f64, f64::max)
+    {
+        if !normal.is_finite()
+            || !target.is_finite()
+            || !row_slack.is_finite()
+            || !free.is_finite()
+        {
+            return f64::INFINITY;
+        }
+        let violation = (-row_slack).max(0.0);
+        if violation == 0.0 {
+            continue;
+        }
+        let scale = normal.abs().max(target.abs()).max(free.abs());
+        if !scale.is_finite() || scale <= 0.0 {
+            return f64::INFINITY;
+        }
+        let relative = violation / scale;
+        if !relative.is_finite() {
+            return f64::INFINITY;
+        }
+        maximum = maximum.max(relative);
+    }
+    maximum
 }
 
 /// Dimensionless complementarity residual. For each positive impulse, divide
@@ -676,27 +708,39 @@ fn relative_complementarity_residual(
     slack: &[f64],
     free_normal_velocity: &[f64],
 ) -> f64 {
-    impulse
+    let mut maximum = 0.0_f64;
+    for ((((p, normal), target), row_slack), free) in impulse
         .iter()
         .zip(normal_velocity)
         .zip(target_velocity)
         .zip(slack)
         .zip(free_normal_velocity)
-        .map(|((((p, normal), target), row_slack), free)| {
-            if *p <= 0.0 {
-                0.0
-            } else {
-                let scale = normal.abs().max(target.abs()).max(free.abs());
-                if row_slack.abs() == 0.0 {
-                    0.0
-                } else if scale > 0.0 {
-                    row_slack.abs() / scale
-                } else {
-                    f64::INFINITY
-                }
-            }
-        })
-        .fold(0.0_f64, f64::max)
+    {
+        if !p.is_finite()
+            || !normal.is_finite()
+            || !target.is_finite()
+            || !row_slack.is_finite()
+            || !free.is_finite()
+        {
+            return f64::INFINITY;
+        }
+        if *p <= 0.0 {
+            continue;
+        }
+        if row_slack.abs() == 0.0 {
+            continue;
+        }
+        let scale = normal.abs().max(target.abs()).max(free.abs());
+        if !scale.is_finite() || scale <= 0.0 {
+            return f64::INFINITY;
+        }
+        let relative = row_slack.abs() / scale;
+        if !relative.is_finite() {
+            return f64::INFINITY;
+        }
+        maximum = maximum.max(relative);
+    }
+    maximum
 }
 
 /// Maximum componentwise equation residual normalized by the largest
@@ -711,11 +755,27 @@ fn metric_equation_relative_residual(
     let lhs = mat_vec(metric, velocity);
     let mut maximum = 0.0_f64;
     for row in 0..lhs.len() {
-        let contact_term = (0..impulse.len())
-            .map(|contact| contact_jacobian[(contact, row)] * impulse[contact])
-            .sum::<f64>();
-        let residual = (lhs[row] - rhs[row] - contact_term).abs();
+        if !lhs[row].is_finite() || !rhs[row].is_finite() {
+            return f64::INFINITY;
+        }
+        let mut contact_term = 0.0_f64;
+        for contact in 0..impulse.len() {
+            let jacobian = contact_jacobian[(contact, row)];
+            let contact_impulse = impulse[contact];
+            if !jacobian.is_finite() || !contact_impulse.is_finite() {
+                return f64::INFINITY;
+            }
+            contact_term += jacobian * contact_impulse;
+            if !contact_term.is_finite() {
+                return f64::INFINITY;
+            }
+        }
+        let residual_value = lhs[row] - rhs[row] - contact_term;
         let scale = lhs[row].abs().max(rhs[row].abs()).max(contact_term.abs());
+        if !residual_value.is_finite() || !scale.is_finite() {
+            return f64::INFINITY;
+        }
+        let residual = residual_value.abs();
         let relative = if residual == 0.0 {
             0.0
         } else if scale > 0.0 {
@@ -723,6 +783,9 @@ fn metric_equation_relative_residual(
         } else {
             f64::INFINITY
         };
+        if !relative.is_finite() {
+            return f64::INFINITY;
+        }
         maximum = maximum.max(relative);
     }
     maximum
@@ -1078,6 +1141,41 @@ mod tests {
                 - reference.max_scaled_complementarity_residual)
                 .abs()
                 < 1.0e-9
+        );
+    }
+
+    #[test]
+    fn dimensionless_contact_residuals_fail_closed_on_non_finite_derived_values() {
+        let infinity = f64::INFINITY;
+        let nan = f64::NAN;
+        let one_by_one = Matrix::identity(1);
+        assert_eq!(
+            relative_negative_residual(&[nan], &one_by_one, &[0.0]),
+            infinity
+        );
+        assert_eq!(
+            relative_negative_residual(&[1.0], &one_by_one, &[infinity]),
+            infinity
+        );
+        assert_eq!(
+            relative_primal_feasibility(&[infinity], &[0.0], &[0.0], &[1.0]),
+            infinity
+        );
+        assert_eq!(
+            relative_complementarity_residual(&[1.0], &[0.0], &[0.0], &[nan], &[1.0]),
+            infinity
+        );
+
+        let overflow_metric = Matrix::new(1, 1, vec![f64::MAX]).unwrap();
+        assert_eq!(
+            metric_equation_relative_residual(
+                &overflow_metric,
+                &[2.0],
+                &[0.0],
+                &Matrix::new(0, 1, vec![]).unwrap(),
+                &[],
+            ),
+            infinity
         );
     }
 
