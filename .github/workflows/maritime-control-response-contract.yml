@@ -50,9 +50,9 @@ jobs:
           jq -e '
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 8) and
+            (.comparators | length == 9) and
             ([.comparators[].id] | unique | length == 8) and
-            (.hard_evidence_gates | length >= 30) and
+            (.hard_evidence_gates | length >= 34) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
             (.calibration.minimum_independent_episodes["900000"] == 9) and
@@ -72,6 +72,7 @@ jobs:
             (.active_evidence_selection.actuation_authorized == false) and
             (.active_evidence_selection.controlled_perturbations_recommended == 0) and
             (.active_evidence_selection.comparators | index("risk_adjusted_worst_case_eig") != null) and
+            (.active_evidence_selection.risk_evidence.risk_score_ppm | contains("not a calibrated probability")) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.one_sample_one_output == true) and
             (.streaming_contract.historical_output_mutation == false) and
@@ -111,6 +112,8 @@ jobs:
             (.properties.protocol.required | index("streaming_contract") != null) and
             (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
+            (.properties.protocol.properties.active_evidence_selection.properties.risk_assessment_catalogue_sha256.oneOf | length == 2) and
+            (.properties.protocol.properties.active_evidence_selection.properties.risk_evidence_reviewed_by_authority_owner.type == "boolean") and
             (.properties.protocol.properties.streaming_contract.properties.historical_output_mutation.const == 0) and
             (.properties.protocol.properties.streaming_contract.properties.sample_sequence_gap_count.const == 0) and
             (.properties.metrics.properties.false_alarms_per_observed_normal_hour != null) and
