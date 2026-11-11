@@ -1090,9 +1090,11 @@ mod tests {
     fn budget_deadline_inversion_emits_deadline_missed_receipt() {
         let mut budget = budget();
         budget.decision_deadline_tick = 99;
+        let mut inference = inference();
+        inference.decision_deadline_tick = 99;
         let receipt = schedule(
             &budget,
-            &inference(),
+            &inference,
             "measured_uj_v1",
             "micro_loss_v1",
             "sim_tick_200hz_v1",
