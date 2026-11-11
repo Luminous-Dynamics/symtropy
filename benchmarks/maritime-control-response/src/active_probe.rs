@@ -197,6 +197,32 @@ pub struct ProbeBaselineSelection {
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct ProbePosteriorEntry {
+    pub hypothesis_id: String,
+    pub probability: f64,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct ProbeObservationUpdate {
+    pub candidate_id: String,
+    pub candidate_manifest_sha256: String,
+    pub observation_receipt_sha256: String,
+    pub observed_outcome_id: String,
+    pub prior_entropy_nats: f64,
+    pub posterior_entropy_nats: f64,
+    /// May be negative for an individual observation even though expected information gain is non-negative.
+    pub realized_entropy_reduction_nats: f64,
+    /// KL(posterior || prior), non-negative up to floating-point tolerance.
+    pub realized_kl_divergence_nats: f64,
+    pub posterior: Vec<ProbePosteriorEntry>,
+    pub likelihood_scenario_count: usize,
+    pub possible_likelihood_scenario_count: usize,
+    pub impossible_likelihood_scenario_count: usize,
+    pub scenario_posterior_entropy_min_nats: f64,
+    pub scenario_posterior_entropy_max_nats: f64,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ProbePortfolio {
     pub hypothesis_manifest_sha256: String,
     pub policy_sha256: String,
@@ -227,6 +253,10 @@ pub enum ProbeError {
     InvalidScenarioSet(String),
     CandidateCatalogMismatch,
     InvalidSeedDigest,
+    ObservationCandidateMismatch,
+    InvalidObservationReceiptDigest,
+    ObservedOutcomeNotFound(String),
+    ObservedOutcomeImpossible(String),
     InvalidInformationGain(String),
     Serialization,
 }
@@ -248,6 +278,10 @@ impl fmt::Display for ProbeError {
             Self::RiskEvidenceNotReviewed => write!(formatter, "risk assessment has not been reviewed by the authority owner"),
             Self::CandidateCatalogMismatch => write!(formatter, "baseline candidates do not match the scored probe catalogue"),
             Self::InvalidSeedDigest => write!(formatter, "seed manifest must be a lowercase SHA-256 digest"),
+            Self::ObservationCandidateMismatch => write!(formatter, "observed result belongs to a different probe candidate manifest"),
+            Self::InvalidObservationReceiptDigest => write!(formatter, "observation receipt must be a lowercase SHA-256 digest"),
+            Self::ObservedOutcomeNotFound(id) => write!(formatter, "observed outcome is not declared by the candidate likelihood model: {id}"),
+            Self::ObservedOutcomeImpossible(id) => write!(formatter, "observed outcome has zero probability under the frozen prior and likelihood model: {id}"),
             Self::InvalidInformationGain(id) => write!(formatter, "expected information gain is numerically invalid: {id}"),
             Self::Serialization => write!(formatter, "failed to serialize probe evidence for canonical hashing"),
         }
@@ -667,6 +701,189 @@ pub fn select_probe_baseline(
         } else {
             None
         },
+    })
+}
+
+/// Update a hypothesis distribution from an externally acquired observation.
+/// This function does not acquire evidence or execute a probe. The observation
+/// receipt must be independently created by the acquisition system and is
+/// content-bound here; its signer, sensor provenance and authority remain
+/// upstream verification duties.
+pub fn realize_probe_observation(
+    hypotheses: &[HypothesisPrior],
+    candidate: &DiagnosticProbeCandidate,
+    expected_candidate_manifest_sha256: &str,
+    observed_outcome_id: &str,
+    observation_receipt_sha256: &str,
+) -> Result<ProbeObservationUpdate, ProbeError> {
+    if observed_outcome_id.trim().is_empty() {
+        return Err(ProbeError::EmptyIdentity);
+    }
+    if !is_sha256_hex(observation_receipt_sha256) {
+        return Err(ProbeError::InvalidObservationReceiptDigest);
+    }
+    if !is_sha256_hex(expected_candidate_manifest_sha256)
+        || expected_candidate_manifest_sha256 != candidate.candidate_manifest_sha256
+        || candidate_manifest_sha256(candidate)? != candidate.candidate_manifest_sha256
+    {
+        return Err(ProbeError::ObservationCandidateMismatch);
+    }
+
+    let canonical_hypotheses = canonical_hypotheses(hypotheses)?;
+    let hypothesis_ids = canonical_hypotheses
+        .iter()
+        .map(|item| item.hypothesis_id.clone())
+        .collect::<Vec<_>>();
+    let prior = canonical_hypotheses
+        .iter()
+        .map(|item| item.prior_probability)
+        .collect::<Vec<_>>();
+    let hypothesis_digest = sha256_serializable(
+        b"symtropy-diagnostic-hypothesis-manifest-v1\0",
+        &canonical_hypotheses,
+    )?;
+    if candidate.hypothesis_manifest_sha256 != hypothesis_digest {
+        return Err(ProbeError::HypothesisManifestMismatch(
+            candidate.candidate_id.clone(),
+        ));
+    }
+    let (information_gain, _, _, scenario_count, _) =
+        assess_likelihood_uncertainty(candidate, &prior, hypothesis_ids.len())?;
+    let _ = information_gain;
+
+    let likelihood_by_hypothesis = if candidate.uncertainty_scenarios.is_empty() {
+        let outcome = candidate
+            .outcomes
+            .iter()
+            .find(|outcome| outcome.outcome_id == observed_outcome_id)
+            .ok_or_else(|| ProbeError::ObservedOutcomeNotFound(observed_outcome_id.to_owned()))?;
+        outcome.likelihood_by_hypothesis.clone()
+    } else {
+        let first_scenario = candidate.uncertainty_scenarios.first().unwrap();
+        if !first_scenario
+            .outcomes
+            .iter()
+            .any(|outcome| outcome.outcome_id == observed_outcome_id)
+        {
+            return Err(ProbeError::ObservedOutcomeNotFound(observed_outcome_id.to_owned()));
+        }
+        (0..hypothesis_ids.len())
+            .map(|hypothesis_index| {
+                candidate
+                    .uncertainty_scenarios
+                    .iter()
+                    .map(|scenario| {
+                        let outcome = scenario
+                            .outcomes
+                            .iter()
+                            .find(|outcome| outcome.outcome_id == observed_outcome_id)
+                            .expect("scenario outcome spaces were validated as identical");
+                        scenario.scenario_weight
+                            * outcome.likelihood_by_hypothesis[hypothesis_index]
+                    })
+                    .sum::<f64>()
+            })
+            .collect::<Vec<_>>()
+    };
+
+    let observation_probability = prior
+        .iter()
+        .zip(&likelihood_by_hypothesis)
+        .map(|(prior_probability, likelihood)| prior_probability * likelihood)
+        .sum::<f64>();
+    if !observation_probability.is_finite() || observation_probability <= f64::EPSILON {
+        return Err(ProbeError::ObservedOutcomeImpossible(
+            observed_outcome_id.to_owned(),
+        ));
+    }
+    let posterior_probabilities = prior
+        .iter()
+        .zip(&likelihood_by_hypothesis)
+        .map(|(prior_probability, likelihood)| {
+            prior_probability * likelihood / observation_probability
+        })
+        .collect::<Vec<_>>();
+    let posterior_total = posterior_probabilities.iter().sum::<f64>();
+    if !posterior_total.is_finite() || (posterior_total - 1.0).abs() > 1e-8 {
+        return Err(ProbeError::InvalidInformationGain(
+            candidate.candidate_id.clone(),
+        ));
+    }
+    let prior_entropy = entropy(&prior);
+    let posterior_entropy = entropy(&posterior_probabilities);
+    let realized_kl = posterior_probabilities
+        .iter()
+        .zip(&prior)
+        .filter(|(posterior_probability, _)| **posterior_probability > 0.0)
+        .map(|(posterior_probability, prior_probability)| {
+            posterior_probability * (posterior_probability / prior_probability).ln()
+        })
+        .sum::<f64>();
+    if !realized_kl.is_finite() || realized_kl < -1e-8 {
+        return Err(ProbeError::InvalidInformationGain(
+            candidate.candidate_id.clone(),
+        ));
+    }
+
+    let mut scenario_entropies = Vec::new();
+    if candidate.uncertainty_scenarios.is_empty() {
+        scenario_entropies.push(posterior_entropy);
+    } else {
+        for scenario in &candidate.uncertainty_scenarios {
+            let outcome = scenario
+                .outcomes
+                .iter()
+                .find(|outcome| outcome.outcome_id == observed_outcome_id)
+                .expect("scenario outcome spaces were validated as identical");
+            let scenario_observation_probability = prior
+                .iter()
+                .zip(&outcome.likelihood_by_hypothesis)
+                .map(|(prior_probability, likelihood)| prior_probability * likelihood)
+                .sum::<f64>();
+            if scenario_observation_probability > f64::EPSILON {
+                let scenario_posterior = prior
+                    .iter()
+                    .zip(&outcome.likelihood_by_hypothesis)
+                    .map(|(prior_probability, likelihood)| {
+                        prior_probability * likelihood / scenario_observation_probability
+                    })
+                    .collect::<Vec<_>>();
+                scenario_entropies.push(entropy(&scenario_posterior));
+            }
+        }
+    }
+    let possible_scenario_count = scenario_entropies.len();
+    if possible_scenario_count == 0 {
+        return Err(ProbeError::ObservedOutcomeImpossible(
+            observed_outcome_id.to_owned(),
+        ));
+    }
+    scenario_entropies.sort_by(f64::total_cmp);
+
+    let posterior = hypothesis_ids
+        .into_iter()
+        .zip(posterior_probabilities)
+        .map(|(hypothesis_id, probability)| ProbePosteriorEntry {
+            hypothesis_id,
+            probability,
+        })
+        .collect();
+
+    Ok(ProbeObservationUpdate {
+        candidate_id: candidate.candidate_id.clone(),
+        candidate_manifest_sha256: candidate.candidate_manifest_sha256.clone(),
+        observation_receipt_sha256: observation_receipt_sha256.to_owned(),
+        observed_outcome_id: observed_outcome_id.to_owned(),
+        prior_entropy_nats: prior_entropy,
+        posterior_entropy_nats: posterior_entropy,
+        realized_entropy_reduction_nats: prior_entropy - posterior_entropy,
+        realized_kl_divergence_nats: realized_kl.max(0.0),
+        posterior,
+        likelihood_scenario_count: scenario_count,
+        possible_likelihood_scenario_count: possible_scenario_count,
+        impossible_likelihood_scenario_count: scenario_count - possible_scenario_count,
+        scenario_posterior_entropy_min_nats: scenario_entropies[0],
+        scenario_posterior_entropy_max_nats: *scenario_entropies.last().unwrap(),
     })
 }
 
