@@ -1299,6 +1299,12 @@ mod tests {
         assert!(result.minimum_stiffness_barrier_eigenvalue >= 0.999_999);
         assert!(result.candidate_admissible);
         assert!(result.passivity_constraint_active);
+        assert!(result.scalar_stationarity_residual < 1.0e-8);
+        assert!(result.scalar_complementarity_residual < 1.0e-8);
+        assert!(result.matrix_stationarity_residual < 1.0e-8);
+        assert!(result.cone_dual_minimum_eigenvalue >= -1.0e-8);
+        assert!(result.cone_complementarity_residual < 1.0e-8);
+        assert!(result.passivity_complementarity_residual < 1.0e-8);
     }
 
     #[test]
@@ -1371,6 +1377,9 @@ mod tests {
         assert!(result.passivity_residual_w <= request.passivity_tolerance_w);
         assert!(result.stiffness_barrier_matrix
             .is_positive_semidefinite(request.matrix_tolerance).unwrap());
+        assert!(result.matrix_stationarity_residual < 1.0e-8);
+        assert!(result.cone_complementarity_residual < 1.0e-7);
+        assert!(result.cone_dual_minimum_eigenvalue >= -1.0e-8);
         assert!(result.stiffness_rate.xy.is_finite());
         assert!(result.stiffness_rate.xz.is_finite());
         assert!(result.stiffness_rate.yz.is_finite());
