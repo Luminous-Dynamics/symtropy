@@ -33,7 +33,10 @@ fn main() {
     failures += bivector_roundtrip_campaign::<2>("D2");
     failures += bivector_roundtrip_campaign::<3>("D3");
     failures += bivector_roundtrip_campaign::<4>("D4");
-    failures += bivector_roundtrip_campaign::<9>("D9");
+    #[cfg(feature = "nd-bivector-9")]
+    {
+        failures += bivector_roundtrip_campaign::<9>("D9");
+    }
     failures += mass_scaling_campaign();
     failures += body_frame_contact_campaign();
     failures += scale_safe_mass_properties_campaign();
