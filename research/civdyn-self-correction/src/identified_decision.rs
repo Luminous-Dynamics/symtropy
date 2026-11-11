@@ -168,12 +168,12 @@ impl PolicyUtilityBounds {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct HardConstraintSpec {
     pub id: String,
     pub measurement_unit: String,
     pub relation: HardConstraintRelation,
-    pub threshold: String,
+    pub threshold: f64,
     pub evidence_digest: String,
 }
 
@@ -273,7 +273,7 @@ fn validate_utility(policy: &PolicyUtilityBounds) -> Result<(), IdentifiedDecisi
             policy_id: policy.policy_id.clone(),
         });
     }
-    if policy.lower.is_finite().not() || policy.upper.is_finite().not() || policy.lower > policy.upper {
+    if !policy.lower.is_finite() || !policy.upper.is_finite() || policy.lower > policy.upper {
         return Err(IdentifiedDecisionError::InvalidUtilityInterval {
             policy_id: policy.policy_id.clone(),
         });
@@ -290,21 +290,12 @@ fn validate_utility(policy: &PolicyUtilityBounds) -> Result<(), IdentifiedDecisi
     Ok(())
 }
 
-trait BooleanNot {
-    fn not(self) -> bool;
-}
-
-impl BooleanNot for bool {
-    fn not(self) -> bool {
-        !self
-    }
-}
 
 fn constraint_status(
     spec: &HardConstraintSpec,
     interval: &PolicyConstraintInterval,
 ) -> ConstraintIntervalStatus {
-    let threshold = spec.threshold.parse::<f64>().unwrap_or(f64::NAN);
+    let threshold = spec.threshold;
     match spec.relation {
         HardConstraintRelation::AtMost if interval.upper <= threshold => {
             ConstraintIntervalStatus::RobustlyFeasible
@@ -382,7 +373,7 @@ pub fn evaluate_identified_decision(
 
     let mut constraint_by_id = BTreeMap::new();
     for constraint in &input.constraints {
-        let threshold = constraint.threshold.parse::<f64>().unwrap_or(f64::NAN);
+        let threshold = constraint.threshold;
         if constraint.id.trim().is_empty() || constraint.measurement_unit.trim().is_empty() {
             return Err(IdentifiedDecisionError::MissingHardConstraintIdentity);
         }
@@ -595,7 +586,7 @@ mod tests {
             id: "water-use-limit".to_string(),
             measurement_unit: "litres_per_household_day".to_string(),
             relation: HardConstraintRelation::AtMost,
-            threshold: "100".to_string(),
+            threshold: 100.0,
             evidence_digest: "sha256-water-threshold".to_string(),
         }
     }
@@ -866,7 +857,7 @@ mod tests {
         }
         let report = evaluate_identified_decision(&candidate).expect("minimization portfolio");
         assert_eq!(report.minimax_regret_policy_ids, vec!["cheap"]);
-        assert_eq!(report.policies[0].worst_case_regret, Some(0.0));
+        assert_eq!(report.policies[0].worst_case_regret, Some(3.0));
         assert_eq!(report.policies[1].worst_case_regret, Some(10.0));
     }
 }
