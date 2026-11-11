@@ -369,3 +369,226 @@ impl<const D: usize> RigidBody<D> {
         self.transform.transform_point(&Point(local_support)).0
     }
 }
+
+
+#[cfg(test)]
+mod rotational_inertia_tests {
+    use super::*;
+    use symtropy_math::{Bivector, Point, Rotor, Sphere};
+
+    fn anisotropic_body() -> RigidBody<3> {
+        let mut body = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::origin(),
+            0.1,
+            1.0,
+        );
+        body.inertia = SVector::from([1.0, 2.0, 4.0]);
+        body.inv_inertia = SVector::from([1.0, 0.5, 0.25]);
+        body.angular_damping = 0.0;
+        body
+    }
+
+    fn axial_vector(bivector: &Bivector<3>) -> SVector<f64, 3> {
+        SVector::new(
+            bivector.get(1, 2),
+            -bivector.get(0, 2),
+            bivector.get(0, 1),
+        )
+    }
+
+    fn from_axial_vector(vector: &SVector<f64, 3>) -> Bivector<3> {
+        let mut result = Bivector::zero();
+        result.set(0, 1, vector[2]);
+        result.set(0, 2, -vector[1]);
+        result.set(1, 2, vector[0]);
+        result
+    }
+
+    fn assert_bivector_close(actual: &Bivector<3>, expected: &Bivector<3>, tol: f64) {
+        for i in 0..3 {
+            for j in (i + 1)..3 {
+                assert!(
+                    (actual.get(i, j) - expected.get(i, j)).abs() <= tol,
+                    "component ({i},{j}): actual={}, expected={}",
+                    actual.get(i, j),
+                    expected.get(i, j)
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn isotropic_3d_principal_inertia_matches_scalar_path() {
+        let mut body = anisotropic_body();
+        body.inertia = SVector::from([2.0, 2.0, 2.0]);
+        body.inv_inertia = SVector::from([0.5, 0.5, 0.5]);
+
+        let mut impulse = Bivector::zero();
+        impulse.set(0, 1, 2.0);
+        impulse.set(0, 2, -4.0);
+        impulse.set(1, 2, 6.0);
+
+        assert_eq!(
+            body.rotational_inertia_model(),
+            RotationalInertiaModel::PrincipalAxesWorldSpace3D
+        );
+        assert_bivector_close(
+            &body.apply_inverse_angular_inertia(&impulse),
+            &impulse.scale(0.5),
+            1.0e-12,
+        );
+    }
+
+    #[test]
+    fn asymmetric_principal_axis_impulses_use_their_own_moments() {
+        let body = anisotropic_body();
+
+        let mut about_x = Bivector::zero();
+        about_x.set(1, 2, 1.0);
+        let mut about_y = Bivector::zero();
+        about_y.set(0, 2, 1.0);
+        let mut about_z = Bivector::zero();
+        about_z.set(0, 1, 1.0);
+
+        assert!((body.apply_inverse_angular_inertia(&about_x).get(1, 2) - 1.0).abs() < 1e-12);
+        assert!((body.apply_inverse_angular_inertia(&about_y).get(0, 2) - 0.5).abs() < 1e-12);
+        assert!((body.apply_inverse_angular_inertia(&about_z).get(0, 1) - 0.25).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rotated_asymmetric_body_uses_world_space_inertia() {
+        let mut body = anisotropic_body();
+        body.transform.rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1),
+            std::f64::consts::FRAC_PI_2,
+        );
+
+        let mut world_x_impulse = Bivector::zero();
+        world_x_impulse.set(1, 2, 1.0);
+        let delta = body.apply_inverse_angular_inertia(&world_x_impulse);
+
+        // After a +90° Z rotation, world X aligns with local -Y,
+        // whose principal moment is 2.
+        assert!((delta.get(1, 2) - 0.5).abs() < 1e-12);
+        assert!(delta.get(0, 2).abs() < 1e-12);
+        assert!(delta.get(0, 1).abs() < 1e-12);
+    }
+
+    #[test]
+    fn rotated_asymmetric_body_exposes_nonprincipal_axis_coupling() {
+        let mut body = anisotropic_body();
+        body.transform.rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1),
+            std::f64::consts::FRAC_PI_4,
+        );
+
+        let mut world_x_impulse = Bivector::zero();
+        world_x_impulse.set(1, 2, 1.0);
+        let delta = body.apply_inverse_angular_inertia(&world_x_impulse);
+
+        // R diag(1, 1/2, 1/4) R^T * e_x = (3/4, 1/4, 0).
+        assert!((delta.get(1, 2) - 0.75).abs() < 1e-12);
+        assert!((delta.get(0, 2) + 0.25).abs() < 1e-12);
+        assert!(delta.get(0, 1).abs() < 1e-12);
+    }
+
+    #[test]
+    fn inertia_operator_is_frame_covariant() {
+        let mut body = anisotropic_body();
+        let body_rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 1),
+            0.37,
+        );
+        body.transform.rotation = body_rotation;
+
+        let mut impulse = Bivector::zero();
+        impulse.set(1, 2, 0.7);
+        impulse.set(0, 2, -0.4);
+        impulse.set(0, 1, 0.2);
+        let delta = body.apply_inverse_angular_inertia(&impulse);
+
+        let frame_change = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 2),
+            -0.61,
+        );
+        let mut rotated_body = anisotropic_body();
+        rotated_body.transform.rotation = frame_change.compose(&body_rotation);
+        let rotated_impulse =
+            from_axial_vector(&frame_change.rotate_vector(&axial_vector(&impulse)));
+        let rotated_delta = rotated_body.apply_inverse_angular_inertia(&rotated_impulse);
+        let expected_delta =
+            from_axial_vector(&frame_change.rotate_vector(&axial_vector(&delta)));
+
+        assert_bivector_close(&rotated_delta, &expected_delta, 1.0e-11);
+    }
+
+    #[test]
+    fn angular_impulse_energy_identity_uses_same_inertia_operator() {
+        let mut body = anisotropic_body();
+        body.transform.rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 2),
+            0.43,
+        );
+        body.angular_velocity.set(1, 2, 0.3);
+        body.angular_velocity.set(0, 2, -0.2);
+        body.angular_velocity.set(0, 1, 0.1);
+
+        let omega_before = body.angular_velocity;
+        let energy_before = body.rotational_kinetic_energy();
+        let mut impulse = Bivector::zero();
+        impulse.set(1, 2, 0.8);
+        impulse.set(0, 2, -0.5);
+        impulse.set(0, 1, 0.25);
+        let delta = body.apply_inverse_angular_inertia(&impulse);
+        body.angular_velocity = body.angular_velocity.add(&delta);
+
+        let lhs = body.rotational_kinetic_energy() - energy_before;
+        let mut impulse_dot_omega = 0.0;
+        let mut impulse_dot_delta = 0.0;
+        for i in 0..3 {
+            for j in (i + 1)..3 {
+                impulse_dot_omega += impulse.get(i, j) * omega_before.get(i, j);
+                impulse_dot_delta += impulse.get(i, j) * delta.get(i, j);
+            }
+        }
+        let rhs = impulse_dot_omega + 0.5 * impulse_dot_delta;
+        assert!((lhs - rhs).abs() < 1e-11, "ΔK={lhs}, impulse identity={rhs}");
+    }
+
+    #[test]
+    fn invalid_3d_principal_moments_are_reported_and_fail_closed() {
+        let mut body = anisotropic_body();
+        body.inertia[1] = f64::NAN;
+        assert_eq!(
+            body.rotational_inertia_model(),
+            RotationalInertiaModel::InvalidPrincipalMoments
+        );
+        let impulse = Bivector::<3>::unit_plane(0, 1);
+        assert_eq!(
+            body.apply_inverse_angular_inertia(&impulse),
+            Bivector::zero()
+        );
+        assert_eq!(body.rotational_kinetic_energy(), 0.0);
+    }
+
+    #[test]
+    fn higher_dimensions_keep_explicit_mean_inertia_compatibility_path() {
+        let mut body = RigidBody::<4>::dynamic_sphere(
+            BodyHandle(2),
+            Point::origin(),
+            0.1,
+            1.0,
+        );
+        body.inertia = SVector::from([1.0, 2.0, 3.0, 4.0]);
+        body.inv_inertia = SVector::from([1.0, 0.5, 1.0 / 3.0, 0.25]);
+
+        assert_eq!(
+            body.rotational_inertia_model(),
+            RotationalInertiaModel::MeanInertiaApproximation
+        );
+        let impulse = Bivector::<4>::unit_plane(0, 1);
+        let inverse_mean = body.inv_inertia.sum() / 4.0;
+        assert!((body.apply_inverse_angular_inertia(&impulse).get(0, 1) - inverse_mean).abs() < 1e-12);
+    }
+}
