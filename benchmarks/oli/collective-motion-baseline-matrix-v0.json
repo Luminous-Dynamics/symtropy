@@ -119,6 +119,39 @@
       "code_and_data_availability": "The accessible main article page examined does not provide a code/data availability statement. Treat implementation and dataset access as pending; do not claim source reproduction.",
       "limits": "PR-GNN is a trajectory-prediction and collective-organization baseline. Its reported attention weights are post-hoc relational evidence, not by themselves causal edges or interventions.",
       "priority": "PRIMARY_CLOSED_LOOP_ROLLOUT_BASELINE"
+    },
+    {
+      "id": "VISUAL_FIELD_OFFSET_RAMLALL_2026",
+      "family": "directional_visual_field_offset_and_nonreciprocal_visibility",
+      "citation": "Ramlall, Butail & Roy, Influence of visual field offset on collective behavior: An exploration using the two-dimensional Vicsek model, Physical Review E 113, 064409 (2026-06-17)",
+      "doi": "10.1103/bbl5-1yjb",
+      "url": "https://doi.org/10.1103/bbl5-1yjb",
+      "primary_task": "Study collective dynamics under restricted visual fields offset from the particle's direction of motion, including rear-facing/flipped sensing.",
+      "reported_claim": "The paper reports near-perfect alignment and centre-of-mass clustering for a flipped/rear-facing visual field even under high noise. This is a source-paper finding; no independent reproduction has been performed.",
+      "comparative_metrics": [
+        "visual_offset_circular_error",
+        "visual_aperture_error",
+        "directed_edge_precision_recall",
+        "interaction_reciprocity_fraction",
+        "polar_order",
+        "centre_of_mass_cluster_metric",
+        "risk_coverage"
+      ],
+      "data_source": {
+        "doi": "10.17632/y8fx3shsvx.1",
+        "url": "https://datacommons.erau.edu/datasets/y8fx3shsvx/1",
+        "licence": "CC BY 4.0 declared at dataset level",
+        "contents_reported": [
+          "MATLAB scripts",
+          "simulation data analysed in the paper"
+        ],
+        "inventory_status": "NOT_FETCHED",
+        "hashes_status": "NOT_COMPUTED",
+        "reproduction_status": "NOT_RUN",
+        "note": "The public page exposes a Download All control but no individual file inventory in the retrieved rendering. Recover exact offset/aperture/noise/density grids from source files before reproduction."
+      },
+      "limits": "This is a task-specific synthetic Vicsek perception-geometry study. It does not demonstrate animal cognition, causality, biological life or intelligence. Directional visibility is not equivalent to a learned social rule.",
+      "priority": "PRIMARY_DIRECTIONAL_PERCEPTION_BASELINE"
     }
   ],
   "matched_task_tracks": [
@@ -179,6 +212,19 @@
         "treatment_sham_replay_parity"
       ],
       "rule": "Observational graph inference is not sufficient; require randomized/simulated intervention and matched sham controls."
+    },
+    {
+      "track": "DIRECTIONAL_VISUAL_PERCEPTION",
+      "question": "Can the system recover focal-agent visual-field offset/aperture and the resulting directed visibility graph?",
+      "primary_baseline": "VISUAL_FIELD_OFFSET_RAMLALL_2026",
+      "metrics": [
+        "visual_offset_circular_error",
+        "visual_aperture_error",
+        "directed_edge_precision_recall",
+        "interaction_reciprocity_fraction",
+        "risk_coverage"
+      ],
+      "rule": "Admit the source MATLAB parameter grid and reproduce first. Keep directed out-neighbours separate from weakly connected topology; a connected pair need not see one another mutually."
     }
   ],
   "oli_extensions": [
@@ -188,7 +234,11 @@
     "Nonreciprocity: infer directed influence when A affects B but B does not affect A.",
     "Temporal aliasing: quantify how downsampling changes inferred neighbours, edge recovery and lag estimates.",
     "Closed-loop mechanism challenge: compare forecast fidelity with recovery of the correct mechanism; a model may predict well with a wrong graph.",
-    "Model inadequacy: withhold qualification where the true generator is outside the candidate model family."
+    "Model inadequacy: withhold qualification where the true generator is outside the candidate model family.",
+    "Visual-sector perception: support forward, side and flipped/rear visual fields with explicit half-aperture and offset; record directed out-neighbours, reciprocity and graph semantics.",
+    "Directed visibility versus weak connectivity: topology projections may describe components, but they must never be substituted for directed perception or causal influence.",
+    "Visual offset inference: measure circular offset error and aperture error under whole-seed and whole-parameter-regime holdouts.",
+    "Visual-field source reproduction: recover the companion MATLAB package, exact parameter grid and file-level hashes before comparing against reported source results."
   ],
   "qualification_targets": {
     "note": "Research targets only; none are current results.",
@@ -204,7 +254,8 @@
     "IGIC": "File inventory, exact seeds/splits, per-file hashes and rights must be verified.",
     "CRI": "Verify GitLab source commit, ETH dataset file inventory and licences, and reproduce source splits.",
     "GDP": "Pin GitHub commit, datasets and environment, then reproduce under-sampling cases.",
-    "PR_GNN": "Inspect supplementary PDF and contact authors for code/data where not stated; respect CC BY-NC-ND article licence and third-party data rights."
+    "PR_GNN": "Inspect supplementary PDF and contact authors for code/data where not stated; respect CC BY-NC-ND article licence and third-party data rights.",
+    "VISUAL_FIELD_OFFSET_RAMLALL_2026": "Acquire dataset DOI 10.17632/y8fx3shsvx.1, enumerate files, pin MATLAB versions/scripts and per-file hashes, verify data rights and reproduce exact source offset/aperture/noise/density/seed conditions before any SOTA claim."
   },
   "results": {
     "baseline_reproductions_completed": [],
