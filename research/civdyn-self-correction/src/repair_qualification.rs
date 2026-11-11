@@ -265,12 +265,12 @@ fn validate_assessment<'a>(
             );
         }
 
-        if let Some(receipt_model) = row.model_digest.as_deref() {
-            if receipt_model != expected_model_digest {
-                return Err(RepairQualificationError::AssessmentModelIdentityMismatch {
-                    model_digest: receipt_model.to_string(),
-                });
-            }
+        if let Some(receipt_model) = row.model_digest.as_deref()
+            && receipt_model != expected_model_digest
+        {
+            return Err(RepairQualificationError::AssessmentModelIdentityMismatch {
+                model_digest: receipt_model.to_string(),
+            });
         }
 
         if row.status != StatisticStatus::NotAssessed {
