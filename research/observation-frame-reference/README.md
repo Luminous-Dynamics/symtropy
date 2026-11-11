@@ -17,7 +17,7 @@ The package is isolated from the Bevy workspace and pins direct dependencies. It
 
 ## Reference contract
 
-The input binds:
+The input binds the exact requested observable-set profile. A view that needs additional channels must not query the live physics world after this frame; it requires a new declared observation frame. The input binds:
 - scenario/run/source revision, branch/replay, initial/current state and model profile identities;
 - fixed simulation tick and exact rational model-time clock;
 - stable ScenarioEntityId and coordinate-frame identity;
