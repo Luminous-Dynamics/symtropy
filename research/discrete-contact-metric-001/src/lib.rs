@@ -954,6 +954,88 @@ mod tests {
     }
 
     #[test]
+    fn contact_step_is_covariant_under_moderate_mixed_coordinate_rescaling() {
+        let physical = DiscreteStepInput {
+            mass: Matrix::identity(2),
+            damping: Matrix::zeros(2, 2),
+            stiffness: Matrix::new(2, 2, vec![100.0, 0.0, 0.0, 0.0]).unwrap(),
+            position_error: vec![0.1, 0.0],
+            velocity: vec![-1.0, -1.0],
+            external_force: vec![0.5, -0.25],
+            contact_jacobian: Matrix::new(1, 2, vec![1.0, 1.0]).unwrap(),
+            contact_gap: vec![0.0],
+            dt: 0.1,
+        };
+        let reference = solve_discrete_step(&physical).unwrap();
+
+        // x = S y with S = diag(1e-2, 1e2). Transform covectors
+        // (forces/contact Jacobian) with S^T and mass/stiffness with
+        // S^T A S. This changes coordinate magnitudes but not the physical
+        // one-step map or the contact impulse.
+        let s0 = 1.0e-2;
+        let s1 = 1.0e2;
+        let scaled = DiscreteStepInput {
+            mass: Matrix::new(2, 2, vec![s0 * s0, 0.0, 0.0, s1 * s1]).unwrap(),
+            damping: Matrix::zeros(2, 2),
+            stiffness: Matrix::new(
+                2,
+                2,
+                vec![100.0 * s0 * s0, 0.0, 0.0, 0.0],
+            )
+            .unwrap(),
+            position_error: vec![0.1 / s0, 0.0],
+            velocity: vec![-1.0 / s0, -1.0 / s1],
+            external_force: vec![0.5 * s0, -0.25 * s1],
+            contact_jacobian: Matrix::new(1, 2, vec![s0, s1]).unwrap(),
+            contact_gap: vec![0.0],
+            dt: 0.1,
+        };
+        let transformed = solve_discrete_step(&scaled).unwrap();
+        let recovered_velocity = [
+            transformed.next_velocity[0] * s0,
+            transformed.next_velocity[1] * s1,
+        ];
+
+        for axis in 0..2 {
+            assert!(
+                (recovered_velocity[axis] - reference.next_velocity[axis]).abs() < 1.0e-9,
+                "axis={axis}: transformed={:?}, reference={:?}",
+                recovered_velocity,
+                reference.next_velocity
+            );
+        }
+        assert!(
+            (transformed.contact_impulse[0] - reference.contact_impulse[0]).abs() < 1.0e-10
+        );
+        assert_eq!(transformed.active_contacts, reference.active_contacts);
+        assert!((transformed.contact_slack[0] - reference.contact_slack[0]).abs() < 1.0e-10);
+        assert!(
+            (transformed.max_scaled_metric_equation_residual
+                - reference.max_scaled_metric_equation_residual)
+                .abs()
+                < 1.0e-9
+        );
+        assert!(
+            (transformed.max_scaled_dual_feasibility_residual
+                - reference.max_scaled_dual_feasibility_residual)
+                .abs()
+                < 1.0e-9
+        );
+        assert!(
+            (transformed.max_scaled_primal_feasibility_residual
+                - reference.max_scaled_primal_feasibility_residual)
+                .abs()
+                < 1.0e-9
+        );
+        assert!(
+            (transformed.max_scaled_complementarity_residual
+                - reference.max_scaled_complementarity_residual)
+                .abs()
+                < 1.0e-9
+        );
+    }
+
+    #[test]
     fn local_dual_violation_cannot_be_hidden_by_larger_contact_impulse() {
         let delassus = Matrix::identity(2);
         let impulse = [1.0e8, -1.0e-8];
