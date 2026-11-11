@@ -42,7 +42,7 @@ The in-tree std::time benchmark binary (no Criterion or other benchmark-specific
 
 ## Tests
 
-The unit corpus covers entity/observable order invariance, ordered-event sensitivity, absent event identity, source-class preservation, unavailable-versus-zero semantics, observable-set and full-frame known-answer digests, membership mismatch, value-independent channel identity, unavailable-channel retention, malformed values/uncertainty, duplicate identities, stable NetId generation scope, non-finite IEEE values, presentation-field rejection and source-clock round-trip.
+The 46-test corpus covers entity/observable order invariance, ordered-event sensitivity, absent event identity, source-class preservation, unavailable-versus-zero semantics, observable-set and full-frame known-answer digests, membership mismatch, value-independent channel identity, unavailable-channel retention, malformed values/uncertainty, duplicate identities, stable NetId generation scope, borrowed-view lifetime rejection, non-finite IEEE values, presentation-field rejection and source-clock round-trip.
 
 ## Claim ceiling
 
