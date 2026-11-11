@@ -1,12 +1,12 @@
-name: Battery process genealogy audit v0.1
+name: EV battery lineage-to-outcome audit v0.1
 
 on:
   pull_request:
     paths:
       - "docs/transport/BATTERY_PROCESS_STRUCTURE_PERFORMANCE_V0_1.md"
-      - "schemas/transport/battery_process_genealogy_v0_1.schema.json"
-      - "fixtures/ev_battery/battery_process_genealogy_v0_1.json"
-      - "tools/battery-genealogy-audit/**"
+      - "schemas/transport/ev_battery_lineage_outcome_v0_1.schema.json"
+      - "fixtures/ev_battery/ev_battery_lineage_outcome_v0_1.json"
+      - "tools/battery-ev-outcome-audit/**"
       - ".github/workflows/battery-process-genealogy-audit.yml"
 
 permissions:
@@ -24,10 +24,10 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
       - name: Check locked package metadata
-        run: cargo metadata --manifest-path tools/battery-genealogy-audit/Cargo.toml --locked --no-deps
+        run: cargo metadata --manifest-path tools/battery-ev-outcome-audit/Cargo.toml --locked --no-deps
       - name: Check formatting
-        run: cargo fmt --manifest-path tools/battery-genealogy-audit/Cargo.toml -- --check
-      - name: Run genealogy reference-oracle tests
-        run: cargo test --manifest-path tools/battery-genealogy-audit/Cargo.toml --locked
+        run: cargo fmt --manifest-path tools/battery-ev-outcome-audit/Cargo.toml -- --check
+      - name: Run EV reference adapter tests
+        run: cargo test --manifest-path tools/battery-ev-outcome-audit/Cargo.toml --locked
       - name: Run strict Clippy
-        run: cargo clippy --manifest-path tools/battery-genealogy-audit/Cargo.toml --all-targets --locked -- -D warnings
+        run: cargo clippy --manifest-path tools/battery-ev-outcome-audit/Cargo.toml --all-targets --locked -- -D warnings
