@@ -931,6 +931,14 @@ mod tests {
 
         let current_metrics = current_rule.step().unwrap();
         let next_metrics = next_rule.step().unwrap();
+        assert_eq!(
+            current_metrics.update_rule,
+            VicsekUpdateRule::CurrentPositionAlignment
+        );
+        assert_eq!(
+            next_metrics.update_rule,
+            VicsekUpdateRule::NextPositionAlignment
+        );
 
         // The pair is 2 units apart at t (outside R=1.5), but their predicted positions
         // are within R after moving with their old headings. Both post-update snapshots
