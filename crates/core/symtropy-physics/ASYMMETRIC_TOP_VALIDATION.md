@@ -226,3 +226,7 @@ Before the production migration gates pass, the correct claim is:
 > Symtropy contains a checked 3D principal-inertia/asymmetric-top reference model used to validate a future production angular-dynamics migration.
 
 Do not claim that the general `PhysicsWorld` already has full anisotropic rigid-body dynamics merely because this reference module exists.
+
+## Intermediate-axis instability regression
+
+The executable reference also includes a torque-free intermediate-axis fixture for principal moments `[1, 2, 3]`. It starts near the middle principal axis with a small transverse perturbation `[0.01, 1.0, 0.02]`, advances 20 seconds at `dt=1e-3`, and requires the maximum body-frame transverse angular speed to grow by more than 20× while world angular momentum and Rotor validity remain within tolerance. This is a qualitative stability gate, not a substitute for a matched analytical Euler-top trajectory or a long-horizon energy/work envelope.
