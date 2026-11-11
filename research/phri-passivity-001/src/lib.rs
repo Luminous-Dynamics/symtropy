@@ -1154,6 +1154,17 @@ mod tests {
     }
 
     #[test]
+    fn scaled_zero_crossing_handles_extreme_opposite_signed_port_powers() {
+        let mut subject = observer(1.0e307, 0.0, 1.0e306);
+        subject.observe(sample(1, 0, -1.0e308, 1.0)).unwrap();
+        let result = subject.observe(sample(2, 2_000_000_000, 1.0e308, 1.0)).unwrap();
+
+        assert!(result.cumulative_port_work_j.abs() < 1.0e-12);
+        assert!((result.maximum_passivity_deficit_j / 1.0e307 - 4.0).abs() < 1.0e-12);
+        assert_eq!(result.violation_interval_count, 1);
+    }
+
+    #[test]
     fn excessive_sample_gap_is_unknown_and_does_not_mutate_state() {
         let mut subject = observer(1.0, 0.0, 0.0);
         subject.observe(sample(1, 0, 0.0, 0.0)).unwrap();
