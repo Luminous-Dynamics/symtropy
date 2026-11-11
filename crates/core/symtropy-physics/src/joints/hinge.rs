@@ -433,7 +433,7 @@ mod tests {
         b.inertia = SVector::from([1.0, 1.0, 2.0]);
         b.inv_inertia = SVector::from([1.0, 1.0, 0.5]);
 
-        let mut motor = unit_velocity_motor(1.0);
+        let mut motor = unit_velocity_motor();
         motor.target_vel = 1.0;
         let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(motor);
 
@@ -456,7 +456,7 @@ mod tests {
         b.inertia = SVector::from([1.0, 2.0, 4.0]);
         b.inv_inertia = SVector::from([1.0, 0.5, 0.25]);
 
-        let mut motor = unit_velocity_motor(1.0);
+        let mut motor = unit_velocity_motor();
         motor.target_vel = 1.0;
         let joint = HingeJoint::new(BodyHandle(0), BodyHandle(1), 0, 1).with_motor(motor);
 
