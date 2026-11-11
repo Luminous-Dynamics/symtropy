@@ -121,12 +121,16 @@ jobs:
           if reserve["mission_energy_remaining_mj"] >= reserve["terminal_safe_stop_reserve_mj"]:
               raise SystemExit("Safe-stop reserve negative control is invalid")
 
-          # Unknown lineage, missing clock mapping, queue underflow and RTA veto fail closed.
+          # Every known-answer case has a frozen semantic disposition.
           expected_dispositions = {
+              expected_ids[0]: "eligible_for_independent_projection",
               expected_ids[1]: "executed_prefix_mismatch",
               expected_ids[2]: "observation_stale",
               expected_ids[3]: "clock_mapping_unknown",
+              expected_ids[4]: "per_node_thermal_limit_exceeded",
               expected_ids[5]: "thermal_predecessor_unknown",
+              expected_ids[6]: "cumulative_thermal_limit_exceeded",
+              expected_ids[7]: "safe_stop_reserve_insufficient",
               expected_ids[8]: "queue_underflow_fallback",
               expected_ids[9]: "independent_rta_veto",
               expected_ids[10]: "thermal_model_unknown",
@@ -134,8 +138,25 @@ jobs:
           }
           for case_id, disposition in expected_dispositions.items():
               case = next(c for c in cases if c["case_id"] == case_id)
-              if case["expected"]["disposition"] != disposition or case["expected"]["projection_eligible"]:
-                  raise SystemExit(f"Fail-closed disposition mismatch for {case_id}")
+              eligible_expected = case_id == expected_ids[0]
+              if case["expected"]["disposition"] != disposition:
+                  raise SystemExit(f"Disposition mismatch for {case_id}")
+              if case["expected"]["projection_eligible"] is not eligible_expected:
+                  raise SystemExit(f"Projection eligibility mismatch for {case_id}")
+              if not eligible_expected and case["expected"]["fallback_required"] is not True:
+                  raise SystemExit(f"Fallback missing for rejected case {case_id}")
+
+          # Specific gate evidence must agree with the declared rejection.
+          if cases[5]["inputs"]["provided_predecessor_state_digest"] == cases[5]["inputs"]["expected_predecessor_state_digest"]:
+              raise SystemExit("Thermal predecessor mismatch negative control is invalid")
+          if cases[8]["inputs"]["queue_depth"] >= cases[8]["inputs"]["minimum_queue_depth"]:
+              raise SystemExit("Queue-underflow negative control is invalid")
+          if cases[9]["inputs"]["independent_rta_admissible"] is not False:
+              raise SystemExit("Independent RTA veto negative control is invalid")
+          if cases[10]["inputs"]["thermal_model_qualified"] is not False:
+              raise SystemExit("Thermal model qualification negative control is invalid")
+          if cases[11]["inputs"]["recovery_routes_remaining"] >= cases[11]["inputs"]["minimum_recovery_routes"]:
+              raise SystemExit("Future recovery negative control is invalid")
 
           print(f"PASS: Draft 2020-12 schema + {len(cases)} semantic known-answer cases")
           print(f"PASS: positive-case observation-age upper bound = {age_upper} ns")
