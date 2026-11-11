@@ -1133,6 +1133,49 @@ mod tests {
     }
 
     #[test]
+    fn rejects_camera_burst_with_duplicate_tick_and_gap() {
+        let mut value = campaign();
+        value.pairs[0].perturbed.fault_events[1].tick = 100;
+        let report = value.audit();
+        assert!(report
+            .findings
+            .contains(&Finding::CameraDropDenominatorMismatch));
+    }
+
+    #[test]
+    fn requires_fault_family_specific_event_kind() {
+        let mut value = campaign();
+        value.pairs[0].perturbed.fault = Some(FaultSpec::InferenceControlDelay {
+            delay_ms: 100,
+            onset_tick: 100,
+            duration_ticks: 20,
+            queue_mode: QueueMode::Fifo,
+            schedule_seed_sha256: digest('6'),
+        });
+        let report = value.audit();
+        assert!(report.findings.contains(&Finding::MissingFaultEvent));
+    }
+
+    #[test]
+    fn run_disposition_must_be_supported_by_episode_dispositions() {
+        let mut value = campaign();
+        value.pairs[0].perturbed.disposition = RunDisposition::Failed;
+        let report = value.audit();
+        assert!(report.findings.contains(&Finding::RunDispositionMismatch));
+    }
+
+    #[test]
+    fn rejects_fault_schedule_tick_overflow() {
+        let spec = FaultSpec::CameraBurstDrop {
+            duration_ticks: 20,
+            onset_tick: u64::MAX - 2,
+            burst_probability: 0.01,
+            schedule_seed_sha256: digest('6'),
+        };
+        assert!(spec.validate().contains(&Finding::InvalidFaultWindow));
+    }
+
+    #[test]
     fn rejects_episode_disposition_denominator_loss() {
         let mut value = campaign();
         value.pairs[0].perturbed.completed_episodes = 4;
