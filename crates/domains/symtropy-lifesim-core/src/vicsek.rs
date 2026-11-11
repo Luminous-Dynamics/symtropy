@@ -180,6 +180,14 @@ pub struct VicsekMetrics {
     pub mean_local_polar_order: f64,
     /// Population variance of local polar-order values across particles.
     pub local_polar_order_variance: f64,
+    /// Mean size of connected components in the metric-neighbour graph.
+    pub mean_cluster_size: f64,
+    /// Population variance of connected-component sizes.
+    pub cluster_size_variance: f64,
+    /// Mean polar order calculated separately within each connected component.
+    pub mean_cluster_polar_order: f64,
+    /// Population variance of per-component polar-order values.
+    pub cluster_polar_order_variance: f64,
     /// Number of connected components in the metric-neighbour graph.
     pub cluster_count: usize,
     /// Fraction of all particles in the largest connected component.
@@ -430,12 +438,48 @@ impl VicsekModel {
             / count as f64;
 
         let mut component_sizes = vec![0usize; count];
-        for index in 0..count {
+        let mut component_sum_cos = vec![0.0f64; count];
+        let mut component_sum_sin = vec![0.0f64; count];
+        for (index, particle) in self.particles.iter().enumerate() {
             let root = find_root(&mut parents, index);
             component_sizes[root] += 1;
+            component_sum_cos[root] += particle.heading_rad.cos();
+            component_sum_sin[root] += particle.heading_rad.sin();
         }
-        let cluster_count = component_sizes.iter().filter(|size| **size > 0).count();
-        let largest_cluster = component_sizes.iter().copied().max().unwrap_or(0);
+        let cluster_sizes: Vec<usize> = component_sizes
+            .iter()
+            .copied()
+            .filter(|size| *size > 0)
+            .collect();
+        let cluster_count = cluster_sizes.len();
+        let largest_cluster = cluster_sizes.iter().copied().max().unwrap_or(0);
+        let mean_cluster_size = count as f64 / cluster_count as f64;
+        let cluster_size_variance = cluster_sizes
+            .iter()
+            .map(|size| {
+                let delta = *size as f64 - mean_cluster_size;
+                delta * delta
+            })
+            .sum::<f64>()
+            / cluster_count as f64;
+        let cluster_orders: Vec<f64> = (0..count)
+            .filter(|root| component_sizes[*root] > 0)
+            .map(|root| {
+                (component_sum_cos[root].hypot(component_sum_sin[root])
+                    / component_sizes[root] as f64)
+                    .clamp(0.0, 1.0)
+            })
+            .collect();
+        let mean_cluster_polar_order =
+            cluster_orders.iter().sum::<f64>() / cluster_count as f64;
+        let cluster_polar_order_variance = cluster_orders
+            .iter()
+            .map(|order| {
+                let delta = *order - mean_cluster_polar_order;
+                delta * delta
+            })
+            .sum::<f64>()
+            / cluster_count as f64;
 
         VicsekMetrics {
             tick: self.tick,
@@ -445,6 +489,10 @@ impl VicsekModel {
             neighbor_count_variance,
             mean_local_polar_order,
             local_polar_order_variance,
+            mean_cluster_size,
+            cluster_size_variance,
+            mean_cluster_polar_order,
+            cluster_polar_order_variance,
             cluster_count,
             largest_cluster_fraction: largest_cluster as f64 / count as f64,
         }
@@ -584,6 +632,37 @@ mod tests {
     }
 
     #[test]
+    fn cluster_and_local_order_detect_coherent_groups_with_opposing_headings() {
+        let particles = vec![
+            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle { x: 1.5, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle { x: 10.0, y: 10.0, heading_rad: std::f64::consts::PI },
+            VicsekParticle { x: 10.5, y: 10.0, heading_rad: std::f64::consts::PI },
+        ];
+        let model = VicsekModel::new(
+            particles,
+            VicsekConfig {
+                box_size: 20.0,
+                interaction_radius: 1.0,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+            },
+            17,
+        )
+        .unwrap();
+
+        let metrics = model.metrics();
+        assert!(metrics.polar_order < 1.0e-12);
+        assert!((metrics.mean_local_polar_order - 1.0).abs() < 1.0e-12);
+        assert!((metrics.mean_cluster_polar_order - 1.0).abs() < 1.0e-12);
+        assert_eq!(metrics.cluster_count, 2);
+        assert_eq!(metrics.mean_cluster_size, 2.0);
+        assert_eq!(metrics.cluster_size_variance, 0.0);
+        assert_eq!(metrics.largest_cluster_fraction, 0.5);
+    }
+
+    #[test]
     fn self_only_zero_noise_control_preserves_headings_and_order() {
         let initial = particles_from_headings(&[0.0, 1.0, 2.0, 3.0, 4.0], 10.0);
         let mut model = VicsekModel::new(
@@ -648,6 +727,11 @@ mod tests {
                 && metrics.mean_local_polar_order.is_finite()
                 && (0.0..=1.0).contains(&metrics.mean_local_polar_order)
                 && metrics.local_polar_order_variance.is_finite()
+                && metrics.mean_cluster_size.is_finite()
+                && metrics.cluster_size_variance.is_finite()
+                && metrics.mean_cluster_polar_order.is_finite()
+                && (0.0..=1.0).contains(&metrics.mean_cluster_polar_order)
+                && metrics.cluster_polar_order_variance.is_finite()
                 && metrics.largest_cluster_fraction.is_finite()
         }));
     }
