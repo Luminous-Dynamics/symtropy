@@ -176,13 +176,27 @@ impl MaintenanceConfig {
                 value: self.dt,
             });
         }
-        if !(self.passive_decay_rate * self.dt).is_finite()
-            || !(self.max_repair_rate * self.dt).is_finite()
-            || !(self.energy_harvest_rate * self.dt).is_finite()
+        let passive_decay_step = self.passive_decay_rate * self.dt;
+        let max_repair_step = self.max_repair_rate * self.dt;
+        let energy_harvest_step = self.energy_harvest_rate * self.dt;
+        if !passive_decay_step.is_finite() {
+            return Err(MaintenanceError::InvalidParameter {
+                name: "passive_decay_rate_times_dt",
+                value: passive_decay_step,
+            });
+        }
+        if !max_repair_step.is_finite() {
+            return Err(MaintenanceError::InvalidParameter {
+                name: "max_repair_rate_times_dt",
+                value: max_repair_step,
+            });
+        }
+        if !energy_harvest_step.is_finite()
+            || !(self.energy_capacity + energy_harvest_step).is_finite()
         {
             return Err(MaintenanceError::InvalidParameter {
-                name: "rate_times_dt",
-                value: f64::NAN,
+                name: "energy_harvest_plus_capacity",
+                value: energy_harvest_step,
             });
         }
 
@@ -509,6 +523,26 @@ mod tests {
         let accounted = report.energy_after + report.energy_used + report.energy_spilled;
         let available = report.energy_before + report.gross_energy_harvested;
         assert!((available - accounted).abs() < 1.0e-12);
+    }
+
+    #[test]
+    fn rejects_energy_capacity_plus_harvest_overflow() {
+        assert!(matches!(
+            MaintenanceSystem::new(
+                MaintenanceConfig {
+                    energy_capacity: f64::MAX,
+                    initial_energy: f64::MAX,
+                    energy_harvest_rate: f64::MAX,
+                    dt: 1.0,
+                    ..config()
+                },
+                MaintenanceMode::PassiveRelaxation
+            ),
+            Err(MaintenanceError::InvalidParameter {
+                name: "energy_harvest_plus_capacity",
+                ..
+            })
+        ));
     }
 
     #[test]
