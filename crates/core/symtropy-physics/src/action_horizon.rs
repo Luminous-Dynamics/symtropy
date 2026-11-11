@@ -675,11 +675,168 @@ mod tests {
         ActionHorizonRequest {
             bounds: qualified_bounds(values_ns),
             evaluation_time_ns: 100,
-            requested_cycles: if period_ns == 0 { 1 } else { values_ns.iter().copied().min().unwrap_or(1) / period_ns },
+            requested_cycles: if period_ns == 0 { 1 } else { (values_ns.iter().copied().min().unwrap_or(1) / period_ns).max(1) },
             controller_period_ns: period_ns,
             p99_total_latency_ns: p99_latency_ns,
             latency_profile_id: "p99-profile/test-target-a".to_owned(),
             execution_mode,
+        }
+    }
+
+    #[test]
+    fn all_twelve_independent_json_fixture_cases_match_rust_selector() {
+        // Mirrors research/loco-adaptive-horizon-001/fixtures/horizon_composition_v0_1.json.
+        // The JSON/schema workflow remains the independent corpus owner; this
+        // table checks that the Rust runtime contract agrees on every disposition.
+        struct Case {
+            id: &'static str,
+            horizons_ms: [u64; ACTION_HORIZON_CONSTRAINT_COUNT],
+            period_ms: u64,
+            p99_ms: u64,
+            requested_cycles: u64,
+            mode: ActionExecutionMode,
+            unknown_index: Option<usize>,
+            expected: HorizonDisposition,
+            safe_ms: Option<u64>,
+            k_min: Option<u64>,
+            k_max: Option<u64>,
+            selected: Option<u64>,
+            active: Option<HorizonConstraint>,
+        }
+
+        let cases = [
+            Case {
+                id: "AH01_QUEUED_HORIZON_FEASIBLE",
+                horizons_ms: [300, 500, 500, 400, 350, 320, 450, 600],
+                period_ms: 50, p99_ms: 200, requested_cycles: 5,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: None,
+                expected: HorizonDisposition::AdmissibleQueuedOpenLoop,
+                safe_ms: Some(300), k_min: Some(4), k_max: Some(6), selected: Some(5),
+                active: Some(HorizonConstraint::ObservationFreshness),
+            },
+            Case {
+                id: "AH02_P99_LATENCY_EXCEEDS_VIABILITY_HORIZON",
+                horizons_ms: [300, 500, 500, 400, 350, 320, 150, 600],
+                period_ms: 50, p99_ms: 250, requested_cycles: 4,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: None,
+                expected: HorizonDisposition::QueueCoverageInfeasible,
+                safe_ms: Some(150), k_min: Some(5), k_max: Some(3), selected: None,
+                active: Some(HorizonConstraint::ThermalDerating),
+            },
+            Case {
+                id: "AH03_CONTACT_MODEL_SETS_HORIZON",
+                horizons_ms: [300, 500, 500, 400, 180, 320, 450, 600],
+                period_ms: 50, p99_ms: 80, requested_cycles: 3,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: None,
+                expected: HorizonDisposition::AdmissibleQueuedOpenLoop,
+                safe_ms: Some(180), k_min: Some(2), k_max: Some(3), selected: Some(3),
+                active: Some(HorizonConstraint::ContactModelValidity),
+            },
+            Case {
+                id: "AH04_THERMAL_HEADROOM_SETS_HORIZON",
+                horizons_ms: [300, 500, 500, 400, 350, 320, 95, 600],
+                period_ms: 30, p99_ms: 55, requested_cycles: 2,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: None,
+                expected: HorizonDisposition::AdmissibleQueuedOpenLoop,
+                safe_ms: Some(95), k_min: Some(2), k_max: Some(3), selected: Some(2),
+                active: Some(HorizonConstraint::ThermalDerating),
+            },
+            Case {
+                id: "AH05_CLOCK_MAPPING_UNKNOWN",
+                horizons_ms: [300, 500, 500, 400, 350, 320, 450, 600],
+                period_ms: 50, p99_ms: 200, requested_cycles: 2,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: Some(0),
+                expected: HorizonDisposition::UnqualifiedEvidence,
+                safe_ms: None, k_min: Some(4), k_max: None, selected: None,
+                active: None,
+            },
+            Case {
+                id: "AH06_THERMAL_MODEL_UNQUALIFIED",
+                horizons_ms: [300, 500, 500, 400, 350, 320, 450, 600],
+                period_ms: 50, p99_ms: 200, requested_cycles: 2,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: Some(6),
+                expected: HorizonDisposition::UnqualifiedEvidence,
+                safe_ms: None, k_min: Some(4), k_max: None, selected: None,
+                active: None,
+            },
+            Case {
+                id: "AH07_SPLIT_TIMESCALE_LOCAL_EXPERT",
+                horizons_ms: [160, 500, 500, 180, 350, 320, 450, 600],
+                period_ms: 20, p99_ms: 900, requested_cycles: 3,
+                mode: ActionExecutionMode::SplitTimescaleLocalExpert, unknown_index: None,
+                expected: HorizonDisposition::AdmissibleSplitTimescale,
+                safe_ms: Some(160), k_min: None, k_max: Some(8), selected: Some(3),
+                active: Some(HorizonConstraint::ObservationFreshness),
+            },
+            Case {
+                id: "AH08_DEADLINE_SETS_HORIZON",
+                horizons_ms: [300, 500, 75, 400, 350, 320, 450, 600],
+                period_ms: 25, p99_ms: 50, requested_cycles: 3,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: None,
+                expected: HorizonDisposition::AdmissibleQueuedOpenLoop,
+                safe_ms: Some(75), k_min: Some(2), k_max: Some(3), selected: Some(3),
+                active: Some(HorizonConstraint::ActionDeadline),
+            },
+            Case {
+                id: "AH09_REQUESTED_CHUNK_EXCEEDS_K_MAX",
+                horizons_ms: [300, 100, 500, 400, 350, 320, 450, 600],
+                period_ms: 25, p99_ms: 50, requested_cycles: 5,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: None,
+                expected: HorizonDisposition::RequestedHorizonExceedsBound,
+                safe_ms: Some(100), k_min: Some(2), k_max: Some(4), selected: None,
+                active: Some(HorizonConstraint::ChunkExpiry),
+            },
+            Case {
+                id: "AH10_SAFE_STOP_RESERVE_SETS_HORIZON",
+                horizons_ms: [300, 500, 500, 400, 350, 320, 450, 40],
+                period_ms: 20, p99_ms: 60, requested_cycles: 2,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: None,
+                expected: HorizonDisposition::QueueCoverageInfeasible,
+                safe_ms: Some(40), k_min: Some(3), k_max: Some(2), selected: None,
+                active: Some(HorizonConstraint::RecoveryReserve),
+            },
+            Case {
+                id: "AH11_ACTUATOR_RESPONSE_SETS_HORIZON",
+                horizons_ms: [300, 500, 500, 400, 350, 45, 450, 600],
+                period_ms: 15, p99_ms: 20, requested_cycles: 3,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: None,
+                expected: HorizonDisposition::AdmissibleQueuedOpenLoop,
+                safe_ms: Some(45), k_min: Some(2), k_max: Some(3), selected: Some(3),
+                active: Some(HorizonConstraint::ActuatorEnvelope),
+            },
+            Case {
+                id: "AH12_CONTACT_MODEL_UNQUALIFIED",
+                horizons_ms: [300, 500, 500, 400, 350, 320, 450, 600],
+                period_ms: 50, p99_ms: 200, requested_cycles: 2,
+                mode: ActionExecutionMode::QueuedOpenLoop, unknown_index: Some(4),
+                expected: HorizonDisposition::UnqualifiedEvidence,
+                safe_ms: None, k_min: Some(4), k_max: None, selected: None,
+                active: None,
+            },
+        ];
+
+        for case in cases {
+            let horizons_ns = case.horizons_ms.map(|value| value * 1_000_000);
+            let period_ns = case.period_ms * 1_000_000;
+            let p99_ns = case.p99_ms * 1_000_000;
+            let mut req = request(horizons_ns, case.mode, period_ns, p99_ns);
+            req.requested_cycles = case.requested_cycles;
+            if let Some(index) = case.unknown_index {
+                req.bounds[index] = HorizonEvidence::unknown(
+                    HorizonConstraint::ALL[index],
+                    "upstream model/clock evidence unqualified",
+                )
+                .unwrap();
+            }
+
+            let result = select_action_horizon(&req)
+                .unwrap_or_else(|error| panic!("{}: unexpected input error: {error}", case.id));
+            assert_eq!(result.disposition, case.expected, "{}", case.id);
+            assert_eq!(result.safe_horizon_ns.map(|value| value / 1_000_000), case.safe_ms, "{}", case.id);
+            assert_eq!(result.k_min_queue_cycles, case.k_min, "{}", case.id);
+            assert_eq!(result.k_max_safe_cycles, case.k_max, "{}", case.id);
+            assert_eq!(result.selected_cycles, case.selected, "{}", case.id);
+            assert_eq!(result.active_constraints_iter().next(), case.active, "{}", case.id);
         }
     }
 
