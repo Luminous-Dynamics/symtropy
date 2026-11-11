@@ -83,24 +83,13 @@ fn transform(
 
 fn emit(scenario: &str, result: &PropagatedUncertainty) {
     let input_variables = result
-        .output_state
-        .uncertainty_sources
+        .input_variables
         .iter()
-        .flat_map(|source| source.affected_variable_ids.iter().cloned())
-        .collect::<std::collections::BTreeSet<_>>()
-        .into_iter()
+        .map(|variable| variable.variable_id.as_str())
         .collect::<Vec<_>>()
         .join(";");
-
-    let input_values = result
-        .output_state
-        .uncertainty_sources
-        .iter()
-        .map(|source| source.source_id.as_str())
-        .collect::<Vec<_>>()
-        .join(";");
-
-    let input_covariance_placeholder = String::new();
+    let input_values = fmt_values(result.input_estimates.iter().copied());
+    let input_covariance_flat = fmt_values(result.input_covariance.flatten());
     let jacobian_rows = result
         .jacobian
         .iter()
@@ -151,7 +140,7 @@ fn emit(scenario: &str, result: &PropagatedUncertainty) {
             result.input_state_id.clone(),
             input_variables.clone(),
             input_values.clone(),
-            input_covariance_placeholder.clone(),
+            input_covariance_flat.clone(),
             result.transform_id.clone(),
             result.transform_digest.clone(),
             result.protocol_digest.clone(),
