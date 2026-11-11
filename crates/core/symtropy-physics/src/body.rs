@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 
-use nalgebra::SVector;
+use nalgebra::{SMatrix, SVector};
 use serde::{Deserialize, Serialize};
 use symtropy_math::{Bivector, Point, Shape, Transform};
 
@@ -22,6 +22,19 @@ pub enum BodyType {
     Dynamic,
 }
 
+/// Rotational inertia model used by one rigid body.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RotationalInertiaModel {
+    /// Static and kinematic bodies do not respond to applied impulses.
+    StaticOrKinematic,
+    /// 3D body-local principal moments rotated into the world frame.
+    PrincipalAxesWorldSpace3D,
+    /// Higher-dimensional compatibility path using a scalar mean inverse inertia.
+    MeanInertiaApproximation,
+    /// Invalid 3D principal moments or reciprocal values; angular response fails closed.
+    InvalidPrincipalMoments,
+}
+
 /// N-dimensional rigid body.
 pub struct RigidBody<const D: usize> {
     pub handle: BodyHandle,
@@ -32,7 +45,13 @@ pub struct RigidBody<const D: usize> {
     pub angular_velocity: Bivector<D>,
     pub mass: f64,
     pub inv_mass: f64,
+    /// Principal moments in the body's local frame. In 3D the principal axes
+    /// are aligned with the body's local X/Y/Z basis and are rotated into
+    /// world space for angular dynamics. For D != 3 this remains a legacy
+    /// per-axis compatibility vector used by the explicitly approximate path.
     pub inertia: SVector<f64, D>,
+    /// Reciprocals of inertia; invalid source moments produce zero here and
+    /// are exposed as InvalidPrincipalMoments by the 3D model census.
     pub inv_inertia: SVector<f64, D>,
     pub collider: Box<dyn Shape<D>>,
     pub friction: f64,
@@ -59,7 +78,13 @@ impl<const D: usize> RigidBody<D> {
         inertia: SVector<f64, D>,
     ) -> Self {
         let inv_mass = if mass > 0.0 { 1.0 / mass } else { 0.0 };
-        let inv_inertia = inertia.map(|i| if i > 0.0 { 1.0 / i } else { 0.0 });
+        let inv_inertia = inertia.map(|i| {
+            if i.is_finite() && i > 0.0 {
+                1.0 / i
+            } else {
+                0.0
+            }
+        });
 
         Self {
             handle,
@@ -180,14 +205,119 @@ impl<const D: usize> RigidBody<D> {
         self.transform.translation.0
     }
 
+    /// Report the rotational inertia model actually used by this body.
+    /// This is a model-path descriptor, not a physical-validity verdict.
+    pub fn rotational_inertia_model(&self) -> RotationalInertiaModel {
+        if !self.is_dynamic() {
+            return RotationalInertiaModel::StaticOrKinematic;
+        }
+        if D != 3 {
+            return RotationalInertiaModel::MeanInertiaApproximation;
+        }
+        if self.principal_moments_3d_are_valid() {
+            RotationalInertiaModel::PrincipalAxesWorldSpace3D
+        } else {
+            RotationalInertiaModel::InvalidPrincipalMoments
+        }
+    }
+
+    /// Validate 3D body-local principal moments and their stored reciprocals.
+    pub fn principal_moments_3d_are_valid(&self) -> bool {
+        if D != 3 {
+            return false;
+        }
+        (0..3).all(|axis| {
+            let moment = self.inertia[axis];
+            let inverse = self.inv_inertia[axis];
+            moment.is_finite()
+                && moment > 0.0
+                && inverse.is_finite()
+                && inverse > 0.0
+                && (moment * inverse - 1.0).abs() <= 1.0e-8
+        })
+    }
+
+    /// Apply the inverse rotational inertia operator to a world-space angular
+    /// impulse, returning the world-space angular-velocity change.
+    ///
+    /// For 3D, the operator is R * diag(1/I_body) * R^T, where R maps the
+    /// body-local principal axes into world space. For D != 3, the legacy
+    /// scalar mean inverse-inertia approximation is retained and reported by
+    /// rotational_inertia_model().
+    pub fn apply_inverse_angular_inertia(
+        &self,
+        angular_impulse: &Bivector<D>,
+    ) -> Bivector<D> {
+        if !self.is_dynamic() {
+            return Bivector::zero();
+        }
+
+        if D == 3 {
+            if !self.principal_moments_3d_are_valid() {
+                return Bivector::zero();
+            }
+            // Rotor's positive e01 generator maps +X toward +Y; the associated
+            // right-handed axial vector is [e12, -e02, e01].
+            let impulse_world = SVector::<f64, 3>::new(
+                angular_impulse.get(1, 2),
+                -angular_impulse.get(0, 2),
+                angular_impulse.get(0, 1),
+            );
+            let rotation = SMatrix::<f64, 3, 3>::from_fn(|row, col| {
+                self.transform.rotation.to_matrix()[(row, col)]
+            });
+            let impulse_local = rotation.transpose() * impulse_world;
+            let delta_local = self.inv_inertia.component_mul(&impulse_local);
+            let delta_world = rotation * delta_local;
+            let mut result = Bivector::<D>::zero();
+            result.set(0, 1, delta_world[2]);
+            result.set(0, 2, -delta_world[1]);
+            result.set(1, 2, delta_world[0]);
+            result
+        } else {
+            let inverse_mean = self.inv_inertia.sum() / D as f64;
+            if inverse_mean.is_finite() && inverse_mean > 0.0 {
+                angular_impulse.scale(inverse_mean)
+            } else {
+                Bivector::zero()
+            }
+        }
+    }
+
+    /// Rotational kinetic energy using the same inertia operator as integration.
+    /// Invalid 3D principal moments fail closed to zero rotational energy.
+    pub fn rotational_kinetic_energy(&self) -> f64 {
+        if !self.is_dynamic() {
+            return 0.0;
+        }
+        if D == 3 {
+            if !self.principal_moments_3d_are_valid() {
+                return 0.0;
+            }
+            let omega_world = SVector::<f64, 3>::new(
+                self.angular_velocity.get(1, 2),
+                -self.angular_velocity.get(0, 2),
+                self.angular_velocity.get(0, 1),
+            );
+            let rotation = SMatrix::<f64, 3, 3>::from_fn(|row, col| {
+                self.transform.rotation.to_matrix()[(row, col)]
+            });
+            let omega_local = rotation.transpose() * omega_world;
+            0.5 * (0..3)
+                .map(|axis| self.inertia[axis] * omega_local[axis] * omega_local[axis])
+                .sum::<f64>()
+        } else {
+            let inertia_mean = self.inertia.sum() / D as f64;
+            0.5 * inertia_mean * self.angular_velocity.norm_squared()
+        }
+    }
+
     pub fn kinetic_energy(&self) -> f64 {
         if !self.is_dynamic() {
             return 0.0;
         }
         let linear = 0.5 * self.mass * self.linear_velocity.norm_squared();
-        let i_avg = self.inertia.sum() / D as f64;
-        let angular = 0.5 * i_avg * self.angular_velocity.norm_squared();
-        linear + angular
+        linear + self.rotational_kinetic_energy()
     }
 
     pub fn merge_toolhead(
