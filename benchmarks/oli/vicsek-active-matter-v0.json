@@ -347,6 +347,50 @@
         "particle_1_and_2_heading_difference_vs_sham": 0,
         "interpretation": "The intervention changes only the treated particle when every particle has a self-only neighbourhood."
       }
+    },
+    {
+      "id": "COMMON_DRIVER_CORRELATED_MOTION_NO_INTERACTION",
+      "purpose": "Create correlated motion through a shared exogenous environmental signal while the interaction graph has zero edges",
+      "particle_count": 3,
+      "box_size": 12,
+      "interaction_radius": 0,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "update_rule": "CurrentPositionAlignment",
+      "seed": 43,
+      "initial_particles": [
+        {
+          "x": 1,
+          "y": 1,
+          "heading_rad": 0.25
+        },
+        {
+          "x": 5,
+          "y": 5,
+          "heading_rad": 0.25
+        },
+        {
+          "x": 9,
+          "y": 9,
+          "heading_rad": 0.25
+        }
+      ],
+      "intervention": {
+        "type": "COMMON_EXOGENOUS_HEADING_FIELD",
+        "heading_impulse_rad": 1.0471975511965976,
+        "tick": 0
+      },
+      "sham": "clone the exact pre-field state and apply no shared field",
+      "expected": {
+        "interaction_edges": 0,
+        "cluster_count": 3,
+        "mean_neighbors_excluding_self": 0,
+        "local_order_coverage_fraction": 0,
+        "global_polar_order_change": 0,
+        "circular_heading_change_each_particle_rad": 1.0471975511965976,
+        "interpretation": "All particles co-change because of a shared external driver, not because they influence one another. Pairwise observational dependence must not be promoted to a direct causal edge."
+      }
     }
   ],
   "observables": {
@@ -388,7 +432,9 @@
     "Network topology: compare degree distributions, local clustering coefficient and mean shortest-path length across cluster sizes and density regimes.",
     "Causal influence: estimate downstream effects of controlled single-particle interventions against matched sham runs.",
     "Causal-null control: show zero downstream effects when interaction coupling is absent.",
-    "Statistical information transfer versus causal influence: report observational transfer metrics separately from interventional response."
+    "Statistical information transfer versus causal influence: report observational transfer metrics separately from interventional response.",
+    "Common-driver confounding: distinguish shared external forcing from direct agent-to-agent interaction.",
+    "Causal edge null: a single-particle intervention must have zero downstream effect in an isolated system even when common-driver correlations are present."
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
@@ -400,7 +446,9 @@
     "Record the exact update_rule with every trajectory and benchmark receipt; do not pool CurrentPositionAlignment and NextPositionAlignment results.",
     "Network paths are computed on the instantaneous interaction graph; report the observation/update time at which the graph was constructed.",
     "Intervention and sham trajectories must start from identical cloned state and PRNG state; the intervention itself must not consume random draws.",
-    "Report direct treatment effects, downstream effects and sham/null responses separately; transfer entropy alone is not a causal claim."
+    "Report direct treatment effects, downstream effects and sham/null responses separately; transfer entropy alone is not a causal claim.",
+    "Record common environmental inputs separately from agent-to-agent interaction variables.",
+    "A common exogenous intervention affecting multiple agents is not an inter-agent causal edge; include common-driver nulls in false-edge evaluation."
   ],
   "reproducibility": {
     "manifest_is_input_contract": true,
@@ -420,6 +468,7 @@
   },
   "acceptance": {
     "intervention_sham_counterfactual_parity_required": true,
-    "zero_false_causal_attribution_on_self_only_negative_control": true
+    "zero_false_causal_attribution_on_self_only_negative_control": true,
+    "common_driver_zero_edge_fixture_required": true
   }
 }
