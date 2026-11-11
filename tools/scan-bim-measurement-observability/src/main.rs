@@ -129,6 +129,7 @@ struct ValidationEvidence {
     evidence_sha256: Option<String>,
     independence: IndependenceStatus,
     calibration_reference_group_ids: Vec<String>,
+    holdout_reference_group_ids: Vec<String>,
     independent_reference_lineage_ids: Vec<String>,
     minimum_independent_lineages: usize,
     parameters_frozen_before_holdout: bool,
@@ -483,14 +484,22 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
     // groups. Freeze parameters fitted on the calibration groups before
     // evaluating independent holdout observations; never refit on them.
     if validation.status == ValidationStatus::Qualified {
-        let calibration_ids: BTreeSet<&str> = validation
+        let calibration_group_ids: BTreeSet<&str> = validation
             .calibration_reference_group_ids
+            .iter()
+            .map(String::as_str)
+            .collect();
+        let holdout_group_ids: BTreeSet<&str> = validation
+            .holdout_reference_group_ids
             .iter()
             .map(String::as_str)
             .collect();
 
         if validation.calibration_reference_group_ids.is_empty() {
             reasons.insert("CALIBRATION_REFERENCE_GROUPS_MISSING");
+        }
+        if validation.holdout_reference_group_ids.is_empty() {
+            reasons.insert("HOLDOUT_REFERENCE_GROUPS_MISSING");
         }
         if validation
             .calibration_reference_group_ids
@@ -499,11 +508,21 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
         {
             reasons.insert("CALIBRATION_REFERENCE_GROUP_ID_INVALID");
         }
-        if calibration_ids.len() != validation.calibration_reference_group_ids.len() {
+        if validation
+            .holdout_reference_group_ids
+            .iter()
+            .any(|group| group.trim().is_empty())
+        {
+            reasons.insert("HOLDOUT_REFERENCE_GROUP_ID_INVALID");
+        }
+        if calibration_group_ids.len() != validation.calibration_reference_group_ids.len() {
             reasons.insert("CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE");
         }
-        if !calibration_ids.is_disjoint(&lineage_ids) {
-            reasons.insert("CALIBRATION_HOLDOUT_LINEAGE_OVERLAP");
+        if holdout_group_ids.len() != validation.holdout_reference_group_ids.len() {
+            reasons.insert("HOLDOUT_REFERENCE_GROUP_ID_DUPLICATE");
+        }
+        if !calibration_group_ids.is_disjoint(&holdout_group_ids) {
+            reasons.insert("CALIBRATION_HOLDOUT_GROUP_OVERLAP");
         }
         if !validation.parameters_frozen_before_holdout {
             reasons.insert("HOLDOUT_PARAMETERS_NOT_FROZEN");
@@ -566,7 +585,11 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
             || reasons.contains("INVALID_SYSTEMATIC_ERROR_BOUND")
             || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_INVALID")
             || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE")
-            || reasons.contains("CALIBRATION_HOLDOUT_LINEAGE_OVERLAP")
+            || reasons.contains("CALIBRATION_HOLDOUT_GROUP_OVERLAP")
+            || reasons.contains("HOLDOUT_REFERENCE_GROUP_ID_INVALID")
+            || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_INVALID")
+            || reasons.contains("HOLDOUT_REFERENCE_GROUP_ID_DUPLICATE")
+            || reasons.contains("CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE")
             || reasons.contains("HOLDOUT_PARAMETERS_NOT_FROZEN");
         let status = if fail {
             GateStatus::Fail
@@ -879,7 +902,7 @@ mod tests {
     }
 
     #[test]
-    fn calibration_and_holdout_reference_groups_must_be_disjoint() {
+    fn calibration_and_holdout_group_ids_must_be_disjoint() {
         let mut corpus = fixture();
         let case = corpus
             .cases
@@ -890,7 +913,22 @@ mod tests {
         assert_eq!(result.metrology_gate.status, GateStatus::Fail);
         assert!(result
             .reason_codes
-            .contains(&"CALIBRATION_HOLDOUT_LINEAGE_OVERLAP".to_owned()));
+            .contains(&"CALIBRATION_HOLDOUT_GROUP_OVERLAP".to_owned()));
+    }
+
+    #[test]
+    fn holdout_reference_group_is_required_for_qualified_validation() {
+        let corpus = fixture();
+        let case = corpus
+            .cases
+            .iter()
+            .find(|case| case.case_id == "holdout_reference_groups_missing_unresolved")
+            .expect("missing holdout groups fixture");
+        let result = evaluate_case(case);
+        assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
+        assert!(result
+            .reason_codes
+            .contains(&"HOLDOUT_REFERENCE_GROUPS_MISSING".to_owned()));
     }
 
     #[test]
