@@ -492,11 +492,13 @@ mod tests {
     }
 
     #[test]
-    fn overflowing_pressure_integral_is_rejected() {
+    fn overflowing_force_moment_integral_is_rejected() {
         let mut sample = frame();
         sample.pressure_pa[0] = f64::MAX;
+        let mut calibration = calibration();
+        calibration.origin_m[0] = f64::MAX;
         assert_eq!(
-            analyze_tactile_field(&calibration(), &sample),
+            analyze_tactile_field(&calibration, &sample),
             Err(TactileFieldError::ArithmeticOverflow)
         );
     }
