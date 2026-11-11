@@ -124,6 +124,25 @@ mod tests {
     }
 
     #[test]
+    fn compound_common_cause_fixture_audits_two_faults_separately() {
+        let report = audit_value(include_str!(
+            "../fixtures/compound-common-cause-camera-clock-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(report.disposition, "valid");
+        assert_eq!(report.events.len(), 2);
+        assert!(report.events.iter().all(|event| {
+            event.causality == degradation_recovery_envelope::FaultCausality::CommonCause
+                && event.causal_group_id.as_deref()
+                    == Some("shared-power-clock-domain-001")
+        }));
+        assert!(report.events.iter().all(|event| {
+            event.detection_latency_ticks == Some(0)
+                && event.containment_latency_ticks == Some(0)
+        }));
+    }
+
+    #[test]
     fn cli_report_retains_each_metric_axis_separately() {
         let report = audit_value(include_str!("../fixtures/camera-drop-paired-v1.json")).unwrap();
         let rendered = serde_json::to_value(report).unwrap();
@@ -198,6 +217,22 @@ mod tests {
                 .iter()
                 .any(|field| field == "fault_detection_event_ids")
         );
+        for field in ["causality", "causal_group_id", "parent_event_id"] {
+            assert!(
+                campaign_schema["$defs"]["event"]["required"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|entry| entry == field)
+            );
+            assert!(
+                report_schema["$defs"]["event_metrics"]["required"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|entry| entry == field)
+            );
+        }
         assert!(
             report_schema["$defs"]["event_metrics"]["required"]
                 .as_array()
