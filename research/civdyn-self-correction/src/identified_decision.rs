@@ -131,6 +131,7 @@ impl PolicyUtilityBounds {
         measurement_unit: impl Into<String>,
         direction: UtilityDirection,
         transport: &CausalTransportResult,
+        transport_result_digest: impl Into<String>,
     ) -> Result<Self, IdentifiedDecisionError> {
         let (lower, upper) = match transport.identification_status {
             TransportIdentificationStatus::Identified => {
@@ -164,6 +165,7 @@ impl PolicyUtilityBounds {
             }
         };
 
+        let transport_result_digest = transport_result_digest.into();
         let policy = Self {
             policy_id: policy_id.into(),
             metric_id: metric_id.into(),
@@ -172,7 +174,7 @@ impl PolicyUtilityBounds {
             direction,
             lower,
             upper,
-            evidence_digest: transport.protocol_digest.clone(),
+            evidence_digest: transport_result_digest,
             source_data_digest: transport.source_data_digest.clone(),
             target_population_digest: transport.target_population_digest.clone(),
             transport_protocol_digest: transport.protocol_digest.clone(),
@@ -288,7 +290,11 @@ impl fmt::Display for IdentifiedDecisionError {
 impl std::error::Error for IdentifiedDecisionError {}
 
 fn validate_utility(policy: &PolicyUtilityBounds) -> Result<(), IdentifiedDecisionError> {
-    if policy.policy_id.trim().is_empty() || policy.metric_id.trim().is_empty() {
+    if policy.policy_id.trim().is_empty()
+        || policy.metric_id.trim().is_empty()
+        || policy.estimand.trim().is_empty()
+        || policy.measurement_unit.trim().is_empty()
+    {
         return Err(IdentifiedDecisionError::InvalidPolicyIdentity {
             policy_id: policy.policy_id.clone(),
         });
@@ -699,6 +705,7 @@ mod tests {
                 None,
                 None,
             ),
+            "sha256-point-transport-result",
         )
         .expect("point identified policy");
         assert_eq!(point.lower, 0.28);
@@ -715,6 +722,7 @@ mod tests {
                 Some(0.02),
                 Some(0.42),
             ),
+            "sha256-partial-transport-result",
         )
         .expect("partially identified policy");
         assert_eq!(partial.lower, 0.02);
@@ -731,10 +739,43 @@ mod tests {
                     None,
                     None,
                     None
-                )
+                ),
+                "sha256-unidentified-transport-result",
             ),
             Err(IdentifiedDecisionError::CausalEffectNotIdentified)
         ));
+    }
+
+    #[test]
+    fn transport_result_receipt_digest_is_required_and_distinct() {
+        let transport = transport_result(
+            TransportIdentificationStatus::Identified,
+            Some(0.28),
+            None,
+            None,
+        );
+        assert!(matches!(
+            PolicyUtilityBounds::from_causal_transport(
+                "policy",
+                "service-benefit",
+                "risk_difference",
+                UtilityDirection::Maximize,
+                &transport,
+                ""
+            ),
+            Err(IdentifiedDecisionError::MissingUtilityEvidence { .. })
+        ));
+        let utility = PolicyUtilityBounds::from_causal_transport(
+            "policy",
+            "service-benefit",
+            "risk_difference",
+            UtilityDirection::Maximize,
+            &transport,
+            "sha256-specific-transport-result",
+        )
+        .expect("receipt-specific policy interval");
+        assert_eq!(utility.evidence_digest, "sha256-specific-transport-result");
+        assert_eq!(utility.transport_protocol_digest, "sha256-transport-protocol");
     }
 
     #[test]
