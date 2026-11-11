@@ -102,6 +102,7 @@ pub struct LeaseReceiptV1 {
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct UsageSnapshotV1 {
+    pub schema_version: u32,
     pub lease_sha256: String,
     /// Digest of the immediately preceding accepted usage snapshot; absent only at sequence 1.
     pub previous_usage_sha256: Option<String>,
@@ -393,6 +394,9 @@ fn validate_usage_shape(
     lease: &LeaseReceiptV1,
     usage: &UsageSnapshotV1,
 ) -> Result<(), LeaseError> {
+    if usage.schema_version != SCHEMA_VERSION {
+        return Err(LeaseError::UnsupportedSchema(usage.schema_version));
+    }
     usage_scope_matches(lease, usage)?;
     if usage.sequence == 0 {
         return Err(LeaseError::InvalidUsageCounters);
@@ -459,8 +463,22 @@ fn validate_usage_shape(
 /// View records are treated as a set and sorted by `view_id` before hashing.
 /// This digest links adjacent records; it is not a signature or authenticated storage.
 pub fn usage_snapshot_sha256(usage: &UsageSnapshotV1) -> Result<String, LeaseError> {
+    let mut keyed_views = Vec::with_capacity(usage.views.len());
+    for view in &usage.views {
+        let encoded = serde_json::to_vec(view)
+            .map_err(|error| LeaseError::Serialization(error.to_string()))?;
+        keyed_views.push((view.view_id.as_str(), encoded, view.clone()));
+    }
+    // Duplicate IDs are invalid usage (the evaluator rejects them), but the digest helper
+    // remains deterministic for every typed input by using encoded content as a tie-breaker.
+    keyed_views.sort_by(|left, right| {
+        (left.0, left.1.as_slice()).cmp(&(right.0, right.1.as_slice()))
+    });
     let mut canonical = usage.clone();
-    canonical.views.sort_by(|left, right| left.view_id.cmp(&right.view_id));
+    canonical.views = keyed_views
+        .into_iter()
+        .map(|(_, _, view)| view)
+        .collect();
     let bytes = serde_json::to_vec(&canonical)
         .map_err(|error| LeaseError::Serialization(error.to_string()))?;
     let mut material = Vec::with_capacity(USAGE_HASH_DOMAIN.len() + bytes.len());
@@ -623,6 +641,7 @@ mod tests {
 
     fn valid_usage(lease: &LeaseReceiptV1) -> UsageSnapshotV1 {
         UsageSnapshotV1 {
+            schema_version: SCHEMA_VERSION,
             lease_sha256: lease.lease_sha256.clone(),
             run_id: lease.experiment.run_id.clone(),
             simulation_state_sha256: lease.experiment.simulation_state_sha256.clone(),
@@ -842,6 +861,17 @@ mod tests {
     }
 
     #[test]
+    fn unsupported_usage_schema_is_rejected() {
+        let lease = compile_fixture();
+        let mut usage = valid_usage(&lease);
+        usage.schema_version = SCHEMA_VERSION + 1;
+        assert_eq!(
+            evaluate_usage(&lease, &usage, None).unwrap_err(),
+            LeaseError::UnsupportedSchema(SCHEMA_VERSION + 1)
+        );
+    }
+
+    #[test]
     fn usage_chain_links_adjacent_cumulative_snapshots() {
         let lease = compile_fixture();
         let first = valid_usage(&lease);
@@ -904,6 +934,16 @@ mod tests {
         assert_eq!(
             digest,
             usage_snapshot_sha256(&usage).expect("permuted usage digest")
+        );
+
+        // Duplicate view IDs are still invalid for evaluate_usage, but the digest
+        // helper must also be permutation-invariant for malformed typed values.
+        usage.views[1].view_id = usage.views[0].view_id.clone();
+        let duplicate_digest = usage_snapshot_sha256(&usage).expect("duplicate-set digest");
+        usage.views.reverse();
+        assert_eq!(
+            duplicate_digest,
+            usage_snapshot_sha256(&usage).expect("permuted duplicate-set digest")
         );
     }
 
