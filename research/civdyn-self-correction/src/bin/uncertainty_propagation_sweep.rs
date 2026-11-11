@@ -3,8 +3,7 @@
 
 use civdyn_self_correction::uncertainty_propagation::{
     CovarianceMatrix, LinearTransform, NumericUncertaintyKind, PropagatedUncertainty,
-    UncertaintySourceReceipt, UncertaintyState, UncertaintyVariable,
-    propagate_linear_uncertainty,
+    UncertaintySourceReceipt, UncertaintyState, UncertaintyVariable, propagate_linear_uncertainty,
 };
 
 const CSV_COLUMNS: usize = 23;
@@ -116,11 +115,8 @@ fn emit(scenario: &str, result: &PropagatedUncertainty) {
     let output_source_receipts = format_sources(&result.output_state.uncertainty_sources);
 
     for (index, variable) in result.output_state.variables.iter().enumerate() {
-        let covariance_row = fmt_values(
-            result.output_state.covariance.values[index]
-                .iter()
-                .copied(),
-        );
+        let covariance_row =
+            fmt_values(result.output_state.covariance.values[index].iter().copied());
         let correlation_row = result.correlation_matrix[index]
             .iter()
             .map(|value| {

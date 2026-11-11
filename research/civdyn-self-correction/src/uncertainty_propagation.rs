@@ -75,7 +75,10 @@ impl CovarianceMatrix {
     pub fn validate(&self, expected_dimension: usize) -> Result<(), UncertaintyPropagationError> {
         if expected_dimension == 0
             || self.values.len() != expected_dimension
-            || self.values.iter().any(|row| row.len() != expected_dimension)
+            || self
+                .values
+                .iter()
+                .any(|row| row.len() != expected_dimension)
         {
             return Err(UncertaintyPropagationError::CovarianceDimensionMismatch);
         }
@@ -118,17 +121,21 @@ impl CovarianceMatrix {
                 }
                 if row == column {
                     if residual < -tolerance {
-                        return Err(UncertaintyPropagationError::CovarianceNotPositiveSemidefinite {
-                            pivot_index: row,
-                        });
+                        return Err(
+                            UncertaintyPropagationError::CovarianceNotPositiveSemidefinite {
+                                pivot_index: row,
+                            },
+                        );
                     }
                     lower[row][column] = residual.max(0.0).sqrt();
                 } else if lower[column][column] > tolerance.sqrt() {
                     lower[row][column] = residual / lower[column][column];
                 } else if residual.abs() > tolerance {
-                    return Err(UncertaintyPropagationError::CovarianceNotPositiveSemidefinite {
-                        pivot_index: column,
-                    });
+                    return Err(
+                        UncertaintyPropagationError::CovarianceNotPositiveSemidefinite {
+                            pivot_index: column,
+                        },
+                    );
                 }
             }
         }
@@ -149,8 +156,7 @@ impl CovarianceMatrix {
                     .map(|column| {
                         let denominator =
                             standard_uncertainties[row] * standard_uncertainties[column];
-                        (denominator > 0.0)
-                            .then(|| self.values[row][column] / denominator)
+                        (denominator > 0.0).then(|| self.values[row][column] / denominator)
                     })
                     .collect()
             })
@@ -171,7 +177,10 @@ pub struct UncertaintyState {
 
 impl UncertaintyState {
     pub fn validate(&self) -> Result<(), UncertaintyPropagationError> {
-        nonempty(&self.state_id, UncertaintyPropagationError::MissingStateIdentity)?;
+        nonempty(
+            &self.state_id,
+            UncertaintyPropagationError::MissingStateIdentity,
+        )?;
         nonempty(
             &self.measurement_unit,
             UncertaintyPropagationError::MissingMeasurementUnit,
@@ -205,7 +214,12 @@ impl UncertaintyState {
         }
         self.covariance.validate(self.variables.len())?;
         if self.uncertainty_sources.is_empty()
-            && self.covariance.values.iter().flatten().any(|value| value.abs() > 0.0)
+            && self
+                .covariance
+                .values
+                .iter()
+                .flatten()
+                .any(|value| value.abs() > 0.0)
         {
             return Err(UncertaintyPropagationError::MissingUncertaintySource);
         }
@@ -256,9 +270,11 @@ impl UncertaintyState {
         }
         for variable in &self.variables {
             if !attributed_variables.contains(variable.variable_id.as_str()) {
-                return Err(UncertaintyPropagationError::VariableHasNoUncertaintyLineage {
-                    variable_id: variable.variable_id.clone(),
-                });
+                return Err(
+                    UncertaintyPropagationError::VariableHasNoUncertaintyLineage {
+                        variable_id: variable.variable_id.clone(),
+                    },
+                );
             }
         }
         Ok(())
@@ -281,11 +297,26 @@ pub struct LinearTransform {
 impl LinearTransform {
     fn validate(&self, input: &UncertaintyState) -> Result<(), UncertaintyPropagationError> {
         for (value, error) in [
-            (&self.transform_id, UncertaintyPropagationError::MissingTransformIdentity),
-            (&self.transform_digest, UncertaintyPropagationError::MissingTransformDigest),
-            (&self.protocol_digest, UncertaintyPropagationError::MissingProtocolDigest),
-            (&self.input_state_id, UncertaintyPropagationError::MissingTransformInputIdentity),
-            (&self.output_state_id, UncertaintyPropagationError::MissingTransformOutputIdentity),
+            (
+                &self.transform_id,
+                UncertaintyPropagationError::MissingTransformIdentity,
+            ),
+            (
+                &self.transform_digest,
+                UncertaintyPropagationError::MissingTransformDigest,
+            ),
+            (
+                &self.protocol_digest,
+                UncertaintyPropagationError::MissingProtocolDigest,
+            ),
+            (
+                &self.input_state_id,
+                UncertaintyPropagationError::MissingTransformInputIdentity,
+            ),
+            (
+                &self.output_state_id,
+                UncertaintyPropagationError::MissingTransformOutputIdentity,
+            ),
         ] {
             nonempty(value, error)?;
         }
@@ -301,16 +332,26 @@ impl LinearTransform {
         {
             return Err(UncertaintyPropagationError::TransformDimensionMismatch);
         }
-        if self.coefficients.iter().flatten().any(|value| !value.is_finite()) {
+        if self
+            .coefficients
+            .iter()
+            .flatten()
+            .any(|value| !value.is_finite())
+        {
             return Err(UncertaintyPropagationError::NonFiniteTransformCoefficient);
         }
         let mut output_ids = BTreeSet::new();
         for id in &self.output_variable_ids {
-            nonempty(id, UncertaintyPropagationError::MissingOutputVariableIdentity)?;
+            nonempty(
+                id,
+                UncertaintyPropagationError::MissingOutputVariableIdentity,
+            )?;
             if !output_ids.insert(id.as_str()) {
-                return Err(UncertaintyPropagationError::DuplicateOutputVariableIdentity {
-                    variable_id: id.clone(),
-                });
+                return Err(
+                    UncertaintyPropagationError::DuplicateOutputVariableIdentity {
+                        variable_id: id.clone(),
+                    },
+                );
             }
         }
         Ok(())
@@ -340,22 +381,45 @@ pub enum UncertaintyPropagationError {
     VariableDimensionMismatch,
     NonFiniteEstimate,
     MissingVariableIdentity,
-    DuplicateVariableIdentity { variable_id: String },
-    InputUnitMismatch { variable_id: String },
+    DuplicateVariableIdentity {
+        variable_id: String,
+    },
+    InputUnitMismatch {
+        variable_id: String,
+    },
     CovarianceDimensionMismatch,
     NonFiniteCovariance,
-    NegativeVariance { variable_index: usize },
-    CovarianceNotSymmetric { row: usize, column: usize },
-    CovarianceNotPositiveSemidefinite { pivot_index: usize },
+    NegativeVariance {
+        variable_index: usize,
+    },
+    CovarianceNotSymmetric {
+        row: usize,
+        column: usize,
+    },
+    CovarianceNotPositiveSemidefinite {
+        pivot_index: usize,
+    },
     MissingUncertaintySource,
     MissingUncertaintySourceIdentity,
     MissingSourceDigest,
     MissingDependenceGroupIdentity,
-    SourceHasNoAffectedVariables { source_id: String },
-    DuplicateUncertaintySource { source_id: String },
-    UnknownAffectedVariable { source_id: String, variable_id: String },
-    DuplicateAffectedVariable { source_id: String, variable_id: String },
-    VariableHasNoUncertaintyLineage { variable_id: String },
+    SourceHasNoAffectedVariables {
+        source_id: String,
+    },
+    DuplicateUncertaintySource {
+        source_id: String,
+    },
+    UnknownAffectedVariable {
+        source_id: String,
+        variable_id: String,
+    },
+    DuplicateAffectedVariable {
+        source_id: String,
+        variable_id: String,
+    },
+    VariableHasNoUncertaintyLineage {
+        variable_id: String,
+    },
     MissingTransformIdentity,
     MissingTransformDigest,
     MissingProtocolDigest,
@@ -365,7 +429,9 @@ pub enum UncertaintyPropagationError {
     TransformDimensionMismatch,
     NonFiniteTransformCoefficient,
     MissingOutputVariableIdentity,
-    DuplicateOutputVariableIdentity { variable_id: String },
+    DuplicateOutputVariableIdentity {
+        variable_id: String,
+    },
     NonFiniteOutputEstimate,
     NonFiniteOutputCovariance,
 }
@@ -378,7 +444,10 @@ impl fmt::Display for UncertaintyPropagationError {
 
 impl std::error::Error for UncertaintyPropagationError {}
 
-fn nonempty(value: &str, error: UncertaintyPropagationError) -> Result<(), UncertaintyPropagationError> {
+fn nonempty(
+    value: &str,
+    error: UncertaintyPropagationError,
+) -> Result<(), UncertaintyPropagationError> {
     if value.trim().is_empty() {
         Err(error)
     } else {
@@ -386,7 +455,10 @@ fn nonempty(value: &str, error: UncertaintyPropagationError) -> Result<(), Uncer
     }
 }
 
-fn multiply(left: &[Vec<f64>], right: &[Vec<f64>]) -> Result<Vec<Vec<f64>>, UncertaintyPropagationError> {
+fn multiply(
+    left: &[Vec<f64>],
+    right: &[Vec<f64>],
+) -> Result<Vec<Vec<f64>>, UncertaintyPropagationError> {
     if left.is_empty() || right.is_empty() || left[0].is_empty() {
         return Err(UncertaintyPropagationError::TransformDimensionMismatch);
     }
@@ -629,7 +701,10 @@ mod tests {
             result.output_state.covariance.values,
             vec![vec![19.0, -5.0], vec![-5.0, 7.0]]
         );
-        assert_eq!(result.standard_uncertainties, vec![19.0_f64.sqrt(), 7.0_f64.sqrt()]);
+        assert_eq!(
+            result.standard_uncertainties,
+            vec![19.0_f64.sqrt(), 7.0_f64.sqrt()]
+        );
         assert_eq!(result.correlation_matrix.len(), 2);
         assert!(result.correlation_matrix[0][1].expect("defined correlation") < 0.0);
         assert_eq!(result.output_state.uncertainty_sources.len(), 2);
@@ -718,8 +793,20 @@ mod tests {
             &[10.0, 20.0],
             vec![vec![1.0, 0.2], vec![0.2, 4.0]],
             vec![
-                source("water-source", NumericUncertaintyKind::SamplingDesign, "sha256-water", &["water"], None),
-                source("energy-source", NumericUncertaintyKind::Measurement, "sha256-energy", &["energy"], None),
+                source(
+                    "water-source",
+                    NumericUncertaintyKind::SamplingDesign,
+                    "sha256-water",
+                    &["water"],
+                    None,
+                ),
+                source(
+                    "energy-source",
+                    NumericUncertaintyKind::Measurement,
+                    "sha256-energy",
+                    &["energy"],
+                    None,
+                ),
             ],
         );
         let result = propagate_linear_uncertainty(
@@ -732,7 +819,10 @@ mod tests {
             ),
         )
         .expect("source lineage maps through transform");
-        result.output_state.validate().expect("output state is independently valid");
+        result
+            .output_state
+            .validate()
+            .expect("output state is independently valid");
         let water = result
             .output_state
             .uncertainty_sources
@@ -760,8 +850,20 @@ mod tests {
             &[3.0, 4.0],
             vec![vec![4.0, 3.0], vec![3.0, 9.0]],
             vec![
-                source("source-1", NumericUncertaintyKind::Measurement, "sha256-s1", &["x1"], None),
-                source("source-2", NumericUncertaintyKind::Measurement, "sha256-s2", &["x2"], None),
+                source(
+                    "source-1",
+                    NumericUncertaintyKind::Measurement,
+                    "sha256-s1",
+                    &["x1"],
+                    None,
+                ),
+                source(
+                    "source-2",
+                    NumericUncertaintyKind::Measurement,
+                    "sha256-s2",
+                    &["x2"],
+                    None,
+                ),
             ],
         );
         let result = propagate_linear_uncertainty(
@@ -779,7 +881,13 @@ mod tests {
             &["x1", "x2"],
             &[1.0, 2.0],
             vec![vec![1.0]],
-            vec![source("src", NumericUncertaintyKind::Measurement, "sha256-src", &["x1", "x2"], None)],
+            vec![source(
+                "src",
+                NumericUncertaintyKind::Measurement,
+                "sha256-src",
+                &["x1", "x2"],
+                None,
+            )],
         );
         assert_eq!(
             propagate_linear_uncertainty(
@@ -795,7 +903,13 @@ mod tests {
             &["x1", "x2"],
             &[1.0, 2.0],
             vec![vec![1.0, 0.1], vec![0.2, 1.0]],
-            vec![source("src", NumericUncertaintyKind::Measurement, "sha256-src", &["x1", "x2"], None)],
+            vec![source(
+                "src",
+                NumericUncertaintyKind::Measurement,
+                "sha256-src",
+                &["x1", "x2"],
+                None,
+            )],
         );
         assert!(matches!(
             propagate_linear_uncertainty(
@@ -810,7 +924,13 @@ mod tests {
             &["x1", "x2"],
             &[1.0, 2.0],
             vec![vec![1.0, 2.0], vec![2.0, 1.0]],
-            vec![source("src", NumericUncertaintyKind::Measurement, "sha256-src", &["x1", "x2"], None)],
+            vec![source(
+                "src",
+                NumericUncertaintyKind::Measurement,
+                "sha256-src",
+                &["x1", "x2"],
+                None,
+            )],
         );
         assert!(matches!(
             propagate_linear_uncertainty(
@@ -823,7 +943,13 @@ mod tests {
 
     #[test]
     fn rejects_missing_duplicate_and_unknown_source_lineage() {
-        let missing_source = state("missing-source", &["x"], &[1.0], vec![vec![1.0]], Vec::new());
+        let missing_source = state(
+            "missing-source",
+            &["x"],
+            &[1.0],
+            vec![vec![1.0]],
+            Vec::new(),
+        );
         assert_eq!(
             propagate_linear_uncertainty(
                 &missing_source,
@@ -839,8 +965,20 @@ mod tests {
             &[1.0],
             vec![vec![1.0]],
             vec![
-                source("duplicate", NumericUncertaintyKind::Measurement, "sha256-a", &["x"], None),
-                source("duplicate", NumericUncertaintyKind::Calibration, "sha256-b", &["x"], None),
+                source(
+                    "duplicate",
+                    NumericUncertaintyKind::Measurement,
+                    "sha256-a",
+                    &["x"],
+                    None,
+                ),
+                source(
+                    "duplicate",
+                    NumericUncertaintyKind::Calibration,
+                    "sha256-b",
+                    &["x"],
+                    None,
+                ),
             ],
         );
         assert!(matches!(
@@ -856,7 +994,13 @@ mod tests {
             &["x"],
             &[1.0],
             vec![vec![1.0]],
-            vec![source("source", NumericUncertaintyKind::Measurement, "sha256-source", &["other"], None)],
+            vec![source(
+                "source",
+                NumericUncertaintyKind::Measurement,
+                "sha256-source",
+                &["other"],
+                None,
+            )],
         );
         assert!(matches!(
             propagate_linear_uncertainty(
@@ -874,7 +1018,13 @@ mod tests {
             &["x"],
             &[2.0],
             vec![vec![1.0]],
-            vec![source("src", NumericUncertaintyKind::Measurement, "sha256-src", &["x"], None)],
+            vec![source(
+                "src",
+                NumericUncertaintyKind::Measurement,
+                "sha256-src",
+                &["x"],
+                None,
+            )],
         );
         let mut wrong_input = transform(&input, &["y"], vec![vec![1.0]], "wrong-input");
         wrong_input.input_state_id = "some-other-state".to_string();
@@ -898,7 +1048,13 @@ mod tests {
             &["x1", "x2"],
             &[5.0, 5.0],
             vec![vec![1.0, 1.0], vec![1.0, 1.0]],
-            vec![source("shared", NumericUncertaintyKind::Calibration, "sha256-shared", &["x1", "x2"], Some("same-error"))],
+            vec![source(
+                "shared",
+                NumericUncertaintyKind::Calibration,
+                "sha256-shared",
+                &["x1", "x2"],
+                Some("same-error"),
+            )],
         );
         let transform = transform(
             &input,
