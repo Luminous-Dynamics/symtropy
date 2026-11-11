@@ -208,14 +208,24 @@
       ],
       "expected": {
         "current_position_alignment": {
-          "cluster_count": 2,
-          "polar_order": "<0.8"
+          "neighbour_graph_used_for_heading_update": "two isolated self-only neighbourhoods at t",
+          "post_update_snapshot_cluster_count": 1,
+          "post_update_global_polar_order": 0.7071067811865476,
+          "post_update_headings_rad": [
+            0,
+            1.5707963267948966
+          ]
         },
         "next_position_alignment": {
-          "cluster_count": 1,
-          "polar_order": 1,
-          "mean_cluster_polar_order": 1
-        }
+          "neighbour_graph_used_for_heading_update": "one connected pair at predicted positions t+dt",
+          "post_update_snapshot_cluster_count": 1,
+          "post_update_global_polar_order": 1,
+          "post_update_headings_rad": [
+            0.7853981633974483,
+            0.7853981633974483
+          ]
+        },
+        "interpretation": "The post-update positions are within the interaction radius under both rules. The discriminator is the graph used to compute the heading update: current-position uses two self-only neighbourhoods; erratum-aligned next-position uses the predicted t+dt neighbour edge. Do not infer the causal update graph from the post-update snapshot alone."
       },
       "interpretation": "The current-position pair is outside the radius, while their predicted next positions are inside it. Under the corrected next-position-neighbour rule, the particles align using headings at t.",
       "update_rule": "CurrentPositionAlignment"
