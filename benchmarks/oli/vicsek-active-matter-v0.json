@@ -477,8 +477,8 @@
     "neighbor_count_variance": "Population variance of focal-agent directed visible-neighbour counts (out-degree variance).",
     "cluster_count": "Connected components of the configured graph semantics: undirected metric graph or weakly connected projection of directed visual visibility.",
     "largest_cluster_fraction": "Fraction of all particles in the largest connected component",
-    "mean_local_polar_order": "Mean polar order across only particles with at least one other neighbour; null if no particle has another neighbour",
-    "local_polar_order_variance": "Population variance of those supported local-order values; null if no supported local neighbourhood exists",
+    "mean_local_polar_order": "Mean of per-particle polar order over each particle's local interaction neighbourhood, including self",
+    "local_polar_order_variance": "Population variance of per-particle local polar-order values",
     "note": "Global polar order, local polar order and interaction/cluster statistics must be reported together. A globally disordered system may contain highly ordered local clusters.",
     "mean_cluster_size": "Mean number of particles per connected component under the declared graph semantics.",
     "cluster_size_variance": "Population variance of connected-component sizes",
@@ -530,7 +530,8 @@
     "Visual-field offset inference from trajectories with angular-error and calibration metrics",
     "Compare directed out-neighbour local order with weakly connected cluster topology without conflating them",
     "Interventional influence propagation under visual-sector perception against common-random-number sham trajectories",
-    "Asymmetric visual intervention direction: a particle that is not visible to a focal agent must not causally change that focal agent, while an actually visible particle may change its heading under intervention"
+    "Asymmetric visual intervention direction: a particle that is not visible to a focal agent must not causally change that focal agent, while an actually visible particle may change its heading under intervention",
+    "Distinguish locally ordered clusters from globally aligned motion by comparing global and local polar-order distributions"
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
