@@ -459,6 +459,461 @@ pub fn recommend_next_pass(input: &PlannerInput) -> Decision {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TemporalEvidenceKind {
+    ProcessObservation,
+    GeometryScan,
+    RegistrationReceipt,
+    NdtOutcome,
+    RepairDisposition,
+    ModelCalibration,
+    ModelVersion,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TemporalEvidenceRole {
+    Feature,
+    OutcomeLabel,
+    ModelArtifact,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TemporalDecisionPurpose {
+    FastProcess,
+    MediumNextPass,
+    SlowQualityRequalification,
+}
+
+impl TemporalDecisionPurpose {
+    fn permission_index(self) -> usize {
+        match self {
+            Self::FastProcess => 0,
+            Self::MediumNextPass => 1,
+            Self::SlowQualityRequalification => 2,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TemporalEvidenceEvent {
+    pub event_id: String,
+    pub kind: TemporalEvidenceKind,
+    pub role: TemporalEvidenceRole,
+    pub workpiece_id: String,
+    pub joint_revision: String,
+    pub layer_id: Option<String>,
+    pub pass_id: Option<String>,
+    pub clock_id: String,
+    pub measurement_tick: u64,
+    pub first_received_tick: u64,
+    pub valid_from_tick: u64,
+    pub valid_until_tick: Option<u64>,
+    pub timestamp_precision_ticks: u64,
+    pub purpose_authorized: [bool; 3],
+    pub source_sha256: [u8; 32],
+    pub transform_receipt_sha256: [u8; 32],
+    pub supersedes_event_id: Option<String>,
+    pub revokes_event_id: Option<String>,
+    pub model_training_cutoff_tick: Option<u64>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TemporalDecisionContext {
+    pub purpose: TemporalDecisionPurpose,
+    pub decision_tick: u64,
+    pub workpiece_id: String,
+    pub joint_revision: String,
+    pub layer_id: Option<String>,
+    pub predecessor_pass_id: Option<String>,
+    pub clock_id: String,
+    pub maximum_timestamp_precision_ticks: u64,
+    pub policy_revision: String,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TemporalExclusionReason {
+    FutureMeasurement,
+    LateArrival,
+    ClockDomainMismatch,
+    WorkpieceMismatch,
+    JointRevisionMismatch,
+    LayerMismatch,
+    PassMismatch,
+    NotYetValid,
+    Expired,
+    TimestampPrecisionTooCoarse,
+    PurposeNotAuthorized,
+    OutcomeLabelLeakage,
+    MissingSourceDigest,
+    MissingTransformReceipt,
+    ModelTrainedAfterDecisionCutoff,
+    Superseded,
+    Revoked,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ExcludedTemporalEvent {
+    pub event_id: String,
+    pub reason: TemporalExclusionReason,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TemporalSnapshotError {
+    EmptyDecisionIdentity,
+    EmptyEventIdentity,
+    DuplicateEventId(String),
+    ReceiptBeforeMeasurement(String),
+    InvalidValidityInterval(String),
+    MissingSupersessionTarget { event_id: String, target_id: String },
+    CrossIdentitySupersession { event_id: String, target_id: String },
+    SelfReferentialSupersession(String),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PointInTimeEvidenceSnapshot {
+    pub purpose: TemporalDecisionPurpose,
+    pub decision_tick: u64,
+    pub policy_revision: String,
+    pub included: Vec<TemporalEvidenceEvent>,
+    pub excluded: Vec<ExcludedTemporalEvent>,
+    pub snapshot_sha256: [u8; 32],
+}
+
+fn is_zero_digest(digest: &[u8; 32]) -> bool {
+    digest.iter().all(|byte| *byte == 0)
+}
+
+fn temporal_exclusion(
+    event: &TemporalEvidenceEvent,
+    decision: &TemporalDecisionContext,
+) -> Option<TemporalExclusionReason> {
+    if event.measurement_tick > decision.decision_tick {
+        return Some(TemporalExclusionReason::FutureMeasurement);
+    }
+    if event.first_received_tick > decision.decision_tick {
+        return Some(TemporalExclusionReason::LateArrival);
+    }
+    if event.clock_id != decision.clock_id {
+        return Some(TemporalExclusionReason::ClockDomainMismatch);
+    }
+    if event.workpiece_id != decision.workpiece_id {
+        return Some(TemporalExclusionReason::WorkpieceMismatch);
+    }
+    if event.joint_revision != decision.joint_revision {
+        return Some(TemporalExclusionReason::JointRevisionMismatch);
+    }
+    if decision
+        .layer_id
+        .as_ref()
+        .is_some_and(|layer| event.layer_id.as_ref() != Some(layer))
+    {
+        return Some(TemporalExclusionReason::LayerMismatch);
+    }
+    if decision
+        .predecessor_pass_id
+        .as_ref()
+        .is_some_and(|pass| event.pass_id.as_ref() != Some(pass))
+    {
+        return Some(TemporalExclusionReason::PassMismatch);
+    }
+    if event.valid_from_tick > decision.decision_tick {
+        return Some(TemporalExclusionReason::NotYetValid);
+    }
+    if event
+        .valid_until_tick
+        .is_some_and(|until| until < decision.decision_tick)
+    {
+        return Some(TemporalExclusionReason::Expired);
+    }
+    if event.timestamp_precision_ticks == 0
+        || event.timestamp_precision_ticks > decision.maximum_timestamp_precision_ticks
+    {
+        return Some(TemporalExclusionReason::TimestampPrecisionTooCoarse);
+    }
+    if !event.purpose_authorized[decision.purpose.permission_index()] {
+        return Some(TemporalExclusionReason::PurposeNotAuthorized);
+    }
+    if event.role == TemporalEvidenceRole::OutcomeLabel
+        && decision.purpose != TemporalDecisionPurpose::SlowQualityRequalification
+    {
+        return Some(TemporalExclusionReason::OutcomeLabelLeakage);
+    }
+    if is_zero_digest(&event.source_sha256) {
+        return Some(TemporalExclusionReason::MissingSourceDigest);
+    }
+    if is_zero_digest(&event.transform_receipt_sha256) {
+        return Some(TemporalExclusionReason::MissingTransformReceipt);
+    }
+    if event
+        .model_training_cutoff_tick
+        .is_some_and(|cutoff| cutoff > decision.decision_tick)
+    {
+        return Some(TemporalExclusionReason::ModelTrainedAfterDecisionCutoff);
+    }
+    None
+}
+
+fn append_canonical_string(output: &mut Vec<u8>, value: &str) {
+    output.extend_from_slice(&(value.len() as u64).to_le_bytes());
+    output.extend_from_slice(value.as_bytes());
+}
+
+fn append_canonical_event(output: &mut Vec<u8>, event: &TemporalEvidenceEvent) {
+    append_canonical_string(output, &event.event_id);
+    output.push(event.kind as u8);
+    output.push(event.role as u8);
+    append_canonical_string(output, &event.workpiece_id);
+    append_canonical_string(output, &event.joint_revision);
+    append_canonical_string(output, event.layer_id.as_deref().unwrap_or(""));
+    append_canonical_string(output, event.pass_id.as_deref().unwrap_or(""));
+    append_canonical_string(output, &event.clock_id);
+    output.extend_from_slice(&event.measurement_tick.to_le_bytes());
+    output.extend_from_slice(&event.first_received_tick.to_le_bytes());
+    output.extend_from_slice(&event.valid_from_tick.to_le_bytes());
+    output.extend_from_slice(&event.valid_until_tick.unwrap_or(u64::MAX).to_le_bytes());
+    output.extend_from_slice(&event.timestamp_precision_ticks.to_le_bytes());
+    output.extend_from_slice(&event.source_sha256);
+    output.extend_from_slice(&event.transform_receipt_sha256);
+    output.extend_from_slice(&event.model_training_cutoff_tick.unwrap_or(u64::MAX).to_le_bytes());
+}
+
+fn sha256(input: &[u8]) -> [u8; 32] {
+    const INITIAL: [u32; 8] = [
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    ];
+    const K: [u32; 64] = [
+        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,
+        0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,
+        0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,
+        0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,
+        0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,
+        0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,
+        0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,
+        0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,
+        0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,
+        0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,
+        0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,
+        0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2,
+    ];
+
+    let mut message = input.to_vec();
+    let bit_length = (message.len() as u64).wrapping_mul(8);
+    message.push(0x80);
+    while message.len() % 64 != 56 {
+        message.push(0);
+    }
+    message.extend_from_slice(&bit_length.to_be_bytes());
+
+    let mut state = INITIAL;
+    for chunk in message.chunks_exact(64) {
+        let mut words = [0u32; 64];
+        for (index, word) in words.iter_mut().take(16).enumerate() {
+            let offset = index * 4;
+            *word = u32::from_be_bytes([
+                chunk[offset], chunk[offset + 1], chunk[offset + 2], chunk[offset + 3],
+            ]);
+        }
+        for index in 16..64 {
+            let x = words[index - 15];
+            let y = words[index - 2];
+            let s0 = x.rotate_right(7) ^ x.rotate_right(18) ^ (x >> 3);
+            let s1 = y.rotate_right(17) ^ y.rotate_right(19) ^ (y >> 10);
+            words[index] = words[index - 16]
+                .wrapping_add(s0)
+                .wrapping_add(words[index - 7])
+                .wrapping_add(s1);
+        }
+
+        let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut h] = state;
+        for index in 0..64 {
+            let sum1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let choose = (e & f) ^ ((!e) & g);
+            let temp1 = h
+                .wrapping_add(sum1)
+                .wrapping_add(choose)
+                .wrapping_add(K[index])
+                .wrapping_add(words[index]);
+            let sum0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let majority = (a & b) ^ (a & c) ^ (b & c);
+            let temp2 = sum0.wrapping_add(majority);
+
+            h = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temp1);
+            d = c;
+            c = b;
+            b = a;
+            a = temp1.wrapping_add(temp2);
+        }
+        state[0] = state[0].wrapping_add(a);
+        state[1] = state[1].wrapping_add(b);
+        state[2] = state[2].wrapping_add(c);
+        state[3] = state[3].wrapping_add(d);
+        state[4] = state[4].wrapping_add(e);
+        state[5] = state[5].wrapping_add(f);
+        state[6] = state[6].wrapping_add(g);
+        state[7] = state[7].wrapping_add(h);
+    }
+
+    let mut digest = [0u8; 32];
+    for (index, word) in state.iter().enumerate() {
+        digest[index * 4..index * 4 + 4].copy_from_slice(&word.to_be_bytes());
+    }
+    digest
+}
+
+/// Build a point-in-time evidence snapshot from a bitemporal event ledger.
+///
+/// Both measurement time and first-receipt time must be <= the decision
+/// cutoff. Late-arriving observations cannot rewrite an earlier decision.
+/// Supersession/revocation only takes effect when that event was itself
+/// eligible and known by the cutoff. Output ordering and SHA-256 are stable
+/// under input permutation. This function uses synthetic clock ticks in v0.
+pub fn build_point_in_time_snapshot(
+    events: &[TemporalEvidenceEvent],
+    decision: &TemporalDecisionContext,
+) -> Result<PointInTimeEvidenceSnapshot, TemporalSnapshotError> {
+    if decision.workpiece_id.trim().is_empty()
+        || decision.joint_revision.trim().is_empty()
+        || decision.clock_id.trim().is_empty()
+        || decision.policy_revision.trim().is_empty()
+        || decision.maximum_timestamp_precision_ticks == 0
+    {
+        return Err(TemporalSnapshotError::EmptyDecisionIdentity);
+    }
+
+    let mut by_id = std::collections::HashMap::new();
+    for event in events {
+        if event.event_id.trim().is_empty()
+            || event.workpiece_id.trim().is_empty()
+            || event.joint_revision.trim().is_empty()
+            || event.clock_id.trim().is_empty()
+        {
+            return Err(TemporalSnapshotError::EmptyEventIdentity);
+        }
+        if event.first_received_tick < event.measurement_tick {
+            return Err(TemporalSnapshotError::ReceiptBeforeMeasurement(event.event_id.clone()));
+        }
+        if event.valid_until_tick.is_some_and(|until| until < event.valid_from_tick) {
+            return Err(TemporalSnapshotError::InvalidValidityInterval(event.event_id.clone()));
+        }
+        if by_id.insert(event.event_id.as_str(), event).is_some() {
+            return Err(TemporalSnapshotError::DuplicateEventId(event.event_id.clone()));
+        }
+    }
+
+    for event in events {
+        for target_id in [
+            event.supersedes_event_id.as_deref(),
+            event.revokes_event_id.as_deref(),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            if target_id == event.event_id {
+                return Err(TemporalSnapshotError::SelfReferentialSupersession(
+                    event.event_id.clone(),
+                ));
+            }
+            let Some(target) = by_id.get(target_id) else {
+                return Err(TemporalSnapshotError::MissingSupersessionTarget {
+                    event_id: event.event_id.clone(),
+                    target_id: target_id.to_owned(),
+                });
+            };
+            if target.workpiece_id != event.workpiece_id
+                || target.joint_revision != event.joint_revision
+            {
+                return Err(TemporalSnapshotError::CrossIdentitySupersession {
+                    event_id: event.event_id.clone(),
+                    target_id: target_id.to_owned(),
+                });
+            }
+            if target.measurement_tick > event.measurement_tick
+                || target.first_received_tick > event.first_received_tick
+            {
+                return Err(TemporalSnapshotError::SelfReferentialSupersession(
+                    event.event_id.clone(),
+                ));
+            }
+        }
+    }
+
+    let mut eligible = Vec::new();
+    let mut excluded = Vec::new();
+    for event in events {
+        if let Some(reason) = temporal_exclusion(event, decision) {
+            excluded.push(ExcludedTemporalEvent {
+                event_id: event.event_id.clone(),
+                reason,
+            });
+        } else {
+            eligible.push(event.clone());
+        }
+    }
+
+    let mut revoked = HashSet::new();
+    let mut superseded = HashSet::new();
+    for event in &eligible {
+        if let Some(target) = &event.revokes_event_id {
+            revoked.insert(target.clone());
+        }
+        if let Some(target) = &event.supersedes_event_id {
+            superseded.insert(target.clone());
+        }
+    }
+
+    let mut included = Vec::new();
+    for event in eligible {
+        if revoked.contains(&event.event_id) {
+            excluded.push(ExcludedTemporalEvent {
+                event_id: event.event_id,
+                reason: TemporalExclusionReason::Revoked,
+            });
+        } else if superseded.contains(&event.event_id) {
+            excluded.push(ExcludedTemporalEvent {
+                event_id: event.event_id,
+                reason: TemporalExclusionReason::Superseded,
+            });
+        } else {
+            included.push(event);
+        }
+    }
+
+    included.sort_by(|left, right| left.event_id.cmp(&right.event_id));
+    excluded.sort_by(|left, right| left.event_id.cmp(&right.event_id));
+
+    let mut canonical = Vec::new();
+    canonical.extend_from_slice(b"WELD-POINT-IN-TIME-SNAPSHOT-V1\0");
+    canonical.push(decision.purpose as u8);
+    canonical.extend_from_slice(&decision.decision_tick.to_le_bytes());
+    append_canonical_string(&mut canonical, &decision.workpiece_id);
+    append_canonical_string(&mut canonical, &decision.joint_revision);
+    append_canonical_string(&mut canonical, decision.layer_id.as_deref().unwrap_or(""));
+    append_canonical_string(
+        &mut canonical,
+        decision.predecessor_pass_id.as_deref().unwrap_or(""),
+    );
+    append_canonical_string(&mut canonical, &decision.clock_id);
+    append_canonical_string(&mut canonical, &decision.policy_revision);
+    for event in &included {
+        append_canonical_event(&mut canonical, event);
+    }
+    let snapshot_sha256 = sha256(&canonical);
+
+    Ok(PointInTimeEvidenceSnapshot {
+        purpose: decision.purpose,
+        decision_tick: decision.decision_tick,
+        policy_revision: decision.policy_revision.clone(),
+        included,
+        excluded,
+        snapshot_sha256,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
