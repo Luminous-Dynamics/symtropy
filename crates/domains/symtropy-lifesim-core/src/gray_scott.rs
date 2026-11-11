@@ -309,8 +309,10 @@ impl GrayScottField {
     ) -> Result<(), GrayScottError> {
         if patch_width == 0
             || patch_height == 0
-            || x.checked_add(patch_width).is_none_or(|end| end > self.width)
-            || y.checked_add(patch_height).is_none_or(|end| end > self.height)
+            || x.checked_add(patch_width)
+                .is_none_or(|end| end > self.width)
+            || y.checked_add(patch_height)
+                .is_none_or(|end| end > self.height)
         {
             return Err(GrayScottError::PatchOutOfBounds {
                 x,
@@ -372,7 +374,10 @@ impl GrayScottField {
 
         for (name, center) in [("u_center", u_center), ("v_center", v_center)] {
             if !center.is_finite() || !(0.0..=1.0).contains(&center) {
-                return Err(GrayScottError::PatchValueOutOfRange { name, value: center });
+                return Err(GrayScottError::PatchValueOutOfRange {
+                    name,
+                    value: center,
+                });
             }
         }
         for (name, center, amplitude) in [
@@ -409,7 +414,10 @@ impl GrayScottField {
     /// the edge cell. U and V are clamped to [0, 1] after each numerical update; the total
     /// absolute correction is returned in the step report rather than hidden.
     pub fn step(&mut self) -> Result<GrayScottStepReport, GrayScottError> {
-        let next_tick = self.tick.checked_add(1).ok_or(GrayScottError::TickOverflow)?;
+        let next_tick = self
+            .tick
+            .checked_add(1)
+            .ok_or(GrayScottError::TickOverflow)?;
         let dt = self.parameters.dt;
         let u_total_before = sum(&self.u);
         let v_total_before = sum(&self.v);
@@ -484,7 +492,9 @@ impl GrayScottField {
     /// Compute spatial observables without assigning a biological interpretation.
     pub fn metrics(&self, high_v_threshold: f64) -> Result<GrayScottMetrics, GrayScottError> {
         if !high_v_threshold.is_finite() || !(0.0..=1.0).contains(&high_v_threshold) {
-            return Err(GrayScottError::InvalidObservationThreshold(high_v_threshold));
+            return Err(GrayScottError::InvalidObservationThreshold(
+                high_v_threshold,
+            ));
         }
         let cells = self.u.len() as f64;
         let mean_u = sum(&self.u) / cells;
@@ -635,8 +645,15 @@ mod tests {
         let reports = field.run_steps(50).unwrap();
         let after = field.v.iter().sum::<f64>();
 
-        assert!((after - before).abs() < 1.0e-10, "before={before}, after={after}");
-        assert!(reports.iter().all(|report| report.v_diffusion_net.abs() < 1.0e-10));
+        assert!(
+            (after - before).abs() < 1.0e-10,
+            "before={before}, after={after}"
+        );
+        assert!(
+            reports
+                .iter()
+                .all(|report| report.v_diffusion_net.abs() < 1.0e-10)
+        );
     }
 
     #[test]
@@ -676,8 +693,18 @@ mod tests {
         let metrics = field.metrics(0.1).unwrap();
 
         assert_eq!(reports.len(), 100);
-        assert!(field.u().iter().all(|value| value.is_finite() && (0.0..=1.0).contains(value)));
-        assert!(field.v().iter().all(|value| value.is_finite() && (0.0..=1.0).contains(value)));
+        assert!(
+            field
+                .u()
+                .iter()
+                .all(|value| value.is_finite() && (0.0..=1.0).contains(value))
+        );
+        assert!(
+            field
+                .v()
+                .iter()
+                .all(|value| value.is_finite() && (0.0..=1.0).contains(value))
+        );
         assert!(metrics.mean_u.is_finite());
         assert!(metrics.mean_v.is_finite());
         assert!(metrics.variance_v.is_finite());
