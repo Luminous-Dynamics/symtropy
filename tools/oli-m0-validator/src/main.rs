@@ -100,7 +100,9 @@ fn validate_object_keys(
 
     for key in object.keys() {
         if !allowed.contains(&key.as_str()) {
-            errors.push(format!("{path}.{key} is not permitted by the closed schema"));
+            errors.push(format!(
+                "{path}.{key} is not permitted by the closed schema"
+            ));
         }
     }
 }
@@ -127,12 +129,16 @@ fn validate_number(
         if allow_null {
             return None;
         }
-        errors.push(format!("{name} must be numeric and within its declared range"));
+        errors.push(format!(
+            "{name} must be numeric and within its declared range"
+        ));
         return None;
     }
 
     let Some(number) = current.as_f64() else {
-        errors.push(format!("{name} must be numeric and within its declared range"));
+        errors.push(format!(
+            "{name} must be numeric and within its declared range"
+        ));
         return None;
     };
     if !number.is_finite()
@@ -140,7 +146,9 @@ fn validate_number(
         || upper.is_some_and(|maximum| number > maximum)
         || (lower > 0.0 && number <= 0.0)
     {
-        errors.push(format!("{name} must be numeric and within its declared range"));
+        errors.push(format!(
+            "{name} must be numeric and within its declared range"
+        ));
         return None;
     }
     Some(number)
@@ -198,19 +206,49 @@ fn validate_fixture(value: &Value) -> Vec<String> {
     validate_object_keys(
         value.get("measurement").unwrap_or(&Value::Null),
         "measurement",
-        &["modality", "units", "unit_status", "calibration_status", "temporal", "spatial"],
-        &["modality", "units", "unit_status", "calibration_status", "temporal", "spatial"],
+        &[
+            "modality",
+            "units",
+            "unit_status",
+            "calibration_status",
+            "temporal",
+            "spatial",
+        ],
+        &[
+            "modality",
+            "units",
+            "unit_status",
+            "calibration_status",
+            "temporal",
+            "spatial",
+        ],
         &mut errors,
     );
     validate_object_keys(
-        value.get("measurement").and_then(|v| v.get("temporal")).unwrap_or(&Value::Null),
+        value
+            .get("measurement")
+            .and_then(|v| v.get("temporal"))
+            .unwrap_or(&Value::Null),
         "measurement.temporal",
-        &["window_seconds", "sampling_interval_seconds", "target_process_timescale_seconds", "coverage_fraction"],
-        &["window_seconds", "sampling_interval_seconds", "target_process_timescale_seconds", "coverage_fraction"],
+        &[
+            "window_seconds",
+            "sampling_interval_seconds",
+            "target_process_timescale_seconds",
+            "coverage_fraction",
+        ],
+        &[
+            "window_seconds",
+            "sampling_interval_seconds",
+            "target_process_timescale_seconds",
+            "coverage_fraction",
+        ],
         &mut errors,
     );
     validate_object_keys(
-        value.get("measurement").and_then(|v| v.get("spatial")).unwrap_or(&Value::Null),
+        value
+            .get("measurement")
+            .and_then(|v| v.get("spatial"))
+            .unwrap_or(&Value::Null),
         "measurement.spatial",
         &["coordinate_frame", "footprint_fraction", "resolution_m"],
         &["coordinate_frame", "footprint_fraction"],
@@ -237,9 +275,15 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         &["reference", "data_status"],
         &mut errors,
     );
-    let limitations_valid = value.get("limitations").and_then(Value::as_array).is_some_and(|items| {
-        !items.is_empty() && items.iter().all(|item| item.as_str().is_some_and(|text| !text.trim().is_empty()))
-    });
+    let limitations_valid = value
+        .get("limitations")
+        .and_then(Value::as_array)
+        .is_some_and(|items| {
+            !items.is_empty()
+                && items
+                    .iter()
+                    .all(|item| item.as_str().is_some_and(|text| !text.trim().is_empty()))
+        });
     if !limitations_valid {
         errors.push("limitations must be a non-empty array of non-empty strings".to_owned());
     }
@@ -277,9 +321,7 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         errors.push(format!("unsupported evidence_class: {evidence_class}"));
     }
 
-    if get_str(value, &["physical_substrate"])
-        .is_none_or(|text| text.trim().is_empty())
-    {
+    if get_str(value, &["physical_substrate"]).is_none_or(|text| text.trim().is_empty()) {
         errors.push("physical_substrate must be a non-empty string".to_owned());
     }
 
@@ -288,10 +330,11 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         boundary_status,
         &["DECLARED", "FRAGMENTED", "UNKNOWN", "NOT_APPLICABLE"],
     ) {
-        errors.push(format!("unsupported system_boundary.status: {boundary_status}"));
+        errors.push(format!(
+            "unsupported system_boundary.status: {boundary_status}"
+        ));
     }
-    if get_str(value, &["system_boundary", "description"])
-        .is_none_or(|text| text.trim().is_empty())
+    if get_str(value, &["system_boundary", "description"]).is_none_or(|text| text.trim().is_empty())
     {
         errors.push("system_boundary.description must be a non-empty string".to_owned());
     }
@@ -302,20 +345,24 @@ fn validate_fixture(value: &Value) -> Vec<String> {
         .and_then(Value::as_array);
     let unit_status = get_str(value, &["measurement", "unit_status"]).unwrap_or_default();
     if !in_set(unit_status, &["DECLARED", "PARTIALLY_DECLARED", "UNKNOWN"]) {
-        errors.push(format!("unsupported measurement.unit_status: {unit_status}"));
+        errors.push(format!(
+            "unsupported measurement.unit_status: {unit_status}"
+        ));
     }
     match (units, unit_status) {
         (Some(values), "DECLARED") if !values.is_empty() => {
-            if values.iter().any(|item| {
-                item.as_str().is_none_or(|text| text.trim().is_empty())
-            }) {
+            if values
+                .iter()
+                .any(|item| item.as_str().is_none_or(|text| text.trim().is_empty()))
+            {
                 errors.push("measurement.units must contain only non-empty strings".to_owned());
             }
         }
         (Some(values), "PARTIALLY_DECLARED") if !values.is_empty() => {
-            if values.iter().any(|item| {
-                item.as_str().is_none_or(|text| text.trim().is_empty())
-            }) {
+            if values
+                .iter()
+                .any(|item| item.as_str().is_none_or(|text| text.trim().is_empty()))
+            {
                 errors.push("measurement.units must contain only non-empty known unit strings when unit_status is PARTIALLY_DECLARED".to_owned());
             }
         }
@@ -367,7 +414,11 @@ fn validate_fixture(value: &Value) -> Vec<String> {
     );
     let process_scale = validate_number(
         value,
-        &["measurement", "temporal", "target_process_timescale_seconds"],
+        &[
+            "measurement",
+            "temporal",
+            "target_process_timescale_seconds",
+        ],
         "measurement.temporal.target_process_timescale_seconds",
         allow_unknown_measurement,
         f64::MIN_POSITIVE,
@@ -418,25 +469,24 @@ fn validate_fixture(value: &Value) -> Vec<String> {
 
     let disposition = get_str(value, &["expected_result", "disposition"]).unwrap_or_default();
     if !in_set(disposition, DISPOSITIONS) {
-        errors.push(format!("unsupported expected_result.disposition: {disposition}"));
+        errors.push(format!(
+            "unsupported expected_result.disposition: {disposition}"
+        ));
     }
     if get_bool(value, &["expected_result", "absence_inference_allowed"]).is_none() {
         errors.push("expected_result.absence_inference_allowed must be boolean".to_owned());
     }
-    if get_str(value, &["expected_result", "reason"])
-        .is_none_or(|text| text.trim().is_empty())
-    {
+    if get_str(value, &["expected_result", "reason"]).is_none_or(|text| text.trim().is_empty()) {
         errors.push("expected_result.reason must be a non-empty string".to_owned());
     }
 
-    if get_str(value, &["source", "reference"])
-        .is_none_or(|text| text.trim().is_empty())
-        || get_str(value, &["source", "data_status"])
-            .is_none_or(|text| text.trim().is_empty())
+    if get_str(value, &["source", "reference"]).is_none_or(|text| text.trim().is_empty())
+        || get_str(value, &["source", "data_status"]).is_none_or(|text| text.trim().is_empty())
     {
         errors.push("source.reference and source.data_status must be non-empty strings".to_owned());
     }
-    if value.get("source")
+    if value
+        .get("source")
         .and_then(|source| source.get("note"))
         .is_some_and(|note| !note.is_string())
     {
@@ -451,19 +501,24 @@ fn validate_fixture(value: &Value) -> Vec<String> {
             if evidence_class != "SYNTHETIC_KNOWN_TRUTH"
                 || disposition != "KNOWN_BIOLOGICAL_REFERENCE"
             {
-                errors.push("known biological fixture must be synthetic known-truth reference".to_owned());
+                errors.push(
+                    "known biological fixture must be synthetic known-truth reference".to_owned(),
+                );
             }
         }
         "ABIOTIC_SELF_ORGANIZING_CONTROL" => {
             if evidence_class != "SYNTHETIC_KNOWN_TRUTH"
                 || disposition != "ABIOTIC_CONTROL_REFERENCE"
             {
-                errors.push("abiotic control must have synthetic known-truth disposition".to_owned());
+                errors
+                    .push("abiotic control must have synthetic known-truth disposition".to_owned());
             }
             if assessments.get("organization").and_then(Value::as_str)
                 != Some("SUPPORTED_WITHIN_SCOPE")
             {
-                errors.push("abiotic hard negative must preserve supported self-organization".to_owned());
+                errors.push(
+                    "abiotic hard negative must preserve supported self-organization".to_owned(),
+                );
             }
             for property in [
                 "self_maintenance",
@@ -494,7 +549,9 @@ fn validate_fixture(value: &Value) -> Vec<String> {
             if evidence_class != "PUBLISHED_EXPERIMENT_REFERENCE_METADATA_ONLY"
                 || disposition != "PHYSICS_ONLY_REFERENCE"
             {
-                errors.push("dusty plasma fixture must remain a physics-only metadata reference".to_owned());
+                errors.push(
+                    "dusty plasma fixture must remain a physics-only metadata reference".to_owned(),
+                );
             }
             if unit_status != "UNKNOWN"
                 || window.is_some()
@@ -526,7 +583,10 @@ fn validate_fixture(value: &Value) -> Vec<String> {
                 }
             }
             if absence_allowed {
-                errors.push("physics-only dusty-plasma reference cannot authorize absence inference".to_owned());
+                errors.push(
+                    "physics-only dusty-plasma reference cannot authorize absence inference"
+                        .to_owned(),
+                );
             }
         }
         "UNKNOWN_HELD_OUT_GENERATOR" => {
@@ -534,18 +594,26 @@ fn validate_fixture(value: &Value) -> Vec<String> {
                 || disposition != "OTHER_OR_UNRESOLVED"
                 || absence_allowed
             {
-                errors.push("unknown generator must remain OTHER_OR_UNRESOLVED without absence inference".to_owned());
+                errors.push(
+                    "unknown generator must remain OTHER_OR_UNRESOLVED without absence inference"
+                        .to_owned(),
+                );
             }
             if assessments.values().any(|state| {
                 state.as_str() == Some("SUPPORTED_WITHIN_SCOPE")
                     || state.as_str() == Some("CONTRADICTED_WITHIN_SCOPE")
             }) {
-                errors.push("unknown generator cannot carry unsupported property conclusions".to_owned());
+                errors.push(
+                    "unknown generator cannot carry unsupported property conclusions".to_owned(),
+                );
             }
         }
         "TEMPORAL_UNDERSAMPLING_FALSE_NEGATIVE" => {
             if disposition != "NON_DETECTION_INCONCLUSIVE" || absence_allowed {
-                errors.push("temporal undersampling must remain inconclusive and block absence inference".to_owned());
+                errors.push(
+                    "temporal undersampling must remain inconclusive and block absence inference"
+                        .to_owned(),
+                );
             }
             if let (Some(cadence), Some(process_scale)) = (cadence, process_scale) {
                 if cadence <= process_scale {
@@ -555,7 +623,10 @@ fn validate_fixture(value: &Value) -> Vec<String> {
             if get_f64(value, &["measurement", "temporal", "coverage_fraction"])
                 .is_none_or(|fraction| fraction >= 0.5)
             {
-                errors.push("temporal false-negative control requires less than 0.5 temporal coverage".to_owned());
+                errors.push(
+                    "temporal false-negative control requires less than 0.5 temporal coverage"
+                        .to_owned(),
+                );
             }
         }
         "OOD_SENSOR_ENVIRONMENT" => {
@@ -673,12 +744,33 @@ mod tests {
 
     fn fixtures() -> Vec<(String, Value)> {
         vec![
-            ("bio".into(), serde_json::from_str(include_str!("../fixtures/oli-m0-bio-001.json")).unwrap()),
-            ("abiotic".into(), serde_json::from_str(include_str!("../fixtures/oli-m0-abiotic-001.json")).unwrap()),
-            ("dusty_plasma".into(), serde_json::from_str(include_str!("../fixtures/oli-m0-dusty-plasma-001.json")).unwrap()),
-            ("unknown".into(), serde_json::from_str(include_str!("../fixtures/oli-m0-unknown-001.json")).unwrap()),
-            ("temporal_false_negative".into(), serde_json::from_str(include_str!("../fixtures/oli-m0-temporal-fn-001.json")).unwrap()),
-            ("ood_sensor".into(), serde_json::from_str(include_str!("../fixtures/oli-m0-ood-sensor-001.json")).unwrap()),
+            (
+                "bio".into(),
+                serde_json::from_str(include_str!("../fixtures/oli-m0-bio-001.json")).unwrap(),
+            ),
+            (
+                "abiotic".into(),
+                serde_json::from_str(include_str!("../fixtures/oli-m0-abiotic-001.json")).unwrap(),
+            ),
+            (
+                "dusty_plasma".into(),
+                serde_json::from_str(include_str!("../fixtures/oli-m0-dusty-plasma-001.json"))
+                    .unwrap(),
+            ),
+            (
+                "unknown".into(),
+                serde_json::from_str(include_str!("../fixtures/oli-m0-unknown-001.json")).unwrap(),
+            ),
+            (
+                "temporal_false_negative".into(),
+                serde_json::from_str(include_str!("../fixtures/oli-m0-temporal-fn-001.json"))
+                    .unwrap(),
+            ),
+            (
+                "ood_sensor".into(),
+                serde_json::from_str(include_str!("../fixtures/oli-m0-ood-sensor-001.json"))
+                    .unwrap(),
+            ),
         ]
     }
 
@@ -731,21 +823,24 @@ mod tests {
     fn metadata_only_dusty_plasma_has_no_invented_sampling_metadata() {
         let value: Value =
             serde_json::from_str(include_str!("../fixtures/oli-m0-dusty-plasma-001.json")).unwrap();
-        assert!(get_f64(&value, &["measurement", "temporal", "sampling_interval_seconds"]).is_none());
+        assert!(
+            get_f64(
+                &value,
+                &["measurement", "temporal", "sampling_interval_seconds"]
+            )
+            .is_none()
+        );
         assert!(validate_fixture(&value).is_empty());
         let mut altered = value;
         altered["measurement"]["temporal"]["sampling_interval_seconds"] =
             Value::Number(serde_json::Number::from_f64(0.001).unwrap());
         assert!(!validate_fixture(&altered).is_empty());
-        let mut malformed = serde_json::from_str::<Value>(
-            include_str!("../fixtures/oli-m0-dusty-plasma-001.json"),
-        )
-        .unwrap();
-        malformed["measurement"]["temporal"]["sampling_interval_seconds"] =
-            Value::Bool(false);
+        let mut malformed =
+            serde_json::from_str::<Value>(include_str!("../fixtures/oli-m0-dusty-plasma-001.json"))
+                .unwrap();
+        malformed["measurement"]["temporal"]["sampling_interval_seconds"] = Value::Bool(false);
         assert!(!validate_fixture(&malformed).is_empty());
-        malformed["measurement"]["temporal"]["sampling_interval_seconds"] =
-            Value::Null;
+        malformed["measurement"]["temporal"]["sampling_interval_seconds"] = Value::Null;
         malformed.as_object_mut().unwrap().remove("fixture_id");
         assert!(!validate_fixture(&malformed).is_empty());
     }
@@ -772,7 +867,11 @@ mod tests {
         let mut fixtures = fixtures();
         let duplicate_id = fixtures[0].1["fixture_id"].clone();
         fixtures[1].1["fixture_id"] = duplicate_id;
-        assert!(validate_collection(&fixtures).iter().any(|error| error.contains("duplicate fixture_id")));
+        assert!(
+            validate_collection(&fixtures)
+                .iter()
+                .any(|error| error.contains("duplicate fixture_id"))
+        );
     }
 
     #[test]
@@ -780,9 +879,11 @@ mod tests {
         let mut value: Value =
             serde_json::from_str(include_str!("../fixtures/oli-m0-bio-001.json")).unwrap();
         value["unreviewed_extra_field"] = Value::Bool(true);
-        assert!(validate_fixture(&value)
-            .iter()
-            .any(|error| error.contains("not permitted by the closed schema")));
+        assert!(
+            validate_fixture(&value)
+                .iter()
+                .any(|error| error.contains("not permitted by the closed schema"))
+        );
     }
 
     #[test]
