@@ -61,7 +61,7 @@ fn symmetric_relative_error(observed: f64, reference: f64) -> f64 {
     if scale == 0.0 {
         0.0
     } else {
-        (observed - reference).abs() / scale
+        (observed / scale - reference / scale).abs()
     }
 }
 
@@ -672,5 +672,6 @@ mod tests {
         assert_eq!(symmetric_relative_error(1.0e-12, 0.0), 1.0);
         assert_eq!(symmetric_relative_error(f64::NAN, 0.0), f64::INFINITY);
         assert_eq!(symmetric_relative_error(0.0, f64::INFINITY), f64::INFINITY);
+        assert_eq!(symmetric_relative_error(f64::MAX, -f64::MAX), 2.0);
     }
 }
