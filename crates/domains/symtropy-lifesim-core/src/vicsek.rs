@@ -45,6 +45,58 @@ pub enum VicsekUpdateRule {
     NextPositionAlignment,
 }
 
+/// Geometry used by an agent to decide which nearby particles it can perceive.
+///
+/// MetricRadius is reciprocal. VisualSector is directional: visibility depends on the
+/// focal particle's heading, a fixed visual-field offset, and a half-aperture. The
+/// configured interaction radius remains a radial range limit for both modes.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum VicsekPerception {
+    MetricRadius,
+    VisualSector {
+        half_aperture_rad: f64,
+        offset_rad: f64,
+    },
+}
+
+impl VicsekPerception {
+    fn normalized(self) -> Result<Self, VicsekError> {
+        match self {
+            Self::MetricRadius => Ok(Self::MetricRadius),
+            Self::VisualSector { half_aperture_rad, offset_rad } => {
+                if !half_aperture_rad.is_finite()
+                    || !(0.0..=std::f64::consts::PI).contains(&half_aperture_rad)
+                {
+                    return Err(VicsekError::InvalidParameter {
+                        name: "visual_half_aperture_rad",
+                        value: half_aperture_rad,
+                    });
+                }
+                if !offset_rad.is_finite() {
+                    return Err(VicsekError::InvalidParameter {
+                        name: "visual_offset_rad",
+                        value: offset_rad,
+                    });
+                }
+                Ok(Self::VisualSector {
+                    half_aperture_rad,
+                    offset_rad: wrap_angle(offset_rad),
+                })
+            }
+        }
+    }
+}
+
+/// Graph convention used for cluster and topology metrics.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VicsekGraphSemantics {
+    /// Metric-radius interactions are reciprocal and the interaction graph is undirected.
+    UndirectedMetric,
+    /// For directional perception, components and graph topology use the weakly connected
+    /// projection: an undirected edge exists when either endpoint sees the other.
+    WeaklyConnectedProjectionOfDirectedVisibility,
+}
+
 /// Parameters for one discrete-time Vicsek system.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct VicsekConfig {
@@ -198,6 +250,10 @@ pub struct VicsekMetrics {
     pub tick: u64,
     /// Neighbour-time convention used by the simulation that produced this snapshot.
     pub update_rule: VicsekUpdateRule,
+    /// Agent perception geometry used to construct neighbour sets.
+    pub perception: VicsekPerception,
+    /// Graph semantics used for component and topology metrics.
+    pub graph_semantics: VicsekGraphSemantics,
     pub particle_count: usize,
     /// Magnitude of the mean unit heading vector, in [0, 1].
     pub polar_order: f64,
@@ -307,6 +363,7 @@ pub struct PairedInterventionResult {
 #[derive(Debug, Clone, PartialEq)]
 pub struct VicsekModel {
     config: VicsekConfig,
+    perception: VicsekPerception,
     particles: Vec<VicsekParticle>,
     rng: XorShift64,
     tick: u64,
@@ -322,15 +379,32 @@ impl VicsekModel {
         config: VicsekConfig,
         seed: u64,
     ) -> Result<Self, VicsekError> {
-        Self::from_particles_and_rng(particles, config, XorShift64::new(seed))
+        Self::new_with_perception(particles, config, seed, VicsekPerception::MetricRadius)
+    }
+
+    /// Construct a model with an explicit metric or visual-sector perception rule.
+    pub fn new_with_perception(
+        particles: Vec<VicsekParticle>,
+        config: VicsekConfig,
+        seed: u64,
+        perception: VicsekPerception,
+    ) -> Result<Self, VicsekError> {
+        Self::from_particles_and_rng(
+            particles,
+            config,
+            XorShift64::new(seed),
+            perception,
+        )
     }
 
     fn from_particles_and_rng(
         mut particles: Vec<VicsekParticle>,
         config: VicsekConfig,
         rng: XorShift64,
+        perception: VicsekPerception,
     ) -> Result<Self, VicsekError> {
         config.validate()?;
+        let perception = perception.normalized()?;
         if particles.is_empty() {
             return Err(VicsekError::EmptyParticleSet);
         }
@@ -360,6 +434,7 @@ impl VicsekModel {
 
         Ok(Self {
             config,
+            perception,
             particles,
             rng,
             tick: 0,
@@ -372,7 +447,23 @@ impl VicsekModel {
         config: VicsekConfig,
         seed: u64,
     ) -> Result<Self, VicsekError> {
+        Self::random_uniform_with_perception(
+            particle_count,
+            config,
+            seed,
+            VicsekPerception::MetricRadius,
+        )
+    }
+
+    /// Create a seeded random population with an explicit perception geometry.
+    pub fn random_uniform_with_perception(
+        particle_count: usize,
+        config: VicsekConfig,
+        seed: u64,
+        perception: VicsekPerception,
+    ) -> Result<Self, VicsekError> {
         config.validate()?;
+        let perception = perception.normalized()?;
         if particle_count == 0 {
             return Err(VicsekError::EmptyParticleSet);
         }
@@ -384,13 +475,16 @@ impl VicsekModel {
                 heading_rad: rng.next_unit() * TAU,
             })
             .collect();
-        // Continue the initialization stream for later angular-noise draws. This avoids
-        // restarting the same seed at the beginning of the simulation-noise sequence.
-        Self::from_particles_and_rng(particles, config, rng)
+        // Continue the initialization stream for later angular-noise draws.
+        Self::from_particles_and_rng(particles, config, rng, perception)
     }
 
     pub const fn config(&self) -> VicsekConfig {
         self.config
+    }
+
+    pub const fn perception(&self) -> VicsekPerception {
+        self.perception
     }
 
     pub const fn tick(&self) -> u64 {
