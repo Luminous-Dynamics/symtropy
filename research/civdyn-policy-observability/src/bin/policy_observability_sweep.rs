@@ -145,7 +145,7 @@ fn emit(
 
 fn main() {
     println!(
-        "scenario_id,policy_id,true_mechanism,true_mean,complete_case_mean,missing_as_zero_mean,identified_lower,identified_upper,truth_contained,observation_coverage,observed_units,missing_units,high_need_true_mean,general_true_mean,true_stratum_gap,robust_comparison_vs_reference,worst_case_regret_upper_bound,known_mar_ht_mean"
+        "scenario_id,policy_id,true_mechanism,true_mean,complete_case_mean,missing_as_zero_mean,identified_lower,identified_upper,truth_contained,observation_coverage,observed_units,missing_units,high_need_true_mean,general_true_mean,missing_telemetry_unavailable_units,missing_nonresponse_units,missing_policy_suppressed_units,missing_administrative_exclusion_units,robust_comparison_vs_reference,worst_case_regret_upper_bound,known_mar_ht_mean"
     );
 
     let support = civdyn_policy_observability::OutcomeSupport {
