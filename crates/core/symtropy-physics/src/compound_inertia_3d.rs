@@ -452,6 +452,18 @@ mod tests {
     }
 
     #[test]
+    fn scale_safe_parallel_axis_rejects_lost_or_overflowed_products() {
+        assert!(matches!(
+            checked_parallel_axis_tensor(1.0, &SVector::new(1.0e-200, 0.0, 0.0)),
+            Err(CompoundInertia3Error::UnrepresentableTensor)
+        ));
+        assert!(matches!(
+            checked_parallel_axis_tensor(1.0e300, &SVector::new(1.0e100, 0.0, 0.0)),
+            Err(CompoundInertia3Error::UnrepresentableTensor)
+        ));
+    }
+
+    #[test]
     fn symmetric_sphere_dumbbell_matches_parallel_axis_theorem() {
         let sphere = MassProperties3::solid_sphere(1.0, 1.0).unwrap();
         let parts = vec![
