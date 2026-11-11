@@ -255,9 +255,7 @@ fn validate_observation(input: &PlannerInput) -> Result<(), AbstainReason> {
     {
         return Err(AbstainReason::ScanOcclusionAboveMaximum);
     }
-    if state.quality.registration_error_units
-        > state.quality.maximum_registration_error_units
-    {
+    if state.quality.registration_error_units > state.quality.maximum_registration_error_units {
         return Err(AbstainReason::ScanRegistrationErrorTooLarge);
     }
     if input.procedure.procedure_id.trim().is_empty()
@@ -303,10 +301,7 @@ fn objectives_for(
     })
 }
 
-fn exclusion_for(
-    input: &PlannerInput,
-    candidate: &PassCandidate,
-) -> Option<CandidateExclusion> {
+fn exclusion_for(input: &PlannerInput, candidate: &PassCandidate) -> Option<CandidateExclusion> {
     let state = &input.observed_state;
     if is_empty(&candidate.candidate_id)
         || candidate.workpiece_id != state.workpiece_id
@@ -318,8 +313,7 @@ fn exclusion_for(
     }
     if candidate.source_scan_id != state.scan_id
         || candidate.source_scan_sha256 != state.scan_sha256
-        || candidate.source_registration_receipt_sha256
-            != state.registration_receipt_sha256
+        || candidate.source_registration_receipt_sha256 != state.registration_receipt_sha256
     {
         return Some(CandidateExclusion::WrongSourceScan);
     }
@@ -420,10 +414,7 @@ pub fn recommend_next_pass(input: &PlannerInput) -> Decision {
                 objectives,
             }),
             Err(reason) => {
-                return Decision::Abstain {
-                    reason,
-                    excluded,
-                };
+                return Decision::Abstain { reason, excluded };
             }
         }
     }
@@ -495,28 +486,26 @@ mod tests {
             maximum_deposition_area_units: 140,
             live_execution_authorized: false,
         };
-        let make_candidate = |id: &str, deposition, time, material, energy, risk| {
-            PassCandidate {
-                candidate_id: id.to_owned(),
-                workpiece_id: "WID-SYNTH-01".to_owned(),
-                joint_revision: "JOINT-R1".to_owned(),
-                layer_id: "LAYER-03".to_owned(),
-                predecessor_pass_id: "PASS-02".to_owned(),
-                source_scan_id: "SCAN-AFTER-PASS-02".to_owned(),
-                source_scan_sha256: [0x11; 32],
-                source_registration_receipt_sha256: [0x22; 32],
-                procedure_id: "SYNTHETIC-PROC-01".to_owned(),
-                procedure_revision: "R1".to_owned(),
-                deposition_area_units: deposition,
-                duration_units: time,
-                material_units: material,
-                energy_units: energy,
-                robustness_risk_units: risk,
-                within_declared_procedure_envelope: true,
-                resource_feasible: true,
-                path_reachable: true,
-                collision_free: true,
-            }
+        let make_candidate = |id: &str, deposition, time, material, energy, risk| PassCandidate {
+            candidate_id: id.to_owned(),
+            workpiece_id: "WID-SYNTH-01".to_owned(),
+            joint_revision: "JOINT-R1".to_owned(),
+            layer_id: "LAYER-03".to_owned(),
+            predecessor_pass_id: "PASS-02".to_owned(),
+            source_scan_id: "SCAN-AFTER-PASS-02".to_owned(),
+            source_scan_sha256: [0x11; 32],
+            source_registration_receipt_sha256: [0x22; 32],
+            procedure_id: "SYNTHETIC-PROC-01".to_owned(),
+            procedure_revision: "R1".to_owned(),
+            deposition_area_units: deposition,
+            duration_units: time,
+            material_units: material,
+            energy_units: energy,
+            robustness_risk_units: risk,
+            within_declared_procedure_envelope: true,
+            resource_feasible: true,
+            path_reachable: true,
+            collision_free: true,
         };
         let candidates = vec![
             make_candidate("FILL-UNDER", 82, 12, 82, 70, 1),
@@ -540,7 +529,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn returns_a_pareto_set_without_automatically_picking_a_pass() {
         let result = recommend_next_pass(&base_input());
@@ -551,17 +539,30 @@ mod tests {
             live_execution_authorized,
             claim_ceiling,
             ..
-        } = result else {
+        } = result
+        else {
             panic!("valid synthetic observation should produce a recommendation frontier");
         };
         assert_eq!(feasible_candidate_count, 3);
         assert_eq!(
-            recommendations.iter().map(|item| item.candidate_id.as_str()).collect::<Vec<_>>(),
+            recommendations
+                .iter()
+                .map(|item| item.candidate_id.as_str())
+                .collect::<Vec<_>>(),
             vec!["FILL-MID", "FILL-OVER", "FILL-UNDER"]
         );
-        assert_eq!(recommendations[0].objectives.robust_geometry_error_units, 10);
-        assert_eq!(recommendations[1].objectives.robust_geometry_error_units, 40);
-        assert_eq!(recommendations[2].objectives.robust_geometry_error_units, 28);
+        assert_eq!(
+            recommendations[0].objectives.robust_geometry_error_units,
+            10
+        );
+        assert_eq!(
+            recommendations[1].objectives.robust_geometry_error_units,
+            40
+        );
+        assert_eq!(
+            recommendations[2].objectives.robust_geometry_error_units,
+            28
+        );
         assert!(!automatic_selection);
         assert!(!live_execution_authorized);
         assert_eq!(claim_ceiling, "SYNTHETIC_INTERPASS_PLAN_CONTRACT_ONLY");
@@ -569,10 +570,12 @@ mod tests {
 
     #[test]
     fn geometry_only_and_time_only_baselines_choose_different_passes() {
-        let Decision::ParetoRecommendations { recommendations, .. } =
-            recommend_next_pass(&base_input()) else {
-                panic!("valid synthetic observation should produce recommendations");
-            };
+        let Decision::ParetoRecommendations {
+            recommendations, ..
+        } = recommend_next_pass(&base_input())
+        else {
+            panic!("valid synthetic observation should produce recommendations");
+        };
         let geometry_only = recommendations
             .iter()
             .min_by(|left, right| {
@@ -599,7 +602,11 @@ mod tests {
     #[test]
     fn receding_horizon_replans_from_the_new_after_pass_scan() {
         let first = recommend_next_pass(&base_input());
-        let Decision::ParetoRecommendations { recommendations: first_frontier, .. } = first else {
+        let Decision::ParetoRecommendations {
+            recommendations: first_frontier,
+            ..
+        } = first
+        else {
             panic!("first observation should produce recommendations");
         };
         let first_geometry_best = first_frontier
@@ -623,11 +630,7 @@ mod tests {
         second_input.expected_predecessor_pass_id = "PASS-03".to_owned();
         second_input.decision_at_tick = 110;
 
-        let next_actions = [
-            ("FILL-45", 45),
-            ("FILL-55", 55),
-            ("FILL-70", 70),
-        ];
+        let next_actions = [("FILL-45", 45), ("FILL-55", 55), ("FILL-70", 70)];
         for (candidate, (candidate_id, deposition)) in
             second_input.candidates.iter_mut().zip(next_actions)
         {
@@ -640,7 +643,11 @@ mod tests {
         }
 
         let second = recommend_next_pass(&second_input);
-        let Decision::ParetoRecommendations { recommendations: second_frontier, .. } = second else {
+        let Decision::ParetoRecommendations {
+            recommendations: second_frontier,
+            ..
+        } = second
+        else {
             panic!("new observation should produce a new recommendation frontier");
         };
         let second_geometry_best = second_frontier
@@ -652,7 +659,10 @@ mod tests {
             })
             .expect("second geometry baseline");
         assert_eq!(second_geometry_best.candidate_id, "FILL-55");
-        assert_ne!(first_geometry_best.candidate_id, second_geometry_best.candidate_id);
+        assert_ne!(
+            first_geometry_best.candidate_id,
+            second_geometry_best.candidate_id
+        );
     }
 
     #[test]
@@ -661,7 +671,10 @@ mod tests {
         input.observed_state.after_pass_id = "PASS-01".to_owned();
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::StalePredecessorState, .. }
+            Decision::Abstain {
+                reason: AbstainReason::StalePredecessorState,
+                ..
+            }
         ));
     }
 
@@ -671,7 +684,10 @@ mod tests {
         input.observed_state.quality.registered = false;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanNotRegistered, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanNotRegistered,
+                ..
+            }
         ));
     }
 
@@ -681,7 +697,10 @@ mod tests {
         input.observed_state.quality.coverage_permille = 900;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanCoverageBelowMinimum, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanCoverageBelowMinimum,
+                ..
+            }
         ));
     }
 
@@ -691,7 +710,10 @@ mod tests {
         input.observed_state.quality.occlusion_permille = 80;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanOcclusionAboveMaximum, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanOcclusionAboveMaximum,
+                ..
+            }
         ));
     }
 
@@ -701,7 +723,10 @@ mod tests {
         input.observed_state.quality.registration_error_units = 3;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanRegistrationErrorTooLarge, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanRegistrationErrorTooLarge,
+                ..
+            }
         ));
     }
 
@@ -711,7 +736,10 @@ mod tests {
         input.observed_state.observed_at_tick = 101;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ObservationFromFuture, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ObservationFromFuture,
+                ..
+            }
         ));
     }
 
@@ -721,7 +749,10 @@ mod tests {
         input.observed_state.observed_at_tick = 50;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ObservationTooOld, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ObservationTooOld,
+                ..
+            }
         ));
     }
 
@@ -731,7 +762,10 @@ mod tests {
         input.future_information_used = true;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::FutureInformationLeakage, .. }
+            Decision::Abstain {
+                reason: AbstainReason::FutureInformationLeakage,
+                ..
+            }
         ));
     }
 
@@ -741,7 +775,10 @@ mod tests {
         input.model_domain_supported = false;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ModelOutsideDeclaredDomain, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ModelOutsideDeclaredDomain,
+                ..
+            }
         ));
     }
 
@@ -751,7 +788,10 @@ mod tests {
         input.observed_state.evidence_class = EvidenceClass::MeasuredGeometry;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::PhysicalOrSimulationEvidenceNotAdmitted, .. }
+            Decision::Abstain {
+                reason: AbstainReason::PhysicalOrSimulationEvidenceNotAdmitted,
+                ..
+            }
         ));
     }
 
@@ -761,7 +801,10 @@ mod tests {
         input.live_execution_requested = true;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::LiveExecutionForbidden, .. }
+            Decision::Abstain {
+                reason: AbstainReason::LiveExecutionForbidden,
+                ..
+            }
         ));
     }
 
@@ -769,10 +812,14 @@ mod tests {
     fn candidate_bound_to_another_scan_is_excluded() {
         let mut input = base_input();
         input.candidates[0].source_scan_id = "STALE-SCAN".to_owned();
-        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
-            recommend_next_pass(&input) else {
-                panic!("remaining candidates should be feasible");
-            };
+        let Decision::ParetoRecommendations {
+            excluded,
+            feasible_candidate_count,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("remaining candidates should be feasible");
+        };
         assert_eq!(feasible_candidate_count, 2);
         assert_eq!(excluded[0].reason, CandidateExclusion::WrongSourceScan);
     }
@@ -781,12 +828,19 @@ mod tests {
     fn procedure_revision_mismatch_is_excluded() {
         let mut input = base_input();
         input.candidates[0].procedure_revision = "R0".to_owned();
-        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
-            recommend_next_pass(&input) else {
-                panic!("remaining candidates should be feasible");
-            };
+        let Decision::ParetoRecommendations {
+            excluded,
+            feasible_candidate_count,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("remaining candidates should be feasible");
+        };
         assert_eq!(feasible_candidate_count, 2);
-        assert_eq!(excluded[0].reason, CandidateExclusion::WrongProcedureRevision);
+        assert_eq!(
+            excluded[0].reason,
+            CandidateExclusion::WrongProcedureRevision
+        );
     }
 
     #[test]
@@ -794,10 +848,15 @@ mod tests {
         let mut input = base_input();
         input.candidates[0].collision_free = false;
         input.candidates[1].resource_feasible = false;
-        let Decision::ParetoRecommendations { recommendations, feasible_candidate_count, excluded, .. } =
-            recommend_next_pass(&input) else {
-                panic!("one feasible candidate remains");
-            };
+        let Decision::ParetoRecommendations {
+            recommendations,
+            feasible_candidate_count,
+            excluded,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("one feasible candidate remains");
+        };
         assert_eq!(feasible_candidate_count, 1);
         assert_eq!(recommendations.len(), 1);
         assert_eq!(excluded.len(), 2);
@@ -807,10 +866,14 @@ mod tests {
     fn candidate_with_wrong_scan_digest_is_excluded() {
         let mut input = base_input();
         input.candidates[0].source_scan_sha256 = [0x33; 32];
-        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
-            recommend_next_pass(&input) else {
-                panic!("remaining candidates should remain feasible");
-            };
+        let Decision::ParetoRecommendations {
+            excluded,
+            feasible_candidate_count,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("remaining candidates should remain feasible");
+        };
         assert_eq!(feasible_candidate_count, 2);
         assert_eq!(excluded[0].reason, CandidateExclusion::WrongSourceScan);
     }
@@ -819,10 +882,14 @@ mod tests {
     fn candidate_with_wrong_registration_receipt_is_excluded() {
         let mut input = base_input();
         input.candidates[0].source_registration_receipt_sha256 = [0x44; 32];
-        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
-            recommend_next_pass(&input) else {
-                panic!("remaining candidates should remain feasible");
-            };
+        let Decision::ParetoRecommendations {
+            excluded,
+            feasible_candidate_count,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("remaining candidates should remain feasible");
+        };
         assert_eq!(feasible_candidate_count, 2);
         assert_eq!(excluded[0].reason, CandidateExclusion::WrongSourceScan);
     }
@@ -833,7 +900,10 @@ mod tests {
         input.observed_state.scan_sha256 = [0; 32];
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanDigestMissing, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanDigestMissing,
+                ..
+            }
         ));
     }
 
@@ -843,7 +913,10 @@ mod tests {
         input.observed_state.registration_receipt_sha256 = [0; 32];
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::RegistrationReceiptMissing, .. }
+            Decision::Abstain {
+                reason: AbstainReason::RegistrationReceiptMissing,
+                ..
+            }
         ));
     }
 
@@ -855,7 +928,10 @@ mod tests {
         }
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::NoFeasibleCandidate, .. }
+            Decision::Abstain {
+                reason: AbstainReason::NoFeasibleCandidate,
+                ..
+            }
         ));
     }
 
@@ -865,7 +941,10 @@ mod tests {
         input.candidates[1].candidate_id = input.candidates[0].candidate_id.clone();
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::DuplicateCandidateIdentity, .. }
+            Decision::Abstain {
+                reason: AbstainReason::DuplicateCandidateIdentity,
+                ..
+            }
         ));
     }
 
@@ -873,11 +952,16 @@ mod tests {
     fn robust_geometry_error_accounts_for_measurement_uncertainty() {
         let mut input = base_input();
         input.observed_state.uncertainty_bound_units = 25;
-        let Decision::ParetoRecommendations { recommendations, .. } =
-            recommend_next_pass(&input) else {
-                panic!("valid synthetic input should be admitted");
-            };
-        let middle = recommendations.iter().find(|r| r.candidate_id == "FILL-MID").unwrap();
+        let Decision::ParetoRecommendations {
+            recommendations, ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("valid synthetic input should be admitted");
+        };
+        let middle = recommendations
+            .iter()
+            .find(|r| r.candidate_id == "FILL-MID")
+            .unwrap();
         assert_eq!(middle.objectives.robust_geometry_error_units, 25);
     }
 
@@ -887,7 +971,10 @@ mod tests {
         input.procedure.scope = ProcedureScope::UnverifiedPhysicalProcedure;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ProcedureScopeNotAdmitted, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ProcedureScopeNotAdmitted,
+                ..
+            }
         ));
     }
 
@@ -897,7 +984,10 @@ mod tests {
         input.observed_state.uncertainty_bound_units = 0;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::UncertaintyNotBounded, .. }
+            Decision::Abstain {
+                reason: AbstainReason::UncertaintyNotBounded,
+                ..
+            }
         ));
     }
 
@@ -905,10 +995,14 @@ mod tests {
     fn empty_candidate_identity_is_excluded() {
         let mut input = base_input();
         input.candidates[0].candidate_id.clear();
-        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
-            recommend_next_pass(&input) else {
-                panic!("remaining candidates should remain feasible");
-            };
+        let Decision::ParetoRecommendations {
+            excluded,
+            feasible_candidate_count,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("remaining candidates should remain feasible");
+        };
         assert_eq!(feasible_candidate_count, 2);
         assert_eq!(excluded[0].reason, CandidateExclusion::IdentityMismatch);
     }
@@ -933,7 +1027,10 @@ mod tests {
         input.observed_state.uncertainty_bound_units = 1;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::NumericOverflow, .. }
+            Decision::Abstain {
+                reason: AbstainReason::NumericOverflow,
+                ..
+            }
         ));
     }
 }
