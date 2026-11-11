@@ -56,6 +56,25 @@ Therefore:
 - Report the POMDAR score alongside raw correctness, speed, completion/failure state, per-task variation and uncertainty.
 - Keep independent-user prosthetic outcomes and direct-teleoperation mechanical dexterity as distinct evidence classes.
 
+## Commercial references: capabilities that are no longer differentiators by themselves
+
+The first competitive review should use current products as real reference points, not straw-man baselines. The values below are **manufacturer-published specifications or feature descriptions**, not independently reproduced Luminous measurements. Do not compare them directly unless the test boundary, load, hand size, control interface, calibration, and trial protocol match.
+
+| Reference product | Publicly described capability | Implication for Luminous |
+|---|---|---|
+| [TASKA HandGen2](https://www.taskaprosthetics.com/products/taska-gen2/) | Manufacturer lists weight from 556 g, IP67, 20 kg overall carry load, thumb grip up to 22 N and finger grip up to 12.5 N; resettable knuckles, grip-cycle controls and modular wrist options | Water resistance, resettable mechanical protection, useful grip strength and replaceable interfaces are established competitive requirements—not unique Luminous claims |
+| [PSYONIC Ability Hand](https://www.psyonic.io/ability-hand) | Integrated pressure sensors detect grip contact/pressure and communicate sensation through vibration; manufacturer lists IP64 and 32 grip patterns, 19 currently predefined | Touch/pressure sensing with vibrotactile feedback already exists commercially; Luminous must show information quality, calibration, learnability, false-cue control and wearer-task benefit |
+| [Ottobock Speedhand system](https://www.ottobock.com/en-us/newsroom/ottobock-introduces-new-speedhand-solution-expanding-personalized-enhanced) | Announced 1 September 2026; up to 24 lb grip force, up to 300 mm/s opening/closing, modular wrists, up to four myoelectric signal inputs and clinician-governed app personalization | Individualized EMG control, digital configuration and modular wrist fitting are also established features; our differentiator must be transparent evidence, user agency and safe lifecycle continuity |
+
+### Competitive strategy
+
+Do not set an unqualified headline goal such as “stronger than TASKA” or “more natural than PSYONIC”. Instead:
+
+1. Reproduce each available public claim as a measurement only when the underlying method and configuration can be matched.
+2. Use POMDAR and HAND ERC task-level benchmarks for mechanical dexterity; use separate wearer-centred tasks for actual daily utility.
+3. Compete on the *combination* of calibrated force/contact sensing, source-time freshness, user-owned information mapping, dynamic body-device fit, claim-specific requalification after repair, and measured cost/burden per useful task.
+4. Publish every vendor comparison as matched, unmatched, or not comparable. A manufacturer specification is not a substitute for independent performance evidence.
+
 ## Luminous extension: capability and lifecycle scorecard
 
 The published POMDAR score remains unchanged. A Luminous evaluation should add a **separate result vector**, never a weighted composite that can hide a serious regression. Each metric needs its own protocol, denominator, measurement boundary, uncertainty and claim ceiling.
