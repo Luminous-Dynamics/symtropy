@@ -84,6 +84,18 @@ pub struct PassivitySnapshot {
     pub last_port_power_into_robot_w: Option<f64>,
 }
 
+/// Frozen observer configuration for one calibrated physical interaction port.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PassivityObserverConfig {
+    pub port_id: u64,
+    pub frame_id: u64,
+    pub measurement_profile_digest: [u8; 32],
+    pub max_sample_gap_ns: u64,
+    pub initial_energy_budget_j: f64,
+    pub energy_uncertainty_j: f64,
+    pub violation_tolerance_j: f64,
+}
+
 /// Integrates measured interaction-port power and tracks the passivity
 /// residual against a declared initial available-energy budget and fixed uncertainty
 /// allowance.
@@ -122,39 +134,33 @@ impl PassivityObserver {
     /// must derive and justify it for the actual measurement chain.
     pub fn new(
         clock: ClockDomain,
-        port_id: u64,
-        frame_id: u64,
-        measurement_profile_digest: [u8; 32],
-        max_sample_gap_ns: u64,
-        initial_energy_budget_j: f64,
-        energy_uncertainty_j: f64,
-        violation_tolerance_j: f64,
+        config: PassivityObserverConfig,
     ) -> Result<Self, PassivityError> {
-        if !initial_energy_budget_j.is_finite() || initial_energy_budget_j < 0.0 {
+        if !config.initial_energy_budget_j.is_finite() || config.initial_energy_budget_j < 0.0 {
             return Err(PassivityError::InvalidInitialEnergyBudget);
         }
-        if !energy_uncertainty_j.is_finite() || energy_uncertainty_j < 0.0 {
+        if !config.energy_uncertainty_j.is_finite() || config.energy_uncertainty_j < 0.0 {
             return Err(PassivityError::InvalidEnergyUncertainty);
         }
-        if !violation_tolerance_j.is_finite() || violation_tolerance_j < 0.0 {
+        if !config.violation_tolerance_j.is_finite() || config.violation_tolerance_j < 0.0 {
             return Err(PassivityError::InvalidTolerance);
         }
-        if max_sample_gap_ns == 0 {
+        if config.max_sample_gap_ns == 0 {
             return Err(PassivityError::InvalidMaximumSampleGap);
         }
-        if measurement_profile_digest == [0; 32] {
+        if config.measurement_profile_digest == [0; 32] {
             return Err(PassivityError::InvalidMeasurementProfileDigest);
         }
 
         Ok(Self {
             clock,
-            port_id,
-            frame_id,
-            measurement_profile_digest,
-            max_sample_gap_ns,
-            initial_energy_budget_j,
-            energy_uncertainty_j,
-            violation_tolerance_j,
+            port_id: config.port_id,
+            frame_id: config.frame_id,
+            measurement_profile_digest: config.measurement_profile_digest,
+            max_sample_gap_ns: config.max_sample_gap_ns,
+            initial_energy_budget_j: config.initial_energy_budget_j,
+            energy_uncertainty_j: config.energy_uncertainty_j,
+            violation_tolerance_j: config.violation_tolerance_j,
             first_timestamp_ns: None,
             previous_sample: None,
             previous_power_w: None,
@@ -423,11 +429,16 @@ pub fn project_diagonal_virtual_parameter_update(
     request: VirtualParameterUpdateRequest,
 ) -> Result<VirtualParameterUpdateSelection, VirtualImpedanceError> {
     let mut coefficients = [0.0_f64; 12];
-    for index in 0..6 {
-        let mass = request.old.virtual_inertia[index];
-        let stiffness = request.old.stiffness[index];
-        let error = request.error[index];
-        let velocity = request.relative_velocity[index];
+    for (index, (((mass, stiffness), error), velocity)) in request.old.virtual_inertia.iter()
+        .zip(request.old.stiffness.iter())
+        .zip(request.error.iter())
+        .zip(request.relative_velocity.iter())
+        .enumerate()
+    {
+        let mass = *mass;
+        let stiffness = *stiffness;
+        let error = *error;
+        let velocity = *velocity;
 
         if !mass.is_finite() || mass <= 0.0 {
             return Err(VirtualImpedanceError::NonPositiveVirtualInertia);
@@ -452,7 +463,7 @@ pub fn project_diagonal_virtual_parameter_update(
     let mut maximum_multiplier = 0.0_f64;
     let mut baseline = [0.0_f64; 12];
 
-    for index in 0..12 {
+    for (index, baseline_slot) in baseline.iter_mut().enumerate() {
         let desired = request.desired_delta[index];
         let lower = request.lower_delta[index];
         let upper = request.upper_delta[index];
@@ -491,7 +502,7 @@ pub fn project_diagonal_virtual_parameter_update(
         // whose proposed change is non-positive and whose lower bound permits
         // it, keep the negative/zero update independent of positive-energy
         // budgeting; released storage is not converted into extra budget.
-        baseline[index] = if upper < 0.0 || (desired <= 0.0 && lower <= 0.0) {
+        *baseline_slot = if upper < 0.0 || (desired <= 0.0 && lower <= 0.0) {
             desired.clamp(lower, upper.min(0.0))
         } else {
             desired.clamp(nonnegative_floor, upper)
@@ -585,22 +596,18 @@ fn parameter_update_at_multiplier(
 }
 
 fn parameter_update_debit(delta: &[f64; 12], coefficients: &[f64; 12]) -> f64 {
-    let mut debit = 0.0_f64;
-    for index in 0..12 {
-        debit += coefficients[index] * delta[index].max(0.0);
-    }
-    debit
+    delta.iter().zip(coefficients.iter())
+        .map(|(delta, coefficient)| coefficient * delta.max(0.0))
+        .sum()
 }
 
 fn parameter_update_uncredited_release(
     delta: &[f64; 12],
     coefficients: &[f64; 12],
 ) -> f64 {
-    let mut released = 0.0_f64;
-    for index in 0..12 {
-        released += coefficients[index] * (-delta[index]).max(0.0);
-    }
-    released
+    delta.iter().zip(coefficients.iter())
+        .map(|(delta, coefficient)| coefficient * (-delta).max(0.0))
+        .sum()
 }
 
 /// Invalid diagonal virtual impedance data.
@@ -644,13 +651,19 @@ pub fn diagonal_virtual_parameter_storage_delta(
     relative_velocity: [f64; 6],
 ) -> Result<VirtualParameterStorageDelta, VirtualImpedanceError> {
     let mut delta = 0.0_f64;
-    for index in 0..6 {
-        let e = error[index];
-        let velocity = relative_velocity[index];
-        let old_mass = old.virtual_inertia[index];
-        let new_mass = new.virtual_inertia[index];
-        let old_stiffness = old.stiffness[index];
-        let new_stiffness = new.stiffness[index];
+    for ((((((old_mass, new_mass), old_stiffness), new_stiffness), e), velocity)) in old.virtual_inertia.iter()
+        .zip(new.virtual_inertia.iter())
+        .zip(old.stiffness.iter())
+        .zip(new.stiffness.iter())
+        .zip(error.iter())
+        .zip(relative_velocity.iter())
+    {
+        let e = *e;
+        let velocity = *velocity;
+        let old_mass = *old_mass;
+        let new_mass = *new_mass;
+        let old_stiffness = *old_stiffness;
+        let new_stiffness = *new_stiffness;
 
         if !e.is_finite() || !velocity.is_finite() {
             return Err(VirtualImpedanceError::NonFiniteErrorOrVelocity);
@@ -724,10 +737,18 @@ mod tests {
         tolerance_j: f64,
     ) -> PassivityObserver {
         PassivityObserver::new(
-            clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS,
-            initial_energy_budget_j, uncertainty_j, tolerance_j,
+            clock(),
+            PassivityObserverConfig {
+                port_id: PORT_ID,
+                frame_id: FRAME_ID,
+                measurement_profile_digest: PROFILE_DIGEST,
+                max_sample_gap_ns: MAX_GAP_NS,
+                initial_energy_budget_j,
+                energy_uncertainty_j: uncertainty_j,
+                violation_tolerance_j: tolerance_j,
+            },
         )
-            .unwrap()
+        .unwrap()
     }
 
     #[test]
@@ -1108,11 +1129,11 @@ mod tests {
     #[test]
     fn zero_profile_digest_and_zero_maximum_gap_are_rejected() {
         assert!(matches!(
-            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, [0; 32], MAX_GAP_NS, 1.0, 0.0, 0.0),
+            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: [0; 32], max_sample_gap_ns: MAX_GAP_NS, initial_energy_budget_j: 1.0, energy_uncertainty_j: 0.0, violation_tolerance_j: 0.0 }),
             Err(PassivityError::InvalidMeasurementProfileDigest)
         ));
         assert!(matches!(
-            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, 0, 1.0, 0.0, 0.0),
+            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: PROFILE_DIGEST, max_sample_gap_ns: 0, initial_energy_budget_j: 1.0, energy_uncertainty_j: 0.0, violation_tolerance_j: 0.0 }),
             Err(PassivityError::InvalidMaximumSampleGap)
         ));
     }
@@ -1120,15 +1141,15 @@ mod tests {
     #[test]
     fn storage_uncertainty_and_tolerance_are_validated() {
         assert!(matches!(
-            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS, -1.0, 0.0, 0.0),
+            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: PROFILE_DIGEST, max_sample_gap_ns: MAX_GAP_NS, initial_energy_budget_j: -1.0, energy_uncertainty_j: 0.0, violation_tolerance_j: 0.0 }),
             Err(PassivityError::InvalidInitialEnergyBudget)
         ));
         assert!(matches!(
-            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS, 0.0, -0.1, 0.0),
+            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: PROFILE_DIGEST, max_sample_gap_ns: MAX_GAP_NS, initial_energy_budget_j: 0.0, energy_uncertainty_j: -0.1, violation_tolerance_j: 0.0 }),
             Err(PassivityError::InvalidEnergyUncertainty)
         ));
         assert!(matches!(
-            PassivityObserver::new(clock(), PORT_ID, FRAME_ID, PROFILE_DIGEST, MAX_GAP_NS, 0.0, 0.0, f64::NAN),
+            PassivityObserver::new(clock(), PassivityObserverConfig { port_id: PORT_ID, frame_id: FRAME_ID, measurement_profile_digest: PROFILE_DIGEST, max_sample_gap_ns: MAX_GAP_NS, initial_energy_budget_j: 0.0, energy_uncertainty_j: 0.0, violation_tolerance_j: f64::NAN }),
             Err(PassivityError::InvalidTolerance)
         ));
     }
