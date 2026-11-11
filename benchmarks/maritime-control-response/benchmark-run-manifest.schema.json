@@ -375,14 +375,17 @@
             "likelihood_scenario_count",
             "expected_information_gain_nats",
             "worst_case_information_gain_nats",
-            "epistemic_robustness_qualified",
             "risk_assessment_catalogue_sha256",
             "risk_evidence_reviewed_by_authority_owner",
-            "observation_update"
+            "observation_update",
+            "multi_scenario_assessed",
+            "likelihood_calibration_catalogue_sha256",
+            "likelihood_calibration_reviewed_by_independent_validator",
+            "upstream_likelihood_calibration_verification_sha256"
           ],
           "properties": {
             "schema_version": {
-              "const": "liu-ice-active-evidence-selection-v0.2"
+              "const": "liu-ice-active-evidence-selection-v0.3"
             },
             "status": {
               "enum": [
@@ -494,9 +497,6 @@
                 "null"
               ],
               "minimum": 0
-            },
-            "epistemic_robustness_qualified": {
-              "type": "boolean"
             },
             "risk_assessment_catalogue_sha256": {
               "oneOf": [
@@ -664,6 +664,34 @@
                       }
                     }
                   }
+                }
+              ]
+            },
+            "multi_scenario_assessed": {
+              "type": "boolean"
+            },
+            "likelihood_calibration_catalogue_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "likelihood_calibration_reviewed_by_independent_validator": {
+              "type": "boolean"
+            },
+            "upstream_likelihood_calibration_verification_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
                 }
               ]
             }
@@ -1178,9 +1206,6 @@
           "type": "integer",
           "minimum": 0
         },
-        "epistemic_robustness_qualified": {
-          "type": "boolean"
-        },
         "input_sample_count": {
           "type": "integer",
           "minimum": 0
@@ -1302,6 +1327,16 @@
           "minimum": 0
         },
         "impossible_likelihood_scenario_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "multi_scenario_assessed": {
+          "type": "boolean"
+        },
+        "likelihood_calibration_reviewed_by_independent_validator": {
+          "type": "boolean"
+        },
+        "likelihood_review_rejection_count": {
           "type": "integer",
           "minimum": 0
         }
@@ -1450,9 +1485,6 @@
                   "controlled_perturbations_recommended": {
                     "const": 0
                   },
-                  "epistemic_robustness_qualified": {
-                    "const": false
-                  },
                   "likelihood_scenario_count": {
                     "const": 0
                   },
@@ -1504,6 +1536,18 @@
                         "type": "null"
                       }
                     }
+                  },
+                  "multi_scenario_assessed": {
+                    "const": false
+                  },
+                  "likelihood_calibration_reviewed_by_independent_validator": {
+                    "const": false
+                  },
+                  "likelihood_calibration_catalogue_sha256": {
+                    "type": "null"
+                  },
+                  "upstream_likelihood_calibration_verification_sha256": {
+                    "type": "null"
                   }
                 }
               },
@@ -1662,9 +1706,6 @@
                   "likelihood_scenario_count": {
                     "minimum": 2
                   },
-                  "epistemic_robustness_qualified": {
-                    "const": true
-                  },
                   "execution_performed": {
                     "const": false
                   },
@@ -1679,6 +1720,21 @@
                   },
                   "risk_evidence_reviewed_by_authority_owner": {
                     "const": true
+                  },
+                  "multi_scenario_assessed": {
+                    "const": true
+                  },
+                  "likelihood_calibration_catalogue_sha256": {
+                    "type": "string"
+                  },
+                  "likelihood_calibration_reviewed_by_independent_validator": {
+                    "const": true
+                  },
+                  "upstream_likelihood_calibration_verification_sha256": {
+                    "type": "string"
+                  },
+                  "upstream_authority_verification_sha256": {
+                    "type": "string"
                   }
                 }
               },
