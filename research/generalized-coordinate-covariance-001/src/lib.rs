@@ -15,8 +15,6 @@
 // than hiding them in an opaque workspace object.
 #![allow(clippy::needless_range_loop)]
 
-#![allow(clippy::needless_range_loop)]
-
 use std::fmt;
 
 pub type Vector3 = [f64; 3];
@@ -1256,11 +1254,8 @@ mod tests {
             second: 2.1,
         };
         let basis = frozen_dense_basis(2);
-        let basis_inverse = inverse6(
-            &basis,
-            StepProfileV1::default().relative_pivot_tolerance,
-        )
-        .unwrap();
+        let basis_inverse =
+            inverse6(&basis, StepProfileV1::default().relative_pivot_tolerance).unwrap();
         let transformed_state = transform_state_to_basis(state, &basis_inverse);
         let canonical_metric = mass_metric(masses);
         let transformed_metric = transformed_mass_metric(&canonical_metric, &basis);
@@ -1278,9 +1273,7 @@ mod tests {
 
         // Test the canonical one-form on a generic generalized-coordinate
         // tangent increment, not only on the state velocity.
-        let delta_y = [
-            0.3, -0.7, 0.2, 0.5, -0.1, 0.9,
-        ];
+        let delta_y = [0.3, -0.7, 0.2, 0.5, -0.1, 0.9];
         let delta_q = apply6(&basis, &delta_y);
         let lhs = dot6(&canonical_momentum, &delta_q);
         let rhs = dot6(&transformed_momentum, &delta_y);
