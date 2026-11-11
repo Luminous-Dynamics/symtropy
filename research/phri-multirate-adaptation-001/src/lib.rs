@@ -29,22 +29,23 @@ pub struct AdmissionContext {
     pub now_ns: u64,
     /// Must be advanced by a trusted proposal sequencer when a newer proposal is issued.
     pub latest_issued_proposal_sequence: u64,
+    pub latest_observation_sequence: u64,
     pub current_state_revision_digest: [u8; 32],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct ProposalAdmissionReceipt {
-    pub proposal_id: u64,
-    pub proposal_sequence: u64,
-    pub agency_epoch: u64,
-    pub clock: ProposalClock,
-    pub expires_at_ns: u64,
-    pub state_revision_digest: [u8; 32],
-    pub source_observation_sequence: u64,
-    pub source_observation_timestamp_ns: u64,
-    pub maximum_observation_age_ns: u64,
-    pub parameter_digest: [u8; 32],
-    pub optimizer_receipt_digest: [u8; 32],
+    proposal_id: u64,
+    proposal_sequence: u64,
+    agency_epoch: u64,
+    clock: ProposalClock,
+    expires_at_ns: u64,
+    state_revision_digest: [u8; 32],
+    source_observation_sequence: u64,
+    source_observation_timestamp_ns: u64,
+    maximum_observation_age_ns: u64,
+    parameter_digest: [u8; 32],
+    optimizer_receipt_digest: [u8; 32],
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -95,6 +96,10 @@ impl ProposalAdmissionGate {
         }
         if proposal.issued_at_ns > context.now_ns { return Err(ProposalRejectReason::ProposalIssuedInFuture); }
         if context.now_ns >= proposal.expires_at_ns { return Err(ProposalRejectReason::ProposalExpired); }
+        if proposal.source_observation_sequence == 0 { return Err(ProposalRejectReason::ZeroObservationSequence); }
+        if proposal.source_observation_sequence > context.latest_observation_sequence {
+            return Err(ProposalRejectReason::ObservationSequenceFromFuture);
+        }
         if proposal.state_revision_digest != context.current_state_revision_digest {
             return Err(ProposalRejectReason::StateRevisionMismatch);
         }
@@ -134,12 +139,24 @@ impl ProposalAdmissionGate {
             return Err(ProposalRejectReason::ProposalAlreadyConsumed);
         }
         if context.now_ns >= receipt.expires_at_ns { return Err(ProposalRejectReason::ProposalExpired); }
+        if receipt.source_observation_sequence == 0 { return Err(ProposalRejectReason::ZeroObservationSequence); }
+        if receipt.source_observation_sequence > context.latest_observation_sequence {
+            return Err(ProposalRejectReason::ObservationSequenceFromFuture);
+        }
         if receipt.state_revision_digest != context.current_state_revision_digest {
             return Err(ProposalRejectReason::StateRevisionMismatch);
         }
         validate_observation_age(receipt.source_observation_timestamp_ns,
             receipt.maximum_observation_age_ns, context.now_ns)
     }
+
+    /// Read-only proposal identifier and result metadata for downstream receipts.
+    pub const fn proposal_id(&self) -> u64 { self.proposal_id }
+    pub const fn proposal_sequence(&self) -> u64 { self.proposal_sequence }
+    pub const fn agency_epoch_id(&self) -> u64 { self.agency_epoch }
+    pub const fn expires_at_ns(&self) -> u64 { self.expires_at_ns }
+    pub const fn parameter_digest(&self) -> &[u8; 32] { &self.parameter_digest }
+    pub const fn optimizer_receipt_digest(&self) -> &[u8; 32] { &self.optimizer_receipt_digest }
 
     pub const fn agency_epoch(&self) -> u64 { self.agency_epoch }
     pub const fn last_admitted_sequence(&self) -> u64 { self.last_admitted_sequence }
@@ -160,6 +177,7 @@ fn validate_proposal(p: AdaptationProposal) -> Result<(), ProposalRejectReason> 
 fn validate_context(c: AdmissionContext) -> Result<(), ProposalRejectReason> {
     if c.clock.clock_id == 0 || c.clock.boot_epoch == 0 { return Err(ProposalRejectReason::ZeroClockIdentity); }
     if c.current_state_revision_digest == [0; 32] { return Err(ProposalRejectReason::MissingStateRevisionDigest); }
+    if c.latest_observation_sequence == 0 { return Err(ProposalRejectReason::ZeroObservationSequence); }
     Ok(())
 }
 fn validate_observation_age(timestamp: u64, maximum: u64, now: u64) -> Result<(), ProposalRejectReason> {
@@ -204,6 +222,12 @@ mod tests {
         assert_eq!(gate.admit(p,context(1)),Err(ProposalRejectReason::ProposalExpired));
         p=proposal(1); p.issued_at_ns=1001; p.expires_at_ns=1200;
         assert_eq!(gate.admit(p,context(1)),Err(ProposalRejectReason::ProposalIssuedInFuture));
+        assert_eq!(gate.last_admitted_sequence(),0);
+    }
+    #[test] fn source_observation_sequence_from_future_is_rejected() {
+        let mut gate=ProposalAdmissionGate::new(1);
+        let mut p=proposal(1); p.source_observation_sequence=43;
+        assert_eq!(gate.admit(p,context(1)),Err(ProposalRejectReason::ObservationSequenceFromFuture));
         assert_eq!(gate.last_admitted_sequence(),0);
     }
     #[test] fn changed_state_revision_rejects_proposal() {
