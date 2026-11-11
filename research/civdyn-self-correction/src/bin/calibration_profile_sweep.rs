@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_self_correction::calibration_profile::{
-    assess_calibration_profile, CalibrationProfileAssessment, CalibrationProfileEvidence,
+    CalibrationProfileAssessment, CalibrationProfileEvidence, assess_calibration_profile,
 };
 use civdyn_self_correction::model_adequacy::{
-    assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
-    PredictiveKind, SplitManifest, SplitRole, StatisticRegistry, StatisticSpec,
+    IndependentUnitKind, ObservedStatistic, PredictiveDraw, PredictiveKind, SplitManifest,
+    SplitRole, StatisticRegistry, StatisticSpec, assess_predictive_partition,
 };
 
 const MODEL: &str = "sha256-calibration-profile-model";
@@ -81,9 +81,7 @@ fn manifest() -> SplitManifest {
         calibration_data_digest: CALIBRATION.to_string(),
         manifest_digest: "sha256-calibration-profile-manifest".to_string(),
         calibration_units: vec!["calibration-region".to_string()],
-        validation_units: (0..200)
-            .map(|index| format!("region-{index:03}"))
-            .collect(),
+        validation_units: (0..200).map(|index| format!("region-{index:03}")).collect(),
         challenge_units: Vec::new(),
     }
 }

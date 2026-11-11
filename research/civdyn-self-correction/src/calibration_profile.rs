@@ -124,23 +124,64 @@ pub enum CalibrationProfileError {
     AssessmentRoleMismatch,
     AssessmentRegistryMismatch,
     AssessmentManifestMismatch,
-    StatisticRoleMismatch { statistic_id: String },
-    StatisticUnitKindMismatch { statistic_id: String },
+    StatisticRoleMismatch {
+        statistic_id: String,
+    },
+    StatisticUnitKindMismatch {
+        statistic_id: String,
+    },
     NoPrimaryStatistic,
-    UnknownStatistic { statistic_id: String },
-    UnknownIndependentUnit { statistic_id: String, unit_id: String },
-    DuplicateStatisticRow { statistic_id: String, unit_id: String },
-    MissingRequiredStatisticRow { statistic_id: String, unit_id: String },
-    RowRosterMismatch { statistic_id: String, unit_id: String },
-    StatisticIdentityMismatch { statistic_id: String, unit_id: String },
-    ModelDigestMismatch { statistic_id: String, unit_id: String },
-    DrawSetDigestMismatch { statistic_id: String, unit_id: String },
-    ObservationIdentityMismatch { statistic_id: String, unit_id: String },
-    InvalidStatisticAssessment { statistic_id: String, unit_id: String },
-    DuplicateCoverageSummary { statistic_id: String },
-    MissingCoverageSummary { statistic_id: String },
-    UnknownCoverageStatistic { statistic_id: String },
-    CoverageSummaryMismatch { statistic_id: String },
+    UnknownStatistic {
+        statistic_id: String,
+    },
+    UnknownIndependentUnit {
+        statistic_id: String,
+        unit_id: String,
+    },
+    DuplicateStatisticRow {
+        statistic_id: String,
+        unit_id: String,
+    },
+    MissingRequiredStatisticRow {
+        statistic_id: String,
+        unit_id: String,
+    },
+    RowRosterMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
+    StatisticIdentityMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
+    ModelDigestMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
+    DrawSetDigestMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
+    ObservationIdentityMismatch {
+        statistic_id: String,
+        unit_id: String,
+    },
+    InvalidStatisticAssessment {
+        statistic_id: String,
+        unit_id: String,
+    },
+    DuplicateCoverageSummary {
+        statistic_id: String,
+    },
+    MissingCoverageSummary {
+        statistic_id: String,
+    },
+    UnknownCoverageStatistic {
+        statistic_id: String,
+    },
+    CoverageSummaryMismatch {
+        statistic_id: String,
+    },
     DomainStatusMismatch,
 }
 
@@ -192,8 +233,7 @@ fn wilson_interval_95(successes: usize, total: usize) -> (f64, f64) {
     let denominator = 1.0 + z_squared / n;
     let center = (proportion + z_squared / (2.0 * n)) / denominator;
     let half_width =
-        z * (proportion * (1.0 - proportion) / n + z_squared / (4.0 * n * n)).sqrt()
-            / denominator;
+        z * (proportion * (1.0 - proportion) / n + z_squared / (4.0 * n * n)).sqrt() / denominator;
     (
         (center - half_width).max(0.0),
         (center + half_width).min(1.0),
@@ -208,13 +248,21 @@ fn validate_assessment_domain_status(
     let mut has_primary_discrepancy = false;
     let mut required_complete = true;
 
-    for spec in registry.statistics.iter().filter(|spec| spec.role == assessment.role) {
+    for spec in registry
+        .statistics
+        .iter()
+        .filter(|spec| spec.role == assessment.role)
+    {
         let rows: Vec<_> = assessment
             .statistics
             .iter()
             .filter(|row| row.statistic_id == spec.id)
             .collect();
-        if spec.required && rows.iter().any(|row| row.status == StatisticStatus::NotAssessed) {
+        if spec.required
+            && rows
+                .iter()
+                .any(|row| row.status == StatisticStatus::NotAssessed)
+        {
             required_complete = false;
         }
         if spec.primary {
@@ -223,7 +271,9 @@ fn validate_assessment_domain_status(
                 .iter()
                 .any(|row| row.status == StatisticStatus::OutsideReferenceInterval);
             if rows.is_empty()
-                || rows.iter().any(|row| row.status == StatisticStatus::NotAssessed)
+                || rows
+                    .iter()
+                    .any(|row| row.status == StatisticStatus::NotAssessed)
             {
                 required_complete = false;
             }
@@ -275,14 +325,26 @@ pub fn assess_calibration_profile(
     if expected_units.is_empty() {
         return Err(CalibrationProfileError::InvalidRole);
     }
-    if evidence.registry.statistics.iter().any(|spec| spec.role != role) {
-        let spec = evidence.registry.statistics.iter().find(|spec| spec.role != role)
+    if evidence
+        .registry
+        .statistics
+        .iter()
+        .any(|spec| spec.role != role)
+    {
+        let spec = evidence
+            .registry
+            .statistics
+            .iter()
+            .find(|spec| spec.role != role)
             .expect("mismatching statistic exists");
         return Err(CalibrationProfileError::StatisticRoleMismatch {
             statistic_id: spec.id.clone(),
         });
     }
-    if let Some(spec) = evidence.registry.statistics.iter()
+    if let Some(spec) = evidence
+        .registry
+        .statistics
+        .iter()
         .find(|spec| spec.independent_unit != independent_unit)
     {
         return Err(CalibrationProfileError::StatisticUnitKindMismatch {
@@ -322,7 +384,14 @@ pub fn assess_calibration_profile(
         central_masses.push(assessment.central_mass);
     }
 
-    let mut baseline_rows = BTreeMap::<(String, String), (&crate::model_adequacy::StatisticAssessment, PredictiveIdentity, ObservationIdentity)>::new();
+    let mut baseline_rows = BTreeMap::<
+        (String, String),
+        (
+            &crate::model_adequacy::StatisticAssessment,
+            PredictiveIdentity,
+            ObservationIdentity,
+        ),
+    >::new();
     let mut baseline_rosters = BTreeMap::<String, BTreeSet<String>>::new();
 
     for spec in &evidence.registry.statistics {
@@ -386,7 +455,10 @@ pub fn assess_calibration_profile(
                     statistic_id: row.statistic_id.clone(),
                 }
             })?;
-            if !expected_units.iter().any(|unit| unit == &row.independent_unit_id) {
+            if !expected_units
+                .iter()
+                .any(|unit| unit == &row.independent_unit_id)
+            {
                 return Err(CalibrationProfileError::UnknownIndependentUnit {
                     statistic_id: row.statistic_id.clone(),
                     unit_id: row.independent_unit_id.clone(),
@@ -433,7 +505,11 @@ pub fn assess_calibration_profile(
             model_digest: row.model_digest.clone(),
             draw_set_digest: row.draw_set_digest.clone(),
         };
-        if row.model_digest.as_deref().is_some_and(|digest| digest != evidence.model_digest) {
+        if row
+            .model_digest
+            .as_deref()
+            .is_some_and(|digest| digest != evidence.model_digest)
+        {
             return Err(CalibrationProfileError::ModelDigestMismatch {
                 statistic_id: row.statistic_id.clone(),
                 unit_id: row.independent_unit_id.clone(),
@@ -487,7 +563,11 @@ pub fn assess_calibration_profile(
                     unit_id: row.independent_unit_id.clone(),
                 });
             }
-            if row.model_digest.as_deref().is_some_and(|digest| digest != evidence.model_digest) {
+            if row
+                .model_digest
+                .as_deref()
+                .is_some_and(|digest| digest != evidence.model_digest)
+            {
                 return Err(CalibrationProfileError::ModelDigestMismatch {
                     statistic_id: row.statistic_id.clone(),
                     unit_id: row.independent_unit_id.clone(),
@@ -519,11 +599,13 @@ pub fn assess_calibration_profile(
             if roster.is_empty() {
                 continue;
             }
-            let rows: Vec<_> = roster.iter()
+            let rows: Vec<_> = roster
+                .iter()
                 .filter_map(|unit| {
-                    assessment.statistics.iter().find(|row| {
-                        row.statistic_id == spec.id && row.independent_unit_id == *unit
-                    })
+                    assessment
+                        .statistics
+                        .iter()
+                        .find(|row| row.statistic_id == spec.id && row.independent_unit_id == *unit)
                 })
                 .collect();
 
@@ -554,15 +636,15 @@ pub fn assess_calibration_profile(
                     || lower > upper
                     || row.sample_size == 0
                     || row.draw_count < spec.minimum_draws
-                    || row.predictive_rank.is_none_or(|rank| {
-                        !rank.is_finite() || !(0.0..=1.0).contains(&rank)
-                    })
+                    || row
+                        .predictive_rank
+                        .is_none_or(|rank| !rank.is_finite() || !(0.0..=1.0).contains(&rank))
                     || row.model_digest.as_deref() != Some(evidence.model_digest.as_str())
                     || row.draw_set_digest.as_deref().is_none_or(str::is_empty)
                     || row.observation_digest.as_deref().is_none_or(str::is_empty)
-                    || row.measurement_standard_error.is_some_and(|value| {
-                        !value.is_finite() || value < 0.0
-                    })
+                    || row
+                        .measurement_standard_error
+                        .is_some_and(|value| !value.is_finite() || value < 0.0)
                 {
                     return Err(CalibrationProfileError::InvalidStatisticAssessment {
                         statistic_id: spec.id.clone(),
@@ -577,7 +659,10 @@ pub fn assess_calibration_profile(
                     });
                 }
             }
-            for row in rows.iter().filter(|row| row.status == StatisticStatus::NotAssessed) {
+            for row in rows
+                .iter()
+                .filter(|row| row.status == StatisticStatus::NotAssessed)
+            {
                 if row.lower_reference.is_some()
                     || row.upper_reference.is_some()
                     || row.predictive_rank.is_some()
@@ -589,7 +674,9 @@ pub fn assess_calibration_profile(
                 }
             }
 
-            let coverage_summary = assessment.coverage.iter()
+            let coverage_summary = assessment
+                .coverage
+                .iter()
                 .filter(|summary| summary.statistic_id == spec.id)
                 .collect::<Vec<_>>();
             if coverage_summary.len() > 1 {
@@ -674,9 +761,7 @@ pub fn assess_calibration_profile(
                 Some((_, upper)) if upper < nominal => {
                     CalibrationPointStatus::UndercoverageDetected
                 }
-                Some((lower, _)) if lower > nominal => {
-                    CalibrationPointStatus::OvercoverageDetected
-                }
+                Some((lower, _)) if lower > nominal => CalibrationPointStatus::OvercoverageDetected,
                 Some(_) if not_assessed_count > 0 => CalibrationPointStatus::NotAssessed,
                 Some(_) => CalibrationPointStatus::CompatibleWithNominal,
             };
@@ -744,13 +829,12 @@ pub fn assess_calibration_profile(
     })
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::model_adequacy::{
-        assess_predictive_partition, IndependentUnitKind, ObservedStatistic, PredictiveDraw,
-        StatisticSpec,
+        IndependentUnitKind, ObservedStatistic, PredictiveDraw, StatisticSpec,
+        assess_predictive_partition,
     };
 
     const MODEL: &str = "sha256-calibration-profile-model";
@@ -800,9 +884,7 @@ mod tests {
             calibration_data_digest: CALIBRATION.to_string(),
             manifest_digest: "sha256-calibration-profile-manifest".to_string(),
             calibration_units: vec!["calibration-region".to_string()],
-            validation_units: (0..200)
-                .map(|index| format!("region-{index:03}"))
-                .collect(),
+            validation_units: (0..200).map(|index| format!("region-{index:03}")).collect(),
             challenge_units: Vec::new(),
         }
     }
@@ -903,15 +985,22 @@ mod tests {
     #[test]
     fn detects_opposite_conditional_calibration_failures_at_all_nominal_levels() {
         let report = assess_calibration_profile(&evidence()).expect("calibration profile");
-        assert_eq!(report.claim_ceiling, CalibrationClaimCeiling::CalibrationDiscrepancyDetected);
+        assert_eq!(
+            report.claim_ceiling,
+            CalibrationClaimCeiling::CalibrationDiscrepancyDetected
+        );
         assert!(report.evidence_complete);
         assert_eq!(report.points.len(), 8);
         assert_eq!(report.central_masses, MASSES.to_vec());
 
-        let group_a: Vec<_> = report.points.iter()
+        let group_a: Vec<_> = report
+            .points
+            .iter()
             .filter(|point| point.statistic_id == "service-coverage-group-a")
             .collect();
-        let group_b: Vec<_> = report.points.iter()
+        let group_b: Vec<_> = report
+            .points
+            .iter()
             .filter(|point| point.statistic_id == "service-coverage-group-b")
             .collect();
         assert_eq!(group_a.len(), 4);
@@ -924,7 +1013,9 @@ mod tests {
             assert_eq!(point.assessed_independent_units, 200);
             assert_eq!(point.not_assessed_independent_units, 0);
             assert_eq!(point.status, CalibrationPointStatus::UndercoverageDetected);
-            assert!((point.empirical_coverage.expect("coverage") - expected_a[index]).abs() < 1e-12);
+            assert!(
+                (point.empirical_coverage.expect("coverage") - expected_a[index]).abs() < 1e-12
+            );
             assert!(point.wilson_lower_95.is_some());
             assert!(point.wilson_upper_95.is_some());
         }
@@ -933,12 +1024,15 @@ mod tests {
             assert_eq!(point.assessed_independent_units, 200);
             assert_eq!(point.not_assessed_independent_units, 0);
             assert_eq!(point.status, CalibrationPointStatus::OvercoverageDetected);
-            assert!((point.empirical_coverage.expect("coverage") - expected_b[index]).abs() < 1e-12);
+            assert!(
+                (point.empirical_coverage.expect("coverage") - expected_b[index]).abs() < 1e-12
+            );
             assert!(point.wilson_lower_95.is_some());
             assert!(point.wilson_upper_95.is_some());
         }
 
-        let widths: Vec<_> = group_a.iter()
+        let widths: Vec<_> = group_a
+            .iter()
             .map(|point| point.mean_interval_width.expect("sharpness"))
             .collect();
         assert!((widths[0] - 50.0).abs() < 1e-10);
