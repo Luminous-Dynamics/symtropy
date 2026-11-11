@@ -62,7 +62,7 @@ The selector must reject composition when:
 - a queued architecture's measured p99 queue minimum exceeds K_max;
 - the controller period, evidence identity or p99 latency-profile identity is invalid.
 
-Unknown is not infinity. A missing thermal horizon cannot be dropped because the other seven inputs are known. A raw source timestamp is not a qualified duration; the upstream owner must map it, account for uncertainty, and provide the conservative lower bound in the common application-time basis.
+Unknown is not infinity. A missing thermal horizon cannot be dropped because the other seven inputs are known. A raw source timestamp is not a qualified duration; the upstream owner must map it, account for uncertainty, and provide the conservative lower bound in the common application-time basis. For physical actuation, the observation lineage must survive through the actual actuator-command application event (#4713/#4715), while #4117 owns the clock mapping and task-specific freshness eligibility. Preserve per-modality/per-observation AoI; do not average cameras, IMUs, contact, encoders and thermal channels into one scalar. The action-horizon selector only consumes the resulting remaining-time lower bound.
 
 Every decision carries a fixed-size receipt containing all eight bounds, source identities, timebase IDs, unknown reasons, the active minimum constraint(s), p99 latency profile, K_min and K_max. The selector is fixed-size and allocation-free; it does not authorize or dispatch an action.
 
@@ -203,7 +203,8 @@ Freeze performance gates after repeatability and hardware variance are measured.
 ## Ownership and integration
 
 This selector composes with:
-- Symtropy #4117: state-dependent evidence/certificate validity;
+- Symtropy #4713/#4715: source-to-actuator AoI measurement and exact observation lineage at command application;
+- Symtropy #4117: state-dependent evidence/certificate validity and task-specific freshness eligibility;
 - #4083: contact/hybrid model coverage;
 - #4610: per-node thermal bounds;
 - #4206: actuator response envelope;
