@@ -258,3 +258,41 @@ These are metadata-only synthetic passports mirroring public source acquisition 
 ### Claim boundary
 
 The passport checks the completeness and internal consistency of declared metadata. It does not hash/authenticate source bytes, determine legal sufficiency, prove source truth, correct survey bias, or qualify the resulting CIVDYN model. No empirical validation claim is made by the synthetic source-passport sweep.
+
+
+## Scenario P: claim-specific construct and measurement equivalence
+
+The first measurement-equivalence evaluator is in src/measurement_equivalence.rs and the measurement-equivalence-sweep binary. It advances [CIVDYN-MEASURE-EQUIV-001 #4648](https://github.com/Luminous-Dynamics/symtropy/issues/4648).
+
+The source-passport module establishes rights, acquisition, provenance, units, temporal/geographic support, sample-design and explicit transform compatibility. This module asks a separate question: does the evidence justify the exact comparison being attempted?
+
+### Claim ladder
+
+The evaluator reports four separate claims:
+1. Structural/configural comparison.
+2. Association/relationship comparison.
+3. Latent-mean comparison.
+4. Individual observed-score comparison.
+
+For the survey-invariance evidence route, the report retains all four levels: configural, metric, scalar and residual invariance. A weaker level never silently qualifies a stronger claim. Anchor items and non-invariant item IDs remain explicit.
+
+For a bridge/equating receipt, it evaluates mean-bias confidence intervals and association-slope confidence intervals against preregistered equivalence margins. An interval wholly inside a margin supports the bridge claim; an interval wholly outside indicates non-equivalence; an interval that overlaps the margin is insufficient evidence rather than a rounded pass. Individual-score claims additionally require an error-bound interval that is wholly below the preregistered margin. Population invariance is a separate condition.
+
+### Evidence preserved
+
+Receipts preserve source measurement IDs, construct/version, operationalization and instrument digests, group/population identities and sample sizes, evidence/data/protocol/analysis digests, bridge design, confidence level, equivalence bounds/margins, calibration receipt where relevant, anchor/non-invariant items and all four claim results.
+
+Paired bridge designs carry an explicit paired sample size and must meet the preregistered minimum; randomized split-sample designs declare that paired sample size absent. Matching units or source metadata does not substitute for a bridge study or measurement-invariance evidence.
+
+### Synthetic known-answer sweep
+
+- Exact same protocol/instrument within the same population/context: exact operationalization comparability for declared claims; direct physical measures require a calibration receipt.
+- Same protocol in a different population: insufficient evidence without a cross-population invariance study.
+- Configural-only, metric-but-not-scalar, scalar-but-not-residual and full-invariance survey fixtures: each supports only its appropriate claim level.
+- Bridge-equivalent fixture: association and latent-mean equivalence are supported when the corresponding confidence bounds lie within frozen margins and population invariance is supported.
+- Mean-bias interval overlapping the equivalence margin: latent-mean claim remains insufficient even if the association claim passes.
+- Population non-invariance: bridge comparisons are not accepted for the affected claims.
+
+These fixtures validate the evidence-gate logic only. This module does not run CFA/IRT/DIF, choose anchor items, fit an equating model, authenticate upstream analysis bytes or establish that an empirical dataset is invariant.
+
+Run measurement-equivalence-sweep with the locked workspace manifest. CI checks the frozen named-column receipt and deterministic replay.

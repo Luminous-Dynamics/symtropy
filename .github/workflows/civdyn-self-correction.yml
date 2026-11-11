@@ -31,7 +31,7 @@ jobs:
           git fetch origin "refs/heads/${branch}:refs/remotes/origin/${branch}"
           git checkout -B "${branch}" "origin/${branch}"
           cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all
-          git add research/civdyn-self-correction/src/source_passport.rs research/civdyn-self-correction/src/bin/source_passport_sweep.rs research/civdyn-self-correction/src/lib.rs
+          git add research/civdyn-self-correction/src/source_passport.rs research/civdyn-self-correction/src/bin/source_passport_sweep.rs research/civdyn-self-correction/src/measurement_equivalence.rs research/civdyn-self-correction/src/bin/measurement_equivalence_sweep.rs research/civdyn-self-correction/src/lib.rs
           if ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -305,4 +305,107 @@ jobs:
           assert unknown["left_source_qualification"] == "rights_blocked"
 
           print("Source passport CSV valid: provenance, rights, source origin, temporal support and boundary-vintage controls preserved; no unacquired artifact or default promoted to measured evidence.")
+          PY
+      - name: Verify claim-specific measurement equivalence
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin measurement-equivalence-sweep > /tmp/civdyn-measurement-equivalence.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin measurement-equivalence-sweep > /tmp/civdyn-measurement-equivalence-replay.csv
+          cmp /tmp/civdyn-measurement-equivalence.csv /tmp/civdyn-measurement-equivalence-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-measurement-equivalence.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 37, f"expected 37 columns, got {len(fields or [])}"
+          assert len(rows) == 36, f"expected 36 claim receipts, got {len(rows)}"
+          cases = {(row["scenario"], row["claim"]): row for row in rows}
+          assert len(cases) == 36
+          claims = {
+              "structural_configuration",
+              "association_comparison",
+              "latent_mean_comparison",
+              "individual_score_comparison",
+          }
+          assert {claim for _, claim in cases} == claims
+
+          for claim in claims:
+              assert cases[("exact_same_protocol", claim)]["status"] == "equivalent_for_claim"
+              assert cases[("same_protocol_cross_population", claim)]["status"] == "insufficient_evidence_for_claim"
+
+          expected = {
+              "configural_only": {
+                  "structural_configuration": "equivalent_for_claim",
+                  "association_comparison": "not_assessed",
+                  "latent_mean_comparison": "not_assessed",
+                  "individual_score_comparison": "not_assessed",
+              },
+              "metric_partial": {
+                  "structural_configuration": "equivalent_for_claim",
+                  "association_comparison": "equivalent_for_claim",
+                  "latent_mean_comparison": "not_equivalent_for_claim",
+                  "individual_score_comparison": "not_assessed",
+              },
+              "scalar_partial": {
+                  "structural_configuration": "equivalent_for_claim",
+                  "association_comparison": "equivalent_for_claim",
+                  "latent_mean_comparison": "equivalent_for_claim",
+                  "individual_score_comparison": "not_assessed",
+              },
+              "full_invariance": {
+                  claim: "equivalent_for_claim" for claim in claims
+              },
+              "bridge_equivalent": {
+                  "structural_configuration": "not_assessed",
+                  "association_comparison": "equivalent_for_claim",
+                  "latent_mean_comparison": "equivalent_for_claim",
+                  "individual_score_comparison": "equivalent_for_claim",
+              },
+              "bridge_mean_inconclusive": {
+                  "structural_configuration": "not_assessed",
+                  "association_comparison": "equivalent_for_claim",
+                  "latent_mean_comparison": "insufficient_evidence_for_claim",
+                  "individual_score_comparison": "equivalent_for_claim",
+              },
+              "bridge_population_noninvariant": {
+                  "structural_configuration": "not_assessed",
+                  "association_comparison": "not_equivalent_for_claim",
+                  "latent_mean_comparison": "not_equivalent_for_claim",
+                  "individual_score_comparison": "not_equivalent_for_claim",
+              },
+          }
+          for scenario, scenario_claims in expected.items():
+              for claim, status in scenario_claims.items():
+                  assert cases[(scenario, claim)]["status"] == status, (scenario, claim)
+
+          bridge = cases[("bridge_equivalent", "latent_mean_comparison")]
+          assert bridge["evidence_kind"] == "bridge_study"
+          assert bridge["bridge_design"] == "paired"
+          assert bridge["confidence_level"] == "0.950000"
+          assert bridge["mean_bias_ci"] == "-0.040000:0.030000"
+          assert bridge["mean_equivalence_margin"] == "0.100000"
+          assert bridge["individual_error_lower_bound"] == "0.040000"
+          assert bridge["individual_error_upper_bound"] == "0.080000"
+          assert bridge["individual_score_margin"] == "0.120000"
+
+          bridge_wide = cases[("bridge_mean_inconclusive", "latent_mean_comparison")]
+          assert bridge_wide["mean_bias_ci"] == "-0.200000:0.030000"
+          assert bridge_wide["status"] == "insufficient_evidence_for_claim"
+
+          noninvariant = cases[("metric_partial", "latent_mean_comparison")]
+          assert noninvariant["invariance_levels"] == "supported;supported;not_supported;not_assessed"
+          assert noninvariant["anchor_item_ids"] == "anchor-item-1;anchor-item-2"
+          assert noninvariant["non_invariant_item_ids"] == "item-4"
+
+          for row in rows:
+              assert row["construct_id"] == "household-service-security"
+              assert row["construct_version"] == "v1"
+              assert row["measurement_unit"] == "standardized_score"
+              assert row["evidence_digest"]
+              assert row["protocol_digest"]
+          print("Measurement-equivalence CSV valid: claim-specific invariance ladder, paired bridge, equivalence margins, group lineage and exact evidence receipts preserved.")
           PY
