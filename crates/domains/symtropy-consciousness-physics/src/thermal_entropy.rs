@@ -64,8 +64,7 @@ pub fn constant_heat_capacity_entropy_change(
     validate_positive_finite(final_temperature_k, "final_temperature_k")?;
 
     // log(T1) - log(T0) avoids overflow/underflow in the intermediate T1/T0.
-    let delta_s = heat_capacity_j_per_k
-        * (final_temperature_k.ln() - initial_temperature_k.ln());
+    let delta_s = heat_capacity_j_per_k * (final_temperature_k.ln() - initial_temperature_k.ln());
     if !delta_s.is_finite() {
         return Err(ThermalEntropyError::NonFiniteResult {
             field: "body_entropy_change_j_per_k",
@@ -128,8 +127,7 @@ pub fn evaluate_constant_capacity_heat_exchange(
     )?;
     let bath_entropy_change_j_per_k =
         fixed_temperature_bath_entropy_change(heat_into_body_j, bath_temperature_k)?;
-    let total_entropy_change_j_per_k =
-        body_entropy_change_j_per_k + bath_entropy_change_j_per_k;
+    let total_entropy_change_j_per_k = body_entropy_change_j_per_k + bath_entropy_change_j_per_k;
     if !total_entropy_change_j_per_k.is_finite() {
         return Err(ThermalEntropyError::NonFiniteResult {
             field: "total_entropy_change_j_per_k",
@@ -148,10 +146,7 @@ pub fn evaluate_constant_capacity_heat_exchange(
     })
 }
 
-fn validate_positive_finite(
-    value: f64,
-    field: &'static str,
-) -> Result<(), ThermalEntropyError> {
+fn validate_positive_finite(value: f64, field: &'static str) -> Result<(), ThermalEntropyError> {
     if !value.is_finite() {
         return Err(ThermalEntropyError::NonFiniteParameter { field });
     }
@@ -167,16 +162,14 @@ mod tests {
 
     #[test]
     fn constant_capacity_body_entropy_increases_when_heated() {
-        let delta_s =
-            constant_heat_capacity_entropy_change(100.0, 300.0, 310.0).unwrap();
+        let delta_s = constant_heat_capacity_entropy_change(100.0, 300.0, 310.0).unwrap();
         assert!(delta_s > 0.0);
         assert!((delta_s - 100.0 * (310.0_f64.ln() - 300.0_f64.ln())).abs() < 1e-12);
     }
 
     #[test]
     fn constant_capacity_body_entropy_decreases_when_cooled() {
-        let delta_s =
-            constant_heat_capacity_entropy_change(100.0, 310.0, 300.0).unwrap();
+        let delta_s = constant_heat_capacity_entropy_change(100.0, 310.0, 300.0).unwrap();
         assert!(delta_s < 0.0);
     }
 
@@ -260,14 +253,7 @@ mod tests {
             Err(ThermalEntropyError::NegativeTolerance)
         );
         assert_eq!(
-            evaluate_constant_capacity_heat_exchange(
-                100.0,
-                300.0,
-                301.0,
-                100.0,
-                400.0,
-                f64::NAN,
-            ),
+            evaluate_constant_capacity_heat_exchange(100.0, 300.0, 301.0, 100.0, 400.0, f64::NAN,),
             Err(ThermalEntropyError::NonFiniteParameter {
                 field: "absolute_tolerance_j_per_k",
             })
