@@ -366,6 +366,46 @@
         "timeout_fallback_declared",
         "source_age_distinct_from_receipt_age"
       ]
+    },
+    {
+      "id": "contact-exposure-energy-decoupling",
+      "domain": "physical_interaction",
+      "purpose": "Show that a globally acceptable energy residual does not establish acceptable local pressure, deformation, power or exposure duration.",
+      "seeded_faults": [
+        "small_contact_area_large_peak_pressure",
+        "long_duration_low_power",
+        "equal_energy_different_peak_power",
+        "constrained_recoil",
+        "multi_patch_load_redistribution"
+      ],
+      "required_assertions": [
+        "global_port_energy_reported",
+        "per_patch_peak_pressure_reported",
+        "contact_area_and_geometry_reported",
+        "deformation_or_strain_proxy_reported",
+        "power_time_and_exposure_reported",
+        "local_and_global_envelopes_separate"
+      ]
+    },
+    {
+      "id": "viscoelastic-phantom-response",
+      "domain": "tactile_metrology",
+      "purpose": "Characterize layered phantom hysteresis, creep, relaxation, repeated loading and temperature effects using independent metrology.",
+      "seeded_faults": [
+        "layer_thickness_change",
+        "curvature_change",
+        "material_modulus_change",
+        "temperature_cycle",
+        "cyclic_loading",
+        "geometry_misregistration"
+      ],
+      "required_assertions": [
+        "phantom_material_revision_bound",
+        "independent_load_cell_reference",
+        "independent_deformation_reference",
+        "uncertainty_coverage_reported",
+        "no_human_tissue_threshold_claim"
+      ]
     }
   ],
   "result_requirements": [
