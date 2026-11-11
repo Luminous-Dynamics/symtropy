@@ -235,6 +235,12 @@ pub fn validate_challenge_eligibility(
                 receipt_id: receipt.receipt_id.clone(),
             });
         }
+        let same_data = receipt.challenge_data_digest == request.challenge_data_digest;
+        let same_manifest =
+            receipt.challenge_manifest_digest == request.challenge_manifest_digest;
+        if receipt.result_disclosed_to_developers && (same_data || same_manifest) {
+            return Err(ChallengeCustodyError::DisclosedChallengeRetired);
+        }
         if !revisions
             .iter()
             .any(|revision| revision.model_digest == receipt.model_digest)
@@ -252,16 +258,12 @@ pub fn validate_challenge_eligibility(
         if !evaluation_identities.insert(identity) {
             return Err(ChallengeCustodyError::DuplicateChallengeEvaluationIdentity);
         }
-        let same_data = receipt.challenge_data_digest == request.challenge_data_digest;
-        let same_manifest = receipt.challenge_manifest_digest == request.challenge_manifest_digest;
         let exact_replay = receipt.model_digest == request.candidate_model_digest
             && same_data
             && same_manifest
             && receipt.evaluation_protocol_digest == request.evaluation_protocol_digest;
         if exact_replay {
             exact_replay_receipt_count += 1;
-        } else if receipt.result_disclosed_to_developers && (same_data || same_manifest) {
-            return Err(ChallengeCustodyError::DisclosedChallengeRetired);
         }
     }
 
@@ -568,8 +570,15 @@ mod tests {
 
     #[test]
     fn duplicate_exact_replay_identity_is_rejected() {
-        let receipt = disclosed_receipt(
-            "receipt-c0",
+        let first = disclosed_receipt(
+            "receipt-c0-first",
+            "sha256-model-0",
+            "sha256-challenge-c0",
+            "sha256-manifest-c0",
+            "sha256-evaluator-v1",
+        );
+        let second = disclosed_receipt(
+            "receipt-c0-second",
             "sha256-model-0",
             "sha256-challenge-c0",
             "sha256-manifest-c0",
@@ -578,7 +587,7 @@ mod tests {
         assert_eq!(
             validate_challenge_eligibility(
                 &root_lineage(),
-                &[receipt.clone(), receipt],
+                &[first, second],
                 &request(
                     "sha256-model-0",
                     "sha256-challenge-c0",
