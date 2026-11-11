@@ -187,6 +187,8 @@ pub struct AuditReport {
     pub energy_measurement_method: String,
     pub policy_visible_inputs: Vec<String>,
     pub disposition: String,
+    pub clean_control_disposition: RunDisposition,
+    pub faulted_run_disposition: RunDisposition,
     pub claim_ceiling: String,
     pub expected_ticks: u64,
     pub clean_control_observed_ticks: usize,
@@ -898,7 +900,7 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
             findings.insert(Finding::FaultScheduleOutOfBounds);
             continue;
         }
-        if event.severity_ppm > 1_000_000 {
+        if event.severity_ppm == 0 || event.severity_ppm > 1_000_000 {
             findings.insert(Finding::InvalidFaultSeverity);
         }
         if event.recovery_healthy_quorum_ticks == 0 {
@@ -1019,6 +1021,8 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         energy_measurement_method: campaign.energy_measurement_method.clone(),
         policy_visible_inputs: campaign.policy_visible_inputs.clone(),
         disposition: if findings.is_empty() { "valid" } else { "rejected" }.to_string(),
+        clean_control_disposition: campaign.clean_control.disposition,
+        faulted_run_disposition: campaign.faulted_run.disposition,
         claim_ceiling: "Finite paired trace consistency and declared software fault accounting only. This audit does not prove physical fault fidelity, trained-policy detection, safe-stop performance, real-road transfer or vehicle safety.".to_string(),
         expected_ticks,
         clean_control_observed_ticks: campaign.clean_control.ticks.len(),
@@ -1469,6 +1473,18 @@ mod tests {
         let report = audit_campaign(&input);
         assert!(has(&report, "tick_denominator_mismatch"));
         assert!(has(&report, "tick_sequence_mismatch"));
+    }
+
+    #[test]
+    fn rejects_zero_fault_severity_and_reports_incomplete_run_state() {
+        let mut input = campaign();
+        input.events[0].severity_ppm = 0;
+        input.faulted_run.disposition = RunDisposition::Incomplete;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "invalid_fault_severity"));
+        assert!(has(&report, "run_not_complete"));
+        assert_eq!(report.clean_control_disposition, RunDisposition::Complete);
+        assert_eq!(report.faulted_run_disposition, RunDisposition::Incomplete);
     }
 
     #[test]
