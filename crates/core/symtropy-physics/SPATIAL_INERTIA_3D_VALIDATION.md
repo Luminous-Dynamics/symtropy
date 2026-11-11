@@ -60,7 +60,7 @@ Let `r = p_Q - p_P` be the vector from old reference point P to new reference po
 
 `v_Q = v_P + omega × r = v_P - [r]_x * omega`.
 
-The central inertia about G does not change. The new spatial matrix is rebuilt from `(m, c_Q, I_G)`. The kinetic energy must be identical for corresponding twists. Spatial momentum must transform as:
+The central inertia about G does not change. The new spatial matrix is rebuilt from `(m, c_Q, I_G)`. Reusing the same `ReferencePointId` is permitted only for a zero offset; a nonzero move with the same point identity is rejected. The kinetic energy must be identical for corresponding twists. Spatial momentum must transform as:
 
 `p_Q = p_P`
 
@@ -74,7 +74,7 @@ The `shift_reference_point` API changes the inertia's point identity and COM off
 
 `c_new = R*c_old`, `I_new = R*I_old*R^T`, `omega_new = R*omega_old`, `v_new = R*v_old`.
 
-Frame identity is changed; point identity is retained. Kinetic energy is invariant. Improper or non-finite Rotors are rejected.
+Frame identity is changed; point identity is retained. Reusing the same `FrameId` is permitted only with an identity transform (within the rotation tolerance); an actual rotation with the same frame identity is rejected. Kinetic energy is invariant. Improper or non-finite Rotors are rejected.
 
 ## Compound composition
 
@@ -116,6 +116,8 @@ The module currently covers:
 10. Uniform mass scaling by `1e-12` and `1e12` scales the 6×6 matrix, spatial momentum and kinetic energy linearly without changing geometry.
 11. Six-component central-inertia packing/reconstruction preserves exact matrix symmetry.
 12. A deterministic 48-case rotated-positive-second-moment sweep checks 6×6 spatial-matrix symmetry, positive semidefiniteness and positive finite kinetic energy.
+13. A nonzero point shift cannot retain the original point identity.
+14. A non-identity frame rotation cannot retain the original frame identity.
 
 ## Criterion reference-cost measurements
 
