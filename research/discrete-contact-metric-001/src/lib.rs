@@ -870,6 +870,45 @@ mod tests {
                 "active-set classification changed at mass={mass:e}"
             );
             assert!(result.max_metric_equation_residual / mass < 1.0e-10);
+            assert!(result.max_scaled_metric_equation_residual < 1.0e-10);
+            assert_eq!(result.max_scaled_dual_feasibility_residual, 0.0);
+            assert!(result.max_scaled_primal_feasibility_residual < 1.0e-10);
+            assert!(result.max_scaled_complementarity_residual < 1.0e-10);
+        }
+    }
+
+    #[test]
+    fn dimensionless_contact_residuals_are_invariant_under_uniform_velocity_units() {
+        let impulse = [2.0, 0.0];
+        let normal_velocity = [0.25, -1.0];
+        let target_velocity = [0.25, 0.0];
+        let slack = [0.0, -1.0];
+        let reference = (
+            relative_negative_residual(&impulse),
+            relative_primal_feasibility(&normal_velocity, &target_velocity, &slack),
+            relative_complementarity_residual(
+                &impulse,
+                &normal_velocity,
+                &target_velocity,
+                &slack,
+            ),
+        );
+
+        for scale in [1.0e-12, 1.0, 1.0e12] {
+            let scaled_normal = normal_velocity.map(|value| value * scale);
+            let scaled_target = target_velocity.map(|value| value * scale);
+            let scaled_slack = slack.map(|value| value * scale);
+            let observed = (
+                relative_negative_residual(&impulse),
+                relative_primal_feasibility(&scaled_normal, &scaled_target, &scaled_slack),
+                relative_complementarity_residual(
+                    &impulse,
+                    &scaled_normal,
+                    &scaled_target,
+                    &scaled_slack,
+                ),
+            );
+            assert_eq!(observed, reference, "velocity scale={scale:e}");
         }
     }
 
