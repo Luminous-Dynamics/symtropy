@@ -151,7 +151,7 @@
           "SEM_image",
           "filament"
         ],
-        "inference_rule": "Resample or split at the highest independent physical preparation/treatment unit, not at filament or image level. If only one tube exists per temperature, this source cannot support an independent held-out-temperature generalization claim."
+        "inference_rule": "Resample or split at the highest independent physical preparation/treatment unit, not at filament or image level. If only one tube exists per temperature, this source cannot support an independent held-out-temperature generalization estimate."
       }
     },
     "eds": {
@@ -201,10 +201,10 @@
       "The authors report relatively limited degradation compared with analogous biological material and inhibited transformation of ferrihydrite to crystalline iron oxides, likely influenced by silica."
     ],
     "biologic_comparator": {
-      "material": "Leptothrix ochracea iron-oxidising bacterial sheaths",
-      "comparator_source_doi": "10.1111/gbi.70029",
-      "claim": "The authors state that analogous biological sheaths could not be observed after maturation at 280_C, whereas chemical-garden filaments remained discernible at 300_C.",
-      "caveat": "This comparator is not representative of all biological structures, and cross-study sample sizes and preparation replication must be verified before quantitative classifier training."
+      "material": "Iron-mineralized Leptothrix sheaths",
+      "2026_preservation_comparator_doi": "10.1089/ast.2024.0098",
+      "direct_2025_characterization_doi": "10.1111/gbi.70021",
+      "limitation": "The 2025 characterization study examined Leptothrix cholodnii SP-6 and a wild Leptothrix sp. isolate; it did not experimentally cover all Leptothrix species. The 2026 preservation paper cautions that this comparator is not representative of all biological microstructures."
     },
     "quantitative_morphology": {
       "filament_length_mean_um_by_temperature": {
@@ -339,6 +339,45 @@
         "detection_probability_by_resolution",
         "out_of_domain_abstention"
       ]
+    },
+    {
+      "id": "CONDITIONED_MULTIMODAL_DISCRIMINATION",
+      "question": "Can morphology, cross-sectional microtexture, Fe redox, mineralogy, and sample-history variables jointly distinguish known chemical gardens from the tested Leptothrix sheaths without overgeneralizing to all biology?",
+      "required_inputs": [
+        "SEM",
+        "TEM",
+        "Mössbauer spectra",
+        "XRD",
+        "morphometry",
+        "oxygen exposure history",
+        "anion chemistry",
+        "pH",
+        "sample age"
+      ],
+      "primary_metrics": [
+        "grouped_out_of_sample_auc",
+        "calibration",
+        "risk_coverage",
+        "feature_ablation",
+        "condition_shift_sensitivity"
+      ],
+      "anti_leakage": "Split by physical sample/culture/preparation batch. Preserve Leptothrix strain and culture age as groups. Natural geological samples remain OTHER/UNRESOLVED unless independently established."
+    },
+    {
+      "id": "REDOX_CONTEXT_SHIFT",
+      "question": "Does a classifier that uses Fe2+/Fe_total remain calibrated when oxygen exposure and silicate/carbonate preparation conditions change?",
+      "required_inputs": [
+        "Mössbauer spectra",
+        "oxygen exposure history",
+        "anion identity",
+        "storage conditions"
+      ],
+      "primary_metrics": [
+        "condition_specific_calibration",
+        "false_positive_rate",
+        "out_of_domain_abstention"
+      ],
+      "anti_leakage": "Hold out preparation conditions, not spectra from the same specimen. An unmeasured redox history must trigger abstention or explicit uncertainty."
     }
   ],
   "data_admission": {
@@ -350,7 +389,9 @@
     "access_action": "Request original data and measurement tables from corresponding author; record exact terms, file hashes and sample IDs before ingestion.",
     "note": "Article methods and reported findings are source-pinned; underlying sample-level data have not been acquired.",
     "author_request_status": "NOT_SENT",
-    "data_access_statement": "Supporting data available from corresponding author upon reasonable request; request raw SEM images, ImageJ measurements, EDS maps/spectra, XRD patterns, instrument settings, sample/tube hierarchy and the exact biological comparator dataset."
+    "data_access_statement": "Supporting data available from corresponding author upon reasonable request; request raw SEM images, ImageJ measurements, EDS maps/spectra, XRD patterns, instrument settings, sample/tube hierarchy and the exact biological comparator dataset.",
+    "source_comparator_2025_raw_data_materialized": false,
+    "biological_preservation_comparator_2025_raw_data_materialized": false
   },
   "acceptance": {
     "known_truth_abiotic_preparation_documented": true,
@@ -361,7 +402,10 @@
     "false_negative_observability_metadata_required": true,
     "no_morphology_only_biogenicity_claim": true,
     "pseudoreplication_audit_required": true,
-    "experimental_unit_hierarchy_required": true
+    "experimental_unit_hierarchy_required": true,
+    "condition_covariates_required": true,
+    "natural_geological_material_not_assumed_ground_truth": true,
+    "no_universal_Fe_redox_biomarker_claim": true
   },
   "experimental_unit_audit": {
     "reported_hydrous_pyrolysis_tubes": 7,
@@ -400,5 +444,122 @@
       "whether 300 filament measurements per temperature come from one or multiple physical specimens",
       "whether unheated baseline has independent preparation replicates"
     ]
-  }
+  },
+  "source_comparators": [
+    {
+      "title": "Troubles With Tubules: How Do Iron-Mineral Chemical Gardens Differ From Iron-Mineralized Sheaths of Iron Oxidizing Bacteria?",
+      "authors": [
+        "Melanie Podbielski",
+        "Pamela Knoll",
+        "Georgia Brown",
+        "Sigrid Huld",
+        "Anna Neubeck",
+        "Julyan H. E. Cartwright",
+        "C. Ignacio Sainz-Díaz",
+        "Carlos Pimentel",
+        "Sean McMahon"
+      ],
+      "journal": "Geobiology",
+      "published": "2025-05-14",
+      "doi": "10.1111/gbi.70021",
+      "url": "https://doi.org/10.1111/gbi.70021",
+      "scope": "Direct laboratory comparison of chemical gardens and two Leptothrix sample sources: Leptothrix cholodnii SP-6 (ATCC 51168) and a wild Leptothrix sp. isolate from Figgate Burn. Do not represent this as four species experimentally tested.",
+      "measured_modalities": [
+        "optical microscopy",
+        "SEM",
+        "TEM",
+        "Mössbauer spectroscopy",
+        "X-ray diffraction",
+        "morphometry"
+      ],
+      "reported_discriminators": {
+        "mature_leptothrix_external_diameter_um": {
+          "max": 1.7,
+          "median": 1.1,
+          "n": 98
+        },
+        "chemical_garden_external_diameter_um": {
+          "min": 1.7,
+          "median": 3.7,
+          "max": 11.8,
+          "dispersion_sd": 1.82
+        },
+        "leptothrix_diameter_dispersion_sd": 0.2,
+        "leptothrix_tortuosity_max": 1.8,
+        "chemical_garden_tortuosity_range": [
+          0.97,
+          2.71
+        ],
+        "chemical_garden_tortuosity_median": 1.04,
+        "leptothrix_moss_agate_and_chemical_garden_caveat": "Tortuosity/bending distributions overlap; the strongest distinction is the narrower Leptothrix range, not a perfectly separating scalar cutoff.",
+        "microtexture": "Leptothrix sheaths typically have smoother, denser inner walls and rougher, more porous outer walls; iron-mineralized chemical gardens show the reverse, with relatively smooth outer walls and more diffuse/porous inner walls.",
+        "iron_redox_fraction_Fe2_over_total": {
+          "leptothrix_cholodnii_SP6": 0,
+          "chemical_garden_silicate": 0.198,
+          "chemical_garden_carbonate": 0.041,
+          "estimated_error_fraction": 0.02
+        }
+      },
+      "environment_dependence": {
+        "Fe2_Fe3_is_not_universal": "The authors note that the chemical-garden experiment was aerobic; under anaerobic preparation and protected analysis, Fe redox could more closely reflect the seed salt. Anion chemistry (silicate versus carbonate) also changes the observed Fe2+ fraction.",
+        "required_covariates": [
+          "oxygen_exposure_during_growth",
+          "oxygen_exposure_during_rinsing",
+          "storage_atmosphere",
+          "sodium_silicate_or_carbonate",
+          "pH",
+          "iron_precursor_state",
+          "sample_age",
+          "mineralization_maturity"
+        ],
+        "rule": "Do not treat Fe2+/Fe_total as a universal life marker or invariant classifier feature. Condition it on redox and preparation history."
+      },
+      "biological_sample_sources": [
+        {
+          "sample": "Leptothrix cholodnii SP-6",
+          "origin": "ATCC culture",
+          "accession": "ATCC 51168"
+        },
+        {
+          "sample": "Leptothrix sp. FB",
+          "origin": "wild isolate cultured from Figgate Burn, Edinburgh"
+        }
+      ],
+      "geological_ambiguous_samples": [
+        {
+          "sample": "Devonian basalt-hosted moss agate",
+          "location": "Campsie, Scotland",
+          "catalogue": "Naturhistorisches Museum Bern 31995",
+          "ground_truth": "UNRESOLVED_NOT_A_TRAINING_LABEL"
+        },
+        {
+          "sample": "Devonian calcite-veined lacustrine limestone",
+          "location": "Fochabers, Scotland",
+          "ground_truth": "UNRESOLVED_NOT_A_TRAINING_LABEL"
+        },
+        {
+          "sample": "Approximately 2-million-year-old goethite-rich fluvial ironstone",
+          "location": "Cerro Colorado, Spain",
+          "ground_truth": "UNRESOLVED_NOT_A_TRAINING_LABEL"
+        }
+      ],
+      "data_scope_note": "This comparator is not the same data as the 2026 maturation study. Obtain its raw images, sample-level measurements and supplementary information separately, with independent artifact hashes and rights records."
+    },
+    {
+      "title": "Preservation of Extracellular Sheaths Produced by Iron-Oxidizing Bacteria: An Analog for Potential Morphological Biosignatures on Mars",
+      "authors": [
+        "Solomon Hirsch",
+        "Jonathan S. Tan",
+        "Keyron Hickman-Lewis",
+        "Mark A. Sephton"
+      ],
+      "journal": "Astrobiology",
+      "published": "2025-02-26",
+      "doi": "10.1089/ast.2024.0098",
+      "url": "https://doi.org/10.1089/ast.2024.0098",
+      "scope": "Biological comparator for hydrous-pyrolysis preservation behavior; not interchangeable with the direct 2025 pre-maturation discrimination study.",
+      "reported_comparison": "The 2026 chemical-garden paper reports that the bacterial sheaths from this earlier study were not observable after 280_C maturation, while the abiotic chemical-garden filaments remained discernible at 300_C.",
+      "caveat": "Do not infer general biological fragility from one Leptothrix material class."
+    }
+  ]
 }
