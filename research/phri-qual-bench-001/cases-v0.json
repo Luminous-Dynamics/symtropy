@@ -290,6 +290,42 @@
         "scalar_and_matrix_indices_reported",
         "not_claimed_as_nonlinear_robot_passivity"
       ]
+    },
+    {
+      "id": "multiport-cutset-accounting",
+      "domain": "execution_energy",
+      "purpose": "Validate a frozen control-volume cut set and reconcile paired internal power-conserving interfaces exactly once.",
+      "seeded_faults": [
+        "missing_external_port",
+        "duplicate_internal_edge",
+        "unpaired_internal_endpoint",
+        "clock_misalignment",
+        "partial_interval_overlap",
+        "sign_reversal"
+      ],
+      "required_assertions": [
+        "all_external_paths_declared_or_unknown",
+        "internal_edge_cancels_once",
+        "no_double_count",
+        "worst_prefix_aggregate_residual_reported",
+        "unknown_boundary_blocks_certificate"
+      ]
+    },
+    {
+      "id": "energy-vs-local-contact-burden",
+      "domain": "physical_interaction",
+      "purpose": "Demonstrate that a globally acceptable energy balance cannot hide an excessive local contact-pressure or exposure-time outcome.",
+      "seeded_faults": [
+        "small_total_work_large_local_pressure",
+        "long_duration_low_power_contact",
+        "contact_patch_migration"
+      ],
+      "required_assertions": [
+        "per_patch_peak_pressure_reported",
+        "pressure_time_integral_reported",
+        "exposure_duration_reported",
+        "global_energy_and_local_limits_scored_separately"
+      ]
     }
   ],
   "result_requirements": [
