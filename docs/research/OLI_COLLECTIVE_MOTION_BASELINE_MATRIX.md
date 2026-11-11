@@ -176,3 +176,38 @@ The independent Rust RNG is not MATLAB's RNG; the module is a mathematical refer
 
 The strongest potential OLI result is not merely to match SCM's small-swarm success rate. It is to preserve the useful dynamic search behaviour while reducing costly measurements and operating reliably under realistic communication and sensor constraints—on the same source-defined tasks and independent dynamic-environment holdouts.
 
+
+
+## 7. Industry and deployment comparison: compare operating architectures, not slogans
+
+The 2025 SCM paper itself identifies an operational gap: many deployed multi-robot groups rely on centralized control for predictability, while consensus-based distributed methods are widely used for formation/rendezvous but may be constrained to simpler environments and neighbour-limited tasks. Metaheuristics such as PSO/ABC/DE are established for computational optimization, but do not automatically transfer to fixed-size physical fleets or account for vehicle dynamics and costly sampling. SCM is a hybrid attempt to connect optimization and vehicle control, with a small-swarm success-rate advantage and an explicit evaluation-cost penalty.
+
+For OLI, this yields four fair industry/method baselines:
+
+| Operating family | Strengths | Known trade-offs to measure | OLI comparison |
+|---|---|---|---|
+| Centralized fleet orchestration | Global coordination, easier global planning, predictable fleet constraints | Communication dependency, central failure point, latency and bandwidth | Keep as a strong upper bound; measure loss under disconnection and delayed state |
+| Distributed consensus/formation control | Local coordination, rendezvous, formation and shared-state agreement | May not solve multimodal search or maintain task diversity by itself | Measure whether consensus helps task success or merely makes agents agree |
+| Metaheuristic optimization (PSO/MIPA/ABC/DE) | Mature task-specific search baselines and established test suites | Agent-count/sampling cost, parameter sensitivity, loss under dynamic objectives | Reproduce exact objective and cost baselines with matched initialization |
+| Hybrid small-swarm search (SCM) | Designed for small mobile groups and evolving scalar landscapes | Higher function evaluations, all-to-all data exchange, source equation/index discrepancies | Reproduce both static and dynamic tasks; expose communication and sensor cost |
+
+These are method-family comparators, not claims that every industrial fleet product uses the same architecture. OLI must not compare a high-level product specification against a laboratory optimizer result or infer a commercial deployment win from a synthetic benchmark.
+
+### Where OLI can differentiate
+
+1. **Information-budget transparency:** every agent's local view, shared field, global coordinator input, communication round and stale-data allowance are declared and metered.
+2. **Task outcome plus operating cost:** success probability, samples, distance, energy, time, comm bytes and return-to-safe-state are independent reported axes.
+3. **Causal and adversarial qualification:** distinguish a true response to interaction from common-driver correlation, centralized information leakage or a passive environmental pattern.
+4. **Open-world recovery:** reserve explicit capacity for a signal, source or mechanism not present in the current task model; measure whether the archive can be reanalysed after a new hypothesis arrives.
+5. **Model-adequacy and abstention:** when the environment or interaction rule leaves the validated envelope, reduce authority and report why rather than confidently extrapolating.
+6. **Evidence-bearing deployment:** preserve sensor calibration, observation coverage, intervention/sham results, software/configuration digests and independent verification records through the engineering lifecycle.
+
+### Competitive qualification targets
+
+The matrix now carries three proposed SCM-relative targets:
+- At matched success probability and safety envelope, reduce sensor/function evaluations or energy-distance cost by **at least 20%** in two reproduced benchmark strata; alternatively improve success by **at least 5 percentage points** at equal total cost.
+- On dynamic moving-peak/advection cases, reduce median re-localization lag by **at least 20%** without increasing mission-abort rate.
+- Under explicit communication constraints, publish the success/cost break point as bandwidth, latency, packet loss, stale-state and intermittent-contact severity increase.
+
+These are qualification targets, not current results. The strongest result would be a Pareto improvement under matched agent count, initialization, sensors, environment, safety envelope and independent random-process holdouts—not a victory on one weighted score.
+
