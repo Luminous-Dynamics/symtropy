@@ -1,0 +1,168 @@
+{
+  "schema_version": "liu-ice-shift-matrix-v0.1",
+  "benchmark_id": "LIU-ICE-DX37",
+  "status": "protocol_only_not_executed",
+  "framing": {
+    "definition": "OOD is evaluated along condition shift (C), fault-semantic shift (F), and combined C+F axes; each run declares which support boundary it tests.",
+    "independent_unit": "recording_or_engine_run",
+    "dataset_limit": "The public training set is 26 WLTP recordings with 2-7 recordings per known fault family. It is not sufficient to claim broad cross-cycle, cross-engine or high-coverage fault-specific generalization without additional independent data.",
+    "unknown_slot": "f_x is a model output slot for a fault not assigned to one of the four named classes; the presence of the slot does not prove the public data contain genuinely novel fault mechanisms.",
+    "no_row_randomization": true
+  },
+  "axes": [
+    {
+      "id": "C_SHIFT_DRIVING_CYCLE",
+      "question": "Does the detector retain known-fault recognition when the operating cycle is absent from fitting and calibration?",
+      "training_support": "All fitted and calibrated examples come from declared training cycles only.",
+      "test_support": "Entire held-out driving cycles, with all recordings and temporal windows kept together.",
+      "label_policy": "Known fault labels remain known; unsupported cycles may be not_evaluated if regime support and calibration do not cover them.",
+      "primary_metrics": [
+        "per_fault_macro_recall",
+        "event_recall",
+        "false_alarms_per_observed_normal_hour",
+        "unknown_or_abstention_rate",
+        "worst_cycle_degradation_pp"
+      ],
+      "required_controls": [
+        "same fault family and severity support where available",
+        "whole-recording isolation",
+        "command and response channel parity",
+        "no target-cycle tuning"
+      ],
+      "data_status": "not_executed_requires_non_WLTP_recordings",
+      "qualification": "Do not call a random row split a C-shift experiment."
+    },
+    {
+      "id": "C_SHIFT_AMBIENT_ENVELOPE",
+      "question": "Are changes in ambient pressure/temperature incorrectly treated as faults when they arise from lab/environment differences?",
+      "training_support": "Declare fitted ambient pressure/temperature envelope from training recordings only.",
+      "test_support": "Hold out complete recordings in predeclared ambient strata outside or near the training envelope.",
+      "label_policy": "Ambient variables are disturbance context; ambient movement alone must not be relabelled as a fault.",
+      "primary_metrics": [
+        "normal_recording_false_alarm_rate",
+        "false_alarms_per_observed_normal_hour",
+        "calibration_coverage_by_ambient_stratum",
+        "known_fault_recall_by_ambient_stratum"
+      ],
+      "required_controls": [
+        "strata frozen before test",
+        "do not split rows from same recording",
+        "include ambient-only negative controls",
+        "report overlap between ambient and fault conditions"
+      ],
+      "data_status": "exploratory_requires_audited_recording_metadata",
+      "qualification": "If ambient strata are confounded with fault labels or drive cycle, report non-identifiability rather than a clean causal result."
+    },
+    {
+      "id": "F_SHIFT_HELD_OUT_FAULT_FAMILY",
+      "question": "Can the system refrain from assigning an untrained fault family to a known class?",
+      "training_support": "Exclude every recording of one fault family from fitting, feature selection, calibration and model selection.",
+      "test_support": "Evaluate the excluded family as unknown (f_x) on independent recordings, with no-fault and known-fault controls.",
+      "label_policy": "For the strict open-set track, the held-out family maps to unknown at inference even though the evaluator retains its hidden family identity for analysis.",
+      "primary_metrics": [
+        "unknown_fault_false_known_rate",
+        "unknown_event_recall",
+        "unknown_abstention_rate",
+        "known_class_macro_recall",
+        "false_alarms_per_observed_normal_hour"
+      ],
+      "required_controls": [
+        "held-out family absent from all model-selection stages",
+        "no hidden family identity in model inputs",
+        "recording-level split and source-bound label mapping"
+      ],
+      "data_status": "surrogate_only_on_known_families; genuinely novel physical fault data not established",
+      "qualification": "This leave-one-known-family-out proxy tests label-space exclusion, but is not equivalent to discovering an entirely new physical mechanism."
+    },
+    {
+      "id": "C_PLUS_F_SHIFT",
+      "question": "Does an unseen fault family remain safely unknown under an unseen operating cycle?",
+      "training_support": "Training and calibration include neither the held-out fault family nor the held-out driving cycle.",
+      "test_support": "Independent recordings from the joint held-out fault-family × held-out-cycle cell.",
+      "label_policy": "Held-out fault family remains unknown; unseen cycle remains a separate support flag.",
+      "primary_metrics": [
+        "unknown_fault_false_known_rate",
+        "unknown_event_recall",
+        "false_alarms_per_observed_normal_hour",
+        "abstention_rate",
+        "calibration_coverage_by_joint_stratum"
+      ],
+      "required_controls": [
+        "orthogonal family and cycle holdout",
+        "independent joint-cell recordings",
+        "no tuning on either held-out axis",
+        "recording-clustered uncertainty"
+      ],
+      "data_status": "not_evaluable_until_joint_cell_data_exist",
+      "qualification": "Do not infer combined-shift robustness from separate C-only and F-only experiments."
+    },
+    {
+      "id": "MAGNITUDE_SHIFT_WITHIN_FAMILY",
+      "question": "Does a known fault remain detectable at magnitudes not represented during fitting?",
+      "training_support": "Fit on declared magnitude ranges for each fault family.",
+      "test_support": "Hold out complete recordings from predeclared magnitude bands.",
+      "label_policy": "Fault family remains known; severity estimate is evaluated separately from detection/isolation.",
+      "primary_metrics": [
+        "per_magnitude_event_recall",
+        "detection_latency_by_magnitude",
+        "false_alarms_per_observed_normal_hour",
+        "severity_interval_coverage"
+      ],
+      "required_controls": [
+        "magnitude derived from source filename or injection log and audited",
+        "no random sample split",
+        "magnitude bins frozen before test"
+      ],
+      "data_status": "requires_audited_magnitude_metadata_and_enough_recordings",
+      "qualification": "A within-family severity shift is not a novel fault-semantic shift."
+    },
+    {
+      "id": "SENSOR_CHAIN_SHIFT",
+      "question": "Does sensor drift, bias, dropout or calibration change induce false faults or hide real faults?",
+      "training_support": "Declare sensor calibration, noise and availability envelope.",
+      "test_support": "Use independent recordings with documented sensor-chain changes; synthetic corruption is reported as a separate controlled stress test.",
+      "label_policy": "Separate sensor fault from sensor-chain uncertainty and plant fault; preserve ambiguous alternatives.",
+      "primary_metrics": [
+        "sensor_fault_recall",
+        "plant_fault_false_attribution_rate",
+        "unknown_false_known_rate",
+        "missingness_coverage",
+        "false_alarms_per_observed_normal_hour"
+      ],
+      "required_controls": [
+        "channel dictionary and physical signal roles frozen",
+        "injected corruption magnitude/seed bound in manifest",
+        "separate native and synthetic tracks"
+      ],
+      "data_status": "synthetic_contract_possible; physical_sensor_shift_not_audited",
+      "qualification": "Synthetic corruption is not evidence of sensor or plant robustness in service."
+    }
+  ],
+  "cross_engine_and_fleet": {
+    "status": "unsupported_by_current_single_engine_public_benchmark",
+    "rule": "Requires independent engine identities or fleet units in both development and held-out evaluation; repeated recordings from one engine do not substitute for independent engines."
+  },
+  "statistical_gates": {
+    "independent_unit": "recording_or_engine_run",
+    "exploratory_minimum_independent_test_units_per_claimed_stratum": 5,
+    "confirmatory_target_independent_test_units_per_claimed_stratum": 10,
+    "finite_sample_episode_conformal_minima": {
+      "coverage_900000_ppm": 9,
+      "coverage_950000_ppm": 19,
+      "coverage_990000_ppm": 99
+    },
+    "underpowered_rule": "Below minimum or with confounded support, report descriptive results and intervals only; do not qualify the stratum.",
+    "uncertainty": "Cluster by recording/engine run; never bootstrap 20 Hz sample rows as if independent."
+  },
+  "hard_gates": [
+    "declare shift axes before model fitting and confirmatory testing",
+    "keep whole recordings, overlapping windows and their event labels within a single split",
+    "prevent held-out cycles/fault families from model fitting, feature selection, calibration and threshold selection",
+    "report known-class retention separately from unknown-fault detection and abstention",
+    "joint C+F robustness needs direct joint-cell test data",
+    "unsupported support regions are not normal by default",
+    "condition covariates such as ambient pressure and temperature are not fault labels",
+    "cross-engine and fleet claims require independent engine/fleet identities",
+    "report independent-unit counts and uncertainty for every claimed stratum"
+  ]
+}
