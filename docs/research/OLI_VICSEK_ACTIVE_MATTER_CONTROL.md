@@ -121,7 +121,26 @@ The frozen three-particle control has interaction radius zero. A shared (+pi/3) 
 
 `VicsekModel::intervene_heading` applies an explicit heading intervention and returns a receipt with the tick, particle index, previous heading and imposed heading. It does not advance or reset the random stream. The benchmark clones the exact pre-intervention state to produce a sham; the intervention and sham then consume identical future random draws.
 
-An all-to-all positive control changes every particle's next heading from 0 to `atan2(1,5)` when one of six headings is rotated by 90°. A self-only negative control changes only the intervened particle and leaves the other particles identical to the sham. These are causal demonstrations inside the declared simulation model—not evidence of natural agency or intelligence.
+An all-to-all positive control changes every particle's next heading from 0 to `atan2(1,5)` when one of six headings is rotated by 90°. A self-only negative control changes only the intervened particle and leaves the other particles identical to the sham. The reusable paired runner records these effects across a full response trajectory using common random numbers. These are causal demonstrations inside the declared simulation model—not evidence of natural agency or intelligence.
+
+
+### Paired counterfactual replay and nontrivial-cluster support
+
+The module now exposes `run_paired_heading_intervention`. It clones the same pre-intervention model twice, imposes the heading only on the treatment copy, and advances sham and treatment with the same future PRNG draws. For each tick it records:
+- sham and treatment metric snapshots, including the explicit update rule;
+- mean absolute untreated-particle heading effect and responder fraction;
+- mean minimum-image untreated-particle displacement effect and responder fraction;
+- the original intervention receipt and the numerical response threshold.
+
+The direct target particle is excluded from downstream-response summaries. The 1e-12 response threshold is a deterministic numerical criterion for this synthetic double-precision model, not an instrument detection limit. A physical or observational adapter must supply its own uncertainty and detection threshold.
+
+Two paired tests are frozen:
+1. All-to-all positive control: the first response matches the analytic `atan2(1,5)` heading change across untreated particles, and the downstream position response is nonzero.
+2. Self-only null: with angular noise present, 20 treatment/sham steps use common random numbers; all untreated-particle heading and position effects remain exactly zero.
+
+A repeated invocation from the same baseline must produce an identical full result, including the response trajectory.
+
+The cluster metrics also now expose `nontrivial_cluster_coverage_fraction` and `mean_nontrivial_cluster_polar_order`. This avoids a subtle statistical trap: an isolated one-particle component has polar order 1 by construction. The traditional mean across all components remains available for reference, but singleton components do not contribute to nontrivial-cluster coverage or coherence. If every component is a singleton, the nontrivial-cluster mean and variance are `None`, not 1 or 0.
 
 ## Performance and measurement cadence
 
@@ -150,12 +169,15 @@ The benchmark runner should record its checkpoint schedule in the receipt. The i
 - Exact replay of the same seed/configuration on the same supported platform.
 - The opposed-local-flocks control must show near-zero global polar order alongside local polar order 1 and two disconnected groups.
 - The self-only control must produce null local polar order and zero local-order coverage.
+- The self-only control must also produce zero nontrivial-cluster coverage and null nontrivial-cluster polar order.
+- Opposed multi-particle flocks must produce nontrivial-cluster coverage 1 and nontrivial-cluster polar order 1 despite global order near zero.
 - Positive-control polar order within (10^{-12}) of 1 for the all-to-all zero-noise finite fixture.
 - Negative-control invariance of polar order in the self-only zero-noise fixture.
 - No non-finite positions, headings or metrics across a frozen parameter grid.
 - Every claimed regime result backed by at least 30 independent seeds for exploratory statistics; sample-size and finite-size analysis required before inferential claims.
 - Zero ontology promotions from polar order alone to learning, agency, intelligence, life or consciousness.
-- Exact sham parity: zero downstream effect in the self-only intervention negative control.
+- Exact sham parity: zero downstream effect in the self-only intervention negative control across the full paired trajectory, with common random numbers.
+- The paired intervention helper must replay bit-for-bit for identical input state, update rule, intervention and step count.
 - Reproduce the analytic all-to-all intervention response `atan2(1,5)` for the treated system and zero response for the sham.
 - Keep transfer entropy / predictive dependence and interventional causal effect as separate report fields.
 
