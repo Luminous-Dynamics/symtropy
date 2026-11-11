@@ -190,6 +190,12 @@ impl<const D: usize> RigidBody<D> {
         linear + angular
     }
 
+    /// Merge a tool collider expressed relative to the current body frame.
+    ///
+    /// The body origin is moved to the combined centre of mass. Child collider
+    /// transforms are therefore re-expressed about the new origin, and the
+    /// world-space translation is rotated by the body's current orientation.
+    /// This preserves the compound's world-space geometry during recentering.
     pub fn merge_toolhead(
         &mut self,
         local_transform: Transform<D>,
@@ -198,24 +204,29 @@ impl<const D: usize> RigidBody<D> {
     ) {
         use symtropy_math::CompoundShape;
 
-        let mut compound =
-            if let Some(existing) = self.collider.as_any().downcast_ref::<CompoundShape<D>>() {
-                let mut new_c = CompoundShape::<D>::new();
-                for (tf, s) in existing.children() {
-                    new_c.add_child(tf.clone(), s.clone_box());
-                }
-                new_c
-            } else {
-                let mut new_c = CompoundShape::<D>::new();
-                new_c.add_child(Transform::identity(), self.collider.as_ref().clone_box());
-                new_c
-            };
-
-        compound.add_child(local_transform.clone(), tool_collider);
-        self.collider = Box::new(compound);
-
         let total_mass = self.mass + tool_mass;
         let com_offset = (local_transform.translation.0 * tool_mass) / total_mass;
+
+        // Re-express every existing child relative to the new COM. Cloning the
+        // children into a fresh CompoundShape avoids mutating through the
+        // immutable children() view.
+        let mut compound = CompoundShape::<D>::new();
+        if let Some(existing) = self.collider.as_any().downcast_ref::<CompoundShape<D>>() {
+            for (child_transform, shape) in existing.children() {
+                let mut shifted = child_transform.clone();
+                shifted.translation.0 -= com_offset;
+                compound.add_child(shifted, shape.clone_box());
+            }
+        } else {
+            let mut base_transform = Transform::identity();
+            base_transform.translation.0 -= com_offset;
+            compound.add_child(base_transform, self.collider.as_ref().clone_box());
+        }
+
+        let mut shifted_tool_transform = local_transform.clone();
+        shifted_tool_transform.translation.0 -= com_offset;
+        compound.add_child(shifted_tool_transform, tool_collider);
+        self.collider = Box::new(compound);
 
         let i_original = self.inertia.sum() / D as f64;
         let i_tool = 0.4 * tool_mass * 0.1 * 0.1;
@@ -230,12 +241,132 @@ impl<const D: usize> RigidBody<D> {
         self.inertia = SVector::from_element(i_total);
         self.inv_inertia = SVector::from_element(1.0 / i_total);
 
-        self.transform.translation.0 += com_offset;
+        // com_offset is body-local; transform it into world coordinates
+        // before moving the body's reference point.
+        self.transform.translation.0 += self.transform.rotation.rotate_vector(&com_offset);
     }
 
     pub fn world_support(&self, direction: &SVector<f64, D>) -> SVector<f64, D> {
         let local_dir = self.transform.rotation.reverse().rotate_vector(direction);
         let local_support = self.collider.support(&local_dir);
         self.transform.transform_point(&Point(local_support)).0
+    }
+}
+
+
+#[cfg(test)]
+mod compound_com_tests {
+    use super::*;
+    use symtropy_math::{Rotor, Sphere};
+
+    fn rotated_body() -> RigidBody<3> {
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.37);
+        generator.set(0, 2, -0.21);
+        generator.set(1, 2, 0.48);
+        RigidBody::new(
+            BodyHandle(10),
+            BodyType::Dynamic,
+            Transform {
+                translation: Point::new([3.0, -2.0, 5.0]),
+                rotation: Rotor::from_bivector(&generator),
+            },
+            Box::new(Sphere::new(Point::origin(), 0.4)),
+            2.0,
+            SVector::from_element(0.4),
+        )
+    }
+
+    fn assert_support_preserved(before: &[SVector<f64, 3>], body: &RigidBody<3>) {
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([1.0, 2.0, -3.0]),
+            SVector::from([-2.0, 0.5, 1.0]),
+        ];
+        for (index, direction) in directions.iter().enumerate() {
+            let after = body.world_support(direction);
+            assert!(
+                (after - before[index]).norm() < 2.0e-10,
+                "world support moved in direction {direction:?}: before={:?}, after={after:?}",
+                before[index]
+            );
+        }
+    }
+
+    #[test]
+    fn merge_toolhead_preserves_world_geometry_for_rotated_body() {
+        let mut body = rotated_body();
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([1.0, 2.0, -3.0]),
+            SVector::from([-2.0, 0.5, 1.0]),
+        ];
+        let before = directions
+            .iter()
+            .map(|direction| body.world_support(direction))
+            .collect::<Vec<_>>();
+
+        let mut tool_generator = Bivector::<3>::zero();
+        tool_generator.set(0, 2, 0.31);
+        let tool_transform = Transform {
+            translation: Point::new([1.2, -0.7, 0.4]),
+            rotation: Rotor::from_bivector(&tool_generator),
+        };
+        let expected_local_com = tool_transform.translation.0 / 3.0;
+        let old_translation = body.transform.translation.0;
+        let old_rotation = body.transform.rotation;
+
+        body.merge_toolhead(
+            tool_transform,
+            Box::new(Sphere::new(Point::origin(), 0.2)),
+            1.0,
+        );
+
+        let expected_world_translation =
+            old_translation + old_rotation.rotate_vector(&expected_local_com);
+        assert!(
+            (body.transform.translation.0 - expected_world_translation).norm() < 1.0e-12,
+            "COM translation was not rotated from body frame into world frame"
+        );
+        assert_support_preserved(&before, &body);
+    }
+
+    #[test]
+    fn repeated_toolhead_merges_preserve_all_prior_world_geometry() {
+        let mut body = rotated_body();
+        let directions = [
+            SVector::from([1.0, 0.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 0.0, 1.0]),
+            SVector::from([1.0, 2.0, -3.0]),
+            SVector::from([-2.0, 0.5, 1.0]),
+        ];
+        let initial = directions
+            .iter()
+            .map(|direction| body.world_support(direction))
+            .collect::<Vec<_>>();
+
+        body.merge_toolhead(
+            Transform::from_translation(Point::new([1.0, 0.3, -0.2])),
+            Box::new(Sphere::new(Point::origin(), 0.15)),
+            0.7,
+        );
+        assert_support_preserved(&initial, &body);
+
+        let after_first = directions
+            .iter()
+            .map(|direction| body.world_support(direction))
+            .collect::<Vec<_>>();
+        body.merge_toolhead(
+            Transform::from_translation(Point::new([-0.4, 1.1, 0.6])),
+            Box::new(Sphere::new(Point::origin(), 0.1)),
+            0.3,
+        );
+        assert_support_preserved(&after_first, &body);
+        assert_support_preserved(&initial, &body);
     }
 }
