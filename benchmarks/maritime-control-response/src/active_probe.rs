@@ -1022,6 +1022,33 @@ mod tests {
         );
     }
 
+    fn candidate_with_probability(
+        candidate_id: &str,
+        probability: f64,
+        cost_seconds: f64,
+    ) -> DiagnosticProbeCandidate {
+        let mut item = candidate(
+            candidate_id,
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            false,
+        );
+        let other = 1.0 - probability;
+        item.outcomes = vec![
+            ProbeOutcomeLikelihood {
+                outcome_id: "bearing_signature".into(),
+                likelihood_by_hypothesis: vec![probability, other],
+            },
+            ProbeOutcomeLikelihood {
+                outcome_id: "fuel_signature".into(),
+                likelihood_by_hypothesis: vec![other, probability],
+            },
+        ];
+        item.expected_cost_seconds = cost_seconds;
+        item.candidate_manifest_sha256 = candidate_manifest_sha256(&item).unwrap();
+        item
+    }
+
     fn scenario(
         scenario_id: &str,
         scenario_weight: f64,
@@ -1127,6 +1154,108 @@ mod tests {
             ),
             Err(ProbeError::InvalidScenarioSet(_))
         ));
+    }
+
+    #[test]
+    fn baselines_compare_the_same_eligible_catalogue_and_are_deterministic() {
+        let candidates = vec![
+            candidate_with_probability("cheap_low_gain", 0.60, 5.0),
+            candidate_with_probability("balanced", 0.80, 50.0),
+            candidate_with_probability("expensive_high_gain", 0.95, 300.0),
+        ];
+        let policy = ProbeSelectionPolicy::conservative_read_only();
+        let portfolio = rank_diagnostic_probes(&hypotheses(), &candidates, &policy).unwrap();
+        let seed = digest('9');
+
+        let no_evidence = select_probe_baseline(
+            &portfolio,
+            &candidates,
+            ProbeBaseline::NoAdditionalEvidence,
+            None,
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
+        let cheapest = select_probe_baseline(
+            &portfolio,
+            &candidates,
+            ProbeBaseline::CheapestEligible,
+            None,
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
+        let maximum_gain = select_probe_baseline(
+            &portfolio,
+            &candidates,
+            ProbeBaseline::MaximumInformationGain,
+            None,
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
+        let per_cost = select_probe_baseline(
+            &portfolio,
+            &candidates,
+            ProbeBaseline::InformationGainPerCost,
+            None,
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
+        let random_first = select_probe_baseline(
+            &portfolio,
+            &candidates,
+            ProbeBaseline::SeededRandomEligible,
+            Some(&seed),
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
+        let random_second = select_probe_baseline(
+            &portfolio,
+            &candidates,
+            ProbeBaseline::SeededRandomEligible,
+            Some(&seed),
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
+        let robust = select_probe_baseline(
+            &portfolio,
+            &candidates,
+            ProbeBaseline::RiskAdjustedWorstCaseInformationGain,
+            None,
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
+
+        assert_eq!(no_evidence.selected_candidate_id, None);
+        assert_eq!(cheapest.selected_candidate_id.as_deref(), Some("cheap_low_gain"));
+        assert_eq!(maximum_gain.selected_candidate_id.as_deref(), Some("expensive_high_gain"));
+        assert!(per_cost.selected_candidate_id.is_some());
+        assert_eq!(random_first.selected_candidate_id, random_second.selected_candidate_id);
+        assert_eq!(robust.selected_candidate_id, portfolio.ranked_recommendations[0].candidate_id.as_str().into());
+        for selection in [&cheapest, &maximum_gain, &per_cost, &random_first, &robust] {
+            assert_eq!(selection.eligible_candidate_count, 3);
+            assert_eq!(selection.eligible_catalogue_sha256, cheapest.eligible_catalogue_sha256);
+        }
+    }
+
+    #[test]
+    fn seeded_random_baseline_requires_a_valid_frozen_seed_digest() {
+        let candidates = vec![candidate(
+            "informative",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        )];
+        let policy = ProbeSelectionPolicy::conservative_read_only();
+        let portfolio = rank_diagnostic_probes(&hypotheses(), &candidates, &policy).unwrap();
+        assert_eq!(
+            select_probe_baseline(
+                &portfolio,
+                &candidates,
+                ProbeBaseline::SeededRandomEligible,
+                Some("not-a-digest"),
+                policy.cost_penalty_scale_seconds,
+            ),
+            Err(ProbeError::InvalidSeedDigest)
+        );
     }
 
     #[test]
