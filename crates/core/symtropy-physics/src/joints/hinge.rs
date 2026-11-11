@@ -33,6 +33,145 @@ fn bivector_inner_product<const D: usize>(
 }
 
 
+/// Solve the ideal hinge reaction impulse that removes forbidden-plane
+/// relative angular velocity without applying impulse in the allowed plane.
+///
+/// The constraint impulse is restricted to the forbidden-plane cotangent
+/// subspace. Its reduced effective inverse inertia is K_ff, where
+/// K = I_A^-1 + I_B^-1. Solving K_ff * J_f = -stiffness * relative_omega_f
+/// produces a physically inertia-weighted constraint projection.
+fn hinge_constraint_reaction_impulse<const D: usize>(
+    body_a: &RigidBody<D>,
+    body_b: &RigidBody<D>,
+    plane_axis_a: usize,
+    plane_axis_b: usize,
+    stiffness: f64,
+) -> Option<Bivector<D>> {
+    let dof = Bivector::<D>::num_components();
+    if dof == 0 || dof > MAX_HINGE_ROTATIONAL_DOF || !stiffness.is_finite() {
+        return None;
+    }
+    if stiffness <= 0.0 || dof <= 1 {
+        return Some(Bivector::zero());
+    }
+
+    let (allowed_a, allowed_b) = if plane_axis_a < plane_axis_b {
+        (plane_axis_a, plane_axis_b)
+    } else {
+        (plane_axis_b, plane_axis_a)
+    };
+    let mut planes = [(0usize, 0usize); MAX_HINGE_ROTATIONAL_DOF];
+    let mut forbidden_indices = [0usize; MAX_HINGE_ROTATIONAL_DOF];
+    let mut plane_count = 0usize;
+    let mut forbidden_count = 0usize;
+    for i in 0..D {
+        for j in (i + 1)..D {
+            if plane_count >= MAX_HINGE_ROTATIONAL_DOF {
+                return None;
+            }
+            planes[plane_count] = (i, j);
+            if i != allowed_a || j != allowed_b {
+                forbidden_indices[forbidden_count] = plane_count;
+                forbidden_count += 1;
+            }
+            plane_count += 1;
+        }
+    }
+    if plane_count != dof || forbidden_count + 1 != dof {
+        return None;
+    }
+
+    // Assemble the forbidden-plane block K_ff in fixed stack storage.
+    let mut effective_inverse = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF * MAX_HINGE_ROTATIONAL_DOF];
+    let mut matrix_scale = 0.0_f64;
+    for column in 0..forbidden_count {
+        let (i, j) = planes[forbidden_indices[column]];
+        let mut unit_impulse = Bivector::<D>::zero();
+        unit_impulse.set(i, j, 1.0);
+        let response = body_a
+            .apply_inverse_angular_inertia(&unit_impulse)
+            .add(&body_b.apply_inverse_angular_inertia(&unit_impulse));
+        if !response.is_finite() {
+            return None;
+        }
+        for row in 0..forbidden_count {
+            let (row_i, row_j) = planes[forbidden_indices[row]];
+            let value = response.get(row_i, row_j);
+            effective_inverse[row * MAX_HINGE_ROTATIONAL_DOF + column] = value;
+            matrix_scale = matrix_scale.max(value.abs());
+        }
+    }
+    if !matrix_scale.is_finite() || matrix_scale <= f64::MIN_POSITIVE {
+        return None;
+    }
+
+    // Cholesky factorization validates symmetry and positive definiteness of
+    // the reduced constraint-space effective inverse inertia.
+    let mut lower = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF * MAX_HINGE_ROTATIONAL_DOF];
+    let symmetry_tolerance = 1.0e-9 * matrix_scale;
+    for row in 0..forbidden_count {
+        for column in 0..=row {
+            let a = effective_inverse[row * MAX_HINGE_ROTATIONAL_DOF + column];
+            let b = effective_inverse[column * MAX_HINGE_ROTATIONAL_DOF + row];
+            if (a - b).abs() > symmetry_tolerance {
+                return None;
+            }
+            let mut residual = 0.5 * (a + b);
+            for k in 0..column {
+                residual -= lower[row * MAX_HINGE_ROTATIONAL_DOF + k]
+                    * lower[column * MAX_HINGE_ROTATIONAL_DOF + k];
+            }
+            if row == column {
+                if !residual.is_finite() || residual <= 1.0e-14 * matrix_scale {
+                    return None;
+                }
+                lower[row * MAX_HINGE_ROTATIONAL_DOF + column] = residual.sqrt();
+            } else {
+                let diagonal = lower[column * MAX_HINGE_ROTATIONAL_DOF + column];
+                if !diagonal.is_finite() || diagonal <= f64::MIN_POSITIVE {
+                    return None;
+                }
+                lower[row * MAX_HINGE_ROTATIONAL_DOF + column] = residual / diagonal;
+            }
+        }
+    }
+
+    let mut rhs = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF];
+    for index in 0..forbidden_count {
+        let (i, j) = planes[forbidden_indices[index]];
+        rhs[index] = -stiffness
+            * (body_b.angular_velocity.get(i, j) - body_a.angular_velocity.get(i, j));
+    }
+
+    let mut forward = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF];
+    for row in 0..forbidden_count {
+        let mut value = rhs[row];
+        for column in 0..row {
+            value -= lower[row * MAX_HINGE_ROTATIONAL_DOF + column] * forward[column];
+        }
+        forward[row] = value / lower[row * MAX_HINGE_ROTATIONAL_DOF + row];
+    }
+
+    let mut solution = [0.0_f64; MAX_HINGE_ROTATIONAL_DOF];
+    for row in (0..forbidden_count).rev() {
+        let mut value = forward[row];
+        for column in (row + 1)..forbidden_count {
+            value -= lower[column * MAX_HINGE_ROTATIONAL_DOF + row] * solution[column];
+        }
+        solution[row] = value / lower[row * MAX_HINGE_ROTATIONAL_DOF + row];
+        if !solution[row].is_finite() {
+            return None;
+        }
+    }
+
+    let mut reaction = Bivector::<D>::zero();
+    for index in 0..forbidden_count {
+        let (i, j) = planes[forbidden_indices[index]];
+        reaction.set(i, j, solution[index]);
+    }
+    Some(reaction)
+}
+
 /// Build the total equal-and-opposite angular impulse for a hinge motor while
 /// enforcing zero relative velocity change in every forbidden hinge plane.
 ///
@@ -329,10 +468,11 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             }
         }
 
-        // === Angular constraint: project out disallowed angular velocity ===
-        // The hinge allows rotation only in the (plane_axis_a, plane_axis_b) plane.
-        // For each bivector plane that is NOT the allowed plane,
-        // damp the relative angular velocity.
+        // === Angular constraint: inertia-weighted forbidden-plane projection ===
+        // The allowed plane remains unconstrained. The reaction impulse is
+        // restricted to forbidden planes and solved through K_ff, where
+        // K = I_A^-1 + I_B^-1. This replaces the old equal velocity split,
+        // which was not physically consistent for unequal/off-diagonal links.
         let num_bivector_components = D * (D - 1) / 2;
         if num_bivector_components <= 1 && self.motor.is_none() {
             return; // 2D: only one rotation plane, hinge is trivially satisfied
@@ -344,34 +484,38 @@ impl<const D: usize> Constraint<D> for HingeJoint<D> {
             (self.plane_axis_b, self.plane_axis_a)
         };
 
-        for i in 0..D {
-            for j in (i + 1)..D {
-                if i == pa && j == pb {
-                    continue; // Allowed plane
-                }
+        if num_bivector_components > 1 && self.stiffness > 0.0 {
+            if let Some(reaction_impulse) = hinge_constraint_reaction_impulse(
+                body_a,
+                body_b,
+                pa,
+                pb,
+                self.stiffness,
+            ) {
+                let energy_before =
+                    body_a.rotational_kinetic_energy() + body_b.rotational_kinetic_energy();
 
-                let rel_component =
-                    body_b.angular_velocity.get(i, j) - body_a.angular_velocity.get(i, j);
-                if rel_component.abs() < 1e-10 {
-                    continue;
-                }
-
-                let correction = rel_component * self.stiffness * 0.5;
                 if body_a.is_dynamic() {
-                    body_a.angular_velocity.set(
-                        i,
-                        j,
-                        body_a.angular_velocity.get(i, j) + correction,
+                    crate::integrator::apply_angular_impulse(
+                        body_a,
+                        &reaction_impulse.scale(-1.0),
                     );
                 }
                 if body_b.is_dynamic() {
-                    body_b.angular_velocity.set(
-                        i,
-                        j,
-                        body_b.angular_velocity.get(i, j) - correction,
-                    );
+                    crate::integrator::apply_angular_impulse(body_b, &reaction_impulse);
+                }
+
+                let energy_after =
+                    body_a.rotational_kinetic_energy() + body_b.rotational_kinetic_energy();
+                let dissipated = energy_before - energy_after;
+                if dissipated.is_finite() && dissipated > 0.0 {
+                    if let Some(ref mut cb) = callback {
+                        cb.record_dissipation(dissipated);
+                    }
                 }
             }
+            // Invalid/singular inertia returns no reaction. Do not substitute
+            // an unqualified equal-split approximation.
         }
 
         // Motor drive on the hinge rotation axis
