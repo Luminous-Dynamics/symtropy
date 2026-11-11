@@ -1199,6 +1199,13 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
 
                     // Impulse work gives the exact kinetic-energy change for this
+                    // contact row under the same effective-mass approximation
+                    // used to compute the impulse:
+                    // ΔK = j_t * (|v_t| + 0.5 * W_t * j_t).
+                    // The legacy |impulse| * constant proxy has momentum units,
+                    // not energy, and is not a physical dissipation measure.
+                    let friction_work = j_t * (v_t_mag + 0.5 * denom_t * j_t);
+                    total_friction_dissipation += (-friction_work).max(0.0);
                 }
             }
         }
