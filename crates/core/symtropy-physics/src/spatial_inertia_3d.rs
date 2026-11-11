@@ -881,7 +881,7 @@ mod tests {
             .contact_inverse_effective_mass(&offset, &normal, 1.0e-12)
             .unwrap();
         let observed = inertia
-            .contact_inverse_effective_mass(&(offset), &(normal * 1.0e300), 1.0e-12)
+            .contact_inverse_effective_mass(&offset, &(normal * 1.0e300), 1.0e-12)
             .unwrap();
         assert!((expected - observed).abs() < 2.0e-11);
     }
