@@ -2,10 +2,11 @@ name: Scan-to-BIM Replay Contract
 
 on:
   pull_request:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-ifc-delivery-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "research/scan-bim-ifc-delivery-001/**"
+      - "research/scan-bim-representation-continuity-001/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
@@ -19,6 +20,7 @@ on:
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "research/scan-bim-ifc-delivery-001/**"
+      - "research/scan-bim-representation-continuity-001/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
