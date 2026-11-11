@@ -22,14 +22,18 @@
 //!
 //! This module evaluates the separated equations and their local Mino-time
 //! derivatives, supplies a turning-point-regular second-order system, and
-//! integrates exterior rays with adaptive RK4 step-doubling. A separate
-//! canonical Hamiltonian vector-field evaluator provides an independent
-//! formulation and supports the horizon-regular ingoing Kerr chart.
+//! integrates exterior rays with adaptive step-doubling. A canonical Hamiltonian
+//! path independently evaluates and integrates Kerr trajectories in
+//! Boyer-Lindquist and horizon-regular ingoing charts. Its local 8x8 flow
+//! Jacobian is generated from second-order metric AD and checked against
+//! finite-difference derivatives and the canonical symplectic identity.
 //!
-//! The module is not yet a ray-bundle/Jacobi solver, does not provide finite-radius
-//! observer tetrads or caustic detection, and does not integrate the canonical
-//! Hamiltonian vector field. The adaptive Mino integrator uses Boyer-Lindquist
-//! coordinates and deliberately stops at the horizon/chart boundary.
+//! This is not yet a propagated observer-screen-to-source Jacobi map or a
+//! complete ray-bundle solver: tangent-map integration, screen projection,
+//! caustic localization, image-branch matching, and qualified magnification
+//! remain open work. The separated Mino integrator is Boyer-Lindquist and
+//! stops at its horizon/chart boundary; the canonical ingoing-chart path is
+//! the route for future-horizon crossing.
 
 use core::fmt;
 
