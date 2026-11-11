@@ -134,8 +134,7 @@ impl TwoReservoirTransfer {
     /// Exergy destruction is returned only when T0 is explicitly supplied:
     /// X_destroyed = T0 * S_gen.
     pub fn evaluate(self) -> Result<TransferResult, ThermoError> {
-        let reciprocal_temperature_delta =
-            (1.0 / self.cold.get()) - (1.0 / self.hot.get());
+        let reciprocal_temperature_delta = (1.0 / self.cold.get()) - (1.0 / self.hot.get());
         if !reciprocal_temperature_delta.is_finite() {
             return Err(ThermoError::NonFiniteResult);
         }
@@ -327,9 +326,7 @@ pub fn validate_heat_port_coverage(
         }
     }
 
-    if required.len() != observed.len()
-        || required.iter().any(|id| !observed.contains(id))
-    {
+    if required.len() != observed.len() || required.iter().any(|id| !observed.contains(id)) {
         return Err(ThermoError::IncompleteBoundary);
     }
     Ok(())
@@ -368,10 +365,7 @@ mod tests {
         .expect("finite result");
 
         close(result.entropy_generated.get(), 0.0);
-        close(
-            result.exergy_destroyed.expect("T0 supplied").get(),
-            0.0,
-        );
+        close(result.exergy_destroyed.expect("T0 supplied").get(), 0.0);
     }
 
     #[test]
@@ -398,15 +392,10 @@ mod tests {
 
     #[test]
     fn exergy_is_unknown_without_environment_reference() {
-        let result = TwoReservoirTransfer::new(
-            heat(10.0),
-            kelvin(330.0),
-            kelvin(300.0),
-            None,
-        )
-        .expect("valid direction")
-        .evaluate()
-        .expect("finite result");
+        let result = TwoReservoirTransfer::new(heat(10.0), kelvin(330.0), kelvin(300.0), None)
+            .expect("valid direction")
+            .evaluate()
+            .expect("finite result");
 
         assert!(result.exergy_destroyed.is_none());
     }
@@ -414,12 +403,7 @@ mod tests {
     #[test]
     fn reversed_temperature_order_is_rejected() {
         assert_eq!(
-            TwoReservoirTransfer::new(
-                heat(10.0),
-                kelvin(290.0),
-                kelvin(300.0),
-                None,
-            ),
+            TwoReservoirTransfer::new(heat(10.0), kelvin(290.0), kelvin(300.0), None,),
             Err(ThermoError::HeatDirectionNotGuaranteed)
         );
     }
@@ -430,18 +414,12 @@ mod tests {
             HeatJoules::new(-1.0),
             Err(ThermoError::NegativeHeatMagnitude)
         );
-        assert_eq!(
-            HeatJoules::new(f64::NAN),
-            Err(ThermoError::NonFiniteInput)
-        );
+        assert_eq!(HeatJoules::new(f64::NAN), Err(ThermoError::NonFiniteInput));
         assert_eq!(
             Kelvin::new(0.0),
             Err(ThermoError::NonPositiveAbsoluteTemperature)
         );
-        assert_eq!(
-            Kelvin::new(f64::INFINITY),
-            Err(ThermoError::NonFiniteInput)
-        );
+        assert_eq!(Kelvin::new(f64::INFINITY), Err(ThermoError::NonFiniteInput));
     }
 
     #[test]
@@ -480,16 +458,10 @@ mod tests {
             Err(ThermoError::IncompleteBoundary)
         );
         assert_eq!(
-            validate_heat_port_coverage(&required, &[
-                "winding-to-housing",
-                "winding-to-housing",
-            ]),
+            validate_heat_port_coverage(&required, &["winding-to-housing", "winding-to-housing",]),
             Err(ThermoError::IncompleteBoundary)
         );
-        assert_eq!(
-            validate_heat_port_coverage(&required, &required),
-            Ok(())
-        );
+        assert_eq!(validate_heat_port_coverage(&required, &required), Ok(()));
     }
 
     #[test]
