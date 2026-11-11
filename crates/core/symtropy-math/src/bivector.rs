@@ -3,9 +3,11 @@
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
 use nalgebra::{SMatrix, SVector};
 
-/// Maximum supported dimension for bivectors.
-/// D=4 → 6, D=5 → 10, D=6 → 15, D=7 → 21, D=8 → 28, D=9 → 36.
-/// Supports up to 9D physics for dimensional sweep experiments.
+/// Default storage retains six components (D<=4) on the production hot path.
+/// Research builds may opt into 36 components (D<=9) with `nd-bivector-9`.
+#[cfg(not(feature = "nd-bivector-9"))]
+const MAX_BIVECTOR_COMPONENTS: usize = 6;
+#[cfg(feature = "nd-bivector-9")]
 const MAX_BIVECTOR_COMPONENTS: usize = 36;
 
 /// A bivector in D-dimensional space (grade-2 element of the geometric algebra).
@@ -13,8 +15,8 @@ const MAX_BIVECTOR_COMPONENTS: usize = 36;
 /// Bivectors represent oriented planes. In 3D they are dual to pseudovectors.
 /// In ND they properly represent rotations: a rotation happens IN a plane.
 ///
-/// **Stack-allocated**: uses `[f64; 6]` fixed array (max for D=4).
-/// Zero heap allocation — safe for physics hot loops at 60+ Hz.
+/// **Stack-allocated**: default `[f64; 6]` (D<=4); `nd-bivector-9` opts into
+/// `[f64; 36]` research storage (D<=9). Zero heap allocation in both modes.
 ///
 /// Component ordering: lexicographic (i,j) with i < j.
 /// For D=4: [e01, e02, e03, e12, e13, e23].
@@ -23,15 +25,18 @@ pub struct Bivector<const D: usize> {
     components: [f64; MAX_BIVECTOR_COMPONENTS],
 }
 
-// Compile-time assertion: D must be ≤ 9 (36 bivector components max)
-const fn _assert_d_le_9<const D: usize>() {
+// Const-evaluated storage guard. D=5..9 requires the explicit research feature.
+const fn _assert_dimension_supported<const D: usize>() {
     assert!(
         D * (D - 1) / 2 <= MAX_BIVECTOR_COMPONENTS,
-        "Bivector supports D <= 9 (max 36 components)"
+        "Bivector dimension exceeds enabled storage; enable nd-bivector-9 for D<=9"
     );
 }
 
 impl<const D: usize> Bivector<D> {
+    /// Maximum dimension supported by the currently enabled storage feature.
+    pub const MAX_SUPPORTED_DIMENSION: usize = if cfg!(feature = "nd-bivector-9") { 9 } else { 4 };
+
     /// Number of independent components: D*(D-1)/2.
     pub const fn num_components() -> usize {
         D * (D - 1) / 2
@@ -40,7 +45,7 @@ impl<const D: usize> Bivector<D> {
     /// Zero bivector.
     #[inline]
     pub fn zero() -> Self {
-        _assert_d_le_9::<D>();
+        _assert_dimension_supported::<D>();
         Self {
             components: [0.0; MAX_BIVECTOR_COMPONENTS],
         }
