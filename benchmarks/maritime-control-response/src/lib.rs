@@ -553,8 +553,6 @@ pub struct CommandResponsePair {
     pub command_value: Option<f64>,
     /// Time at which the requested command became available to the predictor.
     pub command_time_seconds: Option<f64>,
-    /// Time at which the frozen model issued expected_response.
-    pub prediction_time_seconds: f64,
     pub response_value: Option<f64>,
     /// Time at which the independent physical response was observed.
     pub response_time_seconds: Option<f64>,
@@ -574,6 +572,7 @@ pub struct CommandResponsePair {
 pub struct ResponseEvaluation {
     pub recording_id: String,
     pub sample_index: u64,
+    pub prediction_time_seconds: f64,
     pub command_signal: String,
     pub response_signal: String,
     pub regime_id: String,
