@@ -89,12 +89,14 @@ jobs:
           # Reject absolute paths, traversal components, and Windows-style paths
           # before extraction. Never execute files from the archive.
           unzip -Z1 "$archive" | awk '
-            /^\\// || /^[A-Za-z]:/ || /\\/ { exit 1 }
             {
+              if (substr($0, 1, 1) == "/" || $0 ~ /^[A-Za-z]:/ || index($0, "\\") > 0) exit 1
               n = split($0, component, "/")
               for (i = 1; i <= n; i++) if (component[i] == "..") exit 1
             }
           '
+          # Refuse archive symlink entries before extracting into the runner.
+          zipinfo -l "$archive" | awk 'NR > 3 && substr($1, 1, 1) == "l" { exit 1 }'
           mkdir -p "$root"
           unzip -q -o "$archive" -d "$root"
           csv_count="$(find "$root" -type f -iname '*.csv' | wc -l | tr -d ' ')"
