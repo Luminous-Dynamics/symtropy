@@ -93,7 +93,8 @@
     "update_rule_field": "VicsekConfig.update_rule",
     "default_update_rule": "CurrentPositionAlignment",
     "trajectory_metric_mode": "VicsekModel.step and run_steps return fast_metrics (O(N^2) trajectory metrics, graph topology fields omitted)",
-    "full_topology_mode": "VicsekModel.metrics computes exact graph clustering and shortest-path metrics; call at registered checkpoints, not every tick in large sweeps"
+    "full_topology_mode": "VicsekModel.metrics computes exact graph clustering and shortest-path metrics; call at registered checkpoints, not every tick in large sweeps",
+    "metric_snapshot_provenance": "Every VicsekMetrics record carries tick, update_rule and topology_metrics_computed; aggregation must keep update_rule as a required group key."
   },
   "benchmark_regimes": [
     {
@@ -448,7 +449,8 @@
     "Intervention and sham trajectories must start from identical cloned state and PRNG state; the intervention itself must not consume random draws.",
     "Report direct treatment effects, downstream effects and sham/null responses separately; transfer entropy alone is not a causal claim.",
     "Record common environmental inputs separately from agent-to-agent interaction variables.",
-    "A common exogenous intervention affecting multiple agents is not an inter-agent causal edge; include common-driver nulls in false-edge evaluation."
+    "A common exogenous intervention affecting multiple agents is not an inter-agent causal edge; include common-driver nulls in false-edge evaluation.",
+    "Every metric snapshot includes its update_rule. Do not pool CurrentPositionAlignment and NextPositionAlignment rows or drop the rule field during export."
   ],
   "reproducibility": {
     "manifest_is_input_contract": true,
