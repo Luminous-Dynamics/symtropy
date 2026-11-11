@@ -120,7 +120,10 @@
     "mean_neighbors_excluding_self": "Average number of other particles inside the interaction radius",
     "neighbor_count_variance": "Population variance of local neighbour counts",
     "cluster_count": "Connected components in the metric-neighbour graph",
-    "largest_cluster_fraction": "Fraction of all particles in the largest connected component"
+    "largest_cluster_fraction": "Fraction of all particles in the largest connected component",
+    "mean_local_polar_order": "Mean magnitude of each particle's local neighbour heading vector, including the particle itself",
+    "local_polar_order_variance": "Population variance of per-particle local polar-order values",
+    "note": "Global polar order, local polar order and interaction/cluster statistics must be reported together. A globally disordered system may contain highly ordered local clusters."
   },
   "benchmark_tasks": [
     "Collective order versus independent-particle baseline",
