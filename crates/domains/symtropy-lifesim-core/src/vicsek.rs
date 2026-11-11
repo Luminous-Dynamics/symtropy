@@ -196,6 +196,8 @@ impl Error for VicsekError {}
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct VicsekMetrics {
     pub tick: u64,
+    /// Neighbour-time convention used by the simulation that produced this snapshot.
+    pub update_rule: VicsekUpdateRule,
     pub particle_count: usize,
     /// Magnitude of the mean unit heading vector, in [0, 1].
     pub polar_order: f64,
@@ -734,6 +736,7 @@ impl VicsekModel {
 
         VicsekMetrics {
             tick: self.tick,
+            update_rule: self.config.update_rule,
             particle_count: count,
             polar_order,
             mean_neighbors_excluding_self: mean_neighbors,
