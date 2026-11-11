@@ -147,6 +147,10 @@ struct EpisodeReport {
     branch_evidence_audit_valid: bool,
     stale_actor_replay_negative_control_rejected: bool,
     branch_evidence_finding_count: usize,
+    degradation_recovery_audit_valid: bool,
+    missing_frame_acceptance_negative_control_rejected: bool,
+    degradation_recovery_event_count: usize,
+    degradation_recovery_finding_count: usize,
     symthaea_bridge_invoked: bool,
     symthaea_bridge_processed_observations: usize,
     symthaea_receipt_chain_valid: bool,
@@ -1113,12 +1117,251 @@ fn invoke_branch_evidence_auditor(
     Ok((branch_audit_valid, stale_rejected, finding_count))
 }
 
+fn degradation_trace_tick(
+    tick: u64,
+    condition: &str,
+    accepted: bool,
+    detected_event: Option<&str>,
+    containment_event: Option<&str>,
+    normal_mode: bool,
+    degraded_mode: bool,
+    fallback_active: bool,
+) -> Value {
+    let capture = world_timestamp(tick);
+    let delivered = if tick == DELAYED_TICK {
+        capture + clocks(tick).delivered_timestamp_us - clocks(tick).capture_timestamp_us
+    } else {
+        capture
+    };
+    json!({
+        "tick": tick,
+        "capture_timestamp_us": capture,
+        "delivered_timestamp_us": delivered,
+        "conditions": [condition],
+        "policy_input_accepted": accepted,
+        "fault_detection_event_ids": detected_event.into_iter().collect::<Vec<_>>(),
+        "containment_event_ids": containment_event.into_iter().collect::<Vec<_>>(),
+        "degraded_mode": degraded_mode,
+        "fallback_active": fallback_active,
+        "safe_stop_complete": false,
+        "normal_mode": normal_mode,
+        "decision_latency_us": 15_000 + tick * 100,
+        "inference_energy_uj": 50 + tick
+    })
+}
+
+fn degradation_campaign_value() -> Value {
+    let clean_ticks = (1..=EXPECTED_TICKS)
+        .map(|tick| {
+            degradation_trace_tick(
+                tick, "clean", true, None, None, true, false, false,
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let faulted_ticks = (1..=EXPECTED_TICKS)
+        .map(|tick| match tick {
+            DELAYED_TICK => degradation_trace_tick(
+                tick,
+                "delayed",
+                true,
+                Some("frame-delay-007"),
+                Some("frame-delay-007"),
+                false,
+                true,
+                true,
+            ),
+            8 | 9 => degradation_trace_tick(
+                tick,
+                "clean",
+                true,
+                None,
+                Some("frame-delay-007"),
+                false,
+                true,
+                true,
+            ),
+            10 => degradation_trace_tick(
+                tick, "clean", true, None, None, true, false, false,
+            ),
+            MISSING_TICK => degradation_trace_tick(
+                tick,
+                "missing",
+                false,
+                Some("camera-drop-011"),
+                Some("camera-drop-011"),
+                false,
+                true,
+                true,
+            ),
+            12 | 13 => degradation_trace_tick(
+                tick,
+                "clean",
+                true,
+                None,
+                Some("camera-drop-011"),
+                false,
+                true,
+                true,
+            ),
+            _ => degradation_trace_tick(
+                tick, "clean", true, None, None, true, false, false,
+            ),
+        })
+        .collect::<Vec<_>>();
+
+    let scenario_seed = sha256_hex(b"fresh-process-driving-scenario-seed-v1");
+    let environment_randomness =
+        sha256_hex(b"fresh-process-driving-exogenous-randomness-v1");
+    json!({
+        "schema_version": 1,
+        "campaign_id": "fresh-process-renderer-bridge-degradation-v1",
+        "model_id": "symthaea-camera-driving-input-fixture",
+        "model_status": "untrained_input_bridge",
+        "model_revision": "symthaea-camera-driving-bridge-v0.1",
+        "checkpoint_sha256": null,
+        "hardware_id": "synthetic-fixture-host-not-measured",
+        "inference_precision": "fp32-fixture",
+        "power_profile": "not-measured-fixture",
+        "energy_measurement_method": "synthetic-fixture-values-not-hardware-measurement",
+        "policy_visible_inputs": ["front-camera-rgb8", "vehicle-state-vector"],
+        "benchmark_revision": "degradation-recovery-envelope-v0.1",
+        "evaluator_revision": "degradation-recovery-auditor-v1",
+        "clock_id": CLOCK_ID,
+        "policy_deadline_us": 100_000,
+        "fault_schedule_visible_to_policy": false,
+        "clean_control": {
+            "run_id": "renderer-bridge-clean-control",
+            "disposition": "complete",
+            "scenario_seed_sha256": scenario_seed,
+            "environment_randomness_sha256": environment_randomness,
+            "expected_tick_count": EXPECTED_TICKS,
+            "ticks": clean_ticks
+        },
+        "faulted_run": {
+            "run_id": "renderer-bridge-faulted",
+            "disposition": "complete",
+            "scenario_seed_sha256": scenario_seed,
+            "environment_randomness_sha256": environment_randomness,
+            "expected_tick_count": EXPECTED_TICKS,
+            "ticks": faulted_ticks
+        },
+        "events": [
+            {
+                "event_id": "frame-delay-007",
+                "causality": "independent",
+                "causal_group_id": null,
+                "parent_event_id": null,
+                "kind": "frame_delay",
+                "start_tick": DELAYED_TICK,
+                "end_tick": DELAYED_TICK,
+                "severity_ppm": 500_000,
+                "detection_deadline_ticks": 0,
+                "containment_deadline_ticks": 0,
+                "max_accepted_frame_age_us": 5_000,
+                "recovery_healthy_quorum_ticks": 2
+            },
+            {
+                "event_id": "camera-drop-011",
+                "causality": "independent",
+                "causal_group_id": null,
+                "parent_event_id": null,
+                "kind": "camera_drop",
+                "start_tick": MISSING_TICK,
+                "end_tick": MISSING_TICK,
+                "severity_ppm": 1_000_000,
+                "detection_deadline_ticks": 0,
+                "containment_deadline_ticks": 0,
+                "max_accepted_frame_age_us": 0,
+                "recovery_healthy_quorum_ticks": 2
+            }
+        ]
+    })
+}
+
+fn invoke_degradation_recovery_auditor(
+    episode_dir: &Path,
+    auditor_binary: &Path,
+) -> Result<(bool, bool, usize, usize), Box<dyn Error>> {
+    let audit_dir = episode_dir.join("degradation-recovery-auditor");
+    fs::create_dir_all(&audit_dir)?;
+    let valid_input = audit_dir.join("campaign-from-renderer-bridge.json");
+    let valid_output = audit_dir.join("report-valid.json");
+    let negative_input = audit_dir.join("campaign-missing-frame-accepted-negative-control.json");
+    let negative_output = audit_dir.join("report-missing-frame-accepted-negative-control.json");
+
+    let campaign = degradation_campaign_value();
+    write_json(&valid_input, &campaign)?;
+    let valid_status = Command::new(auditor_binary)
+        .arg(&valid_input)
+        .arg(&valid_output)
+        .status()?;
+    if !valid_status.success() {
+        return Err("degradation/recovery auditor rejected the paired renderer/bridge campaign".into());
+    }
+    let valid_report = read_json(&valid_output)?;
+    let audit_valid = valid_report["disposition"].as_str() == Some("valid")
+        && valid_report["findings"].as_array().is_some_and(Vec::is_empty)
+        && valid_report["expected_ticks"].as_u64() == Some(EXPECTED_TICKS)
+        && valid_report["faulted_observed_ticks"].as_u64() == Some(EXPECTED_TICKS)
+        && valid_report["fault_event_count"].as_u64() == Some(2);
+    let event_reports = valid_report["events"].as_array()
+        .ok_or("degradation auditor report lacks events[]")?;
+    if !audit_valid
+        || event_reports[0]["detection_latency_ticks"].as_u64() != Some(0)
+        || event_reports[0]["containment_latency_ticks"].as_u64() != Some(0)
+        || event_reports[0]["recovery_tick"].as_u64() != Some(10)
+        || event_reports[1]["detection_latency_ticks"].as_u64() != Some(0)
+        || event_reports[1]["containment_latency_ticks"].as_u64() != Some(0)
+        || event_reports[1]["recovery_tick"].as_u64() != Some(14)
+    {
+        return Err("degradation/recovery positive campaign did not produce the expected event metrics".into());
+    }
+
+    let mut negative_campaign = campaign;
+    negative_campaign["faulted_run"]["ticks"][(MISSING_TICK - 1) as usize]
+        ["policy_input_accepted"] = json!(true);
+    write_json(&negative_input, &negative_campaign)?;
+    let negative_status = Command::new(auditor_binary)
+        .arg(&negative_input)
+        .arg(&negative_output)
+        .status()?;
+    if negative_status.code() != Some(1) {
+        return Err("degradation auditor did not reject missing-frame acceptance with campaign-rejected exit code 1".into());
+    }
+    let negative_report = read_json(&negative_output)?;
+    let findings = negative_report["findings"]
+        .as_array()
+        .ok_or("degradation negative-control report lacks findings[]")?;
+    let negative_control_rejected = negative_report["disposition"].as_str() == Some("rejected")
+        && findings.iter().any(|finding| {
+            finding.as_str() == Some("forbidden_policy_input_accepted")
+        });
+    if !negative_control_rejected {
+        return Err("degradation negative control did not produce forbidden_policy_input_accepted".into());
+    }
+
+    let finding_count = valid_report["findings"].as_array().map_or(0, Vec::len)
+        + findings.len();
+    write_json(
+        &audit_dir.join("audit-summary.json"),
+        &json!({
+            "valid_renderer_bridge_campaign": valid_report,
+            "missing_frame_acceptance_negative_control": negative_report,
+            "missing_frame_acceptance_rejected": negative_control_rejected,
+            "event_count": event_reports.len()
+        }),
+    )?;
+    Ok((audit_valid, negative_control_rejected, event_reports.len(), finding_count))
+}
+
 fn run_parent(
     episode_dir: &Path,
     bridge_config_path: &Path,
     vision_config_path: &Path,
     bridge_binary: &Path,
     branch_auditor_binary: &Path,
+    degradation_auditor_binary: &Path,
 ) -> Result<EpisodeReport, Box<dyn Error>> {
     if episode_dir.exists() {
         let mut existing = fs::read_dir(episode_dir)?;
@@ -1139,6 +1382,10 @@ fn run_parent(
     let branch_auditor_binary = fs::canonicalize(branch_auditor_binary)?;
     if !branch_auditor_binary.is_file() {
         return Err("recoverable-driving-evidence auditor binary is not a regular file".into());
+    }
+    let degradation_auditor_binary = fs::canonicalize(degradation_auditor_binary)?;
+    if !degradation_auditor_binary.is_file() {
+        return Err("degradation-recovery-envelope auditor binary is not a regular file".into());
     }
 
     let bridge_config = read_json(bridge_config_path)?;
@@ -1241,6 +1488,12 @@ fn run_parent(
     let changed_branch = make_changed_action_branch(&episode_dir)?;
     let (branch_audit_valid, stale_actor_rejected, branch_audit_findings) =
         invoke_branch_evidence_auditor(&episode_dir, &branch_auditor_binary)?;
+    let (
+        degradation_audit_valid,
+        missing_frame_negative_control_rejected,
+        degradation_event_count,
+        degradation_finding_count,
+    ) = invoke_degradation_recovery_auditor(&episode_dir, &degradation_auditor_binary)?;
     if changed_branch.base_frame_sha256 == changed_branch.branch_frame_sha256
         || changed_branch.base_world_snapshot_sha256 == changed_branch.branch_world_snapshot_sha256
     {
@@ -1330,6 +1583,10 @@ fn run_parent(
         branch_evidence_audit_valid: branch_audit_valid,
         stale_actor_replay_negative_control_rejected: stale_actor_rejected,
         branch_evidence_finding_count: branch_audit_findings,
+        degradation_recovery_audit_valid: degradation_audit_valid,
+        missing_frame_acceptance_negative_control_rejected: missing_frame_negative_control_rejected,
+        degradation_recovery_event_count: degradation_event_count,
+        degradation_recovery_finding_count: degradation_finding_count,
         symthaea_bridge_invoked: true,
         symthaea_bridge_processed_observations: bridge_count,
         symthaea_receipt_chain_valid: bridge_chain_valid,
@@ -1360,13 +1617,14 @@ fn main() {
         } else {
             run_replay_child(Path::new(&args[1]), Path::new(&args[2]))
         }
-    } else if args.len() == 5 {
+    } else if args.len() == 6 {
         run_parent(
             Path::new(&args[0]),
             Path::new(&args[1]),
             Path::new(&args[2]),
             Path::new(&args[3]),
             Path::new(&args[4]),
+            Path::new(&args[5]),
         )
         .map(|report| {
             println!(
@@ -1381,7 +1639,7 @@ fn main() {
         })
     } else {
         Err(
-            "usage: fresh-process-driving-replay <episode-dir> <bridge-config.json> <vision-config.json> <camera-driving-bridge-binary> <recoverable-driving-evidence-binary>"
+            "usage: fresh-process-driving-replay <episode-dir> <bridge-config.json> <vision-config.json> <camera-driving-bridge-binary> <recoverable-driving-evidence-binary> <degradation-recovery-envelope-binary>"
                 .into(),
         )
     };
