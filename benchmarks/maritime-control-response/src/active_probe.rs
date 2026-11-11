@@ -1765,7 +1765,24 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("upstream mandatory checks"), true);
-        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 18);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 28);
+        assert!(protocol["method"]["observation_update"]["posterior"]
+            .as_str()
+            .unwrap()
+            .contains("scenario-weighted"));
+        assert!(protocol["method"]["observation_update"]["realized_information"]
+            .as_str()
+            .unwrap()
+            .contains("can be negative"));
+        assert!(protocol["method"]["observation_update"]["receipt_binding"]
+            .as_str()
+            .unwrap()
+            .contains("signer authentication"));
+        assert!(protocol["required_metrics"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|metric| metric == "realized_kl_divergence_nats"));
         assert!(protocol["method"]["uncertainty_scenarios"]["eligibility"]
             .as_str()
             .unwrap()
