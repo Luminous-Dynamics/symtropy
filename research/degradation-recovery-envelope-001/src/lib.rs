@@ -1525,6 +1525,7 @@ mod tests {
         assert!(!has(&report, "missing_causal_parent"));
         assert!(!has(&report, "causal_parent_after_child"));
         assert!(!has(&report, "causal_parent_cycle"));
+        assert_eq!(report.disposition, "valid");
         assert_eq!(report.events.len(), 2);
     }
 
