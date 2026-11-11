@@ -256,9 +256,7 @@ fn not_run() -> GateResult {
 fn visibility_gate(status: VisibilityStatus) -> GateResult {
     match status {
         VisibilityStatus::Observable => gate(GateStatus::Pass, &[]),
-        VisibilityStatus::SelfOccluded => {
-            gate(GateStatus::Fail, &["GEOMETRICALLY_SELF_OCCLUDED"])
-        }
+        VisibilityStatus::SelfOccluded => gate(GateStatus::Fail, &["GEOMETRICALLY_SELF_OCCLUDED"]),
         VisibilityStatus::ExternallyOccluded => {
             gate(GateStatus::Fail, &["GEOMETRICALLY_EXTERNALLY_OCCLUDED"])
         }
@@ -296,18 +294,14 @@ fn observation_gate(case: &Case) -> GateResult {
                 gate(GateStatus::Fail, &["OBSERVATION_NOT_CAPTURED"])
             }
         }
-        ObservationStatus::InvalidReturn => {
-            gate(GateStatus::Fail, &["OBSERVATION_INVALID_RETURN"])
-        }
+        ObservationStatus::InvalidReturn => gate(GateStatus::Fail, &["OBSERVATION_INVALID_RETURN"]),
         ObservationStatus::MixedReturn => {
             gate(GateStatus::Unresolved, &["OBSERVATION_MIXED_RETURN"])
         }
         ObservationStatus::Contradictory => {
             gate(GateStatus::Unresolved, &["OBSERVATION_CONTRADICTORY"])
         }
-        ObservationStatus::Unknown => {
-            gate(GateStatus::Unresolved, &["OBSERVATION_UNKNOWN"])
-        }
+        ObservationStatus::Unknown => gate(GateStatus::Unresolved, &["OBSERVATION_UNKNOWN"]),
     }
 }
 
@@ -429,11 +423,7 @@ fn metrology_gate(case: &Case, observation: &GateResult) -> GateResult {
 
     match validation.status {
         ValidationStatus::Qualified => {
-            if !validation
-                .evidence_sha256
-                .as_deref()
-                .is_some_and(is_sha256)
-            {
+            if !validation.evidence_sha256.as_deref().is_some_and(is_sha256) {
                 reasons.insert("INDEPENDENT_VALIDATION_EVIDENCE_MISSING_OR_INVALID");
             }
         }
@@ -617,14 +607,14 @@ fn task_gate(case: &Case, metrology: &GateResult) -> (GateResult, Option<f64>) {
         || !case.task.maximum_total_error_bound_m.is_finite()
         || case.task.maximum_total_error_bound_m <= 0.0
     {
-        return (
-            gate(GateStatus::Fail, &["TASK_REQUIREMENT_INVALID"]),
-            None,
-        );
+        return (gate(GateStatus::Fail, &["TASK_REQUIREMENT_INVALID"]), None);
     }
 
     let Some(systematic_bound) = measurement.systematic_error_bound_m else {
-        return (gate(GateStatus::Unresolved, &["SYSTEMATIC_ERROR_BOUND_UNKNOWN"]), None);
+        return (
+            gate(GateStatus::Unresolved, &["SYSTEMATIC_ERROR_BOUND_UNKNOWN"]),
+            None,
+        );
     };
 
     // Keep stochastic dispersion and persistent systematic bounds separate.
@@ -677,8 +667,8 @@ fn evaluate_case(case: &Case) -> CaseResult {
     expected_reasons.sort();
     expected_reasons.dedup();
     let reason_codes = reasons.into_iter().collect::<Vec<_>>();
-    let matches_expected = disposition == case.expected.overall_disposition
-        && reason_codes == expected_reasons;
+    let matches_expected =
+        disposition == case.expected.overall_disposition && reason_codes == expected_reasons;
 
     CaseResult {
         case_id: case.case_id.clone(),
@@ -770,10 +760,7 @@ fn run() -> Result<i32, Box<dyn Error>> {
     let corpus_path = corpus_path.ok_or("expected --corpus <json-file>")?;
     let metadata = fs::metadata(&corpus_path)?;
     if metadata.len() > MAX_CORPUS_BYTES {
-        return Err(format!(
-            "corpus exceeds maximum size of {MAX_CORPUS_BYTES} bytes"
-        )
-        .into());
+        return Err(format!("corpus exceeds maximum size of {MAX_CORPUS_BYTES} bytes").into());
     }
 
     let input_bytes = fs::read(&corpus_path)?;
@@ -821,10 +808,7 @@ mod tests {
             .iter_mut()
             .find(|case| case.case_id == "visible_but_not_captured")
             .expect("known fixture case");
-        assert_eq!(
-            visibility_gate(case.visibility).status,
-            GateStatus::Pass
-        );
+        assert_eq!(visibility_gate(case.visibility).status, GateStatus::Pass);
         case.observation = ObservationStatus::NotCaptured;
         case.measurement = None;
         let result = evaluate_case(case);
@@ -844,9 +828,11 @@ mod tests {
             vec!["reference-a".to_owned(), "reference-a".to_owned()];
         let result = evaluate_case(case);
         assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
-        assert!(result
-            .reason_codes
-            .contains(&"DUPLICATE_REFERENCE_LINEAGE_NOT_INDEPENDENT".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"DUPLICATE_REFERENCE_LINEAGE_NOT_INDEPENDENT".to_owned())
+        );
     }
 
     #[test]
@@ -891,10 +877,7 @@ mod tests {
         value
             .as_object_mut()
             .expect("corpus root is an object")
-            .insert(
-                "unexpected_field".to_owned(),
-                serde_json::Value::Bool(true),
-            );
+            .insert("unexpected_field".to_owned(), serde_json::Value::Bool(true));
         let encoded = serde_json::to_vec(&value).expect("mutated JSON serializes");
         assert!(serde_json::from_slice::<Corpus>(&encoded).is_err());
     }
@@ -909,9 +892,11 @@ mod tests {
             .expect("lineage overlap fixture");
         let result = evaluate_case(case);
         assert_eq!(result.metrology_gate.status, GateStatus::Fail);
-        assert!(result
-            .reason_codes
-            .contains(&"CALIBRATION_HOLDOUT_GROUP_OVERLAP".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CALIBRATION_HOLDOUT_GROUP_OVERLAP".to_owned())
+        );
     }
 
     #[test]
@@ -924,9 +909,11 @@ mod tests {
             .expect("duplicate calibration group fixture");
         let result = evaluate_case(duplicate_calibration);
         assert_eq!(result.metrology_gate.status, GateStatus::Fail);
-        assert!(result
-            .reason_codes
-            .contains(&"CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE".to_owned())
+        );
 
         let duplicate_holdout = corpus
             .cases
@@ -935,9 +922,11 @@ mod tests {
             .expect("duplicate holdout group fixture");
         let result = evaluate_case(duplicate_holdout);
         assert_eq!(result.metrology_gate.status, GateStatus::Fail);
-        assert!(result
-            .reason_codes
-            .contains(&"HOLDOUT_REFERENCE_GROUP_ID_DUPLICATE".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"HOLDOUT_REFERENCE_GROUP_ID_DUPLICATE".to_owned())
+        );
     }
 
     #[test]
@@ -950,9 +939,11 @@ mod tests {
             .expect("missing holdout groups fixture");
         let result = evaluate_case(case);
         assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
-        assert!(result
-            .reason_codes
-            .contains(&"HOLDOUT_REFERENCE_GROUPS_MISSING".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"HOLDOUT_REFERENCE_GROUPS_MISSING".to_owned())
+        );
     }
 
     #[test]
@@ -965,9 +956,11 @@ mod tests {
             .expect("refit fixture");
         let result = evaluate_case(case);
         assert_eq!(result.metrology_gate.status, GateStatus::Fail);
-        assert!(result
-            .reason_codes
-            .contains(&"HOLDOUT_PARAMETERS_NOT_FROZEN".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"HOLDOUT_PARAMETERS_NOT_FROZEN".to_owned())
+        );
     }
 
     #[test]
@@ -981,9 +974,11 @@ mod tests {
         let result = evaluate_case(case);
         assert_eq!(result.overall_disposition, OverallDisposition::Fail);
         assert_eq!(result.conservative_total_error_bound_m, Some(0.016));
-        assert!(result
-            .reason_codes
-            .contains(&"TASK_TOTAL_ERROR_BOUND_EXCEEDED".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"TASK_TOTAL_ERROR_BOUND_EXCEEDED".to_owned())
+        );
     }
 
     #[test]
@@ -997,9 +992,11 @@ mod tests {
         let result = evaluate_case(case);
         assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
         assert_eq!(result.overall_disposition, OverallDisposition::Unresolved);
-        assert!(result
-            .reason_codes
-            .contains(&"SYSTEMATIC_ERROR_BOUND_UNKNOWN".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"SYSTEMATIC_ERROR_BOUND_UNKNOWN".to_owned())
+        );
     }
 
     #[test]
@@ -1012,9 +1009,11 @@ mod tests {
             .expect("grazing fixture");
         let result = evaluate_case(grazing);
         assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
-        assert!(result
-            .reason_codes
-            .contains(&"SENSOR_INCIDENCE_OUT_OF_DOMAIN".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"SENSOR_INCIDENCE_OUT_OF_DOMAIN".to_owned())
+        );
 
         let unsupported = corpus
             .cases
@@ -1023,9 +1022,11 @@ mod tests {
             .expect("surface fixture");
         let result = evaluate_case(unsupported);
         assert_eq!(result.metrology_gate.status, GateStatus::Unresolved);
-        assert!(result
-            .reason_codes
-            .contains(&"SENSOR_SURFACE_RESPONSE_OUT_OF_DOMAIN".to_owned()));
+        assert!(
+            result
+                .reason_codes
+                .contains(&"SENSOR_SURFACE_RESPONSE_OUT_OF_DOMAIN".to_owned())
+        );
     }
 
     #[test]
