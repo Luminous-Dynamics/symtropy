@@ -67,7 +67,7 @@ struct TopologyEdge {
 
 #[derive(Debug, Deserialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
-enum ChangeEstimateStatus {
+enum EvidenceStatus {
     Qualified,
     Unresolved,
     Invalid,
@@ -81,16 +81,34 @@ enum RegistrationStabilityStatus {
     Unknown,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
+struct EvidenceReceiptRef {
+    status: EvidenceStatus,
+    receipt_sha256: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+#[serde(deny_unknown_fields)]
+struct SurveyEvidenceBinding {
+    survey_product_sha256: String,
+    asset_id: String,
+    base_model_revision: String,
+    frame_id: String,
+    survey_product_status: EvidenceStatus,
+    change_estimate: EvidenceReceiptRef,
+    registration_stability: RegistrationStabilityStatus,
+    registration_stability_receipt: EvidenceReceiptRef,
+    independent_checkpoint: EvidenceReceiptRef,
+}
+
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Candidate {
     asset_id: String,
     base_model_revision: String,
     frame_id: String,
-    survey_qualified: bool,
-    change_estimate_status: ChangeEstimateStatus,
-    registration_stability_status: RegistrationStabilityStatus,
-    independent_checkpoint_evidence_sha256: Option<String>,
+    survey_evidence: SurveyEvidenceBinding,
     claims_unobserved_geometry: bool,
     elements: Vec<ObservedElement>,
     topology: Vec<TopologyEdge>,
@@ -166,32 +184,95 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
     let reference = &case.reference;
     let candidate = &case.candidate;
 
-    if !candidate.survey_qualified {
+    // #1607 owns survey/change-estimate computation. This consumer gate
+    // requires the product, estimate, registration and checkpoint receipts to
+    // share the exact asset/model/frame/survey-product scope.
+    let survey_evidence = &candidate.survey_evidence;
+    if survey_evidence.asset_id != candidate.asset_id
+        || survey_evidence.base_model_revision != candidate.base_model_revision
+        || survey_evidence.frame_id != candidate.frame_id
+        || !is_sha256(&survey_evidence.survey_product_sha256)
+    {
         return decision(
             "STALE_OR_INVALID_EVIDENCE",
-            "UPSTREAM_SURVEY_PRODUCT_NOT_QUALIFIED",
+            "SURVEY_EVIDENCE_SCOPE_MISMATCH_OR_INVALID_PRODUCT_DIGEST",
         );
     }
-    // #1607 owns the survey/change-estimate computation. Admission only
-    // consumes its disposition and independent-checkpoint receipt; it must
-    // not reinterpret common-mode registration motion as physical change.
-    match candidate.change_estimate_status {
-        ChangeEstimateStatus::Qualified => {}
-        ChangeEstimateStatus::Unresolved => {
+    match survey_evidence.survey_product_status {
+        EvidenceStatus::Qualified => {}
+        EvidenceStatus::Unresolved => {
+            return decision(
+                "REQUEST_ADDITIONAL_OBSERVATION",
+                "SURVEY_PRODUCT_UNRESOLVED",
+            );
+        }
+        EvidenceStatus::Invalid => {
+            return decision(
+                "STALE_OR_INVALID_EVIDENCE",
+                "UPSTREAM_SURVEY_PRODUCT_INVALID",
+            );
+        }
+    }
+
+    match survey_evidence.change_estimate.status {
+        EvidenceStatus::Qualified => {
+            if !survey_evidence
+                .change_estimate
+                .receipt_sha256
+                .as_deref()
+                .is_some_and(is_sha256)
+            {
+                return decision(
+                    "STALE_OR_INVALID_EVIDENCE",
+                    "CHANGE_ESTIMATE_RECEIPT_MISSING_OR_INVALID",
+                );
+            }
+        }
+        EvidenceStatus::Unresolved => {
             return decision(
                 "REQUEST_ADDITIONAL_OBSERVATION",
                 "SURVEY_CHANGE_ESTIMATE_UNRESOLVED",
             );
         }
-        ChangeEstimateStatus::Invalid => {
+        EvidenceStatus::Invalid => {
             return decision(
                 "STALE_OR_INVALID_EVIDENCE",
                 "SURVEY_CHANGE_ESTIMATE_INVALID",
             );
         }
     }
-    match candidate.registration_stability_status {
-        RegistrationStabilityStatus::Stable => {}
+
+    match survey_evidence.registration_stability {
+        RegistrationStabilityStatus::Stable => match survey_evidence
+            .registration_stability_receipt
+            .status
+        {
+            EvidenceStatus::Qualified => {
+                if !survey_evidence
+                    .registration_stability_receipt
+                    .receipt_sha256
+                    .as_deref()
+                    .is_some_and(is_sha256)
+                {
+                    return decision(
+                        "STALE_OR_INVALID_EVIDENCE",
+                        "REGISTRATION_STABILITY_RECEIPT_MISSING_OR_INVALID",
+                    );
+                }
+            }
+            EvidenceStatus::Unresolved => {
+                return decision(
+                    "REQUEST_ADDITIONAL_OBSERVATION",
+                    "REGISTRATION_STABILITY_UNRESOLVED",
+                );
+            }
+            EvidenceStatus::Invalid => {
+                return decision(
+                    "STALE_OR_INVALID_EVIDENCE",
+                    "REGISTRATION_STABILITY_EVIDENCE_INVALID",
+                );
+            }
+        },
         RegistrationStabilityStatus::DriftSuspected => {
             return decision(
                 "REQUEST_ADDITIONAL_OBSERVATION",
@@ -205,15 +286,33 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
             );
         }
     }
-    if !candidate
-        .independent_checkpoint_evidence_sha256
-        .as_deref()
-        .is_some_and(is_sha256)
-    {
-        return decision(
-            "STALE_OR_INVALID_EVIDENCE",
-            "INDEPENDENT_CHECKPOINT_EVIDENCE_MISSING_OR_INVALID",
-        );
+
+    match survey_evidence.independent_checkpoint.status {
+        EvidenceStatus::Qualified => {
+            if !survey_evidence
+                .independent_checkpoint
+                .receipt_sha256
+                .as_deref()
+                .is_some_and(is_sha256)
+            {
+                return decision(
+                    "STALE_OR_INVALID_EVIDENCE",
+                    "INDEPENDENT_CHECKPOINT_EVIDENCE_MISSING_OR_INVALID",
+                );
+            }
+        }
+        EvidenceStatus::Unresolved => {
+            return decision(
+                "REQUEST_ADDITIONAL_OBSERVATION",
+                "INDEPENDENT_CHECKPOINT_EVIDENCE_UNRESOLVED",
+            );
+        }
+        EvidenceStatus::Invalid => {
+            return decision(
+                "STALE_OR_INVALID_EVIDENCE",
+                "INDEPENDENT_CHECKPOINT_EVIDENCE_INVALID",
+            );
+        }
     }
     if candidate.asset_id != reference.asset_id {
         return decision("STALE_OR_INVALID_EVIDENCE", "ASSET_ID_MISMATCH");
@@ -600,13 +699,7 @@ mod tests {
             asset_id: case.candidate.asset_id.clone(),
             base_model_revision: case.candidate.base_model_revision.clone(),
             frame_id: case.candidate.frame_id.clone(),
-            survey_qualified: case.candidate.survey_qualified,
-            change_estimate_status: case.candidate.change_estimate_status,
-            registration_stability_status: case.candidate.registration_stability_status,
-            independent_checkpoint_evidence_sha256: case
-                .candidate
-                .independent_checkpoint_evidence_sha256
-                .clone(),
+            survey_evidence: case.candidate.survey_evidence.clone(),
             claims_unobserved_geometry: case.candidate.claims_unobserved_geometry,
             elements: case
                 .candidate
