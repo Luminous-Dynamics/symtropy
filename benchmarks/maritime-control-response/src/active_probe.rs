@@ -170,6 +170,26 @@ pub struct RankedDiagnosticProbe {
     pub risk_score_ppm: u32,
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ProbeBaseline {
+    NoAdditionalEvidence,
+    CheapestEligible,
+    MaximumInformationGain,
+    InformationGainPerCost,
+    SeededRandomEligible,
+    RiskAdjustedWorstCaseInformationGain,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq)]
+pub struct ProbeBaselineSelection {
+    pub baseline: ProbeBaseline,
+    pub selected_candidate_id: Option<String>,
+    pub eligible_candidate_count: usize,
+    pub eligible_catalogue_sha256: String,
+    pub seed_manifest_sha256: Option<String>,
+}
+
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ProbePortfolio {
     pub hypothesis_manifest_sha256: String,
@@ -196,6 +216,8 @@ pub enum ProbeError {
     InvalidLikelihoodProbability(String),
     InvalidLikelihoodNormalization(String),
     InvalidScenarioSet(String),
+    CandidateCatalogMismatch,
+    InvalidSeedDigest,
     InvalidInformationGain(String),
     Serialization,
 }
@@ -214,6 +236,8 @@ impl fmt::Display for ProbeError {
             Self::InvalidLikelihoodProbability(id) => write!(formatter, "probe likelihood is negative, non-finite, or above one: {id}"),
             Self::InvalidLikelihoodNormalization(id) => write!(formatter, "conditional outcomes do not sum to one for every hypothesis: {id}"),
             Self::InvalidScenarioSet(id) => write!(formatter, "likelihood uncertainty scenarios are empty, duplicated, unnormalized, or ambiguous: {id}"),
+            Self::CandidateCatalogMismatch => write!(formatter, "baseline candidates do not match the scored probe catalogue"),
+            Self::InvalidSeedDigest => write!(formatter, "seed manifest must be a lowercase SHA-256 digest"),
             Self::InvalidInformationGain(id) => write!(formatter, "expected information gain is numerically invalid: {id}"),
             Self::Serialization => write!(formatter, "failed to serialize probe evidence for canonical hashing"),
         }
@@ -435,6 +459,126 @@ pub fn rank_diagnostic_probes(
         assessments,
         execution_performed: false,
         actuation_authorized: false,
+    })
+}
+
+/// Select a candidate using a frozen baseline over the exact same hard-eligible
+/// catalogue. This enables matched comparisons with the risk-adjusted selector
+/// without relaxing any authorization, risk or information-gain gate.
+pub fn select_probe_baseline(
+    portfolio: &ProbePortfolio,
+    candidates: &[DiagnosticProbeCandidate],
+    baseline: ProbeBaseline,
+    seed_manifest_sha256: Option<&str>,
+    cost_penalty_scale_seconds: f64,
+) -> Result<ProbeBaselineSelection, ProbeError> {
+    if !cost_penalty_scale_seconds.is_finite() || cost_penalty_scale_seconds <= 0.0 {
+        return Err(ProbeError::InvalidPolicy);
+    }
+    let candidate_ids = candidates
+        .iter()
+        .map(|candidate| candidate.candidate_id.as_str())
+        .collect::<BTreeSet<_>>();
+    let assessment_ids = portfolio
+        .assessments
+        .iter()
+        .map(|assessment| assessment.candidate_id.as_str())
+        .collect::<BTreeSet<_>>();
+    if candidate_ids.len() != candidates.len()
+        || assessment_ids.len() != portfolio.assessments.len()
+        || candidate_ids != assessment_ids
+    {
+        return Err(ProbeError::CandidateCatalogMismatch);
+    }
+
+    let eligible_assessments = portfolio
+        .assessments
+        .iter()
+        .filter(|assessment| assessment.eligible)
+        .collect::<Vec<_>>();
+    let eligible_ids = eligible_assessments
+        .iter()
+        .map(|assessment| assessment.candidate_id.clone())
+        .collect::<Vec<_>>();
+    let eligible_catalogue_sha256 = sha256_serializable(
+        b"symtropy-diagnostic-eligible-probe-catalogue-v1\\0",
+        &eligible_ids,
+    )?;
+    let eligible_candidates = candidates
+        .iter()
+        .filter(|candidate| {
+            eligible_assessments
+                .iter()
+                .any(|assessment| assessment.candidate_id == candidate.candidate_id)
+        })
+        .collect::<Vec<_>>();
+
+    let selected_candidate_id = match baseline {
+        ProbeBaseline::NoAdditionalEvidence => None,
+        ProbeBaseline::CheapestEligible => eligible_candidates
+            .iter()
+            .min_by(|left, right| {
+                left.expected_cost_seconds
+                    .total_cmp(&right.expected_cost_seconds)
+                    .then_with(|| left.candidate_id.cmp(&right.candidate_id))
+            })
+            .map(|candidate| candidate.candidate_id.clone()),
+        ProbeBaseline::MaximumInformationGain => eligible_assessments
+            .iter()
+            .max_by(|left, right| {
+                left.expected_information_gain_nats
+                    .total_cmp(&right.expected_information_gain_nats)
+                    .then_with(|| right.candidate_id.cmp(&left.candidate_id))
+            })
+            .map(|assessment| assessment.candidate_id.clone()),
+        ProbeBaseline::InformationGainPerCost => eligible_assessments
+            .iter()
+            .filter_map(|assessment| {
+                let candidate = eligible_candidates
+                    .iter()
+                    .find(|candidate| candidate.candidate_id == assessment.candidate_id)?;
+                let utility = assessment.expected_information_gain_nats
+                    / (1.0 + candidate.expected_cost_seconds / cost_penalty_scale_seconds);
+                Some((assessment.candidate_id.as_str(), utility))
+            })
+            .max_by(|left, right| {
+                left.1
+                    .total_cmp(&right.1)
+                    .then_with(|| right.0.cmp(left.0))
+            })
+            .map(|(candidate_id, _)| candidate_id.to_owned()),
+        ProbeBaseline::SeededRandomEligible => {
+            let seed = seed_manifest_sha256.ok_or(ProbeError::InvalidSeedDigest)?;
+            if !is_sha256_hex(seed) {
+                return Err(ProbeError::InvalidSeedDigest);
+            }
+            if eligible_ids.is_empty() {
+                None
+            } else {
+                let random_digest = sha256_serializable(
+                    b"symtropy-diagnostic-random-baseline-v1\\0",
+                    &(seed, &eligible_ids),
+                )?;
+                let draw = u64::from_str_radix(&random_digest[..16], 16)
+                    .map_err(|_| ProbeError::InvalidSeedDigest)?;
+                Some(eligible_ids[(draw % eligible_ids.len() as u64) as usize].clone())
+            }
+        }
+        ProbeBaseline::RiskAdjustedWorstCaseInformationGain => portfolio
+            .ranked_recommendations
+            .first()
+            .map(|recommendation| recommendation.candidate_id.clone()),
+    };
+    Ok(ProbeBaselineSelection {
+        baseline,
+        selected_candidate_id,
+        eligible_candidate_count: eligible_ids.len(),
+        eligible_catalogue_sha256,
+        seed_manifest_sha256: if baseline == ProbeBaseline::SeededRandomEligible {
+            seed_manifest_sha256.map(str::to_owned)
+        } else {
+            None
+        },
     })
 }
 
