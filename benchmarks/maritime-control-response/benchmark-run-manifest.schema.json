@@ -229,7 +229,11 @@
         "seed_manifest_sha256",
         "tuning_frozen_before_test",
         "official_interface_reproduced",
-        "event_evaluation"
+        "event_evaluation",
+        "shift_matrix_sha256",
+        "shift_axis",
+        "shift_holdout_manifest_sha256",
+        "independent_test_recordings"
       ],
       "properties": {
         "protocol_sha256": {
@@ -325,6 +329,29 @@
               }
             }
           }
+        },
+        "shift_matrix_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "shift_axis": {
+          "enum": [
+            "in_cycle_reference",
+            "C_SHIFT_DRIVING_CYCLE",
+            "C_SHIFT_AMBIENT_ENVELOPE",
+            "F_SHIFT_HELD_OUT_FAULT_FAMILY",
+            "C_PLUS_F_SHIFT",
+            "MAGNITUDE_SHIFT_WITHIN_FAMILY",
+            "SENSOR_CHAIN_SHIFT"
+          ]
+        },
+        "shift_holdout_manifest_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "independent_test_recordings": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -567,6 +594,12 @@
               },
               "false_alarms_per_observed_normal_hour": {
                 "type": "null"
+              },
+              "unknown_false_known_rate": {
+                "type": "null"
+              },
+              "per_fault_macro_recall": {
+                "type": "null"
               }
             }
           },
@@ -631,6 +664,16 @@
                     "type": "string"
                   }
                 }
+              },
+              "shift_matrix_sha256": {
+                "type": "string"
+              },
+              "shift_holdout_manifest_sha256": {
+                "type": "string"
+              },
+              "independent_test_recordings": {
+                "type": "integer",
+                "minimum": 5
               }
             }
           }
