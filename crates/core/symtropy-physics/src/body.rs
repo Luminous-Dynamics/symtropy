@@ -61,6 +61,9 @@ pub struct RigidBody<const D: usize> {
     pub rotational_inertia_operator: Option<RotationalInertiaOperator<D>>,
     /// Set when a mass-distribution change invalidates the attached operator.
     pub rotational_inertia_operator_invalidated: bool,
+    /// Mass value (f64 bits) when the full inertia operator was attached.
+    /// Detects direct public mass mutation that bypasses the replacement API.
+    pub rotational_inertia_operator_mass_bits: Option<u64>,
     /// True when compound mass properties use the legacy approximation.
     pub rotational_inertia_approximate: bool,
     pub collider: Box<dyn Shape<D>>,
@@ -109,6 +112,7 @@ impl<const D: usize> RigidBody<D> {
             inv_inertia,
             rotational_inertia_operator: None,
             rotational_inertia_operator_invalidated: false,
+            rotational_inertia_operator_mass_bits: None,
             rotational_inertia_approximate: false,
             collider,
             friction: 0.5,
@@ -228,7 +232,11 @@ impl<const D: usize> RigidBody<D> {
             return RotationalInertiaModel::InvalidPrincipalMoments;
         }
         if self.rotational_inertia_operator.is_some() {
-            return RotationalInertiaModel::ValidatedSpatialBivectorOperator;
+            return if self.rotational_inertia_operator_mass_bits == Some(self.mass.to_bits()) {
+                RotationalInertiaModel::ValidatedSpatialBivectorOperator
+            } else {
+                RotationalInertiaModel::InvalidPrincipalMoments
+            };
         }
         if self.rotational_inertia_approximate {
             return RotationalInertiaModel::MeanInertiaApproximation;
@@ -252,6 +260,7 @@ impl<const D: usize> RigidBody<D> {
     ) -> Self {
         self.rotational_inertia_operator = Some(operator);
         self.rotational_inertia_operator_invalidated = false;
+        self.rotational_inertia_operator_mass_bits = Some(self.mass.to_bits());
         self.rotational_inertia_approximate = false;
         self
     }
@@ -263,6 +272,7 @@ impl<const D: usize> RigidBody<D> {
     ) {
         self.rotational_inertia_operator = Some(operator);
         self.rotational_inertia_operator_invalidated = false;
+        self.rotational_inertia_operator_mass_bits = Some(self.mass.to_bits());
         self.rotational_inertia_approximate = false;
         self.wake();
     }
@@ -270,6 +280,11 @@ impl<const D: usize> RigidBody<D> {
     fn spatial_inertia_view(
         &self,
     ) -> Option<crate::mass_properties::SpatialRotationalInertiaView<'_, D>> {
+        if self.rotational_inertia_operator_mass_bits != Some(self.mass.to_bits())
+            || self.rotational_inertia_operator_invalidated
+        {
+            return None;
+        }
         self.rotational_inertia_operator
             .as_ref()?
             .in_spatial_frame(&self.transform.rotation)
@@ -535,6 +550,7 @@ impl<const D: usize> RigidBody<D> {
         if self.rotational_inertia_operator.is_some() {
             self.rotational_inertia_operator = None;
             self.rotational_inertia_operator_invalidated = true;
+            self.rotational_inertia_operator_mass_bits = None;
         }
     }
 
@@ -650,6 +666,30 @@ mod rotational_inertia_tests {
         assert!(
             (rotated_delta.add(&baseline_delta.scale(-1.0))).norm() > 1.0e-4,
             "changing body pose should rotate the anisotropic operator in spatial coordinates"
+        );
+    }
+
+    #[test]
+    fn direct_mass_mutation_invalidates_attached_operator_until_replaced() {
+        let operator = RotationalInertiaOperator::<3>::isotropic(1.0).unwrap();
+        let mut body = anisotropic_body().with_rotational_inertia_operator(operator);
+        body.mass += 0.25;
+
+        assert_eq!(
+            body.rotational_inertia_model(),
+            RotationalInertiaModel::InvalidPrincipalMoments
+        );
+        assert_eq!(
+            body.apply_inverse_angular_inertia(&Bivector::<3>::unit_plane(0, 1)),
+            Bivector::zero()
+        );
+
+        body.set_rotational_inertia_operator(
+            RotationalInertiaOperator::<3>::isotropic(1.25).unwrap(),
+        );
+        assert_eq!(
+            body.rotational_inertia_model(),
+            RotationalInertiaModel::ValidatedSpatialBivectorOperator
         );
     }
 
