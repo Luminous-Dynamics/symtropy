@@ -53,7 +53,9 @@ Module: `crates/domains/symtropy-lifesim-core/src/vicsek.rs`
 - CPU-first (O(N^2)) reference implementation.
 
 The module exports:
-- polar order parameter;
+- global polar order parameter;
+- mean local polar order, calculated only over particles with at least one other neighbour;
+- local-order coverage fraction, preventing isolated particles' trivial self-alignment from appearing as collective local order;
 - mean neighbour count excluding self;
 - neighbour-count variance;
 - mean and variance of per-particle local polar order;
@@ -63,9 +65,10 @@ The module exports:
 ## Exact positive and negative controls
 
 1. **All-to-all, zero-noise alignment:** six particles with different initial headings, interaction radius spanning the entire torus and zero noise must produce polar order 1 after one update.
-2. **Self-only, zero-noise control:** radius zero means each particle only aligns with itself; polar order must remain unchanged, mean neighbour count excluding self must be zero, and each particle remains its own graph component.
-3. **Seeded low-noise exploration:** 256 particles, (L=32), (R=1), (v=0.03), (eta=0.2), seed 20261111, 2,000 steps.
-4. **Seeded high-noise control:** same finite system with (eta=4.0), seed 20261112, 2,000 steps.
+2. **Self-only, zero-noise control:** radius zero means each particle only aligns with itself; polar order must remain unchanged, mean neighbour count excluding self must be zero, local-order coverage is zero and local polar order is undefined (null). This prevents a single isolated particle from being counted as perfectly locally ordered.
+3. **Opposed local flocks:** two spatially separated three-particle groups have headings 0 and π. Global polar order is approximately zero, but local-order coverage is 1, mean local polar order is 1, and two clusters are present. This is an exact counterexample to interpreting global order alone.
+4. **Seeded low-noise exploration:** 256 particles, (L=32), (R=1), (v=0.03), (eta=0.2), seed 20261111, 2,000 steps.
+5. **Seeded high-noise control:** same finite system with (eta=4.0), seed 20261112, 2,000 steps.
 
 The low/high noise runs are exploratory finite-size cases. No universal critical noise threshold is hard-coded or asserted. A complete phase diagram requires a pre-registered parameter grid, multiple independent seeds per point, finite-size scaling and uncertainty analysis.
 
@@ -86,6 +89,8 @@ The low/high noise runs are exploratory finite-size cases. No universal critical
 ## Qualification targets (proposed, not achieved)
 
 - Exact replay of the same seed/configuration on the same supported platform.
+- The opposed-local-flocks control must show near-zero global polar order alongside local polar order 1 and two disconnected groups.
+- The self-only control must produce null local polar order and zero local-order coverage.
 - Positive-control polar order within (10^{-12}) of 1 for the all-to-all zero-noise finite fixture.
 - Negative-control invariance of polar order in the self-only zero-noise fixture.
 - No non-finite positions, headings or metrics across a frozen parameter grid.
