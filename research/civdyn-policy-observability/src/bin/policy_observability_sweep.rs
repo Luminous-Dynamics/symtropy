@@ -125,7 +125,7 @@ fn emit(
     let interval = &evaluation.estimates.identified_interval;
     let truth_contained = interval.contains(evaluation.true_mean);
     println!(
-        "{scenario_id},{},{},{:.3},{},{},{:.3},{:.3},{truth_contained},{:.3},{},{},{},{},{:.3},{comparison},{regret},{}",
+        "{scenario_id},{},{},{:.3},{},{},{:.3},{:.3},{truth_contained},{:.3},{},{},{},{},{:.3},{},{},{},{},{comparison},{regret},{}",
         evaluation.policy_id,
         evaluation.true_mechanism.id(),
         evaluation.true_mean,
@@ -139,13 +139,17 @@ fn emit(
         find_stratum_mean(evaluation, "high_need"),
         find_stratum_mean(evaluation, "general"),
         evaluation.true_stratum_gap,
+        evaluation.estimates.missing_by_reason.get(&MissingReason::TelemetryUnavailable).copied().unwrap_or(0),
+        evaluation.estimates.missing_by_reason.get(&MissingReason::Nonresponse).copied().unwrap_or(0),
+        evaluation.estimates.missing_by_reason.get(&MissingReason::PolicySuppressed).copied().unwrap_or(0),
+        evaluation.estimates.missing_by_reason.get(&MissingReason::AdministrativeExclusion).copied().unwrap_or(0),
         fmt_option(mar_estimate),
     );
 }
 
 fn main() {
     println!(
-        "scenario_id,policy_id,true_mechanism,true_mean,complete_case_mean,missing_as_zero_mean,identified_lower,identified_upper,truth_contained,observation_coverage,observed_units,missing_units,high_need_true_mean,general_true_mean,missing_telemetry_unavailable_units,missing_nonresponse_units,missing_policy_suppressed_units,missing_administrative_exclusion_units,robust_comparison_vs_reference,worst_case_regret_upper_bound,known_mar_ht_mean"
+        "scenario_id,policy_id,true_mechanism,true_mean,complete_case_mean,missing_as_zero_mean,identified_lower,identified_upper,truth_contained,observation_coverage,observed_units,missing_units,high_need_true_mean,general_true_mean,true_stratum_gap,missing_telemetry_unavailable_units,missing_nonresponse_units,missing_policy_suppressed_units,missing_administrative_exclusion_units,robust_comparison_vs_reference,worst_case_regret_upper_bound,known_mar_ht_mean"
     );
 
     let support = civdyn_policy_observability::OutcomeSupport {
