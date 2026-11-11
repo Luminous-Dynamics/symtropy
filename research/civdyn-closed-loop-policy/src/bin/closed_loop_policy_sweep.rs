@@ -10,7 +10,10 @@ const CSV_COLUMNS: usize = 36;
 const SYNTHETIC_SOURCE_ID: &str = "synthetic-civdyn-closed-loop-known-answer-v1";
 
 fn csv_field(value: &str) -> String {
-    if value.contains([',', '"', '\n', '\r']) {
+    if value
+        .chars()
+        .any(|character| matches!(character, ',' | '"' | '\n' | '\r'))
+    {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value.to_string()
