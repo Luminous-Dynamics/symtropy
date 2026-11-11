@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "campaign_id": "camera-drop-paired-fixture-v1",
+  "benchmark_revision": "degradation-recovery-envelope-v0.1",
+  "evaluator_revision": "auditor-v1",
+  "clock_id": "monotonic-driving-fixture",
+  "policy_deadline_us": 100000,
+  "clean_control": {
+    "run_id": "camera-drop-control",
+    "disposition": "complete",
+    "scenario_seed_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "environment_randomness_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "expected_tick_count": 8,
+    "ticks": [
+      {
+        "tick": 1,
+        "capture_timestamp_us": 1033333,
+        "delivered_timestamp_us": 1033433,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10100,
+        "inference_energy_uj": 41
+      },
+      {
+        "tick": 2,
+        "capture_timestamp_us": 1066666,
+        "delivered_timestamp_us": 1066766,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10200,
+        "inference_energy_uj": 42
+      },
+      {
+        "tick": 3,
+        "capture_timestamp_us": 1099999,
+        "delivered_timestamp_us": 1100099,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10300,
+        "inference_energy_uj": 43
+      },
+      {
+        "tick": 4,
+        "capture_timestamp_us": 1133332,
+        "delivered_timestamp_us": 1133432,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10400,
+        "inference_energy_uj": 44
+      },
+      {
+        "tick": 5,
+        "capture_timestamp_us": 1166665,
+        "delivered_timestamp_us": 1166765,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10500,
+        "inference_energy_uj": 45
+      },
+      {
+        "tick": 6,
+        "capture_timestamp_us": 1199998,
+        "delivered_timestamp_us": 1200098,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10600,
+        "inference_energy_uj": 46
+      },
+      {
+        "tick": 7,
+        "capture_timestamp_us": 1233331,
+        "delivered_timestamp_us": 1233431,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10700,
+        "inference_energy_uj": 47
+      },
+      {
+        "tick": 8,
+        "capture_timestamp_us": 1266664,
+        "delivered_timestamp_us": 1266764,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10800,
+        "inference_energy_uj": 48
+      }
+    ]
+  },
+  "faulted_run": {
+    "run_id": "camera-drop-faulted",
+    "disposition": "complete",
+    "scenario_seed_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "environment_randomness_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "expected_tick_count": 8,
+    "ticks": [
+      {
+        "tick": 1,
+        "capture_timestamp_us": 1033333,
+        "delivered_timestamp_us": 1033433,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10100,
+        "inference_energy_uj": 41
+      },
+      {
+        "tick": 2,
+        "capture_timestamp_us": 1066666,
+        "delivered_timestamp_us": 1066766,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10200,
+        "inference_energy_uj": 42
+      },
+      {
+        "tick": 3,
+        "capture_timestamp_us": 1099999,
+        "delivered_timestamp_us": 1100099,
+        "conditions": [
+          "missing"
+        ],
+        "policy_input_accepted": false,
+        "fault_detected": true,
+        "degraded_mode": true,
+        "fallback_active": true,
+        "safe_stop_complete": false,
+        "normal_mode": false,
+        "decision_latency_us": 10300,
+        "inference_energy_uj": 43
+      },
+      {
+        "tick": 4,
+        "capture_timestamp_us": 1133332,
+        "delivered_timestamp_us": 1133432,
+        "conditions": [
+          "missing"
+        ],
+        "policy_input_accepted": false,
+        "fault_detected": false,
+        "degraded_mode": true,
+        "fallback_active": true,
+        "safe_stop_complete": false,
+        "normal_mode": false,
+        "decision_latency_us": 10400,
+        "inference_energy_uj": 44
+      },
+      {
+        "tick": 5,
+        "capture_timestamp_us": 1166665,
+        "delivered_timestamp_us": 1166765,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": true,
+        "fallback_active": true,
+        "safe_stop_complete": false,
+        "normal_mode": false,
+        "decision_latency_us": 10500,
+        "inference_energy_uj": 45
+      },
+      {
+        "tick": 6,
+        "capture_timestamp_us": 1199998,
+        "delivered_timestamp_us": 1200098,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": true,
+        "fallback_active": true,
+        "safe_stop_complete": false,
+        "normal_mode": false,
+        "decision_latency_us": 10600,
+        "inference_energy_uj": 46
+      },
+      {
+        "tick": 7,
+        "capture_timestamp_us": 1233331,
+        "delivered_timestamp_us": 1233431,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10700,
+        "inference_energy_uj": 47
+      },
+      {
+        "tick": 8,
+        "capture_timestamp_us": 1266664,
+        "delivered_timestamp_us": 1266764,
+        "conditions": [
+          "clean"
+        ],
+        "policy_input_accepted": true,
+        "fault_detected": false,
+        "degraded_mode": false,
+        "fallback_active": false,
+        "safe_stop_complete": false,
+        "normal_mode": true,
+        "decision_latency_us": 10800,
+        "inference_energy_uj": 48
+      }
+    ]
+  },
+  "events": [
+    {
+      "event_id": "camera-drop-001",
+      "kind": "camera_drop",
+      "start_tick": 3,
+      "end_tick": 4,
+      "severity_ppm": 1000000,
+      "detection_deadline_ticks": 1,
+      "containment_deadline_ticks": 1,
+      "max_accepted_frame_age_us": 0,
+      "recovery_healthy_quorum_ticks": 2
+    }
+  ]
+}
