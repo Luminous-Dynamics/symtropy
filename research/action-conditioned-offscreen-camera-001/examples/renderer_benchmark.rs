@@ -11,9 +11,8 @@ use std::error::Error;
 use std::time::Instant;
 
 use action_conditioned_offscreen_camera::{
-    ActorClass, ActorCuboid, AppliedActionRef, CameraCalibration, Q16_ONE, RenderClocks,
-    RoadMarkingKind, RoadPolyline, SoftwareCameraRenderer, WorldRenderSnapshot,
-    RENDERER_REVISION,
+    ActorClass, ActorCuboid, AppliedActionRef, CameraCalibration, Q16_ONE, RENDERER_REVISION,
+    RenderClocks, RoadMarkingKind, RoadPolyline, SoftwareCameraRenderer, WorldRenderSnapshot,
 };
 
 const WIDTH: u32 = 640;
