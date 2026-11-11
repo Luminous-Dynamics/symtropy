@@ -387,10 +387,6 @@ fn validate_edge(
         || edge.model_id != manifest.model.model_id
         || edge.model_revision != manifest.model.revision
         || edge.output_scope != manifest.request.requested_output_scope
-        || edge.output_definition_id != manifest.request.requested_output_definition_id
-        || edge.error_metric_id != manifest.request.required_error_metric_id
-        || edge.measurement_operator_id.trim().is_empty()
-        || !valid_sha256(&edge.measurement_calibration_digest_sha256)
         || edge.validation_status != "independently_validated"
         || !valid_sha256(&edge.evidence_digest_sha256)
         || edge.validation_specimen_ids.is_empty()
@@ -399,6 +395,17 @@ fn validate_edge(
         || has_duplicates(&edge.calibration_specimen_ids)
     {
         return Err(TransferReason::BridgeEvidenceInvalid);
+    }
+    if edge.output_definition_id != manifest.request.requested_output_definition_id {
+        return Err(TransferReason::OutputDefinitionMismatch);
+    }
+    if edge.error_metric_id != manifest.request.required_error_metric_id {
+        return Err(TransferReason::ErrorMetricMismatch);
+    }
+    if edge.measurement_operator_id.trim().is_empty()
+        || !valid_sha256(&edge.measurement_calibration_digest_sha256)
+    {
+        return Err(TransferReason::MeasurementOperatorInvalid);
     }
     if edge
         .calibration_specimen_ids
@@ -1170,6 +1177,41 @@ mod tests {
         let result = evaluate_transfer(&manifest);
         assert_eq!(result.disposition, TransferDisposition::AbstainOutputScope);
         assert_eq!(result.reason, Some(TransferReason::OutputScopeMismatch));
+    }
+
+    #[test]
+    fn output_definition_must_match_even_when_scope_label_matches() {
+        let mut manifest = base_manifest();
+        manifest.domains[3]
+            .signature
+            .output_definition_id = "different_released_distortion_definition".to_owned();
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.disposition, TransferDisposition::AbstainOutputScope);
+        assert_eq!(result.reason, Some(TransferReason::OutputDefinitionMismatch));
+    }
+
+    #[test]
+    fn bridge_metric_definition_must_match_target_request() {
+        let mut manifest = base_manifest();
+        manifest.bridge_edges[1].error_metric_id = "mean_surface_error_mm_v2".to_owned();
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.reason, Some(TransferReason::ErrorMetricMismatch));
+    }
+
+    #[test]
+    fn bridge_measurement_calibration_digest_is_required() {
+        let mut manifest = base_manifest();
+        manifest.bridge_edges[0].measurement_calibration_digest_sha256 = "missing".to_owned();
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.reason, Some(TransferReason::MeasurementOperatorInvalid));
+    }
+
+    #[test]
+    fn changed_datum_requires_bridge_evidence() {
+        let mut manifest = base_manifest();
+        manifest.domains[3].signature.datum_id = "different_datum".to_owned();
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.reason, Some(TransferReason::BridgeChangedFactorsMismatch));
     }
 
     #[test]
