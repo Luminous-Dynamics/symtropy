@@ -243,7 +243,8 @@
         "control_deadline_us",
         "detected_fault_ids",
         "mode",
-        "oracle_outcome"
+        "oracle_outcome",
+        "fallback_reason_fault_ids"
       ],
       "properties": {
         "tick": {
@@ -294,6 +295,14 @@
             "constraint_violation",
             "unscored"
           ]
+        },
+        "fallback_reason_fault_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       }
     }
@@ -305,6 +314,7 @@
     "Maximum simultaneous scheduled faults must not exceed contract.max_fault_concurrency.",
     "Stable recovery requires min_stable_nominal_ticks consecutive post-fault ticks with no scheduled fault active, nominal mode, fresh camera and vehicle-state observations, inference within deadline and oracle outcome within_envelope.",
     "SHA-256 fields establish identity syntax only; this evaluator does not authenticate upstream artifacts or injected faults.",
-    "A contract_met result is a declared trace-level criterion, not a vehicle safety certification."
+    "A contract_met result is a declared trace-level criterion, not a vehicle safety certification.",
+    "Fallback mode must identify the scheduled fault IDs that caused the fallback; non-fallback modes cannot declare fallback reasons."
   ]
 }
