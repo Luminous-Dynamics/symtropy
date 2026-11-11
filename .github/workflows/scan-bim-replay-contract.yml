@@ -2,7 +2,7 @@ name: Scan-to-BIM Replay Contract
 
 on:
   pull_request:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-ifc-delivery-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-ifc-delivery-v0-1", "research/scan-bim-representation-continuity-v0-1-review"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "research/scan-bim-ifc-delivery-001/**"
