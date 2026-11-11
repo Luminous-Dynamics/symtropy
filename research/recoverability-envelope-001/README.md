@@ -14,6 +14,27 @@ Can an embodied controller preserve a recoverable operating envelope when faults
 
 This track consumes the renderer, observation replay, branch evidence and resource accounting owned by the related work. It is not another simulator, camera renderer, controller, or safety authority.
 
+## Industry and benchmark context (11 November 2026 snapshot)
+
+These are separate evidence classes and must not be combined into one leaderboard.
+
+| Reference | Published comparator | How we use it |
+|---|---|---|
+| Bench2Drive v0.0.4 | LEAD: 95.59 Driving Score / 87.28% Success Rate on the 220-route (44 scenario × 5 repetition) evaluation set | Clean closed-loop task-performance reference; faulted runs must keep native metrics and route denominator |
+| NAVSIM v2 | CLEAR: 88.6 EPDMS on the closed-loop planning track; DriveWorld-VLA: 86.8 EPDMS | Independent planning benchmark; do not compare EPDMS numerically with Bench2Drive DS |
+| Bench2Drive-Robust | Camera drop/partial observation, GPS/speed/odometry errors and inference delay | External deployment-fault comparator; this protocol extends it with fault sequences, attribution and stable recovery |
+| NVIDIA Alpamayo 2 Edge | 2B adaptive-reasoning VLA; NVIDIA reports a 48.9% closed-loop improvement from AlpaGym RL and 160–190 ms pixel-to-trajectory latency on DRIVE AGX Thor | Industry edge-deployment and adaptive-compute reference; measurements are vendor-reported and hardware-specific |
+| World-In-World (ICLR 2026) | Closed-loop evaluation prioritizing task success and controllability over visual fidelity alone | World-model utility reference; require action-conditioned closed-loop benefit |
+
+Sources:
+- Bench2Drive v0.0.4: https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md
+- NAVSIM v2 closed-loop planning table: https://www.sota2.com/research/sota/closed-loop-planning-on-navsim-v2
+- Bench2Drive-Robust: https://arxiv.org/abs/2605.18059
+- NVIDIA Alpamayo 2 Edge (published 10 November 2026): https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits
+- World-In-World: https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html
+
+These values establish the comparison landscape, not Symtropy results. Exact evaluator, model checkpoint, route split, sensor privileges, compute, seeds and benchmark revision must be frozen before a matched comparison.
+
 ## What is new relative to Bench2Drive-Robust
 
 Bench2Drive-Robust (May 18, 2026) studies closed-loop deployment perturbations including camera frame drops/partial observations, ego-state estimation errors and inference delay. We adopt it as an external comparator.
@@ -68,7 +89,7 @@ Every tick has:
 - operating mode (nominal / degraded / fallback);
 - independently supplied oracle outcome (within envelope / degraded within envelope / constraint violation / unscored).
 
-The contract fixes maximum detection delay, fallback delay, recovery latency, stable-nominal interval, freshness limits and fault concurrency.
+The contract fixes maximum detection delay, fallback delay, recovery latency, stable-nominal interval, freshness limits, per-fault deadline-miss budget and fault concurrency. The pairing record binds the clean baseline and faulted candidate checkpoint hashes to the same world seed and simulator/evaluator revisions.
 
 ### Stable recovery
 
@@ -97,6 +118,7 @@ Per episode:
 - expected/observed tick denominator;
 - fault event count and correlation-group count;
 - maximum concurrent faults;
+- clean-baseline pairing identity, world seed and both checkpoint identities;
 - detected/fallback/recovered/contract-met event counts;
 - total constraint-violation ticks;
 - deadline-miss ticks;
