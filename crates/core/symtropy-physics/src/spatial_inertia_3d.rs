@@ -443,6 +443,67 @@ mod tests {
     }
 
     #[test]
+    fn rotated_physical_second_moments_produce_symmetric_psd_spatial_matrices() {
+        for seed in 0..48_u64 {
+            let sx = 0.15 + (seed.wrapping_mul(17) % 31) as f64 * 0.025;
+            let sy = 0.2 + (seed.wrapping_mul(23) % 29) as f64 * 0.03;
+            let sz = 0.25 + (seed.wrapping_mul(11) % 37) as f64 * 0.02;
+            let mut generator = Bivector::<3>::zero();
+            generator.set(0, 1, seed as f64 * 0.007);
+            generator.set(0, 2, seed as f64 * -0.004);
+            generator.set(1, 2, seed as f64 * 0.005);
+            let rotation = Rotor::from_bivector(&generator);
+            let diagonal_second_moment = SMatrix::<f64, 3, 3>::from_diagonal(
+                &SVector::new(sx, sy, sz),
+            );
+            let second_moment =
+                rotation.to_matrix() * diagonal_second_moment * rotation.to_matrix().transpose();
+            let central_inertia =
+                SMatrix::<f64, 3, 3>::identity() * trace(&second_moment) - second_moment;
+            let center = SVector::new(
+                (seed as f64 * 0.13).sin(),
+                (seed as f64 * 0.19).cos(),
+                (seed as f64 * 0.07).sin() * 0.5,
+            );
+            let inertia = SpatialInertia3::new(
+                FrameId(7),
+                ReferencePointId(3),
+                0.5 + (seed % 9) as f64 * 0.17,
+                center,
+                central_inertia,
+            )
+            .unwrap();
+            let matrix = inertia.spatial_mass_matrix().unwrap();
+            let symmetry_error = (matrix - matrix.transpose()).norm();
+            assert!(symmetry_error < 1.0e-12, "seed={seed}, symmetry={symmetry_error:e}");
+            let eigen = nalgebra::linalg::SymmetricEigen::new(DMatrix::from_fn(6, 6, |i, j| {
+                matrix[(i, j)]
+            }));
+            let minimum = eigen
+                .eigenvalues
+                .iter()
+                .fold(f64::INFINITY, |smallest, value| smallest.min(*value));
+            let scale = matrix
+                .iter()
+                .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
+            assert!(
+                minimum >= -1.0e-11 * scale.max(f64::MIN_POSITIVE),
+                "seed={seed}, min spatial-mass eigenvalue={minimum:e}, scale={scale:e}"
+            );
+            let twist = SVector::from([
+                0.1 + seed as f64 * 0.001,
+                -0.3,
+                0.2,
+                0.4,
+                (seed as f64 * 0.11).sin(),
+                -0.2,
+            ]);
+            let energy = inertia.kinetic_energy(&twist).unwrap();
+            assert!(energy > 0.0 && energy.is_finite(), "seed={seed}, energy={energy:e}");
+        }
+    }
+
+    #[test]
     fn shifting_reference_point_preserves_twist_energy_and_momentum() {
         let inertia = sample();
         let twist_p = sample_twist();
