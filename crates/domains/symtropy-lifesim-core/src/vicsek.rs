@@ -754,9 +754,28 @@ impl VicsekModel {
             .map(|particle| particle.heading_rad.sin())
             .collect();
         let mut parents: Vec<usize> = (0..count).collect();
+        let positions: Vec<(f64, f64)> = self
+            .particles
+            .iter()
+            .map(|particle| (particle.x, particle.y))
+            .collect();
+        let spatial_index = PeriodicNeighborIndex::new(
+            &positions,
+            self.config.box_size,
+            self.config.interaction_radius,
+        );
 
         for left in 0..count {
-            for right in (left + 1)..count {
+            let candidates = spatial_index.as_ref().map_or_else(
+                || (left + 1..count).collect::<Vec<_>>(),
+                |grid| {
+                    grid.candidates(positions[left])
+                        .into_iter()
+                        .filter(|right| *right > left)
+                        .collect()
+                },
+            );
+            for right in candidates {
                 let a = self.particles[left];
                 let b = self.particles[right];
                 let left_sees_right = self.perceives((a.x, a.y), a.heading_rad, (b.x, b.y));
