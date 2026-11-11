@@ -1,0 +1,62 @@
+name: AER-01 dynamic coupling audit
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/aero-dynamic-coupling-audit.yml"
+      - "tools/civil-aero-benchmark/dynamic-coupling-audit/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-dynamic-coupling:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact pull-request head
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust with rustfmt
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Record Rust toolchain identity
+        run: |
+          rustc --version --verbose
+          cargo --version
+
+      - name: Check Rust formatting
+        run: cargo fmt --manifest-path tools/civil-aero-benchmark/dynamic-coupling-audit/Cargo.toml -- --check
+
+      - name: Run reduced-order coupling and transaction tests
+        run: cargo test --manifest-path tools/civil-aero-benchmark/dynamic-coupling-audit/Cargo.toml
+
+      - name: Run dynamic coupling audit executable
+        run: cargo run --quiet --manifest-path tools/civil-aero-benchmark/dynamic-coupling-audit/Cargo.toml > dynamic-coupling-audit-result.json
+
+      - name: Independently recompute in Python
+        run: python3 tools/civil-aero-benchmark/dynamic-coupling-audit/verify_independent.py --rust-output dynamic-coupling-audit-result.json
+
+      - name: Create fixture and result digest receipts
+        run: |
+          sha256sum tools/civil-aero-benchmark/dynamic-coupling-audit/data/known-answer-cases-v0.1.0.json > dynamic-coupling-fixture.sha256
+          sha256sum dynamic-coupling-audit-result.json > dynamic-coupling-audit-result.sha256
+
+      - name: Retain exact fixture, result and receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aero-dynamic-coupling-audit-${{ github.sha }}
+          path: |
+            tools/civil-aero-benchmark/dynamic-coupling-audit/data/known-answer-cases-v0.1.0.json
+            dynamic-coupling-audit-result.json
+            dynamic-coupling-fixture.sha256
+            dynamic-coupling-audit-result.sha256
+          if-no-files-found: error
+          retention-days: 90
