@@ -20,6 +20,9 @@ pub struct JointBudget {
     pub planning_tick: u64,
     pub decision_deadline_tick: u64,
     pub actuation_recovery_reserve_ticks: u64,
+    /// Resource units withheld for an independently qualified fallback/recovery path.
+    /// This reserve is never spendable by sensor or inference grants.
+    pub actuation_recovery_reserve_resource_units: u64,
     pub maximum_observation_age_ticks: u64,
     pub remaining_resource_units: u64,
     /// Must be identical for sensor acquisition and inference rollout costs.
@@ -149,8 +152,11 @@ pub struct JointDecisionReceipt {
     pub context_digest: String,
     pub resource_unit_id: String,
     pub resource_budget_units: u64,
+    pub resource_units_reserved_for_recovery: u64,
+    pub resource_units_discretionary_before: u64,
     pub resource_units_committed: u64,
     pub resource_units_remaining: u64,
+    pub resource_units_discretionary_remaining: u64,
     pub decision_value_unit_id: String,
     pub clock_id: String,
     pub completion_bound_tick: u64,
@@ -236,7 +242,21 @@ fn validate_budget(budget: &JointBudget) -> Result<(), SchedulerError> {
             "actuation/recovery reserve exceeds remaining decision window",
         ));
     }
+    if budget.actuation_recovery_reserve_resource_units > budget.remaining_resource_units {
+        return Err(SchedulerError::InvalidBudget(
+            "actuation/recovery resource reserve exceeds remaining resource budget",
+        ));
+    }
     Ok(())
+}
+
+fn discretionary_resource_units(budget: &JointBudget) -> Result<u64, SchedulerError> {
+    budget
+        .remaining_resource_units
+        .checked_sub(budget.actuation_recovery_reserve_resource_units)
+        .ok_or(SchedulerError::InvalidBudget(
+            "recovery resource reserve exceeds remaining resource budget",
+        ))
 }
 
 fn validate_inference_context(
@@ -357,7 +377,9 @@ fn validate_sensor_option(
     if reserve_end > budget.decision_deadline_tick {
         return Err(SensorRejection::DeadlineInfeasible);
     }
-    if option.resource_cost_units > budget.remaining_resource_units {
+    if option.resource_cost_units > discretionary_resource_units(budget)
+        .map_err(|_| SensorRejection::ResourceBudgetInsufficient)?
+    {
         return Err(SensorRejection::ResourceBudgetInsufficient);
     }
     Ok(ValidatedSensorOption {
@@ -389,7 +411,7 @@ fn next_inference_grant(
         AllocationConfig {
             planning_tick: budget.planning_tick,
             maximum_observation_age_ticks: budget.maximum_observation_age_ticks,
-            total_compute_budget_units: budget.remaining_resource_units,
+            total_compute_budget_units: discretionary_resource_units(budget).ok()?,
         },
     )
     .ok()?;
@@ -598,10 +620,16 @@ pub fn schedule(
         context_digest: budget.context_digest.clone(),
         resource_unit_id: budget.resource_unit_id.clone(),
         resource_budget_units: budget.remaining_resource_units,
+        resource_units_reserved_for_recovery: budget.actuation_recovery_reserve_resource_units,
+        resource_units_discretionary_before: discretionary_resource_units(budget)?,
         decision_value_unit_id: budget.decision_value_unit_id.clone(),
         clock_id: budget.clock_id.clone(),
         resource_units_committed,
         resource_units_remaining: budget.remaining_resource_units - resource_units_committed,
+        resource_units_discretionary_remaining: budget.remaining_resource_units
+            .checked_sub(resource_units_committed)
+            .and_then(|remaining| remaining.checked_sub(budget.actuation_recovery_reserve_resource_units))
+            .ok_or(SchedulerError::InvalidBudget("scheduler spent the reserved recovery resources"))?,
         completion_bound_tick,
         deadline_slack_after_reserve_ticks: deadline_slack(budget, completion_bound_tick),
         sensor_rejection,
@@ -624,6 +652,7 @@ mod tests {
             planning_tick: 100,
             decision_deadline_tick: 130,
             actuation_recovery_reserve_ticks: 5,
+            actuation_recovery_reserve_resource_units: 10,
             maximum_observation_age_ticks: 3,
             remaining_resource_units: 100,
             resource_unit_id: "measured_uj_v1".into(),
@@ -775,6 +804,57 @@ mod tests {
         let result = schedule(&budget(), &inference, "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", None).unwrap();
         assert_eq!(result.action, DecisionAction::RequireFallback);
         assert_eq!(result.reason, DecisionReason::NoFreshObservationCanArriveBeforeDeadline);
+    }
+
+    #[test]
+    fn recovery_resource_reserve_is_never_spent_by_sensor_or_inference() {
+        let mut budget = budget();
+        budget.remaining_resource_units = 100;
+        budget.actuation_recovery_reserve_resource_units = 90;
+        let mut sensor = sensor();
+        sensor.resource_cost_units = 15;
+        let result = schedule(
+            &budget,
+            &inference(),
+            "measured_uj_v1",
+            "micro_loss_v1",
+            "sim_tick_200hz_v1",
+            Some(&sensor),
+        ).unwrap();
+        assert_eq!(result.action, DecisionAction::CommitNow);
+        assert_eq!(result.sensor_rejection, Some(SensorRejection::ResourceBudgetInsufficient));
+        assert_eq!(result.resource_units_reserved_for_recovery, 90);
+        assert_eq!(result.resource_units_discretionary_before, 10);
+        assert_eq!(result.resource_units_committed, 0);
+        assert_eq!(result.resource_units_discretionary_remaining, 10);
+        assert!(result.resource_units_remaining >= result.resource_units_reserved_for_recovery);
+    }
+
+    #[test]
+    fn budget_rejects_recovery_resource_reserve_above_total_budget() {
+        let mut budget = budget();
+        budget.actuation_recovery_reserve_resource_units = budget.remaining_resource_units + 1;
+        assert!(matches!(
+            schedule(&budget, &inference(), "measured_uj_v1", "micro_loss_v1", "sim_tick_200hz_v1", Some(&sensor())),
+            Err(SchedulerError::InvalidBudget(_))
+        ));
+    }
+
+    #[test]
+    fn inference_allocation_cannot_consume_recovery_resource_reserve() {
+        let mut budget = budget();
+        budget.remaining_resource_units = 25;
+        budget.actuation_recovery_reserve_resource_units = 10;
+        let mut sensor = sensor();
+        sensor.expected_regret_reduction_microunits = 1;
+        sensor.resource_cost_units = 20;
+        let result = schedule(
+            &budget, &inference(), "measured_uj_v1", "micro_loss_v1",
+            "sim_tick_200hz_v1", Some(&sensor),
+        ).unwrap();
+        assert_eq!(result.action, DecisionAction::CommitNow);
+        assert_eq!(result.resource_units_remaining, 25);
+        assert_eq!(result.resource_units_discretionary_remaining, 15);
     }
 
     #[test]
