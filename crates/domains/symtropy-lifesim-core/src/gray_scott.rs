@@ -553,7 +553,7 @@ impl GrayScottField {
             + self.sample_no_flux(field, x + 1, y - 1)
             + self.sample_no_flux(field, x - 1, y + 1)
             + self.sample_no_flux(field, x + 1, y + 1);
-        -center + 0.2 * axial + 0.05 * diagonal
+        (-10.0 / 3.0) * center + (2.0 / 3.0) * axial + (1.0 / 6.0) * diagonal
     }
 }
 
@@ -596,6 +596,48 @@ fn sum(values: &[f64]) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn nine_point_laplacian_recovers_laplacian_of_quadratic_field() {
+        let mut field = GrayScottField::new(9, 9, GrayScottParameters::default()).unwrap();
+        for y in 0..field.height {
+            for x in 0..field.width {
+                let xf = x as f64;
+                let yf = y as f64;
+                field.u[field.index(x, y)] = xf * xf + yf * yf;
+            }
+        }
+
+        // For u(x,y)=x^2+y^2, the continuous Laplacian is exactly 4.
+        // The interior nine-point stencil must reproduce that value on the unit grid.
+        let observed = field.laplacian(&field.u, 4, 4);
+        assert!((observed - 4.0).abs() < 1.0e-12, "observed={observed}");
+    }
+
+    #[test]
+    fn no_flux_diffusion_preserves_total_v_when_reaction_terms_are_disabled() {
+        let mut field = GrayScottField::new(
+            16,
+            16,
+            GrayScottParameters {
+                diffusion_u: 0.0,
+                diffusion_v: 0.08,
+                feed: 0.0,
+                kill: 0.0,
+                dt: 1.0,
+            },
+        )
+        .unwrap();
+        field.u.fill(0.0);
+        field.set_patch(5, 5, 6, 6, 0.0, 1.0).unwrap();
+        let before = field.v.iter().sum::<f64>();
+
+        let reports = field.run_steps(50).unwrap();
+        let after = field.v.iter().sum::<f64>();
+
+        assert!((after - before).abs() < 1.0e-10, "before={before}, after={after}");
+        assert!(reports.iter().all(|report| report.v_diffusion_net.abs() < 1.0e-10));
+    }
 
     #[test]
     fn uniform_initial_state_is_a_fixed_point() {
