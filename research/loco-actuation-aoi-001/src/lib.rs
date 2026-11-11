@@ -60,6 +60,8 @@ pub struct SourceAge {
 pub enum AoiError {
     ClockDomainMismatch,
     ObservationFromFuture,
+    EventOrderUncertain,
+    InvalidTimeInterval,
     MissingObservationLineage,
     DuplicateObservationIdentity,
     InvalidZeroDuration,
@@ -128,6 +130,137 @@ pub fn actuation_aoi_by_source(
     }
 
     Ok(ages)
+}
+
+
+/// A bounded timestamp on one declared monotonic clock and boot epoch.
+///
+/// The interval represents timestamp uncertainty from capture/exposure,
+/// device timestamping, event-latch timing, or instrumentation resolution.
+/// It does not perform clock synchronization.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MonotonicTimeInterval {
+    pub earliest: MonotonicNs,
+    pub latest: MonotonicNs,
+    pub clock: ClockDomain,
+}
+
+impl MonotonicTimeInterval {
+    pub fn new(
+        earliest: MonotonicNs,
+        latest: MonotonicNs,
+        clock: ClockDomain,
+    ) -> Result<Self, AoiError> {
+        if earliest > latest {
+            return Err(AoiError::InvalidTimeInterval);
+        }
+        Ok(Self {
+            earliest,
+            latest,
+            clock,
+        })
+    }
+
+    pub fn exact(at: MonotonicNs, clock: ClockDomain) -> Self {
+        Self {
+            earliest: at,
+            latest: at,
+            clock,
+        }
+    }
+
+    fn validate(self) -> Result<Self, AoiError> {
+        if self.earliest > self.latest {
+            Err(AoiError::InvalidTimeInterval)
+        } else {
+            Ok(self)
+        }
+    }
+}
+
+/// Source-observation lineage with a bounded generation-time interval.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceObservationInterval {
+    pub modality_id: u16,
+    pub observation_id: u64,
+    pub sequence: u64,
+    pub generated: MonotonicTimeInterval,
+}
+
+/// Conservative source age interval at the actuator application event.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SourceAgeBounds {
+    pub modality_id: u16,
+    pub observation_id: u64,
+    pub sequence: u64,
+    pub minimum_age_ns: u64,
+    pub maximum_age_ns: u64,
+}
+
+/// Computes a conservative source-to-actuator age interval.
+///
+/// The observation and application intervals must share a clock/boot epoch,
+/// and the earliest possible application must not precede the latest possible
+/// observation generation. Otherwise event order is unknown and the function
+/// fails closed rather than manufacturing a zero or negative age.
+pub fn source_age_bounds_at_event(
+    source: SourceObservationInterval,
+    application: MonotonicTimeInterval,
+) -> Result<SourceAgeBounds, AoiError> {
+    let generated = source.generated.validate()?;
+    let applied = application.validate()?;
+
+    if generated.clock != applied.clock {
+        return Err(AoiError::ClockDomainMismatch);
+    }
+
+    let minimum_age_ns = applied
+        .earliest
+        .0
+        .checked_sub(generated.latest.0)
+        .ok_or(AoiError::EventOrderUncertain)?;
+    let maximum_age_ns = applied
+        .latest
+        .0
+        .checked_sub(generated.earliest.0)
+        .ok_or(AoiError::ObservationFromFuture)?;
+
+    if minimum_age_ns > maximum_age_ns {
+        return Err(AoiError::InvalidTimeInterval);
+    }
+
+    Ok(SourceAgeBounds {
+        modality_id: source.modality_id,
+        observation_id: source.observation_id,
+        sequence: source.sequence,
+        minimum_age_ns,
+        maximum_age_ns,
+    })
+}
+
+/// Computes bounded per-source AoI for one actuator application interval.
+///
+/// Every sensor dependency stays distinct. No cross-modality scalar average
+/// is produced, and every source must be traceable on the same robot clock.
+pub fn actuation_aoi_bounds_by_source(
+    application: MonotonicTimeInterval,
+    sources: &[SourceObservationInterval],
+) -> Result<Vec<SourceAgeBounds>, AoiError> {
+    if sources.is_empty() {
+        return Err(AoiError::MissingObservationLineage);
+    }
+
+    let mut bounds = Vec::with_capacity(sources.len());
+    for (index, source) in sources.iter().copied().enumerate() {
+        if sources[..index].iter().any(|previous| {
+            previous.modality_id == source.modality_id
+                && previous.observation_id == source.observation_id
+        }) {
+            return Err(AoiError::DuplicateObservationIdentity);
+        }
+        bounds.push(source_age_bounds_at_event(source, application)?);
+    }
+    Ok(bounds)
 }
 
 /// One interval during which a command remains applied and AoI grows at 1 ns/ns.
@@ -478,6 +611,127 @@ mod tests {
             actuation_aoi_by_source(application(2_000), &sources),
             Err(AoiError::DuplicateObservationIdentity)
         );
+    }
+
+
+    #[test]
+    fn timestamp_uncertainty_produces_conservative_age_bounds() {
+        let source = SourceObservationInterval {
+            modality_id: 1,
+            observation_id: 31,
+            sequence: 31,
+            generated: MonotonicTimeInterval::new(
+                MonotonicNs(1_000),
+                MonotonicNs(1_010),
+                clock(),
+            )
+            .unwrap(),
+        };
+        let application = MonotonicTimeInterval::new(
+            MonotonicNs(1_050),
+            MonotonicNs(1_060),
+            clock(),
+        )
+        .unwrap();
+
+        let bounds = source_age_bounds_at_event(source, application).unwrap();
+
+        assert_eq!(bounds.minimum_age_ns, 40);
+        assert_eq!(bounds.maximum_age_ns, 60);
+    }
+
+    #[test]
+    fn overlapping_event_intervals_are_not_declared_fresh() {
+        let source = SourceObservationInterval {
+            modality_id: 1,
+            observation_id: 32,
+            sequence: 32,
+            generated: MonotonicTimeInterval::new(
+                MonotonicNs(100),
+                MonotonicNs(120),
+                clock(),
+            )
+            .unwrap(),
+        };
+        let application = MonotonicTimeInterval::new(
+            MonotonicNs(115),
+            MonotonicNs(130),
+            clock(),
+        )
+        .unwrap();
+
+        assert_eq!(
+            source_age_bounds_at_event(source, application),
+            Err(AoiError::EventOrderUncertain)
+        );
+    }
+
+    #[test]
+    fn invalid_and_cross_clock_uncertainty_intervals_fail_closed() {
+        assert_eq!(
+            MonotonicTimeInterval::new(MonotonicNs(20), MonotonicNs(10), clock()),
+            Err(AoiError::InvalidTimeInterval)
+        );
+
+        let source = SourceObservationInterval {
+            modality_id: 1,
+            observation_id: 33,
+            sequence: 33,
+            generated: MonotonicTimeInterval::exact(MonotonicNs(10), clock()),
+        };
+        let other_clock = ClockDomain {
+            clock_id: 8,
+            boot_epoch: 42,
+        };
+        let application =
+            MonotonicTimeInterval::exact(MonotonicNs(20), other_clock);
+
+        assert_eq!(
+            source_age_bounds_at_event(source, application),
+            Err(AoiError::ClockDomainMismatch)
+        );
+    }
+
+    #[test]
+    fn uncertain_multisensor_ages_remain_separate() {
+        let sources = [
+            SourceObservationInterval {
+                modality_id: 1,
+                observation_id: 41,
+                sequence: 41,
+                generated: MonotonicTimeInterval::new(
+                    MonotonicNs(1_000),
+                    MonotonicNs(1_005),
+                    clock(),
+                )
+                .unwrap(),
+            },
+            SourceObservationInterval {
+                modality_id: 2,
+                observation_id: 42,
+                sequence: 42,
+                generated: MonotonicTimeInterval::new(
+                    MonotonicNs(1_010),
+                    MonotonicNs(1_020),
+                    clock(),
+                )
+                .unwrap(),
+            },
+        ];
+        let application = MonotonicTimeInterval::new(
+            MonotonicNs(1_050),
+            MonotonicNs(1_060),
+            clock(),
+        )
+        .unwrap();
+
+        let bounds = actuation_aoi_bounds_by_source(application, &sources).unwrap();
+
+        assert_eq!(bounds.len(), 2);
+        assert_eq!(bounds[0].minimum_age_ns, 45);
+        assert_eq!(bounds[0].maximum_age_ns, 60);
+        assert_eq!(bounds[1].minimum_age_ns, 30);
+        assert_eq!(bounds[1].maximum_age_ns, 50);
     }
 
     #[test]
