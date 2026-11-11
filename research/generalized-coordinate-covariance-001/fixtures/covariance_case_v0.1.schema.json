@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/generalized-coordinate-covariance-001/covariance_case_v0.1.schema.json",
+  "title": "Symtropy generalized-coordinate covariance case v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "case_id", "source_issue", "physical_model", "step", "initial_state", "coordinate_transforms", "independent_reference", "acceptance_profile", "claim_boundary"],
+  "properties": {
+    "$schema": {"type": "string"},
+    "schema_version": {"const": "symtropy.generalized_coordinate_covariance.v0.1"},
+    "case_id": {"type": "string", "minLength": 1},
+    "source_issue": {"type": "string", "format": "uri"},
+    "physical_model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "dimension", "coordinate_order", "massless_link", "masses_kg", "link_length_m", "constraint"],
+      "properties": {
+        "kind": {"const": "two_point_mass_fixed_link"},
+        "dimension": {"const": 3},
+        "coordinate_order": {"type": "array", "const": ["q1_x", "q1_y", "q1_z", "q2_x", "q2_y", "q2_z"]},
+        "massless_link": {"type": "boolean"},
+        "masses_kg": {"type": "array", "items": {"type": "number", "exclusiveMinimum": 0}, "minItems": 2, "maxItems": 2},
+        "link_length_m": {"type": "number", "exclusiveMinimum": 0},
+        "constraint": {"type": "string"}
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "time_step_s", "force_n", "force_semantics", "newton_max_iterations", "normalized_midpoint_constraint_tolerance", "mass_metric_symmetry_tolerance", "relative_pivot_tolerance"],
+      "properties": {
+        "method": {"type": "string"},
+        "time_step_s": {"type": "number", "exclusiveMinimum": 0},
+        "force_n": {"$ref": "#/$defs/vector6"},
+        "force_semantics": {"type": "string"},
+        "newton_max_iterations": {"type": "integer", "minimum": 1},
+        "normalized_midpoint_constraint_tolerance": {"type": "number", "exclusiveMinimum": 0},
+        "mass_metric_symmetry_tolerance": {"type": "number", "exclusiveMinimum": 0},
+        "relative_pivot_tolerance": {"type": "number", "exclusiveMinimum": 0}
+      }
+    },
+    "initial_state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["position_m", "velocity_m_per_s", "relative_link_vector_m", "center_of_mass_velocity_m_per_s", "relative_angular_velocity_rad_per_s"],
+      "properties": {
+        "position_m": {"$ref": "#/$defs/vector6"},
+        "velocity_m_per_s": {"$ref": "#/$defs/vector6"},
+        "relative_link_vector_m": {"$ref": "#/$defs/vector3"},
+        "center_of_mass_velocity_m_per_s": {"$ref": "#/$defs/vector3"},
+        "relative_angular_velocity_rad_per_s": {"$ref": "#/$defs/vector3"}
+      }
+    },
+    "coordinate_transforms": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["family", "construction", "matrix", "exact_determinant", "condition_number_2", "transformed_mass_metric_condition_number_2"],
+        "properties": {
+          "family": {"type": "integer", "minimum": 0},
+          "construction": {"type": "string"},
+          "matrix": {"$ref": "#/$defs/matrix6"},
+          "exact_determinant": {"type": "integer"},
+          "condition_number_2": {"type": "number", "exclusiveMinimum": 0},
+          "transformed_mass_metric_condition_number_2": {"type": "number", "exclusiveMinimum": 0}
+        }
+      }
+    },
+    "independent_reference": {
+      "type": "object",
+      "required": ["implementation", "not_rust_test_output", "canonical_multiplier", "canonical_midpoint_constraint_raw_residual", "canonical_normalized_midpoint_constraint_residual", "canonical_external_work_j", "canonical_kinetic_energy_change_j", "canonical_expected_position_next_m", "canonical_expected_velocity_next_m_per_s", "dense_basis_covariance", "wrong_law_negative_controls"],
+      "properties": {
+        "implementation": {"type": "string"},
+        "not_rust_test_output": {"const": true},
+        "canonical_multiplier": {"type": "number"},
+        "canonical_midpoint_constraint_raw_residual": {"type": "number"},
+        "canonical_normalized_midpoint_constraint_residual": {"type": "number", "minimum": 0},
+        "canonical_external_work_j": {"type": "number"},
+        "canonical_kinetic_energy_change_j": {"type": "number"},
+        "canonical_expected_position_next_m": {"$ref": "#/$defs/vector6"},
+        "canonical_expected_velocity_next_m_per_s": {"$ref": "#/$defs/vector6"},
+        "dense_basis_covariance": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["family", "lifted_position_l2_error", "lifted_velocity_l2_error", "multiplier_difference"],
+            "properties": {
+              "family": {"type": "integer"},
+              "lifted_position_l2_error": {"type": "number", "minimum": 0},
+              "lifted_velocity_l2_error": {"type": "number", "minimum": 0},
+              "multiplier_difference": {"type": "number"}
+            }
+          }
+        },
+        "wrong_law_negative_controls": {
+          "type": "object",
+          "required": ["family", "wrong_force_covector_lifted_position_error", "wrong_mass_metric_congruence_lifted_position_error", "wrong_constraint_jacobian_lifted_position_error"],
+          "properties": {
+            "family": {"type": "integer"},
+            "wrong_force_covector_lifted_position_error": {"type": "number", "minimum": 0},
+            "wrong_mass_metric_congruence_lifted_position_error": {"type": "number", "minimum": 0},
+            "wrong_constraint_jacobian_lifted_position_error": {"type": "number", "minimum": 0}
+          }
+        }
+      }
+    },
+    "acceptance_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["basis_determinant_exact", "lifted_state_relative_agreement_max", "multiplier_absolute_agreement_max", "normalized_midpoint_constraint_residual_max", "energy_work_defect_absolute_max_j", "wrong_transformation_law_must_not_pass"],
+      "properties": {
+        "basis_determinant_exact": {"const": true},
+        "lifted_state_relative_agreement_max": {"type": "number", "exclusiveMinimum": 0},
+        "multiplier_absolute_agreement_max": {"type": "number", "exclusiveMinimum": 0},
+        "normalized_midpoint_constraint_residual_max": {"type": "number", "exclusiveMinimum": 0},
+        "energy_work_defect_absolute_max_j": {"type": "number", "exclusiveMinimum": 0},
+        "wrong_transformation_law_must_not_pass": {"const": true}
+      }
+    },
+    "claim_boundary": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+  },
+  "$defs": {
+    "vector3": {"type": "array", "items": {"type": "number"}, "minItems": 3, "maxItems": 3},
+    "vector6": {"type": "array", "items": {"type": "number"}, "minItems": 6, "maxItems": 6},
+    "matrix6": {"type": "array", "items": {"$ref": "#/$defs/vector6"}, "minItems": 6, "maxItems": 6}
+  }
+}
