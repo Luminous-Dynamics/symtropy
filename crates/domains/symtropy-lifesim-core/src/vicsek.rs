@@ -19,7 +19,7 @@
 //! model.
 
 use std::error::Error;
-use std::f64::consts::{PI, TAU};
+use std::f64::consts::TAU;
 use std::fmt;
 
 /// One self-propelled particle on a periodic two-dimensional square.
@@ -104,6 +104,12 @@ impl VicsekConfig {
             return Err(VicsekError::InvalidParameter {
                 name: "angular_noise_width_rad",
                 value: self.angular_noise_width_rad,
+            });
+        }
+        if !(self.speed * self.dt).is_finite() {
+            return Err(VicsekError::InvalidParameter {
+                name: "speed_times_dt",
+                value: self.speed * self.dt,
             });
         }
         Ok(())
@@ -191,9 +197,17 @@ impl VicsekModel {
     /// Positions must already lie inside the periodic box. Finite headings are normalized
     /// to [0, 2π). No random initialization is performed by this constructor.
     pub fn new(
-        mut particles: Vec<VicsekParticle>,
+        particles: Vec<VicsekParticle>,
         config: VicsekConfig,
         seed: u64,
+    ) -> Result<Self, VicsekError> {
+        Self::from_particles_and_rng(particles, config, XorShift64::new(seed))
+    }
+
+    fn from_particles_and_rng(
+        mut particles: Vec<VicsekParticle>,
+        config: VicsekConfig,
+        rng: XorShift64,
     ) -> Result<Self, VicsekError> {
         config.validate()?;
         if particles.is_empty() {
@@ -226,7 +240,7 @@ impl VicsekModel {
         Ok(Self {
             config,
             particles,
-            rng: XorShift64::new(seed),
+            rng,
             tick: 0,
         })
     }
@@ -249,7 +263,9 @@ impl VicsekModel {
                 heading_rad: rng.next_unit() * TAU,
             })
             .collect();
-        Self::new(particles, config, seed)
+        // Continue the initialization stream for later angular-noise draws. This avoids
+        // restarting the same seed at the beginning of the simulation-noise sequence.
+        Self::from_particles_and_rng(particles, config, rng)
     }
 
     pub const fn config(&self) -> VicsekConfig {
@@ -542,7 +558,7 @@ mod tests {
             interaction_radius: 1.2,
             speed: 3.5,
             dt: 2.0,
-            angular_noise_width_rad: PI,
+            angular_noise_width_rad: std::f64::consts::PI,
         };
         let mut model = VicsekModel::random_uniform(48, config, 42).unwrap();
         let reports = model.run_steps(100).unwrap();
@@ -591,6 +607,18 @@ mod tests {
                 name: "angular_noise_width_rad",
                 ..
             })
+        ));
+        assert!(matches!(
+            VicsekModel::random_uniform(
+                4,
+                VicsekConfig {
+                    speed: f64::MAX,
+                    dt: 2.0,
+                    ..VicsekConfig::default()
+                },
+                1
+            ),
+            Err(VicsekError::InvalidParameter { name: "speed_times_dt", .. })
         ));
         assert!(matches!(
             VicsekModel::new(
