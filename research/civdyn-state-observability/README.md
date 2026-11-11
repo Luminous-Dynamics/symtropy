@@ -1,0 +1,99 @@
+# CIVDYN state-observability reference audit v0.1
+
+This is a **pinned artifact audit and reproduction adapter**, not a reimplementation of the IJCAI paper's algorithms.
+
+It targets Wendland et al., *Missingness-MDPs: Bridging the Theory of Missing Data and POMDPs*, IJCAI 2026, pp. 6217–6226:
+https://ijcai.org/proceedings/2026/692
+
+The upstream implementation is MIT-licensed:
+https://github.com/ai-fm/missingness-mdps
+
+## What is pinned
+
+- Upstream commit: `186c454c8e1581adbbf3cbb49ed9e0df510356f4`
+- License file git blob: `859c41b3529fe6408802113bf8931575339e3262`
+- Experiment, learning, metrics, ICU and Predator source-file git blobs: see `reference-lock.json`.
+- Five primary result bundles with exact Git blob IDs are pinned in the same lock.
+
+The five audited primary experiment bundles are:
+1. `icu/smar`
+2. `icu/mnar-ident`
+3. `icu/mnar-unident`
+4. `predator-factored/smar`
+5. `predator-factored/mnar-unident`
+
+Each bundle declares 20 repetitions, ten dataset sizes `[10,50,100,500,1000,5000,10000,100000,1000000,10000000]`, and three learned missingness assumptions (MCAR, MAR, MNAR). That yields 600 learning rows per bundle.
+
+## Direct artifact audit finding
+
+The pinned upstream result JSON files contain 3,000 learning records in total. Their status is:
+
+| Experiment | Finished | Recorded exceptions | Failure rate |
+|---|---:|---:|---:|
+| ICU simple MAR | 567 / 600 | 33 | 5.50% |
+| ICU identifiable MNAR | 564 / 600 | 36 | 6.00% |
+| ICU unidentifiable MNAR | 585 / 600 | 15 | 2.50% |
+| Predator simple MAR | 600 / 600 | 0 | 0.00% |
+| Predator unidentifiable MNAR | 561 / 600 | 39 | 6.50% |
+| **Total** | **2,877 / 3,000** | **123** | **4.10%** |
+
+The 123 exception rows are not silently filtered. Exactly 120 occur at dataset size 10 and 3 at size 50; none occur at larger sizes. The status is sourced from the upstream `finished` and `exception` fields, not inferred from absence of summary metrics.
+
+This is an **artifact audit**, not a conclusion that the paper's aggregate plots are wrong. It establishes that the public pinned result JSON contains explicit failed learning tasks and that these should remain part of the reproducibility denominator. The reported mean/TV summaries for successfully completed rows must be read alongside failure rates and the original paper's aggregation procedure.
+
+## Matrix coverage limits
+
+The pinned tree contains three primary ICU result bundles and two primary Predator bundles. There is no primary ICU MCAR `results.json` in `experiments/logs/icu` at this commit. Predator MCAR search outputs use a separate experiment contract and must be audited independently rather than coerced into these five bundles.
+
+The upstream tree also contains 242 separate PPO / stacked-PPO result JSON files under `logs_PPO` and `logs_PPO_stacked`. They are not counted as complete baseline coverage by this v0.1 adapter. A separate adapter must map their experiment identifiers, seed schedules, task completion and hyperparameters before the PPO baseline matrix can be called reproduced.
+
+The five primary bundles' `results` arrays contain two baseline rows (`upper` and `random`), one M-constant row and eight POMCP rows. The reference audit checks these identities and completion flags, but does not assert that these arrays alone reproduce every model-free baseline in the paper.
+
+## Adapter contract
+
+The shell normalizer:
+- checks the upstream repository checkout is at the exact pinned commit;
+- checks Git object hashes for the license, relevant source files and all five results JSON blobs;
+- emits one contract record and each raw learning task row in TSV;
+- preserves failed rows, missing means, exception flags and both average/worst TV.
+
+The dependency-free Rust auditor then checks:
+- exactly five expected experiment identities and state counts;
+- 20 seeds × 10 dataset sizes × 3 assumptions = 600 unique run keys per bundle;
+- no duplicate or missing run keys and no unknown assumptions/algorithms;
+- exact baseline identities and counts, plus M-constant and POMCP counts;
+- finished rows have means and valid TV values;
+- unfinished rows carry recorded exceptions and are included in the denominator;
+- pinned per-experiment and per-dataset-size failure counts;
+- deterministic aggregate CSV summary.
+
+The auditor does not recompute TV from state-level distributions: the upstream result JSON stores only aggregate ATV/WTV, not the complete per-state distributions. An independent re-computation of TV requires additional state-level output from the upstream runner. This is recorded as an evidence limitation, not approximated.
+
+## Run locally
+
+Requirements: Git, jq and Rust toolchain.
+
+```bash
+git clone https://github.com/ai-fm/missingness-mdps reference/missingness-mdps
+git -C reference/missingness-mdps checkout 186c454c8e1581adbbf3cbb49ed9e0df510356f4
+scripts/audit_miss_mdp_reference.sh reference/missingness-mdps > /tmp/miss-mdp.tsv
+cargo run --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp.tsv
+```
+
+The script intentionally refuses an unpinned upstream commit or blob mismatch.
+
+## Next step beyond the paper
+
+After paper-faithful reproduction and separate PPO artifact auditing:
+1. Add policy-dependent observation availability (e.g. sensing actions, reduced inspections, telemetry loss during stressed service).
+2. Add correlated feature outages and infrastructure common-cause failures.
+3. Add unknown transition dynamics as an independent axis from unknown observation functions.
+4. Introduce active sensing actions with explicit cost, latency and service trade-offs.
+5. Evaluate worst-subgroup belief error, service-floor violations and decision regret alongside ATV/WTV.
+6. Test shift between training and evaluation missingness mechanisms, including identifiable-to-unidentifiable transitions.
+
+Do not combine these challenge results with the paper's original score. The paper assumes known underlying transition dynamics and an observation function whose missingness function is action-independent without loss of generality in its formulation; policy-dependent sensing is an extension that needs its own explicit causal/structural contract.
+
+## Claim ceiling
+
+This v0.1 deliverable audits public pinned artifacts and their run-denominator integrity. It does not reproduce the paper from source, recompute the statewise observation TV, rerun SARSOP/POMCP/PPO, validate external data, or claim SOTA superiority. A future reproduction must use the upstream experiment contracts and matched compute/seed budgets.
