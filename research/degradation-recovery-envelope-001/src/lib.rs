@@ -584,6 +584,106 @@ fn event_metrics(
     }
 }
 
+/// Generate a deterministic severity sweep for every fault family.
+///
+/// Every (fault kind, severity) pair receives its own isolated exposure slot.
+/// This is a schedule generator, not a fault injector or a claim that severity
+/// has a physically calibrated meaning across different fault families.
+pub fn severity_sweep_schedule(
+    first_start_tick: u64,
+    spacing_ticks: u64,
+    exposure_ticks: u64,
+    detection_deadline_ticks: u64,
+    containment_deadline_ticks: u64,
+    recovery_healthy_quorum_ticks: u64,
+    severities_ppm: &[u32],
+) -> Result<Vec<FaultEvent>, String> {
+    if first_start_tick == 0 || spacing_ticks == 0 || exposure_ticks == 0 {
+        return Err("start tick, spacing and exposure duration must be non-zero".into());
+    }
+    if recovery_healthy_quorum_ticks == 0 {
+        return Err("recovery healthy-observation quorum must be non-zero".into());
+    }
+    if severities_ppm.is_empty() || severities_ppm.len() > 21 {
+        return Err("severity sweep must contain between 1 and 21 levels".into());
+    }
+    let mut unique = BTreeSet::new();
+    for severity in severities_ppm {
+        if *severity == 0 || *severity > 1_000_000 {
+            return Err(format!("severity {severity} must be in 1..=1000000 ppm"));
+        }
+        if !unique.insert(*severity) {
+            return Err(format!("duplicate severity level {severity} ppm"));
+        }
+    }
+    let minimum_spacing = exposure_ticks
+        .checked_add(recovery_healthy_quorum_ticks)
+        .ok_or("fault spacing requirement overflow")?;
+    if spacing_ticks < minimum_spacing {
+        return Err(format!(
+            "spacing_ticks {spacing_ticks} is too short; require at least {minimum_spacing} ticks"
+        ));
+    }
+
+    let kinds = [
+        FaultKind::CameraDrop,
+        FaultKind::FrameDelay,
+        FaultKind::StaleReplay,
+        FaultKind::PixelCorruption,
+        FaultKind::CalibrationShift,
+        FaultKind::ClockDrift,
+        FaultKind::ComputeOverrun,
+    ];
+    let event_count = kinds
+        .len()
+        .checked_mul(severities_ppm.len())
+        .ok_or("severity sweep event count overflow")?;
+    let mut events = Vec::with_capacity(event_count);
+    let mut slot = 0_u64;
+    for kind in kinds {
+        let slug = match kind {
+            FaultKind::CameraDrop => "camera-drop",
+            FaultKind::FrameDelay => "frame-delay",
+            FaultKind::StaleReplay => "stale-replay",
+            FaultKind::PixelCorruption => "pixel-corruption",
+            FaultKind::CalibrationShift => "calibration-shift",
+            FaultKind::ClockDrift => "clock-drift",
+            FaultKind::ComputeOverrun => "compute-overrun",
+        };
+        for severity_ppm in severities_ppm {
+            let offset = slot
+                .checked_mul(spacing_ticks)
+                .ok_or("severity sweep offset overflow")?;
+            let start_tick = first_start_tick
+                .checked_add(offset)
+                .ok_or("severity sweep start tick overflow")?;
+            let end_tick = start_tick
+                .checked_add(exposure_ticks - 1)
+                .ok_or("severity sweep end tick overflow")?;
+            events.push(FaultEvent {
+                event_id: format!("{slug}-{start_tick}-sev-{severity_ppm}"),
+                causality: FaultCausality::Independent,
+                causal_group_id: None,
+                parent_event_id: None,
+                kind,
+                start_tick,
+                end_tick,
+                severity_ppm: *severity_ppm,
+                detection_deadline_ticks,
+                containment_deadline_ticks,
+                max_accepted_frame_age_us: if kind == FaultKind::FrameDelay {
+                    100_000
+                } else {
+                    0
+                },
+                recovery_healthy_quorum_ticks,
+            });
+            slot = slot.checked_add(1).ok_or("severity sweep slot overflow")?;
+        }
+    }
+    Ok(events)
+}
+
 /// Generate a deterministic seven-family schedule. The spacing rule reserves
 /// the full exposure plus the configured healthy-recovery quorum before the next
 /// fault starts, so the default campaign does not accidentally merge recovery
@@ -1621,6 +1721,35 @@ mod tests {
         let report = audit_campaign(&input);
         assert!(has(&report, "causal_parent_after_child"));
         assert!(has(&report, "causal_parent_cycle"));
+    }
+
+    #[test]
+    fn severity_sweep_covers_every_fault_family_at_each_requested_level() {
+        let severities = [100_000, 250_000, 500_000, 750_000, 1_000_000];
+        let first = severity_sweep_schedule(10, 5, 3, 1, 1, 2, &severities).unwrap();
+        let second = severity_sweep_schedule(10, 5, 3, 1, 1, 2, &severities).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.len(), 35);
+        for (index, event) in first.iter().enumerate() {
+            assert_eq!(event.start_tick, 10 + index as u64 * 5);
+            assert_eq!(event.severity_ppm, severities[index % severities.len()]);
+        }
+        let kinds = first.iter().map(|event| event.kind).collect::<BTreeSet<_>>();
+        assert_eq!(kinds.len(), 7);
+    }
+
+    #[test]
+    fn severity_sweep_rejects_duplicate_zero_and_out_of_range_levels() {
+        assert!(severity_sweep_schedule(1, 3, 1, 1, 1, 1, &[100_000, 100_000]).is_err());
+        assert!(severity_sweep_schedule(1, 3, 1, 1, 1, 1, &[0]).is_err());
+        assert!(severity_sweep_schedule(1, 3, 1, 1, 1, 1, &[1_000_001]).is_err());
+        assert!(severity_sweep_schedule(1, 3, 1, 1, 1, 1, &[]).is_err());
+    }
+
+    #[test]
+    fn severity_sweep_rejects_overlapping_recovery_windows_and_tick_overflow() {
+        assert!(severity_sweep_schedule(1, 2, 2, 1, 1, 2, &[500_000]).is_err());
+        assert!(severity_sweep_schedule(u64::MAX - 1, 5, 3, 1, 1, 2, &[500_000]).is_err());
     }
 
     #[test]
