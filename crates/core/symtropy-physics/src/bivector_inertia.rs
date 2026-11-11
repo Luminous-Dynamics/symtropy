@@ -11,11 +11,11 @@
 //! the familiar 3D spatial inertia tensor and naturally couples rotation planes
 //! for asymmetric mass distributions.
 //!
-//! This module provides forward/inverse inertia application, coordinate-frame
-//! rotation, energy, gyroscopic acceleration, and rotational contact effective
-//! mass. It is wired into RigidBody instances carrying validated mass properties.
-//! Collider-to-mass-property extraction from general CAD/meshes and broad
-//! experimental validation remain separate implementation steps.
+//! This module provides an independent reference for forward/inverse inertia
+//! application, coordinate-frame rotation, energy, gyroscopic acceleration,
+//! and rotational contact effective mass. It is not wired into the production
+//! RigidBody or PhysicsWorld path. Collider-to-mass-property extraction from
+//! general CAD/meshes and independent physical validation remain separate.
 
 use nalgebra::{SMatrix, SVector};
 use symtropy_math::{Bivector, Rotor};
@@ -41,6 +41,8 @@ pub enum RotationalInertiaError {
     InvalidDirection,
     /// Component offsets do not place the combined center of mass at the origin.
     OffsetsNotCentered,
+    /// A supplied Rotor is non-finite or not a proper rotation.
+    InvalidRotation,
 }
 
 /// Rotational inertia acting on Lambda^2(R^D), the bivector space of rotations.
@@ -65,7 +67,7 @@ impl<const D: usize> BivectorInertia<D> {
     pub fn from_second_moment(
         second_moment: SMatrix<f64, D, D>,
     ) -> Result<Self, RotationalInertiaError> {
-        if D < 2 {
+        if !(2..=9).contains(&D) {
             return Err(RotationalInertiaError::InvalidDimension);
         }
         if !second_moment.iter().all(|value| value.is_finite()) {
@@ -91,6 +93,11 @@ impl<const D: usize> BivectorInertia<D> {
         // dynamic matrix, then copy the eigenpairs back into fixed-size storage.
         let symmetric_dynamic = nalgebra::DMatrix::<f64>::from_fn(D, D, |i, j| symmetric[(i, j)]);
         let eigensystem = nalgebra::linalg::SymmetricEigen::new(symmetric_dynamic);
+        if !eigensystem.eigenvalues.iter().all(|value| value.is_finite())
+            || !eigensystem.eigenvectors.iter().all(|value| value.is_finite())
+        {
+            return Err(RotationalInertiaError::NonFinite);
+        }
         let min_eigenvalue = eigensystem
             .eigenvalues
             .iter()
@@ -110,6 +117,9 @@ impl<const D: usize> BivectorInertia<D> {
             * SMatrix::<f64, D, D>::from_diagonal(&principal_second_moments)
             * principal_axes.transpose();
 
+        if !projected_second_moment.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
         Ok(Self {
             second_moment: projected_second_moment,
             principal_second_moments,
@@ -145,6 +155,9 @@ impl<const D: usize> BivectorInertia<D> {
         }
 
         let total_mass = mass_a + mass_b;
+        if !total_mass.is_finite() || total_mass <= 0.0 {
+            return Err(RotationalInertiaError::InvalidMassProperties);
+        }
         let center_residual = offset_a * mass_a + offset_b * mass_b;
         let offset_scale = offset_a.norm().max(offset_b.norm()).max(f64::MIN_POSITIVE);
         if center_residual.norm() > 1e-10 * total_mass * offset_scale {
@@ -242,13 +255,14 @@ impl<const D: usize> BivectorInertia<D> {
     /// vectors, the transformed second moment is S_world = R*S_body*R^T.
     /// This lets callers keep immutable body-space mass properties and derive
     /// the corresponding world-space operator for contact and diagnostics.
-    pub fn rotated_by(&self, rotation: &Rotor<D>) -> Self {
+    pub fn rotated_by(&self, rotation: &Rotor<D>) -> Result<Self, RotationalInertiaError> {
         let r = rotation.to_matrix();
-        Self {
-            second_moment: r * self.second_moment * r.transpose(),
-            principal_second_moments: self.principal_second_moments,
-            principal_axes: r * self.principal_axes,
+        if !r.iter().all(|value| value.is_finite())
+            || !rotation.is_proper_rotation(ROTATION_VALIDITY_TOLERANCE)
+        {
+            return Err(RotationalInertiaError::InvalidRotation);
         }
+        Self::from_second_moment(r * self.second_moment * r.transpose())
     }
 
     /// Return the centered second-moment matrix used by this operator.
@@ -265,10 +279,24 @@ impl<const D: usize> BivectorInertia<D> {
     /// Bivector<D>. This map is symmetric and positive semidefinite when S
     /// is a physically valid centered mass second-moment matrix. Pass the
     /// stored RigidBody.angular_velocity directly; do not negate it here.
-    pub fn angular_momentum(&self, angular_velocity: &Bivector<D>) -> Bivector<D> {
+    pub fn angular_momentum(
+        &self,
+        angular_velocity: &Bivector<D>,
+    ) -> Result<Bivector<D>, RotationalInertiaError> {
+        if !angular_velocity.is_finite() {
+            return Err(RotationalInertiaError::NonFinite);
+        }
         let omega = angular_velocity.to_matrix();
         let momentum = omega * self.second_moment + self.second_moment * omega;
-        Bivector::from_matrix(&momentum)
+        if !momentum.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        let result = Bivector::from_matrix(&momentum);
+        if result.is_finite() {
+            Ok(result)
+        } else {
+            Err(RotationalInertiaError::NonFinite)
+        }
     }
 
     /// Invert stored-sign angular momentum L=I(B) to recover stored state B.
@@ -307,6 +335,9 @@ impl<const D: usize> BivectorInertia<D> {
         let q = &self.principal_axes;
         let q_t = q.transpose();
         let momentum_local = q_t * angular_momentum.to_matrix() * q;
+        if !momentum_local.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
         let momentum_scale = momentum_local
             .iter()
             .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
@@ -348,10 +379,10 @@ impl<const D: usize> BivectorInertia<D> {
 
     /// Rotational contribution to the inverse effective mass at a contact point.
     ///
-    /// For unit impulse direction n and center-of-mass offset r, the
-    /// impulse-first torque accumulator is n wedge r. The induced physical
-    /// point-velocity change is I^(-1)(n wedge r) applied to r, because the
-    /// stored rotor state changes by the negative of that angular response.
+    /// For unit impulse direction n and center-of-mass offset r, the stored
+    /// angular impulse is `r wedge n`, matching `angular_impulse_from_point`.
+    /// The induced physical point-velocity change is `-B*r`, because the
+    /// Rotor update is `exp(-B)`.
     /// The returned scalar is n dot delta_v and is non-negative for a
     /// nonsingular, physically valid mass distribution.
     pub fn rotational_inverse_effective_mass(
@@ -366,14 +397,14 @@ impl<const D: usize> BivectorInertia<D> {
             return Err(RotationalInertiaError::NonFinite);
         }
         let direction_norm = impulse_direction.norm();
-        if !direction_norm.is_finite() || direction_norm <= 1e-15 {
+        if !direction_norm.is_finite() || direction_norm == 0.0 {
             return Err(RotationalInertiaError::InvalidDirection);
         }
         let direction = impulse_direction / direction_norm;
-        let torque_accumulator = Bivector::from_wedge(&direction, offset);
+        let torque_accumulator = Bivector::from_wedge(offset, &direction);
         let angular_response =
             self.angular_velocity_from_momentum(&torque_accumulator, relative_tolerance)?;
-        let point_velocity_change = angular_response.apply_to_vector(offset);
+        let point_velocity_change = -angular_response.apply_to_vector(offset);
         let effective_mass = direction.dot(&point_velocity_change);
         if !effective_mass.is_finite() {
             return Err(RotationalInertiaError::NonFinite);
@@ -413,24 +444,32 @@ impl<const D: usize> BivectorInertia<D> {
         }
 
         let b = stored_angular_state.to_matrix();
-        let momentum = self.angular_momentum(stored_angular_state).to_matrix();
+        let momentum = self.angular_momentum(stored_angular_state)?.to_matrix();
         let coadjoint_rate = b * momentum - momentum * b;
-        let momentum_rate = coadjoint_rate - torque_accumulator.to_matrix();
+        let momentum_rate = coadjoint_rate + torque_accumulator.to_matrix();
         let momentum_rate_bivector = Bivector::from_matrix(&momentum_rate);
 
         self.angular_velocity_from_momentum(&momentum_rate_bivector, relative_tolerance)
     }
 
-    /// Rotational kinetic energy, 1/2 <B, I(B)> in the stored-bivector convention.
-    pub fn kinetic_energy(&self, angular_velocity: &Bivector<D>) -> f64 {
-        let momentum = self.angular_momentum(angular_velocity);
+    /// Rotational kinetic energy, `1/2 <B, I(B)>`, with checked representability.
+    pub fn kinetic_energy(
+        &self,
+        angular_velocity: &Bivector<D>,
+    ) -> Result<f64, RotationalInertiaError> {
+        let momentum = self.angular_momentum(angular_velocity)?;
         let mut pairing = 0.0;
         for i in 0..D {
             for j in (i + 1)..D {
                 pairing += angular_velocity.get(i, j) * momentum.get(i, j);
             }
         }
-        0.5 * pairing
+        let energy = 0.5 * pairing;
+        if energy.is_finite() && energy >= 0.0 {
+            Ok(energy)
+        } else {
+            Err(RotationalInertiaError::NonFinite)
+        }
     }
 }
 
@@ -441,7 +480,7 @@ mod tests {
     fn assert_uniform_ball_plane_moment<const D: usize>(expected: f64) {
         let inertia = BivectorInertia::<D>::uniform_solid_ball(3.0, 2.0).unwrap();
         let omega = Bivector::<D>::unit_plane(0, 1);
-        let momentum = inertia.angular_momentum(&omega);
+        let momentum = inertia.angular_momentum(&omega).unwrap();
         assert!(
             (momentum.get(0, 1) - expected).abs() < 1e-12,
             "D={D}: plane inertia={}, expected={expected}",
@@ -466,7 +505,7 @@ mod tests {
         assert!((combined.second_moment()[(1, 1)] - 0.4125).abs() < 1e-12);
         assert!((combined.second_moment()[(2, 2)] - 0.4125).abs() < 1e-12);
         let plane_xy = Bivector::<3>::unit_plane(0, 1);
-        assert!((combined.angular_momentum(&plane_xy).get(0, 1) - 5.825).abs() < 1e-12);
+        assert!((combined.angular_momentum(&plane_xy).unwrap().get(0, 1) - 5.825).abs() < 1e-12);
     }
 
     #[test]
@@ -504,7 +543,7 @@ mod tests {
         assert!((origin.second_moment() - translated.second_moment()).norm() < 1e-12);
         let omega = Bivector::<3>::unit_plane(0, 1);
         let expected = 2.0;
-        assert!((translated.angular_momentum(&omega).get(0, 1) - expected).abs() < 1e-12);
+        assert!((translated.angular_momentum(&omega).unwrap().get(0, 1) - expected).abs() < 1e-12);
     }
 
     #[test]
@@ -540,9 +579,9 @@ mod tests {
         let xy = Bivector::<3>::unit_plane(0, 1); // rotation about z
         let xz = Bivector::<3>::unit_plane(0, 2); // rotation about y
         let yz = Bivector::<3>::unit_plane(1, 2); // rotation about x
-        assert!((inertia.angular_momentum(&xy).get(0, 1) - 1.0).abs() < 1e-12);
-        assert!((inertia.angular_momentum(&xz).get(0, 2) - 0.85).abs() < 1e-12);
-        assert!((inertia.angular_momentum(&yz).get(1, 2) - 0.25).abs() < 1e-12);
+        assert!((inertia.angular_momentum(&xy).unwrap().get(0, 1) - 1.0).abs() < 1e-12);
+        assert!((inertia.angular_momentum(&xz).unwrap().get(0, 2) - 0.85).abs() < 1e-12);
+        assert!((inertia.angular_momentum(&yz).unwrap().get(1, 2) - 0.25).abs() < 1e-12);
     }
 
     #[test]
@@ -560,7 +599,7 @@ mod tests {
         assert!((momentum.get(0, 1) - 3.0).abs() < 1e-12);
         assert!((momentum.get(0, 2) - 10.0).abs() < 1e-12);
         assert!((momentum.get(1, 2) + 6.0).abs() < 1e-12);
-        assert!((inertia.kinetic_energy(&omega) - 14.5).abs() < 1e-12);
+        assert!((inertia.kinetic_energy(&omega).unwrap() - 14.5).abs() < 1e-12);
     }
 
     #[test]
@@ -581,7 +620,7 @@ mod tests {
             BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
                 .unwrap();
         let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.63);
-        let world_inertia = body_inertia.rotated_by(&rotation);
+        let world_inertia = body_inertia.rotated_by(&rotation).unwrap();
 
         let mut omega_body = Bivector::<3>::zero();
         omega_body.set(0, 1, 0.7);
@@ -591,14 +630,14 @@ mod tests {
             rotation.to_matrix() * omega_body.to_matrix() * rotation.to_matrix().transpose();
         let omega_world = Bivector::<3>::from_matrix(&omega_world_matrix);
 
-        let momentum_body = body_inertia.angular_momentum(&omega_body);
-        let momentum_world = world_inertia.angular_momentum(&omega_world);
+        let momentum_body = body_inertia.angular_momentum(&omega_body).unwrap();
+        let momentum_world = world_inertia.angular_momentum(&omega_world).unwrap();
         let expected_world_momentum =
             rotation.to_matrix() * momentum_body.to_matrix() * rotation.to_matrix().transpose();
 
         assert!((momentum_world.to_matrix() - expected_world_momentum).norm() < 1e-11);
         assert!(
-            (body_inertia.kinetic_energy(&omega_body) - world_inertia.kinetic_energy(&omega_world))
+            (body_inertia.kinetic_energy(&omega_body).unwrap() - world_inertia.kinetic_energy(&omega_world).unwrap())
                 .abs()
                 < 1e-11
         );
@@ -703,10 +742,10 @@ mod tests {
         let b_dot = inertia
             .angular_acceleration(&b, &zero_torque, 1e-12)
             .unwrap();
-        let l = inertia.angular_momentum(&b);
+        let l = inertia.angular_momentum(&b).unwrap();
         // I(dot(B)) equals the commutator correction. The actual spatial
         // momentum derivative also includes the rotation of S in world space.
-        let inertia_applied_to_b_dot = inertia.angular_momentum(&b_dot);
+        let inertia_applied_to_b_dot = inertia.angular_momentum(&b_dot).unwrap();
         let commutator = Bivector::<3>::from_matrix(
             &(b.to_matrix() * l.to_matrix() - l.to_matrix() * b.to_matrix()),
         );
@@ -733,11 +772,11 @@ mod tests {
     }
 
     #[test]
-    fn isotropic_angular_acceleration_has_negative_stored_torque_sign() {
+    fn isotropic_angular_acceleration_has_offset_first_torque_sign() {
         let inertia = BivectorInertia::<3>::uniform_solid_ball(3.0, 2.0).unwrap();
         let zero_state = Bivector::<3>::zero();
         let mut torque_accumulator = Bivector::<3>::zero();
-        torque_accumulator.set(0, 1, -2.0);
+        torque_accumulator.set(0, 1, 2.0);
         let acceleration = inertia
             .angular_acceleration(&zero_state, &torque_accumulator, 1e-12)
             .unwrap();
@@ -760,7 +799,7 @@ mod tests {
         angular_state.set(1, 3, -0.8);
         angular_state.set(2, 3, 0.35);
 
-        let momentum = inertia.angular_momentum(&angular_state);
+        let momentum = inertia.angular_momentum(&angular_state).unwrap();
         let recovered = inertia
             .angular_velocity_from_momentum(&momentum, 1e-12)
             .unwrap();
@@ -768,7 +807,7 @@ mod tests {
             recovered.add(&angular_state.scale(-1.0)).norm() < 1e-11,
             "four-dimensional inverse failed: recovered={recovered:?}, expected={angular_state:?}"
         );
-        assert!(inertia.kinetic_energy(&angular_state) > 0.0);
+        assert!(inertia.kinetic_energy(&angular_state).unwrap() > 0.0);
     }
 
     #[test]
