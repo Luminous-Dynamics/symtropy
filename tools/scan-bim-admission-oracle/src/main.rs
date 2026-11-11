@@ -869,6 +869,17 @@ mod tests {
     #[test]
     fn unresolved_upstream_products_or_checkpoints_cannot_pass() {
         let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
+        let invalid_survey = corpus
+            .cases
+            .iter()
+            .find(|item| item.case_id == "SB-012")
+            .expect("invalid survey product fixture");
+        assert_eq!(evaluate(invalid_survey).0, "STALE_OR_INVALID_EVIDENCE");
+        assert_eq!(
+            evaluate(invalid_survey).1,
+            vec!["UPSTREAM_SURVEY_PRODUCT_INVALID".to_owned()]
+        );
+
         for (case_id, reason) in [
             ("SB-033", "INDEPENDENT_CHECKPOINT_EVIDENCE_UNRESOLVED"),
             ("SB-034", "SURVEY_PRODUCT_UNRESOLVED"),
