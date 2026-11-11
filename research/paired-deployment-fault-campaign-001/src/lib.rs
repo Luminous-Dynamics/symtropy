@@ -490,7 +490,10 @@ impl FaultCampaign {
                 })
                 .map(|event| event.tick)
                 .collect::<BTreeSet<_>>();
-            if missing_ticks.len() < *duration_ticks as usize {
+            let expected_missing_ticks = (*onset_tick
+                ..onset_tick.saturating_add(*duration_ticks))
+                .collect::<BTreeSet<_>>();
+            if missing_ticks != expected_missing_ticks {
                 findings.push(Finding::CameraDropDenominatorMismatch);
             }
         }
@@ -627,11 +630,22 @@ impl FaultCampaign {
                     .get(&definition.metric_id)
                     .and_then(|estimate| estimate.value);
                 let relative_degradation = match (clean, perturbed) {
-                    (Some(baseline), Some(value)) if baseline.abs() > f64::EPSILON => {
-                        Some(match definition.direction {
-                            MetricDirection::HigherIsBetter => (baseline - value) / baseline.abs(),
-                            MetricDirection::LowerIsBetter => (value - baseline) / baseline.abs(),
-                        })
+                    (Some(baseline), Some(value)) => {
+                        relative_degradation(baseline, value, definition.direction)
+                    }
+                    _ => None,
+                };
+                let unavailable_reason = match (clean, perturbed) {
+                    (None, _) | (_, None) => {
+                        Some("missing_clean_or_perturbed_metric".to_string())
+                    }
+                    (Some(baseline), Some(value))
+                        if !baseline.is_finite() || !value.is_finite() =>
+                    {
+                        Some("non_finite_metric".to_string())
+                    }
+                    (Some(baseline), _) if baseline.abs() <= f64::EPSILON => {
+                        Some("clean_baseline_is_zero".to_string())
                     }
                     _ => None,
                 };
@@ -642,13 +656,7 @@ impl FaultCampaign {
                     clean_value: clean,
                     perturbed_value: perturbed,
                     relative_degradation,
-                    relative_degradation_unavailable_reason: if clean.is_none() || perturbed.is_none() {
-                        Some("missing_clean_or_perturbed_metric".to_string())
-                    } else if clean.is_some_and(|value| value.abs() <= f64::EPSILON) {
-                        Some("clean_baseline_is_zero".to_string())
-                    } else {
-                        None
-                    },
+                    relative_degradation_unavailable_reason: unavailable_reason,
                 }
             })
             .collect();
