@@ -2043,7 +2043,7 @@ mod tests {
             serde_json::from_str(include_str!("../active-evidence-selection-v0.1.json")).unwrap();
         assert_eq!(
             protocol["schema_version"],
-            "liu-ice-active-evidence-selection-v0.2"
+            "liu-ice-active-evidence-selection-v0.3"
         );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(protocol["comparators"].as_array().unwrap().len(), 6);
@@ -2074,6 +2074,15 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("worst-case"));
+        assert!(protocol["method"]["likelihood_calibration_review"]["requirement"]
+            .as_str()
+            .unwrap()
+            .contains("independently reviewed"));
+        assert!(protocol["method"]["likelihood_calibration_review"]["qualification"]
+            .as_str()
+            .unwrap()
+            .contains("not self-authenticating"));
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 40);
         assert!(protocol["comparators"]
             .as_array()
             .unwrap()
