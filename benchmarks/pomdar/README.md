@@ -75,6 +75,8 @@ Do not set an unqualified headline goal such as “stronger than TASKA” or “
 3. Compete on the *combination* of calibrated force/contact sensing, source-time freshness, user-owned information mapping, dynamic body-device fit, claim-specific requalification after repair, and measured cost/burden per useful task.
 4. Publish every vendor comparison as matched, unmatched, or not comparable. A manufacturer specification is not a substitute for independent performance evidence.
 
+Machine-readable counterpart: [`luminous-extension-scorecard.v1.json`](./luminous-extension-scorecard.v1.json). It freezes seven metric families, 11 trial dispositions, development/validation/confirmatory partition semantics, non-compensable hard constraints and the minimum evidence capsule. The numerical acceptance thresholds are intentionally deferred until a calibrated baseline article exists.
+
 ## Luminous extension: capability and lifecycle scorecard
 
 The published POMDAR score remains unchanged. A Luminous evaluation should add a **separate result vector**, never a weighted composite that can hide a serious regression. Each metric needs its own protocol, denominator, measurement boundary, uncertainty and claim ceiling.
