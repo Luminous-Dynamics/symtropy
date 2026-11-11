@@ -160,6 +160,23 @@ The implementation separates trajectory-scale and graph-topology analysis:
 
 The benchmark runner should record its checkpoint schedule in the receipt. The initial proposed schedule is tick 0, after warm-up, every 50 ticks and the final tick; this is a proposed operational default, not yet a qualified optimum. Full topology metrics must never be silently omitted: each snapshot declares whether topology analysis was computed, and unset values are not interpreted as zero.
 
+## Deterministic periodic spatial index
+
+The update path and `fast_metrics` now use a sparse periodic cell index to prune impossible distant candidates:
+- cell width is at least the configured interaction radius;
+- a periodic 3×3 cell stencil contains every possible range neighbour;
+- exact minimum-image distance and visual-sector visibility predicates are still applied after pruning;
+- candidate particle IDs are sorted/deduplicated before floating-point summation, preserving the brute-force reference accumulation order;
+- for zero/tiny radii or grid requirements above one million cells per axis, the implementation falls back to the all-pairs candidate set.
+
+Expected complexity is near (O(N + 	ext{local candidate work})) at bounded density and local interaction range; worst-case remains (O(N^2)). The full graph shortest-path/clustering calculation remains an explicit checkpoint-only cost. No wall-clock speedup is claimed yet.
+
+Two parity tests are included:
+1. **Candidate completeness:** for periodic random fixtures spanning one-cell, two-cell, normal and fallback radii, every brute-force radius neighbour must appear in the indexed candidate set.
+2. **Simulation and metric parity:** metric-radius and flipped visual-sector one-step updates must exactly match a test-only all-pairs reference, including the PRNG state; a separate all-pairs metric oracle checks directed degree, reciprocal counts, local-order coverage and values.
+
+The next qualification step is a pinned-hardware benchmark over population size, density, interaction radius, visual-sector aperture and occupancy skew. Report candidate counts, index build cost, update cost, metrics cost and worst-case regressions separately; do not publish a speedup from a microbenchmark that excludes the fast-metric work performed each tick.
+
 ## Benchmark design
 
 - Compare local alignment against self-only and independent-particle controls.
@@ -177,6 +194,8 @@ The benchmark runner should record its checkpoint schedule in the receipt. The i
 ## Qualification targets (proposed, not achieved)
 
 - Exact replay of the same seed/configuration on the same supported platform.
+- Spatial-index candidate sets and indexed metric/visual trajectories must match the all-pairs reference exactly on frozen controls.
+- Performance claims require separate, pinned-hardware scaling runs that include index construction, per-step metrics and the full simulation loop.
 - The opposed-local-flocks control must show near-zero global polar order alongside local polar order 1 and two disconnected groups.
 - The self-only control must produce null local polar order and zero local-order coverage.
 - The self-only control must also produce zero nontrivial-cluster coverage and null nontrivial-cluster polar order.
