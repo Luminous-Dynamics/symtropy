@@ -2352,7 +2352,10 @@
       "sensor_pose",
       "sensor_calibration",
       "qualified_survey_product",
-      "candidate_model_revision"
+      "candidate_model_revision",
+      "change_estimate_status",
+      "registration_stability_status",
+      "independent_checkpoint_evidence_sha256"
     ]
   }
 }
