@@ -1,0 +1,78 @@
+[
+  {
+    "sample_id": "flat_lambda_identity",
+    "branch_id": "flat-reference-branch",
+    "branch_parameter": 7.5,
+    "normalization_id": "source-orthonormal-area-v1/observer-unit-angle-v1",
+    "map": {
+      "entries": [
+        [
+          7.5,
+          0
+        ],
+        [
+          0,
+          7.5
+        ]
+      ]
+    },
+    "componentwise_absolute_error_bound": 0
+  },
+  {
+    "sample_id": "synthetic_caustic_left",
+    "branch_id": "synthetic-parity-changing-branch",
+    "branch_parameter": 0,
+    "normalization_id": "source-orthonormal-area-v1/observer-unit-angle-v1",
+    "map": {
+      "entries": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          -0.2
+        ]
+      ]
+    },
+    "componentwise_absolute_error_bound": 1e-15
+  },
+  {
+    "sample_id": "synthetic_caustic_right",
+    "branch_id": "synthetic-parity-changing-branch",
+    "branch_parameter": 1,
+    "normalization_id": "source-orthonormal-area-v1/observer-unit-angle-v1",
+    "map": {
+      "entries": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          0.3
+        ]
+      ]
+    },
+    "componentwise_absolute_error_bound": 1e-15
+  },
+  {
+    "sample_id": "near-caustic-unresolved",
+    "branch_id": "near-caustic-reference-branch",
+    "branch_parameter": 2,
+    "normalization_id": "source-orthonormal-area-v1/observer-unit-angle-v1",
+    "map": {
+      "entries": [
+        [
+          1,
+          0
+        ],
+        [
+          0,
+          1e-13
+        ]
+      ]
+    },
+    "componentwise_absolute_error_bound": 1e-13
+  }
+]
