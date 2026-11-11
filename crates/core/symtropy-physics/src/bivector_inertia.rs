@@ -193,18 +193,10 @@ impl<const D: usize> BivectorInertia<D> {
             return Err(RotationalInertiaError::InvalidDimension);
         }
 
-        let samples: Vec<_> = point_masses.into_iter().collect();
+        let mut samples: Vec<_> = point_masses.into_iter().collect();
         if samples.is_empty() {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
-
-        // Work relative to a reference sample before accumulating the center
-        // of mass. Summing absolute world coordinates can lose the small
-        // geometric offsets that determine inertia for CAD located far from
-        // the world origin.
-        let reference = samples[0].0;
-        let mut total_mass = 0.0;
-        let mut weighted_relative_position = SVector::<f64, D>::zeros();
         for (position, mass) in &samples {
             if !mass.is_finite() || !position.iter().all(|value| value.is_finite()) {
                 return Err(RotationalInertiaError::NonFinite);
@@ -212,18 +204,46 @@ impl<const D: usize> BivectorInertia<D> {
             if *mass < 0.0 {
                 return Err(RotationalInertiaError::InvalidMassProperties);
             }
+        }
+        // Floating-point accumulation must not depend on mesh/point-cloud
+        // iterator order. Sort by position then mass using total ordering.
+        samples.sort_by(|(position_a, mass_a), (position_b, mass_b)| {
+            for axis in 0..D {
+                let order = position_a[axis].total_cmp(&position_b[axis]);
+                if !order.is_eq() {
+                    return order;
+                }
+            }
+            mass_a.total_cmp(mass_b)
+        });
+
+        // Work relative to the canonical first sample before accumulating
+        // the center of mass. Summing absolute world coordinates can lose
+        // small geometric offsets for CAD far from the world origin.
+        let reference = samples[0].0;
+        let mut total_mass = 0.0;
+        let mut weighted_relative_position = SVector::<f64, D>::zeros();
+        for (position, mass) in &samples {
             total_mass += *mass;
             weighted_relative_position += (*position - reference) * *mass;
         }
-
         if !total_mass.is_finite() || total_mass <= 0.0 {
             return Err(RotationalInertiaError::InvalidMassProperties);
         }
+        if !weighted_relative_position.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
 
         let center_relative = weighted_relative_position / total_mass;
+        if !center_relative.iter().all(|value| value.is_finite()) {
+            return Err(RotationalInertiaError::NonFinite);
+        }
         let mut second_moment = SMatrix::<f64, D, D>::zeros();
         for (position, mass) in samples {
             let offset = (position - reference) - center_relative;
+            if !offset.iter().all(|value| value.is_finite()) {
+                return Err(RotationalInertiaError::NonFinite);
+            }
             second_moment += (offset * offset.transpose()) * mass;
         }
 
@@ -452,6 +472,41 @@ impl<const D: usize> BivectorInertia<D> {
         Ok(effective_mass.max(0.0))
     }
 
+    /// Evaluate contact effective mass from world-frame input while retaining
+    /// this inertia in its body/principal reference frame.
+    ///
+    /// The method rotates the contact offset and impulse direction into the
+    /// inertia frame, then reuses the same checked body-frame solve. This
+    /// avoids constructing and re-diagonalizing a world-frame inertia object
+    /// for every contact query.
+    pub fn rotational_inverse_effective_mass_world(
+        &self,
+        body_to_world: &Rotor<D>,
+        offset_world: &SVector<f64, D>,
+        impulse_direction_world: &SVector<f64, D>,
+        relative_tolerance: f64,
+    ) -> Result<f64, RotationalInertiaError> {
+        let rotation_matrix = body_to_world.to_matrix();
+        if !rotation_matrix.iter().all(|value| value.is_finite())
+            || !body_to_world.is_proper_rotation(ROTATION_VALIDITY_TOLERANCE)
+        {
+            return Err(RotationalInertiaError::InvalidRotation);
+        }
+        if !offset_world.iter().all(|value| value.is_finite())
+            || !impulse_direction_world.iter().all(|value| value.is_finite())
+        {
+            return Err(RotationalInertiaError::NonFinite);
+        }
+        let world_to_body = body_to_world.reverse();
+        let offset_body = world_to_body.rotate_vector(offset_world);
+        let impulse_direction_body = world_to_body.rotate_vector(impulse_direction_world);
+        self.rotational_inverse_effective_mass(
+            &offset_body,
+            &impulse_direction_body,
+            relative_tolerance,
+        )
+    }
+
     /// Compute the derivative of Symtropy's stored spatial angular state B.
     ///
     /// The world-space second moment S rotates with the body. With Rotor's
@@ -561,6 +616,19 @@ mod tests {
             .unwrap_err(),
             RotationalInertiaError::OffsetsNotCentered
         );
+    }
+
+    #[test]
+    fn point_mass_constructor_is_independent_of_input_order() {
+        let samples = [
+            (SVector::<f64, 3>::new(2.0, -1.0, 0.5), 3.0),
+            (SVector::<f64, 3>::new(-0.5, 1.5, 0.2), 1.25),
+            (SVector::<f64, 3>::new(0.3, 0.1, -2.0), 0.75),
+            (SVector::<f64, 3>::new(1.1, 0.2, 0.8), 2.0),
+        ];
+        let forward = BivectorInertia::<3>::from_point_masses(samples).unwrap();
+        let reversed = BivectorInertia::<3>::from_point_masses(samples.into_iter().rev()).unwrap();
+        assert_eq!(forward.second_moment(), reversed.second_moment());
     }
 
     #[test]
@@ -812,6 +880,43 @@ mod tests {
             "rotational effective mass changed under global frame rotation: \
              expected={expected:e}, observed={observed:e}"
         );
+    }
+
+    #[test]
+    fn body_frame_contact_effective_mass_matches_world_rotated_operator() {
+        let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
+            2.0,
+            SVector::new(1.4, 0.9, 0.5),
+        )
+        .unwrap();
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.31);
+        generator.set(0, 2, -0.22);
+        generator.set(1, 2, 0.43);
+        let body_to_world = Rotor::from_bivector(&generator);
+        let offset_body = SVector::new(0.7, -0.25, 0.4);
+        let direction_body = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let expected = body_inertia
+            .rotational_inverse_effective_mass(&offset_body, &direction_body, 1e-12)
+            .unwrap();
+        let world_operator = body_inertia.rotated_by(&body_to_world).unwrap();
+        let expected_world = world_operator
+            .rotational_inverse_effective_mass(
+                &body_to_world.rotate_vector(&offset_body),
+                &body_to_world.rotate_vector(&direction_body),
+                1e-12,
+            )
+            .unwrap();
+        let observed = body_inertia
+            .rotational_inverse_effective_mass_world(
+                &body_to_world,
+                &body_to_world.rotate_vector(&offset_body),
+                &body_to_world.rotate_vector(&direction_body),
+                1e-12,
+            )
+            .unwrap();
+        assert!((observed - expected).abs() < 2.0e-11);
+        assert!((observed - expected_world).abs() < 2.0e-11);
     }
 
     #[test]
