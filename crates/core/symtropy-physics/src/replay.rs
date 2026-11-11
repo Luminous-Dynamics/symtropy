@@ -14,7 +14,7 @@
 use nalgebra::SVector;
 use symtropy_math::Bivector;
 
-use crate::body::{BodyHandle, BodyType, RigidBody};
+use crate::body::{BodyHandle, BodyType, NetId, RigidBody};
 use crate::integrator;
 use crate::world::PhysicsWorld;
 
@@ -112,6 +112,8 @@ pub fn apply_commands<const D: usize>(
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct BodySnapshot<const D: usize> {
     pub handle: BodyHandle,
+    /// Optional runtime identity hint; not a canonical engineering subject.
+    pub net_id: Option<NetId>,
     pub body_type: BodyType,
     pub translation: [u64; D],
     pub rotation: [[u64; D]; D],
@@ -136,6 +138,7 @@ impl<const D: usize> BodySnapshot<D> {
 
         Self {
             handle: body.handle,
+            net_id: body.net_id,
             body_type: body.body_type,
             translation,
             rotation,
@@ -192,5 +195,46 @@ impl<const D: usize> WorldSnapshot<D> {
             bodies,
             collision_events,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nalgebra::SVector;
+    use symtropy_math::Point;
+
+    #[test]
+    fn body_snapshot_preserves_optional_net_id() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        world.body_mut(handle).expect("body exists").net_id = Some(NetId(42));
+
+        let snapshot = BodySnapshot::from_body(world.body(handle).expect("body exists"));
+        assert_eq!(snapshot.handle, handle);
+        assert_eq!(snapshot.net_id, Some(NetId(42)));
+    }
+
+    #[test]
+    fn world_snapshot_preserves_present_and_absent_net_ids() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let identified = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        let unidentified = world.add_sphere(Point::new([3.0, 0.0]), 1.0, 1.0);
+        world.body_mut(identified).expect("identified body").net_id = Some(NetId(77));
+
+        let snapshot = WorldSnapshot::capture(&world);
+        let identified_snapshot = snapshot
+            .bodies
+            .iter()
+            .find(|body| body.handle == identified)
+            .expect("identified body snapshot");
+        let unidentified_snapshot = snapshot
+            .bodies
+            .iter()
+            .find(|body| body.handle == unidentified)
+            .expect("unidentified body snapshot");
+
+        assert_eq!(identified_snapshot.net_id, Some(NetId(77)));
+        assert_eq!(unidentified_snapshot.net_id, None);
     }
 }
