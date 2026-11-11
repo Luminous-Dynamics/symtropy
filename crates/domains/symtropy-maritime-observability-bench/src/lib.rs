@@ -80,7 +80,7 @@ fn validate_input(input:&Value)->Check<()>{
     if states.len()<2{return Err(err("STATE_COUNT","$.states","at least two states required"));}
     let mut state_ids=BTreeSet::new();
     for (i,s) in states.iter().enumerate(){
-        let p=format!("$.states[{i}");let id=txt(s,"state_id",&p)?;
+        let p=format!("$.states[{i}]");let id=txt(s,"state_id",&p)?;
         if !state_ids.insert(id.to_owned()){return Err(err("DUPLICATE_STATE_ID",&format!("{p}.state_id"),"state IDs must be unique"));}
         if !matches!(txt(s,"state_class",&p)?,"PROCESS_STATE"|"SENSOR_FAULT"|"OUT_OF_DOMAIN"){return Err(err("STATE_CLASS",&format!("{p}.state_class"),"unsupported state class"));}
         let faulted=set(s,"faulted_sensor_ids",&p)?;
@@ -292,7 +292,7 @@ pub fn evaluate_and_bind_execution(input:&Value,source_commit:&str,case_sha256:&
 mod tests{
     use super::*;
     fn fixture()->Value{
-        serde_json::from_str(include_str!("../../../benchmarks/maritime-observability/maritime-observability-case-v0.1.json")).expect("fixture JSON")
+        serde_json::from_str(include_str!("../../../../benchmarks/maritime-observability/maritime-observability-case-v0.1.json")).expect("fixture JSON")
     }
     #[test]
     fn synthetic_maritime_case_maps_to_generic_evaluator(){
