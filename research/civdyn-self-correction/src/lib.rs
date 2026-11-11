@@ -13,11 +13,11 @@
 pub mod causal_drift;
 pub mod causal_identifiability;
 pub mod interference_identifiability;
-pub mod model_adequacy;
-pub mod source_passport;
 pub mod measurement_equivalence;
+pub mod model_adequacy;
 pub mod noisy_causal_drift;
 pub mod sequential_methods;
+pub mod source_passport;
 
 use civdyn_resource_ledger::{
     Production, Region, ResourceVector, StepInput, StepReport, TransferPolicy, TransferRequest,
