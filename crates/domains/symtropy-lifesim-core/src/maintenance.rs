@@ -484,6 +484,7 @@ mod tests {
     fn energy_ledger_accounts_for_harvest_spill_idle_and_repair() {
         let mut params = config();
         params.max_stored_energy = 10.0;
+        params.max_repair_power = 0.4;
         params.idle_power = 0.5;
         let mut system = MaintenanceSystem::new(params, 0.5, 9.0).unwrap();
         let report = system
