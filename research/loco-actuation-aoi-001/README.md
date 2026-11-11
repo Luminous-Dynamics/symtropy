@@ -44,7 +44,7 @@ V0.1 adds bounded timestamp intervals for both source generation and actuator ap
 
 The reference returns this age interval per observation/modality. If the intervals overlap such that event order cannot be established, it returns EventOrderUncertain. Invalid intervals and cross-clock/boot comparisons fail closed. It does not silently set unknown uncertainty to zero.
 
-The exact-timestamp API remains available as a degenerate-interval path. Four additional tests cover bounded uncertainty, overlapping event-order uncertainty, invalid/cross-clock intervals, and per-modality age bounds. The crate now has thirteen authored tests.
+The exact-timestamp API remains available as a degenerate-interval path. Four additional tests cover bounded uncertainty, overlapping event-order uncertainty, invalid/cross-clock intervals, and per-modality age bounds. The crate had thirteen authored tests at that stage; subsequent additions bring the current total to seventeen.
 
 Uncertainty is only the declared timestamp/instrumentation interval. This does not qualify the physical truth of the clock, capture exposure, actuator latch timestamp, or clock synchronization. Those must be established by the instrumentation and upstream clock/certificate owners.
 
@@ -55,7 +55,7 @@ V0.2 adds bounded AoI hold segments and a time-weighted lower/upper summary. Eac
 
 This prevents timestamp uncertainty from being collapsed when a mission-level AoI distribution is constructed. Summaries should still be computed per actuator/control stream; callers should not pool different actuator rates or modalities into one scalar unless the benchmark explicitly defines that aggregation.
 
-Two additional deterministic tests cover interval-summary propagation and invalid/overflowing bounds. The crate now has fifteen authored tests.
+Two additional deterministic tests cover interval-summary propagation and invalid/overflowing bounds. The crate now has seventeen authored tests.
 
 
 ## Command-bound measurement receipts
@@ -75,3 +75,6 @@ This keeps the measurement attached to the command it describes. It remains a me
 The interval-valued time-weighted summary propagates lower/upper starting AoI for each held-command segment while treating that segment's elapsed duration as a measured fixed nanosecond value. It does not yet bound uncertainty in segment duration itself. A deployment with uncertain hold duration must preserve a bounded duration trace or report the mission percentile bound as Unknown; it must not treat the point-duration result as a complete timing uncertainty bound.
 
 The summary must be computed per actuator/control stream. Do not pool different actuator loops or sensor modalities unless a benchmark explicitly defines the aggregation.
+
+
+Two further tests verify that exact and bounded measurement receipts preserve actuator, command, decision and application-event identity with the per-source age vector.
