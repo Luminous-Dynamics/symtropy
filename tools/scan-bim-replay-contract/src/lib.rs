@@ -3,6 +3,7 @@
 
 pub mod delivery;
 pub mod continuity;
+pub mod property_retention;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
