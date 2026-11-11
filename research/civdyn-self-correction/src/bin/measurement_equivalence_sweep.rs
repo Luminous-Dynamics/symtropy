@@ -3,9 +3,9 @@
 
 use civdyn_self_correction::measurement_equivalence::{
     BridgeDesign, BridgeStudyEvidence, EvidenceDisposition, MeasurementClaim,
-    MeasurementDefinition, MeasurementEquivalenceEvidence, MeasurementFamily,
-    MeasurementGroup, MeasurementEquivalenceReport,
-    SameProtocolEvidence, SurveyInvarianceEvidence, assess_measurement_equivalence,
+    MeasurementDefinition, MeasurementEquivalenceEvidence, MeasurementEquivalenceReport,
+    MeasurementFamily, MeasurementGroup, SameProtocolEvidence, SurveyInvarianceEvidence,
+    assess_measurement_equivalence,
 };
 
 const CSV_COLUMNS: usize = 37;
@@ -165,19 +165,43 @@ fn emit_report(scenario: &str, report: &MeasurementEquivalenceReport) {
             report
                 .invariance_levels
                 .map(|levels| {
-                    levels.iter().map(|level| level.name()).collect::<Vec<_>>().join(";")
+                    levels
+                        .iter()
+                        .map(|level| level.name())
+                        .collect::<Vec<_>>()
+                        .join(";")
                 })
                 .unwrap_or_default(),
             report.anchor_item_ids.join(";"),
             report.non_invariant_item_ids.join(";"),
             group_sizes.clone(),
             mean_bias_ci.clone(),
-            optional(report.mean_equivalence_margin.map(|value| format!("{value:.6}"))),
+            optional(
+                report
+                    .mean_equivalence_margin
+                    .map(|value| format!("{value:.6}")),
+            ),
             slope_ci.clone(),
-            optional(report.slope_equivalence_margin.map(|value| format!("{value:.6}"))),
-            optional(report.individual_error_lower_bound.map(|value| format!("{value:.6}"))),
-            optional(report.individual_error_upper_bound.map(|value| format!("{value:.6}"))),
-            optional(report.individual_score_margin.map(|value| format!("{value:.6}"))),
+            optional(
+                report
+                    .slope_equivalence_margin
+                    .map(|value| format!("{value:.6}")),
+            ),
+            optional(
+                report
+                    .individual_error_lower_bound
+                    .map(|value| format!("{value:.6}")),
+            ),
+            optional(
+                report
+                    .individual_error_upper_bound
+                    .map(|value| format!("{value:.6}")),
+            ),
+            optional(
+                report
+                    .individual_score_margin
+                    .map(|value| format!("{value:.6}")),
+            ),
         ]);
     }
 }
@@ -299,19 +323,13 @@ fn main() {
         "bridge_equivalent",
         &survey_a,
         &survey_b,
-        &MeasurementEquivalenceEvidence::BridgeStudy(bridge(
-            EvidenceDisposition::Supported,
-            false,
-        )),
+        &MeasurementEquivalenceEvidence::BridgeStudy(bridge(EvidenceDisposition::Supported, false)),
     );
     emit_case(
         "bridge_mean_inconclusive",
         &survey_a,
         &survey_b,
-        &MeasurementEquivalenceEvidence::BridgeStudy(bridge(
-            EvidenceDisposition::Supported,
-            true,
-        )),
+        &MeasurementEquivalenceEvidence::BridgeStudy(bridge(EvidenceDisposition::Supported, true)),
     );
     emit_case(
         "bridge_population_noninvariant",

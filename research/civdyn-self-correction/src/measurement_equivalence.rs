@@ -130,17 +130,27 @@ pub enum EquivalenceReason {
 impl EquivalenceReason {
     pub const fn name(self) -> &'static str {
         match self {
-            Self::ExactSameOperationalizationAndContext => "exact_same_operationalization_and_context",
-            Self::CrossPopulationNeedsMeasurementInvariance => "cross_population_needs_measurement_invariance",
+            Self::ExactSameOperationalizationAndContext => {
+                "exact_same_operationalization_and_context"
+            }
+            Self::CrossPopulationNeedsMeasurementInvariance => {
+                "cross_population_needs_measurement_invariance"
+            }
             Self::ConfiguralInvarianceSupported => "configural_invariance_supported",
             Self::MetricInvarianceSupported => "metric_invariance_supported",
             Self::ScalarInvarianceSupported => "scalar_invariance_supported",
             Self::ResidualInvarianceSupported => "residual_invariance_supported",
             Self::InvarianceNotSupported => "invariance_not_supported",
             Self::InvarianceNotAssessed => "invariance_not_assessed",
-            Self::BridgeIntervalsWithinEquivalenceMargins => "bridge_intervals_within_equivalence_margins",
-            Self::BridgeIntervalsOutsideEquivalenceMargins => "bridge_intervals_outside_equivalence_margins",
-            Self::BridgeIntervalsOverlapEquivalenceMargins => "bridge_intervals_overlap_equivalence_margins",
+            Self::BridgeIntervalsWithinEquivalenceMargins => {
+                "bridge_intervals_within_equivalence_margins"
+            }
+            Self::BridgeIntervalsOutsideEquivalenceMargins => {
+                "bridge_intervals_outside_equivalence_margins"
+            }
+            Self::BridgeIntervalsOverlapEquivalenceMargins => {
+                "bridge_intervals_overlap_equivalence_margins"
+            }
             Self::PopulationInvarianceNotSupported => "population_invariance_not_supported",
             Self::PopulationInvarianceNotAssessed => "population_invariance_not_assessed",
             Self::EvidenceRouteDoesNotSupportClaim => "evidence_route_does_not_support_claim",
@@ -427,10 +437,8 @@ fn validate_invariance_hierarchy(
             });
         }
     }
-    if matches!(
-        evidence.metric,
-        EvidenceDisposition::Supported
-    ) && evidence.anchor_item_ids.is_empty()
+    if matches!(evidence.metric, EvidenceDisposition::Supported)
+        && evidence.anchor_item_ids.is_empty()
     {
         return Err(MeasurementEquivalenceError::MissingAnchorItems);
     }
@@ -516,12 +524,10 @@ fn bridge_claim(
         MeasurementClaim::StructuralConfiguration => unreachable!(),
         MeasurementClaim::AssociationComparison => slope,
         MeasurementClaim::LatentMeanComparison => mean_bias,
-        MeasurementClaim::IndividualScoreComparison => {
-            match individual_score {
-                Some(value) => value,
-                None => EvidenceDisposition::NotAssessed,
-            }
-        }
+        MeasurementClaim::IndividualScoreComparison => match individual_score {
+            Some(value) => value,
+            None => EvidenceDisposition::NotAssessed,
+        },
     };
 
     let (status, reason) = if population_invariance == EvidenceDisposition::NotSupported
@@ -569,194 +575,200 @@ pub fn assess_measurement_equivalence(
 ) -> Result<MeasurementEquivalenceReport, MeasurementEquivalenceError> {
     validate_measurement_pair(left, right)?;
 
-    let (evidence_digest, evidence_kind, invariance_levels, anchor_item_ids, non_invariant_item_ids, claims) =
-        match evidence {
-            MeasurementEquivalenceEvidence::SameProtocol(receipt) => {
-                if receipt.protocol_digest.trim().is_empty() {
-                    return Err(MeasurementEquivalenceError::MissingEvidenceDigest);
-                }
-                if left.operationalization_digest != right.operationalization_digest
-                    || left.instrument_digest != right.instrument_digest
-                {
-                    return Err(MeasurementEquivalenceError::OperationalizationMismatch);
-                }
-                if left.population_id != right.population_id || left.context_id != right.context_id {
-                    let claims = MeasurementClaim::ALL
-                        .into_iter()
-                        .map(|claim| ClaimEquivalenceResult {
-                            claim,
-                            status: EquivalenceStatus::InsufficientEvidenceForClaim,
-                            reason: EquivalenceReason::CrossPopulationNeedsMeasurementInvariance,
-                        })
-                        .collect();
-                    (
-                        receipt.protocol_digest.clone(),
-                        "same_protocol",
-                        None,
-                        Vec::new(),
-                        Vec::new(),
-                        claims,
-                    )
-                } else {
-                    if left.family == MeasurementFamily::DirectPhysicalMeasure
-                        && receipt
-                            .calibration_receipt_digest
-                            .as_deref()
-                            .is_none_or(str::is_empty)
-                    {
-                        return Err(MeasurementEquivalenceError::MissingPhysicalCalibrationReceipt);
-                    }
-                    let claims = MeasurementClaim::ALL
-                        .into_iter()
-                        .map(|claim| ClaimEquivalenceResult {
-                            claim,
-                            status: EquivalenceStatus::EquivalentForClaim,
-                            reason: EquivalenceReason::ExactSameOperationalizationAndContext,
-                        })
-                        .collect();
-                    (
-                        receipt.protocol_digest.clone(),
-                        "same_protocol",
-                        None,
-                        Vec::new(),
-                        Vec::new(),
-                        claims,
-                    )
-                }
+    let (
+        evidence_digest,
+        evidence_kind,
+        invariance_levels,
+        anchor_item_ids,
+        non_invariant_item_ids,
+        claims,
+    ) = match evidence {
+        MeasurementEquivalenceEvidence::SameProtocol(receipt) => {
+            if receipt.protocol_digest.trim().is_empty() {
+                return Err(MeasurementEquivalenceError::MissingEvidenceDigest);
             }
-            MeasurementEquivalenceEvidence::SurveyInvariance(receipt) => {
-                if left.family != MeasurementFamily::SurveyLatentScale {
-                    return Err(MeasurementEquivalenceError::InvarianceEvidenceRequiresSurveyScale);
-                }
-                validate_invariance_hierarchy(receipt)?;
-                validate_groups(
-                    &receipt.groups,
-                    left,
-                    right,
-                    receipt.minimum_group_sample_size,
-                )?;
-                let dispositions = [
-                    receipt.configural,
-                    receipt.metric,
-                    receipt.scalar,
-                    receipt.residual,
-                ];
+            if left.operationalization_digest != right.operationalization_digest
+                || left.instrument_digest != right.instrument_digest
+            {
+                return Err(MeasurementEquivalenceError::OperationalizationMismatch);
+            }
+            if left.population_id != right.population_id || left.context_id != right.context_id {
                 let claims = MeasurementClaim::ALL
                     .into_iter()
-                    .zip(dispositions)
-                    .map(|(claim, disposition)| claim_result_from_invariance(claim, disposition))
-                    .collect();
-                (
-                    receipt.study_digest.clone(),
-                    "survey_invariance",
-                    Some([
-                        receipt.configural,
-                        receipt.metric,
-                        receipt.scalar,
-                        receipt.residual,
-                    ]),
-                    receipt.anchor_item_ids.clone(),
-                    receipt.non_invariant_item_ids.clone(),
-                    claims,
-                )
-            }
-            MeasurementEquivalenceEvidence::BridgeStudy(receipt) => {
-                if receipt.bridge_study_digest.trim().is_empty()
-                    || receipt.data_digest.trim().is_empty()
-                    || receipt.protocol_digest.trim().is_empty()
-                    || receipt.analysis_digest.trim().is_empty()
-                {
-                    return Err(MeasurementEquivalenceError::MissingBridgeEquivalenceEvidence);
-                }
-                if !receipt.confidence_level.is_finite()
-                    || receipt.confidence_level <= 0.0
-                    || receipt.confidence_level >= 1.0
-                {
-                    return Err(MeasurementEquivalenceError::InvalidBridgeConfidenceLevel);
-                }
-                validate_groups(
-                    &receipt.groups,
-                    left,
-                    right,
-                    receipt.minimum_group_sample_size,
-                )?;
-                match (receipt.design, receipt.paired_sample_size) {
-                    (BridgeDesign::Paired, Some(paired_n))
-                        if paired_n >= receipt.minimum_group_sample_size
-                            && paired_n
-                                <= receipt
-                                    .groups
-                                    .iter()
-                                    .map(|group| group.sample_size)
-                                    .min()
-                                    .unwrap_or(0) => {}
-                    (BridgeDesign::RandomizedSplitSample, None) => {}
-                    _ => return Err(MeasurementEquivalenceError::InvalidGroupSet),
-                }
-                if receipt.mean_equivalence_margin <= 0.0
-                    || !receipt.mean_equivalence_margin.is_finite()
-                    || receipt.slope_equivalence_margin <= 0.0
-                    || !receipt.slope_equivalence_margin.is_finite()
-                    || receipt.slope_equivalence_margin >= 1.0
-                {
-                    return Err(MeasurementEquivalenceError::InvalidBridgeEquivalenceMargin);
-                }
-                let mean_bias = interval_equivalence(
-                    receipt.mean_bias_ci_lower,
-                    receipt.mean_bias_ci_upper,
-                    receipt.mean_equivalence_margin,
-                )?;
-                let slope = interval_equivalence(
-                    receipt.slope_ci_lower - 1.0,
-                    receipt.slope_ci_upper - 1.0,
-                    receipt.slope_equivalence_margin,
-                )?;
-                let individual_score = match (
-                    receipt.individual_error_lower_bound,
-                    receipt.individual_error_upper_bound,
-                    receipt.individual_score_margin,
-                ) {
-                    (Some(lower), Some(upper), Some(margin))
-                        if lower.is_finite()
-                            && upper.is_finite()
-                            && margin.is_finite()
-                            && lower >= 0.0
-                            && lower <= upper
-                            && margin > 0.0 =>
-                    {
-                        Some(if upper <= margin {
-                            EvidenceDisposition::Supported
-                        } else if lower > margin {
-                            EvidenceDisposition::NotSupported
-                        } else {
-                            EvidenceDisposition::NotAssessed
-                        })
-                    }
-                    (None, None, None) => None,
-                    _ => return Err(MeasurementEquivalenceError::InvalidIndividualScoreBound),
-                };
-                let claims = MeasurementClaim::ALL
-                    .into_iter()
-                    .map(|claim| {
-                        bridge_claim(
-                            claim,
-                            receipt.population_invariance,
-                            mean_bias,
-                            slope,
-                            individual_score,
-                        )
+                    .map(|claim| ClaimEquivalenceResult {
+                        claim,
+                        status: EquivalenceStatus::InsufficientEvidenceForClaim,
+                        reason: EquivalenceReason::CrossPopulationNeedsMeasurementInvariance,
                     })
                     .collect();
                 (
-                    receipt.bridge_study_digest.clone(),
-                    "bridge_study",
+                    receipt.protocol_digest.clone(),
+                    "same_protocol",
+                    None,
+                    Vec::new(),
+                    Vec::new(),
+                    claims,
+                )
+            } else {
+                if left.family == MeasurementFamily::DirectPhysicalMeasure
+                    && receipt
+                        .calibration_receipt_digest
+                        .as_deref()
+                        .is_none_or(str::is_empty)
+                {
+                    return Err(MeasurementEquivalenceError::MissingPhysicalCalibrationReceipt);
+                }
+                let claims = MeasurementClaim::ALL
+                    .into_iter()
+                    .map(|claim| ClaimEquivalenceResult {
+                        claim,
+                        status: EquivalenceStatus::EquivalentForClaim,
+                        reason: EquivalenceReason::ExactSameOperationalizationAndContext,
+                    })
+                    .collect();
+                (
+                    receipt.protocol_digest.clone(),
+                    "same_protocol",
                     None,
                     Vec::new(),
                     Vec::new(),
                     claims,
                 )
             }
-        };
+        }
+        MeasurementEquivalenceEvidence::SurveyInvariance(receipt) => {
+            if left.family != MeasurementFamily::SurveyLatentScale {
+                return Err(MeasurementEquivalenceError::InvarianceEvidenceRequiresSurveyScale);
+            }
+            validate_invariance_hierarchy(receipt)?;
+            validate_groups(
+                &receipt.groups,
+                left,
+                right,
+                receipt.minimum_group_sample_size,
+            )?;
+            let dispositions = [
+                receipt.configural,
+                receipt.metric,
+                receipt.scalar,
+                receipt.residual,
+            ];
+            let claims = MeasurementClaim::ALL
+                .into_iter()
+                .zip(dispositions)
+                .map(|(claim, disposition)| claim_result_from_invariance(claim, disposition))
+                .collect();
+            (
+                receipt.study_digest.clone(),
+                "survey_invariance",
+                Some([
+                    receipt.configural,
+                    receipt.metric,
+                    receipt.scalar,
+                    receipt.residual,
+                ]),
+                receipt.anchor_item_ids.clone(),
+                receipt.non_invariant_item_ids.clone(),
+                claims,
+            )
+        }
+        MeasurementEquivalenceEvidence::BridgeStudy(receipt) => {
+            if receipt.bridge_study_digest.trim().is_empty()
+                || receipt.data_digest.trim().is_empty()
+                || receipt.protocol_digest.trim().is_empty()
+                || receipt.analysis_digest.trim().is_empty()
+            {
+                return Err(MeasurementEquivalenceError::MissingBridgeEquivalenceEvidence);
+            }
+            if !receipt.confidence_level.is_finite()
+                || receipt.confidence_level <= 0.0
+                || receipt.confidence_level >= 1.0
+            {
+                return Err(MeasurementEquivalenceError::InvalidBridgeConfidenceLevel);
+            }
+            validate_groups(
+                &receipt.groups,
+                left,
+                right,
+                receipt.minimum_group_sample_size,
+            )?;
+            match (receipt.design, receipt.paired_sample_size) {
+                (BridgeDesign::Paired, Some(paired_n))
+                    if paired_n >= receipt.minimum_group_sample_size
+                        && paired_n
+                            <= receipt
+                                .groups
+                                .iter()
+                                .map(|group| group.sample_size)
+                                .min()
+                                .unwrap_or(0) => {}
+                (BridgeDesign::RandomizedSplitSample, None) => {}
+                _ => return Err(MeasurementEquivalenceError::InvalidGroupSet),
+            }
+            if receipt.mean_equivalence_margin <= 0.0
+                || !receipt.mean_equivalence_margin.is_finite()
+                || receipt.slope_equivalence_margin <= 0.0
+                || !receipt.slope_equivalence_margin.is_finite()
+                || receipt.slope_equivalence_margin >= 1.0
+            {
+                return Err(MeasurementEquivalenceError::InvalidBridgeEquivalenceMargin);
+            }
+            let mean_bias = interval_equivalence(
+                receipt.mean_bias_ci_lower,
+                receipt.mean_bias_ci_upper,
+                receipt.mean_equivalence_margin,
+            )?;
+            let slope = interval_equivalence(
+                receipt.slope_ci_lower - 1.0,
+                receipt.slope_ci_upper - 1.0,
+                receipt.slope_equivalence_margin,
+            )?;
+            let individual_score = match (
+                receipt.individual_error_lower_bound,
+                receipt.individual_error_upper_bound,
+                receipt.individual_score_margin,
+            ) {
+                (Some(lower), Some(upper), Some(margin))
+                    if lower.is_finite()
+                        && upper.is_finite()
+                        && margin.is_finite()
+                        && lower >= 0.0
+                        && lower <= upper
+                        && margin > 0.0 =>
+                {
+                    Some(if upper <= margin {
+                        EvidenceDisposition::Supported
+                    } else if lower > margin {
+                        EvidenceDisposition::NotSupported
+                    } else {
+                        EvidenceDisposition::NotAssessed
+                    })
+                }
+                (None, None, None) => None,
+                _ => return Err(MeasurementEquivalenceError::InvalidIndividualScoreBound),
+            };
+            let claims = MeasurementClaim::ALL
+                .into_iter()
+                .map(|claim| {
+                    bridge_claim(
+                        claim,
+                        receipt.population_invariance,
+                        mean_bias,
+                        slope,
+                        individual_score,
+                    )
+                })
+                .collect();
+            (
+                receipt.bridge_study_digest.clone(),
+                "bridge_study",
+                None,
+                Vec::new(),
+                Vec::new(),
+                claims,
+            )
+        }
+    };
 
     let (
         data_digest,
@@ -1027,9 +1039,12 @@ mod tests {
             }),
         )
         .expect("cross-population same protocol is limited");
-        assert!(report.claims.iter().all(|claim| {
-            claim.status == EquivalenceStatus::InsufficientEvidenceForClaim
-        }));
+        assert!(
+            report
+                .claims
+                .iter()
+                .all(|claim| { claim.status == EquivalenceStatus::InsufficientEvidenceForClaim })
+        );
     }
 
     #[test]
@@ -1050,14 +1065,8 @@ mod tests {
             report.claims[0].status,
             EquivalenceStatus::EquivalentForClaim
         );
-        assert_eq!(
-            report.claims[1].status,
-            EquivalenceStatus::NotAssessed
-        );
-        assert_eq!(
-            report.claims[2].status,
-            EquivalenceStatus::NotAssessed
-        );
+        assert_eq!(report.claims[1].status, EquivalenceStatus::NotAssessed);
+        assert_eq!(report.claims[2].status, EquivalenceStatus::NotAssessed);
     }
 
     #[test]
@@ -1102,10 +1111,7 @@ mod tests {
             report.claims[2].status,
             EquivalenceStatus::EquivalentForClaim
         );
-        assert_eq!(
-            report.claims[3].status,
-            EquivalenceStatus::NotAssessed
-        );
+        assert_eq!(report.claims[3].status, EquivalenceStatus::NotAssessed);
     }
 
     #[test]
@@ -1123,9 +1129,12 @@ mod tests {
         )
         .expect("full invariance report");
         assert_eq!(report.claims.len(), MeasurementClaim::ALL.len());
-        assert!(report.claims.iter().all(|claim| {
-            claim.status == EquivalenceStatus::EquivalentForClaim
-        }));
+        assert!(
+            report
+                .claims
+                .iter()
+                .all(|claim| { claim.status == EquivalenceStatus::EquivalentForClaim })
+        );
     }
 
     #[test]
@@ -1146,10 +1155,7 @@ mod tests {
             report.anchor_item_ids,
             vec!["anchor-1".to_string(), "anchor-2".to_string()]
         );
-        assert_eq!(
-            report.non_invariant_item_ids,
-            vec!["item-4".to_string()]
-        );
+        assert_eq!(report.non_invariant_item_ids, vec!["item-4".to_string()]);
     }
 
     #[test]
@@ -1158,15 +1164,10 @@ mod tests {
         let report = assess_measurement_equivalence(
             &left,
             &right,
-            &MeasurementEquivalenceEvidence::BridgeStudy(bridge(
-                EvidenceDisposition::Supported,
-            )),
+            &MeasurementEquivalenceEvidence::BridgeStudy(bridge(EvidenceDisposition::Supported)),
         )
         .expect("bridge study report");
-        assert_eq!(
-            report.claims[0].status,
-            EquivalenceStatus::NotAssessed
-        );
+        assert_eq!(report.claims[0].status, EquivalenceStatus::NotAssessed);
         assert_eq!(
             report.claims[1].status,
             EquivalenceStatus::EquivalentForClaim
@@ -1244,14 +1245,14 @@ mod tests {
         let report = assess_measurement_equivalence(
             &left,
             &right,
-            &MeasurementEquivalenceEvidence::BridgeStudy(bridge(
-                EvidenceDisposition::NotSupported,
-            )),
+            &MeasurementEquivalenceEvidence::BridgeStudy(bridge(EvidenceDisposition::NotSupported)),
         )
         .expect("noninvariant bridge remains reportable");
-        assert!(report.claims[1..].iter().all(|claim| {
-            claim.status == EquivalenceStatus::NotEquivalentForClaim
-        }));
+        assert!(
+            report.claims[1..]
+                .iter()
+                .all(|claim| { claim.status == EquivalenceStatus::NotEquivalentForClaim })
+        );
     }
 
     #[test]
