@@ -496,8 +496,6 @@ impl<const D: usize> BivectorInertia<D> {
             .principal_second_moments
             .iter()
             .fold(0.0_f64, |maximum, value| maximum.max(*value));
-        let threshold = relative_tolerance * largest_eigenvalue.max(f64::MIN_POSITIVE);
-
         let q = &self.principal_axes;
         let q_t = q.transpose();
         let momentum_local = q_t * angular_momentum.to_matrix() * q;
@@ -507,7 +505,6 @@ impl<const D: usize> BivectorInertia<D> {
         let momentum_scale = momentum_local
             .iter()
             .fold(0.0_f64, |maximum, value| maximum.max(value.abs()));
-        let momentum_tolerance = relative_tolerance * momentum_scale.max(f64::MIN_POSITIVE);
         let mut omega_local = nalgebra::SMatrix::<f64, D, D>::zeros();
 
         for i in 0..D {
@@ -518,8 +515,26 @@ impl<const D: usize> BivectorInertia<D> {
                 if !plane_inertia.is_finite() {
                     return Err(RotationalInertiaError::NonFinite);
                 }
-                if plane_inertia <= threshold {
-                    if momentum_component.abs() <= momentum_tolerance {
+                // Compare dimensionless ratios rather than multiplying the
+                // largest eigenvalue or momentum magnitude by the tolerance.
+                // The product can underflow for subnormal but representable
+                // mass distributions, making a scale-relative test behave
+                // like an absolute zero threshold.
+                let relative_plane_inertia = if largest_eigenvalue > 0.0 {
+                    plane_inertia / largest_eigenvalue
+                } else {
+                    0.0
+                };
+                let relative_momentum_component = if momentum_scale > 0.0 {
+                    momentum_component.abs() / momentum_scale
+                } else {
+                    0.0
+                };
+                if !relative_plane_inertia.is_finite() || !relative_momentum_component.is_finite() {
+                    return Err(RotationalInertiaError::NonFinite);
+                }
+                if relative_plane_inertia <= relative_tolerance {
+                    if relative_momentum_component <= relative_tolerance {
                         continue;
                     }
                     return Err(RotationalInertiaError::SingularInertia);
@@ -1359,6 +1374,27 @@ mod tests {
         assert!(
             recovered.add(&omega.scale(-1.0)).norm() < 1e-11,
             "recovered={recovered:?}, expected={omega:?}"
+        );
+    }
+
+    #[test]
+    fn inverse_operator_is_scale_relative_for_subnormal_mass_moments() {
+        let tiny = 1.0e-320;
+        let second_moment = SMatrix::<f64, 3, 3>::from_diagonal(&SVector::from([
+            tiny, tiny, tiny,
+        ]));
+        let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
+        let mut angular_state = Bivector::<3>::zero();
+        angular_state.set(0, 1, 0.5);
+        angular_state.set(0, 2, -0.25);
+        angular_state.set(1, 2, 0.75);
+        let momentum = inertia.angular_momentum(&angular_state).unwrap();
+        let recovered = inertia
+            .angular_velocity_from_momentum(&momentum, 1.0e-12)
+            .unwrap();
+        assert!(
+            recovered.add(&angular_state.scale(-1.0)).norm() < 1.0e-12,
+            "subnormal inertia changed the recovered angular state: {recovered:?}"
         );
     }
 
