@@ -18,12 +18,13 @@
     "plant",
     "execution",
     "instrumentation",
-    "interaction_port",
     "trial",
     "metrics",
     "uncertainty",
     "exclusions",
-    "artifacts"
+    "artifacts",
+    "interaction_ports",
+    "interaction_graph"
   ],
   "properties": {
     "schema_version": {
@@ -265,49 +266,6 @@
         }
       }
     },
-    "interaction_port": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "port_id",
-        "spatial_frame_id",
-        "effort_flow_convention",
-        "positive_power_direction",
-        "control_volume_id"
-      ],
-      "properties": {
-        "port_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "spatial_frame_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "effort_flow_convention": {
-          "type": "string",
-          "minLength": 1
-        },
-        "positive_power_direction": {
-          "enum": [
-            "into_control_volume",
-            "out_of_control_volume",
-            "paired_internal_edge"
-          ]
-        },
-        "control_volume_id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "characteristic_length_m": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "boundary_graph_digest": {
-          "$ref": "#/$defs/digest"
-        }
-      }
-    },
     "trial": {
       "type": "object",
       "additionalProperties": false,
@@ -535,6 +493,144 @@
             "accepted",
             "rejected"
           ]
+        }
+      }
+    },
+    "interaction_ports": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "port_id",
+          "port_class",
+          "spatial_frame_id",
+          "effort_flow_convention",
+          "positive_power_direction",
+          "boundary_role",
+          "measurement_profile_digest",
+          "calibration_digest"
+        ],
+        "properties": {
+          "port_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "port_class": {
+            "enum": [
+              "external_human_contact",
+              "external_object_environment_contact",
+              "actuator_mechanical",
+              "electrical_supply",
+              "electrical_return",
+              "internal_subsystem"
+            ]
+          },
+          "spatial_frame_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effort_flow_convention": {
+            "type": "string",
+            "minLength": 1
+          },
+          "positive_power_direction": {
+            "enum": [
+              "into_control_volume",
+              "out_of_control_volume",
+              "paired_internal_edge"
+            ]
+          },
+          "boundary_role": {
+            "enum": [
+              "external_boundary",
+              "internal_connection"
+            ]
+          },
+          "paired_endpoint_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "measurement_profile_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "calibration_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "measurement_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "geometry_revision_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "uncertainty_method": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "interaction_graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_volume_id",
+        "graph_digest",
+        "external_boundary_port_ids",
+        "internal_edges"
+      ],
+      "properties": {
+        "control_volume_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "external_boundary_port_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "internal_edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edge_id",
+              "source_port_id",
+              "target_port_id",
+              "power_pairing_contract"
+            ],
+            "properties": {
+              "edge_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_port_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "target_port_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "power_pairing_contract": {
+                "type": "string",
+                "minLength": 1
+              },
+              "maximum_cancellation_residual_j": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
         }
       }
     }
