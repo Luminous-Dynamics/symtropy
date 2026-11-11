@@ -1,0 +1,196 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-WELD-SCALE-TRANSFER-001",
+  "snapshot_date": "2026-11-11",
+  "claim_ceiling": "SYNTHETIC_SCALE_TRANSFER_CONTRACT_ONLY",
+  "source_reference": {
+    "title": "A review of prediction and control methods on welding-induced distortions in large metallic structures",
+    "doi": "10.1007/s40194-026-02695-6",
+    "published_on": "2026-11-07",
+    "evidence_class": "literature_metadata_only",
+    "raw_data_admitted": false,
+    "residual_stress_scope": "NOT_COVERED_BY_SOURCE_REVIEW"
+  },
+  "cases": [
+    {
+      "case_id": "SCALE-001",
+      "class": "positive",
+      "mutation": "same model, exact source domain and output scope",
+      "expected_disposition": "ADMITTED_IN_DOMAIN"
+    },
+    {
+      "case_id": "SCALE-002",
+      "class": "positive",
+      "mutation": "three independently validated adjacent bridges from coupon to block",
+      "expected_disposition": "ADMITTED_WITH_BRIDGE_CHAIN"
+    },
+    {
+      "case_id": "SCALE-003",
+      "class": "negative",
+      "mutation": "target thickness exceeds calibrated source interval with no bridge",
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
+    },
+    {
+      "case_id": "SCALE-004",
+      "class": "negative",
+      "mutation": "material family changes without bridge evidence",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-005",
+      "class": "negative",
+      "mutation": "joint family changes without bridge evidence",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-006",
+      "class": "negative",
+      "mutation": "penetration class changes without bridge evidence",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-007",
+      "class": "negative",
+      "mutation": "process family changes without bridge evidence",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-008",
+      "class": "negative",
+      "mutation": "process variant changes without bridge evidence",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-009",
+      "class": "negative",
+      "mutation": "pass topology changes without bridge evidence",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-010",
+      "class": "negative",
+      "mutation": "restraint class changes without bridge evidence",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-011",
+      "class": "negative",
+      "mutation": "one edge skips more than one scale tier",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-012",
+      "class": "negative",
+      "mutation": "bridge edge references another model revision",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-013",
+      "class": "negative",
+      "mutation": "bridge validation specimen also used for calibration",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-014",
+      "class": "negative",
+      "mutation": "bridge evidence is dated after the decision cutoff",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-015",
+      "class": "negative",
+      "mutation": "bridge empirical coverage is below the required minimum",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-016",
+      "class": "negative",
+      "mutation": "bridge error exceeds its preregistered tolerance",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-017",
+      "class": "negative",
+      "mutation": "cumulative edge uncertainty exceeds decision threshold",
+      "expected_disposition": "ABSTAIN_UNCERTAINTY"
+    },
+    {
+      "case_id": "SCALE-018",
+      "class": "negative",
+      "mutation": "released-state distortion evidence is promoted to residual-stress output",
+      "expected_disposition": "ABSTAIN_OUTPUT_SCOPE"
+    },
+    {
+      "case_id": "SCALE-019",
+      "class": "negative",
+      "mutation": "duplicate edge identity appears in the bridge graph",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-020",
+      "class": "negative",
+      "mutation": "duplicate domain identity appears in the domain graph",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-021",
+      "class": "negative",
+      "mutation": "cycle does not provide a valid source-to-target bridge path",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-022",
+      "class": "negative",
+      "mutation": "model status is calibrated-only rather than validated",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-023",
+      "class": "negative",
+      "mutation": "bridge changed-factor list differs from the actual domain signature delta",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-024",
+      "class": "negative",
+      "mutation": "bridge evidence digest is missing or malformed",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-025",
+      "class": "negative",
+      "mutation": "coordinate frame changes without a bridge edge",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-026",
+      "class": "negative",
+      "mutation": "boundary or cooling class changes without a bridge edge",
+      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+    },
+    {
+      "case_id": "SCALE-027",
+      "class": "negative",
+      "mutation": "edge specimen validation partition is empty",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-028",
+      "class": "negative",
+      "mutation": "bridge graph contains a direct coupon-to-block edge instead of adjacent scale steps",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    },
+    {
+      "case_id": "SCALE-029",
+      "class": "negative",
+      "mutation": "prediction uses a different output operator/datum scope than validation evidence",
+      "expected_disposition": "ABSTAIN_OUTPUT_SCOPE"
+    },
+    {
+      "case_id": "SCALE-030",
+      "class": "negative",
+      "mutation": "transfer path uncertainty arithmetic overflows",
+      "expected_disposition": "ABSTAIN_EVIDENCE_INVALID"
+    }
+  ]
+}
