@@ -50,10 +50,16 @@ jobs:
           jq -e '
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 9) and
-            ([.comparators[].id] | unique | length == 9) and
+            (.comparators | length == 14) and
+            ([.comparators[].id] | unique | length == 14) and
             (.hard_evidence_gates | length >= 40) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
+            ([.comparators[].id] | index("published_solution_1_care_engine") != null) and
+            ([.comparators[].id] | index("published_solution_2_rls_open_set_residuals") != null) and
+            ([.comparators[].id] | index("published_solution_3_distribution_kl_matching") != null) and
+            ([.comparators[].id] | index("published_solution_4_residual_anfis") != null) and
+            ([.comparators[].id] | index("published_solution_5_ccdnn_multiview") != null) and
+            ([.comparators[].id] | index("published_solution_6_vae_svm_ensemble") != null) and
             ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
             (.calibration.minimum_independent_episodes["900000"] == 9) and
             (.calibration.minimum_independent_episodes["950000"] == 19) and
@@ -91,6 +97,18 @@ jobs:
             (.external_dataset_track.evaluation_tracks | map(.status) | all(. != "qualified")) and
             (.external_dataset_track.research_targets_not_achieved | all(.status == "aspirational"))
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "liu-ice-published-six-solution-baselines-v0.1" and
+            .status == "literature_reference_not_reproduced" and
+            (.solutions | length == 6) and
+            (.solutions | map(.historical_mean_percent.one_minus_far) | .[3] == 99.9) and
+            (.solutions | map(.historical_mean_percent.tdr) | .[3] == 97.2) and
+            (.solutions | map(.historical_mean_percent.tir) | .[1] == 85.5) and
+            (.protocol_context.historical_metrics.tir | contains("ranked highest")) and
+            (.protocol_context.comparability_warning | contains("not current DX2026 FIA")) and
+            (.matched_reproduction_rules | length >= 8)
+          ' benchmarks/maritime-control-response/published-six-solution-baselines-v0.1.json >/dev/null
 
           jq -e '
             .schema_version == "liu-ice-active-evidence-selection-v0.3" and
@@ -154,6 +172,12 @@ jobs:
             (.properties.protocol.required | index("active_evidence_selection") != null) and
             (.properties.protocol.required | index("streaming_contract") != null) and
             (.properties.protocol.required | index("external_dataset_track") != null) and
+            (.properties.comparator.properties.family.enum | index("adaptive_residual_qda_lsvc") != null) and
+            (.properties.comparator.properties.family.enum | index("rls_open_set_residuals") != null) and
+            (.properties.comparator.properties.family.enum | index("distribution_kl_matching") != null) and
+            (.properties.comparator.properties.family.enum | index("residual_anfis") != null) and
+            (.properties.comparator.properties.family.enum | index("ccdnn_multiview") != null) and
+            (.properties.comparator.properties.family.enum | index("dual_vae_svm_ensemble") != null) and
             (.properties.protocol.properties.external_dataset_track.properties.archive_sha256.oneOf | length == 2) and
             (.properties.protocol.properties.external_dataset_track.properties.cross_engine_or_fleet_claim_allowed.const == false) and
             (.properties.protocol.properties.external_dataset_track.properties.dataset_doi.const == "10.5281/zenodo.19857425") and
