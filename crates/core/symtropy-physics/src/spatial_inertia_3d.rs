@@ -34,6 +34,8 @@ pub enum SpatialInertia3Error {
     CentralInertiaViolatesTriangleInequality,
     InvalidRotation,
     FrameMismatch { left: FrameId, right: FrameId },
+    FrameIdentityConflict,
+    ReferencePointIdentityConflict,
     ReferencePointMismatch { left: ReferencePointId, right: ReferencePointId },
     UnrepresentableSpatialMassMatrix,
     UnrepresentableComposition,
@@ -53,6 +55,7 @@ pub struct SpatialInertia3 {
     mass: f64,
     center_of_mass_from_reference: SVector<f64, 3>,
     // Symmetric matrix packed as [Ixx, Iyy, Izz, Ixy, Ixz, Iyz].
+    central_inertia_components: [f64; 6],
 }
 
 impl SpatialInertia3 {
@@ -243,6 +246,9 @@ impl SpatialInertia3 {
         if !offset_old_to_new.iter().all(|value| value.is_finite()) {
             return Err(SpatialInertia3Error::NonFinite);
         }
+        if new_about == self.about && offset_old_to_new.iter().any(|value| *value != 0.0) {
+            return Err(SpatialInertia3Error::ReferencePointIdentityConflict);
+        }
         let new_com_offset = self.center_of_mass_from_reference - offset_old_to_new;
         Self::new(
             self.frame,
@@ -265,6 +271,12 @@ impl SpatialInertia3 {
             || !old_to_new.is_proper_rotation(ROTATION_VALIDITY_TOLERANCE)
         {
             return Err(SpatialInertia3Error::InvalidRotation);
+        }
+        if new_frame == self.frame
+            && (rotation - SMatrix::<f64, 3, 3>::identity()).norm()
+                > ROTATION_VALIDITY_TOLERANCE
+        {
+            return Err(SpatialInertia3Error::FrameIdentityConflict);
         }
         Self::new(
             new_frame,
@@ -629,6 +641,26 @@ mod tests {
         assert!((combined.kinetic_energy(&twist).unwrap() - total_energy).abs() < 1.0e-11);
         assert!((combined.mass() - 5.0).abs() < 1.0e-14);
         assert!((combined.center_of_mass_from_reference()[0] - 0.8).abs() < 1.0e-14);
+    }
+
+    #[test]
+    fn point_identity_cannot_be_reused_for_a_nonzero_reference_shift() {
+        let inertia = sample();
+        let result = inertia.shift_reference_point(
+            inertia.about(),
+            &SVector::new(0.1, 0.0, 0.0),
+        );
+        assert_eq!(result.unwrap_err(), SpatialInertia3Error::ReferencePointIdentityConflict);
+    }
+
+    #[test]
+    fn frame_identity_cannot_be_reused_for_a_nontrivial_reexpression() {
+        let inertia = sample();
+        let mut generator = Bivector::<3>::zero();
+        generator.set(0, 1, 0.3);
+        let rotation = Rotor::from_bivector(&generator);
+        let result = inertia.reexpress(inertia.frame(), &rotation);
+        assert_eq!(result.unwrap_err(), SpatialInertia3Error::FrameIdentityConflict);
     }
 
     #[test]
