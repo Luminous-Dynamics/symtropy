@@ -192,7 +192,14 @@
         "measured_sample_rate_hz",
         "required_sample_rate_hz",
         "sampling_spec_valid",
-        "terminal_safe_stop_qualified"
+        "terminal_safe_stop_qualified",
+        "causal_identity",
+        "configuration_and_calibration",
+        "decision_valid_through_tick",
+        "actuator_application_tick",
+        "source_modality",
+        "source_sequence",
+        "remote_inference_used"
       ],
       "properties": {
         "clock_relation": {
@@ -279,6 +286,221 @@
         },
         "terminal_safe_stop_qualified": {
           "type": "boolean"
+        },
+        "causal_identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mission_id",
+            "robot_id",
+            "boot_epoch",
+            "clock_id",
+            "scenario_manifest_digest",
+            "source_observation_id",
+            "source_event_sequence",
+            "decision_id",
+            "decision_event_sequence",
+            "proposal_id",
+            "proposal_event_sequence",
+            "assurance_event_id",
+            "assurance_event_sequence",
+            "command_id",
+            "actuator_application_event_id",
+            "actuator_application_event_sequence",
+            "physical_transition_id",
+            "physical_transition_event_sequence",
+            "terminal_event_id",
+            "terminal_event_sequence",
+            "actuator_id"
+          ],
+          "properties": {
+            "mission_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "robot_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "boot_epoch": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "clock_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scenario_manifest_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_observation_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_event_sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "decision_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision_event_sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "proposal_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "proposal_event_sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "assurance_event_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "assurance_event_sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "command_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "actuator_application_event_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "actuator_application_event_sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "physical_transition_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "physical_transition_event_sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "terminal_event_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "terminal_event_sequence": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "actuator_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "configuration_and_calibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "actuator_configuration_digest",
+            "controller_configuration_digest",
+            "policy_digest",
+            "model_digest",
+            "action_domain_digest",
+            "sensor_calibration_digest",
+            "torque_transducer_calibration_digest",
+            "power_analyzer_calibration_digest",
+            "thermal_sensor_calibration_digest",
+            "sampling_spec_digest",
+            "energy_boundary_manifest_digest",
+            "actuator_application_receipt_digest",
+            "executed_prefix_expected_digest",
+            "executed_prefix_observed_digest",
+            "decision_calibration_receipt_digest"
+          ],
+          "properties": {
+            "actuator_configuration_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "controller_configuration_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "policy_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "action_domain_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sensor_calibration_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "torque_transducer_calibration_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "power_analyzer_calibration_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "thermal_sensor_calibration_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sampling_spec_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "energy_boundary_manifest_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "actuator_application_receipt_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "executed_prefix_expected_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "executed_prefix_observed_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision_calibration_receipt_digest": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "decision_valid_through_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "actuator_application_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_modality": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "remote_inference_used": {
+          "const": false
         }
       }
     },
