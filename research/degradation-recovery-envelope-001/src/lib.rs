@@ -470,6 +470,81 @@ fn event_metrics(
     }
 }
 
+/// Generate a deterministic seven-family schedule. The spacing rule reserves
+/// the full exposure plus the configured healthy-recovery quorum before the next
+/// fault starts, so the default campaign does not accidentally merge recovery
+/// windows. This schedules interventions; it does not simulate their effects.
+pub fn standard_fault_schedule(
+    first_start_tick: u64,
+    spacing_ticks: u64,
+    exposure_ticks: u64,
+    detection_deadline_ticks: u64,
+    containment_deadline_ticks: u64,
+    recovery_healthy_quorum_ticks: u64,
+) -> Result<Vec<FaultEvent>, String> {
+    if first_start_tick == 0 || spacing_ticks == 0 || exposure_ticks == 0 {
+        return Err("start tick, spacing and exposure duration must be non-zero".into());
+    }
+    if recovery_healthy_quorum_ticks == 0 {
+        return Err("recovery healthy-observation quorum must be non-zero".into());
+    }
+    let minimum_spacing = exposure_ticks
+        .checked_add(recovery_healthy_quorum_ticks)
+        .ok_or("fault spacing requirement overflow")?;
+    if spacing_ticks < minimum_spacing {
+        return Err(format!(
+            "spacing_ticks {spacing_ticks} is too short; require at least exposure_ticks + recovery_quorum_ticks = {minimum_spacing}"
+        ));
+    }
+    let kinds = [
+        FaultKind::CameraDrop,
+        FaultKind::FrameDelay,
+        FaultKind::StaleReplay,
+        FaultKind::PixelCorruption,
+        FaultKind::CalibrationShift,
+        FaultKind::ClockDrift,
+        FaultKind::ComputeOverrun,
+    ];
+    let mut events = Vec::with_capacity(kinds.len());
+    for (index, kind) in kinds.into_iter().enumerate() {
+        let offset = (index as u64)
+            .checked_mul(spacing_ticks)
+            .ok_or("fault schedule offset overflow")?;
+        let start_tick = first_start_tick
+            .checked_add(offset)
+            .ok_or("fault schedule start tick overflow")?;
+        let end_tick = start_tick
+            .checked_add(exposure_ticks - 1)
+            .ok_or("fault schedule end tick overflow")?;
+        let slug = match kind {
+            FaultKind::CameraDrop => "camera-drop",
+            FaultKind::FrameDelay => "frame-delay",
+            FaultKind::StaleReplay => "stale-replay",
+            FaultKind::PixelCorruption => "pixel-corruption",
+            FaultKind::CalibrationShift => "calibration-shift",
+            FaultKind::ClockDrift => "clock-drift",
+            FaultKind::ComputeOverrun => "compute-overrun",
+        };
+        let severity_ppm = match kind {
+            FaultKind::CameraDrop | FaultKind::StaleReplay => 1_000_000,
+            FaultKind::FrameDelay | FaultKind::PixelCorruption | FaultKind::ComputeOverrun => 500_000,
+            FaultKind::CalibrationShift | FaultKind::ClockDrift => 250_000,
+        };
+        events.push(FaultEvent {
+            event_id: format!("{slug}-{start_tick}"),
+            kind,
+            start_tick,
+            end_tick,
+            severity_ppm,
+            detection_deadline_ticks,
+            containment_deadline_ticks,
+            max_accepted_frame_age_us: if kind == FaultKind::FrameDelay { 100_000 } else { 0 },
+            recovery_healthy_quorum_ticks,
+        });
+    }
+    Ok(events)
+}
+
 pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
     let mut findings = BTreeSet::new();
     if campaign.schema_version != 1 {
@@ -942,6 +1017,30 @@ mod tests {
         let report = audit_campaign(&input);
         assert!(has(&report, "duplicate_fault_event"));
         assert!(has(&report, "invalid_fault_severity"));
+    }
+
+    #[test]
+    fn standard_schedule_covers_seven_fault_families_deterministically() {
+        let first = standard_fault_schedule(10, 5, 3, 1, 1, 2).unwrap();
+        let second = standard_fault_schedule(10, 5, 3, 1, 1, 2).unwrap();
+        assert_eq!(first, second);
+        assert_eq!(first.len(), 7);
+        assert_eq!(first[0].kind, FaultKind::CameraDrop);
+        assert_eq!(first[6].kind, FaultKind::ComputeOverrun);
+        assert!(first.windows(2).all(|pair| {
+            pair[1].start_tick >= pair[0].end_tick + pair[0].recovery_healthy_quorum_ticks
+        }));
+    }
+
+    #[test]
+    fn standard_schedule_rejects_overlapping_recovery_windows() {
+        let error = standard_fault_schedule(10, 4, 3, 1, 1, 2).unwrap_err();
+        assert!(error.contains("too short"));
+    }
+
+    #[test]
+    fn standard_schedule_rejects_tick_arithmetic_overflow() {
+        assert!(standard_fault_schedule(u64::MAX - 2, 5, 3, 1, 1, 2).is_err());
     }
 
     #[test]
