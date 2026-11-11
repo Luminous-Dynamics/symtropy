@@ -379,9 +379,6 @@ fn resolve_candidate(
 
     let mut reasons = Vec::new();
     let service_passes = candidate.service_delivery.lower + EPSILON >= contract.minimum_service_quantity;
-    if !service_passes {
-        reasons.push("conservative_service_delivery_below_contract_minimum".to_owned());
-    }
     let energy_physics_pass = gross_margin >= -EPSILON
         && power_margin >= -EPSILON
         && energy_margin >= -EPSILON
@@ -395,14 +392,15 @@ fn resolve_candidate(
     let bound_unknown = candidate.service_delivery.evidence_class == "unknown"
         || candidate.battery_energy.evidence_class == "unknown"
         || candidate.elapsed_time.evidence_class == "unknown";
-    let disposition = if !service_passes {
-        "INSUFFICIENT_SERVICE"
-    } else if mission_status == "blocked" {
+    let disposition = if mission_status == "blocked" {
         reasons.push("mission_physics_screen_blocked".to_owned());
         "BLOCKED_BY_MISSION_SCREEN"
     } else if mission_status == "indeterminate" || bound_unknown || source_evidence == "unknown" {
         reasons.push("mission_or_metric_evidence_indeterminate".to_owned());
         "INDETERMINATE"
+    } else if !service_passes {
+        reasons.push("conservative_service_delivery_below_contract_minimum".to_owned());
+        "INSUFFICIENT_SERVICE"
     } else if mission_status == "passes_synthetic_screen" {
         if source_evidence != "synthetic" {
             return Err(format!(
