@@ -1,0 +1,578 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/loco-async-thermal-001/fixtures/mission_interactions_v0_1.schema.json",
+  "title": "LOCO-ASYNC-THERMAL-001 synthetic composition known answers v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "status",
+    "units",
+    "assumptions",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "protocol_id": {
+      "const": "LOCO-ASYNC-THERMAL-001"
+    },
+    "status": {
+      "const": "synthetic_composition_known_answers_only"
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time",
+        "temperature",
+        "energy"
+      ],
+      "properties": {
+        "time": {
+          "const": "ns"
+        },
+        "temperature": {
+          "const": "milli_deg_celsius"
+        },
+        "energy": {
+          "const": "milli_joule"
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "uniqueItems": true,
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA01_TEMPORALLY_AND_PHYSICALLY_ELIGIBLE"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA02_EXECUTED_PREFIX_MISMATCH"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA03_OBSERVATION_STALE_AT_APPLICATION"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA04_CLOCK_MAPPING_UNKNOWN"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA05_SINGLE_NODE_LIMIT_HIDDEN_BY_MEAN"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA06_THERMAL_PREDECESSOR_DIGEST_MISMATCH"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA07_CUMULATIVE_HEAT_CARRYOVER_EXCEEDS_LIMIT"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA08_COMPUTE_COST_CONSUMES_SAFE_STOP_RESERVE"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA09_ACTION_QUEUE_UNDERFLOW"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA10_INDEPENDENT_RTA_VETO"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA11_THERMAL_MODEL_QUALIFICATION_UNKNOWN"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "case_id": {
+                "const": "LA12_NO_OBSERVATION_CONSTRAINED_RECOVERY_ROUTE"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "minContains": 1,
+          "maxContains": 1
+        }
+      ],
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "nullable_integer": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "temperature_milli_deg_c",
+        "limit_milli_deg_c"
+      ],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "temperature_milli_deg_c": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit_milli_deg_c": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "cumulative_transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "initial_temperature_milli_deg_c",
+        "event1_delta_milli_deg_c",
+        "event2_delta_milli_deg_c",
+        "resulting_temperature_milli_deg_c",
+        "event2_predecessor_digest_matches"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "initial_temperature_milli_deg_c": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "event1_delta_milli_deg_c": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "event2_delta_milli_deg_c": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "resulting_temperature_milli_deg_c": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "event2_predecessor_digest_matches": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_digest",
+        "current_model_digest",
+        "source_observation_digest",
+        "current_observation_digest",
+        "planned_prefix_digest",
+        "executed_prefix_digest",
+        "next_action_index",
+        "source_clock_domain",
+        "application_clock_domain",
+        "source_observation_time_ns",
+        "source_observation_uncertainty_ns",
+        "application_time_ns",
+        "application_time_uncertainty_ns",
+        "clock_offset_lower_ns",
+        "clock_offset_upper_ns",
+        "maximum_observation_age_ns",
+        "action_chunk_expires_at_ns",
+        "action_deadline_ns",
+        "thermal_model_qualified",
+        "thermal_snapshot_fresh",
+        "thermal_state_digest",
+        "expected_predecessor_state_digest",
+        "provided_predecessor_state_digest",
+        "compute_heat_accounting_qualified",
+        "thermal_nodes",
+        "mean_temperature_milli_deg_c",
+        "mission_energy_remaining_mj",
+        "terminal_safe_stop_reserve_mj",
+        "recovery_routes_remaining",
+        "minimum_recovery_routes",
+        "queue_depth",
+        "minimum_queue_depth",
+        "local_fallback_available",
+        "independent_rta_admissible",
+        "cumulative_thermal_transition"
+      ],
+      "properties": {
+        "model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_model_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_observation_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "current_observation_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "planned_prefix_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "executed_prefix_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "next_action_index": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_clock_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "application_clock_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_observation_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "source_observation_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "application_time_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "application_time_uncertainty_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_offset_lower_ns": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "clock_offset_upper_ns": {
+          "$ref": "#/$defs/nullable_integer"
+        },
+        "maximum_observation_age_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "action_chunk_expires_at_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "action_deadline_ns": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "thermal_model_qualified": {
+          "type": "boolean"
+        },
+        "thermal_snapshot_fresh": {
+          "type": "boolean"
+        },
+        "thermal_state_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_predecessor_state_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provided_predecessor_state_digest": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compute_heat_accounting_qualified": {
+          "type": "boolean"
+        },
+        "thermal_nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/node"
+          },
+          "minItems": 1
+        },
+        "mean_temperature_milli_deg_c": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "mission_energy_remaining_mj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "terminal_safe_stop_reserve_mj": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "recovery_routes_remaining": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_recovery_routes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "queue_depth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "minimum_queue_depth": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "local_fallback_available": {
+          "type": "boolean"
+        },
+        "independent_rta_admissible": {
+          "type": "boolean"
+        },
+        "cumulative_thermal_transition": {
+          "$ref": "#/$defs/cumulative_transition"
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "disposition",
+        "first_failed_gate",
+        "projection_eligible",
+        "fallback_required",
+        "actuation_authorized"
+      ],
+      "properties": {
+        "disposition": {
+          "enum": [
+            "eligible_for_independent_projection",
+            "executed_prefix_mismatch",
+            "observation_stale",
+            "clock_mapping_unknown",
+            "per_node_thermal_limit_exceeded",
+            "thermal_predecessor_unknown",
+            "cumulative_thermal_limit_exceeded",
+            "safe_stop_reserve_insufficient",
+            "queue_underflow_fallback",
+            "independent_rta_veto",
+            "thermal_model_unknown",
+            "future_recovery_unavailable"
+          ]
+        },
+        "first_failed_gate": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "projection_eligible": {
+          "type": "boolean"
+        },
+        "fallback_required": {
+          "type": "boolean"
+        },
+        "actuation_authorized": {
+          "const": false
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "description",
+        "inputs",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "enum": [
+            "LA01_TEMPORALLY_AND_PHYSICALLY_ELIGIBLE",
+            "LA02_EXECUTED_PREFIX_MISMATCH",
+            "LA03_OBSERVATION_STALE_AT_APPLICATION",
+            "LA04_CLOCK_MAPPING_UNKNOWN",
+            "LA05_SINGLE_NODE_LIMIT_HIDDEN_BY_MEAN",
+            "LA06_THERMAL_PREDECESSOR_DIGEST_MISMATCH",
+            "LA07_CUMULATIVE_HEAT_CARRYOVER_EXCEEDS_LIMIT",
+            "LA08_COMPUTE_COST_CONSUMES_SAFE_STOP_RESERVE",
+            "LA09_ACTION_QUEUE_UNDERFLOW",
+            "LA10_INDEPENDENT_RTA_VETO",
+            "LA11_THERMAL_MODEL_QUALIFICATION_UNKNOWN",
+            "LA12_NO_OBSERVATION_CONSTRAINED_RECOVERY_ROUTE"
+          ]
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "inputs": {
+          "$ref": "#/$defs/inputs"
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
+        }
+      }
+    }
+  }
+}
