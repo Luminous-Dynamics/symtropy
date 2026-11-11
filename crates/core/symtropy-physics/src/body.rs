@@ -622,6 +622,57 @@ mod rotational_inertia_tests {
     }
 
     #[test]
+    fn full_bivector_operator_matches_principal_3d_reference_after_rotation() {
+        // A diagonal central second-moment matrix produces principal moments
+        // Ix=2, Iy=3, Iz=4. In canonical bivector order (01,02,12), the
+        // resulting operator is diag(Iz,Iy,Ix) because of the axial mapping
+        // [B12,-B02,B01].
+        let operator = RotationalInertiaOperator::<3>::from_body_second_moment_matrix(vec![
+            2.5, 0.0, 0.0,
+            0.0, 1.5, 0.0,
+            0.0, 0.0, 0.5,
+        ]).unwrap();
+
+        let mut principal = anisotropic_body();
+        principal.transform.rotation = Rotor::<3>::from_plane_angle(
+            &Bivector::<3>::unit_plane(0, 2),
+            0.47,
+        );
+        principal.angular_velocity.set(0, 1, 0.3);
+        principal.angular_velocity.set(0, 2, -0.7);
+        principal.angular_velocity.set(1, 2, 0.2);
+
+        let mut full = anisotropic_body()
+            .with_rotational_inertia_operator(operator);
+        full.transform.rotation = principal.transform.rotation;
+        full.angular_velocity = principal.angular_velocity;
+
+        let mut impulse = Bivector::<3>::zero();
+        impulse.set(0, 1, 0.8);
+        impulse.set(0, 2, -0.4);
+        impulse.set(1, 2, 0.6);
+        assert_bivector_close(
+            &full.apply_inverse_angular_inertia(&impulse),
+            &principal.apply_inverse_angular_inertia(&impulse),
+            1.0e-11,
+        );
+
+        let mut torque = Bivector::<3>::zero();
+        torque.set(0, 1, -0.2);
+        torque.set(0, 2, 0.5);
+        torque.set(1, 2, 0.1);
+        assert_bivector_close(
+            &full.angular_acceleration_from_torque(&torque),
+            &principal.angular_acceleration_from_torque(&torque),
+            1.0e-10,
+        );
+        assert!(
+            (full.rotational_kinetic_energy() - principal.rotational_kinetic_energy()).abs()
+                < 1.0e-11
+        );
+    }
+
+    #[test]
     fn validated_full_operator_overrides_diagonal_fallback_and_handles_products_of_inertia() {
         let operator = RotationalInertiaOperator::<3>::try_from_row_major(vec![
             4.0, 0.5, 0.0,
