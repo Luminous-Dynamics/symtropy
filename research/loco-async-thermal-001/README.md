@@ -12,3 +12,7 @@ The corpus checks model/observation/prefix identity, clock mapping, conservative
 All values are synthetic integer known answers. They do not estimate physical thermal transitions or qualify hardware. A passing case means only eligible for independent projection; it never authorizes actuation.
 
 Existing owners remain authoritative: #4610 thermal dynamics; #4549/#4555 persistent mission reserve; #4588 future options; #4117 certificate validity; #4382 projection; #2836 controller dispatch.
+
+## Validation
+
+A dedicated workflow, `.github/workflows/loco-async-thermal.yml`, validates the Draft 2020-12 schema and independently replays the finite semantic controls. It verifies the age upper bound, chunk expiry/deadline, cumulative two-event temperature arithmetic, per-node limit masking, reserve preservation, and fail-closed Unknown/RTA/queue dispositions. A workflow pass validates only this synthetic corpus, not the thermal model or hardware.
