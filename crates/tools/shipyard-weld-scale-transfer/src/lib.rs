@@ -222,6 +222,7 @@ pub enum TransferReason {
     BridgeEvidenceFromFuture,
     UncertaintyLimitExceeded,
     NumericOverflow,
+    GraphExceedsOracleBounds,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -341,7 +342,9 @@ fn validate_edge(
     if edge.maximum_error_milli > edge.allowed_error_milli {
         return Err(TransferReason::BridgeErrorExceedsTolerance);
     }
-    if from.signature.scale_tier.rank().abs_diff(to.signature.scale_tier.rank()) > 1 {
+    if to.signature.scale_tier.rank() < from.signature.scale_tier.rank()
+        || from.signature.scale_tier.rank().abs_diff(to.signature.scale_tier.rank()) > 1
+    {
         return Err(TransferReason::BridgeEdgeNotAdjacentScale);
     }
     let expected = from.signature.changed_factors(&to.signature);
@@ -439,6 +442,19 @@ pub fn validate_corpus(bytes: &[u8]) -> Result<CorpusSummary, String> {
         return Err("corpus version, identity or fixed case count changed".to_owned());
     }
     let mut ids = HashSet::new();
+    if value.get("claim_ceiling").and_then(serde_json::Value::as_str)
+        != Some("SYNTHETIC_SCALE_TRANSFER_CONTRACT_ONLY")
+        || value.get("source_reference")
+            .and_then(|source| source.get("residual_stress_scope"))
+            .and_then(serde_json::Value::as_str)
+            != Some("NOT_COVERED_BY_SOURCE_REVIEW")
+        || value.get("source_reference")
+            .and_then(|source| source.get("raw_data_admitted"))
+            .and_then(serde_json::Value::as_bool)
+            != Some(false)
+    {
+        return Err("corpus claim ceiling / source scope changed".to_owned());
+    }
     let mut positive = 0usize;
     let mut negative = 0usize;
     for (index, case) in cases.iter().enumerate() {
@@ -450,6 +466,10 @@ pub fn validate_corpus(bytes: &[u8]) -> Result<CorpusSummary, String> {
             .get("class")
             .and_then(serde_json::Value::as_str)
             .ok_or_else(|| format!("cases[{index}].class is required"))?;
+        let expected_id = format!("SCALE-{:03}", index + 1);
+        if id != expected_id {
+            return Err(format!("expected case id {expected_id}, found {id}"));
+        }
         if !ids.insert(id) {
             return Err(format!("duplicate case id: {id}"));
         }
@@ -458,13 +478,23 @@ pub fn validate_corpus(bytes: &[u8]) -> Result<CorpusSummary, String> {
             "negative" => negative += 1,
             _ => return Err(format!("invalid case class: {class_name}")),
         }
-        if case.get("mutation").and_then(serde_json::Value::as_str).is_none()
-            || case
-                .get("expected_disposition")
-                .and_then(serde_json::Value::as_str)
-                .is_none()
+        let disposition = case
+            .get("expected_disposition")
+            .and_then(serde_json::Value::as_str)
+            .ok_or_else(|| format!("case {id} lacks expected disposition"))?;
+        let allowed = [
+            "ADMITTED_IN_DOMAIN",
+            "ADMITTED_WITH_BRIDGE_CHAIN",
+            "ABSTAIN_NO_BRIDGE",
+            "ABSTAIN_OUT_OF_DOMAIN",
+            "ABSTAIN_OUTPUT_SCOPE",
+            "ABSTAIN_EVIDENCE_INVALID",
+            "ABSTAIN_UNCERTAINTY",
+        ];
+        if !allowed.contains(&disposition)
+            || case.get("mutation").and_then(serde_json::Value::as_str).is_none()
         {
-            return Err(format!("case {id} lacks mutation or expected disposition"));
+            return Err(format!("case {id} has an invalid mutation or disposition"));
         }
     }
     if positive != 2 || negative != 28 {
@@ -486,6 +516,16 @@ fn fnv1a64(bytes: &[u8]) -> u64 {
 }
 
 pub fn evaluate_transfer(manifest: &TransferManifest) -> TransferDecision {
+    if manifest.domains.len() > 7 || manifest.bridge_edges.len() > 12 {
+        return empty_decision(
+            manifest,
+            TransferDisposition::AbstainEvidenceInvalid,
+            TransferReason::GraphExceedsOracleBounds,
+            manifest.model.calibration_domain_id.clone(),
+            manifest.request.target_domain_id.clone(),
+            0,
+        );
+    }
     if manifest.schema_version != "0.1.0"
         || manifest.request.required_minimum_coverage_permille == 0
         || manifest.request.required_minimum_coverage_permille > 1_000
@@ -874,6 +914,42 @@ mod tests {
                 required_minimum_coverage_permille: 950,
             },
         }
+    }
+
+    #[test]
+    fn frozen_scale_transfer_corpus_is_valid() {
+        let summary = validate_corpus(include_bytes!(
+            "../../../../benchmarks/shipyard/scale-transfer/corpus-v0.1.json"
+        ))
+        .expect("frozen corpus should validate");
+        assert_eq!(summary.cases, 30);
+        assert_eq!(summary.positive, 2);
+        assert_eq!(summary.negative, 28);
+        assert_eq!(summary.corpus_fingerprint_fnv1a64.len(), 16);
+    }
+
+    #[test]
+    fn transfer_graph_above_frozen_oracle_bounds_is_rejected() {
+        let mut manifest = base_manifest();
+        for index in 0..4 {
+            let mut extra = manifest.domains[0].clone();
+            extra.domain_id = format!("EXTRA-{index}");
+            manifest.domains.push(extra);
+        }
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.reason, Some(TransferReason::GraphExceedsOracleBounds));
+    }
+
+    #[test]
+    fn reverse_scale_bridge_is_rejected() {
+        let mut manifest = base_manifest();
+        manifest.bridge_edges[0].from_domain_id = "D1".to_owned();
+        manifest.bridge_edges[0].to_domain_id = "D0".to_owned();
+        manifest.bridge_edges[0].changed_factors = manifest.domains[1]
+            .signature
+            .changed_factors(&manifest.domains[0].signature);
+        let result = evaluate_transfer(&manifest);
+        assert_eq!(result.reason, Some(TransferReason::BridgeEdgeNotAdjacentScale));
     }
 
     #[test]
