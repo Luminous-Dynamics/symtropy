@@ -1,0 +1,141 @@
+{
+  "schema_version": "oli-external-source-profile-v0.1",
+  "case_id": "OLI-VISUAL-FIELD-OFFSET-RAMLALL-2026",
+  "status": "PAPER_AND_DATASET_PINNED_FILE_INVENTORY_AND_REPRODUCTION_PENDING",
+  "evidence_class": "LITERATURE_AND_PUBLIC_DATASET_REFERENCE",
+  "claim_ceiling": "Reproduction and extension of a two-dimensional Vicsek model with offset restricted visual fields; no claim of biological intelligence, agency or life",
+  "publication": {
+    "title": "Influence of visual field offset on collective behavior: An exploration using the two-dimensional Vicsek model",
+    "authors": [
+      "Poorendra Ramlall",
+      "Sachit Butail",
+      "Subhradeep Roy"
+    ],
+    "journal": "Physical Review E",
+    "volume": 113,
+    "issue": 6,
+    "article_number": "064409",
+    "published": "2026-06-17",
+    "doi": "10.1103/bbl5-1yjb",
+    "url": "https://doi.org/10.1103/bbl5-1yjb",
+    "source_scope": "A restricted visual field positioned at a fixed offset angle from the particle's heading direction changes which neighbours it can perceive and respond to."
+  },
+  "source_dataset": {
+    "title": "Influence of visual field offset on collective behavior: an exploration using the two-dimensional Vicsek model (dataset)",
+    "doi": "10.17632/y8fx3shsvx.1",
+    "url": "https://datacommons.erau.edu/datasets/y8fx3shsvx/1",
+    "published": "2026-05-27",
+    "version": 1,
+    "contributors": [
+      "Poorendra Ramlall",
+      "Sachit Butail",
+      "Subhradeep Roy"
+    ],
+    "dataset_license": "CC BY 4.0",
+    "reported_contents": [
+      "MATLAB scripts",
+      "simulation data analyzed in the paper"
+    ],
+    "download_control_present": true,
+    "file_inventory_status": "NOT_EXPOSED_IN_RENDERED_PUBLIC_DATASET_PAGE",
+    "per_file_hashes": null,
+    "materialized": false,
+    "note": "The public page shows a Download All control and a Files heading but no individual file rows in the retrieved rendering. No files have been downloaded. Verify file-level notices, filenames, sizes and digests after lawful acquisition."
+  },
+  "reported_findings": {
+    "key_mechanism": "An agent perceives neighbours inside a restricted visual field whose central axis is offset from its direction of motion.",
+    "flipped_sensing": {
+      "definition": "Visual-field offset is directly behind the heading direction (π radians).",
+      "reported_result": "Near-perfect alignment and clustering at the centre of mass were reported even under high noise conditions."
+    },
+    "interpretation": "Perception geometry can qualitatively change collective dynamics; a forward-only sensing assumption is not universal.",
+    "exact_parameter_grid_status": "NOT_EXTRACTED_FROM_FULL_METHODS_OR_DATA_FILES",
+    "exact_noise_values_status": "NOT_EXTRACTED_FROM_FULL_METHODS_OR_DATA_FILES",
+    "exact_field_aperture_values_status": "NOT_EXTRACTED_FROM_FULL_METHODS_OR_DATA_FILES",
+    "exact_visual_offset_grid_status": "NOT_EXTRACTED_FROM_FULL_METHODS_OR_DATA_FILES",
+    "source_reproduction_status": "NOT_RUN"
+  },
+  "current_oli_implementation": {
+    "module": "symtropy-lifesim-core::vicsek",
+    "perception": "VicsekPerception::VisualSector { half_aperture_rad, offset_rad }",
+    "range_rule": "The existing interaction_radius is retained as the radial visibility limit.",
+    "directional_rule": "A sees B when B is within range and the bearing from A to B lies within A's visual sector centred at heading_A + offset.",
+    "output_provenance": [
+      "perception",
+      "update_rule",
+      "graph_semantics"
+    ],
+    "local_metrics": "Visible-neighbour counts and local polar order use focal-agent directed out-neighbours.",
+    "topology_metrics": "Connected components, clustering and path lengths use a weakly connected projection; an undirected edge exists if either direction sees.",
+    "directionality_metrics": [
+      "directed_interaction_edge_count",
+      "reciprocal_interaction_pair_count",
+      "interaction_reciprocity_fraction"
+    ]
+  },
+  "benchmark_cases": [
+    {
+      "id": "FORWARD_VISUAL_SECTOR_CONTROL",
+      "offset_rad": 0,
+      "half_aperture_rad": "SOURCE_VALUE_PENDING",
+      "status": "PROPOSED_CONTROL_NOT_SOURCE_REPRODUCTION",
+      "expected": "The visible field is centred along the agent heading; only particles inside the declared forward sector and radial range are visible."
+    },
+    {
+      "id": "FLIPPED_REAR_VISUAL_SECTOR",
+      "offset_rad": "PI",
+      "half_aperture_rad": "SOURCE_VALUE_PENDING",
+      "status": "LITERATURE_INSPIRED_CONTROL_NOT_SOURCE_REPRODUCTION",
+      "expected": "The visible field is centred directly behind the agent heading. Compare collective order and centre-of-mass clustering under source-matched high-noise conditions after exact parameter admission."
+    },
+    {
+      "id": "ONE_WAY_VISIBILITY_NULL",
+      "offset_rad": 0,
+      "half_aperture_rad": "PI_OVER_4_TEST_FIXTURE",
+      "status": "IMPLEMENTED_EXACT_UNIT_CONTROL",
+      "expected": "A focal particle can see a target while the target does not see the focal particle; directed out-degree is asymmetric, while the topology summary records the weakly connected projection."
+    }
+  ],
+  "benchmark_protocol": {
+    "source_faithful_reproduction_required": true,
+    "source_reproduction_order": [
+      "Download the public source package and inventory every file.",
+      "Record per-file SHA-256, size, file-level licence and source commit/archive identity.",
+      "Read the MATLAB README and recover the exact generator, field-of-view width, offset grid, interaction range, density, speed, noise, seeds and transient/stationary measurement window.",
+      "Reproduce the original paper's parameter sweep and reported order/clustering results using the authors' original code first.",
+      "Implement a Rust-equivalent visual-sector generator and compare trajectory/metric parity on frozen seeds.",
+      "Only then add held-out offsets, noise, densities, particle counts, temporal sampling and perturbation tests."
+    ],
+    "anti_leakage": [
+      "Keep all frames from one simulated trajectory/seed in one split.",
+      "Split by parameter regime and offset, not by frame.",
+      "Do not use the paper's reported aggregate result as training data.",
+      "Keep forward, side, and flipped sensing as distinct perception geometries in every result row.",
+      "When topology metrics are reported, retain the weak-projection semantics and the underlying directed-edge counts."
+    ],
+    "baselines": [
+      "source MATLAB implementation",
+      "metric-radius forward Vicsek control",
+      "visual-sector forward sensing",
+      "visual-sector flipped sensing",
+      "random independent-motion null",
+      "common-driver correlated-motion null",
+      "paired heading intervention/sham causal response"
+    ]
+  },
+  "scientific_boundary": {
+    "collective_order_is_not_intelligence": true,
+    "visual_asymmetry_is_not_agency": true,
+    "transfer_entropy_is_not_interventional_causation": true,
+    "model_is_synthetic": true,
+    "no_natural_flocking_or_alien_life_claim": true
+  },
+  "reproducibility": {
+    "source_data_downloaded": false,
+    "source_code_reproduction": false,
+    "rust_equivalence": false,
+    "exact_head_rust_validation": "PENDING_CI",
+    "input_digest": null,
+    "output_digest": null
+  }
+}
