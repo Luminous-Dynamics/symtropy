@@ -65,6 +65,7 @@ pub enum DecisionAction {
     AllocateInference,
     CommitNow,
     RequireFallback,
+    DeadlineMissed,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -78,6 +79,7 @@ pub enum DecisionReason {
     EqualRatioPrefersInference,
     NoEligiblePositiveResource,
     NoFreshObservationCanArriveBeforeDeadline,
+    DecisionDeadlinePassed,
 }
 
 
@@ -233,11 +235,10 @@ fn validate_budget(budget: &JointBudget) -> Result<(), SchedulerError> {
     }
     let time_to_deadline = budget
         .decision_deadline_tick
-        .checked_sub(budget.planning_tick)
-        .ok_or(SchedulerError::InvalidBudget(
-            "decision deadline has already passed",
-        ))?;
-    if budget.actuation_recovery_reserve_ticks > time_to_deadline {
+        .saturating_sub(budget.planning_tick);
+    if budget.planning_tick < budget.decision_deadline_tick
+        && budget.actuation_recovery_reserve_ticks > time_to_deadline
+    {
         return Err(SchedulerError::InvalidBudget(
             "actuation/recovery reserve exceeds remaining decision window",
         ));
@@ -494,6 +495,41 @@ pub fn schedule(
         inference_decision_value_unit_id,
         inference_clock_id,
     )?;
+
+    if budget.planning_tick >= budget.decision_deadline_tick {
+        let discretionary = discretionary_resource_units(budget)?;
+        return Ok(JointDecisionReceipt {
+            schema_version: DECISION_SCHEMA_VERSION,
+            scheduler_revision: SCHEDULER_REVISION.to_string(),
+            allocator_base_revision: ALLOCATOR_BASE_REVISION.to_string(),
+            action: DecisionAction::DeadlineMissed,
+            reason: DecisionReason::DecisionDeadlinePassed,
+            planning_tick: budget.planning_tick,
+            decision_deadline_tick: budget.decision_deadline_tick,
+            actuation_recovery_reserve_ticks: budget.actuation_recovery_reserve_ticks,
+            current_observation_age_ticks: budget
+                .planning_tick
+                .checked_sub(inference.observation_available_tick)
+                .unwrap_or(u64::MAX),
+            current_observation_digest: inference.observation_digest.clone(),
+            context_digest: budget.context_digest.clone(),
+            resource_unit_id: budget.resource_unit_id.clone(),
+            resource_budget_units: budget.remaining_resource_units,
+            resource_units_reserved_for_recovery: budget.actuation_recovery_reserve_resource_units,
+            resource_units_discretionary_before: discretionary,
+            resource_units_committed: 0,
+            resource_units_remaining: budget.remaining_resource_units,
+            resource_units_discretionary_remaining: discretionary,
+            decision_value_unit_id: budget.decision_value_unit_id.clone(),
+            clock_id: budget.clock_id.clone(),
+            completion_bound_tick: budget.planning_tick,
+            deadline_slack_after_reserve_ticks: 0,
+            sensor_rejection: None,
+            sensor_grant: None,
+            inference_grant: None,
+            fallback_policy_id: Some(budget.fallback_policy_id.clone()),
+        });
+    }
 
     let observation_available = inference.observation_available_tick <= budget.planning_tick;
     let observation_age = budget
@@ -855,6 +891,36 @@ mod tests {
         assert_eq!(result.action, DecisionAction::CommitNow);
         assert_eq!(result.resource_units_remaining, 25);
         assert_eq!(result.resource_units_discretionary_remaining, 15);
+    }
+
+    #[test]
+    fn deadline_at_or_before_planning_tick_emits_explicit_miss_receipt() {
+        let mut budget = budget();
+        budget.planning_tick = budget.decision_deadline_tick;
+        let receipt = schedule(
+            &budget,
+            &inference(),
+            "measured_uj_v1",
+            "micro_loss_v1",
+            "sim_tick_200hz_v1",
+            Some(&sensor()),
+        ).unwrap();
+        assert_eq!(receipt.action, DecisionAction::DeadlineMissed);
+        assert_eq!(receipt.reason, DecisionReason::DecisionDeadlinePassed);
+        assert_eq!(receipt.fallback_policy_id.as_deref(), Some("fallback-v1"));
+        assert_eq!(receipt.resource_units_committed, 0);
+        assert_eq!(receipt.deadline_slack_after_reserve_ticks, 0);
+
+        budget.planning_tick += 1;
+        let late = schedule(
+            &budget,
+            &inference(),
+            "measured_uj_v1",
+            "micro_loss_v1",
+            "sim_tick_200hz_v1",
+            None,
+        ).unwrap();
+        assert_eq!(late.action, DecisionAction::DeadlineMissed);
     }
 
     #[test]
