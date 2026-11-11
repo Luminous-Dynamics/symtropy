@@ -43,6 +43,26 @@ fn set(v:&Value,k:&str,p:&str)->Check<BTreeSet<String>>{
     Ok(out)
 }
 fn hex64(s:&str)->bool{s.len()==64&&s.bytes().all(|b|b.is_ascii_digit()||(b'a'..=b'f').contains(&b))}
+fn sensor_timebase_qualified(sensor:&Value,domain:&Value,profile:&Value,evidence_class:&str)->bool{
+    let Some(expected_id)=domain["measurement_timebase_id"].as_str() else{return false};
+    let Some(actual_id)=sensor["timebase_id"].as_str() else{return false};
+    let Some(clock_domain)=sensor["clock_domain"].as_str().filter(|s|!s.trim().is_empty()) else{return false};
+    let Some(state)=sensor["timebase_qualification_state"].as_str() else{return false};
+    let Some(source)=sensor["timestamp_uncertainty_source"].as_str() else{return false};
+    let Some(uncertainty)=sensor["timestamp_uncertainty_ms"].as_f64().filter(|x|x.is_finite()&&*x>=0.0) else{return false};
+    let Some(maximum)=profile["maximum_timestamp_uncertainty_ms"].as_f64().filter(|x|x.is_finite()&&*x>=0.0) else{return false};
+    let Some(digest)=sensor["timebase_qualification_sha256"].as_str() else{return false};
+    let Some(artifact)=sensor["timebase_qualification_artifact_id"].as_str().filter(|s|!s.trim().is_empty()) else{return false};
+    let role_matches=if evidence_class=="SYNTHETIC_CONFORMANCE_FIXTURE"{
+        state=="synthetic_conformance" && source=="synthetic_fixture"
+    }else{
+        state=="qualified" && matches!(source,"measured_offset_bound"|"instrument_specification"|"vendor_specification")
+    };
+    !clock_domain.is_empty() && !artifact.is_empty()
+        && actual_id==expected_id && role_matches
+        && uncertainty<=maximum && hex64(digest)
+        && domain["qualification_state"]=="qualified"
+}
 fn validate_input(input:&Value)->Check<()>{
     if !input.is_object(){return Err(err("EXPECTED_OBJECT","$","case must be an object"));}
     allowed_keys(input,&["schema_version","assessment_id","generated_at","evidence_class","asset","operating_domain","evidence_digests","layout_profile","sensors","states","required_fault_pairs","responses","common_cause_scenarios","claim_ceiling"],"$")?;
@@ -56,8 +76,14 @@ fn validate_input(input:&Value)->Check<()>{
     for k in ["asset_id","asset_class","engine_model","configuration_revision"]{let _=txt(asset,k,"$.asset")?;}
     if !hex64(txt(asset,"configuration_sha256","$.asset")?){return Err(err("CONFIG_SHA256","$.asset.configuration_sha256","expected lowercase SHA-256"));}
     let regime=&input["operating_domain"];
-    allowed_keys(regime,&["regime_id","description","qualification_state","load_percent","speed_rpm","transient_state"],"$.operating_domain")?;
-    for k in ["regime_id","description","qualification_state","transient_state"]{let _=txt(regime,k,"$.operating_domain")?;}
+    allowed_keys(regime,&["regime_id","description","qualification_state","load_percent","speed_rpm","transient_state","measurement_timebase_id","maximum_timestamp_uncertainty_ms"],"$.operating_domain")?;
+    for k in ["regime_id","description","qualification_state","transient_state","measurement_timebase_id"]{let _=txt(regime,k,"$.operating_domain")?;}
+    if !matches!(txt(regime,"qualification_state","$.operating_domain")?,"qualified"|"unsupported"|"not_evaluated"){
+        return Err(err("OPERATING_DOMAIN_QUALIFICATION","$.operating_domain.qualification_state","unsupported qualification state"));
+    }
+    if regime["maximum_timestamp_uncertainty_ms"].as_f64().is_none_or(|x|!x.is_finite()||x<0.0){
+        return Err(err("TIMEBASE_UNCERTAINTY_LIMIT","$.operating_domain.maximum_timestamp_uncertainty_ms","must be a finite non-negative millisecond bound"));
+    }
     let digests=&input["evidence_digests"];
     allowed_keys(digests,&["sensor_topology_sha256","fault_model_sha256","evaluator_sha256","dataset_sha256","split_manifest_sha256","model_sha256"],"$.evidence_digests")?;
     for k in ["sensor_topology_sha256","fault_model_sha256","evaluator_sha256"]{
@@ -69,19 +95,46 @@ fn validate_input(input:&Value)->Check<()>{
         }
     }
     let profile=&input["layout_profile"];
-    allowed_keys(profile,&["layout_profile_ref","state_taxonomy_ref","required_pair_set_ref","reference_state_id","minimum_independent_principles_for_critical_pairs"],"$.layout_profile")?;
+    allowed_keys(profile,&["layout_profile_ref","state_taxonomy_ref","required_pair_set_ref","reference_state_id","minimum_independent_principles_for_critical_pairs","maximum_timestamp_uncertainty_ms"],"$.layout_profile")?;
     for k in ["layout_profile_ref","state_taxonomy_ref","required_pair_set_ref","reference_state_id"]{let _=txt(profile,k,"$.layout_profile")?;}
     let min=profile["minimum_independent_principles_for_critical_pairs"].as_u64().filter(|n|*n>0)
         .ok_or_else(||err("INDEPENDENCE_THRESHOLD","$.layout_profile.minimum_independent_principles_for_critical_pairs","must be positive"))?;
+    if profile["maximum_timestamp_uncertainty_ms"].as_f64().is_none_or(|x|!x.is_finite()||x<0.0){
+        return Err(err("PROFILE_TIMEBASE_LIMIT","$.layout_profile.maximum_timestamp_uncertainty_ms","must be a finite non-negative millisecond bound"));
+    }
     let sensors=array(input,"sensors","$")?;
     if sensors.is_empty(){return Err(err("EMPTY_SENSOR_INVENTORY","$.sensors","at least one sensor required"));}
     let mut sensor_ids=BTreeSet::new();let mut channel_ids=BTreeSet::new();let mut dependencies=BTreeSet::new();
     for (i,s) in sensors.iter().enumerate(){
         let p=format!("$.sensors[{i}]");
-        allowed_keys(s,&["sensor_id","channel_id","installed","measurement_principle_ref","measurand","technique","unit","physical_location_ref","calibration_ref","calibration_state","quality_state","source_role","dependency_groups","derived_from_channel_ids","source_artifact_ref"],&p)?;
+        allowed_keys(s,&["sensor_id","channel_id","installed","measurement_principle_ref","measurand","technique","unit","physical_location_ref","calibration_ref","calibration_state","quality_state","source_role","dependency_groups","derived_from_channel_ids","source_artifact_ref","clock_domain","timebase_id","timestamp_uncertainty_ms","timestamp_uncertainty_source","timebase_qualification_state","timebase_qualification_artifact_id","timebase_qualification_sha256"],&p)?;
         let sid=txt(s,"sensor_id",&p)?;let cid=txt(s,"channel_id",&p)?;
         if !sensor_ids.insert(sid.to_owned())||!channel_ids.insert(cid.to_owned()){return Err(err("DUPLICATE_SENSOR_CHANNEL_ID",&p,"IDs must be unique"));}
-        for k in ["measurement_principle_ref","measurand","technique","unit","physical_location_ref","calibration_ref","calibration_state","quality_state","source_role","source_artifact_ref"]{let _=txt(s,k,&p)?;}
+        for k in ["measurement_principle_ref","measurand","technique","unit","physical_location_ref","calibration_ref","calibration_state","quality_state","source_role","source_artifact_ref","clock_domain","timebase_id","timestamp_uncertainty_source","timebase_qualification_state"]{let _=txt(s,k,&p)?;}
+        if !matches!(txt(s,"timestamp_uncertainty_source",&p)?,"measured_offset_bound"|"instrument_specification"|"vendor_specification"|"estimated"|"unknown"|"synthetic_fixture"){
+            return Err(err("TIMESTAMP_UNCERTAINTY_SOURCE",&format!("{p}.timestamp_uncertainty_source"),"unsupported uncertainty provenance"));
+        }
+        if !matches!(txt(s,"timebase_qualification_state",&p)?,"qualified"|"synthetic_conformance"|"unqualified"|"unknown"){
+            return Err(err("TIMEBASE_QUALIFICATION_STATE",&format!("{p}.timebase_qualification_state"),"unsupported timebase qualification state"));
+        }
+        if !s["timestamp_uncertainty_ms"].is_null()
+            && s["timestamp_uncertainty_ms"].as_f64().is_none_or(|x|!x.is_finite()||x<0.0){
+            return Err(err("TIMESTAMP_UNCERTAINTY",&format!("{p}.timestamp_uncertainty_ms"),"uncertainty must be null or finite and non-negative"));
+        }
+        if !s["timebase_qualification_sha256"].is_null()
+            && !s["timebase_qualification_sha256"].as_str().is_some_and(hex64){
+            return Err(err("TIMEBASE_QUALIFICATION_SHA256",&format!("{p}.timebase_qualification_sha256"),"digest must be null or lowercase SHA-256"));
+        }
+        if !s["timebase_qualification_artifact_id"].is_null()
+            && !s["timebase_qualification_artifact_id"].as_str().is_some_and(|x|!x.trim().is_empty()){
+            return Err(err("TIMEBASE_QUALIFICATION_ARTIFACT",&format!("{p}.timebase_qualification_artifact_id"),"artifact ID must be null or non-empty"));
+        }
+        if matches!(txt(s,"timebase_qualification_state",&p)?,"qualified"|"synthetic_conformance")
+            && (s["timestamp_uncertainty_ms"].as_f64().is_none()
+                || s["timebase_qualification_sha256"].as_str().is_none_or(|x|!hex64(x))
+                || s["timebase_qualification_artifact_id"].as_str().is_none_or(|x|x.trim().is_empty())){
+            return Err(err("INCOMPLETE_TIMEBASE_QUALIFICATION",&p,"qualified timebase requires a numeric uncertainty bound and exact artifact ID/SHA-256"));
+        }
         let _=boolean(s,"installed",&p)?;
         dependencies.extend(set(s,"dependency_groups",&p)?);
         let derived=set(s,"derived_from_channel_ids",&p)?;
@@ -206,6 +259,10 @@ fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_d
         "asset_family_ref":family,"asset_configuration_ref":config,"operating_domain_ref":domain,"installation_profile_ref":installation});
     let sensors=input["sensors"].as_array().unwrap();
     let installed:Vec<&Value>=sensors.iter().filter(|s|s["installed"]==true).collect();
+    let time_domain=&input["operating_domain"];
+    let layout_profile=&input["layout_profile"];
+    let evidence_class=txt(input,"evidence_class","$")?;
+    let domain_qualified=txt(time_domain,"qualification_state","$.operating_domain")?=="qualified";
     let mut channel_map=BTreeMap::new();let mut channels=Vec::new();
     for s in &installed{
         let sid=txt(s,"sensor_id","$.sensors[]")?;let cid=txt(s,"channel_id","$.sensors[]")?;
@@ -240,7 +297,9 @@ fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_d
         let Some(sensor)=installed.iter().find(|s|s["channel_id"]==cid) else {continue};
         let sid=txt(sensor,"sensor_id","$.sensors[]")?;
         let ok=txt(sensor,"quality_state","$.sensors[]")?=="current"
-            && matches!(txt(sensor,"calibration_state","$.sensors[]")?,"current"|"not_applicable");
+            && matches!(txt(sensor,"calibration_state","$.sensors[]")?,"current"|"not_applicable")
+            && domain_qualified
+            && sensor_timebase_qualified(sensor,time_domain,layout_profile,evidence_class);
         let deps=set(sensor,"dependency_groups","$.sensors[]")?;
         let scenario_removed=removed_sensors.contains(sid)||deps.iter().any(|g|removed_dependencies.contains(g));
         let raw_availability=txt(r,"availability","$.responses[]")?;
@@ -253,9 +312,9 @@ fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_d
         let role=txt(sensor,"source_role","$.sensors[]")?;
         let derived=set(sensor,"derived_from_channel_ids","$.sensors[]")?;
         let response_role=txt(r,"evidence_role","$.responses[]")?;
-        let admissible_role=(evidence_class=="SYNTHETIC_CONFORMANCE_FIXTURE"
+        let admissible_role=ok && ((evidence_class=="SYNTHETIC_CONFORMANCE_FIXTURE"
                 &&role=="synthetic"&&response_role=="SYNTHETIC_CONFORMANCE_FIXTURE"&&derived.is_empty())
-            ||(evidence_class=="MEASURED"&&role=="measured"&&response_role=="INDEPENDENT_MEASUREMENT"&&ok&&derived.is_empty());
+            ||(evidence_class=="MEASURED"&&role=="measured"&&response_role=="INDEPENDENT_MEASUREMENT"&&derived.is_empty()));
         let availability=if !admissible_role&&availability=="VALID"{"UNKNOWN"}else{availability};
         let (lo,hi)=if availability=="VALID"{(r["value_lower"].clone(),r["value_upper"].clone())}else{(Value::Null,Value::Null)};
         let evidence_role=if admissible_role{
@@ -279,15 +338,15 @@ fn pair_state(status:&str)->&'static str{
 fn evidence_role_name(input:&Value,response:&Value)->&'static str{
     let channel=response["channel_id"].as_str().unwrap_or("");
     let sensor=input["sensors"].as_array().unwrap().iter().find(|s|s["channel_id"]==channel);
-    match sensor.and_then(|s|s["source_role"].as_str()){
-        Some("derived")=>"derived",
-        Some("reconstructed")=>"reconstructed",
-        Some("simulated")=>"simulated",
-        _=>match response["evidence_role"].as_str(){
-            Some("INDEPENDENT_MEASUREMENT")=>"measured",
-            Some("SYNTHETIC_CONFORMANCE_FIXTURE")=>"synthetic",
-            Some("MODEL_ESTIMATE")=>"simulated",
-            Some("OPERATOR_REPORTED")=>"operator_reported",
+    match response["evidence_role"].as_str(){
+        Some("MODEL_ESTIMATE")=>"model_estimate",
+        Some("OPERATOR_REPORTED")=>"operator_reported",
+        _=>match sensor.and_then(|s|s["source_role"].as_str()){
+            Some("derived")=>"derived",
+            Some("reconstructed")=>"reconstructed",
+            Some("simulated")=>"simulated",
+            Some("synthetic")=>"synthetic",
+            Some("measured") if response["evidence_role"]=="INDEPENDENT_MEASUREMENT"=>"measured",
             _=>"expert_authored"
         }
     }
@@ -371,8 +430,11 @@ fn fault_assessments(input:&Value,report:&EvaluationReport)->Vec<Value>{
         let class=state["state_class"].as_str().unwrap();
         let component=component_for.get(id);
         let baseline_status=pair_status(report,reference,id);
-        let disposition=if class=="OUT_OF_DOMAIN"{
+        let regime_qualification=input["operating_domain"]["qualification_state"].as_str().unwrap_or("not_evaluated");
+        let disposition=if class=="OUT_OF_DOMAIN"||regime_qualification=="unsupported"{
             "unsupported_regime"
+        }else if regime_qualification!="qualified"{
+            "not_evaluated"
         }else if let Some((_,_))=component{
             "ambiguity_class"
         }else{
@@ -389,7 +451,7 @@ fn fault_assessments(input:&Value,report:&EvaluationReport)->Vec<Value>{
                             _=>{}
                         }
                     }
-                    if ambiguous{"ambiguity_class"}else if unresolved{"not_evaluated"}else{"observable_and_isolable"}
+                    if ambiguous{"detectable_not_isolable"}else if unresolved{"not_evaluated"}else{"observable_and_isolable"}
                 }
                 _=>"not_evaluated"
             }
@@ -406,25 +468,66 @@ fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
     let asset=&input["asset"];let domain=&input["operating_domain"];let digests=&input["evidence_digests"];
     let sensors:Vec<Value>=input["sensors"].as_array().unwrap().iter().map(|s|json!({
         "sensor_id":s["sensor_id"],"channel_id":s["channel_id"],"installed":s["installed"],
-        "measurement_principle":s["measurement_principle_ref"],"unit":s["unit"],"source_role":s["source_role"],
-        "quality_state":s["quality_state"],"calibration_state":s["calibration_state"],
-        "dependency_groups":s["dependency_groups"],"derived_from_channel_ids":s["derived_from_channel_ids"]
+        "measurement_principle":s["measurement_principle_ref"],"physical_location":s["physical_location_ref"],
+        "unit":s["unit"],"source_role":s["source_role"],"quality_state":s["quality_state"],
+        "calibration_state":s["calibration_state"],"clock_domain":s["clock_domain"],
+        "dependency_groups":s["dependency_groups"],"derived_from_channel_ids":s["derived_from_channel_ids"],
+        "timebase_id":s["timebase_id"],"timestamp_uncertainty_ms":s["timestamp_uncertainty_ms"],
+        "timestamp_uncertainty_source":s["timestamp_uncertainty_source"],
+        "timebase_qualification_state":s["timebase_qualification_state"],
+        "timebase_qualification_artifact_id":s["timebase_qualification_artifact_id"],
+        "timebase_qualification_sha256":s["timebase_qualification_sha256"]
     })).collect();
     let stratum=domain["regime_id"].as_str().unwrap_or("unknown");
+    let profile=&input["layout_profile"];
+    let evidence_class=input["evidence_class"].as_str().unwrap_or("");
+    let timebase_qualified_count=input["sensors"].as_array().unwrap().iter()
+        .filter(|s|s["installed"]==true&&sensor_timebase_qualified(s,domain,profile,evidence_class)).count();
+    let installed_count=input["sensors"].as_array().unwrap().iter().filter(|s|s["installed"]==true).count();
     let metric=|id:&str,value:usize|json!({"metric_id":id,"value":value,"unit":"count","stratum":stratum,"sample_count":0});
     json!({
         "schema_version":"0.1.0","assessment_id":input["assessment_id"],"generated_at":input["generated_at"],
         "asset":{"asset_id":asset["asset_id"],"asset_class":asset["asset_class"],"vessel_id":asset["vessel_id"],"engine_id":asset["engine_id"],"configuration_revision":asset["configuration_revision"],"configuration_sha256":asset["configuration_sha256"]},
-        "operating_domain":{"regime_id":domain["regime_id"],"description":domain["description"],"qualification_state":domain["qualification_state"],"load_percent":domain["load_percent"],"speed_rpm":domain["speed_rpm"],"transient_state":domain["transient_state"]},
+        "operating_domain":{"regime_id":domain["regime_id"],"description":domain["description"],"qualification_state":domain["qualification_state"],"load_percent":domain["load_percent"],"speed_rpm":domain["speed_rpm"],"transient_state":domain["transient_state"],"measurement_timebase_id":domain["measurement_timebase_id"],"maximum_timestamp_uncertainty_ms":profile["maximum_timestamp_uncertainty_ms"]},
         "evidence_digests":{"sensor_topology_sha256":digests["sensor_topology_sha256"],"fault_model_sha256":digests["fault_model_sha256"],"evaluator_sha256":digests["evaluator_sha256"],"dataset_sha256":digests["dataset_sha256"],"split_manifest_sha256":digests["split_manifest_sha256"],"model_sha256":digests["model_sha256"]},
         "sensor_inventory":sensors,"fault_assessments":fault_assessments(input,base),"pair_assessments":pair_assessments(input,base),"sensor_loss_scenarios":scenarios,
         "metrics":[metric("installed_sensor_count",base.channel_count),metric("independent_evidence_group_count",base.independence_group_count),
             metric("state_hypothesis_count",base.state_count),metric("required_fault_pair_count",base.required_pair_count),
             metric("identifiable_fault_pair_count",base.identifiable_pair_count),metric("non_identifiable_fault_pair_count",base.not_identifiable_pair_count),
-            metric("insufficient_evidence_fault_pair_count",base.insufficient_evidence_pair_count),metric("critical_unidentifiable_fault_pair_count",base.critical_unidentifiable_pair_count)],
+            metric("insufficient_evidence_fault_pair_count",base.insufficient_evidence_pair_count),metric("critical_unidentifiable_fault_pair_count",base.critical_unidentifiable_pair_count),
+            metric("timebase_qualified_installed_sensor_count",timebase_qualified_count),
+            metric("timebase_unqualified_installed_sensor_count",installed_count.saturating_sub(timebase_qualified_count))],
         "authority_boundary":{"read_only":true,"actuation":false,"maintenance_authorization":false,"mode_transition_authorization":false,"restriction_clearance":false},
-        "claim_ceiling":"Pairwise structural diagnosability only for the exact declared asset/configuration, installed sensors, dependency groups, operating domain, response intervals and evidence class. No individual-fault detectability, trained model accuracy, physical engine validation, shipboard safety, maintenance authorization, ODD clearance or permission to operate."
+        "claim_ceiling":"Pairwise structural diagnosability only for the exact declared asset/configuration, installed sensors, dependency groups, operating domain, response intervals, declared clock/timebase metadata and evidence class. Timebase hashes are bound to declared artifact references but this report does not authenticate the clock qualification process or prove the physical synchronization network. Synthetic timebase evidence remains synthetic only. No individual-fault detectability, trained model accuracy, physical engine validation, shipboard safety, maintenance authorization, ODD clearance or permission to operate."
     })
+}
+
+pub fn evaluate_maritime_case(input:&Value)->Check<Value>{
+    validate_input(input)?;
+    let empty_sensors=BTreeSet::new();
+    let empty_dependencies=BTreeSet::new();
+    let (base_case,parent)=make_parent_and_case(input,&empty_sensors,&empty_dependencies)?;
+    let base=evaluate_case(&base_case,&parent)?;
+    let mut scenarios=Vec::new();
+    for scenario in input["common_cause_scenarios"].as_array().unwrap(){
+        let removed_sensors=set(scenario,"removed_sensor_ids","$.common_cause_scenarios[]")?;
+        let removed_dependencies=set(scenario,"removed_dependency_groups","$.common_cause_scenarios[]")?;
+        let (case,scenario_parent)=make_parent_and_case(input,&removed_sensors,&removed_dependencies)?;
+        let replay=evaluate_case(&case,&scenario_parent)?;
+        let lost:Vec<Value>=base.pair_results.iter()
+            .filter(|p|p.status=="IDENTIFIABLE")
+            .filter(|p|pair_status(&replay,&p.state_a_id,&p.state_b_id)!=Some("IDENTIFIABLE"))
+            .map(|p|json!({"fault_a":p.state_a_id,"fault_b":p.state_b_id}))
+            .collect();
+        scenarios.push(json!({
+            "scenario_id":scenario["scenario_id"],
+            "removed_sensor_ids":removed_sensors,
+            "removed_dependency_groups":removed_dependencies,
+            "assessment_state":"recomputed",
+            "lost_isolability_pairs":lost
+        }));
+    }
+    Ok(make_report(input,&base,scenarios))
 }
 
 pub fn evaluate_and_bind_execution(input:&Value,source_commit:&str,case_sha256:&str)->Check<Value>{
@@ -446,7 +549,7 @@ mod tests{
     #[test]
     fn synthetic_maritime_case_maps_to_generic_evaluator(){
         let r=evaluate_maritime_case(&fixture()).expect("adapter evaluates");
-        assert_eq!(r["pair_assessments"].as_array().unwrap().len(),5);
+        assert_eq!(r["pair_assessments"].as_array().unwrap().len(),11);
         assert_eq!(r["fault_assessments"].as_array().unwrap().len(),5);
         assert_eq!(r["authority_boundary"]["actuation"],false);
     }
@@ -528,6 +631,51 @@ mod tests{
         let c=fixture();
         assert!(evaluate_and_bind_execution(&c,&"d".repeat(40),&"e".repeat(64)).is_ok());
         assert!(evaluate_and_bind_execution(&c,"not-a-commit",&"e".repeat(64)).is_err());
+    }
+    #[test]
+    fn unqualified_sensor_timebase_is_excluded_from_physical_evidence(){
+        let mut c=fixture();
+        c["sensors"][0]["timebase_qualification_state"]=json!("unknown");
+        c["sensors"][0]["timebase_qualification_sha256"]=Value::Null;
+        c["sensors"][0]["timebase_qualification_artifact_id"]=Value::Null;
+        c["sensors"][0]["timestamp_uncertainty_ms"]=Value::Null;
+        let r=evaluate_maritime_case(&c).unwrap();
+        assert_eq!(r["metrics"].as_array().unwrap().iter()
+            .find(|m|m["metric_id"]=="timebase_unqualified_installed_sensor_count").unwrap()["value"],1);
+        assert!(!r["pair_assessments"].as_array().unwrap().iter()
+            .flat_map(|p|p["evidence_refs"].as_array().unwrap())
+            .any(|e|e["channel_ids"].as_array().unwrap().contains(&json!("fuel-rail-pressure"))));
+    }
+    #[test]
+    fn uncertainty_above_declared_layout_bound_is_not_qualified(){
+        let mut c=fixture();
+        c["sensors"][0]["timestamp_uncertainty_ms"]=json!(6.0);
+        let r=evaluate_maritime_case(&c).unwrap();
+        assert_eq!(r["metrics"].as_array().unwrap().iter()
+            .find(|m|m["metric_id"]=="timebase_unqualified_installed_sensor_count").unwrap()["value"],1);
+        assert!(!r["pair_assessments"].as_array().unwrap().iter()
+            .flat_map(|p|p["evidence_refs"].as_array().unwrap())
+            .any(|e|e["channel_ids"].as_array().unwrap().contains(&json!("fuel-rail-pressure"))));
+    }
+    #[test]
+    fn unqualified_operating_domain_does_not_emit_fault_diagnoses(){
+        let mut c=fixture();c["operating_domain"]["qualification_state"]=json!("not_evaluated");
+        let r=evaluate_maritime_case(&c).unwrap();
+        for fault in r["fault_assessments"].as_array().unwrap(){
+            if fault["fault_id"]!="ENGINE_UNKNOWN_OUT_OF_DOMAIN" {
+                assert_eq!(fault["state"],"not_evaluated");
+            }
+        }
+        assert_eq!(r["pair_assessments"].as_array().unwrap().iter().filter(|p|p["state"]=="not_evaluated").count(),11);
+    }
+    #[test]
+    fn model_estimate_role_is_preserved_in_report_not_renamed_simulation(){
+        let mut c=fixture();
+        c["responses"][0]["evidence_role"]=json!("MODEL_ESTIMATE");
+        let r=evaluate_maritime_case(&c).unwrap();
+        let fault=r["fault_assessments"].as_array().unwrap().iter().find(|f|f["fault_id"]=="ENGINE_NORMAL_STEADY").unwrap();
+        assert!(fault["signature_evidence"].as_array().unwrap()
+            .iter().any(|e|e["evidence_role"]=="model_estimate"));
     }
     #[test]
     fn same_input_is_deterministic(){

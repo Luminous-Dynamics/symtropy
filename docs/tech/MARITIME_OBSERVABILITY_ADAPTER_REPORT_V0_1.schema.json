@@ -79,7 +79,9 @@
         "qualification_state",
         "load_percent",
         "speed_rpm",
-        "transient_state"
+        "transient_state",
+        "measurement_timebase_id",
+        "maximum_timestamp_uncertainty_ms"
       ],
       "properties": {
         "regime_id": {
@@ -114,6 +116,13 @@
             "mixed",
             "unknown"
           ]
+        },
+        "measurement_timebase_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "maximum_timestamp_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
         }
       }
     },
@@ -176,7 +185,14 @@
           "quality_state",
           "calibration_state",
           "dependency_groups",
-          "derived_from_channel_ids"
+          "derived_from_channel_ids",
+          "clock_domain",
+          "timebase_id",
+          "timestamp_uncertainty_ms",
+          "timestamp_uncertainty_source",
+          "timebase_qualification_state",
+          "timebase_qualification_artifact_id",
+          "timebase_qualification_sha256"
         ],
         "properties": {
           "sensor_id": {
@@ -232,8 +248,98 @@
             "items": {
               "$ref": "#/$defs/ref"
             }
+          },
+          "physical_location": {
+            "$ref": "#/$defs/ref"
+          },
+          "clock_domain": {
+            "$ref": "#/$defs/ref"
+          },
+          "timebase_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "timestamp_uncertainty_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "timestamp_uncertainty_source": {
+            "enum": [
+              "measured_offset_bound",
+              "instrument_specification",
+              "vendor_specification",
+              "estimated",
+              "unknown",
+              "synthetic_fixture"
+            ]
+          },
+          "timebase_qualification_state": {
+            "enum": [
+              "qualified",
+              "synthetic_conformance",
+              "unqualified",
+              "unknown"
+            ]
+          },
+          "timebase_qualification_artifact_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "timebase_qualification_sha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "timebase_qualification_state": {
+                  "enum": [
+                    "qualified",
+                    "synthetic_conformance"
+                  ]
+                }
+              },
+              "required": [
+                "timebase_qualification_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "timestamp_uncertainty_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "timebase_qualification_artifact_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "timebase_qualification_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "timebase_id",
+                "timestamp_uncertainty_ms",
+                "timebase_qualification_artifact_id",
+                "timebase_qualification_sha256"
+              ]
+            }
+          }
+        ]
       }
     },
     "fault_assessments": {
@@ -305,7 +411,8 @@
                     "reconstructed",
                     "simulated",
                     "expert_authored",
-                    "operator_reported"
+                    "operator_reported",
+                    "model_estimate"
                   ]
                 },
                 "channel_ids": {
@@ -384,7 +491,8 @@
                     "reconstructed",
                     "simulated",
                     "expert_authored",
-                    "operator_reported"
+                    "operator_reported",
+                    "model_estimate"
                   ]
                 },
                 "channel_ids": {

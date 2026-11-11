@@ -18,7 +18,9 @@
     "qualification_state": "qualified",
     "load_percent": 75,
     "speed_rpm": 750,
-    "transient_state": "steady"
+    "transient_state": "steady",
+    "measurement_timebase_id": "marine-engine-common-ptp-v1",
+    "maximum_timestamp_uncertainty_ms": 5
   },
   "evidence_digests": {
     "sensor_topology_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -33,7 +35,8 @@
     "state_taxonomy_ref": "taxonomy:marine-diesel-faults-v0.1",
     "required_pair_set_ref": "pairs:marine-engine-core-v0.1",
     "minimum_independent_principles_for_critical_pairs": 2,
-    "reference_state_id": "ENGINE_NORMAL_STEADY"
+    "reference_state_id": "ENGINE_NORMAL_STEADY",
+    "maximum_timestamp_uncertainty_ms": 5
   },
   "sensors": [
     {
@@ -55,7 +58,14 @@
         "power:fuel-pressure"
       ],
       "derived_from_channel_ids": [],
-      "source_artifact_ref": "artifact:fuel-rail-pressure-map"
+      "source_artifact_ref": "artifact:fuel-rail-pressure-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
     },
     {
       "sensor_id": "crankshaft-speed-sensor",
@@ -76,7 +86,14 @@
         "power:speed"
       ],
       "derived_from_channel_ids": [],
-      "source_artifact_ref": "artifact:shaft-speed-map"
+      "source_artifact_ref": "artifact:shaft-speed-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
     },
     {
       "sensor_id": "exhaust-thermocouple",
@@ -97,7 +114,14 @@
         "power:thermocouple-module"
       ],
       "derived_from_channel_ids": [],
-      "source_artifact_ref": "artifact:exhaust-temp-map"
+      "source_artifact_ref": "artifact:exhaust-temp-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
     },
     {
       "sensor_id": "rack-position-transducer",
@@ -118,7 +142,14 @@
         "power:rack-transducer"
       ],
       "derived_from_channel_ids": [],
-      "source_artifact_ref": "artifact:rack-position-map"
+      "source_artifact_ref": "artifact:rack-position-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
     },
     {
       "sensor_id": "engine-vibration-sensor",
@@ -139,7 +170,14 @@
         "power:vibration"
       ],
       "derived_from_channel_ids": [],
-      "source_artifact_ref": "artifact:vibration-map"
+      "source_artifact_ref": "artifact:vibration-map",
+      "clock_domain": "engine-io-clock-domain-1",
+      "timebase_id": "marine-engine-common-ptp-v1",
+      "timestamp_uncertainty_ms": 1,
+      "timestamp_uncertainty_source": "synthetic_fixture",
+      "timebase_qualification_state": "synthetic_conformance",
+      "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
     }
   ],
   "states": [

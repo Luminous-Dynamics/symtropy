@@ -47,8 +47,10 @@ jobs:
           test "$source_commit" = "${{ github.event.pull_request.head.sha || github.sha }}"
           case_file="benchmarks/maritime-observability/maritime-observability-case-v0.1.json"
           case_sha256="$(sha256sum "$case_file" | awk '{print $1}')"
+          clock_file="benchmarks/maritime-observability/synthetic-clock-qualification-v0.1.json"
+          clock_sha256="$(sha256sum "$clock_file" | awk '{print $1}')"
           cargo run --quiet --manifest-path crates/domains/symtropy-maritime-observability-bench/Cargo.toml -- "$case_file" --source-commit "$source_commit" --case-sha256 "$case_sha256" > maritime-observability-adapter-report.json
-          jq -e --arg source "$source_commit" --arg digest "$case_sha256" '.execution.source_commit == $source and .execution.case_sha256 == $digest and .authority_boundary.read_only == true and .authority_boundary.actuation == false and (.pair_assessments | length == 11) and (.sensor_loss_scenarios | length == 2) and ([.pair_assessments[].state] | sort == ["isolable","isolable","isolable","isolable","isolable","isolable","isolable","isolable","non_isolable","non_isolable","not_evaluated"])' maritime-observability-adapter-report.json
+          jq -e --arg source "$source_commit" --arg digest "$case_sha256" --arg clock_sha "$clock_sha256" '.execution.source_commit == $source and .execution.case_sha256 == $digest and .authority_boundary.read_only == true and .authority_boundary.actuation == false and .operating_domain.maximum_timestamp_uncertainty_ms == 5 and (.sensor_inventory | all(.[]; .timebase_qualification_state == "synthetic_conformance" and .timebase_id == "marine-engine-common-ptp-v1" and .timestamp_uncertainty_source == "synthetic_fixture" and .timestamp_uncertainty_ms == 1 and .timebase_qualification_sha256 == $clock_sha)) and (.metrics[] | select(.metric_id == "timebase_qualified_installed_sensor_count") | .value == 5) and (.pair_assessments | length == 11) and (.sensor_loss_scenarios | length == 2) and ([.pair_assessments[].state] | sort == ["isolable","isolable","isolable","isolable","isolable","isolable","isolable","isolable","non_isolable","non_isolable","not_evaluated"])' maritime-observability-adapter-report.json
       - name: Upload deterministic report
         uses: actions/upload-artifact@v4
         with:

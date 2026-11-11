@@ -96,7 +96,9 @@
         "regime_id",
         "description",
         "qualification_state",
-        "transient_state"
+        "transient_state",
+        "measurement_timebase_id",
+        "maximum_timestamp_uncertainty_ms"
       ],
       "properties": {
         "regime_id": {
@@ -135,6 +137,13 @@
             "mixed",
             "unknown"
           ]
+        },
+        "measurement_timebase_id": {
+          "$ref": "#/$defs/ref"
+        },
+        "maximum_timestamp_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
         }
       }
     },
@@ -205,7 +214,8 @@
         "state_taxonomy_ref",
         "required_pair_set_ref",
         "minimum_independent_principles_for_critical_pairs",
-        "reference_state_id"
+        "reference_state_id",
+        "maximum_timestamp_uncertainty_ms"
       ],
       "properties": {
         "layout_profile_ref": {
@@ -223,6 +233,10 @@
         },
         "reference_state_id": {
           "$ref": "#/$defs/ref"
+        },
+        "maximum_timestamp_uncertainty_ms": {
+          "type": "number",
+          "minimum": 0
         }
       }
     },
@@ -247,7 +261,14 @@
           "source_role",
           "dependency_groups",
           "derived_from_channel_ids",
-          "source_artifact_ref"
+          "source_artifact_ref",
+          "clock_domain",
+          "timebase_id",
+          "timestamp_uncertainty_ms",
+          "timestamp_uncertainty_source",
+          "timebase_qualification_state",
+          "timebase_qualification_artifact_id",
+          "timebase_qualification_sha256"
         ],
         "properties": {
           "sensor_id": {
@@ -325,8 +346,95 @@
           },
           "source_artifact_ref": {
             "$ref": "#/$defs/ref"
+          },
+          "clock_domain": {
+            "$ref": "#/$defs/ref"
+          },
+          "timebase_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "timestamp_uncertainty_ms": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "timestamp_uncertainty_source": {
+            "enum": [
+              "measured_offset_bound",
+              "instrument_specification",
+              "vendor_specification",
+              "estimated",
+              "unknown",
+              "synthetic_fixture"
+            ]
+          },
+          "timebase_qualification_state": {
+            "enum": [
+              "qualified",
+              "synthetic_conformance",
+              "unqualified",
+              "unknown"
+            ]
+          },
+          "timebase_qualification_artifact_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "timebase_qualification_sha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
-        }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "timebase_qualification_state": {
+                  "enum": [
+                    "qualified",
+                    "synthetic_conformance"
+                  ]
+                }
+              },
+              "required": [
+                "timebase_qualification_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "timestamp_uncertainty_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "timebase_qualification_artifact_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "timebase_qualification_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "timebase_id",
+                "timestamp_uncertainty_ms",
+                "timebase_qualification_artifact_id",
+                "timebase_qualification_sha256"
+              ]
+            }
+          }
+        ]
       }
     },
     "states": {
