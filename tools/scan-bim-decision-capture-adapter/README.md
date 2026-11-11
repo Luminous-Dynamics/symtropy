@@ -32,7 +32,7 @@ cargo run --manifest-path tools/scan-bim-decision-capture-adapter/Cargo.toml
 
 Eight synthetic decision worlds are delegated unchanged to the existing #1892 qualifier. Eleven synthetic capture actions bind to sensor, pose, frame, visibility and task evidence. Ten are eligible under the fixture; one stale source-revision action is explicitly unqualified and remains excluded by the delegated decision engine.
 
-The embedded test suite includes negative controls for:
+The embedded test suite includes negative controls for sensor-profile ID and digest mismatches, as well as:
 - externally occluded capture recommended by the generic decision engine;
 - stale coordinate-frame revision;
 - unreachable/unqualified pose;
