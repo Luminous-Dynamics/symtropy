@@ -63,5 +63,34 @@ jobs:
       - name: Test N-dimensional reference with expanded bivector storage
         run: cargo test --locked -p symtropy-physics --lib --features nd-bivector-9
 
+      - name: Test CSV scale-normalization contract
+        run: cargo test --locked -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9
+
       - name: Run deterministic anisotropic mechanics campaign
-        run: cargo run --locked --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9
+        env:
+          SYMTROPY_SOURCE_SHA: ${{ github.sha }}
+        run: |
+          cargo run --locked --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9 > anisotropic-reference.csv
+          {
+            printf 'source_sha=%s\n' "$SYMTROPY_SOURCE_SHA"
+            printf 'workflow_run_id=%s\n' "$GITHUB_RUN_ID"
+            printf 'workflow_run_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
+            printf 'rustc='
+            rustc --version --verbose
+            printf 'cargo='
+            cargo --version
+            printf 'host='
+            uname -a
+            if command -v lscpu >/dev/null 2>&1; then lscpu; fi
+            printf 'command=cargo run --locked --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9\n'
+          } > anisotropic-reference-manifest.txt
+
+      - name: Upload reference CSV and execution manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: anisotropic-reference-${{ github.sha }}
+          path: |
+            anisotropic-reference.csv
+            anisotropic-reference-manifest.txt
+          if-no-files-found: warn
