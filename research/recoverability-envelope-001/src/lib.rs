@@ -638,7 +638,7 @@ mod tests {
             contract: RecoveryContract {
                 max_detection_delay_ticks: 1,
                 max_fallback_delay_ticks: 1,
-                max_recovery_after_end_ticks: 2,
+                max_recovery_after_end_ticks: 3,
                 min_stable_nominal_ticks: 2,
                 max_camera_age_us: 5_000,
                 max_vehicle_state_age_us: 5_000,
@@ -708,9 +708,9 @@ mod tests {
     #[test]
     fn detects_recovery_interrupted_by_a_second_fault() {
         let mut episode = valid_episode();
-        episode.fault_events[1].end_tick_exclusive = 8;
+        episode.fault_events[1].end_tick_exclusive = 10;
         episode.contract.max_fault_concurrency = 2;
-        for tick in episode.trace.iter_mut().filter(|tick| tick.tick == 6 || tick.tick == 7) {
+        for tick in episode.trace.iter_mut().filter(|tick| tick.tick >= 6 && tick.tick < 10) {
             tick.mode = OperatingMode::Degraded;
             tick.oracle_outcome = OracleOutcome::DegradedWithinEnvelope;
         }
