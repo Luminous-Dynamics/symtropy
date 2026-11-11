@@ -158,6 +158,13 @@
         "tdr_percent": 78.6,
         "tir_percent": 42.3
       }
+    },
+    {
+      "id": "behavioral_set_intersection",
+      "family": "behavioral_set_diagnosis",
+      "method": "Set-valued intersection of calibrated, regime-specific multivariate behavioral envelopes with observation-uncertainty intervals; return all admissible hypotheses and preserve ambiguity.",
+      "status": "protocol_only_not_executed",
+      "claim_ceiling": "singleton only within frozen catalogue; never global unique physical cause"
     }
   ],
   "primary_metrics": [
@@ -216,7 +223,15 @@
     "streaming_receipt_chain_validation_rate",
     "worst_case_expected_information_gain_nats",
     "likelihood_scenario_count",
-    "risk_evidence_unreviewed_candidate_count"
+    "risk_evidence_unreviewed_candidate_count",
+    "admissible_hypothesis_set_size",
+    "ambiguous_hypothesis_set_rate",
+    "unknown_out_of_support_rate",
+    "not_evaluable_rate",
+    "unique_within_catalogue_rate",
+    "false_unique_within_catalogue_rate",
+    "behavioral_envelope_coverage",
+    "worst_regime_admissible_set_size"
   ],
   "hard_evidence_gates": [
     "model, source data, evaluator, feature map and split manifests are content-addressed",
@@ -276,7 +291,12 @@
     "adversarial robustness distinguishes integrity checking from authenticated source identity and authorization",
     "confidentiality claims require exercised access, retention, export, redaction and deletion controls",
     "verification assurance reports source-written, locally compiled, exact-head CI, independently replayed, testbed-validated and field-evaluated states separately",
-    "overall deployability is not claimed until each dimension has independent evidence and review"
+    "overall deployability is not claimed until each dimension has independent evidence and review",
+    "behavioral-set comparator returns all calibrated admissible hypotheses rather than forcing the highest scoring class",
+    "overlapping normal/fault behavioral envelopes produce an ambiguity set",
+    "zero matching envelopes produce unknown/out-of-support rather than a forced known class",
+    "every behavioral envelope is regime-specific, source-bound, independently calibration-reviewed and digest-replayed",
+    "singleton diagnosis is qualified only relative to the complete frozen declared hypothesis catalogue and never as global physical uniqueness"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -377,6 +397,26 @@
     {
       "id": "assurance_bundle",
       "target": "All externally qualified results replay from exact data/model/evaluator/manifest digests and an independently reviewed evidence bundle.",
+      "status": "aspirational"
+    },
+    {
+      "id": "behavioral_set_coverage",
+      "target": "Empirical envelope coverage within ±5 percentage points of declared marginal target on independent held-out recordings.",
+      "status": "aspirational"
+    },
+    {
+      "id": "ambiguity_honesty",
+      "target": "Zero forced top-one diagnosis when multiple hypotheses remain admissible.",
+      "status": "aspirational"
+    },
+    {
+      "id": "out_of_support",
+      "target": "At least 95% detection of independent out-of-support episodes at no more than 1% false unknown alarms on supported normal episodes.",
+      "status": "aspirational"
+    },
+    {
+      "id": "behavioral_diagnostic_gain",
+      "target": "At least +5 percentage points event recall versus a matched selective classifier without increasing false alarms per observed normal hour, while preserving ambiguity.",
       "status": "aspirational"
     }
   ],
@@ -574,5 +614,23 @@
     "aggregate_readiness_score_allowed": false,
     "source_doi": "10.1007/s10207-026-01330-1",
     "rule": "Each dimension is separately evidenced and reviewed. No dimension can be inferred from another and no weighted score can override a missing dimension."
+  },
+  "behavioral_set_diagnosis": {
+    "path": "behavioral-set-diagnosis-v0.1.json",
+    "schema_version": "symtropy-behavioral-set-diagnosis-v0.1",
+    "status": "protocol_only_not_executed",
+    "comparator": "behavioral_set_intersection",
+    "output_rule": "Return the complete set of hypotheses whose calibrated multivariate behavioral envelopes intersect the observed measurement-uncertainty box within a supported regime.",
+    "unknown_rule": "Zero admissible hypotheses is unknown_or_out_of_support; missing/stale/conflicted inputs and unsupported regimes are not_evaluable.",
+    "uniqueness_rule": "A singleton is unique only within the frozen declared catalogue; global unique physical cause is prohibited.",
+    "finite_sample_calibration_minima": {
+      "coverage_900000_ppm": 9,
+      "coverage_950000_ppm": 19,
+      "coverage_990000_ppm": 99
+    },
+    "execution_performed": false,
+    "trained_model_present": false,
+    "physical_validation": false,
+    "claim_ceiling": "source contract and synthetic fixtures only"
   }
 }
