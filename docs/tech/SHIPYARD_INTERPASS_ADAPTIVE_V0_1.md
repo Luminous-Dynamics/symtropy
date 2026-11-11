@@ -19,7 +19,7 @@ For a scan-derived residual-fill estimate R with uncertainty U, each candidate p
 
 error(D) = max(|max(0,R-U)-D|, |R+U-D|)
 
-The planner preserves five separate lower-is-better objectives:
+The planner rejects a zero uncertainty bound and preserves five separate lower-is-better objectives:
 1. worst-case residual geometry error;
 2. duration;
 3. material;
@@ -36,7 +36,7 @@ All numeric quantities in v0 are **symbolic synthetic units**, not mm², deposit
 - `docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1.schema.json`: Draft 2020-12 input contract.
 - `docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1.md`: benchmark and claim-boundary protocol.
 - Focused CI runs rustfmt, tests and Clippy with warnings denied.
-- 20 Rust unit/mutation tests cover Pareto preservation, uncertainty, stale scan, wrong predecessor, low coverage, occlusion, registration error, future observation, stale observation, future leakage, OOD, measured-data rejection, live execution, procedure scope/revision, wrong scan, collision, resource infeasibility, duplicate candidates, no-feasible-plan and numeric overflow.
+- 22 Rust unit/mutation tests cover Pareto preservation, uncertainty, stale scan, wrong predecessor, low coverage, occlusion, registration error, future observation, stale observation, future leakage, OOD, measured-data rejection, live execution, procedure scope/revision, wrong scan, collision, resource infeasibility, duplicate candidates, no-feasible-plan and numeric overflow.
 
 This crate is an isolated nested Cargo workspace so it does not add another competing root Cargo.toml/Cargo.lock edit while the other three shipyard draft PRs are outstanding. It has no external crate dependencies.
 
