@@ -115,3 +115,56 @@ The current Symtropy reference includes `VicsekPerception::VisualSector`, focal-
 
 **Competitive rule:** do not compare the new Rust control against the paper's plotted outcomes until the public MATLAB package is downloaded, file-hashed, and its exact aperture/offset/noise/density/seed grid is reproduced. The paper's result is a comparator reference, not an OLI result.
 
+
+
+## 6. SCM — small-swarm cooperative search and dynamic sensor localization
+
+Nitti, de Tullio, Federico & Carbone (2025), *Nature Communications* 16, 6572, DOI [10.1038/s41467-025-61985-7](https://doi.org/10.1038/s41467-025-61985-7).
+
+The Swarm Cooperation Model (SCM) is a valuable task-level baseline because it couples a fitness-gradient term with all-to-all sinusoidal consensus interaction and adaptive Gaussian forcing. It targets bounded static and time-varying scalar landscapes, and is also used as a controller for a simulated AUV contaminant-localization task.
+
+### What the paper reports
+
+- On low-dimensional 2D/3D landscapes with (M\leq16), SCM matched or exceeded PSO/MIPA success rate on 22 of 33 cases.
+- The static benchmark reports 100 replications with 100 different Wiener processes. Success is measured by whether the final swarm centroid is within (0.05L) of the true global optimum.
+- The reported success-rate advantage has a cost: about one order of magnitude more function evaluations overall; SCM uses significantly more evaluations on 24 of the 33 cases.
+- The paper explicitly notes that SCM does not retain a global best-known position. This is disadvantageous on static landscapes, but may be useful when the landscape changes in time.
+- The AUV proof-of-concept simulates five vehicles searching a 6 km square domain in Gallipoli Bay, at 4–6 m depth under 0.05–0.2 m/s currents. Across 100 simulations it reports 86% success, 20.8 ± 3.82 hours mean search time and 93.8 ± 17.3 km mean travel per vehicle. This is a **computational proof of concept**, not a physical sea trial.
+
+### Why this is a useful OLI comparator
+
+SCM shifts the comparison from whether a group moves together to whether a small group achieves a useful task under limited agent count and costly physical measurements. It is especially relevant to OLI's dynamic-observation and active-experiment-selection work.
+
+OLI should compare:
+- success probability and confidence intervals;
+- sensor/function evaluations per success;
+- time-to-solution and distance/energy per success;
+- communication bytes, rounds, latency and packet-loss sensitivity;
+- tracking error when the signal peak moves or the landscape changes;
+- recovery following agent loss, sensor failure or environmental disturbance.
+
+Do not claim SCM is universally inferior because it uses more evaluations: in a physical search task, a sensor sample may be cheap compared with mission failure. Conversely, do not call a success-rate advantage a win while ignoring battery, travel, range, mission time and bandwidth.
+
+### Reproduction and source admission
+
+Machine-readable source profile: `benchmarks/oli/scm-collective-optimization-source-profile-v0.json`.
+
+The linked MATLAB repository is pinned at commit `d9ff09d1a8b26df01cc5937e8774018028eebe79`; key file blob SHAs and the Zenodo v1.0 archive digest are recorded in the profile. The repo has no visible LICENSE file, and the inspected Zenodo Rights field gives no license value. The article's CC BY-NC-ND licence must not be inferred to license the separate code. No MATLAB source has been copied or redistributed.
+
+A source audit found a discrepancy requiring resolution before exact reproduction: the HTML-rendered Eq. (2) appears to use `sin((2/pi) * delta_x)`, while the inspected `SCM/tstep.m` computes `sin((pi/2) * delta_x)`. The mathematical update must remain explicitly versioned until the authoritative PDF/supplementary pseudocode and release code are reconciled. Do not quietly select whichever variant produces the more favourable result.
+
+The static replication script uses the circle-packing coordinates in `utils/csq_coords/csq8.txt` when present, 100 repetitions, eight agents, a Rastrigin 2D default, `dt=0.1`, `tau=60*dt`, `omega=0.2`, `sigma0=0.05`, and per-agent/per-dimension noise seeds determined by `2*i + M*(j-1) + nr - 1`. These are the inspected repository script defaults, not a substitute for reproducing every paper figure/table and its supplementary dataset protocol.
+
+### OLI extension opportunities
+
+1. **Cost-aware objective:** optimize probability of mission success under energy, travel, sampling, time and communication budgets—not success rate alone.
+2. **Dynamic source tracking:** measure lag, drift and re-localization cost when advection moves the peak.
+3. **Communication realism:** replace the paper's full-network exchange assumption with delay, bandwidth, packet loss, intermittent contact and stale measurements.
+4. **Common-driver and false-consensus controls:** test whether a shared environmental signal makes independent agents appear to coordinate.
+5. **Robustness to sensor bias:** calibrate against heteroskedastic noise, cross-sensitivity, fouling, drift and detection limits.
+6. **Ablate best-known memory:** quantify the static-exploitation advantage and dynamic-tracking cost of retaining versus discarding a global best-so-far state.
+7. **Ablate gradient access:** test when agents have scalar fitness only, finite-difference gradients, noisy gradients, or gradients with acquisition costs.
+8. **Small-swarm scaling:** report (M=3,5,8,16) with matched budgets and uncertainty, rather than assuming a method that works at large N transfers to real small fleets.
+
+The strongest potential OLI result is not merely to match SCM's small-swarm success rate. It is to preserve the useful dynamic search behaviour while reducing costly measurements and operating reliably under realistic communication and sensor constraints—on the same source-defined tasks and independent dynamic-environment holdouts.
+
