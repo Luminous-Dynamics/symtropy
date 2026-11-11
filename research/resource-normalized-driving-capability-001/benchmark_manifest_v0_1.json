@@ -9,7 +9,8 @@
     "renderer": "https://github.com/Luminous-Dynamics/symtropy/pull/4616",
     "learner": "https://github.com/Luminous-Dynamics/symthaea/issues/11414",
     "visual_input_bridge": "https://github.com/Luminous-Dynamics/symthaea/pull/11480",
-    "experience_selection": "https://github.com/Luminous-Dynamics/symtropy/issues/4550"
+    "experience_selection": "https://github.com/Luminous-Dynamics/symtropy/issues/4550",
+    "paired_deployment_fault_campaign": "https://github.com/Luminous-Dynamics/symtropy/issues/4681"
   },
   "claim_ceiling": "Protocol only. No model, renderer, driving performance, safety or transfer result is claimed by this manifest.",
   "hypotheses": [
