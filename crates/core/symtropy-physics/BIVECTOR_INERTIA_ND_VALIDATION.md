@@ -50,7 +50,7 @@ where `T` is the stored-bivector representation of the physical applied torque. 
 
 - Analytical uniform D-ball plane moment for D=2,3,4 and anisotropic ellipsoid principal-plane moments in D=3.
 - Off-diagonal second moments coupling distinct rotation planes.
-- Forward/inverse round trips in D=3, D=4 (all six planes), and D=9 (all 36 planes).
+- Forward/inverse round trips in D=3, D=4 (all six planes), and D=9 (all 36 planes). D=4 also checks full SO(4) frame covariance for angular momentum, energy and inverse recovery across all six planes.
 - Uniform second-moment rescaling by `1e-12`, `1`, and `1e12`: angular state is unchanged, momentum and energy scale linearly with mass, and inverse rotational effective mass scales inversely with mass. The inverse singular-plane decision compares `plane_inertia / max_eigenvalue` and `|momentum_component| / max_momentum_component` directly, avoiding tolerance products that can underflow; a subnormal `1e-320` second-moment round-trip is covered.
 - Body-to-world inertia rotation, kinetic-energy covariance, gyroscopic acceleration covariance and rotational contact effective-mass covariance.
 - Analytical isotropic contact effective mass and anisotropic principal-plane contact response, including equivalence of body-frame and transformed world-frame contact queries.
