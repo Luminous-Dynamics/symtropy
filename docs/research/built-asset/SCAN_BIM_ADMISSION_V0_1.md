@@ -78,6 +78,20 @@ No duplicate registration, coordinate-reference, metrology, component registry, 
 - You, Chen & Xue, *Automated scan-to-BIM for construction digital transformation: Conceptual framework, processing methods and best-practice guidelines*, Automation in Construction 182 (February 2026), DOI: [10.1016/j.autcon.2025.106755](https://doi.org/10.1016/j.autcon.2025.106755). A review of 58 documented cases provides a workflow and method map, not a single end-to-end performance baseline.
 - *From Measured Geometry to Editable BIM: A Representation-Centered Review of Existing-Building Scan-to-BIM Reconstruction*, Buildings 16(20), 4095 (2026): https://www.mdpi.com/2075-5309/16/20/4095. The review highlights loss of uncertainty/provenance and element correspondence at representation boundaries.
 
+
+### 2026 state-of-the-art comparator families
+
+Keep these benchmark families separate. They solve related but non-identical problems, and published metrics are not directly interchangeable.
+
+- **Active3D (AAAI 2026):** builds a hierarchical uncertainty volume over implicit neural fields and Gaussian primitives, uses Expected Hybrid Information Gain for next-best-view selection, and adds risk-sensitive motion planning. This is a strong active-reconstruction baseline for geometric fidelity/completeness and view efficiency. It is not a building-level metrology, persistent-identity, IFC round-trip or model-mutation qualification result. [AAAI paper](https://doi.org/10.1609/aaai.v40i8.37585).
+- **GO-PRE (ICML 2026):** selects views by reducing predictive-rendering entropy over a user-specified target-view manifold. It is a prediction-space acquisition baseline; compare it on matched capture budgets and target views, while keeping prediction fidelity separate from survey accuracy and building-decision correctness. [PMLR paper](https://proceedings.mlr.press/v306/song26k.html).
+- **Bayesian task-specific NBV (SIGGRAPH 2026):** uses priors/posteriors over uncertain geometry and chooses views for downstream tasks such as semantic classification, segmentation and PDE-guided physics simulation. It is the closest task-utility comparator when its probabilistic assumptions and priors can be calibrated for the task. Keep this expected-utility track separate from #1892's finite-state / worst-case decision-impact track; do not compare their scalar scores as if they were the same quantity. [Paper](https://arxiv.org/abs/2605.05095).
+- **Trinh, Hou & Wu (Automation in Construction 191, November 2026):** reconstructs structural elements from incomplete point clouds using boundary-condition modelling, Heaviside slicing and Greedy Snake Slice Completion. The paper reports area accuracy above 97%, perimeter accuracy of 98%, moment-of-inertia accuracy of 92%, LOA30 compliance (some elements approaching LOA40) and approximately 11 minutes of runtime on its evaluated workflows. These are strong *study-specific structural-geometry* baselines; reproduce their conditions and denominators before making any direct comparison. They do not establish uncertainty continuity, physical-state attribution, persistent identity, IFC editability or lifecycle correctness. [Article](https://doi.org/10.1016/j.autcon.2026.107161).
+- **Jayasinghe & Brilakis (Automation in Construction 189, September 2026):** demonstrate that complete-object bounding boxes can leak into partial point-cloud inputs during normalization, inflating occlusion-completion results. Their corrected setup reports about 25% lower EMD and 40% lower Chamfer Distance for their modifications on the datasets studied. Use their no-reference-bounds protocol; these are not transferable Luminous performance claims. [Article](https://doi.org/10.1016/j.autcon.2026.107052).
+- **BIM transformation fidelity (2026):** proposes Property Retention Ratio (PRR), Semantic Fidelity Index (SFI), Schema Compliance Rate (SCR), Attribute Degradation Score (ADS) and Exchange Latency (EL) for IFC/gbXML/COBie transformations. These are useful representation-exchange metrics for #4271/#4496; schema compliance must remain separate from semantic/topological preservation and measurement provenance. [Study](https://doi.org/10.1016/j.rineng.2026.112704).
+
+**Fair-comparison rule:** do not rank a view-planning method by an IFC retention score, or rank a structural element modeller by the accuracy of a metrology interval. Preserve each method's native metric, then compare common terminal obligations (independent geometry, accepted element semantics/topology, unresolved critical regions, false model mutations, capture/review effort) on the same held-out buildings.
+
 ### Commercial capability baselines
 
 The benchmark must compare relevant, version-pinned product workflows rather than assume that any vendor covers the entire lifecycle.
@@ -182,16 +196,17 @@ Never collapse the benchmark into one scalar.
 
 | Plane | Report |
 |---|---|
-| Geometry | Symmetric point-to-surface/surface-to-point distance distributions; EMD and Chamfer Distance where applicable; median/p95/p99; normal angle; dimensional/datum error; completeness; object-bound error; independent-checkpoint residual |
+| Geometry | Symmetric point-to-surface/surface-to-point distance distributions; EMD and Chamfer Distance where applicable; median/p95/p99; normal angle; dimensional/datum error; completeness; object-bound error; independent-checkpoint residual; task-specific LOA/area/perimeter/inertia where the source protocol supports them |
 | Visibility | Visible-surface coverage; unobserved/occluded fraction; coverage by region and modality; missing-view error |
 | Semantics | Per-class precision/recall; opening detection; class confusion; component association precision/recall |
 | Topology | Precision/recall of adjacency, containment, connectivity and opening-boundary edges; duplicate/orphan/missing relations |
 | Change | Precision/recall by change type; false-change rate on no-change pairs; missed-change magnitude; benign-pose confusion |
 | Admission | False model-mutation rate; stale-precondition rejection; disposition/reason correctness; abstention and unresolved-region rate |
 | Uncertainty | Interval coverage and width for object bounds and element geometry; calibration by class/geometry; risk-versus-coverage; sensitivity to input perturbations |
+| Representation exchange | Property Retention Ratio (PRR); Semantic Fidelity Index (SFI); Schema Compliance Rate (SCR); Attribute Degradation Score (ADS); Exchange Latency (EL); persistent-ID and relation/topology retention; uncertainty/provenance survival |
 | Workflow | Accepted candidate deltas per total crew-hour; review time; added measurement cost; false-update rework; time to resolve unknowns |
 
-Use task/project tolerances declared before execution. Do not select a tolerance after seeing results. Separate registration residuals from independent checkpoint errors. Count self-occluded surface separately from visible surface. Retain all rejected, incomplete and indeterminate cases.
+Use task/project tolerances declared before execution. Do not select a tolerance after seeing results. Separate registration residuals from independent checkpoint errors. Count self-occluded surface separately from visible surface. Retain all rejected, incomplete and indeterminate cases. Keep geometry, active-view acquisition, physical metrology, decision/admission and representation-exchange metrics as separate tracks. PRR/SFI/SCR/ADS/EL must not be collapsed into one interoperability score, and a syntactically valid IFC must not count as semantic or evidence-preserving exchange.
 
 ## 9. Baselines and fair comparison
 
