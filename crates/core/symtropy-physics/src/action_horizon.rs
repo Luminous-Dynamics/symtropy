@@ -124,6 +124,8 @@ pub struct ActionHorizonRequest {
     pub controller_period_ns: u64,
     /// Measured p99 observation-cutoff-to-controller-admission latency.
     pub p99_total_latency_ns: u64,
+    /// Identity for the measured hardware/network/contention latency stratum.
+    pub latency_profile_id: String,
     pub execution_mode: ActionExecutionMode,
 }
 
@@ -133,6 +135,7 @@ pub enum HorizonInputError {
     EmptySourceIdentity,
     EmptyTimebaseIdentity,
     EmptyUnknownReason,
+    EmptyLatencyProfileIdentity,
 }
 
 impl core::fmt::Display for HorizonInputError {
@@ -142,6 +145,7 @@ impl core::fmt::Display for HorizonInputError {
             Self::EmptySourceIdentity => write!(f, "qualified horizon source identity is empty"),
             Self::EmptyTimebaseIdentity => write!(f, "qualified horizon timebase identity is empty"),
             Self::EmptyUnknownReason => write!(f, "unknown horizon reason is empty"),
+            Self::EmptyLatencyProfileIdentity => write!(f, "p99 latency profile identity is empty"),
         }
     }
 }
@@ -192,6 +196,7 @@ pub struct ActionHorizonSelection<'a> {
     pub active_constraint_count: usize,
     pub controller_period_ns: u64,
     pub p99_total_latency_ns: u64,
+    pub latency_profile_id: &'a str,
     /// ceil(p99 / controller period) for queued mode; None for split-timescale.
     pub k_min_queue_cycles: Option<u64>,
     /// floor(safe horizon / controller period) when all bounds qualify.
@@ -212,6 +217,9 @@ pub fn select_action_horizon<'a>(
 ) -> Result<ActionHorizonSelection<'a>, HorizonInputError> {
     if request.controller_period_ns == 0 {
         return Err(HorizonInputError::ZeroControllerPeriod);
+    }
+    if request.latency_profile_id.trim().is_empty() {
+        return Err(HorizonInputError::EmptyLatencyProfileIdentity);
     }
 
     let mut unknown_count = 0usize;
@@ -271,6 +279,7 @@ pub fn select_action_horizon<'a>(
         active_constraint_count: 0,
         controller_period_ns: request.controller_period_ns,
         p99_total_latency_ns: request.p99_total_latency_ns,
+        latency_profile_id: request.latency_profile_id.as_str(),
         k_min_queue_cycles,
         k_max_safe_cycles: None,
         selected_cycles: None,
@@ -366,6 +375,7 @@ mod tests {
             bounds: qualified_bounds(values_ns),
             controller_period_ns: period_ns,
             p99_total_latency_ns: p99_latency_ns,
+            latency_profile_id: "p99-profile/test-target-a".to_owned(),
             execution_mode,
         }
     }
@@ -418,6 +428,7 @@ mod tests {
             bounds,
             controller_period_ns: 10,
             p99_total_latency_ns: 20,
+            latency_profile_id: "p99-profile/test-target-a".to_owned(),
             execution_mode: ActionExecutionMode::QueuedOpenLoop,
         };
 
@@ -438,6 +449,7 @@ mod tests {
                 bounds,
                 controller_period_ns: 1,
                 p99_total_latency_ns: 1,
+                latency_profile_id: "p99-profile/test-target-a".to_owned(),
                 execution_mode: ActionExecutionMode::QueuedOpenLoop,
             }).unwrap();
             assert_eq!(result.disposition, HorizonDisposition::UnqualifiedEvidence);
@@ -550,6 +562,21 @@ mod tests {
             10,
         ));
         assert_eq!(result, Err(HorizonInputError::ZeroControllerPeriod));
+    }
+
+    #[test]
+    fn empty_latency_profile_identity_is_rejected() {
+        let mut request = request(
+            [100; ACTION_HORIZON_CONSTRAINT_COUNT],
+            ActionExecutionMode::QueuedOpenLoop,
+            10,
+            20,
+        );
+        request.latency_profile_id = " ".to_owned();
+        assert_eq!(
+            select_action_horizon(&request),
+            Err(HorizonInputError::EmptyLatencyProfileIdentity)
+        );
     }
 
     #[test]
