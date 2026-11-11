@@ -1,0 +1,67 @@
+name: Anisotropic Reference Qualification
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/anisotropic-reference.yml'
+      - 'crates/core/symtropy-math/Cargo.toml'
+      - 'crates/core/symtropy-math/src/bivector.rs'
+      - 'crates/core/symtropy-physics/Cargo.toml'
+      - 'crates/core/symtropy-physics/src/angular_dynamics.rs'
+      - 'crates/core/symtropy-physics/src/bivector_inertia.rs'
+      - 'crates/core/symtropy-physics/src/compound_inertia_3d.rs'
+      - 'crates/core/symtropy-physics/src/mass_properties_3d.rs'
+      - 'crates/core/symtropy-physics/tests/angular_convention_reference.rs'
+      - 'crates/core/symtropy-physics/examples/anisotropic_reference_campaign.rs'
+      - 'crates/core/symtropy-physics/*_VALIDATION.md'
+      - 'crates/core/symtropy-physics/README.md'
+      - 'Cargo.lock'
+  push:
+    branches: [ 'main' ]
+    paths:
+      - '.github/workflows/anisotropic-reference.yml'
+      - 'crates/core/symtropy-math/Cargo.toml'
+      - 'crates/core/symtropy-math/src/bivector.rs'
+      - 'crates/core/symtropy-physics/Cargo.toml'
+      - 'crates/core/symtropy-physics/src/angular_dynamics.rs'
+      - 'crates/core/symtropy-physics/src/bivector_inertia.rs'
+      - 'crates/core/symtropy-physics/src/compound_inertia_3d.rs'
+      - 'crates/core/symtropy-physics/src/mass_properties_3d.rs'
+      - 'crates/core/symtropy-physics/tests/angular_convention_reference.rs'
+      - 'crates/core/symtropy-physics/examples/anisotropic_reference_campaign.rs'
+      - 'crates/core/symtropy-physics/*_VALIDATION.md'
+      - 'crates/core/symtropy-physics/README.md'
+      - 'Cargo.lock'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: anisotropic-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  qualify:
+    name: D=2..9 reference (${{ runner.os }})
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Cache dependencies
+        uses: Swatinem/rust-cache@v2
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Test N-dimensional reference with expanded bivector storage
+        run: cargo test --locked -p symtropy-physics --lib --features nd-bivector-9
+
+      - name: Run deterministic anisotropic mechanics campaign
+        run: cargo run --locked --release -p symtropy-physics --example anisotropic_reference_campaign --features nd-bivector-9
