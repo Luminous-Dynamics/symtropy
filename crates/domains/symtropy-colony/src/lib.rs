@@ -682,16 +682,25 @@ mod tests {
 
     #[test]
     fn independent_local_search_does_not_emit_shared_pheromones() {
-        let mut world = ColonyWorld::new_with_information_mode(
+        let mut with_agents = ColonyWorld::new_with_information_mode(
             16, 8, (1, 4), 8, ColonyInformationMode::IndependentLocalSearch,
         );
-        world.add_food_source(14, 4, 100);
-        world.run_steps(10);
+        let mut no_agents = ColonyWorld::new_with_information_mode(
+            16, 8, (1, 4), 0, ColonyInformationMode::IndependentLocalSearch,
+        );
+        with_agents.add_food_source(14, 4, 100);
+        no_agents.add_food_source(14, 4, 100);
 
-        assert_eq!(world.fields.channel_sum(FieldLayer::FoodPheromone), 0.0);
+        with_agents.run_steps(10);
+        no_agents.run_steps(10);
+
         assert_eq!(
-            world.fields.channel_sum(FieldLayer::HomePheromone),
-            500.0
+            with_agents.fields.max_abs_diff(&no_agents.fields, FieldLayer::FoodPheromone),
+            0.0
+        );
+        assert_eq!(
+            with_agents.fields.max_abs_diff(&no_agents.fields, FieldLayer::HomePheromone),
+            0.0
         );
     }
 
