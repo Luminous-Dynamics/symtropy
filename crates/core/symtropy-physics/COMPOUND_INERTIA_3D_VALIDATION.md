@@ -103,6 +103,8 @@ Compute each child contribution in mass-weighted coordinates `w = sqrt(m) * d`, 
 
 A regression uses `m=1e300` and a COM offset of `1e-170`: the raw `d dot d` underflows to zero, but the physical mass-weighted transverse contribution is `1e-40` and must be retained. This ensures mass scaling occurs before geometric squaring.
 
+Zero-mass semantics are explicit: a point-cloud sample with zero mass is removed before choosing the canonical reference origin, all-zero point clouds are rejected, and a component with zero mass cannot carry a nonzero centered second-moment tensor. The scale-safe parallel-axis helper also rejects overflow in weighted squares/products and underflow of nonzero contributions before the compound tensor is committed.
+
 ## Positive-definiteness check
 
 The reference uses Sylvester's criterion on the tensor after division by its largest absolute element.
