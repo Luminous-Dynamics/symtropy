@@ -682,6 +682,23 @@ mod tests {
     }
 
     #[test]
+    fn parallel_axis_combination_rejects_underflowed_nonzero_mass_terms() {
+        let mass = 1.0e-300;
+        let inertia = BivectorInertia::<3>::uniform_solid_ball(mass, 1.0).unwrap();
+        let offset_a = SVector::new(1.0e-100, 0.0, 0.0);
+        let offset_b = SVector::new(-1.0e-100, 0.0, 0.0);
+        let result = BivectorInertia::<3>::combine_at_common_center(
+            mass,
+            &inertia,
+            &offset_a,
+            mass,
+            &inertia,
+            &offset_b,
+        );
+        assert_eq!(result.unwrap_err(), RotationalInertiaError::NonFinite);
+    }
+
+    #[test]
     fn parallel_axis_combination_rejects_non_centered_offsets() {
         let body_a = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
         let body_b = BivectorInertia::<3>::uniform_solid_ball(1.0, 1.0).unwrap();
@@ -929,7 +946,7 @@ mod tests {
         assert!(
             (rotational_energy - impulse_work).abs()
                 <= 2.0e-11 * rotational_energy.abs().max(1.0),
-            "rotational energy / half impulse-work mismatch: energy={rotational_energy:e}, work={impulse_work:e}"
+            "energy/half-work mismatch: energy={rotational_energy:e}, work={impulse_work:e}"
         );
     }
 
