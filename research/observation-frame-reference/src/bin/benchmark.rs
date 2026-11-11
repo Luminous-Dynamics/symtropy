@@ -23,8 +23,9 @@ struct BenchmarkResult {
     min_us: u128,
     max_us: u128,
     input_bytes: usize,
-    bytes_per_entity: f64,
+    input_bytes_per_entity_including_events: f64,
     compile_entities_per_second_at_p50: f64,
+    event_records_per_second_at_p50: f64,
 }
 
 fn digest(character: char) -> String {
@@ -127,6 +128,7 @@ fn run_profile(
     timings.sort_unstable();
     let p50 = percentile(&timings, 50);
     let entities_per_second = entity_count as f64 * 1_000_000.0 / p50 as f64;
+    let events_per_second = event_count as f64 * 1_000_000.0 / p50 as f64;
     Ok(BenchmarkResult {
         profile: format!("entities-{entity_count}-events-{event_count}"),
         architecture: std::env::consts::ARCH.to_string(),
@@ -143,8 +145,9 @@ fn run_profile(
         min_us: timings[0],
         max_us: timings[timings.len() - 1],
         input_bytes,
-        bytes_per_entity: input_bytes as f64 / entity_count as f64,
+        input_bytes_per_entity_including_events: input_bytes as f64 / entity_count as f64,
         compile_entities_per_second_at_p50: entities_per_second,
+        event_records_per_second_at_p50: events_per_second,
     })
 }
 
