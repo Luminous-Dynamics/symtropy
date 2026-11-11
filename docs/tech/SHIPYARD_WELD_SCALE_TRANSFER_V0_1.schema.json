@@ -1,0 +1,350 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shipyard weld scale-transfer contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "model",
+    "domains",
+    "bridge_edges",
+    "request"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "model": {
+      "$ref": "#/$defs/model"
+    },
+    "domains": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/domain"
+      }
+    },
+    "bridge_edges": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/bridge_edge"
+      }
+    },
+    "request": {
+      "$ref": "#/$defs/request"
+    }
+  },
+  "$defs": {
+    "scale_tier": {
+      "enum": [
+        "bead_or_coupon",
+        "joint_specimen",
+        "subassembly",
+        "block_assembly"
+      ]
+    },
+    "signature": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "material_family",
+        "material_grade",
+        "joint_family",
+        "penetration_class",
+        "process_family",
+        "process_variant",
+        "pass_topology",
+        "restraint_class",
+        "scale_tier",
+        "thickness_min_mm",
+        "thickness_max_mm",
+        "boundary_class",
+        "output_scope",
+        "coordinate_frame"
+      ],
+      "properties": {
+        "material_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "material_grade": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "penetration_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "process_family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "process_variant": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pass_topology": {
+          "type": "string",
+          "minLength": 1
+        },
+        "restraint_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scale_tier": {
+          "$ref": "#/$defs/scale_tier"
+        },
+        "thickness_min_mm": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "thickness_max_mm": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "boundary_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "domain": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "domain_id",
+        "signature"
+      ],
+      "properties": {
+        "domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signature": {
+          "$ref": "#/$defs/signature"
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "revision",
+        "family",
+        "calibration_domain_id",
+        "output_scope",
+        "validation_status",
+        "model_digest_sha256",
+        "parameter_set_digest_sha256"
+      ],
+      "properties": {
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "family": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "validation_status": {
+          "const": "validated"
+        },
+        "model_digest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "parameter_set_digest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "bridge_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "edge_id",
+        "from_domain_id",
+        "to_domain_id",
+        "model_id",
+        "model_revision",
+        "output_scope",
+        "changed_factors",
+        "calibration_specimen_ids",
+        "validation_specimen_ids",
+        "validation_status",
+        "maximum_error_milli",
+        "allowed_error_milli",
+        "empirical_coverage_permille",
+        "minimum_coverage_permille",
+        "measurement_uncertainty_units",
+        "parameter_uncertainty_units",
+        "boundary_uncertainty_units",
+        "model_form_uncertainty_units",
+        "transfer_uncertainty_units",
+        "evidence_digest_sha256",
+        "validated_at_tick"
+      ],
+      "properties": {
+        "edge_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "from_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "changed_factors": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "calibration_specimen_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "validation_specimen_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "validation_status": {
+          "const": "independently_validated"
+        },
+        "maximum_error_milli": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "allowed_error_milli": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "empirical_coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "measurement_uncertainty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parameter_uncertainty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "boundary_uncertainty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "model_form_uncertainty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "transfer_uncertainty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_digest_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "validated_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_domain_id",
+        "requested_output_scope",
+        "decision_cutoff_tick",
+        "maximum_total_uncertainty_units",
+        "required_minimum_coverage_permille"
+      ],
+      "properties": {
+        "target_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requested_output_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision_cutoff_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_total_uncertainty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "required_minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
+    }
+  }
+}
