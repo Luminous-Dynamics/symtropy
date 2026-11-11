@@ -47,7 +47,8 @@
     "worst_family_metrics": {},
     "calibration_metrics": {},
     "robustness_metrics": {},
-    "replay_exact_match_percent": null
+    "replay_exact_match_percent": null,
+    "episode_outcomes": []
   },
   "evidence": {
     "raw_artifact_manifest_sha256": null,
