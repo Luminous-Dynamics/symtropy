@@ -134,6 +134,7 @@ impl SensorStatus {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct PredictionAuditReceipt {
+    pub sensor_id: String,
     pub world_id: String,
     pub world_digest: String,
     pub observation_id: String,
@@ -157,7 +158,6 @@ pub struct SensorAssessment {
     pub worst_case_post_sensing_regret: Option<f64>,
     pub worst_case_regret_reduction: Option<f64>,
     pub partitions: Vec<ObservationPartition>,
-    pub prediction_audit_receipts: Vec<PredictionAuditReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -451,20 +451,11 @@ pub fn assess_active_sensing(
                 <= config.maximum_penalty_service_units + config.tie_tolerance;
 
         let mut grouped: BTreeMap<String, Vec<&DecisionWorld>> = BTreeMap::new();
-        let mut prediction_audit_receipts = Vec::with_capacity(sensor.predictions.len());
 
         for world in worlds {
             let prediction = predictions.get(&world.world_id).expect("complete prediction map");
             grouped.entry(prediction.observation_id.clone()).or_default().push(world);
-            prediction_audit_receipts.push(PredictionAuditReceipt {
-                world_id: world.world_id.clone(),
-                world_digest: world.world_digest.clone(),
-                observation_id: prediction.observation_id.clone(),
-                prediction_receipt_digest: prediction.prediction_receipt_digest.clone(),
-                missing_cause: prediction.missing_cause.clone(),
-            });
         }
-        prediction_audit_receipts.sort_by(|left, right| left.world_id.cmp(&right.world_id));
 
         let partitions: Vec<ObservationPartition> = grouped.iter()
             .map(|(outcome, members)| {
@@ -512,7 +503,6 @@ pub fn assess_active_sensing(
             worst_case_post_sensing_regret,
             worst_case_regret_reduction,
             partitions,
-            prediction_audit_receipts,
         });
     }
 
@@ -541,6 +531,42 @@ pub fn assess_active_sensing(
         recommended_sensor_id: eligible.first().map(|item| item.sensor_id.clone()),
         sensors: assessments,
     })
+}
+
+/// Build evaluator-only provenance for the sensor outcome process. This
+/// function is separate from candidate decision assessment; its returned
+/// missingness causes must never be supplied to candidate policies.
+pub fn evaluator_prediction_audit(
+    sensors: &[SensorAction],
+) -> Result<Vec<PredictionAuditReceipt>, String> {
+    let mut sensor_ids = BTreeSet::new();
+    let mut receipts = Vec::new();
+    for sensor in sensors {
+        if sensor.sensor_id.trim().is_empty() || !sensor_ids.insert(sensor.sensor_id.as_str()) {
+            return Err("empty or duplicate sensor ID in evaluator audit".to_owned());
+        }
+        for prediction in &sensor.predictions {
+            if prediction.world_id.trim().is_empty()
+                || prediction.world_digest.trim().is_empty()
+                || prediction.observation_id.trim().is_empty()
+                || prediction.prediction_receipt_digest.trim().is_empty()
+            {
+                return Err(format!("invalid evaluator prediction receipt in {}", sensor.sensor_id));
+            }
+            receipts.push(PredictionAuditReceipt {
+                sensor_id: sensor.sensor_id.clone(),
+                world_id: prediction.world_id.clone(),
+                world_digest: prediction.world_digest.clone(),
+                observation_id: prediction.observation_id.clone(),
+                prediction_receipt_digest: prediction.prediction_receipt_digest.clone(),
+                missing_cause: prediction.missing_cause.clone(),
+            });
+        }
+    }
+    receipts.sort_by(|left, right| {
+        left.sensor_id.cmp(&right.sensor_id).then_with(|| left.world_id.cmp(&right.world_id))
+    });
+    Ok(receipts)
 }
 
 #[cfg(test)]
@@ -678,7 +704,9 @@ mod tests {
         assert_eq!(missing.world_ids, vec!["degraded".to_owned(), "healthy_sensor_fault".to_owned()]);
         close(item.worst_case_post_sensing_regret.unwrap(), 20.0);
         close(item.worst_case_regret_reduction.unwrap(), -5.0);
-        let causes: BTreeSet<&str> = item.prediction_audit_receipts.iter()
+        let audit = evaluator_prediction_audit(&sensors()).unwrap();
+        let causes: BTreeSet<&str> = audit.iter()
+            .filter(|receipt| receipt.sensor_id == "remote_telemetry" && receipt.observation_id == MISSING_OUTCOME)
             .filter_map(|receipt| receipt.missing_cause.as_ref().map(MissingCause::id))
             .collect();
         assert_eq!(causes.len(), 2);
@@ -713,10 +741,14 @@ mod tests {
             .find(|partition| partition.observation_id == "missing").unwrap();
         assert_eq!(missing.world_ids.len(), 2);
         assert_eq!(missing.observation_id, "missing");
-        assert_ne!(
-            item.prediction_audit_receipts[0].missing_cause,
-            item.prediction_audit_receipts[1].missing_cause
-        );
+
+        // Hidden cause is available only from the explicitly evaluator-only audit API.
+        let audit = evaluator_prediction_audit(&sensors()).unwrap();
+        let causes: BTreeSet<&str> = audit.iter()
+            .filter(|receipt| receipt.sensor_id == "remote_telemetry" && receipt.observation_id == "missing")
+            .filter_map(|receipt| receipt.missing_cause.as_ref().map(MissingCause::id))
+            .collect();
+        assert_eq!(causes.len(), 2);
     }
 
     #[test]
