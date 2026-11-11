@@ -10,6 +10,6 @@ description = "Causal renderer-to-Symthaea episode replay fixture"
 [workspace]
 
 [dependencies]
-action-conditioned-offscreen-camera = { path = "../action-conditioned-offscreen-camera-001" }
+action-conditioned-offscreen-camera = { git = "https://github.com/Luminous-Dynamics/symtropy", rev = "4e14eac9949f2b9373d54482e71e0746d41d054e" }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
