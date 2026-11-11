@@ -121,12 +121,27 @@ jobs:
 
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
+            .$id == "https://luminousdynamics.io/schemas/marine-external-file-manifest-v1.json" and
+            (.required | length == 9) and
+            (.properties.files.minItems == 16) and
+            (.properties.files.maxItems == 16) and
+            (.properties.files.items.properties.header_rows.const == 3) and
+            (.properties.files.items.properties.recorded_column_count.enum == [70,73]) and
+            (.properties.split_manifest.oneOf | length == 2)
+          ' benchmarks/maritime-control-response/external-dataset-file-manifest.schema.json >/dev/null
+
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
             (.required | length == 12) and
             (.properties.protocol.required | index("event_evaluation") != null) and
             (.properties.protocol.required | index("shift_matrix_sha256") != null) and
             (.properties.protocol.required | index("active_evidence_selection") != null) and
             (.properties.protocol.required | index("streaming_contract") != null) and
             (.properties.protocol.required | index("external_dataset_track") != null) and
+
+            (.properties.protocol.properties.external_dataset_track.properties.archive_sha256.oneOf | length == 2) and
+            (.properties.protocol.properties.external_dataset_track.properties.cross_engine_or_fleet_claim_allowed.const == false) and
+            (.properties.protocol.properties.external_dataset_track.properties.dataset_doi.const == "10.5281/zenodo.19857425") and
             (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
             (.properties.protocol.properties.active_evidence_selection.properties.risk_assessment_catalogue_sha256.oneOf | length == 2) and
