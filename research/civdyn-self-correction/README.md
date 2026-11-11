@@ -266,7 +266,7 @@ With the existing source fixture and full target modifier support (0.2 low / 0.8
 - Lambda 2: target ATE bounds = [-0.13, 0.63].
 - Lambda 4: target ATE bounds = [-0.605, 0.82].
 
-The null tipping point is computed by deterministic bisection over the bound function, not a lookup over the Lambda report grid. For this fixture it is sqrt(23/9), approximately 1.5986. A partial-support fixture already contains zero at Lambda 1, so its tipping point is 1.
+The null tipping point is computed by deterministic bisection over the bound function, not a lookup over the Lambda report grid. For this full-support fixture it is sqrt(23/9), approximately 1.5986. The 20% unsupported-mass sweep fixture reaches zero at approximately Lambda 1.04117. A separate 30% unsupported-mass negative-control fixture already contains zero at Lambda 1, so its tipping point is 1.
 
 ### Assumptions
 
