@@ -90,6 +90,7 @@ pub struct Campaign {
     pub benchmark_revision: String,
     pub evaluator_revision: String,
     pub clock_id: String,
+    pub policy_deadline_us: u64,
     pub clean_control: RunTrace,
     pub faulted_run: RunTrace,
     pub events: Vec<FaultEvent>,
@@ -155,6 +156,9 @@ enum Finding {
     SchemaVersionMismatch,
     EmptyIdentity,
     DuplicateRunId,
+    NoFaultEvents,
+    InvalidPolicyDeadline,
+    InvalidDigest,
     RunNotComplete,
     ScenarioSeedMismatch,
     EnvironmentRandomnessMismatch,
@@ -188,6 +192,9 @@ impl Finding {
             Self::SchemaVersionMismatch => "schema_version_mismatch",
             Self::EmptyIdentity => "empty_identity",
             Self::DuplicateRunId => "duplicate_run_id",
+            Self::NoFaultEvents => "no_fault_events",
+            Self::InvalidPolicyDeadline => "invalid_policy_deadline",
+            Self::InvalidDigest => "invalid_digest",
             Self::RunNotComplete => "run_not_complete",
             Self::ScenarioSeedMismatch => "scenario_seed_mismatch",
             Self::EnvironmentRandomnessMismatch => "environment_randomness_mismatch",
@@ -215,6 +222,13 @@ impl Finding {
             Self::FalsePositiveDegradation => "false_positive_degradation",
         }
     }
+}
+
+fn is_sha256_hex(value: &str) -> bool {
+    value.len() == 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
 fn expected_condition(kind: FaultKind) -> ObservationCondition {
@@ -319,12 +333,12 @@ fn validate_run(run: &RunTrace, expected_ticks: u64, findings: &mut BTreeSet<Fin
     let mut seen = BTreeSet::new();
     let mut previous_capture = None;
     for tick in &run.ticks {
-        if tick.tick == 0 || tick.tick > expected_ticks || !seen.insert(tick.tick) {
-            findings.insert(if !seen.contains(&tick.tick) {
-                Finding::TickSequenceMismatch
-            } else {
-                Finding::DuplicateTick
-            });
+        if tick.tick == 0 || tick.tick > expected_ticks {
+            findings.insert(Finding::TickSequenceMismatch);
+            continue;
+        }
+        if !seen.insert(tick.tick) {
+            findings.insert(Finding::DuplicateTick);
         }
         if let Some(previous) = previous_capture {
             if tick.capture_timestamp_us <= previous {
@@ -462,8 +476,24 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
             findings.insert(Finding::EmptyIdentity);
         }
     }
+    for digest in [
+        campaign.clean_control.scenario_seed_sha256.as_str(),
+        campaign.faulted_run.scenario_seed_sha256.as_str(),
+        campaign.clean_control.environment_randomness_sha256.as_str(),
+        campaign.faulted_run.environment_randomness_sha256.as_str(),
+    ] {
+        if !is_sha256_hex(digest) {
+            findings.insert(Finding::InvalidDigest);
+        }
+    }
     if campaign.clean_control.run_id == campaign.faulted_run.run_id {
         findings.insert(Finding::DuplicateRunId);
+    }
+    if campaign.events.is_empty() {
+        findings.insert(Finding::NoFaultEvents);
+    }
+    if campaign.policy_deadline_us == 0 {
+        findings.insert(Finding::InvalidPolicyDeadline);
     }
     if campaign.clean_control.scenario_seed_sha256 != campaign.faulted_run.scenario_seed_sha256 {
         findings.insert(Finding::ScenarioSeedMismatch);
@@ -559,7 +589,7 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         .iter()
         .filter(|tick| {
             tick.decision_latency_us
-                .is_some_and(|latency| latency > 100_000)
+                .is_some_and(|latency| latency > campaign.policy_deadline_us)
         })
         .count() as u64;
 
@@ -649,6 +679,7 @@ mod tests {
             benchmark_revision: "degradation-recovery-envelope-v0.1".to_string(),
             evaluator_revision: "auditor-v1".to_string(),
             clock_id: "monotonic-test-clock".to_string(),
+            policy_deadline_us: 100_000,
             clean_control: RunTrace {
                 run_id: "clean-control".to_string(),
                 disposition: RunDisposition::Complete,
@@ -759,6 +790,43 @@ mod tests {
         input.faulted_run.environment_randomness_sha256 = "c".repeat(64);
         let report = audit_campaign(&input);
         assert!(has(&report, "environment_randomness_mismatch"));
+    }
+
+    #[test]
+    fn rejects_zero_policy_deadline_and_malformed_seed_digest() {
+        let mut input = campaign();
+        input.policy_deadline_us = 0;
+        input.clean_control.scenario_seed_sha256 = "not-a-digest".to_string();
+        let report = audit_campaign(&input);
+        assert!(has(&report, "invalid_policy_deadline"));
+        assert!(has(&report, "invalid_digest"));
+    }
+
+    #[test]
+    fn delayed_frame_is_only_accepted_inside_declared_age_budget() {
+        let mut input = campaign();
+        input.events[0] = FaultEvent {
+            event_id: "frame-delay-1".to_string(),
+            kind: FaultKind::FrameDelay,
+            start_tick: 3,
+            end_tick: 4,
+            severity_ppm: 500_000,
+            detection_deadline_ticks: 1,
+            containment_deadline_ticks: 1,
+            max_accepted_frame_age_us: 1_000,
+            recovery_healthy_quorum_ticks: 2,
+        };
+        for record in &mut input.faulted_run.ticks[2..4] {
+            record.conditions = vec![ObservationCondition::Delayed];
+            record.policy_input_accepted = true;
+            record.delivered_timestamp_us = record.capture_timestamp_us + 700;
+        }
+        let report = audit_campaign(&input);
+        assert!(!has(&report, "delayed_frame_accepted_too_old"));
+        input.faulted_run.ticks[2].delivered_timestamp_us =
+            input.faulted_run.ticks[2].capture_timestamp_us + 1_001;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "delayed_frame_accepted_too_old"));
     }
 
     #[test]
