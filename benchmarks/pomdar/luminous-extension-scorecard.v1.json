@@ -1,0 +1,386 @@
+{
+  "schema_version": "1.0.0",
+  "benchmark_extension_id": "LUMINOUS-POMDAR-EXTENSION-001",
+  "status": "protocol_draft",
+  "purpose": "Versioned, non-composite capability and lifecycle measurements alongside, but never in place of, the published POMDAR score.",
+  "official_score_relationship": {
+    "preserve_pomdar_score_unchanged": true,
+    "published_formula": "0.8 * correctness + 0.2 * (human_reference_seconds / system_seconds)",
+    "modified_score_must_use_separate_identity": true,
+    "aggregate_luminous_composite": "prohibited"
+  },
+  "attribution_levels": [
+    "component",
+    "hand",
+    "system",
+    "application",
+    "lifecycle"
+  ],
+  "trial_dispositions": [
+    "completed",
+    "task_failure",
+    "object_dropped",
+    "protocol_timeout",
+    "safety_abort",
+    "operator_abort",
+    "instrumentation_failure",
+    "infrastructure_failure",
+    "protocol_deviation",
+    "invalid_setup",
+    "excluded_with_reason"
+  ],
+  "data_partitions": {
+    "development": "May be used for model fitting, fixture development, and exploratory design.",
+    "validation": "May be used for preregistered model selection; cannot be repeatedly treated as final confirmation.",
+    "confirmatory": "Fresh held-out tasks/objects/conditions, frozen before candidate selection; exposure/adaptation requires a new generation."
+  },
+  "metrics": [
+    {
+      "id": "reliability",
+      "label": "Repeated-trial task reliability",
+      "attribution_level": "system",
+      "measurements": [
+        {
+          "id": "task_success_probability",
+          "unit": "proportion",
+          "denominator": "all eligible independent trials"
+        },
+        {
+          "id": "task_failure_rate",
+          "unit": "proportion",
+          "denominator": "all eligible independent trials"
+        },
+        {
+          "id": "safety_abort_rate",
+          "unit": "proportion",
+          "denominator": "all initiated trials"
+        },
+        {
+          "id": "between_session_repeatability",
+          "unit": "profile-specific statistic",
+          "denominator": "independent sessions"
+        }
+      ],
+      "controls": [
+        "positive task completion",
+        "object drop",
+        "incomplete motion",
+        "safety abort",
+        "instrument failure"
+      ],
+      "required_reporting": [
+        "per task",
+        "per configuration generation",
+        "all denominators",
+        "uncertainty interval"
+      ],
+      "acceptance_threshold": "defer_until_frozen_baseline_and_independent_trial_unit"
+    },
+    {
+      "id": "energy_per_success",
+      "label": "Electrical energy per successful task",
+      "attribution_level": "component",
+      "measurements": [
+        {
+          "id": "electrical_input_energy",
+          "unit": "J/task",
+          "boundary": "declared battery/DC bus or rail"
+        },
+        {
+          "id": "idle_energy",
+          "unit": "J/hour",
+          "boundary": "declared system power boundary"
+        },
+        {
+          "id": "mechanical_output_work",
+          "unit": "J/task",
+          "boundary": "joint output torque times synchronized output angular velocity, only if measured"
+        }
+      ],
+      "controls": [
+        "unsuccessful attempts retained",
+        "positive and negative work separated",
+        "unknown energy residual retained"
+      ],
+      "required_reporting": [
+        "meter calibration",
+        "voltage-current synchronization",
+        "polarity",
+        "sampling rate",
+        "attempt denominator"
+      ],
+      "prohibited_inference": [
+        "simulation mechanical work is not electrical energy",
+        "negative output work is not proof of battery regeneration"
+      ],
+      "acceptance_threshold": "defer_until_power_boundary_and_measurement_system_analysis"
+    },
+    {
+      "id": "force_control",
+      "label": "Task-relative force-control precision",
+      "attribution_level": "hand",
+      "measurements": [
+        {
+          "id": "force_bias",
+          "unit": "N"
+        },
+        {
+          "id": "force_mae",
+          "unit": "N"
+        },
+        {
+          "id": "force_rmse",
+          "unit": "N"
+        },
+        {
+          "id": "absolute_error_p95",
+          "unit": "N"
+        },
+        {
+          "id": "overshoot",
+          "unit": "N"
+        },
+        {
+          "id": "settling_time",
+          "unit": "s"
+        },
+        {
+          "id": "time_in_declared_force_band",
+          "unit": "proportion"
+        }
+      ],
+      "controls": [
+        "calibrated reference load",
+        "direction reversal",
+        "sensor bias injection",
+        "saturation",
+        "task-envelope mismatch"
+      ],
+      "required_reporting": [
+        "task envelope identity",
+        "direct measurement vs derived estimate",
+        "instrument uncertainty",
+        "per object class"
+      ],
+      "acceptance_threshold": "defer_until_task_force_envelopes_and_reference_metrology_are_frozen"
+    },
+    {
+      "id": "slip_recovery",
+      "label": "Slip detection and recovery performance",
+      "attribution_level": "system",
+      "measurements": [
+        {
+          "id": "slip_detection_delay",
+          "unit": "ms"
+        },
+        {
+          "id": "slip_detection_precision",
+          "unit": "proportion"
+        },
+        {
+          "id": "slip_detection_recall",
+          "unit": "proportion"
+        },
+        {
+          "id": "recovery_probability",
+          "unit": "proportion"
+        },
+        {
+          "id": "recovery_time",
+          "unit": "s"
+        },
+        {
+          "id": "peak_force_overshoot",
+          "unit": "N"
+        },
+        {
+          "id": "object_drop_rate",
+          "unit": "proportion"
+        },
+        {
+          "id": "recovery_energy",
+          "unit": "J"
+        }
+      ],
+      "controls": [
+        "seeded slip",
+        "non-slip disturbance",
+        "false-slip signal",
+        "delayed observation",
+        "sensor dropout"
+      ],
+      "required_reporting": [
+        "independent slip labels",
+        "source-clock evidence",
+        "task/object stratum",
+        "false alarms and misses"
+      ],
+      "acceptance_threshold": "defer_until_slip_reference_label_and_recovery_protocol_are_frozen"
+    },
+    {
+      "id": "held_out_transfer",
+      "label": "Held-out object and task transfer",
+      "attribution_level": "application",
+      "measurements": [
+        {
+          "id": "held_out_task_success",
+          "unit": "proportion"
+        },
+        {
+          "id": "held_out_correctness",
+          "unit": "proportion"
+        },
+        {
+          "id": "held_out_completion_time",
+          "unit": "s"
+        },
+        {
+          "id": "performance_degradation",
+          "unit": "profile-specific difference"
+        }
+      ],
+      "controls": [
+        "held-out geometry",
+        "held-out size",
+        "held-out compliance",
+        "held-out surface",
+        "held-out mass/material"
+      ],
+      "required_reporting": [
+        "development/validation/confirmatory split IDs",
+        "near-duplicate leakage audit",
+        "per-family results"
+      ],
+      "acceptance_threshold": "defer_until_object_family_taxonomy_and_holdout_generation_are_frozen"
+    },
+    {
+      "id": "calibration_repair_burden",
+      "label": "Calibration, repair and return-to-qualified-service burden",
+      "attribution_level": "lifecycle",
+      "measurements": [
+        {
+          "id": "calibration_time",
+          "unit": "min"
+        },
+        {
+          "id": "recalibration_frequency",
+          "unit": "events/hour or events/task, protocol-specific"
+        },
+        {
+          "id": "diagnosis_time",
+          "unit": "min"
+        },
+        {
+          "id": "repair_time",
+          "unit": "min"
+        },
+        {
+          "id": "replacement_part_cost",
+          "unit": "currency with region/date"
+        },
+        {
+          "id": "return_to_qualified_service_time",
+          "unit": "min"
+        },
+        {
+          "id": "requalification_test_cost",
+          "unit": "currency with region/date"
+        }
+      ],
+      "controls": [
+        "encoder replacement",
+        "sensor remount",
+        "firmware change",
+        "controller change",
+        "calibration expiry",
+        "failed post-repair test"
+      ],
+      "required_reporting": [
+        "serialized article",
+        "configuration generation",
+        "BOM revision",
+        "calibration lineage",
+        "affected-claim disposition"
+      ],
+      "acceptance_threshold": "defer_until_one_serialized_joint_and_one_repair_cycle_are_observed"
+    },
+    {
+      "id": "wearer_utility_agency",
+      "label": "Wearer-selected task utility, burden and agency",
+      "attribution_level": "application",
+      "measurements": [
+        {
+          "id": "meaningful_task_completion",
+          "unit": "profile-specific task outcome"
+        },
+        {
+          "id": "visual_attention_demand",
+          "unit": "profile-specific measure"
+        },
+        {
+          "id": "workload",
+          "unit": "validated instrument/profile"
+        },
+        {
+          "id": "fatigue",
+          "unit": "validated instrument/profile"
+        },
+        {
+          "id": "comfort",
+          "unit": "user-reported measure"
+        },
+        {
+          "id": "false_initiation_rate",
+          "unit": "proportion"
+        },
+        {
+          "id": "cancellation_success",
+          "unit": "proportion"
+        },
+        {
+          "id": "unwanted_override_rate",
+          "unit": "proportion"
+        },
+        {
+          "id": "independent_donning_doffing",
+          "unit": "profile-specific task outcome"
+        }
+      ],
+      "controls": [
+        "user-only baseline",
+        "no-feedback baseline",
+        "user-configured feedback",
+        "explicit disable/cancel",
+        "sensor uncertainty"
+      ],
+      "required_reporting": [
+        "participant/session strata",
+        "consent/ethics profile",
+        "user-chosen activities",
+        "subgroup variation",
+        "burden and benefit"
+      ],
+      "acceptance_threshold": "requires_ethics_approval_and_disability_led_protocol; no clinical claim from simulation"
+    }
+  ],
+  "decision_rule": {
+    "universal_composite_score": "prohibited",
+    "hard_constraints_are_non_compensable": true,
+    "overall_improvement_claim": "candidate must be non-inferior on every preregistered protected metric and improve at least one preregistered target metric under matched conditions and adequate evidence",
+    "tradeoff_disposition": "report tradeoff rather than an overall better claim when any protected dimension regresses",
+    "unmeasured_or_unknown": "must remain unknown; never default to zero or pass"
+  },
+  "minimum_evidence_capsule": [
+    "frozen protocol and benchmark generation",
+    "exact hand/article and configuration generation",
+    "task/fixture/object identities and revisions",
+    "controller, software and calibration identities",
+    "raw observations and parsers/normalizers",
+    "trial dispositions and all denominators",
+    "data partition and exposure history",
+    "per-metric values and uncertainty",
+    "negative controls and failures",
+    "claim ceiling and nonclaims"
+  ],
+  "claim_ceiling": "Protocol and metric manifest only. No POMDAR reproduction, physical measurement, human-subject result, clinical benefit, or product qualification is established by this file."
+}
