@@ -259,7 +259,9 @@
         "independent_test_recordings",
         "active_evidence_selection",
         "streaming_contract",
-        "external_dataset_track"
+        "external_dataset_track",
+        "deployability_matrix_sha256",
+        "deployability_assessment"
       ],
       "properties": {
         "protocol_sha256": {
@@ -1174,6 +1176,104 @@
               }
             }
           ]
+        },
+        "deployability_matrix_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "deployability_assessment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "dimension_count",
+            "evidence",
+            "overall_deployability_claim_allowed"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "symtropy-industrial-diagnostic-deployability-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "dimension_evidence_partial"
+              ]
+            },
+            "dimension_count": {
+              "const": 9
+            },
+            "evidence": {
+              "type": "array",
+              "minItems": 9,
+              "maxItems": 9,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "criterion_id",
+                  "evidence_status",
+                  "evidence_manifest_sha256",
+                  "independent_review_receipt_sha256"
+                ],
+                "properties": {
+                  "criterion_id": {
+                    "enum": [
+                      "detection_accuracy",
+                      "operational_resilience",
+                      "adaptability",
+                      "real_time_responsiveness",
+                      "resource_efficiency",
+                      "adversarial_robustness",
+                      "data_confidentiality",
+                      "explainability",
+                      "verification_assurance"
+                    ]
+                  },
+                  "evidence_status": {
+                    "enum": [
+                      "not_implemented",
+                      "not_instrumented",
+                      "protocol_only_not_executed",
+                      "source_contract_implemented_unexecuted",
+                      "source_contract_implemented_not_benchmarked",
+                      "synthetic_contract_only",
+                      "partial_integrity_contract_only",
+                      "source_and_ci_contracts_authored_ci_pending",
+                      "evidence_partial",
+                      "independently_reviewed"
+                    ]
+                  },
+                  "evidence_manifest_sha256": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "independent_review_receipt_sha256": {
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "pattern": "^[a-f0-9]{64}$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            "overall_deployability_claim_allowed": {
+              "const": false
+            }
+          }
         }
       }
     },
@@ -1486,6 +1586,22 @@
         "likelihood_review_rejection_count": {
           "type": "integer",
           "minimum": 0
+        },
+        "deployability_criteria_count": {
+          "const": 9
+        },
+        "deployability_criteria_with_evidence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "deployability_criteria_independently_reviewed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9
+        },
+        "overall_deployability_claim_allowed": {
+          "const": false
         }
       }
     },
@@ -1783,6 +1899,23 @@
                     "const": false
                   }
                 }
+              },
+              "deployability_assessment": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "dimension_count": {
+                    "const": 9
+                  },
+                  "evidence": {
+                    "minItems": 9,
+                    "maxItems": 9
+                  },
+                  "overall_deployability_claim_allowed": {
+                    "const": false
+                  }
+                }
               }
             }
           }
@@ -1930,6 +2063,19 @@
                   },
                   "invalid_probability_output_count": {
                     "const": 0
+                  }
+                }
+              },
+              "deployability_assessment": {
+                "properties": {
+                  "status": {
+                    "const": "dimension_evidence_partial"
+                  },
+                  "dimension_count": {
+                    "const": 9
+                  },
+                  "overall_deployability_claim_allowed": {
+                    "const": false
                   }
                 }
               }
