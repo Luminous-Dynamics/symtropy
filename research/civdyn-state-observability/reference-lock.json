@@ -290,5 +290,59 @@
       "stacked_entrypoint_found": false,
       "limitation": "The result JSON files have no generating source commit, raw per-episode returns, or immutable run receipt. They can be audited as artifacts but their exact training execution is not reproducible from the pinned checked-in experiment entrypoint alone."
     }
+  },
+  "policy_value_summary": {
+    "formula": "(candidate mean return - random policy mean) / (SARSOP true-M mean - random policy mean)",
+    "rows": 150,
+    "cells": "5 pinned experiment bundles x 10 dataset sizes x 3 assumed missingness classes",
+    "aggregation": "Successful per-seed learning rows only; failed rows remain an explicit per-cell denominator and are never silently discarded.",
+    "no_pooling": "No pooled ICU/Predator reward statistic; anchors are specific to each experiment bundle.",
+    "known_answers": [
+      {
+        "experiment": "icu/smar",
+        "dataset_size": 10,
+        "assumption": "MAR",
+        "algorithm": "AsMAR (MAR)",
+        "finished": 9,
+        "exceptions": 11,
+        "normalized_policy_value": 0.930564355,
+        "mean_average_tv": 0.43830096,
+        "mean_worst_tv": 0.768261905
+      },
+      {
+        "experiment": "icu/smar",
+        "dataset_size": 10000000,
+        "assumption": "MAR",
+        "algorithm": "AsMAR (MAR)",
+        "finished": 20,
+        "exceptions": 0,
+        "normalized_policy_value": 0.998560304,
+        "mean_average_tv": 0.000671432,
+        "mean_worst_tv": 0.001598136
+      },
+      {
+        "experiment": "icu/mnar-ident",
+        "dataset_size": 10000000,
+        "assumption": "MNAR",
+        "algorithm": "AIMI",
+        "finished": 20,
+        "exceptions": 0,
+        "normalized_policy_value": 0.997682956,
+        "mean_average_tv": 0.002521442,
+        "mean_worst_tv": 0.013326983
+      },
+      {
+        "experiment": "predator-factored/mnar-unident",
+        "dataset_size": 10000000,
+        "assumption": "MNAR",
+        "algorithm": "AIMI",
+        "finished": 20,
+        "exceptions": 0,
+        "normalized_policy_value": 0.909338052,
+        "mean_average_tv": 0.827299736,
+        "mean_worst_tv": 0.9525
+      }
+    ],
+    "claim_limit": "Descriptive normalization on completed run rows, not a confidence interval, statistical guarantee, reproduction of upstream plots or SOTA superiority."
   }
 }
