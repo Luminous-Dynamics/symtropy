@@ -80,9 +80,9 @@ A camera drop may reduce usable observations while still permitting a safe degra
 
 - Pair clean-control and faulted runs with the same scenario seed, exogenous environment-randomness digest, expected tick count, evaluator revision and clock identity.
 - Freeze the fault schedule, severity, duration, detection/containment deadlines, max acceptable delayed-frame age and recovery quorum before model evaluation.
-- Keep the fault schedule evaluator-side; the policy must not receive the future injection plan.
+- Keep the fault schedule evaluator-side; the policy must not receive the future injection plan. Campaigns declare `fault_schedule_visible_to_policy=false`; this is a recorded control, not cryptographic proof of the policy's actual inputs.
 - Require every expected tick exactly once. Missing, duplicate, reordered and out-of-domain tick IDs are findings; never delete failed/censored outcomes from the denominator.
-- Detection and containment traces must reference the exact event ID. Unknown or duplicate event references are rejected.
+- Detection and containment traces must reference the exact event ID. Unknown or duplicate event references are rejected. A containment reference is accepted only on a tick that records degraded mode, fallback or completed safe stop.
 - Do not call an exogenous random process "common random numbers" unless its shared key and intervention invariance have independent provenance; use #4556 for branch records.
 - Measure the whole stack and declared target hardware. Compare HDC/LTC with compact GRU/LSTM and transformer baselines using identical input privileges, fault schedule, scenario, training exposure and system budget.
 - Keep native closed-loop route metrics, fault recovery, reasoning scores, open-loop trajectory error and energy/latency in their own metric families.
@@ -145,4 +145,4 @@ Wire this schedule into Symtropy #4616/#4618 and inject the first faults at the 
 
 ## Claim ceiling
 
-The current code validates paired trace consistency, event-attributed detection/containment evidence and declared software-fault accounting. It does not yet inject faults into the Symthaea bridge, execute a traffic simulator, evaluate a trained driver, measure real recovery performance, prove physical fault fidelity, establish safe-stop capability, transfer to public roads or provide a vehicle safety case.
+The current code validates paired trace consistency, exact event-attributed detection/containment evidence, state-backed containment, deadline-compliant recovery quorum and declared software-fault accounting. It does not yet inject faults into the Symthaea bridge, execute a traffic simulator, evaluate a trained driver, measure real recovery performance, prove physical fault fidelity, establish safe-stop capability, transfer to public roads or provide a vehicle safety case.
