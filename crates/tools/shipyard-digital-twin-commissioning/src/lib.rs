@@ -41,6 +41,7 @@ pub struct StreamObservation {
     pub schema_id: String,
     pub schema_version: String,
     pub clock_id: String,
+    pub ingestion_clock_id: String,
     pub evidence_class: EvidenceClass,
     pub source_timestamps_ticks: Vec<u64>,
     pub ingestion_timestamps_ticks: Vec<u64>,
@@ -97,6 +98,8 @@ pub enum StreamViolationCode {
     TimestampCountMismatch,
     DuplicateTimestamp,
     OutOfOrderTimestamp,
+    DuplicateIngestionTimestamp,
+    OutOfOrderIngestionTimestamp,
     SampleJitterExceeded,
     IngestionBeforeSource,
     FutureSourceTimestamp,
@@ -267,6 +270,14 @@ fn assess_stream(
     }
     if source.len() != ingestion.len() {
         add(&mut violations, StreamViolationCode::TimestampCountMismatch);
+    }
+
+    for pair in ingestion.windows(2) {
+        match pair[1].checked_sub(pair[0]) {
+            Some(0) => add(&mut violations, StreamViolationCode::DuplicateIngestionTimestamp),
+            Some(_) => {}
+            None => add(&mut violations, StreamViolationCode::OutOfOrderIngestionTimestamp),
+        }
     }
 
     let paired = source.len().min(ingestion.len());
@@ -496,6 +507,7 @@ mod tests {
             schema_id: format!("urn:luminous:{stream_id}"),
             schema_version: "1.0.0".to_owned(),
             clock_id: "CELL-MASTER".to_owned(),
+            ingestion_clock_id: "CELL-MASTER".to_owned(),
             evidence_class: EvidenceClass::Synthetic,
             ingestion_timestamps_ticks: source_ticks
                 .iter()
@@ -514,6 +526,13 @@ mod tests {
             coverage_permille: 995,
         };
         (requirement, observation)
+    }
+
+    fn has_stream_violation(
+        report: &CommissioningReport,
+        violation: StreamViolationCode,
+    ) -> bool {
+        report.streams.iter().any(|stream| stream.violations.contains(&violation))
     }
 
     pub fn base_input() -> CommissioningInput {
@@ -611,7 +630,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].owner_twin_id = "OTHER-OWNER".to_owned();
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::IdentityMismatch)));
+        assert!(has_stream_violation(&report, StreamViolationCode::IdentityMismatch));
     }
 
     #[test]
@@ -619,7 +638,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].schema_version = "2.0.0".to_owned();
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::SchemaMismatch)));
+        assert!(has_stream_violation(&report, StreamViolationCode::SchemaMismatch));
     }
 
     #[test]
@@ -627,7 +646,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].clock_id = "UNRELATED-CLOCK".to_owned();
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::ClockMismatch)));
+        assert!(has_stream_violation(&report, StreamViolationCode::ClockMismatch));
     }
 
     #[test]
@@ -635,7 +654,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].source_timestamps_ticks[2] = input.observations[0].source_timestamps_ticks[1];
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::DuplicateTimestamp)));
+        assert!(has_stream_violation(&report, StreamViolationCode::DuplicateTimestamp));
     }
 
     #[test]
@@ -643,7 +662,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].source_timestamps_ticks.swap(2, 3);
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::OutOfOrderTimestamp)));
+        assert!(has_stream_violation(&report, StreamViolationCode::OutOfOrderTimestamp));
     }
 
     #[test]
@@ -655,7 +674,7 @@ mod tests {
             vec![3_882, 3_962, 4_042, 4_202, 4_282];
         input.now_tick = 4_285;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::SampleJitterExceeded)));
+        assert!(has_stream_violation(&report, StreamViolationCode::SampleJitterExceeded));
     }
 
     #[test]
@@ -663,7 +682,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].ingestion_timestamps_ticks[2] = 4_205;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::LatencyExceeded)));
+        assert!(has_stream_violation(&report, StreamViolationCode::LatencyExceeded));
     }
 
     #[test]
@@ -674,7 +693,7 @@ mod tests {
         input.observations[4].ingestion_timestamps_ticks =
             vec![1_710, 1_960, 2_210, 2_460, 2_710];
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::ObservationStale)));
+        assert!(has_stream_violation(&report, StreamViolationCode::ObservationStale));
     }
 
     #[test]
@@ -683,7 +702,7 @@ mod tests {
         input.observations[0].source_timestamps_ticks[4] = 4_300;
         input.observations[0].ingestion_timestamps_ticks[4] = 4_301;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::FutureSourceTimestamp)));
+        assert!(has_stream_violation(&report, StreamViolationCode::FutureSourceTimestamp));
     }
 
     #[test]
@@ -691,7 +710,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].ingestion_timestamps_ticks[0] = 4_190;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::IngestionBeforeSource)));
+        assert!(has_stream_violation(&report, StreamViolationCode::IngestionBeforeSource));
     }
 
     #[test]
@@ -699,7 +718,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].measured_clock_offset_ticks = 6;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::ClockOffsetExceeded)));
+        assert!(has_stream_violation(&report, StreamViolationCode::ClockOffsetExceeded));
     }
 
     #[test]
@@ -707,7 +726,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].measured_clock_drift_ppm = 11;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::ClockDriftExceeded)));
+        assert!(has_stream_violation(&report, StreamViolationCode::ClockDriftExceeded));
     }
 
     #[test]
@@ -715,7 +734,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].calibration_expires_at_tick = input.now_tick;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|stream| stream.violations.contains(&StreamViolationCode::CalibrationExpired)));
+        assert!(has_stream_violation(&report, StreamViolationCode::CalibrationExpired));
     }
 
     #[test]
@@ -725,9 +744,9 @@ mod tests {
         input.observations[1].transformation_receipt_sha256 = [0; 32];
         input.observations[2].calibration_sha256 = [0; 32];
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|s| s.violations.contains(&StreamViolationCode::SourceDigestMissing)));
-        assert!(report.streams.iter().any(|s| s.violations.contains(&StreamViolationCode::TransformationReceiptMissing)));
-        assert!(report.streams.iter().any(|s| s.violations.contains(&StreamViolationCode::CalibrationDigestMissing)));
+        assert!(has_stream_violation(&report, StreamViolationCode::SourceDigestMissing));
+        assert!(has_stream_violation(&report, StreamViolationCode::TransformationReceiptMissing));
+        assert!(has_stream_violation(&report, StreamViolationCode::CalibrationDigestMissing));
     }
 
     #[test]
@@ -735,7 +754,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].fidelity_residual_units = 6;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|s| s.violations.contains(&StreamViolationCode::FidelityResidualExceeded)));
+        assert!(has_stream_violation(&report, StreamViolationCode::FidelityResidualExceeded));
     }
 
     #[test]
@@ -743,7 +762,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].coverage_permille = 989;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|s| s.violations.contains(&StreamViolationCode::CoverageBelowMinimum)));
+        assert!(has_stream_violation(&report, StreamViolationCode::CoverageBelowMinimum));
     }
 
     #[test]
@@ -751,7 +770,7 @@ mod tests {
         let mut input = base_input();
         input.observations[0].evidence_class = EvidenceClass::Measured;
         let report = commission_twin(&input);
-        assert!(report.streams.iter().any(|s| s.violations.contains(&StreamViolationCode::EvidenceClassNotAdmitted)));
+        assert!(has_stream_violation(&report, StreamViolationCode::EvidenceClassNotAdmitted));
     }
 
     #[test]
@@ -781,6 +800,37 @@ mod tests {
         let report = commission_twin(&input);
         assert!(report.twin_violations.contains(&TwinViolationCode::AuthorityEscalation));
         assert_eq!(report.maximum_authority, "READ_ONLY_TELEMETRY");
+    }
+
+    #[test]
+    fn out_of_order_ingestion_is_rejected() {
+        let mut input = base_input();
+        input.observations[0].ingestion_timestamps_ticks.swap(1, 2);
+        let report = commission_twin(&input);
+        assert!(has_stream_violation(
+            &report,
+            StreamViolationCode::OutOfOrderIngestionTimestamp,
+        ));
+    }
+
+    #[test]
+    fn duplicate_ingestion_is_rejected() {
+        let mut input = base_input();
+        input.observations[0].ingestion_timestamps_ticks[2] =
+            input.observations[0].ingestion_timestamps_ticks[1];
+        let report = commission_twin(&input);
+        assert!(has_stream_violation(
+            &report,
+            StreamViolationCode::DuplicateIngestionTimestamp,
+        ));
+    }
+
+    #[test]
+    fn ingestion_clock_must_match_twin_master_clock() {
+        let mut input = base_input();
+        input.observations[0].ingestion_clock_id = "INGESTION-HOST-CLOCK".to_owned();
+        let report = commission_twin(&input);
+        assert!(has_stream_violation(&report, StreamViolationCode::ClockMismatch));
     }
 
     #[test]
