@@ -305,6 +305,16 @@ fn audit_property_retention(
             "comparison_evidence_sha256",
             &comparison.comparison_evidence_sha256,
         )?;
+        if comparison
+            .reason
+            .as_deref()
+            .is_some_and(|reason| reason.trim().is_empty() || reason.len() > 2048)
+        {
+            return Err(format!(
+                "comparison {} reason must be non-empty and at most 2048 bytes when present",
+                comparison.comparison_record_id
+            ));
+        }
         validate_value_state(
             "source",
             comparison.source_state,
@@ -830,6 +840,19 @@ mod tests {
         let error = audit_value(&normalized)
             .expect_err("normalized equivalence cannot carry a semantic difference finding");
         assert!(error.contains("preserved_normalized"));
+    }
+
+    #[test]
+    fn empty_or_oversized_optional_reason_is_rejected() {
+        let mut empty = fixture_value();
+        empty["comparisons"][0]["reason"] = serde_json::json!("");
+        let error = audit_value(&empty).expect_err("empty reason must not masquerade as absent");
+        assert!(error.contains("reason must be non-empty"));
+
+        let mut oversized = fixture_value();
+        oversized["comparisons"][0]["reason"] = serde_json::json!("x".repeat(2049));
+        let error = audit_value(&oversized).expect_err("oversized reason is out of profile");
+        assert!(error.contains("reason must be non-empty"));
     }
 
     #[test]
