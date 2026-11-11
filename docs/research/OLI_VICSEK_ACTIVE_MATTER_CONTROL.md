@@ -78,6 +78,28 @@ The module exports:
 
 The low/high noise runs are exploratory finite-size cases. No universal critical noise threshold is hard-coded or asserted. A complete phase diagram requires a pre-registered parameter grid, multiple independent seeds per point, finite-size scaling and uncertainty analysis.
 
+## Update-rule correctness and the 2026 erratum
+
+The 2026 Rahman et al. paper on cluster topology was corrected by a published erratum on 27 October 2026 (DOI [10.1103/b9yr-8wmv](https://doi.org/10.1103/b9yr-8wmv)). The erratum states that the focal particle's next heading must use the neighbor set at (t+\Delta t), while summing neighbors' headings/velocities at (t). The authors report that the corrected results are indistinguishable from their forward-update method; the backward-update rule as originally printed produces different network scaling.
+
+The implementation exposes two explicitly tagged conventions:
+- `CurrentPositionAlignment`: determine the neighbor graph at (t), compute headings, then move.
+- `NextPositionAlignment`: predict positions at (t+\Delta t) using headings at (t), determine the neighbor graph there, compute new headings using neighbor headings at (t), and retain the predicted positions.
+
+Do not pool benchmark runs across these modes. The frozen `UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE` fixture demonstrates a pair outside the interaction radius at (t) but inside it after the predicted move.
+
+## From statistical transfer to causal influence
+
+Pang & Wang (2026), *Physical Review E*, DOI [10.1103/rf2v-sy5d](https://doi.org/10.1103/rf2v-sy5d), explicitly distinguish statistical information transfer from causal influence. Transfer entropy or predictive dependence can be useful observables, but neither alone establishes that changing one agent would change another.
+
+The implementation now exposes `intervene_heading`, which returns a `HeadingIntervention` receipt (tick, particle, previous heading, imposed heading) without consuming or resetting the PRNG stream. A matched sham is made by cloning the same pre-intervention state; both are then advanced with identical random draws.
+
+Two exact cases are frozen:
+1. All-to-all influence: rotate one of six initially aligned particles by 90°. After one noiseless update, every particle adopts `atan2(1,5)`; the matched sham remains at heading 0.
+2. Self-only null: rotate one particle when the interaction radius is zero. The other particles must match their sham trajectory exactly.
+
+This establishes causation only inside the known simulation model. It does not establish agency, communication, intention, or intelligence in a natural swarm.
+
 ## Benchmark design
 
 - Compare local alignment against self-only and independent-particle controls.
@@ -102,6 +124,9 @@ The low/high noise runs are exploratory finite-size cases. No universal critical
 - No non-finite positions, headings or metrics across a frozen parameter grid.
 - Every claimed regime result backed by at least 30 independent seeds for exploratory statistics; sample-size and finite-size analysis required before inferential claims.
 - Zero ontology promotions from polar order alone to learning, agency, intelligence, life or consciousness.
+- Exact sham parity: zero downstream effect in the self-only intervention negative control.
+- Reproduce the analytic all-to-all intervention response `atan2(1,5)` for the treated system and zero response for the sham.
+- Keep transfer entropy / predictive dependence and interventional causal effect as separate report fields.
 
 ## Claim ceiling
 
