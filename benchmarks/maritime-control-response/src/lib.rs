@@ -10,6 +10,7 @@
 //! residual evaluation. A mismatch is not an actuator-fault diagnosis.
 
 pub mod event_metrics;
+pub mod active_probe;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
