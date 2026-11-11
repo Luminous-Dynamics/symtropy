@@ -124,14 +124,14 @@ impl<const D: usize> RigidBody<D> {
         matches!(self.body_type, BodyType::Static)
     }
 
-    pub fn apply_force(&mut self, force: SVector<f64, D>) {
+    /// Accumulate a world-space force on the body.
         if self.is_dynamic() {
             self.force_accumulator += force;
             self.wake();
         }
     }
 
-    pub fn apply_torque(&mut self, torque: Bivector<D>) {
+    /// Accumulate a world-space torque about the body's current reference COM.
         if self.is_dynamic() {
             // Need to implement AddAssign for Bivector or do manually
             let mut current = self.torque_accumulator;
@@ -241,11 +241,13 @@ impl<const D: usize> RigidBody<D> {
         self.inertia = SVector::from_element(i_total);
         self.inv_inertia = SVector::from_element(1.0 / i_total);
 
-        // The linear velocity belongs to the body's reference point. Moving
-        // that point by a body-local COM offset also changes its velocity.
-        // Rotor::from_bivector uses exp(-B), so the point-velocity map is
-        // -B*r in the same world-frame convention used by integration.
+        // The linear velocity and accumulated wrench belong to the body's
+        // current world-space reference point. Moving that point by a
+        // body-local COM offset changes both.
+        // Rotor::from_bivector uses exp(-B), so point velocity is -B*r.
         let world_com_offset = self.transform.rotation.rotate_vector(&com_offset);
+        let torque_shift = Bivector::from_wedge(&world_com_offset, &self.force_accumulator);
+        self.torque_accumulator = self.torque_accumulator.add(&torque_shift.scale(-1.0));
         self.linear_velocity -= self.angular_velocity.apply_to_vector(&world_com_offset);
         self.transform.translation.0 += world_com_offset;
     }
@@ -428,6 +430,47 @@ mod compound_com_tests {
             "new COM velocity disagrees with Rotor point-velocity finite difference: actual={:?}, expected={finite_difference_velocity:?}",
             body.linear_velocity
         );
+    }
+
+    #[test]
+    fn merge_toolhead_preserves_accumulated_wrench_about_fixed_world_point() {
+        let mut body = rotated_body();
+        body.force_accumulator = SVector::from([0.8, -1.1, 0.6]);
+        let mut torque = Bivector::<3>::zero();
+        torque.set(0, 1, 0.7);
+        torque.set(0, 2, -0.4);
+        torque.set(1, 2, 0.2);
+        body.torque_accumulator = torque;
+
+        let fixed_world_point = SVector::from([-1.0, 0.5, 2.0]);
+        let old_origin = body.transform.translation.0;
+        let old_force = body.force_accumulator;
+        let torque_about_fixed_before = body.torque_accumulator.add(
+            &Bivector::from_wedge(&(old_origin - fixed_world_point), &old_force),
+        );
+
+        body.merge_toolhead(
+            Transform::from_translation(Point::new([1.2, -0.7, 0.4])),
+            Box::new(Sphere::new(Point::origin(), 0.2)),
+            1.0,
+        );
+
+        let new_origin = body.transform.translation.0;
+        let torque_about_fixed_after = body.torque_accumulator.add(
+            &Bivector::from_wedge(&(new_origin - fixed_world_point), &body.force_accumulator),
+        );
+        for i in 0..3 {
+            for j in (i + 1)..3 {
+                assert!(
+                    (torque_about_fixed_after.get(i, j)
+                        - torque_about_fixed_before.get(i, j))
+                        .abs()
+                        < 1.0e-12,
+                    "wrench moment about fixed world point changed in plane ({i},{j})"
+                );
+            }
+        }
+        assert_eq!(body.force_accumulator, old_force);
     }
 
     #[test]
