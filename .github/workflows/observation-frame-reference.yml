@@ -22,7 +22,7 @@ concurrency:
 jobs:
   reference-oracle:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout exact source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -42,6 +42,14 @@ jobs:
       - name: Run strict Clippy
         run: cargo +1.96.0 clippy --locked --manifest-path research/observation-frame-reference/Cargo.toml --all-targets -- -D warnings
 
+      - name: Benchmark 1k / 10k / 100k observation frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="research/observation-frame-reference"
+          mkdir -p "$package/target"
+          cargo +1.96.0 run --release --locked --manifest-path "$package/Cargo.toml" --bin benchmark -- 10 > "$package/target/benchmark-results.jsonl"
+
       - name: Check deterministic receipt
         shell: bash
         run: |
@@ -52,4 +60,15 @@ jobs:
           cmp /tmp/observation-first.json /tmp/observation-second.json
           grep -q '"claim_ceiling":' /tmp/observation-first.json
           sha256sum /tmp/observation-first.json
+
+      - name: Preserve benchmark and known-answer receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: observation-frame-reference-${{ github.sha }}
+          path: |
+            research/observation-frame-reference/target/benchmark-results.jsonl
+            /tmp/observation-first.json
+          if-no-files-found: warn
+          retention-days: 30
 
