@@ -350,7 +350,6 @@ fn assess_partition(
     oracle: &[WorldOracle],
     energy_cost_service_units: f64,
     latency_ticks: u32,
-    tolerance: f64,
 ) -> ObservationPartition {
     let mut policy_ids: Vec<String> = worlds[0].policies.iter()
         .map(|policy| policy.policy_id.clone())
@@ -405,7 +404,6 @@ fn assess_partition(
     let mut world_ids: Vec<String> = worlds.iter().map(|world| world.world_id.clone()).collect();
     world_ids.sort();
 
-    let _ = tolerance;
     ObservationPartition {
         observation_id: observation_id.to_owned(),
         world_ids,
@@ -477,7 +475,6 @@ pub fn assess_active_sensing(
                     &oracle,
                     energy_cost_service_units,
                     sensor.latency_ticks,
-                    config.tie_tolerance,
                 )
             })
             .collect();
