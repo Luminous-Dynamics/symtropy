@@ -41,6 +41,9 @@ struct BenchmarkResult {
     borrowed_guard_rebuild_reject_p50_ns: u128,
     borrowed_guard_rebuild_reject_p95_ns: u128,
     borrowed_guard_rebuild_reject_p99_ns: u128,
+    owned_frame_dto_clone_p50_ns: u128,
+    owned_frame_dto_clone_p95_ns: u128,
+    owned_frame_dto_clone_p99_ns: u128,
 }
 
 fn digest(character: char) -> String {
@@ -169,6 +172,7 @@ fn run_profile(
     let mut reject_timings = Vec::with_capacity(samples);
     let mut valid_guard_timings = Vec::with_capacity(samples);
     let mut rebuild_guard_timings = Vec::with_capacity(samples);
+    let mut owned_clone_timings = Vec::with_capacity(samples);
 
     for _ in 0..samples {
         let candidate = input.clone();
@@ -208,12 +212,18 @@ fn run_profile(
         }
         std::hint::black_box(&rebuild_guard);
         rebuild_guard_timings.push(rebuild_start.elapsed().as_nanos().max(1));
+
+        let clone_start = Instant::now();
+        let owned_copy = std::hint::black_box(input.clone());
+        std::hint::black_box(owned_copy.entities.len());
+        owned_clone_timings.push(clone_start.elapsed().as_nanos().max(1));
     }
 
     timings.sort_unstable();
     reject_timings.sort_unstable();
     valid_guard_timings.sort_unstable();
     rebuild_guard_timings.sort_unstable();
+    owned_clone_timings.sort_unstable();
     let p50 = percentile(&timings, 50);
     let entities_per_second = entity_count as f64 * 1_000_000_000.0 / p50 as f64;
     let events_per_second = event_count as f64 * 1_000_000_000.0 / p50 as f64;
@@ -252,6 +262,9 @@ fn run_profile(
         borrowed_guard_rebuild_reject_p50_ns: percentile(&rebuild_guard_timings, 50),
         borrowed_guard_rebuild_reject_p95_ns: percentile(&rebuild_guard_timings, 95),
         borrowed_guard_rebuild_reject_p99_ns: percentile(&rebuild_guard_timings, 99),
+        owned_frame_dto_clone_p50_ns: percentile(&owned_clone_timings, 50),
+        owned_frame_dto_clone_p95_ns: percentile(&owned_clone_timings, 95),
+        owned_frame_dto_clone_p99_ns: percentile(&owned_clone_timings, 99),
     })
 }
 
