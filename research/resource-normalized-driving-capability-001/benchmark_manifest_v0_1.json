@@ -14,7 +14,8 @@
     "degradation_recovery_envelope": "https://github.com/Luminous-Dynamics/symtropy/issues/4657",
     "recoverable_experience_benchmark": "https://github.com/Luminous-Dynamics/symtropy/issues/4550",
     "decision_sensitive_experience_selector": "https://github.com/Luminous-Dynamics/symtropy/pull/4575",
-    "anytime_imagination_allocator": "https://github.com/Luminous-Dynamics/symtropy/pull/4581"
+    "anytime_imagination_allocator": "https://github.com/Luminous-Dynamics/symtropy/pull/4581",
+    "jurisdictional_driving_transfer": "https://github.com/Luminous-Dynamics/symtropy/issues/4774"
   },
   "claim_ceiling": "Protocol only. No model, renderer, driving performance, safety or transfer result is claimed by this manifest.",
   "hypotheses": [
@@ -301,6 +302,51 @@
       "protocol": "Software trace auditor and schedule generator; 35 scheduled events for seven fault families × five severity control values. No simulator injector or model performance is included in v0.1.",
       "source": "https://github.com/Luminous-Dynamics/symtropy/issues/4657",
       "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "traffic_sign_bench_2026",
+      "class": "rule_compliance_benchmark",
+      "name": "TrafficSignBench",
+      "metric_values": null,
+      "capabilities": [
+        "closed-loop traffic-sign compliance",
+        "Sign-Compliant Destination metric",
+        "5,800 held-out episodes",
+        "rule-supervised PlanT-2 fine-tuning comparison"
+      ],
+      "protocol": "Use native Sign-Compliant Destination task and evaluator; keep distinct from route Driving Score and NAVSIM metrics.",
+      "source": "https://github.com/emb-ai/traffic-sign-bench",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "geodrive_bench_2026",
+      "class": "regional_reasoning_benchmark",
+      "name": "GeoDrive-Bench",
+      "metric_values": null,
+      "capabilities": [
+        "5,053 region-specific questions",
+        "7,160 driving images",
+        "six listed countries: China, USA, UK, Japan, Singapore and India"
+      ],
+      "protocol": "Open-loop regional reasoning benchmark. Do not treat its QA accuracy as closed-loop driving competence. Current listed six-country coverage does not include South Africa.",
+      "source": "https://arxiv.org/abs/2606.02774",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "south_africa_source_profile_2026_11_11",
+      "class": "jurisdiction_source_skeleton",
+      "name": "South Africa ZA LHT profile v0.1",
+      "metric_values": null,
+      "capabilities": [
+        "explicit left-hand traffic declaration supported by official tourism guidance",
+        "Department of Transport traffic-sign manual source reference",
+        "National Road Traffic Act source reference",
+        "steering-wheel handedness and roundabout circulation remain unknown",
+        "all sources remain not-reviewed; profile is draft and not policy eligible"
+      ],
+      "protocol": "Symtropy #4774 jurisdiction profile schema and Rust structural auditor. This is a source skeleton, not a legally reviewed ZA driving rule pack.",
+      "source": "https://github.com/Luminous-Dynamics/symtropy/issues/4774",
+      "independent_symtropy_reproduction": false
     }
   ],
   "benchmark_ladder": [
@@ -458,6 +504,23 @@
         "compute_and_energy_per_decision",
         "quality_under_matched_compute_and_matched_latency"
       ]
+    },
+    {
+      "id": "jurisdictional_driving_transfer",
+      "priority": 15,
+      "task": "zero-shot and fixed-budget adaptation across left/right traffic, sign/rule semantics and regional driving contexts; begin with source-qualified ZA draft profile and geometry-only LHT/RHT metamorphic fixtures",
+      "metric_family": [
+        "native_closed_loop_route_success",
+        "traffic_sign_sign_compliant_destination",
+        "lane_association_and_passing_side_accuracy",
+        "turn_and_roundabout_convention_accuracy",
+        "jurisdiction_recognition_calibration",
+        "profile_missing_stale_and_contradicted_performance",
+        "few_shot_examples_and_human_interventions_per_region",
+        "worst_jurisdiction_and_worst_rule_family",
+        "false_rule_activation_and_fallback_rate",
+        "p99_latency_and_measured_energy"
+      ]
     }
   ],
   "budget_dimensions": [
@@ -495,7 +558,11 @@
     "active_sampler_query_count_and_acquisition_cost",
     "decision_query_deadline_misses_and_actuation_reserve",
     "world_model_rollout_count_by_decision_opportunity",
-    "counterfactual_rollout_gpu_time_and_energy"
+    "counterfactual_rollout_gpu_time_and_energy",
+    "jurisdiction_profile_revision_and_rule_bundle_digest",
+    "region_specific_training_examples_and_human_legal_review_hours",
+    "jurisdiction_adaptation_examples_and_intervention_minutes",
+    "rule_source_verification_and_content_digest_coverage"
   ],
   "outcome_families": [
     "native_benchmark_metrics",
@@ -531,7 +598,12 @@
     "sampler_query_precision_and_decision_change_rate",
     "marginal_decision_regret_reduction_per_rollout",
     "inference_compute_allocated_vs_deadline_reserve",
-    "rollout_value_under_compute_matched_and_latency_matched_protocols"
+    "rollout_value_under_compute_matched_and_latency_matched_protocols",
+    "traffic_sign_rule_compliance_by_rule_family",
+    "left_right_traffic_transfer_and_metamorphic_geometry",
+    "jurisdiction_profile_staleness_and_contradiction_handling",
+    "region_specific_sign_and_marking_semantics",
+    "legal_source_provenance_coverage_and_profile_eligibility"
   ],
   "prospective_targets": {
     "status": "not_measured",
@@ -563,7 +635,13 @@
     "active_sampler_uses_future_outcomes_or_evaluator_only_privileges",
     "entropy_or_rarity_is_claimed_as_decision_value_without_counterfactual_outcome_evidence",
     "anytime_allocator_spends_reserved_actuation_or_recovery_budget",
-    "rollout_latency_bounds_are_stale_or_not_bound_to_model_checkpoint_and_hardware"
+    "rollout_latency_bounds_are_stale_or_not_bound_to_model_checkpoint_and_hardware",
+    "traffic_side_used_to_infer_steering_wheel_position",
+    "draft_or_unreviewed_rule_profile_used_as_policy_eligible",
+    "stale_or_wrong_effective_date_rule_bundle_applied",
+    "jurisdiction_sign_or_traffic_side_profile_leaked_from_evaluator",
+    "left_right_geometry_mirror_claimed_as_legal_rule_equivalence",
+    "region_qa_accuracy_claimed_as_closed_loop_rule_compliance"
   ],
   "sources": [
     {
@@ -691,6 +769,36 @@
       "url": "https://arxiv.org/abs/2605.18059",
       "published": "2026-05-18",
       "source_type": "arXiv closed-loop deployment robustness benchmark"
+    },
+    {
+      "id": "traffic_sign_bench_2026",
+      "url": "https://github.com/emb-ai/traffic-sign-bench",
+      "published": "2026",
+      "source_type": "closed-loop traffic sign compliance benchmark"
+    },
+    {
+      "id": "geodrive_bench_2026",
+      "url": "https://arxiv.org/abs/2606.02774",
+      "published": "2026-06",
+      "source_type": "regional open-loop driving reasoning benchmark"
+    },
+    {
+      "id": "south_africa_left_traffic_guidance",
+      "url": "https://www.tourism.gov.za/Pages/Safety--Travel-Tips-Info.aspx",
+      "published": "live official government guidance; exact current revision not pinned",
+      "source_type": "South African government corroboration of left-hand traffic"
+    },
+    {
+      "id": "south_africa_sign_manual_reference",
+      "url": "https://www.transport.gov.za/wp-content/uploads/2023/02/V4C1.pdf",
+      "published": "manual source reference; local adoption/effective revision pending review",
+      "source_type": "South African Department of Transport traffic-sign manual source"
+    },
+    {
+      "id": "south_africa_road_traffic_act",
+      "url": "https://www.gov.za/documents/national-road-traffic-act",
+      "published": "Act 93 of 1996 source page; consolidated amendment/commencement status pending review",
+      "source_type": "South African statutory source"
     }
   ],
   "statistical_method": {
