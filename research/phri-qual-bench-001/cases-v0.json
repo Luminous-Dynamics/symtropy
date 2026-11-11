@@ -33,7 +33,14 @@
     "solver_configuration_digest",
     "hardware_identity",
     "safety_case_revision",
-    "stop_policy_revision"
+    "stop_policy_revision",
+    "physical_sensor_serial",
+    "sensor_family",
+    "manufacturing_lot",
+    "sensor_firmware_revision",
+    "calibration_revision",
+    "sensor_temperature_c",
+    "sensor_cycle_count"
   ],
   "comparison_regimes": [
     "matched_common_parameterization",
@@ -47,7 +54,8 @@
     "muehlbauer_passive_matrix_shared_control",
     "poignonec_passivity_constrained_nmpc",
     "luminous_diagonal_vic_reference",
-    "luminous_basis_free_candidate"
+    "luminous_basis_free_candidate",
+    "ru_et_al_matrix_valued_passivity_indices_lti_scope"
   ],
   "scenarios": [
     {
@@ -244,6 +252,43 @@
         "stop_latency_reported",
         "no_action_after_stop_receipt",
         "no_tactile_consent_inference"
+      ]
+    },
+    {
+      "id": "tactile-cross-sensor-transfer",
+      "domain": "tactile_metrology",
+      "purpose": "Measure within-unit accuracy, zero-shot cross-unit transfer and few-shot adaptation without sensor identity leakage.",
+      "seeded_faults": [
+        "held_out_sensor_serial",
+        "held_out_manufacturing_lot",
+        "calibration_revision_change",
+        "temperature_drift",
+        "sensor_aging"
+      ],
+      "required_assertions": [
+        "sensor_family_strata_separated",
+        "unit_and_lot_grouped_split",
+        "target_calibration_identity_preserved",
+        "uncertainty_and_abstention_reported",
+        "zero_shot_and_few_shot_separated"
+      ]
+    },
+    {
+      "id": "directional-passivity-index-lti",
+      "domain": "mathematical_model_qualification",
+      "purpose": "Reproduce matrix-valued MIMO passivity-index calculations only within declared LTI assumptions and compare with scalar indices.",
+      "seeded_faults": [
+        "directional_passivity_shortage",
+        "cross_channel_coupling",
+        "incomparable_loewner_candidates",
+        "coordinate_transform"
+      ],
+      "required_assertions": [
+        "LTI_scope_declared",
+        "input_output_units_normalized",
+        "matrix_index_covariance_checked",
+        "scalar_and_matrix_indices_reported",
+        "not_claimed_as_nonlinear_robot_passivity"
       ]
     }
   ],
@@ -620,5 +665,13 @@
       },
       "rationale": "At epsilon=epsilon_min and zero damping, the scalar passivity and decay constraints force epsilon_dot=0. Because error is zero, stiffness optimization remains independent; handle directly instead of seeking an infinite dual multiplier."
     }
+  ],
+  "tactile_transfer_regimes": [
+    "within_physical_unit",
+    "cross_unit_zero_shot",
+    "cross_unit_few_shot",
+    "cross_calibration_revision",
+    "aging_and_temperature_drift",
+    "held_out_manufacturing_lot"
   ]
 }
