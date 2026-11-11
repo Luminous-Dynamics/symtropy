@@ -493,7 +493,7 @@ mod tests {
 
     #[test]
     fn finite_inputs_whose_residual_overflows_are_rejected() {
-        let matrix = [[1.0e200, 0.0], [0.0, 1.0]];
+        let matrix = [[1.0e200, 0.0], [0.0, 1.0e200]];
         assert_eq!(
             assess_solution(
                 &matrix,
