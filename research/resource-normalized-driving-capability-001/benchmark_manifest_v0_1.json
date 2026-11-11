@@ -187,7 +187,8 @@
         "auto-labeling"
       ],
       "source": "https://developer.nvidia.com/blog/generate-trajectories-reasoning-traces-and-auto-labels-with-nvidia-alpamayo-2-super/",
-      "independent_symtropy_reproduction": false
+      "independent_symtropy_reproduction": false,
+      "protocol": "Teacher/reasoning and auto-labeling capability reference. No single native driving leaderboard metric is registered in this comparator row; count teacher-generated labels and privileged reasoning as training resources."
     },
     {
       "id": "waymo_safety_impact_june_2026",
