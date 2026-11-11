@@ -12,13 +12,17 @@ This crate is a coordinator. It does not implement an inference allocator: it ca
 
 ## Decision order
 
-1. Validate the common decision deadline, resource-unit identity, decision-value unit, clock domain and action/recovery reserve.
-2. Ask the existing allocator whether one more rollout is eligible using the current observation and remaining resource budget.
-3. Validate an optional sensor-refresh candidate against the same episode context, checkpoint, observation, policy-visible source role, SAM evidence and resource unit.
-4. If the current observation is stale, choose a fresh observation when it can arrive before the action deadline and reserve; otherwise require the external fallback.
-5. If the current observation is fresh and both candidates are eligible, compare their decision-regret-reduction-per-resource-unit ratios using 128-bit cross multiplication. Both gains must share the same declared decision-value unit, costs must share the same declared resource unit, and latency bounds must share the same clock domain. No floating-point tie instability.
-6. If ratios tie, prefer the already-qualified inference slice; stable behavior is explicit.
-7. If neither resource has positive admissible value, stop deliberation and return commit-now (not an actuator command).
+1. Validate the common decision deadline, time reserve, resource reserve, resource-unit identity, decision-value unit, clock domain and evidence context.
+2. Compute the discretionary pool as `remaining_resource_units - actuation_recovery_reserve_resource_units`. The reserve is not available to sensor or inference grants.
+3. Ask the existing allocator whether one additional rollout is eligible using only the discretionary pool and the current policy-visible observation.
+4. Validate an optional sensor-refresh candidate against the same episode context, checkpoint, source observation, policy-visible role, SAM evidence, resource unit, decision-value unit and clock domain.
+5. If the current observation is stale, missing, rejected or not policy-visible, choose a fresh observation only when its acquisition bound plus the mandatory time reserve fits the action deadline; otherwise require the external fallback.
+6. If the current observation is fresh and both candidates are eligible, compare their decision-regret-reduction-per-resource-unit ratios using 128-bit cross multiplication. Both gains share the same declared decision-value unit, costs share the same measured resource unit, and latency bounds share the same clock domain. No floating-point tie instability.
+7. If ratios tie, prefer the already-qualified inference slice; stable behavior is explicit.
+8. If neither resource has positive admissible value, stop deliberation and return commit-now (not an actuator command).
+9. If the scheduler is invoked at or after the action deadline, emit `deadline_missed` with the fallback policy reference and zero new resource spend. This is a recorded miss, not evidence that the fallback executed.
+
+The scheduler receipt reports total budget, reserved recovery resources, discretionary budget before allocation, committed resources, remaining total resources and remaining discretionary resources. A grant is valid only when the recovery reserve survives intact.
 
 ## Common comparison units
 
@@ -36,7 +40,7 @@ Sensor and inference costs must use the same caller-declared resource unit, e.g.
 
 ## Tests and validation boundary
 
-Twenty-nine known-answer/adversarial tests are authored for exact-ratio selection and ties, stale/missing observation refresh, fallback on unavailable evidence, sensor/inference deadlines and recovery reserve, source-role and SAM/context rejection, resource/value/clock unit mismatches, no-positive-value stopping, and JSON receipt/schema round trips.
+Thirty-three known-answer/adversarial tests cover exact-ratio selection and ties, stale/missing/future observation handling, fallback on unavailable evidence, sensor/inference deadline feasibility, time and resource recovery reserves, explicit deadline-missed receipts, source-role and SAM/context rejection, resource/value/clock unit mismatches, no-positive-value stopping, and JSON receipt/schema round trips.
 
 This authoring environment has no `cargo` or `rustc`; no local formatting, compilation, test or Clippy pass is claimed. The exact-head workflow is the first compilation authority. A queued or pending workflow is not pass evidence.
 
