@@ -12,7 +12,7 @@ This benchmark separates three questions that are too often merged:
 2. Does the sampled and executed controller satisfy a discrete physical-port energy contract under sensing/actuation imperfections?
 3. Does the integrated system deliver useful assistance while preserving user agency and acceptable burden?
 
-A pass in one layer does not imply a pass in another.
+A pass in one layer does not imply a pass in another. The current manifest includes 16 adversarial scenario families, six cross-sensor transfer regimes, and five analytic optimizer fixtures.
 
 ## Comparator arms
 
@@ -46,7 +46,7 @@ Tune on a development set. Freeze settings, then evaluate on a held-out set. Pub
 
 ## Scenario manifest
 
-The cases-v0.json file is a machine-readable starting manifest. It defines adversarial families and the assertions each family is intended to exercise. It also contains five hand-derived, diagonal known-answer fixtures for the proposed matrix-rate optimizer, including the scalar boundary-only case. These expected outputs are analytic fixtures, not executed optimizer tests or benchmark results. The manifest deliberately does not invent hardware thresholds or physical measurements. Extend the schema version when semantics change. A case is not evidence until a concrete trace, source SHA, run receipt and independently reproduced result exist.
+The cases-v0.json file is a machine-readable starting manifest. It defines adversarial families and the assertions each family is intended to exercise. It also contains five hand-derived, diagonal known-answer fixtures for the proposed matrix-rate optimizer, including the scalar boundary-only case. Two further scenario families cover sensor-identity/lot-held-out tactile transfer and matrix-valued passivity-index analysis within an explicitly declared LTI scope. These expected outputs are analytic fixtures, not executed optimizer tests or benchmark results. The manifest deliberately does not invent hardware thresholds or physical measurements. Extend the schema version when semantics change. A case is not evidence until a concrete trace, source SHA, run receipt and independently reproduced result exist.
 
 ## Scorecards
 
