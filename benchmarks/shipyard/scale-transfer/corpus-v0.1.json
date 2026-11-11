@@ -34,43 +34,43 @@
       "case_id": "SCALE-004",
       "class": "negative",
       "mutation": "material family changes without bridge evidence",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-005",
       "class": "negative",
       "mutation": "joint family changes without bridge evidence",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-006",
       "class": "negative",
       "mutation": "penetration class changes without bridge evidence",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-007",
       "class": "negative",
       "mutation": "process family changes without bridge evidence",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-008",
       "class": "negative",
       "mutation": "process variant changes without bridge evidence",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-009",
       "class": "negative",
       "mutation": "pass topology changes without bridge evidence",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-010",
       "class": "negative",
       "mutation": "restraint class changes without bridge evidence",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-011",
@@ -136,7 +136,7 @@
       "case_id": "SCALE-021",
       "class": "negative",
       "mutation": "cycle does not provide a valid source-to-target bridge path",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-022",
@@ -160,13 +160,13 @@
       "case_id": "SCALE-025",
       "class": "negative",
       "mutation": "coordinate frame changes without a bridge edge",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-026",
       "class": "negative",
       "mutation": "boundary or cooling class changes without a bridge edge",
-      "expected_disposition": "ABSTAIN_NO_BRIDGE"
+      "expected_disposition": "ABSTAIN_OUT_OF_DOMAIN"
     },
     {
       "case_id": "SCALE-027",
