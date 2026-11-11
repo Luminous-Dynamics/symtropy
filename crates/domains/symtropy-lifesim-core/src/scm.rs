@@ -53,6 +53,39 @@ pub enum ScmConsensusWindow {
     RepositoryMatlabInclusiveEndpoints,
 }
 
+/// Communication topology for the consensus/search controller.
+///
+/// `CompleteGraph` is the paper/source baseline. `Ring` and `MetricRadius` are
+/// OLI extensions that constrain social messages and consensus to declared neighbours.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum ScmCommunicationTopology {
+    CompleteGraph,
+    Ring,
+    MetricRadius { radius: f64 },
+}
+
+impl ScmCommunicationTopology {
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::CompleteGraph => "complete_graph",
+            Self::Ring => "ring",
+            Self::MetricRadius { .. } => "metric_radius",
+        }
+    }
+
+    fn validate(self) -> Result<(), ScmError> {
+        if let Self::MetricRadius { radius } = self {
+            if !radius.is_finite() || radius < 0.0 {
+                return Err(ScmError::InvalidParameter {
+                    name: "communication_radius",
+                    value: radius,
+                });
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Model configuration. Positions and landscape values are dimensionless and bounded.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ScmConfig {
@@ -69,6 +102,7 @@ pub struct ScmConfig {
     pub numerical_epsilon: f64,
     pub kernel: ScmInteractionKernel,
     pub consensus_window: ScmConsensusWindow,
+    pub communication_topology: ScmCommunicationTopology,
 }
 
 impl Default for ScmConfig {
@@ -86,6 +120,7 @@ impl Default for ScmConfig {
             // source variant. The profile requires this choice to be recorded.
             kernel: ScmInteractionKernel::PublishedHtmlEquation,
             consensus_window: ScmConsensusWindow::PublishedEqualHalfIntervals,
+            communication_topology: ScmCommunicationTopology::CompleteGraph,
         }
     }
 }
@@ -105,6 +140,7 @@ impl ScmConfig {
                 return Err(ScmError::InvalidParameter { name, value });
             }
         }
+        self.communication_topology.validate()?;
         if self.dt <= 0.0
             || self.omega < 0.0
             || self.sigma_initial < 0.0
@@ -212,6 +248,7 @@ pub struct ScmStepReport {
     pub tick: u64,
     pub interaction_kernel: ScmInteractionKernel,
     pub consensus_window: ScmConsensusWindow,
+    pub communication_topology: ScmCommunicationTopology,
     pub consensus: f64,
     pub sigma_before_update: f64,
     pub sigma_after_update: f64,
@@ -220,7 +257,11 @@ pub struct ScmStepReport {
     pub maximum_pairwise_distance: f64,
     pub mean_gradient_norm_before_update: f64,
     pub gradient_degenerate: bool,
+    pub gradient_degenerate_agents: usize,
     pub swarm_spread_degenerate: bool,
+    pub locally_degenerate_spread_agents: usize,
+    pub mean_communicating_neighbors: f64,
+    pub isolated_agents: usize,
     pub outside_domain_agents: usize,
     pub consensus_window_delta: Option<f64>,
     pub convergence_window_satisfied: bool,
