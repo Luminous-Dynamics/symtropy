@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_active_sensing::{
-    assess_active_sensing, ActiveSensingConfig, DecisionWorld, MissingCause, PolicyOutcome,
-    SensorAction, SensorPrediction,
+    assess_active_sensing, evaluator_prediction_audit, ActiveSensingConfig, DecisionWorld,
+    MissingCause, PolicyOutcome, SensorAction, SensorPrediction,
 };
 
 const SCENARIO_ID: &str = "three-world-sensor-dual-control-v1";
@@ -203,6 +203,7 @@ fn audit_fields(
 fn main() -> Result<(), String> {
     let (config, worlds, sensors) = fixture();
     let report = assess_active_sensing(&config, &worlds, &sensors)?;
+    let evaluator_audit = evaluator_prediction_audit(&sensors)?;
 
     println!(
         "record_type,scenario_id,sensor_id,status,affordable,recommended,baseline_policy_id,baseline_worst_regret,protocol_digest,energy_cost_kwh,service_units_per_kwh,energy_cost_service_units,latency_ticks,maximum_latency_service_loss,maximum_total_penalty_service_units,worst_case_post_sensing_regret,regret_reduction,observation_id,partition_world_count,world_ids,selected_policy_id,partition_worst_regret,receipt_world_id,world_digest,prediction_receipt_digest,evaluator_missing_cause"
@@ -213,9 +214,13 @@ fn main() -> Result<(), String> {
         for partition in &assessment.partitions {
             emit(partition_fields(&report, assessment, partition));
         }
-        for receipt in &assessment.prediction_audit_receipts {
-            emit(audit_fields(&report, assessment, receipt));
-        }
+    }
+
+    for receipt in &evaluator_audit {
+        let assessment = report.sensors.iter()
+            .find(|item| item.sensor_id == receipt.sensor_id)
+            .expect("audit refers to declared sensor");
+        emit(audit_fields(&report, assessment, receipt));
     }
 
     Ok(())
