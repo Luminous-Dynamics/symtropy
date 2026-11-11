@@ -9,7 +9,7 @@
 
 use serde::{Deserialize, Serialize};
 
-const DEFAULT_MAX_CONDITION_NUMBER: f64 = 1.0e10;
+pub const DEFAULT_MAX_CONDITION_NUMBER: f64 = 1.0e10;
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -456,7 +456,7 @@ pub fn compare_maps(
     })
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum AuditError {
     EmptyField(&'static str),
     NonFinite(&'static str),
@@ -643,6 +643,17 @@ mod tests {
         right.normalization_id = left.normalization_id.clone();
         right.branch_id = "another-branch".into();
         assert_eq!(bracket_caustic(&left, &right, DEFAULT_MAX_CONDITION_NUMBER), Err(AuditError::BranchMismatch));
+    }
+
+    #[test]
+    fn parses_the_schema_backed_synthetic_atlas_fixture() {
+        let fixture = include_str!("../examples/synthetic-screen-map-atlas-v0.1.json");
+        let analyses = parse_and_analyze_json(fixture, DEFAULT_MAX_CONDITION_NUMBER).unwrap();
+        assert_eq!(analyses.len(), 4);
+        assert_eq!(analyses[0].status, MapStatus::Resolved);
+        let near_caustic = analyses.iter().find(|analysis| analysis.sample_id == "near-caustic-unresolved").unwrap();
+        assert_eq!(near_caustic.status, MapStatus::Unresolved);
+        assert!(near_caustic.log_magnification.is_none());
     }
 
     #[test]
