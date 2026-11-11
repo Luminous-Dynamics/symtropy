@@ -243,6 +243,42 @@
         "unique_hyperparameter_sets"
       ],
       "comparison_rule": "Do not pool ICU and Predator return values; keep stacked and unstacked as separate groups."
+    },
+    "producer_sources": [
+      {
+        "path": "experiments/PPO_baseline.jl",
+        "git_blob": "90b6ad874df4914ed9b66c3be03cbcbed3068c1c"
+      },
+      {
+        "path": "src/PPO.jl",
+        "git_blob": "5486ac1891d9501524a640f060c42c10f8fff04d"
+      },
+      {
+        "path": "src/FrameStacking.jl",
+        "git_blob": "58fa3eb8e95ff093261de09cc843634dc4e9d236"
+      },
+      {
+        "path": "src/LogUtils.jl",
+        "git_blob": "2babf17a1f6c28ed5182a046a78baf292d411d94"
+      },
+      {
+        "path": "src/Missingness.jl",
+        "git_blob": "ab3037fa2d86f696f7af659ad9a43c59b481ae4e"
+      },
+      {
+        "path": "jenv/Project.toml",
+        "git_blob": "a70a44625b91af2d092902efe914b6c420580f08"
+      }
+    ],
+    "reproducibility_finding": {
+      "baseline_entrypoint": "experiments/PPO_baseline.jl",
+      "baseline_entrypoint_git_blob": "90b6ad874df4914ed9b66c3be03cbcbed3068c1c",
+      "declared_runs": 0,
+      "declared_n_frames": 1,
+      "declared_seed": 1500,
+      "source_conclusion": "The checked-in baseline entrypoint as pinned generates no PPO training runs because RUNS is zero; it also does not generate the stacked n_frames=149 artifacts.",
+      "stacked_entrypoint_found": false,
+      "limitation": "The result JSON files have no generating source commit, raw per-episode returns, or immutable run receipt. They can be audited as artifacts but their exact training execution is not reproducible from the pinned checked-in experiment entrypoint alone."
     }
   }
 }
