@@ -112,6 +112,7 @@ fn validate_input(input:&Value)->Check<()>{
     let pairs=array(input,"required_fault_pairs","$")?;
     if pairs.is_empty(){return Err(err("EMPTY_PAIR_SET","$.required_fault_pairs","at least one pair required"));}
     let mut pair_ids=BTreeSet::new();
+    let mut semantic_pair_ids=BTreeSet::new();
     for (i,pair) in pairs.iter().enumerate(){
         let p=format!("$.required_fault_pairs[{i}]");
         allowed_keys(pair,&["pair_id","fault_a","fault_b","critical","minimum_independent_principles"],&p)?;
@@ -119,6 +120,7 @@ fn validate_input(input:&Value)->Check<()>{
         if !pair_ids.insert(id.to_owned()){return Err(err("DUPLICATE_PAIR_ID",&p,"pair IDs must be unique"));}
         let a=txt(pair,"fault_a",&p)?;let b=txt(pair,"fault_b",&p)?;
         if a==b||!state_ids.contains(a)||!state_ids.contains(b){return Err(err("INVALID_FAULT_PAIR",&p,"pair must reference distinct declared states"));}
+        if !semantic_pair_ids.insert(pair_key(a,b)){return Err(err("DUPLICATE_FAULT_RELATION",&p,"unordered fault pair may only be declared once"));}
         let _=boolean(pair,"critical",&p)?;
         let pair_min=pair["minimum_independent_principles"].as_u64().filter(|n|*n>0)
             .ok_or_else(||err("PAIR_THRESHOLD_INVALID",&p,"pair minimum must be positive"))?;
@@ -497,6 +499,15 @@ mod tests{
         let mut c=fixture();c["responses"][0]["unreviewed_override"]=json!(true);
         assert!(evaluate_maritime_case(&c).is_err());
         c=fixture();c["responses"][1]["response_id"]=c["responses"][0]["response_id"].clone();
+        assert!(evaluate_maritime_case(&c).is_err());
+    }
+    #[test]
+    fn reversed_duplicate_fault_pair_is_rejected(){
+        let mut c=fixture();
+        let mut duplicate=c["required_fault_pairs"][0].clone();
+        let a=duplicate["fault_a"].clone();duplicate["fault_a"]=duplicate["fault_b"].clone();duplicate["fault_b"]=a;
+        duplicate["pair_id"]=json!("reversed-duplicate");
+        c["required_fault_pairs"].as_array_mut().unwrap().push(duplicate);
         assert!(evaluate_maritime_case(&c).is_err());
     }
     #[test]
