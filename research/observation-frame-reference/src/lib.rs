@@ -17,6 +17,7 @@ pub const MAX_EVENTS: usize = 1_000_000;
 
 const FRAME_HASH_DOMAIN: &[u8] = b"symtropy-observation-frame-reference-v1\0";
 const EVENT_HASH_DOMAIN: &[u8] = b"symtropy-observation-event-stream-v1\0";
+const OBSERVABLE_SET_HASH_DOMAIN: &[u8] = b"symtropy-observable-set-profile-v1\0";
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -174,6 +175,7 @@ pub enum FrameError {
     DuplicateEventId(String),
     DuplicateRuntimeSubject(String),
     InvalidRuntimeSubject,
+    ObservableSetDigestMismatch,
     ClaimBearingSubjectMissing(String),
     InvalidObservationDisposition(String),
     InvalidBinary64Bits(String),
@@ -386,6 +388,11 @@ fn validate_frame(input: &ObservationFrameInputV1) -> Result<(), FrameError> {
         }
     }
 
+    let expected_observable_set_sha256 = compute_observable_set_sha256(&input.entities)?;
+    if expected_observable_set_sha256 != identity.observable_set_sha256 {
+        return Err(FrameError::ObservableSetDigestMismatch);
+    }
+
     Ok(())
 }
 
@@ -511,6 +518,53 @@ fn require_text(value: &str, field: &'static str) -> Result<(), FrameError> {
     Ok(())
 }
 
+#[derive(Serialize)]
+struct ObservableSetEntryRef<'a> {
+    scenario_entity_id: &'a str,
+    coordinate_frame_id: &'a str,
+    observable_id: &'a str,
+    quantity_id: &'a str,
+    unit: &'a str,
+}
+
+/// Compute a canonical digest for declared observable membership.
+///
+/// The digest binds semantic channel membership and units, not observed values
+/// or source classes. An unavailable channel remains a member of the set.
+pub fn compute_observable_set_sha256(
+    entities: &[ObservationEntityV1],
+) -> Result<String, FrameError> {
+    let mut entries = Vec::new();
+    for entity in entities {
+        for observable in &entity.observables {
+            entries.push(ObservableSetEntryRef {
+                scenario_entity_id: &entity.scenario_entity_id,
+                coordinate_frame_id: &entity.coordinate_frame_id,
+                observable_id: &observable.observable_id,
+                quantity_id: &observable.quantity_id,
+                unit: &observable.unit,
+            });
+        }
+    }
+    entries.sort_by(|left, right| {
+        (
+            left.scenario_entity_id,
+            left.observable_id,
+            left.quantity_id,
+            left.unit,
+            left.coordinate_frame_id,
+        )
+            .cmp(&(
+                right.scenario_entity_id,
+                right.observable_id,
+                right.quantity_id,
+                right.unit,
+                right.coordinate_frame_id,
+            ))
+    });
+    hash_serialized(OBSERVABLE_SET_HASH_DOMAIN, &entries)
+}
+
 fn hash_serialized<T: Serialize>(domain: &[u8], value: &T) -> Result<String, FrameError> {
     let bytes = serde_json::to_vec(value)
         .map_err(|error| FrameError::Serialization(error.to_string()))?;
@@ -539,6 +593,40 @@ mod tests {
         assert_eq!(receipt.event_count, 2);
         assert!(receipt.event_order_sha256.is_some());
         assert!(receipt.findings.is_empty());
+    }
+
+    #[test]
+    fn observable_set_digest_matches_fixed_known_answer() {
+        let input = fixture();
+        assert_eq!(
+            compute_observable_set_sha256(&input.entities).expect("observable set"),
+            "49f7e8d90e39e2913f695e64e59c4a6c5ee0ffd3137d0a5b7c5a892b46fa4ae4"
+        );
+    }
+
+    #[test]
+    fn observable_set_digest_rejects_channel_membership_or_unit_mismatch() {
+        let mut input = fixture();
+        input.entities[0].observables[0].unit = "cm".to_string();
+        assert_eq!(
+            compile_observation_frame(input).unwrap_err(),
+            FrameError::ObservableSetDigestMismatch
+        );
+    }
+
+    #[test]
+    fn observable_set_digest_is_permutation_invariant() {
+        let mut input = fixture();
+        let expected =
+            compute_observable_set_sha256(&input.entities).expect("original profile");
+        input.entities.reverse();
+        for entity in &mut input.entities {
+            entity.observables.reverse();
+        }
+        assert_eq!(
+            expected,
+            compute_observable_set_sha256(&input.entities).expect("permuted profile")
+        );
     }
 
     #[test]
