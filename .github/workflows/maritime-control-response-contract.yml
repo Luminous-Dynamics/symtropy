@@ -64,6 +64,13 @@ jobs:
             and (.event_evaluation.alarm_debounce.minimum_positive_samples == 3)
             and (.event_evaluation.timing.maximum_observation_gap_seconds == 0.10)
             and (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false)
+            and (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1")
+            and (.shift_matrix.status == "protocol_only_not_executed")
+            and (.shift_matrix.axes | length == 6)
+            and ([.shift_matrix.axes[].id] | index("C_SHIFT_DRIVING_CYCLE") != null)
+            and ([.shift_matrix.axes[].id] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null)
+            and ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null)
+            and (.shift_matrix.cross_engine_fleet | contains("unsupported"))
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
       - name: Validate benchmark run-manifest schema contract
@@ -75,6 +82,9 @@ jobs:
             (.properties.run_status.enum | length == 6) and
             (.properties.dataset.properties.archive_sha256.oneOf | length == 2) and
             (.properties.protocol.required | index("event_evaluation") != null) and
+            (.properties.protocol.required | index("shift_matrix_sha256") != null) and
+            (.properties.protocol.required | index("shift_axis") != null) and
+            (.properties.protocol.properties.shift_holdout_manifest_sha256.pattern == "^[a-f0-9]{64}$") and
             (.properties.metrics.properties.false_alarms_per_observed_normal_hour != null) and
             (.properties.claims.properties.physical_transfer_claim_allowed.const == false)
           ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
