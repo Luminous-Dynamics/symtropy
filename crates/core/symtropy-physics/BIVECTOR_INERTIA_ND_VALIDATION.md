@@ -32,7 +32,7 @@ The stored response is `delta_B = I^-1(delta_L)`. The physical contact-point vel
 
 `delta_v_rot = -delta_B r`,
 
-and the rotational contribution to inverse effective mass is `n dot delta_v_rot`. This must be nonnegative for valid positive inertia. The reference rejects non-finite inputs, zero directions, singular excited planes and materially negative effective mass. A global rigid-rotation metamorphic test checks that the scalar response is invariant when inertia, lever arm and impulse direction rotate together.
+and the rotational contribution to inverse effective mass is `n dot delta_v_rot`. This must be nonnegative for valid positive inertia. The reference rejects non-finite inputs, zero directions, singular excited planes and materially negative effective mass. A global rigid-rotation metamorphic test checks that the scalar response is invariant when inertia, lever arm and impulse direction rotate together. `rotational_inverse_effective_mass_world` accepts world-frame contacts but keeps `S` in the body frame: it rotates only the offset and impulse direction into the body frame, avoiding a fresh world-frame eigendecomposition for every contact query.
 
 ## Gyroscopic derivative
 
@@ -53,10 +53,10 @@ where `T` is the stored-bivector representation of the physical applied torque. 
 - Forward/inverse round trips in D=3, D=4 (all six planes), and D=9 (all 36 planes).
 - Uniform second-moment rescaling by `1e-12`, `1`, and `1e12`: angular state is unchanged, momentum and energy scale linearly with mass, and inverse rotational effective mass scales inversely with mass.
 - Body-to-world inertia rotation, kinetic-energy covariance, gyroscopic acceleration covariance and rotational contact effective-mass covariance.
-- Analytical isotropic contact effective mass and anisotropic principal-plane contact response.
+- Analytical isotropic contact effective mass and anisotropic principal-plane contact response, including equivalence of body-frame and transformed world-frame contact queries.
 - Off-centre impulse from rest: direct point-velocity response agrees with the scalar rotational inverse effective mass, and rotational kinetic-energy increase equals half the impulse dotted with the contact-point velocity change.
 - Torque-free momentum/energy derivative and instantaneous applied-torque balance.
-- Parallel-axis composition with centered offsets, point-mass translation invariance (including small geometry far from world origin), and offset-centering negative control.
+- Parallel-axis composition with centered offsets, point-mass translation invariance (including small geometry far from world origin), canonical point-cloud input-order invariance, and offset-centering negative control.
 - Invalid dimensions outside `2 <= D <= 9`, asymmetric/indefinite/zero-mass/degenerate inputs, invalid tolerance, singular rotation planes, zero impulse direction, improper Rotor, non-finite intermediates and overflow controls.
 
 ## Mathematical prior art and novelty boundary
