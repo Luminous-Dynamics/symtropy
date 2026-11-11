@@ -25,6 +25,20 @@ The benchmark lists four known fault classes: intake-manifold leakage and multip
 - Split-conformal calibration using one maximum standardized residual per independent recording/episode, not 20 Hz samples or overlapping windows.
 - Calibration receipts retain their sorted episode identities and maximum residuals. Their digests and finite-sample order statistic are recomputed; the threshold must match the frozen model, regime, training manifest and split manifest.
 
+## Read-only value of information: choose the next evidence, not the next action
+
+The exposed `active_probe` module ranks additional candidate evidence by expected information gain over an explicit competing-hypothesis prior. For each candidate, it computes the entropy before acquisition, expected entropy after each possible observation, and expected information gain. A deterministic utility adjusts that gain by declared cost, delay and risk scales after hard eligibility checks. The candidate manifest binds its outcome likelihood table, model/calibration references, hypothesis prior, cost, delay, risk and authority-evidence reference.
+
+Three candidate classes are explicit:
+
+- **Passive measurement:** eligible only with an upstream approved-read-only authority state and a digest reference to the authority evidence.
+- **Operator inspection:** eligible only when the policy enables it and the caller supplies a human-authorized state plus an authority-evidence reference.
+- **Controlled perturbation:** always excluded. It requires a separate safety case, hazard analysis, asset-owner review and explicit control authority; this selector cannot authorize or execute it.
+
+The selector records rejected candidates and reasons, rejects zero-information probes by default, uses deterministic tie-breaking and returns `execution_performed=false` and `actuation_authorized=false`. The authority digest is only a content reference: signer identity, permission scope, expiry, revocation and issuer authority must be verified upstream. Likelihood-model and calibration digests likewise bind evidence but do not prove that the statistical model is calibrated.
+
+The active evidence comparator protocol is frozen in [active-evidence-selection-v0.1.json](active-evidence-selection-v0.1.json). It compares no additional evidence, cheapest eligible, maximum information gain, information gain per cost, seeded-random eligible, and the risk-adjusted information-gain selector over the *same* eligible candidate set. Synthetic contract tests establish only mathematical behavior and fail-closed gates—not physical diagnostic utility or safety.
+
 ## Orthogonal out-of-distribution (OOD) experiments
 
 The benchmark now distinguishes condition shift (C), fault-semantic shift (F), and their combination (C+F). This is not a cosmetic taxonomy: the system must demonstrate both known-class retention under new conditions and rejection of faults outside the training label space. The 2026 mechanical OOD survey explicitly separates these deployment requirements, while LiU-ICE provides a concrete condition-shift opportunity: the public training recordings use WLTP, evaluation may include other cycles, and ambient pressure/temperature vary between recordings for non-fault reasons.
