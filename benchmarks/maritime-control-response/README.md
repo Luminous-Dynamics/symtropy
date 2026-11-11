@@ -19,7 +19,7 @@ A second useful public data asset is [Marine Engine Fault, Zenodo DOI 10.5281/ze
 
 The five described fault families are compressor air-filter clogging, air-cooler fouling, injection-valve nozzle clogging, cooling-water pump cavitation and turbine degradation. Loads vary by scenario (40–85% in the listed tests). The metadata notes that two channels—Compressor Filter Loss and Turbine Back Pressure—are empty in five runs. Two injection-nozzle recordings contain anomalous operation only, so they cannot establish onset latency without an independent injection-time record. [The Zenodo record](https://zenodo.org/records/19857425) is the source of record for the data and licence metadata.
 
-This is **not** an additional engine/fleet validation. The source identifies one MU323DGSC test-bench identity. Nor is it a label-compatible extension of LiU-ICE: the fault families, channel set, headers, label semantics and submission protocol differ. The [external-marine-engine-dataset-v0.1.json](external-marine-engine-dataset-v0.1.json) freezes a separate audit and evaluation track:
+This is **not** an additional engine/fleet validation. The source identifies one MU323DGSC test-bench identity. Nor is it a label-compatible extension of LiU-ICE: the fault families, channel set, headers, label semantics and submission protocol differ. The [external-marine-engine-dataset-v0.1.json](external-marine-engine-dataset-v0.1.json) freezes a separate audit and evaluation track. The per-file input contract is defined by [external-dataset-file-manifest.schema.json](external-dataset-file-manifest.schema.json) and implemented in Rust at `src/external_dataset.rs`:
 
 - Archive/file audit: verify the ZIP bytes, file inventory, three-row headers, variable dictionary, units, per-file signal presence and normalization script.
 - Held-out-load evaluation: hold out entire recording files/load points, not random time rows or overlapping windows.
@@ -28,7 +28,7 @@ This is **not** an additional engine/fleet validation. The source identifies one
 - Event-latency track: use only files with independently supported onset/offset labels.
 - Cross-benchmark transfer: evaluate LiU-ICE and this dataset separately, then attempt a reviewed component/function-level signal map. Never pool their sample labels or report a single shared score.
 
-Every run must bind separate dataset archive, file-manifest, index, variable-dictionary, normalization-script, signal-map, fault-map and split digests. Similar signal names or the same engine model designation do not establish identical semantics, measurement provenance or independent engine transfer.
+Every run must bind separate dataset archive, file-manifest, index, variable-dictionary, normalization-script, signal-map, fault-map and split digests. The Rust manifest validator checks expected file/family counts, schema/header shape, allowed missing channels, anomaly-only eligibility and exact whole-file split assignment; it does not parse or authenticate the CSV payload. Similar signal names or the same engine model designation do not establish identical semantics, measurement provenance or independent engine transfer.
 
 The Zenodo metadata lists CC BY 4.0, but the archive has **not** been downloaded or inspected in this workstream. The metadata-level license record is not a substitute for auditing the actual archive notices and file inventory before repackaging or redistribution. No score or validation result is claimed for this dataset.
 
@@ -169,8 +169,8 @@ A test bench with one engine supports within-engine drive-cycle/magnitude genera
 
 ## Claim boundaries and next steps
 
-- The official training ZIP is linked by the benchmark page, but attempts to retrieve the binary archive in this environment failed; it has not been downloaded, hashed or audited in this workstream. No data SHA, trained model score or competition score is claimed.
-- The public landing page does not establish a redistribution licence for the archive. Do not republish the data until licensing is confirmed.
+- The LiU-ICE training ZIP and the Marine Engine Fault ZIP are linked by their source records, but neither archive could be retrieved from this execution environment. Neither has been downloaded, hashed or audited; no dataset SHA, trained model score, competition score or external-dataset validation score is claimed.
+- The LiU-ICE public landing page does not establish an archive redistribution licence. The Marine Engine Fault Zenodo record lists CC BY 4.0, but archive notices and bytes remain unaudited. Do not redistribute either archive until the applicable source terms are checked.
 - Inspect the archive, variable dictionary, sampling/time semantics, data completeness and fault-label rules before freezing feature and split manifests.
 - Compare published baselines only under a recovered, matched protocol. Mark unreproduced paper scores as literature references.
 - Physical validation requires permissioned synchronized controller intent, independently measured actuator feedback and physical plant response from an engine testbed, with an independently reviewed I/O map.
