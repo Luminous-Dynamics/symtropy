@@ -180,6 +180,10 @@ pub enum RenderError {
     AppliedActionMissing,
     AppliedActionTickMismatch,
     InvalidActionReceiptDigest,
+    ParentFrameMismatch,
+    ParentReceiptCommitmentMismatch,
+    DerivedFrameGeometryMismatch,
+    InvalidDerivedClock,
     InvalidFrameGeometry,
     InvalidFocalLength,
     InvalidNearFarPlane,
@@ -264,6 +268,14 @@ pub struct EvaluatorObservationAudit {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PolicyReceiptOverrides {
+    pub capture_timestamp_us: Option<u64>,
+    pub render_completed_timestamp_us: Option<u64>,
+    pub delivered_timestamp_us: Option<u64>,
+    pub camera_calibration_sha256: Option<String>,
+}
+
 pub struct RenderedObservation {
     /// Raw RGB8 sRGB artifact. Persist as bytes and verify against frame_sha256;
     /// do not serialize a multi-megabyte image as a JSON integer array.
@@ -484,6 +496,70 @@ impl SoftwareCameraRenderer {
             pixels_rgb: pixels,
             policy_receipt: receipt,
         })
+    }
+
+    /// Create a new policy receipt for a deterministic derived frame while
+    /// preserving the clean source receipt as an immutable parent artifact.
+    ///
+    /// Fault schedule and event identity belong in an evaluator-only sidecar,
+    /// not in policy-visible receipt fields. The parent frame and receipt are
+    /// verified before a child receipt is issued. Timestamp/calibration
+    /// overrides are allowed so negative controls can produce self-consistent
+    /// but invalid observations that the downstream bridge must reject.
+    pub fn derive_policy_observation(
+        parent: &PolicyObservationReceipt,
+        parent_pixels_rgb: &[u8],
+        derived_pixels_rgb: &[u8],
+        overrides: PolicyReceiptOverrides,
+    ) -> Result<PolicyObservationReceipt, RenderError> {
+        if parent.schema_version != RENDERER_SCHEMA_VERSION
+            || parent.pixel_format != PixelFormat::Rgb8Srgb
+            || parent.channels != 3
+        {
+            return Err(RenderError::ParentReceiptCommitmentMismatch);
+        }
+        let expected_parent_bytes = (parent.frame_width as usize)
+            .checked_mul(parent.frame_height as usize)
+            .and_then(|pixels| pixels.checked_mul(parent.channels as usize))
+            .ok_or(RenderError::ParentFrameMismatch)?;
+        if parent.frame_byte_len != expected_parent_bytes
+            || parent_pixels_rgb.len() != expected_parent_bytes
+            || sha256_hex(parent_pixels_rgb) != parent.frame_sha256
+        {
+            return Err(RenderError::ParentFrameMismatch);
+        }
+        if observation_identity_digest(parent) != parent.observation_id
+            || policy_receipt_digest(parent) != parent.receipt_sha256
+        {
+            return Err(RenderError::ParentReceiptCommitmentMismatch);
+        }
+        if derived_pixels_rgb.len() != expected_parent_bytes
+            || derived_pixels_rgb.len() > MAX_FRAME_BYTES
+        {
+            return Err(RenderError::DerivedFrameGeometryMismatch);
+        }
+
+        let mut child = parent.clone();
+        child.frame_byte_len = derived_pixels_rgb.len();
+        child.frame_sha256 = sha256_hex(derived_pixels_rgb);
+        if let Some(value) = overrides.capture_timestamp_us {
+            child.capture_timestamp_us = value;
+        }
+        if let Some(value) = overrides.render_completed_timestamp_us {
+            child.render_completed_timestamp_us = value;
+        }
+        if let Some(value) = overrides.delivered_timestamp_us {
+            child.delivered_timestamp_us = value;
+        }
+        if let Some(value) = overrides.camera_calibration_sha256 {
+            if !is_sha256_hex(&value) {
+                return Err(RenderError::InvalidDerivedClock);
+            }
+            child.camera_calibration_sha256 = value;
+        }
+        child.observation_id = observation_identity_digest(&child);
+        child.receipt_sha256 = policy_receipt_digest(&child);
+        Ok(child)
     }
 
     /// Produce a separate evaluator-only artifact. This is intentionally not
@@ -1325,6 +1401,70 @@ pub fn sha256_hex(input: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn derived_policy_receipt_binds_changed_pixels_and_preserves_parent() {
+        let world = snapshot();
+        let clocks = RenderClocks {
+            capture_timestamp_us: 20_000,
+            render_completed_timestamp_us: 20_800,
+            delivered_timestamp_us: 21_000,
+        };
+        let original = SoftwareCameraRenderer::render(&world, 1, clocks).unwrap();
+        let parent = original.policy_receipt.clone();
+        let parent_pixels = original.pixels_rgb.clone();
+        let mut derived_pixels = parent_pixels.clone();
+        derived_pixels[0] ^= 0x80;
+        let child = SoftwareCameraRenderer::derive_policy_observation(
+            &parent,
+            &parent_pixels,
+            &derived_pixels,
+            PolicyReceiptOverrides::default(),
+        )
+        .unwrap();
+
+        assert_eq!(original.policy_receipt, parent);
+        assert_ne!(child.frame_sha256, parent.frame_sha256);
+        assert_ne!(child.observation_id, parent.observation_id);
+        assert_ne!(child.receipt_sha256, parent.receipt_sha256);
+        assert_eq!(child.capture_timestamp_us, parent.capture_timestamp_us);
+        assert_eq!(child.applied_action_receipt_id, parent.applied_action_receipt_id);
+        assert_eq!(child.sequence, parent.sequence);
+        assert_eq!(sha256_hex(&derived_pixels), child.frame_sha256);
+    }
+
+    #[test]
+    fn derived_receipt_rejects_tampered_parent_frame_or_receipt() {
+        let world = snapshot();
+        let clocks = RenderClocks {
+            capture_timestamp_us: 20_000,
+            render_completed_timestamp_us: 20_800,
+            delivered_timestamp_us: 21_000,
+        };
+        let rendered = SoftwareCameraRenderer::render(&world, 1, clocks).unwrap();
+        let mut tampered_pixels = rendered.pixels_rgb.clone();
+        tampered_pixels[0] ^= 1;
+        assert_eq!(
+            SoftwareCameraRenderer::derive_policy_observation(
+                &rendered.policy_receipt,
+                &tampered_pixels,
+                &rendered.pixels_rgb,
+                PolicyReceiptOverrides::default(),
+            ),
+            Err(RenderError::ParentFrameMismatch)
+        );
+        let mut tampered_receipt = rendered.policy_receipt.clone();
+        tampered_receipt.camera_id.push_str("-tampered");
+        assert_eq!(
+            SoftwareCameraRenderer::derive_policy_observation(
+                &tampered_receipt,
+                &rendered.pixels_rgb,
+                &rendered.pixels_rgb,
+                PolicyReceiptOverrides::default(),
+            ),
+            Err(RenderError::ParentReceiptCommitmentMismatch)
+        );
+    }
 
     fn camera() -> CameraCalibration {
         CameraCalibration {
