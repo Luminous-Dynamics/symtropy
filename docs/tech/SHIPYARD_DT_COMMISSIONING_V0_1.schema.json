@@ -12,7 +12,8 @@
     "requested_capabilities",
     "permitted_capabilities",
     "required_streams",
-    "observations"
+    "observations",
+    "master_clock_id"
   ],
   "properties": {
     "twin_id": {
@@ -61,6 +62,10 @@
       "items": {
         "$ref": "#/$defs/observation"
       }
+    },
+    "master_clock_id": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {
