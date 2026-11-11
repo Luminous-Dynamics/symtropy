@@ -153,6 +153,106 @@ pub enum FrameFinding {
     NonFiniteObservationValue(String),
 }
 
+/// Identity of the live source buffer behind an optional zero-copy view.
+///
+/// This is a semantic lifetime token; it does not itself make an unsafe
+/// reference safe or extend the source buffer's memory lifetime.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct ObservationBufferIdentityV1 {
+    pub world_instance_id: String,
+    pub world_generation_id: String,
+    pub rebuild_epoch: u64,
+    pub frame_sha256: String,
+    pub observable_set_sha256: String,
+}
+
+/// A borrowed view must be checked against the current buffer identity before
+/// every access boundary where a rebuild or frame advance may have occurred.
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct BorrowedObservationViewV1 {
+    pub view_id: String,
+    pub source: ObservationBufferIdentityV1,
+}
+
+/// The owned frame/receipt remains a historical value. These failures apply
+/// only to a borrowed live-buffer view.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BorrowedViewError {
+    EmptyIdentity(&'static str),
+    InvalidDigest(&'static str),
+    WorldInstanceChanged,
+    WorldGenerationChanged,
+    RebuildEpochChanged,
+    FrameChanged,
+    ObservableSetChanged,
+}
+
+impl std::fmt::Display for BorrowedViewError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
+impl std::error::Error for BorrowedViewError {}
+
+/// Return success only when the view still points at the exact current
+/// world instance, generation, rebuild epoch, observation frame and channel
+/// profile. The caller must still obey Rust's actual memory-lifetime rules.
+pub fn validate_borrowed_observation_view(
+    view: &BorrowedObservationViewV1,
+    current: &ObservationBufferIdentityV1,
+) -> Result<(), BorrowedViewError> {
+    require_view_text(&view.view_id, "view_id")?;
+    validate_buffer_identity(&view.source)?;
+    validate_buffer_identity(current)?;
+
+    if view.source.world_instance_id != current.world_instance_id {
+        return Err(BorrowedViewError::WorldInstanceChanged);
+    }
+    if view.source.world_generation_id != current.world_generation_id {
+        return Err(BorrowedViewError::WorldGenerationChanged);
+    }
+    if view.source.rebuild_epoch != current.rebuild_epoch {
+        return Err(BorrowedViewError::RebuildEpochChanged);
+    }
+    if view.source.frame_sha256 != current.frame_sha256 {
+        return Err(BorrowedViewError::FrameChanged);
+    }
+    if view.source.observable_set_sha256 != current.observable_set_sha256 {
+        return Err(BorrowedViewError::ObservableSetChanged);
+    }
+    Ok(())
+}
+
+fn validate_buffer_identity(
+    identity: &ObservationBufferIdentityV1,
+) -> Result<(), BorrowedViewError> {
+    require_view_text(&identity.world_instance_id, "world_instance_id")?;
+    require_view_text(&identity.world_generation_id, "world_generation_id")?;
+    validate_view_digest(&identity.frame_sha256, "frame_sha256")?;
+    validate_view_digest(&identity.observable_set_sha256, "observable_set_sha256")
+}
+
+fn require_view_text(value: &str, field: &'static str) -> Result<(), BorrowedViewError> {
+    if value.trim().is_empty() || value.len() > 4096 {
+        return Err(BorrowedViewError::EmptyIdentity(field));
+    }
+    Ok(())
+}
+
+fn validate_view_digest(value: &str, field: &'static str) -> Result<(), BorrowedViewError> {
+    if value.len() != 64
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    {
+        return Err(BorrowedViewError::InvalidDigest(field));
+    }
+    Ok(())
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
 pub struct ObservationFrameReceiptV1 {
@@ -588,6 +688,114 @@ mod tests {
     fn fixture() -> ObservationFrameInputV1 {
         serde_json::from_str(include_str!("../fixtures/machine-test-01.json"))
             .expect("reference fixture parses")
+    }
+
+    fn buffer_identity(frame_sha256: &str, observable_set_sha256: &str) -> ObservationBufferIdentityV1 {
+        ObservationBufferIdentityV1 {
+            world_instance_id: "machine-test-01-world-instance".to_string(),
+            world_generation_id: "generation-0001".to_string(),
+            rebuild_epoch: 7,
+            frame_sha256: frame_sha256.to_string(),
+            observable_set_sha256: observable_set_sha256.to_string(),
+        }
+    }
+
+    fn borrowed_view(source: ObservationBufferIdentityV1) -> BorrowedObservationViewV1 {
+        BorrowedObservationViewV1 {
+            view_id: "engineering-inspection".to_string(),
+            source,
+        }
+    }
+
+    #[test]
+    fn borrowed_view_accepts_exact_current_buffer_identity() {
+        let current = buffer_identity("a".repeat(64).as_str(), "b".repeat(64).as_str());
+        let view = borrowed_view(current.clone());
+        assert_eq!(validate_borrowed_observation_view(&view, &current), Ok(()));
+    }
+
+    #[test]
+    fn borrowed_view_rejects_after_model_rebuild_even_with_same_generation_label() {
+        let original = buffer_identity("a".repeat(64).as_str(), "b".repeat(64).as_str());
+        let view = borrowed_view(original.clone());
+        let mut rebuilt = original;
+        rebuilt.rebuild_epoch += 1;
+        assert_eq!(
+            validate_borrowed_observation_view(&view, &rebuilt),
+            Err(BorrowedViewError::RebuildEpochChanged)
+        );
+    }
+
+    #[test]
+    fn borrowed_view_rejects_replaced_world_with_same_generation_label() {
+        let original = buffer_identity("a".repeat(64).as_str(), "b".repeat(64).as_str());
+        let view = borrowed_view(original.clone());
+        let mut replacement = original;
+        replacement.world_instance_id = "replacement-world-instance".to_string();
+        assert_eq!(
+            validate_borrowed_observation_view(&view, &replacement),
+            Err(BorrowedViewError::WorldInstanceChanged)
+        );
+    }
+
+    #[test]
+    fn borrowed_view_rejects_new_world_generation() {
+        let original = buffer_identity("a".repeat(64).as_str(), "b".repeat(64).as_str());
+        let view = borrowed_view(original.clone());
+        let mut next_generation = original;
+        next_generation.world_generation_id = "generation-0002".to_string();
+        assert_eq!(
+            validate_borrowed_observation_view(&view, &next_generation),
+            Err(BorrowedViewError::WorldGenerationChanged)
+        );
+    }
+
+    #[test]
+    fn borrowed_view_rejects_frame_advance_without_rebuild() {
+        let original = buffer_identity("a".repeat(64).as_str(), "b".repeat(64).as_str());
+        let view = borrowed_view(original.clone());
+        let mut advanced = original;
+        advanced.frame_sha256 = "c".repeat(64);
+        assert_eq!(
+            validate_borrowed_observation_view(&view, &advanced),
+            Err(BorrowedViewError::FrameChanged)
+        );
+    }
+
+    #[test]
+    fn borrowed_view_rejects_observable_set_change() {
+        let original = buffer_identity("a".repeat(64).as_str(), "b".repeat(64).as_str());
+        let view = borrowed_view(original.clone());
+        let mut changed = original;
+        changed.observable_set_sha256 = "c".repeat(64);
+        assert_eq!(
+            validate_borrowed_observation_view(&view, &changed),
+            Err(BorrowedViewError::ObservableSetChanged)
+        );
+    }
+
+    #[test]
+    fn borrowed_view_rejects_malformed_generation_identity() {
+        let mut original = buffer_identity("a".repeat(64).as_str(), "b".repeat(64).as_str());
+        original.frame_sha256 = "not-a-digest".to_string();
+        let view = borrowed_view(original.clone());
+        assert_eq!(
+            validate_borrowed_observation_view(&view, &original),
+            Err(BorrowedViewError::InvalidDigest("frame_sha256"))
+        );
+    }
+
+    #[test]
+    fn owned_observation_receipt_remains_stable_after_world_rebuild() {
+        let input = fixture();
+        let owned = compile_observation_frame(input).expect("owned observation");
+        let original = buffer_identity(&owned.frame_sha256, "b".repeat(64).as_str());
+        let mut rebuilt = original;
+        rebuilt.rebuild_epoch += 1;
+        rebuilt.world_generation_id = "generation-0002".to_string();
+        // Owned receipt is a historical value: no live-buffer check is needed.
+        assert_eq!(owned.frame_sha256, "fc5f9e54c629e395ab764f683a73e2be8f99f4c3f9e456fe52f81ce4729863fd");
+        assert_eq!(rebuilt.rebuild_epoch, 8);
     }
 
     #[test]
