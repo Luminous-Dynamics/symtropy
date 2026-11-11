@@ -722,10 +722,30 @@ mod tests {
     #[test]
     fn frozen_corpus_matches_dispositions_and_reason_codes() {
         let report = evaluate_corpus(FIXTURE.as_bytes()).expect("fixture parses");
-        assert_eq!(report.case_count, 37);
-        assert_eq!(report.matched_expected_cases, 37);
+        assert_eq!(report.case_count, 40);
+        assert_eq!(report.matched_expected_cases, 40);
         assert_eq!(report.mismatched_cases, 0);
         assert!(report.passed);
+    }
+
+    #[test]
+    fn nuisance_evidence_does_not_invent_change_in_no_change_world() {
+        let corpus: Corpus = serde_json::from_str(FIXTURE).expect("fixture parses");
+        for (case_id, reason) in [
+            ("SB-038", "REGISTRATION_DRIFT_OR_COMMON_MODE_SHIFT_UNRESOLVED"),
+            ("SB-039", "SURVEY_CHANGE_ESTIMATE_UNRESOLVED"),
+            ("SB-040", "INDEPENDENT_CHECKPOINT_EVIDENCE_UNRESOLVED"),
+        ] {
+            let case = corpus
+                .cases
+                .iter()
+                .find(|item| item.case_id == case_id)
+                .expect("no-change nuisance fixture");
+            assert_eq!(evaluate(case).0, "REQUEST_ADDITIONAL_OBSERVATION");
+            assert_eq!(evaluate(case).1, vec![reason.to_owned()]);
+            assert_ne!(evaluate(case).0, "ADMIT_CANDIDATE_DELTA");
+            assert_ne!(evaluate(case).0, "REAL_CHANGE_CANDIDATE");
+        }
     }
 
     #[test]
