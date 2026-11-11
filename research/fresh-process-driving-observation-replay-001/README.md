@@ -82,7 +82,7 @@ This is the auditor owned by [Symtropy #4666](https://github.com/Luminous-Dynami
 
 
 
-5. Use the generated `bridge-config.json`, `vision-config.json` and all three built binary paths. The generator pins the fixture episode, scenario, agent and camera identities. The helper pins the fixture identity:
+5. Use the generated `bridge-config.json`, `vision-config.json` and all three built binary paths. The Symthaea generator pins the fixture episode, scenario, agent and camera identities:
 - `episode_id = fresh-process-driving-episode-v0-1`;
 - `scenario_id = straight-to-curved-road-two-actors-v0-1`;
 - `agent_id = ego`;
@@ -124,7 +124,7 @@ cargo run --release --locked \
   ../symtropy-degradation/research/degradation-recovery-envelope-001/target/debug/degradation-recovery-envelope
 ```
 
-The output directory must be empty or new. Reusing a non-empty directory is rejected to prevent stale frames or receipts being mistaken for the current run. The final two arguments are the #4556 branch-auditor and #4666 degradation/recovery auditor executables. The final argument is the #4556 branch-auditor executable.
+The output directory must be empty or new. Reusing a non-empty directory is rejected to prevent stale frames or receipts being mistaken for the current run. The final two arguments are the #4556 branch-auditor and #4666 degradation/recovery auditor executables.
 
 ## Artifacts
 
