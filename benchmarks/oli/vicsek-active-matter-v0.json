@@ -91,7 +91,9 @@
     "random_initialization": "x,y uniform in [0,L); heading uniform in [0,2pi); initialization and angular-noise draws use one continued deterministic stream",
     "no_hidden_parameters": true,
     "update_rule_field": "VicsekConfig.update_rule",
-    "default_update_rule": "CurrentPositionAlignment"
+    "default_update_rule": "CurrentPositionAlignment",
+    "trajectory_metric_mode": "VicsekModel.step and run_steps return fast_metrics (O(N^2) trajectory metrics, graph topology fields omitted)",
+    "full_topology_mode": "VicsekModel.metrics computes exact graph clustering and shortest-path metrics; call at registered checkpoints, not every tick in large sweeps"
   },
   "benchmark_regimes": [
     {
@@ -350,8 +352,8 @@
     "cluster_size_variance": "Population variance of connected-component sizes",
     "mean_cluster_polar_order": "Unweighted mean polar order calculated within each connected component; distinguishes aligned opposing clusters from global disorder",
     "cluster_polar_order_variance": "Population variance of per-component polar order",
-    "mean_clustering_coefficient_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
-    "mean_shortest_path_length_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "mean_clustering_coefficient_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION; checkpoint-only",
+    "mean_shortest_path_length_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION; checkpoint-only",
     "cluster_area_perimeter_scaling_status": "NOT_IMPLEMENTED; future geometry extension",
     "local_order_coverage_fraction": "Fraction of particles with at least one other particle within the interaction radius",
     "mean_clustering_coefficient": "Mean Watts–Strogatz local clustering coefficient across all particles; degree 0 or 1 contributes zero",
@@ -403,7 +405,8 @@
     "update_rule_test": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE",
     "graph_topology_metrics_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
     "causal_intervention_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
-    "update_rule_erratum_status": "IMPLEMENTED_AS_EXPLICIT_NEXT_POSITION_ALIGNMENT_MODE; source reproduction not yet run"
+    "update_rule_erratum_status": "IMPLEMENTED_AS_EXPLICIT_NEXT_POSITION_ALIGNMENT_MODE; source reproduction not yet run",
+    "topology_checkpoint_schedule": "PENDING_BENCHMARK_RUNNER; initial proposal: tick 0, warm-up completion, then every 50 ticks and final tick"
   },
   "acceptance": {
     "intervention_sham_counterfactual_parity_required": true,
