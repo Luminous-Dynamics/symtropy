@@ -182,6 +182,8 @@ pub enum HorizonDisposition {
     IncompatibleTimebases,
     /// An evidence item declared a different constraint than its canonical slot.
     ConstraintOrderMismatch,
+    /// A public enum variant bypassed the validating constructor with a blank identity.
+    InvalidEvidenceIdentity,
     /// The safe duration does not contain one complete control cycle.
     NoCompleteActionCycle,
     /// Required open-loop queue coverage exceeds the safe maximum.
@@ -238,6 +240,7 @@ pub fn select_action_horizon<'a>(
     let mut common_timebase: Option<&'a str> = None;
     let mut timebase_mismatch = false;
     let mut constraint_mismatch = false;
+    let mut invalid_evidence_identity = false;
     let mut safe_horizon_ns = u64::MAX;
 
     let receipts = core::array::from_fn(|index| {
@@ -249,6 +252,9 @@ pub fn select_action_horizon<'a>(
                 source_id,
                 timebase_id,
             } => {
+                if source_id.trim().is_empty() || timebase_id.trim().is_empty() {
+                    invalid_evidence_identity = true;
+                }
                 if *reported_constraint != constraint {
                     constraint_mismatch = true;
                 }
@@ -268,6 +274,9 @@ pub fn select_action_horizon<'a>(
                 }
             }
             HorizonEvidence::Unknown { constraint: reported_constraint, reason } => {
+                if reason.trim().is_empty() {
+                    invalid_evidence_identity = true;
+                }
                 if *reported_constraint != constraint {
                     constraint_mismatch = true;
                 }
@@ -307,6 +316,10 @@ pub fn select_action_horizon<'a>(
         selected_cycles: None,
     };
 
+    if invalid_evidence_identity {
+        selection.disposition = HorizonDisposition::InvalidEvidenceIdentity;
+        return Ok(selection);
+    }
     if unknown_count > 0 {
         return Ok(selection);
     }
@@ -481,6 +494,28 @@ mod tests {
             assert_eq!(result.disposition, HorizonDisposition::UnqualifiedEvidence);
             assert_eq!(result.selected_cycles, None);
         }
+    }
+
+    #[test]
+    fn direct_enum_construction_cannot_bypass_identity_validation() {
+        let mut bounds = qualified_bounds([100; ACTION_HORIZON_CONSTRAINT_COUNT]);
+        bounds[0] = HorizonEvidence::Qualified {
+            constraint: HorizonConstraint::ObservationFreshness,
+            remaining_ns: 100,
+            source_id: " ".to_owned(),
+            timebase_id: "application-monotonic-epoch-7".to_owned(),
+        };
+        let result = select_action_horizon(&ActionHorizonRequest {
+            bounds,
+            controller_period_ns: 10,
+            p99_total_latency_ns: 20,
+            latency_profile_id: "p99-profile/test-target-a".to_owned(),
+            execution_mode: ActionExecutionMode::QueuedOpenLoop,
+        })
+        .unwrap();
+
+        assert_eq!(result.disposition, HorizonDisposition::InvalidEvidenceIdentity);
+        assert_eq!(result.selected_cycles, None);
     }
 
     #[test]
