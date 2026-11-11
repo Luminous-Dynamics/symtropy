@@ -1161,9 +1161,15 @@ impl<const D: usize> PhysicsWorld<D> {
 
                 let v_rel = {
                     let va = self.bodies[a].linear_velocity
-                        + integrator::angular_point_velocity(&self.bodies[a].angular_velocity, &r_a);
+                        + integrator::angular_point_velocity(
+                            &self.bodies[a].angular_velocity,
+                            &r_a,
+                        );
                     let vb = self.bodies[b].linear_velocity
-                        + integrator::angular_point_velocity(&self.bodies[b].angular_velocity, &r_b);
+                        + integrator::angular_point_velocity(
+                            &self.bodies[b].angular_velocity,
+                            &r_b,
+                        );
                     vb - va
                 };
                 let v_n = contact.normal * v_rel.dot(&contact.normal);
@@ -1192,7 +1198,8 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
                     integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
 
-                    let torque_a = integrator::angular_impulse_from_point(&r_a, &(-friction_impulse));
+                    let torque_a =
+                        integrator::angular_impulse_from_point(&r_a, &(-friction_impulse));
                     let torque_b = integrator::angular_impulse_from_point(&r_b, &friction_impulse);
                     integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
                     integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
