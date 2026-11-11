@@ -48,6 +48,10 @@ jobs:
           set -euo pipefail
           package="research/observation-frame-reference"
           mkdir -p "$package/target"
+          export RUSTC_VERSION="$(rustc +1.96.0 --version)"
+          export RUNNER_IMAGE_OS="${ImageOS:-unrecorded}"
+          export RUNNER_IMAGE_VERSION="${ImageVersion:-unrecorded}"
+          export CPU_MODEL="$(lscpu | awk -F: '/^Model name:/ { sub(/^[ \t]+/, "", $2); print $2; exit }')"
           cargo +1.96.0 run --release --locked --manifest-path "$package/Cargo.toml" --bin benchmark -- 10 > "$package/target/benchmark-results.jsonl"
 
       - name: Check deterministic receipt
