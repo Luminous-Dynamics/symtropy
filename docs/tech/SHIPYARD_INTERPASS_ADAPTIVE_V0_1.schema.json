@@ -93,7 +93,7 @@
         },
         "uncertainty_bound_units": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 1
         },
         "observed_at_tick": {
           "type": "integer",
@@ -244,7 +244,8 @@
       ],
       "properties": {
         "candidate_id": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "workpiece_id": {
           "type": "string"
