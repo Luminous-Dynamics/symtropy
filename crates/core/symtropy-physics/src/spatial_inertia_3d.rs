@@ -430,6 +430,8 @@ mod tests {
     fn spatial_mass_matrix_matches_com_kinetic_energy_decomposition() {
         let inertia = sample();
         let twist = sample_twist();
+        let matrix = inertia.spatial_mass_matrix().unwrap();
+        assert!((matrix - matrix.transpose()).norm() < 1.0e-14);
         let energy = inertia.kinetic_energy(&twist).unwrap();
         let omega = twist.fixed_rows::<3>(0).into_owned();
         let velocity_at_p = twist.fixed_rows::<3>(3).into_owned();
