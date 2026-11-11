@@ -1063,15 +1063,20 @@ mod tests {
         let schema: serde_json::Value =
             serde_json::from_str(include_str!("../schemas/fault-campaign-v1.schema.json"))
                 .unwrap();
+        let report_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/audit-report-v1.schema.json"))
+                .unwrap();
         assert_eq!(
             schema["$schema"],
             "https://json-schema.org/draft/2020-12/schema"
         );
         assert_eq!(
-            schema["properties"]["schema_version"]["const"],
-            1
+            report_schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
         );
+        assert_eq!(schema["properties"]["schema_version"]["const"], 1);
         assert!(schema["$defs"]["fault_spec"]["oneOf"].as_array().unwrap().len() >= 5);
+        assert!(report_schema["$defs"]["pair_report"].is_object());
     }
 
     #[test]
