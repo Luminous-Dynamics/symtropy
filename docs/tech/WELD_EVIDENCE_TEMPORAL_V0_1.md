@@ -45,7 +45,7 @@ The crate intentionally does not implement SHA-256. The caller must hash the exa
 
 ## Baselines and frozen tests
 
-The Draft 2020-12 adapter schema defines the event ledger, scope, source clock mappings, lifecycle actions, validity intervals, digest fields, purpose grants and decision request. The unit suite contains **33 Rust tests** and covers:
+The Draft 2020-12 adapter schema at `docs/tech/WELD_EVIDENCE_TEMPORAL_V0_1.schema.json` defines the event ledger, scope, source clock mappings, lifecycle actions, validity intervals, digest fields, purpose grants and decision request. The unit suite contains **33 Rust tests** and covers:
 - bitemporal cutoff and late-arrival separation;
 - future event-time and precision-boundary rejection;
 - authorized clock mapping and mapping knowledge-time;
@@ -73,4 +73,4 @@ All baselines must replay the same frozen event ledger and cutoffs. Report false
 A PASS establishes synthetic as-of selection and deterministic transcript behavior only. It does not prove source clock accuracy, physical scanner calibration, welding quality, NDT acceptance, model validity, WPS/PQR/WPQT qualification or production release.
 
 
-The canonical transcript includes applied lifecycle IDs, not just the resulting inclusion/exclusion set. Two different revocation histories therefore cannot collapse to the same replay receipt merely because both happen to exclude the same source event. The caller still computes SHA-256 over the returned canonical bytes.
+The canonical transcript includes full applied/pending lifecycle records, not just their IDs or resulting inclusion/exclusion set. Each record contributes kind, target, replacement, effective time and first-received time. Two distinct lifecycle histories therefore cannot collapse to the same replay receipt merely because both happen to exclude the same source event. The caller still computes SHA-256 over the returned canonical bytes.
