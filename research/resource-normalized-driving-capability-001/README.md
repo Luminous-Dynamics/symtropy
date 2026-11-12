@@ -13,13 +13,14 @@ Autonomous-driving comparisons are misleading when they ignore input privileges,
 1. **Matched capability:** same benchmark implementation, evaluation split, input permissions, data exposure, action space, scenario transitions and inference rig wherever feasible.
 2. **Capability frontier:** native task score against measured inference energy, p99 latency, memory, training transitions, GPU-hours, energy and human correction effort.
 
-The aim is not to prove that an HDC model is smaller than a transformer. The aim is to find the best measured competence/constraint frontier and determine which Symthaea components actually contribute.
+The aim is not to prove that an HDC model is smaller than a transformer. The aim is to find the best measured competence/constraint frontier and determine which Symthaea components actually contribute. The current public Bench2Drive leaderboard snapshot is v0.0.3; its self-reported results vary in data acquisition, expert use, compute and privileges, so the table is a target-selection reference, not a controlled comparison.
 
 ## What the field is doing (snapshot: 11 November 2026)
 
 | Comparator | Public reference | How to use it |
 |---|---|---|
-| Bench2Drive v0.0.4 | LEAD: 95.59 Driving Score; 87.28% Success Rate; separate efficiency and comfort measures | Closed-loop route benchmark; pin exact tag, routes, sensor profile and evaluator |
+| Bench2Drive v0.0.3 self-reported leaderboard | BridgeDrive (LEAD): 96.34 DS / 89.25 SR; TFv6: 95.28 / 86.81 | Public leaderboard says methods differ in data, experts, compute and privileges; these are not matched head-to-head runs |
+| Bench2Drive v0.0.3 privileged section | PDM-Lite: 97.02 DS / 92.27 SR | Ground-truth/privileged perception; retain as a separate upper-bound comparator, not a fair vision-only target |
 | DriveWorld-VLA, ICML 2026 | NAVSIMv1 PDMS 91.3; NAVSIMv2 EPDMS 86.8; nuScenes 3-second average collision rate 0.16 | Action-conditioned latent world-model/VLA reference; preserve each native task metric |
 | World-In-World, ICLR 2026 | Closed-loop platform emphasizing task success, controllability, action-observation post-training and inference-time compute | Evaluate whether predicted worlds improve agent success, not just video fidelity |
 | NVIDIA Alpamayo 2 Edge, released 10 Nov 2026 | Model card: 2.45B backbone + 0.2B action expert; 15.15 ± 0.04 km per at-fault incident on 875 AlpaSim scenarios / three rollout sets; minADE6 0.52m at 5s on 1,392 samples; Lingo-Judge 75.2; 115,000h video and about 3.7M CoC traces | Strong edge-VLA comparator. Keep closed-loop, open-loop, reasoning, training data and latency as distinct metric families |
