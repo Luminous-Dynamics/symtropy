@@ -92,9 +92,12 @@ jobs:
           ' research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json
       - name: Execute representation continuity audit
         run: |
+          jq -c '.canonical_receipt' \
+            research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json \
+            > /tmp/scan-bim-continuity-receipt.json
           cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
             --bin scan_bim_continuity_audit -- \
-            research/scan-bim-representation-continuity-001/fixtures/known_answers_v0_1.json \
+            /tmp/scan-bim-continuity-receipt.json \
             > /tmp/scan-bim-continuity-report.json
           jq -e '
             (.schema_version == "0.1") and
@@ -116,9 +119,12 @@ jobs:
           ' /tmp/scan-bim-continuity-report.json
       - name: Execute compositional representation chain audit
         run: |
+          jq -c '.canonical_receipt' \
+            research/scan-bim-representation-continuity-001/fixtures/compositional_known_answers_v0_1.json \
+            > /tmp/scan-bim-continuity-chain-receipt.json
           cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
             --bin scan_bim_continuity_chain_audit -- \
-            research/scan-bim-representation-continuity-001/fixtures/compositional_known_answers_v0_1.json \
+            /tmp/scan-bim-continuity-chain-receipt.json \
             > /tmp/scan-bim-continuity-chain-report.json
           jq -e '
             (.schema_version == "0.1") and
