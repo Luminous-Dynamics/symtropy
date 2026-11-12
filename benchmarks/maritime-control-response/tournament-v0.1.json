@@ -348,7 +348,8 @@
     "the current stationary likelihood model is not applied to serially dependent or shifted data without a separately validated conditional likelihood model",
     "multiple simultaneous fault alternatives use a family-wise alpha allocation; no per-test threshold is reused without adjustment",
     "unsupported outcomes poison the process and are never converted into infinite fault evidence",
-    "an anytime e-process threshold crossing is a statistical model-pair flag, not a physical root-cause or operational authority claim"
+    "an anytime e-process threshold crossing is a statistical model-pair flag, not a physical root-cause or operational authority claim",
+    "multi-scenario active-evidence ranking is not conflated with multi-scenario sequential posterior updating; joint hypothesis-scenario state must be retained across observations"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -610,7 +611,7 @@
   },
   "active_evidence_selection": {
     "path": "active-evidence-selection-v0.1.json",
-    "schema_version": "liu-ice-active-evidence-selection-v0.4",
+    "schema_version": "liu-ice-active-evidence-selection-v0.5",
     "status": "protocol_only_not_executed",
     "selector": "read_only_value_of_information_with_likelihood_scenario_robustness",
     "utility": "minimum scenario-specific expected information gain / (1 + normalized cost + normalized delay + normalized risk)",
@@ -648,6 +649,11 @@
       "grid_intervals": 100,
       "metric": "minimum pairwise Chernoff information over positive-prior fault hypotheses, then minimum across all likelihood uncertainty scenarios",
       "assumption": "asymptotic repeated conditionally independent observations; not a finite-sample diagnostic error guarantee"
+    },
+    "sequential_updates": {
+      "status": "single_point_model_updates_supported_multiscenario_updates_blocked",
+      "rule": "Multi-scenario likelihood candidates can be ranked robustly but cannot be used for sequential posterior updates until a joint hypothesis × persistent-scenario posterior ledger exists.",
+      "claim_ceiling": "No multi-scenario sequential inference claim."
     }
   },
   "streaming_contract": {
