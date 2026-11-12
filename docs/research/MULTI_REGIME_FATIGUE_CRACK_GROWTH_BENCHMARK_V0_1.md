@@ -145,11 +145,25 @@ Compose with:
 
 A crack-growth forecast is a model estimate. It is not a measured crack length, residual-strength assessment, inspection result, remaining-life guarantee, failure verdict, or maintenance authorization.
 
+## 7.4 Specialist solver reference profiles
+
+The comparison set must include the following model families where the solver/version and data semantics can be configured equivalently:
+
+- **Paris:** stable region-II baseline. This is the current bounded #4860 reference; do not treat it as a full-range model.
+- **Walker and Forman:** include as candidate conventional alternatives where inputs and assumptions are supported.
+- **NASGRO v3/v4:** high-value reference for a combined growth relationship that accounts for threshold, stress ratio/crack closure effects and Kmax relative to fracture toughness. Pin the exact version, material parameters and options.
+- **Tabular law:** use where measured curves are supplied directly; preserve interpolation, range and transition conventions.
+- **Three-component / three-regime models:** include only where the selected formulation and calibration are independently specified. Do not treat all “three-stage” models as equivalent.
+
+Current Ansys Mechanical APDL documentation states that its cited built-in XFEM-based fatigue crack-growth implementation is restricted to region II, while the SMART method exposes Paris, Walker, Forman, tabular fatigue law and NASGRO v3/v4 options. It also documents temperature- and stress-ratio-dependent data options and crack-closure models for supported criteria. NASA's current public NASGRO report explains threshold and Kmax/toughness treatment. These product features are baseline context, not proof that every product/version supports every geometry or context in the same way.
+
+The tournament must record exact solver/version/module, license/module availability, input format, geometry/SIF solution, material card, closure and R-ratio options, temperature/environment support, integration method, solver tolerances, cycle integration strategy, output units and applicability constraints. “Software supports NASGRO” is not a reproducible configuration.
+
 ## 8. Industry comparison and differentiation
 
 Commercial Ansys nCode DesignLife and SIMULIA fe-safe support much broader integrated fatigue workflows, including FEA coupling and multiple fatigue methods. This benchmark does not claim solver parity or replacement.
 
-The focused differentiator is a reproducible, rights-aware and leakage-safe comparison that:
+The focused differentiator is not broader constitutive-model coverage than specialist tools. It is a reproducible, rights-aware and leakage-safe comparison plus solver-independent evidence/lifecycle continuity that:
 - exposes unconservative error instead of hiding it in mean error;
 - reports curve/publication/grade/environment uncertainty;
 - tests transition stability rather than presenting one fitted curve as universal;
@@ -167,6 +181,18 @@ A claimed improvement must beat the strongest matched eligible baseline on the p
 5. Report the denominator, error, uncertainty, exclusions and abstentions per regime/condition.
 6. Any superiority claim requires an improvement on the pre-registered blind metric with no worsening of the false-slow/unconservative gate.
 7. Every output composes with the lifecycle damage receipt without changing evidence class from ModelEstimate to Measured.
+
+## Research and solver references
+
+- Strathclyde 2026 high-strength-steel FCGR database: https://doi.org/10.15129/983a9e5e-f8e2-4973-b217-9683ec62c965
+- Strathclyde 2026 paired S-N / FCGR database: https://doi.org/10.15129/d1c049e0-4550-4bed-a697-5fafef0ed626
+- Devine et al., 2026, high-strength steel FCGR database and single-/two-/three-stage analysis: https://doi.org/10.1111/ffe.70457
+- ASTM E647-24: https://store.astm.org/standards/e647
+- Ansys SMART fatigue crack-growth options and temperature/R-ratio/closure features: https://ansyshelp.ansys.com/public/Views/Secured/corp/v261/en/ans_frac/fracSMART.html
+- Ansys Mechanical APDL Fracture Analysis Guide (region-II restriction stated for its cited XFEM fatigue-growth implementation): https://ansyshelp.ansys.com/public/Views/Secured/corp/v252/en/pdf/Ansys_Mechanical_APDL_Fracture_Analysis_Guide.pdf
+- NASA NASGRO 2025 fracture/fatigue report: https://ntrs.nasa.gov/api/citations/20250011200/downloads/NASGRO%20FFS%20Final%20Report%20July%202025%20formatted.pdf
+- NASA Probabilistic Risk Assessment Guide, NASGRO equation and crack-growth parameter definitions: https://ntrs.nasa.gov/api/citations/20120001369/downloads/20120001369.pdf
+- NAFEMS code verification: https://www.nafems.org/publications/code-verification/
 
 ## 10. Claim ceiling
 
