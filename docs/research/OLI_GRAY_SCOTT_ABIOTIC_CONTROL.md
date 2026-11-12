@@ -14,6 +14,8 @@ It is an abiotic mathematical generator. It is not a plasma model, a laboratory 
 
 Module: `crates/domains/symtropy-lifesim-core/src/gray_scott.rs`
 
+The deterministic noisy patch is configured through the typed `GrayScottSeededPatch` value (position, dimensions, U/V centres, U/V noise amplitudes and seed). Named fields make the experimental input explicit and avoid a long positional-argument call.
+
 - CPU-first `f64` reference implementation, no new dependencies.
 - Two normalized fields U and V.
 - Gray–Scott reaction terms:
