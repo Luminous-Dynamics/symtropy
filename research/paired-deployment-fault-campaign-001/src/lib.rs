@@ -1141,7 +1141,16 @@ mod tests {
     #[test]
     fn rejects_missing_dropped_frame_events() {
         let mut value = campaign();
-        value.pairs[0].perturbed.fault_events.pop();
+        let missing_frame_index = value.pairs[0]
+            .perturbed
+            .fault_events
+            .iter()
+            .position(|event| event.kind == FaultEventKind::ObservedMissingFrame)
+            .unwrap();
+        value.pairs[0]
+            .perturbed
+            .fault_events
+            .remove(missing_frame_index);
         assert!(value.audit().findings.contains(&Finding::CameraDropDenominatorMismatch));
     }
 
@@ -1243,6 +1252,10 @@ mod tests {
             stability_window_ticks: 20,
             stability_envelope_sha256: digest('a'),
         });
+        value.pairs[0]
+            .perturbed
+            .fault_events
+            .retain(|event| event.kind != FaultEventKind::FaultRestored);
         let report = value.audit();
         assert!(report.findings.contains(&Finding::InvalidRecoveryAssessment));
     }
