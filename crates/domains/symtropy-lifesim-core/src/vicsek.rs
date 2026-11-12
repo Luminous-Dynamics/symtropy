@@ -534,7 +534,10 @@ impl VicsekModel {
             target_position.1,
             self.config.box_size,
         );
-        if dx.hypot(dy) > self.config.interaction_radius {
+        // Match the pinned PRR forward-update reference implementation's open
+        // interaction disk: distance squared must be strictly less than r squared.
+        // The self particle is included separately by the caller.
+        if dx.hypot(dy) >= self.config.interaction_radius {
             return false;
         }
         match self.perception {
@@ -2505,6 +2508,69 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn strict_metric_radius_excludes_exact_boundary_and_zero_radius_duplicates() {
+        let particles = vec![
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 1.5,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 2.0,
+                y: 1.0,
+                heading_rad: std::f64::consts::PI,
+            },
+        ];
+        let model = VicsekModel::new(
+            particles,
+            VicsekConfig {
+                box_size: 20.0,
+                interaction_radius: 0.5,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            5,
+        )
+        .unwrap();
+
+        // Distance 0.5 is exactly the open-radius boundary, so neither adjacent
+        // pair is visible under the source-pinned strict '< r^2' convention.
+        let metrics = model.fast_metrics();
+        assert_eq!(metrics.directed_interaction_edge_count, 0);
+        assert_eq!(metrics.cluster_count, 3);
+        assert_eq!(metrics.local_order_coverage_fraction, 0.0);
+
+        let coincident = VicsekModel::new(
+            vec![
+                VicsekParticle {
+                    x: 1.0,
+                    y: 1.0,
+                    heading_rad: 0.0,
+                },
+                VicsekParticle {
+                    x: 1.0,
+                    y: 1.0,
+                    heading_rad: std::f64::consts::PI,
+                },
+            ],
+            VicsekConfig {
+                interaction_radius: 0.0,
+                ..model.config()
+            },
+            6,
+        )
+        .unwrap();
+        assert_eq!(coincident.fast_metrics().directed_interaction_edge_count, 0);
     }
 
     #[test]
