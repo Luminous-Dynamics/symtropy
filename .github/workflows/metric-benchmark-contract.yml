@@ -1,0 +1,69 @@
+name: Metric physics benchmark contract
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - "research/metric-benchmark-comparison-001/**"
+      - ".github/workflows/metric-benchmark-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/metric-benchmark-comparison-001/**"
+      - ".github/workflows/metric-benchmark-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: metric-benchmark-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmark-contract:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install pinned schema validator
+        run: python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate case and result contracts
+        run: |
+          python3 - <<'PY'
+          import copy
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          root = Path("research/metric-benchmark-comparison-001")
+          case_schema = json.loads((root / "benchmark-case-v0.1.schema.json").read_text())
+          result_schema = json.loads((root / "benchmark-result-v0.1.schema.json").read_text())
+          case = json.loads((root / "fixtures/dumbbell-dense-rebasis-case-v0.1.json").read_text())
+          result = json.loads((root / "fixtures/not-run-inconclusive-result-v0.1.json").read_text())
+          Draft202012Validator.check_schema(case_schema)
+          Draft202012Validator.check_schema(result_schema)
+          case_validator = Draft202012Validator(case_schema)
+          result_validator = Draft202012Validator(result_schema)
+          assert not list(case_validator.iter_errors(case))
+          assert not list(result_validator.iter_errors(result))
+          assert result["record_kind"] == "synthetic_contract_example"
+          assert result["execution"]["status"] == "NOT_RUN"
+          assert result["decision"]["acceptance"] == "INCONCLUSIVE"
+          assert result["decision"]["comparison_status"] == "NOT_COMPARABLE"
+          # A backend with unverified semantics cannot become comparable.
+          forged = copy.deepcopy(result)
+          forged["decision"]["comparison_status"] = "COMPARABLE"
+          assert list(result_validator.iter_errors(forged)), "unverified mapping was ranked"
+          # A result cannot quietly bind to a changed physical input fixture.
+          forged = copy.deepcopy(result)
+          forged["case_binding"]["commit_sha"] = "0" * 40
+          assert list(result_validator.iter_errors(forged)), "stale fixture identity was accepted"
+          # A coordinate-family manifest cannot introduce an unpinned family.
+          forged = copy.deepcopy(case)
+          forged["coordinate_families"][0]["family"] = 1
+          assert list(case_validator.iter_errors(forged)), "unfrozen basis family was accepted"
+          PY
