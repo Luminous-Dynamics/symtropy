@@ -19,12 +19,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         profile,
     )?;
     let jacobian_old = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
-    let delassus_old =
-        DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-            &mass,
-            jacobian_old,
-            profile,
-        )?;
+    let delassus_old = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+        &mass,
+        jacobian_old,
+        profile,
+    )?;
     let multiplier_old = ConstraintMultiplierV1::<ConstraintSpace, 2>::new([0.75, -1.25])?;
     let residual_old = ConstraintResidualV1::<ConstraintSpace, 2>::new([0.25, -0.4])?;
     let multiplier_norm_old = delassus_old.multiplier_norm(&multiplier_old)?;
@@ -37,11 +36,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for shear in [1.0_f64, 2.0, 4.0, 8.0, 12.0, 16.0, 24.0] {
         // r_new = T r_old, lambda_new = T^-T lambda_old, J_new = T J_old.
-        let equation_rebasis =
-            ConstraintEquationRebasisV1::<ConstraintSpaceSheared, ConstraintSpace, 2>::new(
-                [[1.0, shear], [0.0, 1.0]],
-                profile,
-            )?;
+        let equation_rebasis = ConstraintEquationRebasisV1::<
+            ConstraintSpaceSheared,
+            ConstraintSpace,
+            2,
+        >::new([[1.0, shear], [0.0, 1.0]], profile)?;
         let jacobian_new = equation_rebasis.jacobian_to_new(&jacobian_old)?;
         let delassus_new =
             DelassusMetricV1::<CartesianQ, ConstraintSpaceSheared, 3, 2>::from_mass_jacobian(
