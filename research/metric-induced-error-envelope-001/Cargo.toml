@@ -10,4 +10,8 @@ description = "Frame-typed tangent/cotangent metrics and coordinate-invariant er
 [lib]
 path = "src/lib.rs"
 
+[[bin]]
+name = "metric-induced-microbenchmark"
+path = "src/bin/metric_microbenchmark.rs"
+
 [workspace]
