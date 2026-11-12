@@ -52,6 +52,7 @@ jobs:
             "$root/tournament-v0.1.json"
             "$root/published-six-solution-baselines-v0.1.json"
             "$root/published-dx2026-graybox-baseline-v0.1.json"
+            "$root/dx2026-boundary-falsification-v0.1.json"
             "$root/startup-adaptation-guard-v0.1.json"
             "$root/active-evidence-selection-v0.1.json"
             "$root/behavioral-set-diagnosis-v0.1.json"
@@ -132,6 +133,19 @@ jobs:
             ([.method.disclosed_limitations[]] | any(contains("startup"))) and
             (.claim_ceiling | contains("not been independently reproduced"))
           ' "$root/published-dx2026-graybox-baseline-v0.1.json" >/dev/null
+
+          jq -e '
+            .schema_version == "liu-ice-dx2026-boundary-falsification-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.cases | length == 3) and
+            (.cases[0].published.tdr_percent == 21.12) and
+            (.cases[0].synthetic_behavioral_set_fixture.expected_status == "ambiguous_hypothesis_set") and
+            (.cases[1].published.score_percent == 97.05) and
+            (.cases[1].synthetic_behavioral_set_fixture.expected_status == "unique_within_declared_catalogue") and
+            (.cases[2].published.fia_percent == 0.0) and
+            (.cases[2].synthetic_behavioral_set_fixture.expected_status == "unknown_or_out_of_support") and
+            ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
+          ' "$root/dx2026-boundary-falsification-v0.1.json" >/dev/null
 
           jq -e '
             .schema_version == "liu-ice-active-evidence-selection-v0.4" and
