@@ -114,7 +114,8 @@
         "integration_method",
         "units",
         "solver_tolerances",
-        "notes"
+        "notes",
+        "comparison_scope"
       ],
       "properties": {
         "status": {
@@ -171,6 +172,12 @@
           "items": {
             "type": "string"
           }
+        },
+        "comparison_scope": {
+          "enum": [
+            "mass_metric_riesz_solve_kernel_only",
+            "full_constrained_step"
+          ]
         }
       }
     },
@@ -279,37 +286,43 @@
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "cotangent_norm_relative_drift": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "canonical_pairing_relative_drift": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "mass_congruence_relative_defect": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "constraint_jacobian_relative_defect": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "raw_coordinate_inf_norm_change": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             }
           }
         },
@@ -331,43 +344,50 @@
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "exclusiveMinimum": 0
             },
             "metric_induced_operator_condition": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "exclusiveMinimum": 0
             },
             "normwise_backward_error": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "componentwise_backward_error": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "metric_residual_norm": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "forward_error_bound": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "observed_high_precision_forward_error": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "forward_bound_covers_observed": {
               "type": [
@@ -393,37 +413,43 @@
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "lifted_velocity_l2_error": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "momentum_l2_error": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "constraint_residual": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "energy_work_defect_j": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "discrete_step_equivariance_defect": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             }
           }
         },
@@ -483,31 +509,36 @@
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "solve_p95_ns": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "solve_p99_ns": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "factorization_median_ns": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "evidence_overhead_median_ns": {
               "type": [
                 "number",
                 "null"
-              ]
+              ],
+              "minimum": 0
             },
             "peak_memory_bytes": {
               "type": [
@@ -657,6 +688,99 @@
               },
               "comparison_status": {
                 "const": "NOT_COMPARABLE"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "model_mapping": {
+            "properties": {
+              "comparison_scope": {
+                "const": "mass_metric_riesz_solve_kernel_only"
+              }
+            },
+            "required": [
+              "comparison_scope"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "acceptance": {
+                "const": "INCONCLUSIVE"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "acceptance": {
+                "const": "PASS"
+              }
+            },
+            "required": [
+              "acceptance"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "comparison_status": {
+                "const": "COMPARABLE"
+              }
+            }
+          },
+          "model_mapping": {
+            "properties": {
+              "status": {
+                "const": "MATCHED"
+              },
+              "comparison_scope": {
+                "const": "full_constrained_step"
+              }
+            }
+          },
+          "execution": {
+            "properties": {
+              "status": {
+                "const": "COMPLETED"
+              }
+            }
+          },
+          "metrics": {
+            "properties": {
+              "numerical_quality": {
+                "properties": {
+                  "forward_bound_covers_observed": {
+                    "const": true
+                  }
+                }
+              },
+              "decision_quality": {
+                "properties": {
+                  "false_accept_count": {
+                    "const": 0
+                  },
+                  "negative_controls_run": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
               }
             }
           }
