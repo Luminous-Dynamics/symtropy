@@ -866,6 +866,104 @@ mod tests {
     }
 
     #[test]
+    fn contingent_tree_uses_different_corroborating_sensors_for_false_healthy_and_missing() {
+        let mut cfg = config();
+        cfg.scenario_id = "contingent-false-reassurance-corroboration-v1".to_owned();
+        cfg.source_digest = "sha256-false-reassurance-corroboration-v1".to_owned();
+        cfg.maximum_energy_kwh = 0.25;
+        cfg.maximum_penalty_service_units = 1.0;
+
+        let worlds = vec![
+            world("healthy", 100.0, 85.0),
+            world("degraded", 40.0, 80.0),
+            world("healthy_sensor_fault", 100.0, 85.0),
+            world("degraded_stuck_high", 40.0, 80.0),
+        ];
+
+        let sensors = vec![
+            sensor(
+                "screen",
+                0.1,
+                2.0,
+                1,
+                None,
+                vec![
+                    ("healthy", "healthy", None, 0.1),
+                    ("degraded", "missing", Some(MissingCause::CommonCausePowerLoss), 0.1),
+                    ("healthy_sensor_fault", "missing", Some(MissingCause::TelemetryNetworkFault), 0.1),
+                    ("degraded_stuck_high", "healthy", None, 0.1),
+                ],
+            ),
+            sensor(
+                "stuck_high_confirmation",
+                0.1,
+                2.0,
+                1,
+                Some("healthy"),
+                vec![
+                    ("healthy", "verified_healthy", None, 0.1),
+                    ("degraded", "not_requested", None, 0.1),
+                    ("healthy_sensor_fault", "not_requested", None, 0.1),
+                    ("degraded_stuck_high", "verified_degraded", None, 0.1),
+                ],
+            ),
+            sensor(
+                "independent_missing_branch_inspection",
+                0.1,
+                2.0,
+                1,
+                Some("missing"),
+                vec![
+                    ("healthy", "not_requested", None, 0.1),
+                    ("degraded", "verified_degraded", None, 0.1),
+                    ("healthy_sensor_fault", "verified_healthy", None, 0.1),
+                    ("degraded_stuck_high", "not_requested", None, 0.1),
+                ],
+            ),
+        ];
+
+        let report = assess_contingent_sensing(&cfg, &limits(2), &worlds, &sensors).unwrap();
+        assert_eq!(report.baseline.worst_case_regret, Some(15.0));
+        assert!(report.recommended);
+        assert_eq!(report.worst_case_post_sensing_regret, Some(0.6));
+        assert_eq!(report.worst_case_regret_reduction, Some(14.4));
+        assert_eq!(report.maximum_path_energy_kwh, 0.2);
+        assert_eq!(report.maximum_path_latency_ticks, 2);
+        assert_eq!(report.maximum_path_penalty_service_units, 0.6);
+
+        let CandidatePolicyNode::RequestSensor { sensor_id, branches } =
+            report.candidate_policy_tree.unwrap()
+        else {
+            panic!("root must request the screening sensor");
+        };
+        assert_eq!(sensor_id, "screen");
+        let healthy = branches.iter().find(|branch| branch.observation_id == "healthy").unwrap();
+        let missing = branches.iter().find(|branch| branch.observation_id == "missing").unwrap();
+
+        let CandidatePolicyNode::RequestSensor { sensor_id, branches: healthy_branches } =
+            healthy.next.as_ref()
+        else {
+            panic!("false-healthy branch must request independent corroboration");
+        };
+        assert_eq!(sensor_id, "stuck_high_confirmation");
+        let CandidatePolicyNode::RequestSensor { sensor_id, branches: missing_branches } =
+            missing.next.as_ref()
+        else {
+            panic!("missing branch must request its own independent inspection");
+        };
+        assert_eq!(sensor_id, "independent_missing_branch_inspection");
+
+        assert_eq!(
+            healthy_branches.iter().map(|branch| branch.observation_id.as_str()).collect::<BTreeSet<_>>(),
+            BTreeSet::from(["verified_degraded", "verified_healthy"])
+        );
+        assert_eq!(
+            missing_branches.iter().map(|branch| branch.observation_id.as_str()).collect::<BTreeSet<_>>(),
+            BTreeSet::from(["verified_degraded", "verified_healthy"])
+        );
+    }
+
+    #[test]
     fn mutually_exclusive_branch_costs_are_not_summed_across_the_whole_tree() {
         let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
         let healthy_leaf = report.evaluator_leaf_receipts
