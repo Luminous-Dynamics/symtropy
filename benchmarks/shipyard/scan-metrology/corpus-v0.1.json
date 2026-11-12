@@ -1,0 +1,216 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-SCAN-METROLOGY-001",
+  "cases": [
+    {
+      "case_id": "SMET-001",
+      "class": "positive_contract_control",
+      "expected_disposition": "QUALIFIED",
+      "mutation": "Accept the fully identified synthetic scan with in-envelope calibration, independent target agreement, adequate coverage and a bounded uncertainty budget.",
+      "rationale": "The known-answer synthetic scan should qualify."
+    },
+    {
+      "case_id": "SMET-002",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SOURCE_DIGEST",
+      "mutation": "Use a missing, malformed or uppercase SHA-256 for scan bytes.",
+      "rationale": "Source byte identity must be exact and canonical."
+    },
+    {
+      "case_id": "SMET-003",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CALIBRATION",
+      "mutation": "Use a missing or malformed calibration receipt digest.",
+      "rationale": "Calibration evidence must be source-bound."
+    },
+    {
+      "case_id": "SMET-004",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_REFERENCE",
+      "mutation": "Omit the reference artifact identity or calibration certificate.",
+      "rationale": "Reference checks require an identified traceable artifact."
+    },
+    {
+      "case_id": "SMET-005",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CALIBRATION",
+      "mutation": "Use calibration after its expiry tick or before its valid-from tick.",
+      "rationale": "Calibration validity is time-bounded."
+    },
+    {
+      "case_id": "SMET-006",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CALIBRATION",
+      "mutation": "Change acquisition configuration without matching the calibration configuration revision.",
+      "rationale": "Configuration changes invalidate prior calibration scope."
+    },
+    {
+      "case_id": "SMET-007",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_ENVIRONMENT",
+      "mutation": "Acquire outside the calibration environment envelope.",
+      "rationale": "A calibration result cannot be extrapolated beyond its declared envelope."
+    },
+    {
+      "case_id": "SMET-008",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_REFERENCE",
+      "mutation": "Reference-length residual exceeds the declared maximum.",
+      "rationale": "Reference check failure invalidates the measurement."
+    },
+    {
+      "case_id": "SMET-009",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_REGISTRATION",
+      "mutation": "Registration receipt is absent, malformed or belongs to different scan bytes.",
+      "rationale": "Transform lineage must bind to exact source bytes."
+    },
+    {
+      "case_id": "SMET-010",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_REGISTRATION",
+      "mutation": "ICP converges but independent reference-target RMS residual exceeds its limit.",
+      "rationale": "Optimizer convergence does not prove registration accuracy."
+    },
+    {
+      "case_id": "SMET-011",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_REGISTRATION",
+      "mutation": "Rigid transform has determinant -1 (reflection) or determinant outside the identity tolerance.",
+      "rationale": "Only a valid proper rotation is admitted."
+    },
+    {
+      "case_id": "SMET-012",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_REGISTRATION",
+      "mutation": "Independent target count does not match the declared reference set.",
+      "rationale": "Registration acceptance requires the planned independent checks."
+    },
+    {
+      "case_id": "SMET-013",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_FRAME",
+      "mutation": "Observation coordinate frame differs from the registration target frame.",
+      "rationale": "Frame mismatch makes coordinates incomparable."
+    },
+    {
+      "case_id": "SMET-014",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_COVERAGE",
+      "mutation": "Received profile count falls below the declared minimum coverage.",
+      "rationale": "Incomplete surface observation must abstain."
+    },
+    {
+      "case_id": "SMET-015",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_COVERAGE",
+      "mutation": "Declared coverage disagrees with received/expected profile counts.",
+      "rationale": "Coverage must be derived from source counts, not self-asserted."
+    },
+    {
+      "case_id": "SMET-016",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_COVERAGE",
+      "mutation": "Dropped profile fraction exceeds the predeclared maximum.",
+      "rationale": "Unobserved regions cannot be silently ignored."
+    },
+    {
+      "case_id": "SMET-017",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_POINTS",
+      "mutation": "Valid plus invalid point counts do not equal total points.",
+      "rationale": "Point accounting must reconcile."
+    },
+    {
+      "case_id": "SMET-018",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_POINTS",
+      "mutation": "Clipped point count exceeds invalid point count.",
+      "rationale": "Clipping classification must remain internally consistent."
+    },
+    {
+      "case_id": "SMET-019",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_POINTS",
+      "mutation": "Invalid-point fraction or valid-point count violates the declared bound.",
+      "rationale": "Excess invalid returns invalidate the scan."
+    },
+    {
+      "case_id": "SMET-020",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_OCCLUSION",
+      "mutation": "Occlusion exceeds the task-specific bound or has no assessment receipt.",
+      "rationale": "Occlusion must be measured and source-bound."
+    },
+    {
+      "case_id": "SMET-021",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_SURFACE_STATE",
+      "mutation": "Surface cleaning state is unknown or slag/spatter remains without a qualified handling rule.",
+      "rationale": "Surface condition affects optical measurement."
+    },
+    {
+      "case_id": "SMET-022",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIME",
+      "mutation": "Scan occurs after its decision tick.",
+      "rationale": "Future observations must not inform an earlier decision."
+    },
+    {
+      "case_id": "SMET-023",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_TIME",
+      "mutation": "Scan age exceeds the declared maximum.",
+      "rationale": "A stale state cannot drive a current pass recommendation."
+    },
+    {
+      "case_id": "SMET-024",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_POLICY",
+      "mutation": "Decision policy is changed after scan acquisition.",
+      "rationale": "Decision limits must be frozen before seeing the result."
+    },
+    {
+      "case_id": "SMET-025",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CORRELATION",
+      "mutation": "Unknown or known-correlated uncertainty components are combined as independent.",
+      "rationale": "RSS is permitted only under an explicit independence declaration."
+    },
+    {
+      "case_id": "SMET-026",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_UNCERTAINTY",
+      "mutation": "No uncertainty components or more than the supported component bound are supplied.",
+      "rationale": "Uncertainty budget must be explicit and bounded."
+    },
+    {
+      "case_id": "SMET-027",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_UNCERTAINTY",
+      "mutation": "Expanded uncertainty exceeds the decision threshold.",
+      "rationale": "The geometry decision cannot be more precise than its evidence."
+    },
+    {
+      "case_id": "SMET-028",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_UNCERTAINTY",
+      "mutation": "Uncertainty arithmetic overflows and wraps to a smaller value.",
+      "rationale": "Overflow must cause abstention, not a falsely narrow interval."
+    },
+    {
+      "case_id": "SMET-029",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CLAIM",
+      "mutation": "Synthetic evidence is promoted to measured point-cloud evidence.",
+      "rationale": "Evidence class must not be laundered."
+    },
+    {
+      "case_id": "SMET-030",
+      "class": "negative_control",
+      "expected_disposition": "BLOCK_CLAIM",
+      "mutation": "Qualified measurement is promoted to weld quality or NDT acceptance.",
+      "rationale": "Metrology qualification is not weld acceptance."
+    }
+  ]
+}

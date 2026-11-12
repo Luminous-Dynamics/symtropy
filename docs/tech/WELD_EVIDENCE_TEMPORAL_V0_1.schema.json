@@ -1,0 +1,330 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Weld evidence temporal snapshot request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "ledger",
+    "request",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "WELD-EVIDENCE-TEMPORAL-001"
+    },
+    "ledger": {
+      "$ref": "#/$defs/ledger"
+    },
+    "request": {
+      "$ref": "#/$defs/request"
+    },
+    "claim_ceiling": {
+      "const": "SYNTHETIC_BITEMPORAL_SNAPSHOT_ONLY"
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "predecessor_pass_id"
+      ],
+      "properties": {
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predecessor_pass_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "clock_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_clock_id",
+        "mapping_revision",
+        "mapping_sha256",
+        "ledger_offset_ticks",
+        "offset_uncertainty_ticks",
+        "maximum_source_precision_ticks",
+        "valid_from_tick",
+        "valid_until_tick",
+        "first_received_at_tick",
+        "authorized"
+      ],
+      "properties": {
+        "source_clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mapping_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "ledger_offset_ticks": {
+          "type": "integer"
+        },
+        "offset_uncertainty_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_source_precision_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_from_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "first_received_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authorized": {
+          "type": "boolean"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "kind",
+        "evidence_class",
+        "scope",
+        "source_clock_id",
+        "source_tick",
+        "timestamp_precision_ticks",
+        "first_received_at_tick",
+        "valid_from_tick",
+        "valid_until_tick",
+        "source_sha256",
+        "transform_receipt_sha256",
+        "authorized_purposes",
+        "model_training_cutoff_tick"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "ProcessObservation",
+            "RobotTrace",
+            "Calibration",
+            "ScanMeasurement",
+            "RegistrationReceipt",
+            "ScanQualification",
+            "GeometryComparison",
+            "NdtDisposition",
+            "RepairRecord",
+            "ReinspectionResult",
+            "ModelTrainingArtifact"
+          ]
+        },
+        "evidence_class": {
+          "enum": [
+            "SyntheticContractOnly",
+            "MeasuredPhysical",
+            "Simulation"
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "source_clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "timestamp_precision_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_received_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_from_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_until_tick": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "source_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "transform_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "authorized_purposes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/purpose"
+          }
+        },
+        "model_training_cutoff_tick": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "lifecycle_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "kind",
+        "target_event_id",
+        "replacement_event_id",
+        "effective_at_tick",
+        "first_received_at_tick"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "Supersede",
+            "Revoke"
+          ]
+        },
+        "target_event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "replacement_event_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "effective_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_received_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "purpose": {
+      "enum": [
+        "FastProcess",
+        "MediumNextPass",
+        "SlowQualityRequalification"
+      ]
+    },
+    "ledger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "clock_mappings",
+        "events",
+        "lifecycle_events"
+      ],
+      "properties": {
+        "clock_mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/clock_mapping"
+          }
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "lifecycle_events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/lifecycle_event"
+          }
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "purpose",
+        "scope",
+        "cutoff_tick",
+        "policy_revision",
+        "maximum_clock_uncertainty_ticks"
+      ],
+      "properties": {
+        "purpose": {
+          "$ref": "#/$defs/purpose"
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "cutoff_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "policy_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maximum_clock_uncertainty_ticks": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}
