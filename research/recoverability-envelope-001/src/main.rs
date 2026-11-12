@@ -11,12 +11,15 @@ use std::fs;
 use std::path::Path;
 
 use recoverability_envelope::RecoveryEpisode;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
 
 fn write_report(path: &Path, value: &Value) -> Result<(), Box<dyn Error>> {
-    if let Some(parent) = path.parent().filter(|parent| !parent.as_os_str().is_empty()) {
+    if let Some(parent) = path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
         fs::create_dir_all(parent)?;
     }
     fs::write(path, serde_json::to_vec_pretty(value)?)?;
@@ -80,7 +83,4 @@ fn main() {
         Ok(code) => std::process::exit(code),
         Err(error) => {
             eprintln!("recoverability-envelope: {error}");
-            std::process::exit(2);
-        }
-    }
-}
+           
