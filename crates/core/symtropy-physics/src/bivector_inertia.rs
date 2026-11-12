@@ -2083,5 +2083,4 @@ mod tests {
             "two-contact Delassus matrix changed under global frame rotation"
         );
     }
-
 }
