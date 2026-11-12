@@ -347,8 +347,14 @@ fn prepare_request(
     if observations.is_empty() {
         return Err("episode request has no observations".into());
     }
-    if fault == FaultCase::StaleSequenceReplay && observations.len() < 2 {
-        return Err("stale-sequence replay control requires at least two observations".into());
+    if matches!(
+        fault,
+        FaultCase::StaleFrameReuse
+            | FaultCase::StaleSequenceReplay
+            | FaultCase::CaptureClockRegression
+    ) && observations.len() < 2
+    {
+        return Err("stale/replay/regression controls require at least two observations".into());
     }
 
     let calibration_pin = observations[0]["upstream"]["camera_calibration_sha256"]
@@ -433,7 +439,10 @@ fn prepare_request(
             let previous_capture = observations[0]["upstream"]["capture_timestamp_us"]
                 .as_u64()
                 .ok_or("first capture timestamp missing")?;
-            let regressed_capture = previous_capture.saturating_sub(1);
+            if previous_capture == 0 {
+                return Err("capture-clock regression fixture requires a positive first timestamp".into());
+            }
+            let regressed_capture = previous_capture - 1;
             observations[1]["timestamp_us"] = json!(regressed_capture);
             observations[1]["vehicle_state_timestamp_us"] = json!(regressed_capture);
             observations[1]["vehicle_state"]["timestamp"] =
@@ -852,6 +861,19 @@ mod tests {
             request["observations"][0]["upstream"]["receipt_sha256"],
             base["observations"][0]["upstream"]["receipt_sha256"]
         );
+    }
+
+    #[test]
+    fn replay_mutations_require_at_least_two_observations() {
+        let mut base = base_request();
+        base["observations"].as_array_mut().unwrap().pop();
+        for case in [
+            FaultCase::StaleFrameReuse,
+            FaultCase::StaleSequenceReplay,
+            FaultCase::CaptureClockRegression,
+        ] {
+            assert!(prepare_request(&base, case).is_err());
+        }
     }
 
     #[test]
