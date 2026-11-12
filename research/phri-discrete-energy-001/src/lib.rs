@@ -186,24 +186,22 @@ impl DiscreteEnergyObserver {
         if !step.external_work_lower_j.is_finite() {
             return Err(DiscreteEnergyError::NonFiniteWorkBound);
         }
-        if !step.uncertainty_allowance_j.is_finite()
-            || step.uncertainty_allowance_j < 0.0
-        {
+        if !step.uncertainty_allowance_j.is_finite() || step.uncertainty_allowance_j < 0.0 {
             return Err(DiscreteEnergyError::InvalidUncertaintyAllowance);
         }
 
         let storage_change_j = step.storage_after_j - self.last_storage_j;
         let interval_residual_j =
             storage_change_j - step.external_work_lower_j - step.uncertainty_allowance_j;
-        let cumulative_storage_change_j =
-            self.cumulative_storage_change_j + storage_change_j;
+        let cumulative_storage_change_j = self.cumulative_storage_change_j + storage_change_j;
         let cumulative_external_work_lower_j =
             self.cumulative_external_work_lower_j + step.external_work_lower_j;
         let cumulative_uncertainty_allowance_j =
             self.cumulative_uncertainty_allowance_j + step.uncertainty_allowance_j;
         let cumulative_residual_j = self.cumulative_residual_j + interval_residual_j;
-        let maximum_prefix_deficit_j =
-            self.maximum_prefix_deficit_j.max(cumulative_residual_j.max(0.0));
+        let maximum_prefix_deficit_j = self
+            .maximum_prefix_deficit_j
+            .max(cumulative_residual_j.max(0.0));
 
         if [
             storage_change_j,
@@ -349,8 +347,12 @@ mod tests {
         }
     }
 
-    fn step(sequence: u64, timestamp_ns: u64, storage_after_j: f64,
-             external_work_lower_j: f64) -> DiscreteEnergyStep {
+    fn step(
+        sequence: u64,
+        timestamp_ns: u64,
+        storage_after_j: f64,
+        external_work_lower_j: f64,
+    ) -> DiscreteEnergyStep {
         DiscreteEnergyStep {
             identity: identity(),
             sample_sequence: sequence,
@@ -375,10 +377,12 @@ mod tests {
     #[test]
     fn uncertainty_allowance_is_applied_once_and_recorded() {
         let mut observer = DiscreteEnergyObserver::new(baseline(), 100).unwrap();
-        let receipt = observer.record(DiscreteEnergyStep {
-            uncertainty_allowance_j: 0.1,
-            ..step(101, 1_010, 6.05, 1.0)
-        }).unwrap();
+        let receipt = observer
+            .record(DiscreteEnergyStep {
+                uncertainty_allowance_j: 0.1,
+                ..step(101, 1_010, 6.05, 1.0)
+            })
+            .unwrap();
         assert!((receipt.interval_residual_j + 0.05).abs() < 1.0e-12);
         assert_eq!(receipt.cumulative_uncertainty_allowance_j, 0.1);
     }
@@ -437,23 +441,38 @@ mod tests {
 
         let mut sample = step(101, 1_010, 6.0, 1.0);
         sample.identity.sensor_id += 1;
-        assert_eq!(observer.record(sample), Err(DiscreteEnergyError::SensorIdentityMismatch));
+        assert_eq!(
+            observer.record(sample),
+            Err(DiscreteEnergyError::SensorIdentityMismatch)
+        );
 
         sample = step(101, 1_010, 6.0, 1.0);
         sample.identity.port_id += 1;
-        assert_eq!(observer.record(sample), Err(DiscreteEnergyError::PortIdentityMismatch));
+        assert_eq!(
+            observer.record(sample),
+            Err(DiscreteEnergyError::PortIdentityMismatch)
+        );
 
         sample = step(101, 1_010, 6.0, 1.0);
         sample.identity.spatial_frame_id += 1;
-        assert_eq!(observer.record(sample), Err(DiscreteEnergyError::SpatialFrameMismatch));
+        assert_eq!(
+            observer.record(sample),
+            Err(DiscreteEnergyError::SpatialFrameMismatch)
+        );
 
         sample = step(101, 1_010, 6.0, 1.0);
         sample.identity.calibration_digest[0] ^= 0x01;
-        assert_eq!(observer.record(sample), Err(DiscreteEnergyError::CalibrationDigestMismatch));
+        assert_eq!(
+            observer.record(sample),
+            Err(DiscreteEnergyError::CalibrationDigestMismatch)
+        );
 
         sample = step(101, 1_010, 6.0, 1.0);
         sample.identity.measurement_profile_digest[0] ^= 0x01;
-        assert_eq!(observer.record(sample), Err(DiscreteEnergyError::MeasurementProfileMismatch));
+        assert_eq!(
+            observer.record(sample),
+            Err(DiscreteEnergyError::MeasurementProfileMismatch)
+        );
 
         assert_eq!(observer.accepted_steps(), 0);
     }
