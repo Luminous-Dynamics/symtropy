@@ -38,9 +38,7 @@ fn write_report(path: &Path, report: &Value) -> Result<(), Box<dyn Error>> {
 fn run() -> Result<i32, Box<dyn Error>> {
     let args = env::args().skip(1).collect::<Vec<_>>();
     if args.len() != 2 {
-        return Err(
-            "usage: paired-deployment-fault-campaign <campaign.json> <report.json>".into(),
-        );
+        return Err("usage: paired-deployment-fault-campaign <campaign.json> <report.json>".into());
     }
     let input_path = Path::new(&args[0]);
     let output_path = Path::new(&args[1]);
@@ -49,8 +47,8 @@ fn run() -> Result<i32, Box<dyn Error>> {
         return Err("campaign input must be a regular file no larger than 64 MiB".into());
     }
     let input = fs::read_to_string(input_path)?;
-    let (report, valid) = audit_value(&input)
-        .map_err(|error| format!("campaign input rejected: {error}"))?;
+    let (report, valid) =
+        audit_value(&input).map_err(|error| format!("campaign input rejected: {error}"))?;
     write_report(output_path, &report)?;
     println!(
         "fault campaign: {} ({} pairs, {} findings); report: {}",
@@ -73,7 +71,6 @@ fn main() {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -85,7 +82,10 @@ mod tests {
         assert!(valid);
         assert_eq!(report["disposition"], "valid");
         assert_eq!(report["observed_pair_count"], 1);
-        assert_eq!(report["pair_results"][0]["fault_family"], "camera_burst_drop");
+        assert_eq!(
+            report["pair_results"][0]["fault_family"],
+            "camera_burst_drop"
+        );
     }
 
     #[test]
@@ -94,11 +94,13 @@ mod tests {
         let (report, valid) = audit_value(input).unwrap();
         assert!(!valid);
         assert_eq!(report["disposition"], "rejected");
-        assert!(report["findings"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|finding| finding == "matched_context_mismatch"));
+        assert!(
+            report["findings"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|finding| finding == "matched_context_mismatch")
+        );
     }
 
     #[test]
