@@ -296,6 +296,7 @@ fn validate_thermal(
 fn validate_recovery(
     recovery: &RecoveryEvidence,
     branch_manifest: &EvidenceManifest,
+    declared_branch_ids: &BTreeSet<String>,
     physically_possible_branch_ids: &BTreeSet<String>,
 ) -> (Vec<String>, Vec<String>) {
     let mut unknown = Vec::new();
@@ -317,11 +318,16 @@ fn validate_recovery(
                     unknown.push("recovery:branch-id-missing".to_owned());
                     continue;
                 }
-                if !physically_possible_branch_ids.contains(&receipt.branch_id) {
+                if !declared_branch_ids.contains(&receipt.branch_id) {
                     invalid.push(format!(
                         "recovery:receipt-for-branch-outside-manifest:{}",
                         receipt.branch_id
                     ));
+                    continue;
+                }
+                if !physically_possible_branch_ids.contains(&receipt.branch_id) {
+                    // A receipt for a declared but physically impossible branch
+                    // is not part of required recovery coverage.
                     continue;
                 }
                 if receipts
@@ -449,9 +455,11 @@ pub fn evaluate_future_options(
         .iter()
         .map(|branch| branch.branch_id.clone())
         .collect::<BTreeSet<_>>();
+    let declared_branch_ids = branch_ids.clone();
     let (recovery_unknown, recovery_invalid) = validate_recovery(
         &scenario.recovery,
         &scenario.branch_manifest,
+        &declared_branch_ids,
         &physically_possible_branch_ids,
     );
     unknown_reasons.extend(recovery_unknown);
