@@ -181,7 +181,9 @@ fn setup_available(
         window.is_valid() && {
             let start = window.start_tick.max(earliest_start);
             let end = window.end_tick.min(latest_finish);
-            start.checked_add(duration).is_some_and(|finish| finish <= end)
+            start
+                .checked_add(duration)
+                .is_some_and(|finish| finish <= end)
         }
     })
 }
