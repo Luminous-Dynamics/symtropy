@@ -1,0 +1,417 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic point-in-time metrology decision composition input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "identity",
+    "decision_tick",
+    "clock_id",
+    "purpose",
+    "evidence_snapshot_sha256",
+    "candidate_set_sha256",
+    "planner_build_sha256",
+    "evidence",
+    "medium_feature_event_ids",
+    "scan_qualification",
+    "geometry_comparison",
+    "automatic_selection_requested",
+    "live_execution_requested",
+    "wps_change_requested",
+    "accepted_as_built_write_requested"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-METROLOGY-DECISION-COMPOSITION-001"
+    },
+    "identity": {
+      "$ref": "#/$defs/identity"
+    },
+    "decision_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "clock_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose": {
+      "const": "MediumNextPass"
+    },
+    "evidence_snapshot_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "candidate_set_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "planner_build_sha256": {
+      "$ref": "#/$defs/digest"
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "$ref": "#/$defs/evidence"
+      }
+    },
+    "medium_feature_event_ids": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "scan_qualification": {
+      "$ref": "#/$defs/scan_qualification"
+    },
+    "geometry_comparison": {
+      "$ref": "#/$defs/geometry_comparison"
+    },
+    "automatic_selection_requested": {
+      "const": false
+    },
+    "live_execution_requested": {
+      "const": false
+    },
+    "wps_change_requested": {
+      "const": false
+    },
+    "accepted_as_built_write_requested": {
+      "const": false
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "predecessor_pass_id"
+      ],
+      "properties": {
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predecessor_pass_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "marker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "content_sha256",
+        "effective_at_tick",
+        "first_received_at_tick"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "effective_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_received_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "evidence_id",
+        "content_sha256",
+        "identity",
+        "evidence_class",
+        "clock_id",
+        "measured_at_tick",
+        "first_received_at_tick",
+        "valid_from_tick",
+        "expires_at_tick",
+        "purpose",
+        "authorized_for_medium_next_pass",
+        "revocation",
+        "supersession"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "Calibration",
+            "ReferenceScan",
+            "ObservedScan",
+            "Registration",
+            "ScanQualification",
+            "GeometryComparison",
+            "NdtOutcome",
+            "RepairDisposition",
+            "LearningArtifact"
+          ]
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "evidence_class": {
+          "enum": [
+            "SyntheticContractOnly",
+            "Simulated",
+            "Measured",
+            "Inspected",
+            "Accepted"
+          ]
+        },
+        "clock_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "measured_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_received_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "valid_from_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expires_at_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "purpose": {
+          "enum": [
+            "MediumNextPass",
+            "SlowQualityRequalification",
+            "ProductionAcceptance",
+            "Other"
+          ]
+        },
+        "authorized_for_medium_next_pass": {
+          "type": "boolean"
+        },
+        "revocation": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/marker"
+            }
+          ]
+        },
+        "supersession": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/marker"
+            }
+          ]
+        }
+      }
+    },
+    "scan_qualification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "receipt_sha256",
+        "identity",
+        "observed_scan_id",
+        "observed_scan_sha256",
+        "calibration_receipt_sha256",
+        "registration_receipt_sha256",
+        "coordinate_frame",
+        "policy_id",
+        "policy_revision",
+        "expanded_length_uncertainty_units",
+        "maximum_expanded_length_uncertainty_units",
+        "length_decision_tolerance_units"
+      ],
+      "properties": {
+        "receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "observed_scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_scan_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "calibration_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "registration_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expanded_length_uncertainty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_expanded_length_uncertainty_units": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "length_decision_tolerance_units": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "geometry_comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "output_sha256",
+        "identity",
+        "reference_scan_id",
+        "reference_scan_sha256",
+        "observed_scan_id",
+        "observed_scan_sha256",
+        "registration_receipt_sha256",
+        "coordinate_frame",
+        "length_unit",
+        "x_grid_sha256",
+        "coverage_permille",
+        "minimum_coverage_permille",
+        "maximum_unsupported_gap_units",
+        "largest_unsupported_gap_units",
+        "signed_net_area_units",
+        "added_area_units",
+        "removed_area_units",
+        "area_uncertainty_units",
+        "maximum_area_uncertainty_units"
+      ],
+      "properties": {
+        "output_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "identity": {
+          "$ref": "#/$defs/identity"
+        },
+        "reference_scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_scan_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "observed_scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observed_scan_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "registration_receipt_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "length_unit": {
+          "const": "mm"
+        },
+        "x_grid_sha256": {
+          "$ref": "#/$defs/digest"
+        },
+        "coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "maximum_unsupported_gap_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "largest_unsupported_gap_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "signed_net_area_units": {
+          "type": "integer"
+        },
+        "added_area_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "removed_area_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "area_uncertainty_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_area_uncertainty_units": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

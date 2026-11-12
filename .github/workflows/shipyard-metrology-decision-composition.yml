@@ -1,0 +1,42 @@
+name: Shipyard Metrology Decision Composition
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/shipyard-metrology-decision-composition/**"
+      - "docs/tech/SHIPYARD_METROLOGY_DECISION_COMPOSITION_V0_1*"
+      - ".github/workflows/shipyard-metrology-decision-composition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-metrology-decision-composition-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify point-in-time scan/geometry/planner composition
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-metrology-decision-composition/Cargo.toml --all -- --check
+
+      - name: Run composition contract tests
+        run: cargo test --locked --manifest-path crates/tools/shipyard-metrology-decision-composition/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-metrology-decision-composition/Cargo.toml --all-targets -- -D warnings
+
+      - name: Confirm composition evaluator did not modify inputs
+        run: git diff --exit-code
