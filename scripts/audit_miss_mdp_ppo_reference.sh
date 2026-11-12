@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-reference_root="\${1:?usage: audit_miss_mdp_ppo_reference.sh /path/to/missingness-mdps}"
+reference_root="${1:?usage: audit_miss_mdp_ppo_reference.sh /path/to/missingness-mdps}"
 expected_commit="186c454c8e1581adbbf3cbb49ed9e0df510356f4"
 actual_commit="$(git -C "$reference_root" rev-parse HEAD)"
 if [[ "$actual_commit" != "$expected_commit" ]]; then
@@ -45,16 +45,16 @@ mapfile -t paths < <(
     | sort
 )
 
-if [[ "\${#paths[@]}" -ne 242 ]]; then
-  printf 'expected 242 PPO result artifacts, found %s\n' "\${#paths[@]}" >&2
+if [[ "${#paths[@]}" -ne 242 ]]; then
+  printf 'expected 242 PPO result artifacts, found %s\n' "${#paths[@]}" >&2
   exit 1
 fi
 
-for path in "\${paths[@]}"; do
-  group="\${path%/PPO_*/results.json}"
+for path in "${paths[@]}"; do
+  group="${path%/PPO_*/results.json}"
   run_dir="$(basename "$(dirname "$path")")"
-  expected_id="\${run_dir#PPO_}"
-  pattern="\${group##*/}"
+  expected_id="${run_dir#PPO_}"
+  pattern="${group##*/}"
 
   if [[ "$group" == experiments/logs_PPO_stacked/* ]]; then
     stacked="yes"
