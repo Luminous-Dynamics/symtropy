@@ -1,0 +1,64 @@
+name: Shipyard Nested Workspace Topology
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "Cargo.toml"
+      - "crates/tools/shipyard-weld-physics-vvuq/Cargo.toml"
+      - "crates/tools/shipyard-weld-physics-vvuq/Cargo.lock"
+      - "crates/tools/shipyard-distortion-co-design/Cargo.toml"
+      - "crates/tools/shipyard-distortion-co-design/Cargo.lock"
+      - "crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml"
+      - "crates/tools/shipyard-tandem-gmaw-admission/Cargo.lock"
+      - "crates/tools/shipyard-interpass-adaptive/Cargo.toml"
+      - "crates/tools/shipyard-interpass-adaptive/Cargo.lock"
+      - "crates/tools/shipyard-scan-metrology/Cargo.toml"
+      - "crates/tools/shipyard-scan-metrology/Cargo.lock"
+      - "crates/tools/shipyard-profile-geometry-oracle/Cargo.toml"
+      - "crates/tools/shipyard-profile-geometry-oracle/Cargo.lock"
+      - ".github/workflows/shipyard-workspace-topology.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-workspace-topology-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  metadata:
+    name: Validate root and nested Cargo workspace boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+
+      - name: Resolve root workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1 > /tmp/symtropy-root-metadata.json
+
+      - name: Resolve weld physics workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1 --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml > /tmp/weld-physics-metadata.json
+
+      - name: Resolve distortion co-design workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1 --manifest-path crates/tools/shipyard-distortion-co-design/Cargo.toml > /tmp/distortion-metadata.json
+
+      - name: Resolve Tandem-GMAW admission workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1 --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml > /tmp/tandem-gmaw-metadata.json
+
+      - name: Resolve inter-pass planner workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1 --manifest-path crates/tools/shipyard-interpass-adaptive/Cargo.toml > /tmp/interpass-metadata.json
+
+      - name: Resolve scan metrology workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1 --manifest-path crates/tools/shipyard-scan-metrology/Cargo.toml > /tmp/scan-metrology-metadata.json
+
+      - name: Resolve profile geometry oracle workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1 --manifest-path crates/tools/shipyard-profile-geometry-oracle/Cargo.toml > /tmp/profile-geometry-metadata.json
+
+      - name: Confirm metadata validation was read-only
+        run: git diff --exit-code
