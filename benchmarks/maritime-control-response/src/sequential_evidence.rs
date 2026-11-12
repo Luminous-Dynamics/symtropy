@@ -490,31 +490,55 @@ pub fn validate_sequential_evidence_chain(
     Ok(())
 }
 
+#[derive(Serialize)]
+struct SequentialEvidenceReceiptDigest<'a> {
+    schema_version: &'a str,
+    recording_id: &'a str,
+    channel_id: &'a str,
+    sample_index: u64,
+    time_seconds: f64,
+    outcome_id: &'a str,
+    null_hypothesis_id: &'a str,
+    alternative_hypothesis_id: &'a str,
+    model_sha256: &'a str,
+    likelihood_table_sha256: &'a str,
+    calibration_sha256: &'a str,
+    calibration_review_receipt_sha256: &'a str,
+    input_receipt_sha256: &'a str,
+    log_evalue: f64,
+    log_threshold: f64,
+    per_alternative_alpha_ppm: u32,
+    familywise_alpha_ppm: u32,
+    alternative_count: u32,
+    threshold_crossed: bool,
+    previous_receipt_sha256: &'a Option<String>,
+}
+
 fn sequential_receipt_sha256(
     receipt: &SequentialEvidenceReceipt,
 ) -> Result<String, SequentialEvidenceError> {
-    let payload = (
-        receipt.schema_version.as_str(),
-        receipt.recording_id.as_str(),
-        receipt.channel_id.as_str(),
-        receipt.sample_index,
-        receipt.time_seconds,
-        receipt.outcome_id.as_str(),
-        receipt.null_hypothesis_id.as_str(),
-        receipt.alternative_hypothesis_id.as_str(),
-        receipt.model_sha256.as_str(),
-        receipt.likelihood_table_sha256.as_str(),
-        receipt.calibration_sha256.as_str(),
-        receipt.calibration_review_receipt_sha256.as_str(),
-        receipt.input_receipt_sha256.as_str(),
-        receipt.log_evalue,
-        receipt.log_threshold,
-        receipt.per_alternative_alpha_ppm,
-        receipt.familywise_alpha_ppm,
-        receipt.alternative_count,
-        receipt.threshold_crossed,
-        &receipt.previous_receipt_sha256,
-    );
+    let payload = SequentialEvidenceReceiptDigest {
+        schema_version: &receipt.schema_version,
+        recording_id: &receipt.recording_id,
+        channel_id: &receipt.channel_id,
+        sample_index: receipt.sample_index,
+        time_seconds: receipt.time_seconds,
+        outcome_id: &receipt.outcome_id,
+        null_hypothesis_id: &receipt.null_hypothesis_id,
+        alternative_hypothesis_id: &receipt.alternative_hypothesis_id,
+        model_sha256: &receipt.model_sha256,
+        likelihood_table_sha256: &receipt.likelihood_table_sha256,
+        calibration_sha256: &receipt.calibration_sha256,
+        calibration_review_receipt_sha256: &receipt.calibration_review_receipt_sha256,
+        input_receipt_sha256: &receipt.input_receipt_sha256,
+        log_evalue: receipt.log_evalue,
+        log_threshold: receipt.log_threshold,
+        per_alternative_alpha_ppm: receipt.per_alternative_alpha_ppm,
+        familywise_alpha_ppm: receipt.familywise_alpha_ppm,
+        alternative_count: receipt.alternative_count,
+        threshold_crossed: receipt.threshold_crossed,
+        previous_receipt_sha256: &receipt.previous_receipt_sha256,
+    };
     sha256_serializable(b"symtropy-sequential-evidence-receipt-v1\0", &payload)
 }
 
