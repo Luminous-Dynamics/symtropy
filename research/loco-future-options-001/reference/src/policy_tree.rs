@@ -518,6 +518,10 @@ fn solve_node(
                     }
                 }
 
+                if action_invalid {
+                    any_invalid = true;
+                    continue;
+                }
                 if action_unknown {
                     any_unknown = true;
                     continue;
@@ -752,12 +756,35 @@ pub fn evaluate_bounded_policy_tree(
 mod tests {
     use super::*;
 
+    fn physical_digest(state_id: &str) -> String {
+        format!("physical:{state_id}")
+    }
+
+    fn reserve_digest(state_id: &str) -> String {
+        format!("reserve:{state_id}")
+    }
+
+    fn thermal_digest(state_id: &str) -> String {
+        format!("thermal:{state_id}")
+    }
+
+    fn state_receipt(state_id: &str) -> BeliefStateReceipt {
+        BeliefStateReceipt {
+            state_id: state_id.to_owned(),
+            physical_state_digest: physical_digest(state_id),
+            reserve_state_digest: reserve_digest(state_id),
+            thermal_state_digest: thermal_digest(state_id),
+            receipt_digest: format!("state-receipt:{state_id}"),
+        }
+    }
+
     fn qualified_leaf(node_id: &str, state_id: &str) -> BeliefNode {
         BeliefNode {
             node_id: node_id.to_owned(),
             observation_receipt_digest: format!("observation:{node_id}"),
             observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec![state_id.to_owned()],
+            state_evidence: vec![state_receipt(state_id)],
             transition_manifest: EvidenceManifest {
                 complete: true,
                 digest: format!("manifest:{node_id}"),
@@ -765,9 +792,12 @@ mod tests {
             state_action_evidence: Vec::new(),
             transitions: Vec::new(),
             terminal_recovery: Some(TerminalRecoveryEvidence::Qualified {
-                reserve_state_digest: format!("reserve:{state_id}"),
-                topology_digest: format!("topology:{state_id}"),
-                terminal_safe_stop_reachable: true,
+                state_receipts: vec![TerminalRecoveryReceipt {
+                    state_id: state_id.to_owned(),
+                    reserve_state_digest: reserve_digest(state_id),
+                    topology_digest: format!("topology:{state_id}"),
+                    terminal_safe_stop_reachable: true,
+                }],
             }),
         }
     }
@@ -791,6 +821,12 @@ mod tests {
             from_state_id: from.to_owned(),
             action_id: action.to_owned(),
             to_state_id: to.to_owned(),
+            from_state_digest: physical_digest(from),
+            to_state_digest: physical_digest(to),
+            predecessor_reserve_state_digest: reserve_digest(from),
+            resulting_reserve_state_digest: reserve_digest(to),
+            predecessor_thermal_state_digest: thermal_digest(from),
+            resulting_thermal_state_digest: thermal_digest(to),
             next_belief_node_id: next.to_owned(),
             physically_possible: true,
             evidence_complete: true,
@@ -804,6 +840,7 @@ mod tests {
             observation_receipt_digest: "observation:root".to_owned(),
             observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec!["s1".to_owned(), "s2".to_owned()],
+            state_evidence: vec![state_receipt("s1"), state_receipt("s2")],
             transition_manifest: EvidenceManifest {
                 complete: true,
                 digest: "root-transitions".to_owned(),
@@ -823,6 +860,7 @@ mod tests {
             observation_receipt_digest: "observation:rough".to_owned(),
             observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec!["s1-rough".to_owned()],
+            state_evidence: vec![state_receipt("s1-rough")],
             transition_manifest: EvidenceManifest {
                 complete: true,
                 digest: "rough-transitions".to_owned(),
@@ -841,6 +879,7 @@ mod tests {
             observation_receipt_digest: "observation:firm".to_owned(),
             observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec!["s2-firm".to_owned()],
+            state_evidence: vec![state_receipt("s2-firm")],
             transition_manifest: EvidenceManifest {
                 complete: true,
                 digest: "firm-transitions".to_owned(),
