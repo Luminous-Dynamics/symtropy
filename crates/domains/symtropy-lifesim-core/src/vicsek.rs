@@ -891,9 +891,7 @@ impl VicsekModel {
             } else {
                 match self.heading_mean {
                     VicsekHeadingMean::QuadrantCorrectAtan2 => sum_sin.atan2(sum_cos),
-                    VicsekHeadingMean::PrincipalValueArctanRatio => {
-                        (sum_sin / sum_cos).atan()
-                    }
+                    VicsekHeadingMean::PrincipalValueArctanRatio => (sum_sin / sum_cos).atan(),
                 }
             };
             let noise = self.config.angular_noise_width_rad * (self.rng.next_unit() - 0.5);
@@ -3743,7 +3741,10 @@ mod tests {
                             (original_metrics.polar_order - rotated_metrics.polar_order).abs()
                                 < 1.0e-10
                         );
-                        assert_eq!(original_metrics.cluster_count, rotated_metrics.cluster_count);
+                        assert_eq!(
+                            original_metrics.cluster_count,
+                            rotated_metrics.cluster_count
+                        );
                         assert_eq!(
                             original_metrics.directed_interaction_edge_count,
                             rotated_metrics.directed_interaction_edge_count
