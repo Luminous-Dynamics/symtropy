@@ -141,6 +141,30 @@ Commercial Ansys nCode DesignLife and SIMULIA fe-safe provide much broader integ
 
 This work does not certify a structure, predict universal service life, authorize repair/release/demolition, validate a material parameter from synthetic data, or establish physical truth from hashes. All safety-critical interventions remain subject to qualified engineering, inspection and authorized procedures.
 
+## Current industry and research landscape (reviewed 12 November 2026)
+
+The benchmark should compare against the right capability class rather than claim a broad solver contest.
+
+| Reference class | Demonstrated capability / useful comparator | What this programme should add |
+|---|---|---|
+| Specialist fatigue analysis | Ansys nCode DesignLife consumes FEA results from Ansys Mechanical / LS-DYNA and accumulates fatigue damage under repeated loading. SIMULIA fe-safe documents multiaxial fatigue, manufacturing effects, residual stress, duty-cycle damage and FEA integration. | Do not reproduce their breadth. Preserve exact component/configuration/evidence identity and carry admitted outputs through repair, replacement and recovery. |
+| Structural verification | Abaqus 2026 publishes benchmark and verification guides with external benchmark, accuracy and convergence checks. NAFEMS notes major vendors use its benchmarks in QA and encourages independent user verification. | Compare physical models against matched analytical / NIST / NAFEMS references, with declared solver profile, convergence and uncertainty. |
+| Progressive-collapse experiments | NIST provides full-scale steel beam-column column-removal tests and 2025 precast-concrete connection tests. | Use these as response/connection references only when geometry, loading, boundary conditions and measurements are reconstructable; they do not validate fatigue-life models. |
+| Prognostics and RUL | A 2026 review of 90 RUL studies reports persistent data scarcity, uncertainty, interpretability, domain-generalisation and digital-twin / maintenance-workflow integration problems. NASA's Prognostics Data Repository includes a fatigue-crack-growth lap-joint dataset with Lamb-wave observations and optical crack-length ground truth; NASA currently says direct download is unavailable and directs users to request access. | Compete on leakage-safe grouped validation, calibrated uncertainty, explicit abstention, and continuity from evidence into lifecycle decisions—not on a single point-RUL score. |
+| BIM / infrastructure lifecycle twins | A 2026 systematic review's 97-study corpus found interoperability/data modelling prominent, while only one study (1.0%) was primarily end-of-life/deconstruction-oriented and five (5.2%) had decision support as the dominant information role. Its search snapshot is dated 16 August 2026. | Make deconstruction, repair and recovered-material requalification first-class transitions, and show that decision-support outputs preserve provenance and cannot self-authorize. |
+| Digital-twin composition | ISO 23247-6:2026 defines integrated, unified and federated manufacturing digital-twin composition. NISTIR 8620 identifies interoperability, VVUQ, cybersecurity and workforce readiness as persistent manufacturing twin concerns. | Treat condition-transition continuity as a composition problem across separately owned models, sensors, material lots and authorities. Do not claim ISO conformity from this research profile. |
+
+### Competitive position
+
+The honest present-day position is:
+
+- **Not a solver replacement:** no parity claim against Abaqus, Ansys / LS-DYNA, nCode DesignLife, fe-safe or Peridigm for nonlinear structural mechanics, detailed fatigue, fracture or multiaxial analysis.
+- **Not a universal RUL winner:** no empirical SOTA claim until a rights-cleared benchmark is admitted and grouped holdouts are frozen.
+- **A different system-level target:** make every accepted damage observation traceable to the exact component generation, load history, model profile, uncertainty and configuration; preserve that history across repair, replacement and recovery; make unsupported transitions fail closed.
+- **A measurable differentiator:** compare the proposed composition to static passports, scalar-health thresholds, unlinked damage-model outputs and a matched data-driven RUL baseline. Report identity continuity, invalid-transition rejection, grouped predictive calibration, false-healthy risk, abstention/coverage, repair decision regret and recovery requalification separately.
+
+A benchmark win requires matched inputs and operating budgets, predeclared metrics, complete negative controls and held-out campaigns. A weighted aggregate must never hide a failed identity, evidence, safety or applicability gate.
+
 ## References
 
 - NIST, *Performance of Steel Moment Connections under a Column Removal Scenario: Experiments* (2012): https://www.nist.gov/publications/performance-steel-moment-connections-under-column-removal-scenario-i-experiments
