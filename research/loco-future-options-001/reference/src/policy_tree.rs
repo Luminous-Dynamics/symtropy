@@ -14,6 +14,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use super::EvidenceManifest;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BeliefStateReceipt {
+    pub state_id: String,
+    pub physical_state_digest: String,
+    pub reserve_state_digest: String,
+    pub thermal_state_digest: String,
+    pub receipt_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StateActionEvidence {
     pub state_id: String,
     /// Complete status over the frozen action domain. Omitted actions are not
@@ -28,6 +37,12 @@ pub struct PolicyTransition {
     pub from_state_id: String,
     pub action_id: String,
     pub to_state_id: String,
+    pub from_state_digest: String,
+    pub to_state_digest: String,
+    pub predecessor_reserve_state_digest: String,
+    pub resulting_reserve_state_digest: String,
+    pub predecessor_thermal_state_digest: String,
+    pub resulting_thermal_state_digest: String,
     /// Node for the delivered next observation-equivalence class.
     pub next_belief_node_id: String,
     pub physically_possible: bool,
@@ -36,11 +51,17 @@ pub struct PolicyTransition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TerminalRecoveryReceipt {
+    pub state_id: String,
+    pub reserve_state_digest: String,
+    pub topology_digest: String,
+    pub terminal_safe_stop_reachable: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TerminalRecoveryEvidence {
     Qualified {
-        reserve_state_digest: String,
-        topology_digest: String,
-        terminal_safe_stop_reachable: bool,
+        state_receipts: Vec<TerminalRecoveryReceipt>,
     },
     Unknown {
         reason: String,
@@ -65,6 +86,7 @@ pub struct BeliefNode {
     pub observation_disposition: ObservationDisposition,
     /// All hidden states that produce this observation history.
     pub state_ids: Vec<String>,
+    pub state_evidence: Vec<BeliefStateReceipt>,
     pub transition_manifest: EvidenceManifest,
     pub state_action_evidence: Vec<StateActionEvidence>,
     pub transitions: Vec<PolicyTransition>,
@@ -101,6 +123,7 @@ pub enum PolicyTreeError {
         node_id: String,
         state_id: String,
     },
+    DuplicateTerminalRecoveryState(String),
     UnknownActionId(String),
     MissingRootNode(String),
     InvalidHorizon(usize),
