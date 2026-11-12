@@ -4,6 +4,9 @@ on:
     branches: ["research/maritime-control-response-v0-1"]
     paths:
       - "benchmarks/maritime-control-response/**"
+      - "tools/maritime-control-response-evaluator/**"
+      - "docs/tech/MARITIME_CONTROL_AWARE_DIAGNOSIS_BENCHMARK_V0_1.md"
+      - "docs/tech/MARITIME_CONTROL_RESPONSE_CORPUS_V0_1.schema.json"
       - ".github/workflows/maritime-control-response-evaluator.yml"
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
@@ -35,10 +38,10 @@ jobs:
           components: rustfmt, clippy
 
       - name: Check formatting
-        run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all -- --check
+        run: cargo fmt --manifest-path tools/maritime-control-response-evaluator/Cargo.toml --all -- --check
 
       - name: Run evaluator and contract tests
-        run: cargo test --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets
+        run: cargo test --manifest-path tools/maritime-control-response-evaluator/Cargo.toml --locked --all-targets
 
       - name: Run strict Clippy
-        run: cargo clippy --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets -- -D warnings
+        run: cargo clippy --manifest-path tools/maritime-control-response-evaluator/Cargo.toml --locked --all-targets -- -D warnings
