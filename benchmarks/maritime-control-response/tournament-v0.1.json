@@ -319,7 +319,14 @@
     "the current DX2026 official grey-box LSTM result is included as a literature reference and is not labelled reproduced until the original train/evaluation protocol and model details are recovered",
     "published Table 7 TDR, 1-FAR, FIA and score are preserved as separate metrics; score is never recomputed from older TIR",
     "reproduction stress tests include the published FTP75 Standard intake-manifold -10% and WLTP intercooler-pressure +8% failure cells",
-    "startup fault cases are evaluated separately from post-warm-up cases; adaptation cannot silently absorb a startup fault into the healthy reference"
+    "startup fault cases are evaluated separately from post-warm-up cases; adaptation cannot silently absorb a startup fault into the healthy reference",
+    "startup adaptation uses a frozen independently qualified live baseline while new observations are assessed in a separate shadow lane",
+    "faults present at sample zero or during warm-up cannot be silently assimilated into the active healthy baseline",
+    "candidate shadow data are append-only, content-addressed and never influence live predictions",
+    "any known or unknown alarm, ambiguous hypothesis set, out-of-support regime, missing sensor or invalid command-response timing quarantines the full candidate",
+    "a candidate can only produce a review package after its frozen sample window and multiple independently verified attestations from separate dependency domains",
+    "the adaptation guard has no baseline commit, activation or authority function",
+    "live baseline replacement requires separate owner approval, rollback evidence and full prior-regime regression"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -455,6 +462,21 @@
     {
       "id": "startup_fault_non_masking",
       "target": "Zero startup-fault episodes absorbed into an adaptive healthy baseline; each startup fault must be detected or explicitly abstained within 0.50 seconds, with no automatic baseline mutation.",
+      "status": "aspirational"
+    },
+    {
+      "id": "startup_fault_masking_elimination",
+      "target": "Zero startup faults absorbed into the healthy reference over fault-at-zero, fault-during-warmup, sensor-bias and mode-shift falsification suites.",
+      "status": "aspirational"
+    },
+    {
+      "id": "shadow_baseline_zero_mutation",
+      "target": "Zero live-baseline digest changes during shadow collection, quarantine and independent review.",
+      "status": "aspirational"
+    },
+    {
+      "id": "startup_detection_continuity",
+      "target": "Continue reference detection from sample zero while shadow adaptation runs, with p95 supported-event detection/abstention <=0.50 seconds at the matched false-alarm budget.",
       "status": "aspirational"
     }
   ],
@@ -695,6 +717,19 @@
     "execution_performed": false,
     "trained_model_present": false,
     "physical_validation": false,
+    "claim_ceiling": "source contract and synthetic fixtures only"
+  },
+  "startup_adaptation_guard": {
+    "path": "startup-adaptation-guard-v0.1.json",
+    "schema_version": "symtropy-startup-adaptation-guard-v0.1",
+    "status": "protocol_only_not_executed",
+    "implementation": "src/startup_adaptation.rs",
+    "live_baseline_mutation_by_guard": false,
+    "live_reference_detection_during_shadow_collection": true,
+    "automatic_baseline_commit": false,
+    "minimum_shadow_samples": 1800,
+    "minimum_independent_health_attestations": 2,
+    "failure_policy": "quarantine candidate; do not alter live reference",
     "claim_ceiling": "source contract and synthetic fixtures only"
   }
 }
