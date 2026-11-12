@@ -229,7 +229,10 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
             );
 
             group.bench_with_input(
-                BenchmarkId::new("capture_with_runtime_ids", format!("netid-{coverage_percent}pct")),
+                BenchmarkId::new(
+                    "capture_with_runtime_ids",
+                    format!("netid-{coverage_percent}pct"),
+                ),
                 &profiled_world,
                 |bencher, source| {
                     bencher.iter(|| {
