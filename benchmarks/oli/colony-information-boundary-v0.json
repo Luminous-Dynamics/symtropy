@@ -78,7 +78,121 @@
     "same_danger_and_obstacle_sensing": true,
     "information_budget_is_intentionally_varied": true,
     "random_seed_policy": "The current colony reference uses deterministic jitter from (x,y,ant_index,tick), not a seeded stochastic PRNG. Do not report seed ensembles until independent initial-condition/scenario generation is added.",
-    "telemetry_note": "ColonyMind metrics are global evaluator telemetry. scout_ratio is currently diagnostic and does not dynamically change the AntRole composition. It must not be treated as an agent-level local observation."
+    "telemetry_note": "ColonyMind metrics are global evaluator telemetry. scout_ratio is currently diagnostic and does not dynamically change the AntRole composition. It must not be treated as an agent-level local observation.",
+    "seeded_exploration": {
+      "legacy_seed": 0,
+      "legacy_seed_semantics": "Preserves original deterministic jitter exactly for backwards compatibility; do not count as an independent stochastic trial.",
+      "nonzero_seed_semantics": "Counter-based SplitMix64 jitter keyed by seed, tick, ant index, x and y; no mutable RNG consumption inside candidate scoring.",
+      "seed_recorded_in_metrics": true,
+      "preregistered_seed_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30
+      ],
+      "pairing": "Use the same seed ID for OraclePathAssisted, StigmergicFieldOnly and IndependentLocalSearch within a scenario. This creates paired common-random-number comparisons.",
+      "independent_statistical_unit": "One independent (map geometry, information mode, seed) world run. Frames and ant-level observations within a run are nested, not independent samples.",
+      "scenarios": [
+        {
+          "id": "EAST_WEST",
+          "nest": [
+            2,
+            8
+          ],
+          "food_sources": [
+            {
+              "position": [
+                28,
+                8
+              ],
+              "initial_amount": 5000
+            }
+          ]
+        },
+        {
+          "id": "WEST_EAST",
+          "nest": [
+            29,
+            8
+          ],
+          "food_sources": [
+            {
+              "position": [
+                3,
+                8
+              ],
+              "initial_amount": 5000
+            }
+          ]
+        },
+        {
+          "id": "NORTH_SOUTH",
+          "nest": [
+            16,
+            1
+          ],
+          "food_sources": [
+            {
+              "position": [
+                16,
+                14
+              ],
+              "initial_amount": 5000
+            }
+          ]
+        },
+        {
+          "id": "SOUTH_NORTH",
+          "nest": [
+            16,
+            14
+          ],
+          "food_sources": [
+            {
+              "position": [
+                16,
+                1
+              ],
+              "initial_amount": 5000
+            }
+          ]
+        }
+      ],
+      "obstacle_ablations": [
+        "none",
+        "single_barrier_with_gap",
+        "two_route_corridor",
+        "localized_danger_strip"
+      ],
+      "minimum_paired_runs_per_mode_per_scenario": 30,
+      "report": "Per-scenario paired differences, bootstrap confidence intervals over independent seed IDs, and pooled results only after showing heterogeneity by map orientation and obstacle regime."
+    }
   },
   "required_metrics": [
     "food_reserve_at_tick_180",
@@ -98,7 +212,11 @@
     "Report OraclePathAssisted only as an omniscient upper-bound baseline.",
     "Pheromone coherence, trail entropy and food reserve are separate observations, not universal intelligence scores.",
     "The deterministic jitter and all trajectory frames from one scenario are not independent samples.",
-    "Add mirrored/rotated source placements, obstacle layouts, hazard fields and multiple map geometries before a broad claim."
+    "Add mirrored/rotated source placements, obstacle layouts, hazard fields and multiple map geometries before a broad claim.",
+    "Seed ensembles must use non-zero preregistered seeds; seed 0 is compatibility mode and is not counted as an independent random trial.",
+    "All information modes receive paired identical seed IDs and identical map configurations; report paired differences, not unpaired pooled means.",
+    "Map rotations/reflections and obstacle layouts are separate scenario families. Do not treat 30 seeds on one layout as evidence of transfer to unseen layouts.",
+    "Ants and time frames within one world are nested observations; the independent statistical unit is the seeded world run."
   ],
   "ablations": [
     "food pheromone source reinforcement disabled",
@@ -115,6 +233,7 @@
     "cargo_test_status": "NOT_RUN",
     "data_digest_sha256": null,
     "output_digest_status": "PENDING_EXACT_HEAD_EXECUTION",
-    "claim_status": "IMPLEMENTATION_AND_STRUCTURAL_TESTS_ONLY_UNTIL_CI"
+    "claim_status": "IMPLEMENTATION_AND_STRUCTURAL_TESTS_ONLY_UNTIL_CI",
+    "seeded_ensemble_status": "IMPLEMENTED_SEED_API; ENSEMBLE_NOT_RUN"
   }
 }
