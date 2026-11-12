@@ -34,10 +34,10 @@
       "municipal_utility"
     ],
     "proposed_case_ids": [
-      "PW-T0-001-complete-water-boundary",
+      "PW-T0-001-complete-water-and-marker-mass-boundary",
       "PW-T0-002-missing-required-analyte",
       "PW-T0-003-treatment-bypass",
-      "PW-T0-004-end-of-life-breakthrough",
+      "PW-T0-004-breakthrough-at-end-of-life",
       "PW-T0-005-source-water-out-of-envelope",
       "PW-T0-006-stale-method-or-calibration",
       "PW-T0-007-storage-recontamination",
@@ -75,12 +75,12 @@
     "proposed_case_ids": [
       "PS-T0-001-single-pump-known-answer",
       "PS-T0-002-system-curve-intersection",
-      "PS-T0-003-parallel-pump-flow-sharing",
-      "PS-T0-004-wet-side-service-floor-violation",
-      "PS-T0-005-commanded_on_but_zero_flow",
-      "PS-T0-006-missing_or_stale_pressure",
-      "PS-T0-007-storage_reserve_and_outage",
-      "PS-T0-008-out_of_domain_pump_curve"
+      "PS-T0-003-two-identical-pumps-in-parallel",
+      "PS-T0-004-minimum-service-pressure-not-met",
+      "PS-T0-005-commanded-on-but-no-measured-flow",
+      "PS-T0-006-critical-pressure-observation-missing",
+      "PS-T0-007-storage-reserve-during-pump-outage",
+      "PS-T0-008-out-of-domain-pump-curve"
     ],
     "comparison_dimensions": [
       "wire_to_water_efficiency",
