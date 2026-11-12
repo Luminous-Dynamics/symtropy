@@ -61,7 +61,9 @@ pub enum ScmConsensusWindow {
 pub enum ScmCommunicationTopology {
     CompleteGraph,
     Ring,
-    MetricRadius { radius: f64 },
+    MetricRadius {
+        radius: f64,
+    },
     /// Explicitly empty adjacency. Unlike a zero-radius metric graph, coincident
     /// agents never become neighbours under this topology.
     NoCommunication,
