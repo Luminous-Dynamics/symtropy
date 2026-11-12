@@ -181,16 +181,16 @@ fn whiten_tangent_to_tangent<Domain: CoordinateFrame, Codomain: CoordinateFrame,
     // B = L_Y^T A L_X^-T.
     let right_whitened = right_whiten_domain(operator, &domain.cholesky)?;
     let mut result = [[0.0; N]; N];
-    for row in 0..N {
-        for column in 0..N {
+    for (row, result_row) in result.iter_mut().enumerate() {
+        for (column, entry) in result_row.iter_mut().enumerate() {
             let mut value = 0.0;
-            for inner in row..N {
-                value += codomain.cholesky[inner][row] * right_whitened[inner][column];
+            for (inner, right_row) in right_whitened.iter().enumerate().skip(row) {
+                value += codomain.cholesky[inner][row] * right_row[column];
             }
             if !value.is_finite() {
                 return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
             }
-            result[row][column] = value;
+            *entry = value;
         }
     }
     Ok(result)
@@ -211,8 +211,8 @@ fn whiten_tangent_to_cotangent<
     for column in 0..N {
         for row in 0..N {
             let mut value = right_whitened[row][column];
-            for inner in 0..row {
-                value -= codomain.cholesky[row][inner] * result[inner][column];
+            for (inner, result_row) in result.iter().enumerate().take(row) {
+                value -= codomain.cholesky[row][inner] * result_row[column];
             }
             result[row][column] = value / codomain.cholesky[row][row];
             if !result[row][column].is_finite() {
@@ -238,8 +238,8 @@ fn normalized_column_correlation<const N: usize>(
     }
 
     let mut correlation = 0.0;
-    for row in 0..N {
-        correlation += (matrix[row][left] / left_norm) * (matrix[row][right] / right_norm);
+    for matrix_row in matrix.iter().take(N) {
+        correlation += (matrix_row[left] / left_norm) * (matrix_row[right] / right_norm);
     }
     if correlation.is_finite() {
         Ok(correlation)
@@ -300,12 +300,12 @@ fn singular_values_one_sided_jacobi<const N: usize>(
                     return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
                 }
 
-                for row in 0..N {
-                    let old_left = work[row][left];
-                    let old_right = work[row][right];
-                    work[row][left] = cosine * old_left - sine * old_right;
-                    work[row][right] = sine * old_left + cosine * old_right;
-                    if !work[row][left].is_finite() || !work[row][right].is_finite() {
+                for work_row in work.iter_mut().take(N) {
+                    let old_left = work_row[left];
+                    let old_right = work_row[right];
+                    work_row[left] = cosine * old_left - sine * old_right;
+                    work_row[right] = sine * old_left + cosine * old_right;
+                    if !work_row[left].is_finite() || !work_row[right].is_finite() {
                         return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
                     }
                 }
