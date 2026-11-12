@@ -254,8 +254,8 @@ pub struct Snapshot {
     pub policy_revision: String,
     pub included: Vec<IncludedEvidence>,
     pub excluded: Vec<ExcludedEvidence>,
-    pub pending_lifecycle_event_ids: Vec<String>,
-    pub applied_lifecycle_event_ids: Vec<String>,
+    pub pending_lifecycle_events: Vec<LifecycleEvent>,
+    pub applied_lifecycle_events: Vec<LifecycleEvent>,
     pub maximum_clock_uncertainty_ticks: u64,
     /// Canonical deterministic payload. Host must SHA-256 and persist it.
     pub canonical_transcript: Vec<u8>,
@@ -462,8 +462,8 @@ fn lifecycle_effect(
     event_id: &str,
     ledger: &EvidenceLedger,
     cutoff_tick: i64,
-    pending: &mut Vec<String>,
-    applied: &mut Vec<String>,
+    pending: &mut Vec<LifecycleEvent>,
+    applied: &mut Vec<LifecycleEvent>,
 ) -> Option<ExclusionReason> {
     let mut active_effects = Vec::new();
     for lifecycle in &ledger.lifecycle_events {
@@ -474,7 +474,7 @@ fn lifecycle_effect(
             continue;
         }
         if lifecycle.effective_at_tick > cutoff_tick {
-            pending.push(lifecycle.event_id.clone());
+            pending.push(lifecycle.clone());
             continue;
         }
         active_effects.push(lifecycle);
@@ -488,7 +488,7 @@ fn lifecycle_effect(
     if active_effects.is_empty() {
         return None;
     }
-    applied.extend(active_effects.iter().map(|item| item.event_id.clone()));
+    applied.extend(active_effects.iter().map(|item| (*item).clone()));
     let latest = active_effects.last()?;
     Some(match latest.kind {
         LifecycleKind::Supersede => ExclusionReason::SupersededByKnownEvent,
@@ -504,6 +504,21 @@ fn put_bytes(out: &mut Vec<u8>, value: &[u8]) {
 
 fn put_i64(out: &mut Vec<u8>, value: i64) {
     out.extend_from_slice(&value.to_be_bytes());
+}
+
+fn put_lifecycle(out: &mut Vec<u8>, lifecycle: &LifecycleEvent) {
+    put_bytes(out, lifecycle.event_id.as_bytes());
+    out.push(lifecycle.kind.code());
+    put_bytes(out, lifecycle.target_event_id.as_bytes());
+    match lifecycle.replacement_event_id.as_deref() {
+        Some(replacement) => {
+            out.push(1);
+            put_bytes(out, replacement.as_bytes());
+        }
+        None => out.push(0),
+    }
+    put_i64(out, lifecycle.effective_at_tick);
+    put_i64(out, lifecycle.first_received_at_tick);
 }
 
 fn canonical_transcript(snapshot: &Snapshot) -> Vec<u8> {
@@ -536,12 +551,13 @@ fn canonical_transcript(snapshot: &Snapshot) -> Vec<u8> {
     }
 
     out.extend_from_slice(&(snapshot.pending_lifecycle_event_ids.len() as u64).to_be_bytes());
-    for event_id in &snapshot.pending_lifecycle_event_ids {
-        put_bytes(&mut out, event_id.as_bytes());
+    out.extend_from_slice(&(snapshot.pending_lifecycle_events.len() as u64).to_be_bytes());
+    for lifecycle in &snapshot.pending_lifecycle_events {
+        put_lifecycle(&mut out, lifecycle);
     }
-    out.extend_from_slice(&(snapshot.applied_lifecycle_event_ids.len() as u64).to_be_bytes());
-    for event_id in &snapshot.applied_lifecycle_event_ids {
-        put_bytes(&mut out, event_id.as_bytes());
+    out.extend_from_slice(&(snapshot.applied_lifecycle_events.len() as u64).to_be_bytes());
+    for lifecycle in &snapshot.applied_lifecycle_events {
+        put_lifecycle(&mut out, lifecycle);
     }
     out
 }
@@ -572,8 +588,8 @@ pub fn snapshot_as_of(ledger: &EvidenceLedger, request: &DecisionRequest) -> Sna
 
     let mut included = Vec::new();
     let mut excluded = Vec::new();
-    let mut pending_lifecycle_event_ids = Vec::new();
-    let mut applied_lifecycle_event_ids = Vec::new();
+    let mut pending_lifecycle_events = Vec::new();
+    let mut applied_lifecycle_events = Vec::new();
 
     for event in &ledger.events {
         let result = (|| {
@@ -584,8 +600,8 @@ pub fn snapshot_as_of(ledger: &EvidenceLedger, request: &DecisionRequest) -> Sna
                 &event.event_id,
                 ledger,
                 request.cutoff_tick,
-                &mut pending_lifecycle_event_ids,
-                &mut applied_lifecycle_event_ids,
+                &mut pending_lifecycle_events,
+                &mut applied_lifecycle_events,
             ) {
                 return Err(reason);
             }
@@ -650,10 +666,16 @@ pub fn snapshot_as_of(ledger: &EvidenceLedger, request: &DecisionRequest) -> Sna
 
     included.sort_by(|a, b| a.event_id.cmp(&b.event_id));
     excluded.sort_by(|a, b| a.event_id.cmp(&b.event_id));
-    pending_lifecycle_event_ids.sort();
-    pending_lifecycle_event_ids.dedup();
-    applied_lifecycle_event_ids.sort();
-    applied_lifecycle_event_ids.dedup();
+    let lifecycle_order = |left: &LifecycleEvent, right: &LifecycleEvent| {
+        left.effective_at_tick
+            .cmp(&right.effective_at_tick)
+            .then_with(|| left.first_received_at_tick.cmp(&right.first_received_at_tick))
+            .then_with(|| left.event_id.cmp(&right.event_id))
+    };
+    pending_lifecycle_events.sort_by(lifecycle_order);
+    pending_lifecycle_events.dedup_by(|a, b| a.event_id == b.event_id);
+    applied_lifecycle_events.sort_by(lifecycle_order);
+    applied_lifecycle_events.dedup_by(|a, b| a.event_id == b.event_id);
 
     let mut snapshot = Snapshot {
         purpose: request.purpose,
@@ -662,8 +684,8 @@ pub fn snapshot_as_of(ledger: &EvidenceLedger, request: &DecisionRequest) -> Sna
         policy_revision: request.policy_revision.clone(),
         included,
         excluded,
-        pending_lifecycle_event_ids,
-        applied_lifecycle_event_ids,
+        pending_lifecycle_events,
+        applied_lifecycle_events,
         maximum_clock_uncertainty_ticks: request.maximum_clock_uncertainty_ticks,
         canonical_transcript: Vec::new(),
     };
@@ -1177,7 +1199,14 @@ mod tests {
             DecisionPurpose::MediumNextPass,
             10,
         );
-        assert_eq!(result.applied_lifecycle_event_ids, vec!["L1"]);
+        assert_eq!(
+            result
+                .applied_lifecycle_events
+                .iter()
+                .map(|item| item.event_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["L1"]
+        );
 
         let mut changed = lifecycle;
         changed.event_id = "L2".to_owned();
@@ -1246,7 +1275,14 @@ mod tests {
                 .iter()
                 .any(|item| item.event_id == "SCAN-OLD")
         );
-        assert_eq!(result.pending_lifecycle_event_ids, vec!["L1"]);
+        assert_eq!(
+            result
+                .pending_lifecycle_events
+                .iter()
+                .map(|item| item.event_id.as_str())
+                .collect::<Vec<_>>(),
+            vec!["L1"]
+        );
     }
 
     #[test]
