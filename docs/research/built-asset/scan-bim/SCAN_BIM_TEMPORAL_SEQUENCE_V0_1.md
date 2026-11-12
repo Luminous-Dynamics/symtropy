@@ -55,7 +55,9 @@ This evaluator does not generate or own physical IDs. Candidate track IDs are sc
 
 ## 4. P0 implementation
 
-The Rust crate is `tools/scan-bim-temporal-sequence-benchmark/`. Candidate outputs and evaluator truth are separate JSON inputs. The evaluator binds exact input bytes with SHA-256 in its report.
+The Rust crate is `tools/scan-bim-temporal-sequence-benchmark/` (17 unit tests; Rust 1.96 target; pinned 22-package Cargo.lock). Candidate outputs and evaluator truth are separate JSON inputs. The evaluator binds exact input bytes with SHA-256 in its report.
+
+The known-answer suite includes candidate/reference permutation invariance, global ID assignment, identity switches, spurious detections, missed visible observations, occlusion/reappearance, replacement identity, false physical-change attribution, true-change sensitivity, late arrival, future cutoff, clock-domain mismatch, coarse timestamp precision, expired calibration, NDT purpose leakage, and revocation known before versus after the historical cutoff.
 
 Initial seven sequences:
 1. unchanged component across three acquisitions;
