@@ -45,7 +45,7 @@ The reported regret is measured against the best feasible physical policy in eac
 
 ## Metrics
 
-The deterministic sweep records no-sensing policy/regret; energy cost and conversion; acquisition latency and worst world-specific service loss; maximum total penalty; worst post-sensing regret and regret reduction; each observation partition and selected action; and evaluator-side prediction receipts including hidden missingness causes. These audit rows are produced from a separate evaluator API and are not part of the candidate-facing decision report.
+The default deterministic sweep records the full evaluator audit. The separate `--candidate-policy-map` mode writes only `scenario_id,sensor_id,observation_id,action_id`, for safe policy execution or external controller adapters. The evaluator sweep records no-sensing policy/regret; energy cost and conversion; acquisition latency and worst world-specific service loss; maximum total penalty; worst post-sensing regret and regret reduction; each observation partition and selected action; and evaluator-side prediction receipts including hidden missingness causes. These audit rows are produced from a separate evaluator API and are not part of the candidate-facing decision report.
 
 These are separate quantities, not a composite information score.
 
@@ -63,6 +63,7 @@ CIVDYN's proposed extension is to combine cost-aware sensing with policy-depende
 ```bash
 cargo test --locked --manifest-path research/civdyn-active-sensing/Cargo.toml
 cargo run --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep
+cargo run --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep -- --candidate-policy-map
 ```
 
 ## Claim ceiling
