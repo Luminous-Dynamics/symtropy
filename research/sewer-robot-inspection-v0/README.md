@@ -138,8 +138,10 @@ Cases must specify a disposition and independent oracle. Include positive contro
 ## 8. T0 synthetic mission contract
 
 - schema/mission-case.schema.json defines a runtime-neutral mission envelope. It carries no image or sensor bytes and makes no defect truth assertion.
-- fixtures/synthetic-localization-loss-v0.1.json is a synthetic negative control: a mission has a missing telemetry interval and a localization discontinuity. Expected outcome is Indeterminate; the unseen interval cannot be rated defect-free.
-- A local sanity pass should check JSON parsing, required keys, range constraints and negative-control oracle. Full JSON-Schema validator and Rust test are follow-on work, not claimed here.
+- fixtures/synthetic-localization-loss-v0.1.json is a synthetic negative control: a mission has a missing telemetry interval, a localization discontinuity and degraded wall coverage. Expected outcome is Indeterminate; the unseen interval cannot be rated defect-free.
+- fixtures/synthetic-complete-mission-v0.1.json is a synthetic positive control. Accepted means only that the observation envelope meets this synthetic completeness profile; it does not mean the pipe is defect-free or serviceable.
+- The fixtures bind a deliberately illustrative T0 threshold profile of at least 90% surface coverage and at most 0.10 m P95 localization error. Those values are test-vector constants, not industry acceptance limits or field specifications.
+- A one-off local sanity pass parsed the schema and both fixtures and checked required top-level fields, interval ordering/contiguity, full chainage coverage, recomputed fully-qualified observation length, expected disposition and the no-defect-absence invariant (15 checks passed). This was not a full JSON-Schema implementation run, Rust test, CI, physical robot test or defect-detection evaluation.
 
 ## 9. Luminous integration boundary
 
