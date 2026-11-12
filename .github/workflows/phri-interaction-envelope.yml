@@ -1,0 +1,28 @@
+name: PHRI Interaction Envelope Reference
+
+on:
+  pull_request:
+    paths:
+      - "research/phri-interaction-envelope-001/**"
+      - ".github/workflows/phri-interaction-envelope.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  interaction-envelope:
+    name: Compositional interaction envelope (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/phri-interaction-envelope-001/Cargo.toml -- --check
+      - name: Test compositional admission reference
+        run: cargo test --locked --manifest-path research/phri-interaction-envelope-001/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/phri-interaction-envelope-001/Cargo.toml --all-targets -- -D warnings
