@@ -2562,10 +2562,12 @@ mod transformed_halfspace_tests {
     }
     #[test]
     fn contact_solver_preserves_response_for_finite_large_mass() {
-        let mut world = PhysicsWorld::<3>::default();
-        world.compliance = 0.0;
-        world.baumgarte = 0.0;
-        world.slop = 0.0;
+        let mut world = PhysicsWorld::<3> {
+            compliance: 0.0,
+            baumgarte: 0.0,
+            slop: 0.0,
+            ..Default::default()
+        };
 
         let static_body = RigidBody::new(
             BodyHandle(0),
