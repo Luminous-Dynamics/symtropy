@@ -161,7 +161,26 @@ fn solve_node(
         .copied()
         .ok_or_else(|| PolicyTreeError::MissingRootNode(node_id.to_owned()))?;
 
-    let solution = if depth == 0 {
+    let mut all_state_ids = BTreeSet::new();
+    for state_id in &node.state_ids {
+        require_nonempty(&[("state_id", state_id)])?;
+        if !all_state_ids.insert(state_id.as_str()) {
+            return Err(PolicyTreeError::DuplicateStateId {
+                node_id: node_id.to_owned(),
+                state_id: state_id.clone(),
+            });
+        }
+    }
+
+    let solution = if node.state_ids.is_empty() {
+        NodeSolution {
+            disposition: PolicyTreeDisposition::Unknown,
+            winning_action_ids: Vec::new(),
+            witness: BTreeMap::new(),
+            unknown_reasons: vec![format!("{node_id}:empty-belief-state")],
+            invalid_reasons: Vec::new(),
+        }
+    } else if depth == 0 {
         match &node.terminal_recovery {
             Some(TerminalRecoveryEvidence::Qualified {
                 reserve_state_digest,
@@ -228,26 +247,7 @@ fn solve_node(
             unknown_reasons: vec![format!("{node_id}:transition-manifest-incomplete")],
             invalid_reasons: Vec::new(),
         }
-    } else if node.state_ids.is_empty() {
-        NodeSolution {
-            disposition: PolicyTreeDisposition::Unknown,
-            winning_action_ids: Vec::new(),
-            witness: BTreeMap::new(),
-            unknown_reasons: vec![format!("{node_id}:empty-belief-state")],
-            invalid_reasons: Vec::new(),
-        }
     } else {
-        let mut state_ids = BTreeSet::new();
-        for state_id in &node.state_ids {
-            require_nonempty(&[("state_id", state_id)])?;
-            if !state_ids.insert(state_id.as_str()) {
-                return Err(PolicyTreeError::DuplicateStateId {
-                    node_id: node_id.to_owned(),
-                    state_id: state_id.clone(),
-                });
-            }
-        }
-
         let mut evidence_by_state = BTreeMap::new();
         for evidence in &node.state_action_evidence {
             require_nonempty(&[
