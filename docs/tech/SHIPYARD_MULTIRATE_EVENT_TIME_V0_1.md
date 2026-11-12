@@ -27,7 +27,7 @@ The <10 µs drift statement is not generalized to every upstream transport. The 
 
 - Dependency-free Rust 2024 crate in an isolated nested Cargo workspace.
 - Draft 2020-12 input contract.
-- 26 unit/mutation tests for identity, positive/negative offset and drift, uncertainty growth, expired calibrations, invalid clock rates, mismatched domains, WID/pass mismatch, duplicate/out-of-order samples, missing digests, half-open boundaries, boundary ambiguity, clipped/dropped samples, late arrival, gaps, insufficient cadence, uncertainty budget, modality-specific expected sample counts, missing transform/calibration digests, invalid event windows, future event cutoffs and jitter-aware expected counts.
+- 32 unit/mutation tests for identity, positive/negative offset and drift, uncertainty growth, expired calibrations, invalid clock rates, mismatched domains, WID/pass mismatch, duplicate/out-of-order samples, missing digests, half-open boundaries, boundary ambiguity, clipped/dropped samples, late arrival, gaps, insufficient cadence, uncertainty budget, modality-specific expected sample counts, missing transform/calibration digests, invalid event windows, future event cutoffs and jitter-aware expected counts.
 - Focused Rust 1.96 workflow runs formatting, tests and Clippy with warnings denied.
 
 The test fixture uses synthetic integer timestamps and symbolic SHA-256 identifiers; no real BAM source bytes are present. It is an event-time contract demonstration, not evidence that physical devices were synchronized to the stated precision.
