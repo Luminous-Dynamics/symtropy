@@ -376,10 +376,7 @@ impl GrayScottField {
     /// `center - amplitude/2` through `center + amplitude/2`. The amplitudes and resulting
     /// ranges must remain within [0, 1]. This is useful for reproducible reaction–diffusion
     /// pattern seeding; the seed is an explicit experiment input, not hidden solver state.
-    pub fn set_seeded_patch(
-        &mut self,
-        patch: GrayScottSeededPatch,
-    ) -> Result<(), GrayScottError> {
+    pub fn set_seeded_patch(&mut self, patch: GrayScottSeededPatch) -> Result<(), GrayScottError> {
         let GrayScottSeededPatch {
             x,
             y,
