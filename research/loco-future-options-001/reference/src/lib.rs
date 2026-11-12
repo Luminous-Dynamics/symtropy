@@ -103,6 +103,9 @@ pub struct ThermalNode {
 pub enum ThermalEvidence {
     NotApplicable,
     Valid {
+        /// Complete frozen successor manifest covered by this conservative
+        /// upper-temperature envelope.
+        branch_manifest_digest: String,
         model_digest: String,
         node_manifest_digest: String,
         expected_predecessor_digest: String,
@@ -129,6 +132,8 @@ pub enum UpstreamDisposition {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BranchRecoveryReceipt {
     pub branch_id: String,
+    /// Exact successor physical state covered by this reserve/topology receipt.
+    pub successor_state_digest: String,
     pub reserve_state_digest: String,
     pub topology_digest: String,
     pub terminal_safe_stop_reachable: bool,
@@ -225,6 +230,7 @@ fn require_nonempty(fields: &[(&'static str, &str)]) -> Result<(), EvaluationErr
 
 fn validate_thermal(
     thermal: &ThermalEvidence,
+    branch_manifest: &EvidenceManifest,
 ) -> Result<(Vec<String>, Vec<String>), EvaluationError> {
     let mut unknown = Vec::new();
     let mut invalid = Vec::new();
@@ -233,6 +239,7 @@ fn validate_thermal(
         ThermalEvidence::Unknown { reason } => unknown.push(format!("thermal:{reason}")),
         ThermalEvidence::Invalid { reason } => invalid.push(format!("thermal:{reason}")),
         ThermalEvidence::Valid {
+            branch_manifest_digest,
             model_digest,
             node_manifest_digest,
             expected_predecessor_digest,
@@ -241,6 +248,13 @@ fn validate_thermal(
             required_node_ids,
             observed_nodes,
         } => {
+            if branch_manifest_digest.trim().is_empty() {
+                unknown.push("thermal:branch-manifest-digest-missing".to_owned());
+            } else if !branch_manifest.complete {
+                unknown.push("thermal:source-branch-manifest-incomplete".to_owned());
+            } else if branch_manifest_digest != &branch_manifest.digest {
+                invalid.push("thermal:branch-manifest-digest-mismatch".to_owned());
+            }
             for (field, value) in [
                 ("thermal.model_digest", model_digest.as_str()),
                 (
@@ -297,7 +311,7 @@ fn validate_recovery(
     recovery: &RecoveryEvidence,
     branch_manifest: &EvidenceManifest,
     declared_branch_ids: &BTreeSet<String>,
-    physically_possible_branch_ids: &BTreeSet<String>,
+    physically_possible_branch_state_digests: &BTreeMap<String, String>,
 ) -> (Vec<String>, Vec<String>) {
     let mut unknown = Vec::new();
     let mut invalid = Vec::new();
@@ -325,10 +339,23 @@ fn validate_recovery(
                     ));
                     continue;
                 }
-                if !physically_possible_branch_ids.contains(&receipt.branch_id) {
+                let Some(expected_successor_digest) =
+                    physically_possible_branch_state_digests.get(&receipt.branch_id)
+                else {
                     // A receipt for a declared but physically impossible branch
                     // is not part of required recovery coverage.
                     continue;
+                };
+                if receipt.successor_state_digest.trim().is_empty() {
+                    unknown.push(format!(
+                        "recovery:{}:successor-state-digest-missing",
+                        receipt.branch_id
+                    ));
+                } else if &receipt.successor_state_digest != expected_successor_digest {
+                    invalid.push(format!(
+                        "recovery:{}:successor-state-digest-mismatch",
+                        receipt.branch_id
+                    ));
                 }
                 if receipts
                     .insert(receipt.branch_id.clone(), receipt)
@@ -356,7 +383,7 @@ fn validate_recovery(
                 }
             }
 
-            for branch_id in physically_possible_branch_ids {
+            for branch_id in physically_possible_branch_state_digests.keys() {
                 if !receipts.contains_key(branch_id) {
                     unknown.push(format!("recovery:branch-receipt-missing:{branch_id}"));
                 }
@@ -448,19 +475,25 @@ pub fn evaluate_future_options(
         return Err(EvaluationError::NoPhysicallyPossibleBranches);
     }
 
-    let (thermal_unknown, thermal_invalid) = validate_thermal(&scenario.thermal)?;
+    let (thermal_unknown, thermal_invalid) =
+        validate_thermal(&scenario.thermal, &scenario.branch_manifest)?;
     unknown_reasons.extend(thermal_unknown);
     invalid_reasons.extend(thermal_invalid);
-    let physically_possible_branch_ids = possible
+    let physically_possible_branch_state_digests = possible
         .iter()
-        .map(|branch| branch.branch_id.clone())
-        .collect::<BTreeSet<_>>();
+        .map(|branch| {
+            (
+                branch.branch_id.clone(),
+                branch.successor_state_digest.clone(),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
     let declared_branch_ids = branch_ids.clone();
     let (recovery_unknown, recovery_invalid) = validate_recovery(
         &scenario.recovery,
         &scenario.branch_manifest,
         &declared_branch_ids,
-        &physically_possible_branch_ids,
+        &physically_possible_branch_state_digests,
     );
     unknown_reasons.extend(recovery_unknown);
     invalid_reasons.extend(recovery_invalid);
@@ -628,6 +661,7 @@ mod tests {
                 .iter()
                 .map(|branch_id| BranchRecoveryReceipt {
                     branch_id: branch_id.clone(),
+                    successor_state_digest: format!("state:{branch_id}"),
                     reserve_state_digest: format!("reserve:{branch_id}"),
                     topology_digest: format!("topology:{branch_id}"),
                     terminal_safe_stop_reachable: true,
@@ -880,6 +914,7 @@ mod tests {
         let mut s = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
         s.recovery.branch_receipts.push(BranchRecoveryReceipt {
             branch_id: "not-in-branch-manifest".to_owned(),
+            successor_state_digest: "state:other".to_owned(),
             reserve_state_digest: "reserve:other".to_owned(),
             topology_digest: "topology:other".to_owned(),
             terminal_safe_stop_reachable: true,
@@ -894,10 +929,66 @@ mod tests {
         );
     }
 
+
+    #[test]
+    fn thermal_envelope_must_bind_to_complete_successor_manifest() {
+        let mut scenario = scenario(vec![
+            branch("b1", "rough", 500_000, &["continue"]),
+            branch("b2", "firm", 500_000, &["retreat"]),
+        ]);
+        scenario.thermal = ThermalEvidence::Valid {
+            branch_manifest_digest: "other-manifest".to_owned(),
+            model_digest: "thermal-model".to_owned(),
+            node_manifest_digest: "thermal-nodes".to_owned(),
+            expected_predecessor_digest: "thermal-prev".to_owned(),
+            observed_predecessor_digest: "thermal-prev".to_owned(),
+            result_state_digest: "thermal-envelope".to_owned(),
+            required_node_ids: vec!["motor".to_owned()],
+            observed_nodes: vec![ThermalNode {
+                node_id: "motor".to_owned(),
+                upper_temperature_milli_c: 80_000,
+                hard_limit_milli_c: 100_000,
+                source_class: ThermalSourceClass::SyntheticFixture,
+                evidence_digest: "thermal:motor".to_owned(),
+            }],
+        };
+        let report = evaluate_future_options(&scenario).unwrap();
+        assert_eq!(report.disposition, ScenarioDisposition::Invalid);
+        assert!(report.invalid_reasons.iter().any(|reason| {
+            reason.contains("thermal:branch-manifest-digest-mismatch")
+        }));
+        assert_eq!(report.deployable_common_option_count, 0);
+    }
+
+    #[test]
+    fn recovery_receipt_must_bind_to_the_exact_successor_state_digest() {
+        let mut scenario = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
+        scenario.recovery.branch_receipts[0].successor_state_digest = "other-state".to_owned();
+        let report = evaluate_future_options(&scenario).unwrap();
+        assert_eq!(report.disposition, ScenarioDisposition::Invalid);
+        assert!(report.invalid_reasons.iter().any(|reason| {
+            reason.contains("successor-state-digest-mismatch")
+        }));
+        assert_eq!(report.deployable_common_option_count, 0);
+    }
+
+    #[test]
+    fn zero_mass_physical_branch_requires_a_bound_recovery_receipt() {
+        let mut scenario = scenario(vec![
+            branch("likely", "same", 1_000_000, &["continue"]),
+            branch("zero-mass", "same", 0, &[]),
+        ]);
+        scenario.recovery.branch_receipts.retain(|receipt| receipt.branch_id != "zero-mass");
+        let report = evaluate_future_options(&scenario).unwrap();
+        assert_eq!(report.disposition, ScenarioDisposition::Unknown);
+        assert!(report.observation_sets.is_empty());
+    }
+
     #[test]
     fn hard_thermal_limit_is_per_node_not_hidden_by_the_mean() {
         let mut s = scenario(vec![branch("b1", "hot-state", 1_000_000, &["continue"])]);
         s.thermal = ThermalEvidence::Valid {
+            branch_manifest_digest: "manifest:branches".to_owned(),
             model_digest: "thermal-model".to_owned(),
             node_manifest_digest: "thermal-nodes".to_owned(),
             expected_predecessor_digest: "thermal-prev".to_owned(),
@@ -943,6 +1034,7 @@ mod tests {
     fn mismatched_thermal_predecessor_is_unknown_not_reused() {
         let mut s = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
         s.thermal = ThermalEvidence::Valid {
+            branch_manifest_digest: "manifest:branches".to_owned(),
             model_digest: "thermal-model".to_owned(),
             node_manifest_digest: "thermal-nodes".to_owned(),
             expected_predecessor_digest: "current-history".to_owned(),
@@ -1008,6 +1100,7 @@ mod tests {
             .branch_receipts
             .push(BranchRecoveryReceipt {
                 branch_id: "b3".to_owned(),
+                successor_state_digest: "state:b3".to_owned(),
                 reserve_state_digest: "reserve:b3".to_owned(),
                 topology_digest: "topology:b3".to_owned(),
                 terminal_safe_stop_reachable: true,
