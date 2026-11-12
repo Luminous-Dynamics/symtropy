@@ -86,10 +86,13 @@ fn emit(fields: &[String]) {
     println!("{}", fields.iter().map(|x| csv_field(x)).collect::<Vec<_>>().join(","));
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn evaluate_fixture() -> Result<civdyn_temporal_observability::TemporalObservabilityReport, String> {
     let (config, outcomes, observations) = fixture();
-    let report = evaluate_temporal_observability(&config, &outcomes, &observations)?;
+    evaluate_temporal_observability(&config, &outcomes, &observations).map_err(|error| format!("{error:?}"))
+}
 
+fn emit_summary() -> Result<(), String> {
+    let report = evaluate_fixture()?;
     println!("scenario_id,policy_id,world_id,evidence_view,true_mean,complete_case_mean,missing_as_zero_mean,identified_lower,identified_upper,truth_contained,observed_periods,total_periods,coverage,missing_periods,late_not_yet_available_periods,observability_debt_service_periods,robust_comparison");
     for row in &report.summaries {
         let comparison = match row.view {
@@ -116,11 +119,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             comparison.to_owned(),
         ]);
     }
+    Ok(())
+}
 
-    println!("candidate_observation,scenario_id,policy_id,event_tick,decision_status,observed_service_units,decision_cutoff_tick");
+fn emit_candidate() -> Result<(), String> {
+    let report = evaluate_fixture()?;
+    println!("scenario_id,policy_id,event_tick,decision_status,observed_service_units,decision_cutoff_tick");
     for row in &report.candidate_observations {
         emit(&[
-            "candidate_observation".to_owned(),
             row.scenario_id.clone(),
             row.policy_id.clone(),
             row.event_tick.to_string(),
@@ -129,11 +135,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             row.decision_cutoff_tick.to_string(),
         ]);
     }
+    Ok(())
+}
 
-    println!("evaluator_event_receipt,policy_id,world_id,event_tick,decision_status,retrospective_status,ingest_tick,missing_cause,capture_receipt_digest,delivery_receipt_digest");
+fn emit_evaluator_receipts() -> Result<(), String> {
+    let report = evaluate_fixture()?;
+    println!("policy_id,world_id,event_tick,decision_status,retrospective_status,ingest_tick,missing_cause,capture_receipt_digest,delivery_receipt_digest,scenario_id");
     for row in &report.evaluator_event_receipts {
         emit(&[
-            "evaluator_event_receipt".to_owned(),
             row.policy_id.clone(),
             row.world_id.clone(),
             row.event_tick.to_string(),
@@ -143,7 +152,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             row.missing_cause.as_ref().map_or_else(|| "none".to_owned(), |cause| cause.id().to_owned()),
             row.capture_receipt_digest.clone(),
             row.delivery_receipt_digest.clone().unwrap_or_default(),
+            report.scenario_id.clone(),
         ]);
     }
     Ok(())
+}
+
+fn main() -> Result<(), String> {
+    let mode = std::env::args().nth(1);
+    match mode.as_deref() {
+        None | Some("--summary") => emit_summary(),
+        Some("--candidate") => emit_candidate(),
+        Some("--evaluator-receipts") => emit_evaluator_receipts(),
+        Some(other) => Err(format!(
+            "unknown output mode {other}; expected --summary, --candidate or --evaluator-receipts"
+        )),
+    }
 }
