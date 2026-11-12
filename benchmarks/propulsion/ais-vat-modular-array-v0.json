@@ -1,0 +1,402 @@
+{
+  "schema_version": "luminous.microprop.ais-vat-modular-array.v0.1",
+  "benchmark_id": "MICROPROP-MODULAR-ARRAY-001",
+  "frozen_at": "2026-11-12",
+  "evidence_class": "source_normalization_with_synthetic_scenarios",
+  "physical_measurements": false,
+  "flight_measurements": false,
+  "independent_reproduction": false,
+  "source_records": [
+    {
+      "id": "AIS-VAT1-PQ",
+      "module_count": 1,
+      "module_relation": "single reference module",
+      "manufacturer_source": "https://appliedionsystems.com/portfolio/ais-vat1-pq-micro-vacuum-arc-thruster/",
+      "product_index_source": "https://appliedionsystems.com/products/",
+      "propellant": "Bismuth",
+      "power_options_W": [
+        2.5,
+        5
+      ],
+      "catalogue_thrust_points": [
+        {
+          "power_W": 2.5,
+          "thrust_uN": 13
+        },
+        {
+          "power_W": 5,
+          "thrust_uN": 26
+        }
+      ],
+      "minimum_thrust": {
+        "value_uN": 4.2,
+        "condition": "<1 W"
+      },
+      "total_impulse_Ns": 0.13,
+      "specific_impulse_s": 87,
+      "wet_mass_kg": 0.056,
+      "volume_cm3": 37,
+      "dimensions_mm": [
+        42,
+        42,
+        21
+      ],
+      "shot_lifetime_reported": 40000,
+      "shot_lifetime_scope": "manufacturer page does not define whether figure is per integrated configuration or per individual emitter",
+      "EOL_thrust": {
+        "value_uN": 1,
+        "qualifier": "less_than",
+        "condition": "not specified by product index"
+      },
+      "rep_rate_reported": [
+        {
+          "power_W": 2.5,
+          "min_Hz": 1,
+          "max_Hz": 4
+        },
+        {
+          "power_W": 5,
+          "min_Hz": 1,
+          "max_Hz": 8
+        }
+      ],
+      "independent_verification": false
+    },
+    {
+      "id": "AIS-VAT1-DUO",
+      "module_count": 2,
+      "module_relation": "two parallel AIS-VAT1-PQ modules",
+      "manufacturer_source": "https://appliedionsystems.com/portfolio/ais-vat1-dual-micro-vacuum-arc-thruster/",
+      "product_index_source": "https://appliedionsystems.com/products/",
+      "propellant": "Bismuth",
+      "power_options_W": [
+        5,
+        10
+      ],
+      "catalogue_thrust_points": [
+        {
+          "power_W": 5,
+          "thrust_uN": 26
+        },
+        {
+          "power_W": 10,
+          "thrust_uN": 52
+        }
+      ],
+      "minimum_thrust": {
+        "value_uN": 8.4,
+        "condition": "1 W"
+      },
+      "total_impulse_Ns": 0.26,
+      "specific_impulse_s": 87,
+      "wet_mass_kg": 0.084,
+      "volume_cm3": 74,
+      "dimensions_mm": [
+        84,
+        42,
+        21
+      ],
+      "shot_lifetime_reported": 40000,
+      "shot_lifetime_scope": "manufacturer page does not define whether figure is per integrated configuration or per individual emitter",
+      "EOL_thrust": {
+        "value_uN": 1,
+        "qualifier": "less_than",
+        "condition": "not specified by product index"
+      },
+      "rep_rate_reported": [
+        {
+          "power_W": 2.5,
+          "min_Hz": 1,
+          "max_Hz": 4
+        },
+        {
+          "power_W": 5,
+          "min_Hz": 1,
+          "max_Hz": 8
+        }
+      ],
+      "rep_rate_warning": "The detail-page rate power labels repeat the PQ's 2.5/5 W values despite this product's listed 5/10 W options; not admitted for mission scheduling.",
+      "independent_verification": false
+    },
+    {
+      "id": "AIS-VAT1-QUAD",
+      "module_count": 4,
+      "module_relation": "four parallel AIS-VAT1-PQ modules",
+      "manufacturer_source": "https://appliedionsystems.com/portfolio/ais-vat1-quad-quad-micro-vacuum-arc-thruster/",
+      "product_index_source": "https://appliedionsystems.com/products/",
+      "propellant": "Bismuth",
+      "power_options_W": [
+        10,
+        20
+      ],
+      "catalogue_thrust_points": [
+        {
+          "power_W": 10,
+          "thrust_uN": 52
+        },
+        {
+          "power_W": 20,
+          "thrust_uN": 104
+        }
+      ],
+      "minimum_thrust": {
+        "value_uN": 16.8,
+        "condition": "2 W"
+      },
+      "total_impulse_Ns": 0.52,
+      "specific_impulse_s": 87,
+      "wet_mass_kg": 0.177,
+      "volume_cm3": 148,
+      "dimensions_mm": [
+        84,
+        84,
+        21
+      ],
+      "shot_lifetime_reported": 40000,
+      "shot_lifetime_scope": "manufacturer page does not define whether figure is per integrated configuration or per individual emitter",
+      "EOL_thrust": {
+        "value_uN": 1,
+        "qualifier": "less_than",
+        "condition": "not specified by product index"
+      },
+      "rep_rate_reported": [
+        {
+          "power_W": 2.5,
+          "min_Hz": 1,
+          "max_Hz": 4
+        },
+        {
+          "power_W": 5,
+          "min_Hz": 1,
+          "max_Hz": 8
+        }
+      ],
+      "rep_rate_warning": "The detail-page rate power labels repeat the PQ's 2.5/5 W values despite this product's listed 10/20 W options; not admitted for mission scheduling.",
+      "independent_verification": false
+    }
+  ],
+  "nasa_data_quality_flags": [
+    {
+      "field": "AIS Table 4-11 thrust units",
+      "nasa_html_header": "mN",
+      "nasa_pdf_text_layer_header": "uN",
+      "manufacturer_exact_model_units": "uN",
+      "disposition": "Use manufacturer-specific uN operating points as source-reported values, preserve NASA HTML header discrepancy."
+    },
+    {
+      "field": "manufacturer catalogue price and lead time",
+      "product_index_and_detail_pages": "differing snapshots",
+      "disposition": "Do not rank cost until a dated formal quote and identical configuration boundary are recorded."
+    }
+  ],
+  "derived_checks": [
+    {
+      "id": "catalogue_low_option_thrust_linearity",
+      "evidence_class": "derived_arithmetic_from_vendor_catalogue",
+      "matched_points": [
+        {
+          "module_count": 1,
+          "power_W": 2.5,
+          "thrust_uN": 13
+        },
+        {
+          "module_count": 2,
+          "power_W": 5,
+          "thrust_uN": 26
+        },
+        {
+          "module_count": 4,
+          "power_W": 10,
+          "thrust_uN": 52
+        }
+      ],
+      "normalized_thrust_per_module_uN": [
+        13,
+        13,
+        13
+      ],
+      "ideal_scaleout_ratio_LN": [
+        1,
+        1
+      ],
+      "interpretation": "Catalogue values scale 1x/2x/4x at matched per-module power options. This is arithmetic over vendor values, not an independent test of an array."
+    },
+    {
+      "id": "catalogue_high_option_thrust_linearity",
+      "evidence_class": "derived_arithmetic_from_vendor_catalogue",
+      "matched_points": [
+        {
+          "module_count": 1,
+          "power_W": 5,
+          "thrust_uN": 26
+        },
+        {
+          "module_count": 2,
+          "power_W": 10,
+          "thrust_uN": 52
+        },
+        {
+          "module_count": 4,
+          "power_W": 20,
+          "thrust_uN": 104
+        }
+      ],
+      "normalized_thrust_per_module_uN": [
+        26,
+        26,
+        26
+      ],
+      "ideal_scaleout_ratio_LN": [
+        1,
+        1
+      ],
+      "interpretation": "Catalogue values scale 1x/2x/4x at matched per-module power options. This is arithmetic over vendor values, not an independent test of an array."
+    },
+    {
+      "id": "catalogue_total_impulse_per_shot",
+      "evidence_class": "derived_arithmetic_from_vendor_catalogue",
+      "total_impulse_Ns": {
+        "PQ": 0.13,
+        "DUO": 0.26,
+        "QUAD": 0.52
+      },
+      "reported_shots": {
+        "PQ": 40000,
+        "DUO": 40000,
+        "QUAD": 40000
+      },
+      "mean_impulse_per_reported_shot_uNs": {
+        "PQ": 3.25,
+        "DUO": 6.5,
+        "QUAD": 13
+      },
+      "per_module_derived_uNs": {
+        "PQ": 3.25,
+        "DUO": 3.25,
+        "QUAD": 3.25
+      },
+      "not_impulse_bit_measurement": true,
+      "interpretation": "The quotient is not a pulse-resolved measurement or statistical distribution; shot count's per-module vs integrated-system scope is unspecified."
+    }
+  ],
+  "research_targets": {
+    "minimum_aggregate_thrust_scaleout_ratio": 0.9,
+    "minimum_lifetime_impulse_scaleout_ratio": 0.9,
+    "maximum_impulse_bit_cv": 0.1,
+    "single_module_fault_isolation": true,
+    "physical_endurance_gate_shots_per_unit": 40000,
+    "stretch_endurance_gate_shots_per_unit": 100000
+  },
+  "scenarios": [
+    {
+      "id": "SYNTHETIC-MATCHED-LOW-POWER-LINEAR",
+      "scenario_class": "synthetic_arithmetic_only",
+      "input_source_records": [
+        "AIS-VAT1-PQ",
+        "AIS-VAT1-DUO",
+        "AIS-VAT1-QUAD"
+      ],
+      "operating_points": [
+        {
+          "id": "PQ",
+          "module_count": 1,
+          "total_power_W": 2.5,
+          "catalogue_thrust_uN": 13
+        },
+        {
+          "id": "DUO",
+          "module_count": 2,
+          "total_power_W": 5,
+          "catalogue_thrust_uN": 26
+        },
+        {
+          "id": "QUAD",
+          "module_count": 4,
+          "total_power_W": 10,
+          "catalogue_thrust_uN": 52
+        }
+      ],
+      "expected": "ARITHMETIC_LINEARITY_ONLY",
+      "prohibited_inference": "Does not demonstrate measured simultaneous operation, independent firing, thrust-vector alignment, or physical number-up efficiency."
+    },
+    {
+      "id": "SYNTHETIC-MATCHED-HIGH-POWER-LINEAR",
+      "scenario_class": "synthetic_arithmetic_only",
+      "operating_points": [
+        {
+          "id": "PQ",
+          "module_count": 1,
+          "total_power_W": 5,
+          "catalogue_thrust_uN": 26
+        },
+        {
+          "id": "DUO",
+          "module_count": 2,
+          "total_power_W": 10,
+          "catalogue_thrust_uN": 52
+        },
+        {
+          "id": "QUAD",
+          "module_count": 4,
+          "total_power_W": 20,
+          "catalogue_thrust_uN": 104
+        }
+      ],
+      "expected": "ARITHMETIC_LINEARITY_ONLY",
+      "prohibited_inference": "Does not establish system bus efficiency or physical array output."
+    },
+    {
+      "id": "SYNTHETIC-ONE-MODULE-FAILURE",
+      "scenario_class": "hypothetical_fault_injection",
+      "module_counts": [
+        2,
+        4
+      ],
+      "failed_modules": 1,
+      "expected": "MODEL_ONLY_REQUIRE_PHYSICAL_FAULT_TEST",
+      "assumptions": [
+        "modules produce independent additive thrust",
+        "failed module can be detected",
+        "healthy modules remain controllable"
+      ],
+      "prohibited_inference": "Do not claim actual isolation or graceful degradation without hardware evidence."
+    },
+    {
+      "id": "BLOCKED-EOL-THRUST-UNDEFINED",
+      "scenario_class": "evidence_admission",
+      "input": "manufacturer index says <1 uN at EOL but gives no EOL condition",
+      "expected": "BLOCKED",
+      "reasons": [
+        "end-of-life trigger/threshold not operationally defined",
+        "no raw per-unit thrust vs shot-count series",
+        "shot-lifetime denominator not clarified"
+      ]
+    },
+    {
+      "id": "BLOCKED-DUO-QUAD-REP-RATE-CONFLICT",
+      "scenario_class": "evidence_admission",
+      "input": "DUO/QUAD rep-rate bullet repeats PQ power values",
+      "expected": "BLOCKED",
+      "reasons": [
+        "manufacturer detail pages do not clearly map rate to advertised DUO/QUAD power options"
+      ]
+    },
+    {
+      "id": "BLOCKED-IMPULSE-BIT-DISTRIBUTION-UNKNOWN",
+      "scenario_class": "evidence_admission",
+      "input": "total impulse divided by shot count",
+      "expected": "BLOCKED",
+      "reasons": [
+        "aggregate quotient is not a direct impulse-bit measurement",
+        "pulse distribution and failed-shot denominator not supplied"
+      ]
+    }
+  ],
+  "explicit_limits": [
+    "No physical measurements or flight telemetry in this fixture.",
+    "No electrical firing or HV/RF/gas actuation implementation.",
+    "Synthetic linearity only checks source arithmetic and benchmark contracts.",
+    "NASA PMI D is a source maturity label, not independent qualification.",
+    "AIS product family comprises vacuum-arc thrusters, not conventional PPT devices."
+  ]
+}
