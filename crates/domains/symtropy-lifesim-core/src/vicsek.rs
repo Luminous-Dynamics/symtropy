@@ -2919,21 +2919,21 @@ mod tests {
     fn cluster_geometry_measures_triangle_convex_envelope() {
         let model = VicsekModel::new(
             vec![
-VicsekParticle {
+                VicsekParticle {
                     x: 1.0,
                     y: 1.0,
                     heading_rad: 0.0,
-                }
-VicsekParticle {
+                },
+                VicsekParticle {
                     x: 2.0,
                     y: 1.0,
                     heading_rad: 0.0,
-                }
-VicsekParticle {
+                },
+                VicsekParticle {
                     x: 1.0,
                     y: 2.0,
                     heading_rad: 0.0,
-                }
+                },
             ],
             VicsekConfig {
                 box_size: 20.0,
@@ -2959,16 +2959,16 @@ VicsekParticle {
     fn cluster_geometry_unwraps_compact_component_across_periodic_seam() {
         let model = VicsekModel::new(
             vec![
-VicsekParticle {
+                VicsekParticle {
                     x: 9.8,
                     y: 1.0,
                     heading_rad: 0.0,
-                }
-VicsekParticle {
+                },
+                VicsekParticle {
                     x: 0.2,
                     y: 1.0,
                     heading_rad: 0.0,
-                }
+                },
             ],
             VicsekConfig {
                 box_size: 10.0,
@@ -2999,16 +2999,16 @@ VicsekParticle {
                     y: 5.0,
                     heading_rad: 0.0,
                 },
-VicsekParticle {
+                VicsekParticle {
                     x: 4.0,
                     y: 5.0,
                     heading_rad: 0.0,
-                }
-VicsekParticle {
+                },
+                VicsekParticle {
                     x: 7.0,
                     y: 5.0,
                     heading_rad: 0.0,
-                }
+                },
             ],
             VicsekConfig {
                 box_size: 10.0,
@@ -3037,26 +3037,26 @@ VicsekParticle {
     fn cluster_geometry_rejects_a_component_that_winds_around_the_torus() {
         let model = VicsekModel::new(
             vec![
-VicsekParticle {
+                VicsekParticle {
                     x: 0.5,
                     y: 5.0,
                     heading_rad: 0.0,
-                }
-VicsekParticle {
+                },
+                VicsekParticle {
                     x: 3.0,
                     y: 5.0,
                     heading_rad: 0.0,
-                }
-VicsekParticle {
+                },
+                VicsekParticle {
                     x: 5.5,
                     y: 5.0,
                     heading_rad: 0.0,
-                }
-VicsekParticle {
+                },
+                VicsekParticle {
                     x: 8.0,
                     y: 5.0,
                     heading_rad: 0.0,
-                }
+                },
             ],
             VicsekConfig {
                 box_size: 10.0,
@@ -3085,25 +3085,25 @@ VicsekParticle {
         let model = VicsekModel::new(
             vec![
                 VicsekParticle {
-                x: 1.0,
-                y: 1.0,
-                heading_rad: 0.0,
-            }
-VicsekParticle {
+                    x: 1.0,
+                    y: 1.0,
+                    heading_rad: 0.0,
+                },
+                VicsekParticle {
                     x: 1.5,
                     y: 1.0,
                     heading_rad: 0.0,
-                }
-VicsekParticle {
+                },
+                VicsekParticle {
                     x: 5.0,
                     y: 5.0,
                     heading_rad: 1.0,
-                }
-VicsekParticle {
+                },
+                VicsekParticle {
                     x: 5.4,
                     y: 5.0,
                     heading_rad: 1.0,
-                }
+                },
             ],
             VicsekConfig {
                 box_size: 20.0,
@@ -3147,7 +3147,7 @@ VicsekParticle {
                 x: 2.0,
                 y: 1.0,
                 heading_rad: 0.0,
-            }
+            },
         ];
         let metric = VicsekModel::new(
             pair.clone(),
@@ -3201,22 +3201,22 @@ VicsekParticle {
                 x: 9.8,
                 y: 0.2,
                 heading_rad: 0.0,
-            }
+            },
             VicsekParticle {
                 x: 0.2,
                 y: 0.2,
                 heading_rad: 0.0,
-            }
+            },
             VicsekParticle {
                 x: 4.0,
                 y: 4.0,
                 heading_rad: 1.0,
-            }
+            },
             VicsekParticle {
                 x: 4.4,
                 y: 4.0,
                 heading_rad: 1.0,
-            }
+            },
         ];
         let config = VicsekConfig {
             box_size: 10.0,
@@ -3245,16 +3245,16 @@ VicsekParticle {
         let left_deaths: Vec<f64> = left
             .intervals
             .iter()
-            .filter_map(|v| v.death_radius)
+            .filter_map(|value| value.death_radius)
             .collect();
         let right_deaths: Vec<f64> = right
             .intervals
             .iter()
-            .filter_map(|v| v.death_radius)
+            .filter_map(|value| value.death_radius)
             .collect();
         assert_eq!(left_deaths.len(), right_deaths.len());
-        for (a, b) in left_deaths.iter().zip(right_deaths.iter()) {
-            assert!((a - b).abs() < 1.0e-12);
+        for (left_death, right_death) in left_deaths.iter().zip(right_deaths.iter()) {
+            assert!((left_death - right_death).abs() < 1.0e-12);
         }
     }
 
