@@ -1,0 +1,257 @@
+{
+  "schema": "luminous.symtropy.kerr_optical_screen_benchmark.v1",
+  "created": "2026-11-12",
+  "programme": "BH-KERR-RAY-BUNDLE-001",
+  "status": "benchmark_contract_authored_not_executed",
+  "repository": "Luminous-Dynamics/symtropy",
+  "owner": "symtropy-relativity",
+  "claim_ceiling": "The current implementation supplies a local AD Hamiltonian-flow Jacobian, a propagated canonical fundamental matrix, finite-observer null-shell screen seeds, and a finite source-ZAMO screen map. It does not yet localize caustic roots, classify fold/cusp catastrophes, perform wave-optics diffraction, or establish a global error certificate.",
+  "architecture": {
+    "discovery": "Symthaea proposes candidate structures and model-discrimination hypotheses; semantic/HDC similarity is not physical validation.",
+    "exact_physics": "Symtropy evaluates Kerr metrics, canonical null geodesics, variational flow and source-screen maps.",
+    "independent_verification": "Analytic Schwarzschild identities, separated Carter equations, neighbouring-ray finite differences, chart-overlap checks and external references.",
+    "provenance": "Mycelix-ready receipts should bind exact inputs, source SHA, solver options, output digests and qualification tier.",
+    "visualization": "Sol-Atlas consumes qualified trajectories, screen maps, uncertainty and caustic candidates without upgrading evidence status."
+  },
+  "current_source": {
+    "geodesic_module": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
+    "integrator_module": "crates/domains/symtropy-relativity/src/kerr_integrator.rs",
+    "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/4543",
+    "capabilities": [
+      "second-order-AD local canonical Hamiltonian-flow Jacobian in exterior and ingoing Kerr charts",
+      "adaptive RK4 step-doubled integration of the canonical 8x8 fundamental matrix",
+      "finite-radius ZAMO local-sky orthonormal tangent seed and ingoing canonical chart transform",
+      "propagated null-shell tangent columns for two initial sky angles",
+      "source ZAMO rest-space projection to a local 2x2 optical screen map",
+      "determinant, singular values, condition number and local-null residual"
+    ],
+    "rust_execution": "not_run",
+    "rust_tests": "authored_not_run",
+    "ci": "not_verified_after_latest_source_changes",
+    "physical_results_claimed": false
+  },
+  "benchmark_ladder": [
+    {
+      "id": "OS-0",
+      "name": "observer tetrad and screen basis",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "tetrad_orthonormality_residual",
+        "screen_basis_orthonormality_residual",
+        "screen_direction_dot_residual"
+      ],
+      "target": {
+        "well_conditioned_absolute_residual": 1e-12
+      },
+      "negative_controls": [
+        "nonunit_local_direction_rejects",
+        "basis_switch_seam_recorded"
+      ]
+    },
+    {
+      "id": "OS-1",
+      "name": "null-shell screen-seed qualification",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "initial_hamiltonian_residual",
+        "phase_space_tangent_shell_residual",
+        "seed_map_central_difference_error"
+      ],
+      "target": {
+        "hamiltonian_abs": 1e-10,
+        "tangent_shell_abs": 1e-10,
+        "seed_derivative_relative_error": 1e-7
+      },
+      "negative_controls": [
+        "negative_killing_energy_rejects",
+        "forbidden_radial_or_polar_region_rejects",
+        "chart_mismatch_rejects"
+      ]
+    },
+    {
+      "id": "OS-2",
+      "name": "local canonical flow linearization",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "8x8_jacobian_central_difference_error",
+        "A_transpose_Omega_plus_Omega_A_max_abs"
+      ],
+      "target": {
+        "jacobian_relative_error": 0.000001,
+        "symplectic_lie_residual": 1e-10
+      },
+      "negative_controls": [
+        "Boyer_Lindquist_and_ingoing_charts_checked_separately",
+        "finite_difference_only_used_as_test_oracle"
+      ]
+    },
+    {
+      "id": "OS-3",
+      "name": "propagated fundamental matrix",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "Phi_transpose_Omega_Phi_minus_Omega_max_abs",
+        "tangent_column_neighbour_trajectory_error",
+        "state_and_tangent_error_channels"
+      ],
+      "target": {
+        "propagated_symplectic_defect": 1e-8,
+        "neighbour_trajectory_relative_error": 0.00001
+      },
+      "negative_controls": [
+        "no_null_projection",
+        "adaptive_step_refinement_required",
+        "local_controller_estimate_not_global_error_bound"
+      ]
+    },
+    {
+      "id": "OS-4",
+      "name": "exact Schwarzschild radial optical-screen map",
+      "status": "authored_test_not_executed",
+      "reference": {
+        "geometry": "Schwarzschild",
+        "observer": "finite-radius ZAMO",
+        "launch": "future-inward radial null congruence",
+        "normalization": "unit local photon energy; canonical affine parameter",
+        "exact_jacobian": "J(lambda) = lambda * I_2",
+        "exact_singular_values": "[lambda, lambda]",
+        "exact_determinant": "lambda^2"
+      },
+      "observables": [
+        "screen_jacobian_entries",
+        "screen_singular_values",
+        "screen_determinant",
+        "screen_condition_number"
+      ],
+      "target": {
+        "jacobian_relative_error": 1e-7,
+        "determinant_relative_error": 1e-7,
+        "condition_number_abs_error": 1e-7
+      },
+      "negative_controls": [
+        "lambda_zero_map_is_singular",
+        "source_projection_inside_horizon_rejects"
+      ]
+    },
+    {
+      "id": "OS-5",
+      "name": "finite Kerr source-screen map against neighbouring null rays",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "2x2_screen_jacobian_relative_error",
+        "source_local_null_residual",
+        "screen_condition_number",
+        "orientation_parity"
+      ],
+      "target": {
+        "neighbour_ray_relative_error": 0.0001,
+        "source_null_residual": 1e-8
+      },
+      "acceptance": [
+        "same initial local-sky basis",
+        "same affine endpoint",
+        "same source event and observer tetrad",
+        "both perturbed rays separately checked null"
+      ]
+    },
+    {
+      "id": "OS-6",
+      "name": "fold caustic localization and catastrophe classification",
+      "status": "not_implemented",
+      "observables": [
+        "caustic_affine_location_error",
+        "determinant_root_residual",
+        "fold_normal_form_residual",
+        "parity_flip",
+        "magnification_scaling"
+      ],
+      "target": {
+        "affine_location_error_over_M": 0.0001,
+        "normalized_determinant_residual": 1e-7
+      },
+      "required": [
+        "bracket roots using consistently oriented screen basis",
+        "refine with independent trajectory/tangent tolerances",
+        "classify generic folds separately from cusps",
+        "report unresolved near-degenerate cases"
+      ]
+    },
+    {
+      "id": "OS-7",
+      "name": "cusp and finite-frequency wave-optics comparator",
+      "status": "not_implemented",
+      "observables": [
+        "Pearcey_uniform_asymptotic_error",
+        "Airy_fold_error",
+        "finite_frequency_visibility_error",
+        "finite_source_coherence_error"
+      ],
+      "required": [
+        "canonical Airy/Pearcey fixtures",
+        "independent Teukolsky or wave solver comparisons",
+        "geometric-optics limit check",
+        "finite-frequency and source-size uncertainty"
+      ]
+    },
+    {
+      "id": "OS-8",
+      "name": "qualified throughput and portability",
+      "status": "not_implemented",
+      "observables": [
+        "qualified_rays_per_second",
+        "qualified_screen_maps_per_second",
+        "cost_per_qualified_caustic",
+        "peak_memory",
+        "accuracy_per_joule"
+      ],
+      "acceptance": [
+        "compare only at matched physical error and qualification tier",
+        "report hardware/compiler/precision/options",
+        "retain raw FPS as a secondary metric"
+      ]
+    }
+  ],
+  "competitive_reference_map": [
+    {
+      "system": "Einstein Toolkit Hypatia (2026)",
+      "role": "GPU-accelerated spacetime evolution through CarpetX with BSSNOK/Z4c and CanudaX; reference for evolved metric data and NR validation.",
+      "symtropy_position": "Interoperate with and ingest independently generated spacetime data; do not claim to replace full NR evolution."
+    },
+    {
+      "system": "Black Hole Perturbation Toolkit",
+      "role": "Kerr geodesics, spheroidal harmonics, Teukolsky solutions, self-force, QNMs and EMRI waveform modules.",
+      "symtropy_position": "Use for perturbative wave/flux and independent Kerr references; prioritize cross-code observables."
+    },
+    {
+      "system": "SXS waveform database",
+      "role": "SpEC waveforms at multiple resolutions and extrapolation orders, including higher modes.",
+      "symtropy_position": "Use for waveform-level validation and error-budget interoperability; do not compare incomparable resolution labels."
+    },
+    {
+      "system": "AART",
+      "role": "Kerr-integrability-based adaptive lensing bands, high-resolution images, long-baseline visibilities and polarization transport.",
+      "symtropy_position": "Compare lensing observables and visibility; extend qualification to finite-radius screen maps, caustics and uncertainty rather than claiming superior image FPS."
+    },
+    {
+      "system": "SIBGRAPI 2026 multi-engine raytracer benchmark",
+      "role": "16,656 timed renders across Newton, Schwarzschild and Kerr, four integrators and six scenes.",
+      "symtropy_position": "Adopt its performance/accuracy discipline but add physical invariant, tangent-map and caustic qualification gates."
+    }
+  ],
+  "benchmark_policy": {
+    "no_single_sota_score": true,
+    "compare_matched_physics_and_precision": true,
+    "distinguish_source_authored_from_executed": true,
+    "queued_or_skipped_ci_is_not_pass": true,
+    "no_posthoc_null_projection_or_screen_regularization": true,
+    "every_result_binds_options_seed_branch_and_source_sha": true,
+    "unknown_or_ill_conditioned_returns_unresolved": true
+  },
+  "references": [
+    "https://einsteintoolkit.org/about/releases/ET_2026_05_announcement.html",
+    "https://bhptoolkit.org/",
+    "https://data.black-holes.org/waveforms/index.html",
+    "https://github.com/iAART/aart",
+    "https://tucoff.github.io/relativistic-raytracer-page/"
+  ]
+}
