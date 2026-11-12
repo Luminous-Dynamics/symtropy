@@ -494,13 +494,6 @@ pub fn evaluate_future_options(
             let current = branch_actions.get(branch_id).cloned().unwrap_or_default();
             common.retain(|action| current.contains(action));
         }
-        if disposition == ScenarioDisposition::Invalid {
-            // An explicit hard violation means no option receives a positive
-            // deployable claim from this scenario, even outside its hot node.
-            common.clear();
-            clairvoyant_branch_actions.clear();
-            clairvoyant_branch_option_count = 0;
-        }
         deployable_common_option_count += common.len();
         observation_sets.insert(
             class.clone(),
@@ -513,6 +506,14 @@ pub fn evaluate_future_options(
     }
 
     if disposition == ScenarioDisposition::Invalid {
+        // No branch/action option gets a positive count when any required hard
+        // constraint is explicitly invalid, including when observation evidence
+        // itself is invalid and therefore produced no observation groups.
+        for set in observation_sets.values_mut() {
+            set.common_physical_action_ids.clear();
+        }
+        clairvoyant_branch_actions.clear();
+        clairvoyant_branch_option_count = 0;
         deployable_common_option_count = 0;
     }
     let clairvoyance_gap = (disposition == ScenarioDisposition::Qualified)
@@ -880,6 +881,56 @@ mod tests {
                 actions.into_iter().collect::<Vec<_>>()
             );
         }
+    }
+
+
+    #[test]
+    fn invalid_observation_receipt_cannot_leave_a_clairvoyant_claim() {
+        let mut s = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
+        s.branches[0].observation = ObservationEvidence::Invalid {
+            reason: "observation receipt contradicts the frozen clock relation".to_owned(),
+        };
+        let report = evaluate_future_options(&s).unwrap();
+        assert_eq!(report.disposition, ScenarioDisposition::Invalid);
+        assert!(report.clairvoyant_branch_actions.is_empty());
+        assert_eq!(report.clairvoyant_branch_option_count, 0);
+        assert_eq!(report.deployable_common_option_count, 0);
+        assert_eq!(report.clairvoyance_gap, None);
+    }
+
+    #[test]
+    fn incomplete_continuation_domain_is_unknown_even_with_branch_receipts() {
+        let mut s = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
+        s.continuation_domain.manifest.complete = false;
+        let report = evaluate_future_options(&s).unwrap();
+        assert_eq!(report.disposition, ScenarioDisposition::Unknown);
+        assert!(report.observation_sets.is_empty());
+        assert!(report.clairvoyant_branch_actions.is_empty());
+    }
+
+    #[test]
+    fn explicitly_impossible_branch_does_not_reduce_the_common_set() {
+        let mut s = scenario(vec![
+            branch("possible", "o1", 1_000_000, &["continue"]),
+            branch("impossible", "ignored", 0, &[]),
+        ]);
+        s.branches[1].physically_possible = false;
+        let report = evaluate_future_options(&s).unwrap();
+        assert_eq!(report.disposition, ScenarioDisposition::Qualified);
+        assert_eq!(
+            report.observation_sets["o1"].common_physical_action_ids,
+            vec!["physical:continue".to_owned()]
+        );
+        assert_eq!(report.clairvoyant_branch_option_count, 1);
+    }
+
+    #[test]
+    fn probability_mass_above_one_is_rejected_as_malformed_input() {
+        let s = scenario(vec![branch("b1", "o1", 1_000_001, &["continue"])]);
+        assert!(matches!(
+            evaluate_future_options(&s),
+            Err(EvaluationError::ProbabilityMassOutOfRange { .. })
+        ));
     }
 
     #[test]
