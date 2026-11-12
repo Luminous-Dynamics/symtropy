@@ -44,7 +44,7 @@ jobs:
         run: cargo +1.96.0 fmt --all -- --check
 
       - name: Qualify production contact response
-        run: cargo +1.96.0 test --locked -p symtropy-physics --lib production_contact_response_matches_independent_oracle_across_frames_and_steps
+        run: cargo +1.96.0 test --locked -p symtropy-physics --lib production_
 
       - name: Strict Clippy (physics crate)
         run: cargo +1.96.0 clippy --locked -p symtropy-physics --all-targets -- -D warnings
