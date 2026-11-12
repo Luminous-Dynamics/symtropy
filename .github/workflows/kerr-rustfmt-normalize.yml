@@ -1,0 +1,51 @@
+name: Kerr rustfmt normalization
+
+on:
+  push:
+    branches:
+      - research/kerr-separated-null-geodesics-v0.1
+    paths:
+      - crates/domains/symtropy-relativity/src/kerr_geodesic.rs
+      - crates/domains/symtropy-relativity/src/kerr_integrator.rs
+      - crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json
+      - crates/domains/symtropy-relativity/Cargo.toml
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/kerr-rustfmt-normalize.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: kerr-rustfmt-normalize-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  normalize:
+    name: Apply pinned rustfmt to Kerr source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: research/kerr-separated-null-geodesics-v0.1
+          fetch-depth: 0
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Resolve and record the workspace lockfile
+        run: cargo metadata --manifest-path crates/domains/symtropy-relativity/Cargo.toml --format-version 1 > /dev/null
+      - name: Format Kerr crate
+        run: cargo fmt --manifest-path crates/domains/symtropy-relativity/Cargo.toml
+      - name: Commit formatter output without weakening the audit
+        run: |
+          if git diff --quiet -- Cargo.lock crates/domains/symtropy-relativity/src/kerr_geodesic.rs crates/domains/symtropy-relativity/src/kerr_integrator.rs; then
+            echo "Kerr sources are already rustfmt-normalized."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.lock crates/domains/symtropy-relativity/src/kerr_geodesic.rs crates/domains/symtropy-relativity/src/kerr_integrator.rs
+          git commit -m "style(relativity): apply pinned rustfmt to Kerr sources"
+          git push origin HEAD:research/kerr-separated-null-geodesics-v0.1

@@ -1,0 +1,797 @@
+{
+  "schema": "luminous.symtropy.kerr_optical_screen_benchmark.v1",
+  "created": "2026-11-12",
+  "programme": "Kerr variational optical geometry, caustic qualification, wave optics and time-domain lensing observables",
+  "status": "active_research_contract",
+  "repository": "Luminous-Dynamics/symtropy",
+  "owner": "symtropy-relativity",
+  "claim_ceiling": "The current implementation supplies a local AD Hamiltonian-flow Jacobian, a propagated canonical fundamental matrix, finite-observer null-shell screen seeds, and a finite source-ZAMO screen map. It does not yet localize caustic roots, classify fold/cusp catastrophes, perform wave-optics diffraction, or establish a global error certificate.",
+  "architecture": {
+    "discovery": "Symthaea proposes candidate structures and model-discrimination hypotheses; semantic/HDC similarity is not physical validation.",
+    "exact_physics": "Symtropy evaluates Kerr metrics, canonical null geodesics, variational flow and source-screen maps.",
+    "independent_verification": "Analytic Schwarzschild identities, separated Carter equations, neighbouring-ray finite differences, chart-overlap checks and external references.",
+    "provenance": "Mycelix-ready receipts should bind exact inputs, source SHA, solver options, output digests and qualification tier.",
+    "visualization": "Sol-Atlas consumes qualified trajectories, screen maps, uncertainty and caustic candidates without upgrading evidence status.",
+    "qualification_output": "Each output is paired with input provenance, coordinate/affine conventions, integration options, invariant residuals, tangent-map and screen-frame diagnostics, conditioning, independent-reference discrepancy, and compute-cost receipt.",
+    "performance_metric": "Cost per physically qualified observable; raw geodesic/screen-map throughput is reported separately and never used to imply physical correctness."
+  },
+  "current_source": {
+    "geodesic_module": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
+    "integrator_module": "crates/domains/symtropy-relativity/src/kerr_integrator.rs",
+    "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/4543",
+    "capabilities": [
+      "second-order-AD local canonical Hamiltonian-flow Jacobian in exterior and ingoing Kerr charts",
+      "adaptive RK4 step-doubled integration of the canonical 8x8 fundamental matrix",
+      "finite-radius ZAMO local-sky orthonormal tangent seed and ingoing canonical chart transform",
+      "propagated null-shell tangent columns for two initial sky angles",
+      "source ZAMO rest-space projection to a local 2x2 optical screen map",
+      "determinant, singular values, condition number and local-null residual"
+    ],
+    "rust_execution": "not_run",
+    "rust_tests": "authored_not_run",
+    "ci": "not_verified_after_latest_source_changes",
+    "physical_results_claimed": false
+  },
+  "benchmark_ladder": [
+    {
+      "id": "OS-0",
+      "name": "observer tetrad and screen basis",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "tetrad_orthonormality_residual",
+        "screen_basis_orthonormality_residual",
+        "screen_direction_dot_residual",
+        "exact_equatorial_plane_polar_potential_and_derivative"
+      ],
+      "target": {
+        "well_conditioned_absolute_residual": 1e-12
+      },
+      "negative_controls": [
+        "nonunit_local_direction_rejects",
+        "basis_switch_seam_recorded"
+      ],
+      "qualification": {
+        "exact_equatorial_invariant": "For theta exactly pi/2, Q=0, record Theta(theta)=0 and Theta'(theta)=0 exactly; the plane theta=pi/2 with p_theta=0 is an invariant submanifold, not a forbidden region created by floating-point cos(pi/2)."
+      }
+    },
+    {
+      "id": "OS-1",
+      "name": "null-shell screen-seed qualification",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "initial_hamiltonian_residual",
+        "phase_space_tangent_shell_residual",
+        "seed_map_central_difference_error"
+      ],
+      "target": {
+        "hamiltonian_abs": 1e-10,
+        "tangent_shell_abs": 1e-10,
+        "seed_derivative_relative_error": 1e-7
+      },
+      "negative_controls": [
+        "negative_killing_energy_rejects",
+        "forbidden_radial_or_polar_region_rejects",
+        "chart_mismatch_rejects"
+      ]
+    },
+    {
+      "id": "OS-2",
+      "name": "local canonical flow linearization",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "8x8_jacobian_central_difference_error",
+        "A_transpose_Omega_plus_Omega_A_max_abs"
+      ],
+      "target": {
+        "jacobian_relative_error": 0.000001,
+        "symplectic_lie_residual": 1e-10
+      },
+      "negative_controls": [
+        "Boyer_Lindquist_and_ingoing_charts_checked_separately",
+        "finite_difference_only_used_as_test_oracle"
+      ]
+    },
+    {
+      "id": "OS-3",
+      "name": "propagated fundamental matrix",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "Phi_transpose_Omega_Phi_minus_Omega_max_abs",
+        "tangent_column_neighbour_trajectory_error",
+        "state_and_tangent_error_channels"
+      ],
+      "target": {
+        "propagated_symplectic_defect": 1e-8,
+        "neighbour_trajectory_relative_error": 0.00001
+      },
+      "negative_controls": [
+        "no_null_projection",
+        "adaptive_step_refinement_required",
+        "local_controller_estimate_not_global_error_bound"
+      ]
+    },
+    {
+      "id": "OS-4",
+      "name": "exact Schwarzschild radial optical-screen map",
+      "status": "authored_test_not_executed",
+      "reference": {
+        "geometry": "Schwarzschild",
+        "observer": "finite-radius ZAMO",
+        "launch": "future-inward radial null congruence",
+        "normalization": "unit local photon energy; canonical affine parameter",
+        "exact_jacobian": "J(lambda) = lambda * I_2",
+        "exact_singular_values": "[lambda, lambda]",
+        "exact_determinant": "lambda^2"
+      },
+      "observables": [
+        "screen_jacobian_entries",
+        "screen_singular_values",
+        "screen_determinant",
+        "screen_condition_number"
+      ],
+      "target": {
+        "jacobian_relative_error": 1e-7,
+        "determinant_relative_error": 1e-7,
+        "condition_number_abs_error": 1e-7
+      },
+      "negative_controls": [
+        "lambda_zero_map_is_singular",
+        "source_projection_inside_horizon_rejects"
+      ]
+    },
+    {
+      "id": "OS-5",
+      "name": "finite Kerr source-screen map against neighbouring null rays",
+      "status": "authored_test_not_executed",
+      "observables": [
+        "2x2_screen_jacobian_relative_error",
+        "source_local_null_residual",
+        "screen_condition_number",
+        "orientation_parity"
+      ],
+      "target": {
+        "neighbour_ray_relative_error": 0.0001,
+        "source_null_residual": 1e-8
+      },
+      "acceptance": [
+        "same initial local-sky basis",
+        "same affine endpoint",
+        "same source event and observer tetrad",
+        "both perturbed rays separately checked null"
+      ]
+    },
+    {
+      "id": "OS-5B",
+      "name": "independent Sachs optical-Jacobi equation cross-check",
+      "status": "fixed-step and adaptive step-doubled Sachs/Jacobi paths plus radial and nonradial Schwarzschild regressions passed exact-head Rust 1.96 validation; canonical-vs-Sachs comparison and generic-Kerr cross-formulation remain pending",
+      "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
+      "observables": [
+        "screen_basis_parallel_transport_residual",
+        "screen_basis_orthonormality_residual",
+        "optical_tidal_symmetry_residual",
+        "vacuum_optical_tidal_trace_residual",
+        "Jacobi_matrix_relative_error_vs_canonical_phase_space_variation",
+        "singular_value_and_signed_determinant_agreement",
+        "local_Riemann_optical_tidal_matrix",
+        "screen_null_orthonormality_and_transversality_residuals",
+        "vacuum_optical_tidal_trace",
+        "optical_tidal_matrix_symmetry",
+        "screen_null_orthonormality_transversality",
+        "optical_tidal_symmetry",
+        "parallel_transport_screen_basis_rhs",
+        "screen_orthonormality_rate_residual",
+        "screen_transversality_rate_residual",
+        "metric_compatibility_residual",
+        "integrated_parallel_transport_screen_frame",
+        "integrated_Sachs_Jacobi_matrix_D_doubleprime_equals_minus_T_D",
+        "radial_Schwarzschild_vertex_D_equals_lambda_I",
+        "Jacobi_step_refinement_N_2N_4N"
+      ],
+      "target": {
+        "screen_basis_parallel_transport_residual": 1e-10,
+        "screen_basis_orthonormality_residual": 1e-10,
+        "optical_tidal_symmetry_residual": 1e-10,
+        "vacuum_optical_tidal_trace_residual": 1e-10,
+        "jacobi_matrix_relative_error_well_conditioned": 0.00001,
+        "radial_Schwarzschild_optical_tidal_absolute_residual": 1e-10,
+        "nonradial_Schwarzschild_vacuum_trace": 1e-8,
+        "nonradial_Schwarzschild_tidal_symmetry": 1e-8,
+        "radial_Schwarzschild_Jacobi_absolute_error": 2e-7,
+        "radial_Schwarzschild_endpoint_determinant_absolute_error": 3e-8,
+        "jacobi_step_refinement_relative_change_2N_vs_4N": 0.000001,
+        "adaptive_radial_schwarzschild_endpoint_error": 2e-7,
+        "adaptive_step_error_channels": "each accepted step requires all four scaled local-error channels <= 1"
+      },
+      "required": [
+        "integrate the screen basis and 2x2 Jacobi matrix without reselecting a fresh reference-axis frame at every sample",
+        "cross-check against the existing 8x8 canonical fundamental matrix projected to the same screen",
+        "verify the exact Schwarzschild radial vertex solution D(lambda)=lambda*I",
+        "report conditioning and unresolved near-caustic cases; do not regularize the smaller singular value"
+      ],
+      "claim_ceiling": "An independent optical-geodesic formulation cross-check, not a caustic catalogue or finite-frequency wave solution.",
+      "implementation": {
+        "api": "KerrCanonicalHamiltonian::optical_tidal_matrix(state, chart, screen_basis, tolerance)",
+        "observer_screen_helper": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates(local_basis, chart)",
+        "formulation": "Second-order differentiated Kerr metric -> dimensionless coordinate scaling -> MetricDerivatives4 and MetricSecondDerivatives4 -> RiemannTensor4 -> fully covariant Riemann contraction with null tangent and Sachs screen",
+        "diagnostics": [
+          "null constraint residual",
+          "screen orthonormality residual",
+          "screen transversality residual",
+          "optical tidal symmetry residual",
+          "vacuum trace residual"
+        ],
+        "tests_authored": [
+          "radial Schwarzschild principal-null direction has zero optical tidal matrix",
+          "nonradial Schwarzschild optical tide is nonzero, symmetric, and trace-free",
+          "non-transverse Sachs screen is rejected with a typed error",
+          "Boyer-Lindquist Sachs transport RHS preserves screen orthonormality and transversality rates",
+          "ingoing Kerr Sachs transport RHS preserves screen orthonormality and transversality rates"
+        ],
+        "remaining": [
+          "execute the radial Schwarzschild Jacobi known-answer tests at the exact PR head",
+          "run N, 2N, 4N step refinements",
+          "compare curvature-based Sachs Jacobi matrix with the canonical 8x8 fundamental-matrix projection in the same transported frame",
+          "add nonradial Schwarzschild and generic Kerr cross-formulation receipts",
+          "continue only after those gates to caustic localization"
+        ],
+        "apis": [
+          "KerrCanonicalHamiltonian::optical_tidal_matrix",
+          "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
+          "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
+          "integrate_kerr_sachs_jacobi_fixed_step"
+        ],
+        "transport_rhs": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta",
+        "additional_diagnostics": [
+          "orthonormality-rate residual derived from partial_lambda g + connection terms",
+          "transversality-rate residual derived from metric variation, screen derivative and geodesic acceleration",
+          "metric-compatibility residual from LeviCivitaConnection4"
+        ],
+        "integrated_api": "integrate_kerr_sachs_jacobi_fixed_step(hole, chart, initial_state, initial_screen_basis, affine_interval, step_count, tolerance)",
+        "integrated_state": "24-component coupled state: 8 canonical coordinates/momenta + 8 transported screen-vector components + 4 Jacobi matrix components + 4 Jacobi derivative components",
+        "integrator": "classical fixed-step RK4; the returned step count is explicit and is not an adaptive global error bound",
+        "initial_data": "D(0)=0, D'(0)=I; initial screen rows must be supplied as orthonormal transverse contravariant vectors in the selected dimensionless Kerr chart",
+        "samples": [
+          "canonical state",
+          "parallel-transported screen frame",
+          "pointwise Riemann optical tidal matrix",
+          "Jacobi matrix and derivative",
+          "signed determinant, ascending singular values, condition number",
+          "null, screen, tidal symmetry, vacuum trace, transport-rate and metric-compatibility residuals"
+        ],
+        "authored_tests": [
+          "inward finite-ZAMO Schwarzschild radial null ray reproduces D(lambda)=lambda*I within 2e-7 at 17 stored samples",
+          "radial Schwarzschild endpoint determinant equals lambda squared within 3e-8",
+          "radial Schwarzschild endpoint singular values equal lambda and condition number equals one",
+          "zero step count and non-finite tolerance are rejected",
+          "adaptive radial Schwarzschild D(lambda)=lambda*I regression checks all four local-error channels and analytic endpoint invariants",
+          "adaptive Sachs/Jacobi options reject inconsistent step bounds",
+          "nonradial Schwarzschild test requires a nonzero pointwise optical tidal matrix and checks its symmetry/vacuum trace",
+          "fixed-step and adaptive Sachs/Jacobi solutions agree on the same nonradial Schwarzschild ray, screen frame, and affine interval within 2e-5 relative comparison scale"
+        ],
+        "limitations": [
+          "fixed-step only; must compare step counts N, 2N, and 4N",
+          "does not yet compare the Sachs Jacobi matrix against the canonical 8x8 fundamental matrix projected into the same transported frame",
+          "does not perform caustic root localization or catastrophe classification",
+          "no finite-frequency diffraction or wave-optics solve",
+          "step-doubled RK4 local error estimate is not a rigorous global error bound",
+          "independent Sachs map still requires fixed/adaptive agreement and canonical 8x8 cross-projection on nonradial Schwarzschild and generic Kerr cases"
+        ],
+        "step_refinement_protocol": {
+          "required_step_counts": "N, 2N, 4N over the same affine interval and identical initial state/frame",
+          "compare": [
+            "Jacobi matrix relative difference when well-conditioned",
+            "determinant and both singular values",
+            "screen-frame orthonormality/transversality",
+            "null constraint",
+            "optical-tidal symmetry and vacuum trace",
+            "canonical variational map after same-frame projection"
+          ],
+          "proposed_acceptance": {
+            "jacobi_matrix_relative_difference_2N_vs_4N": 0.000001,
+            "screen_orthonormality_residual": 1e-8,
+            "screen_transversality_residual": 1e-8,
+            "null_constraint_residual": 1e-8,
+            "vacuum_trace_residual": 1e-8,
+            "canonical_vs_sachs_jacobi_relative_error_well_conditioned": 0.00001
+          },
+          "caveat": "These are proposed acceptance thresholds. No 2N/4N or canonical-vs-Sachs convergence result has been measured yet."
+        },
+        "adaptive_api": "integrate_kerr_sachs_jacobi_adaptive",
+        "adaptive_state": "same coupled 24-component ray + parallel screen frame + Jacobi matrix + Jacobi derivative state",
+        "adaptive_integrator": "step-doubled classical RK4; accept two-half-step solution; local error estimate (two_half-full)/15",
+        "adaptive_error_channels": [
+          "canonical ray 8 components",
+          "parallel Sachs screen frame 8 components",
+          "Jacobi matrix 4 components",
+          "Jacobi derivative 4 components"
+        ],
+        "adaptive_diagnostics": [
+          "accepted and rejected step counts",
+          "maximum scaled error in each of the four channels",
+          "null constraint and frame orthonormality/transversality",
+          "tidal symmetry and vacuum trace",
+          "orthonormality/transversality transport rates",
+          "metric compatibility",
+          "last accepted step and next proposed step"
+        ],
+        "adaptive_claim_ceiling": "Local step-doubling control for the coupled system. It is not a rigorous global error bound; compare against fixed-step N/2N/4N and canonical-vs-Sachs cross-formulation results.",
+        "nonradial_cross_solver_test": {
+          "spacetime": "Schwarzschild",
+          "observer": "finite-radius ZAMO r/M=10, theta=pi/2",
+          "local_direction": "(-0.8,0.6,0.0) in radial/polar/azimuthal orthonormal components",
+          "affine_interval": 0.02,
+          "fixed_step_count": 64,
+          "adaptive_options": {
+            "relative_tolerance": 1e-9,
+            "absolute_tolerance": 1e-12,
+            "constraint_tolerance": 1e-7,
+            "initial_step": 0.005,
+            "minimum_step": 1e-9,
+            "maximum_step": 0.01,
+            "maximum_steps": 20000
+          },
+          "comparison": "endpoint D entries, signed determinant and both singular values",
+          "proposed_tolerance": 0.00002,
+          "caveat": "This compares two integrators of the same Sachs/Jacobi equations, not yet the Sachs map against the canonical 8x8 variational projection.",
+          "execution_status": "passed_in_rust_1_96_exact_head",
+          "execution_source_head": "1346e1e641772576e7163c9ab68aebfe8b09d180",
+          "execution_result": "143 tests passed, 0 failed, including this cross-solver regression"
+        }
+      },
+      "remaining": [
+        "compare curvature-based Sachs Jacobi map against canonical 8x8 variation in the identical transported frame",
+        "run independent N/2N/4N convergence and adaptive-vs-fixed comparison for nonradial Schwarzschild and generic Kerr trajectories",
+        "add generic Kerr nonradial cross-formulation receipts",
+        "validate caustic convergence and catastrophe classification without determinant-only classification"
+      ],
+      "fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json",
+      "validation_status": "fixed-step source and radial analytic test authored; prior runner test of the radial Sachs/Jacobi reference passed; rerun required after later test corrections"
+    },
+    {
+      "id": "OS-5D",
+      "name": "near-extremal prograde strong-deflection crossover",
+      "status": "analytic critical-photon-orbit helper and leading uniform phase reference source authored; Rust execution and numerical trajectory reproduction pending",
+      "model": "Subextremal equatorial prograde Kerr scattering in the joint near-critical/near-extremal regime. kappa=sqrt(1-a^2), b/M=b_c/M+kappa*chi with chi>0, and Phi_LO=kappa^-1*ln(1+2*sqrt(3)/chi). Exact photon-orbit data use r_ph/M=1+2 sin^2(delta/2)+sqrt(3)sin(delta), delta=(2/3)acos(a), and b_c/M=a+2 r_ph sqrt(Delta_ph)/(r_ph-1).",
+      "observables": [
+        "prograde_photon_orbit_radius",
+        "critical_impact_parameter",
+        "near_extremal_scaling_ratio_(b_c/M-2)/kappa",
+        "scaled_critical_offset_chi",
+        "leading_uniform_strong_deflection_phase",
+        "exact_numeric_azimuthal_deflection",
+        "matched_next_to_leading_order_phase_residual",
+        "high_order_image_branch_accumulation",
+        "coordinate_time_delay_spacing"
+      ],
+      "target": {
+        "schwarzschild_radius_and_critical_impact_known_answer": 1e-12,
+        "spin_0_9_radius_and_impact_known_answer": 1e-12,
+        "near_extremal_scaling_ratio_at_kappa_1e_3": 0.0004,
+        "asymptotic_phase": "For fixed chi>0, kappa*Phi_numeric must converge toward F(chi)=ln(1+2*sqrt(3)/chi); estimate observed convergence rather than invent a universal error floor.",
+        "matched_nlo_55_trajectory_reproduction": "Pin and reproduce the preprint's 55 high-precision trajectories; the matched NLO formula must improve aggregate error over leading-order uniform and fixed-subextremal logarithmic approximations, with every trajectory reported."
+      },
+      "source": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
+      "fixture": "crates/domains/symtropy-relativity/near_extremal_kerr_strong_deflection_v1.json",
+      "api": [
+        "KerrEquatorialProgradePhotonOrbit::from_spin",
+        "KerrEquatorialProgradePhotonOrbit::impact_parameter_for_scaled_offset",
+        "KerrEquatorialProgradePhotonOrbit::null_constants_for_scaled_offset",
+        "KerrEquatorialProgradePhotonOrbit::leading_uniform_deflection_phase"
+      ],
+      "claim_ceiling": "Analytic critical-orbit data and an asymptotic reference helper only. No 55-trajectory reproduction, numerical strong-deflection solver, image-branch catalogue or wave-optics result is currently qualified."
+    },
+    {
+      "id": "OS-5C",
+      "name": "matched Kerr geodesic/image comparison with AART",
+      "status": "not_implemented",
+      "model": "Compare asymptotic-observer integrable Kerr geodesics and image/visibility observables against AART for exactly matched spin, inclination, camera orientation, source surface, image branch, and emission convention.",
+      "observables": [
+        "screen_coordinate_discrepancy",
+        "arrival_time_discrepancy",
+        "image_branch_identity",
+        "critical_curve_and_subring_location",
+        "visibility_amplitude_and_phase_discrepancy",
+        "matched_case_runtime_and_memory"
+      ],
+      "acceptance": {
+        "observer_limit": "Only compare regimes where the finite-radius Symtropy observer is taken to the same asymptotic convention as AART",
+        "branch_matching": "Require explicit image/subring branch identity; do not compare pixel colors as a substitute for ray identity",
+        "convergence": "Repeat both codes under independently tightened numerical tolerances",
+        "screen_orientation": "Require an explicit screen-frame handedness and rotation map",
+        "claim_ceiling": "Cross-code implementation consistency for matched Kerr observables, not validation of astrophysical emission assumptions"
+      }
+    },
+    {
+      "id": "OS-5E",
+      "name": "point-to-point Kerr Jacobi magnification and bilocal-operator cross-check",
+      "status": "research_target_not_implemented",
+      "model": "Match a source event and observer event in Kerr, solve the point-to-point null lens map for each image branch, and compare the Jacobi map/magnification against a bilocal geodesic-operator (BGO) formulation.",
+      "observables": [
+        "source_to_observer_image_branch_identity",
+        "point_to_point_screen_map",
+        "bilocal_geodesic_operator_W_XK",
+        "Jacobi_determinant_and_singular_values",
+        "geometric_optics_strain_magnification",
+        "redshift_and_directional_emission_normalization",
+        "source_observer_propagation_time"
+      ],
+      "required": [
+        "match source and observer events, tetrads, affine normalization and screen handedness",
+        "separate gravitational focusing from redshift and source directional-emission normalization",
+        "compare canonical phase-space, Sachs-Jacobi and BGO formulations in the same source/observer frames",
+        "report branch identity and unresolved near-caustic condition rather than summing ambiguously matched images"
+      ],
+      "reference": "https://arxiv.org/abs/2610.08399",
+      "claim_ceiling": "Geometric-optics point-source focusing and timing only. A complete observed waveform additionally needs source evolution, frequency shift, phase/polarization transport, finite-source and wave effects, and detector response."
+    },
+    {
+      "id": "OS-6",
+      "name": "fold caustic localization and catastrophe classification",
+      "status": "not_implemented",
+      "observables": [
+        "caustic_affine_location_error",
+        "determinant_root_residual",
+        "fold_normal_form_residual",
+        "parity_flip",
+        "magnification_scaling"
+      ],
+      "target": {
+        "affine_location_error_over_M": 0.0001,
+        "normalized_determinant_residual": 1e-7
+      },
+      "required": [
+        "bracket roots using consistently oriented screen basis",
+        "refine with independent trajectory/tangent tolerances",
+        "classify generic folds separately from cusps",
+        "report unresolved near-degenerate cases"
+      ]
+    },
+    {
+      "id": "OS-7",
+      "name": "cusp and finite-frequency wave-optics comparator",
+      "status": "not_implemented",
+      "observables": [
+        "Pearcey_uniform_asymptotic_error",
+        "Airy_fold_error",
+        "finite_frequency_visibility_error",
+        "finite_source_coherence_error"
+      ],
+      "required": [
+        "canonical Airy/Pearcey fixtures",
+        "independent Teukolsky or wave solver comparisons",
+        "geometric-optics limit check",
+        "finite-frequency and source-size uncertainty"
+      ]
+    },
+    {
+      "id": "OS-7B",
+      "name": "matched strong-field gravitational-wave wave-optics comparison",
+      "status": "not_implemented",
+      "external_references": [
+        "https://arxiv.org/abs/2610.18958",
+        "https://doi.org/10.1103/9bxg-sqn5",
+        "https://arxiv.org/abs/2610.39181"
+      ],
+      "observables": [
+        "frequency_dependent_amplification_factor",
+        "waveform_phase_and_amplitude_discrepancy",
+        "caustic_uniform_asymptotic_error",
+        "polarization_and_incidence_angle_dependence",
+        "time_delay_and_diffraction_coda"
+      ],
+      "acceptance": {
+        "matched_physics": "Pin spin, source angular pattern, incidence and polarization, frequency band, observer convention and waveform normalization",
+        "independent_formulations": "Compare geometric-optics ray transfer, uniform fold/cusp asymptotics and at least one independent finite-frequency solver",
+        "uncertainty": "Report truncation, mode-sum, frequency-grid and ray-bundle error separately",
+        "claim_ceiling": "A matched wave-optics benchmark; no extension of validity beyond the external solver's approximation domain",
+        "source_angular_emission_pattern": "Must be matched; face-on and edge-on binaries are not interchangeable.",
+        "geometric_wave_agreement": "Compare only in matched regimes and state the asymptotic conditions; no universal 10% target is inferred from one published configuration."
+      },
+      "comparators": [
+        "Strong Field Gravitational Lensing in Full Wave Optics, arXiv:2610.18958 (13 October 2026)"
+      ]
+    },
+    {
+      "id": "OS-8",
+      "name": "qualified throughput and portability",
+      "status": "not_implemented",
+      "observables": [
+        "qualified_rays_per_second",
+        "qualified_screen_maps_per_second",
+        "cost_per_qualified_caustic",
+        "peak_memory",
+        "accuracy_per_joule"
+      ],
+      "acceptance": [
+        "compare only at matched physical error and qualification tier",
+        "report hardware/compiler/precision/options",
+        "retain raw FPS as a secondary metric"
+      ]
+    },
+    {
+      "id": "OS-9",
+      "name": "time-domain lensing echoes and two-point image correlations",
+      "status": "research_target_not_implemented",
+      "motivation": "Recent strong-lensing movie analysis suggests correlated delayed images can carry a more robust extreme-lensing signature than time-averaged image morphology or light-curve autocorrelation.",
+      "observables": [
+        "geodesic_branch_arrival_time_distribution",
+        "time_lagged_two_point_image_correlation",
+        "cross_image_correlation_by_subring_order",
+        "correlation_peak_lag_and_width",
+        "source_variability_marginalization",
+        "instrument_transfer_and_observability"
+      ],
+      "acceptance": {
+        "source_model": "Use a versioned time-dependent emissivity or GRMHD movie; do not infer brightness correlations from ray geometry alone",
+        "branch_identity": "Track image branches continuously across source and observer time",
+        "instrument": "Convolve with a declared temporal/spectral/spatial instrument response and noise model",
+        "negative_control": "Show that time averaging or a single-pixel light curve does not reproduce the claimed two-point image statistic",
+        "claim_ceiling": "A synthetic-observable feasibility calculation, not a detection forecast until instrument and source uncertainties are propagated"
+      }
+    }
+  ],
+  "competitive_reference_map": [
+    {
+      "system": "Einstein Toolkit Hypatia (2026)",
+      "role": "GPU-accelerated spacetime evolution through CarpetX with BSSNOK/Z4c and CanudaX; reference for evolved metric data and NR validation.",
+      "symtropy_position": "Interoperate with and ingest independently generated spacetime data; do not claim to replace full NR evolution."
+    },
+    {
+      "system": "Black Hole Perturbation Toolkit",
+      "role": "Kerr geodesics, spheroidal harmonics, Teukolsky solutions, self-force, QNMs and EMRI waveform modules.",
+      "symtropy_position": "Use for perturbative wave/flux and independent Kerr references; prioritize cross-code observables."
+    },
+    {
+      "system": "SXS waveform database",
+      "role": "SpEC waveforms at multiple resolutions and extrapolation orders, including higher modes.",
+      "symtropy_position": "Use for waveform-level validation and error-budget interoperability; do not compare incomparable resolution labels."
+    },
+    {
+      "system": "AART",
+      "role": "Kerr-integrability-based adaptive lensing bands, high-resolution images, long-baseline visibilities and polarization transport.",
+      "symtropy_position": "Compare lensing observables and visibility; extend qualification to finite-radius screen maps, caustics and uncertainty rather than claiming superior image FPS."
+    },
+    {
+      "system": "SIBGRAPI 2026 multi-engine raytracer benchmark",
+      "role": "16,656 timed renders across Newton, Schwarzschild and Kerr, four integrators and six scenes.",
+      "symtropy_position": "Adopt its performance/accuracy discipline but add physical invariant, tangent-map and caustic qualification gates."
+    },
+    {
+      "system": "Strong-field gravitational-wave lensing in Kerr (PRD 113, 084056, 2026)",
+      "role": "Wave-optical Kerr lensing calculation; an external comparator for the future OS-7 finite-frequency and waveform observables.",
+      "symtropy_position": "Use as a matched-physics external reference for selected incidence angles, scattering directions, spin, polarization and waveform observables when its exact cases/data can be pinned."
+    },
+    {
+      "system": "Kerr GW lensing time-domain mode-sum preprint (arXiv:2610.39181, 2026)",
+      "role": "Hyperboloidal time-domain Kerr perturbation calculation with 68,000 coupled angular modes; reports strong-field wave-optical focusing and post-merger waveform effects.",
+      "symtropy_position": "Potential external wave-domain cross-check. Treat as a preprint and pin its version, parameter conventions and numerical convergence before benchmarking."
+    },
+    {
+      "system": "Strong Field Gravitational Lensing in Full Wave Optics (arXiv:2610.18958, 2026)",
+      "role": "Finite-frequency strong-field lensing of gravitational waves in a perturbative framework, including spinning lenses; reports approximately 10% agreement with selected Schwarzschild ray-tracing cases.",
+      "symtropy_position": "Wave-optics comparator for OS-7; compare only identical lens spin, source angular emission, inclination, frequency and normalization. Preserve its stated approximation regime."
+    },
+    {
+      "system": "Extreme lensing signatures revealed by correlations of simulated black hole movies (Nature Astronomy, 2026)",
+      "role": "Uses two-point image correlations of brightness fluctuations to expose lagged, strongly lensed images; the reported signatures are not visible in time-averaged images or light-curve autocorrelations at expected next-generation ground-array resolution.",
+      "symtropy_position": "Motivates a future OS-9 time-domain observable pipeline; source variability, GRMHD emission, finite observation windows and instrument transfer functions must be explicit."
+    },
+    {
+      "system": "Kerr lensing image positions/shapes, MNRAS 552(4), published 6 October 2026",
+      "role": "Geometric-optics external comparator for primary/secondary image positions and extended-source shapes across Kerr spin.",
+      "matched_comparison": "Pin the article's observer/source geometry, spin, orientation, source pattern and branch identity; compare image centroids, image-shape observables, magnification proxies and ray travel time only for matching cases.",
+      "reference": "https://doi.org/10.1093/mnras/stag1890",
+      "status": "published external reference; matched Symtropy reproduction not yet run",
+      "symtropy_position": "Our added Jacobi map and caustic-conditioning gates can move beyond image-position-only comparison, but the new source integration is not yet executed."
+    },
+    {
+      "system": "Strong-field gravitational-wave lensing in Kerr, PRD 113, 084056, published 27 April 2026",
+      "role": "Frequency-domain wave-optical comparator using the Mano-Suzuki-Takasugi formalism and strong-field scattering factor.",
+      "matched_comparison": "Compare amplification factor, phase, polarization and scattering observables only when frequency, incidence, spin, source angular pattern and waveform conventions match.",
+      "reference": "https://doi.org/10.1103/9bxg-sqn5",
+      "status": "published external reference; wave-optics implementation not present",
+      "symtropy_position": "Use the Sachs/geodesic branch structure as a geometric-optics asymptotic baseline; do not substitute ray density or geometric magnification for the MST wave solution."
+    },
+    {
+      "system": "Time-domain Kerr GW lensing, arXiv:2610.39181, submitted 29 October 2026",
+      "role": "Preprint comparator for time-domain hyperboloidal evolution with a large coupled angular-mode system (reported approximately 68,000 modes).",
+      "matched_comparison": "Pin preprint version and conventions, then compare waveform phase/amplitude and convergence at matched source incidence, spin and polarization.",
+      "reference": "https://arxiv.org/abs/2610.39181",
+      "status": "preprint; peer-reviewed status not assumed; no Symtropy reproduction",
+      "symtropy_position": "A separate future wave-propagation track, not a direct geodesic or fixed-step Jacobi benchmark."
+    },
+    {
+      "system": "Uniform Strong-Deflection Lensing in Near-Extremal Kerr (arXiv:2610.02900, 2 October 2026)",
+      "role": "Uniform asymptotic reference for the joint near-critical/near-extremal prograde equatorial regime, with kappa-scaled critical impact offset, matched next-to-leading correction and image-branch/time-delay crossover.",
+      "matched_comparison": "Reproduce the paper's 55 high-precision trajectories with the exact spin, critical impact, scaled offset, affine and azimuthal conventions. Compare ordinary logarithmic, leading uniform and matched-NLO errors per trajectory.",
+      "reference": "https://arxiv.org/abs/2610.02900",
+      "status": "preprint; analytic reference helper authored, matched 55-trajectory reproduction pending",
+      "symtropy_position": "A targeted numerical-conditioning and asymptotic-regime benchmark for the canonical Kerr integrator, not a claim of improved accuracy."
+    },
+    {
+      "system": "Self-lensing of GWs from binary EMRIs: Extended caustics and paired flashes (arXiv:2610.08399, 6 October 2026)",
+      "role": "Point-to-point Kerr lens map and bilocal geodesic-operator Jacobi map for individual-image geometric magnification, plus source-orbit caustic crossings and propagation-time separation.",
+      "matched_comparison": "Compare individual image branches, Jacobi determinants, strain magnifications and source-to-observer delays only under matched source event, observer event, spin, inclination, screen normalization and redshift/emission conventions.",
+      "reference": "https://arxiv.org/abs/2610.08399",
+      "status": "preprint; BGO/Jacobi cross-comparison not yet implemented",
+      "symtropy_position": "A stronger OS-5E target than image-pixel similarity. The paper explicitly separates geometric focusing/timing from a complete waveform, which still needs source evolution, redshift, phase/polarization transport and detector response."
+    },
+    {
+      "system": "Strong Field Gravitational Lensing in Full Wave Optics, arXiv:2610.18958 (13 October 2026)",
+      "role": "Preprint comparator for strong-field wave-optics amplification from anisotropic compact-binary gravitational-wave sources lensed by massive black holes, including spinning lenses and configurations beyond thin-lens/geometric-optics assumptions.",
+      "reference": "https://arxiv.org/abs/2610.18958",
+      "comparison": "Match source inclination and quadrupolar emission, lens spin, source/lens/observer geometry and frequency before comparing amplification factor, peak shift, fringe spacing and the geometric-optics limit. The paper reports approximately 10% agreement with a Schwarzschild ray-tracing calculation for one face-on configuration; that is not a general ray/wave accuracy claim.",
+      "status": "2026 preprint; no Symtropy wave-optics solver or matched reproduction",
+      "symtropy_position": "Use the Jacobi map and image-branch structure as the geometric-optics baseline, then add a distinct finite-frequency solver. Do not infer coherent amplification or phase from ray density alone."
+    }
+  ],
+  "benchmark_policy": {
+    "no_single_sota_score": true,
+    "compare_matched_physics_and_precision": true,
+    "distinguish_source_authored_from_executed": true,
+    "queued_or_skipped_ci_is_not_pass": true,
+    "no_posthoc_null_projection_or_screen_regularization": true,
+    "every_result_binds_options_seed_branch_and_source_sha": true,
+    "unknown_or_ill_conditioned_returns_unresolved": true,
+    "screen_frame_chart_changes_are_explicit": true,
+    "sachs_jacobi_comparator_required_before_caustic_certification": true,
+    "cost_per_qualified_observable": {
+      "primary_metric": "qualified_observables_per_compute_cost",
+      "required_cost_fields": [
+        "wall_clock_seconds",
+        "cpu_model_and_thread_count",
+        "gpu_model_and_driver_if_used",
+        "peak_host_memory_bytes",
+        "peak_device_memory_bytes",
+        "energy_joules_if_measured_with_provenance"
+      ],
+      "qualification_denominator": "Only outputs that pass the declared physical, numerical, gauge, conditioning, and independent-reference gates count; unresolved or failed outputs remain in the denominator as attempted work but not as qualified results.",
+      "comparison_rule": "Compare only matched physical cases, matched output precision and matching qualification thresholds. Report raw throughput separately from qualified throughput.",
+      "prohibited_shortcuts": [
+        "count an image pixel as a physically qualified ray without invariant and error gates",
+        "compare CPU and GPU throughput without reporting precision and numerical error",
+        "exclude unresolved/failed rays from benchmark accounting without reporting the exclusion rate",
+        "combine caustic, wave-optics and geodesic workloads into one opaque score"
+      ]
+    },
+    "sachs_curvature_comparison_required_before_caustic_claim": true,
+    "near_extremal_regime_is_a_separate_accuracy_tier": true,
+    "no_strong_deflection_claim_without_per_trajectory_reference_errors": true,
+    "jacobi_magnification_requires_source_observer_and_emission_normalization": true
+  },
+  "references": [
+    "https://einsteintoolkit.org/about/releases/ET_2026_05_announcement.html",
+    "https://bhptoolkit.org/",
+    "https://data.black-holes.org/waveforms/index.html",
+    "https://github.com/iAART/aart",
+    "https://tucoff.github.io/relativistic-raytracer-page/",
+    "https://doi.org/10.1103/9bxg-sqn5",
+    "https://arxiv.org/abs/2610.39181",
+    "https://doi.org/10.1103/tkk2-x9st",
+    "https://arxiv.org/abs/2610.18958",
+    "https://www.nature.com/articles/s41550-026-02874-x",
+    "https://doi.org/10.1093/mnras/stag1890",
+    "https://arxiv.org/abs/2610.02900",
+    "https://arxiv.org/abs/2610.08399"
+  ],
+  "screen_frame_policy": {
+    "status": "same-event SO(2) re-expression, pointwise Sachs optical tide, local frame-transport RHS, and fixed-step coupled Sachs-frame/Jacobi source implemented; Rust execution and refinement pending",
+    "topology": "An orthonormal tangent frame cannot be chosen globally continuously over the full observer sky S^2; use overlapping local charts or a transported screen frame.",
+    "current_source_observation": "local_sky_tangent_basis selects between two reference axes at abs(azimuthal_direction)=0.9. The resulting bases are co-oriented, so an ideal chart transition is in SO(2), but the displayed 2x2 components can jump at the seam.",
+    "risks": [
+      "component-wise interpolation across a chart seam can produce a false discontinuity",
+      "fold/cusp normal-form coefficients are frame-dependent unless the same oriented screen frame is used",
+      "the determinant and singular values are invariant under an orientation-preserving SO(2) row rotation, but this must be tested rather than assumed for a computed transition"
+    ],
+    "requirements": [
+      "record the source-screen basis chart for every optical-map sample",
+      "compute and record the same-event SO(2) chart transition matrix",
+      "assert transition orthogonality and determinant +1",
+      "assert signed determinant and singular values are invariant under the transition",
+      "for comparisons across distinct source events, use a parallel-transported Sachs screen basis rather than dotting basis vectors from unrelated local tetrads",
+      "refuse a fold/cusp classification when the screen-frame transition is unresolved"
+    ],
+    "implemented_api": "KerrOpticalScreenMap::reexpress_source_screen(target_basis,tolerance)",
+    "implemented_checks": [
+      "construct the two-dimensional transition from source and target 3D basis rows",
+      "require R*R^T=I within caller tolerance",
+      "require det(R)=+1 within caller tolerance",
+      "reject reflections and non-orthogonal screen bases",
+      "apply J_target=R*J_source and recompute determinant, singular values and conditioning"
+    ],
+    "authored_tests": [
+      "rotating a screen basis preserves signed determinant, both singular values and condition number",
+      "reflection is rejected",
+      "non-orthogonal frame is rejected"
+    ],
+    "remaining": [
+      "store and validate source-event and photon-direction identity rather than relying on caller contract",
+      "parallel-transport Sachs screen basis across source events",
+      "continuous atlas transition across the observer-sky seam",
+      "fold/cusp classification remains blocked until transported-frame and independent Sachs-Jacobi checks pass"
+    ],
+    "sachs_pointwise_api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
+    "sachs_transport_status": "fixed-step and adaptive step-doubled RK4 implementations pass radial and nonradial Schwarzschild tests; canonical-vs-Sachs cross-formulation and generic Kerr convergence pending",
+    "sachs_frame_conversion_api": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
+    "sachs_transport_api": "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
+    "sachs_transport_equation": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta",
+    "sachs_jacobi_api": "integrate_kerr_sachs_jacobi_fixed_step",
+    "sachs_jacobi_initial_data": "D(0)=0; D'(0)=I; two initial chart-coordinate Sachs basis vectors must be null-transverse and orthonormal",
+    "sachs_jacobi_integration": "24-component fixed-step RK4 jointly evolves canonical ray, transported frame, D and D'",
+    "sachs_jacobi_fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json",
+    "sachs_jacobi_adaptive_api": "integrate_kerr_sachs_jacobi_adaptive",
+    "sachs_jacobi_adaptive_error_channels": [
+      "ray",
+      "screen_frame",
+      "jacobi_matrix",
+      "jacobi_derivative"
+    ],
+    "sachs_jacobi_adaptive_error_estimate": "RK4 step-doubling local estimate (two_half_steps - full_step)/15; accepted state is two-half-step solution",
+    "sachs_jacobi_adaptive_global_bound": false,
+    "nonradial_schwarzschild_cross_solver": "Rust test passed at exact source head 1346e1e641772576e7163c9ab68aebfe8b09d180"
+  },
+  "caustic_qualification_policy": {
+    "status": "future_gate_not_implemented",
+    "candidate_definition": "A small sampled determinant is not a caustic. A candidate must be localized as a rank-deficient optical map with a converged smallest singular value and stable source-screen gauge.",
+    "simple_fold_requirements": [
+      "the optical Jacobi map has rank one at the candidate within a scale-aware residual",
+      "the determinant has a simple zero along a defined transverse control parameter or affine family, with a converged signed derivative",
+      "the nonzero singular value remains bounded away from zero",
+      "the null direction and caustic normal are continuous under source-screen SO(2) re-expression",
+      "the root is stable under tighter trajectory and variational tolerances and independent affine-step refinement"
+    ],
+    "cusp_requirements": [
+      "fold degeneracy condition plus vanishing first derivative of the caustic mapping along the critical direction",
+      "nonzero next-order derivative satisfying the declared cusp normal-form nondegeneracy condition",
+      "two-dimensional source/observer parameter continuation rather than classification from a single affine trace",
+      "classification stable under chart changes and parameter-grid refinement"
+    ],
+    "root_localization_requirements": [
+      "bracketed scalar root solve only after establishing a sign-changing simple-root bracket",
+      "for non-sign-changing or even-multiplicity candidates, minimize the smallest singular value and validate the local normal form; do not use sign-change-only detection",
+      "integrate the variational system at the refined parameter rather than interpolating raw determinant samples as final evidence",
+      "report determinant scale, singular values, condition number, bracket width, root residual, refinement history and unresolved status"
+    ],
+    "prohibited_shortcuts": [
+      "classify a caustic when abs(det(J)) is merely below a fixed absolute threshold",
+      "interpolate matrix components across the sky-basis chart seam without an SO(2) frame transition",
+      "report a caustic coordinate before the exact Schwarzschild map and independent Sachs-Jacobi formulation agree",
+      "turn an unresolved near-singular matrix into a finite magnification by clipping the smaller singular value"
+    ],
+    "target_acceptance": {
+      "caustic_location_error_in_M": 0.0001,
+      "root_residual_dimensionless": 1e-8,
+      "smallest_singular_value_refinement_stability": 0.000001,
+      "root_location_change_under_tolerance_refinement_in_M": 0.00001
+    }
+  },
+  "validation_notes": {
+    "latest_authored_regression_updates": [
+      "Boyer-Lindquist Sachs transport smoke test uses an outward seed, consistent with the seed's chart selection; ingoing-chart tests use ingoing seeds.",
+      "Forbidden radial-region test now uses a genuinely negative radial potential at r/M=2.5 rather than the critical impact parameter, which admits the interior captured branch.",
+      "Adaptive Schwarzschild scattering regression declares a 1e-8 radial/polar constraint acceptance in the integration config.",
+      "Future-horizon test permits a smaller minimum adaptive step in the regular ingoing chart; finite-observer source-screen test integrates to an affine interval long enough to reach the horizon.",
+      "Added exact equatorial prograde photon-orbit helper, near-extremal kappa/chi scaling and leading uniform phase reference; five new Rust known-answer/domain tests authored. Exact-head Rust execution pending."
+    ],
+    "status": "current exact-head Kerr event-localization audit has been triggered; do not claim a pass until job steps show format, Clippy and tests completed successfully",
+    "latest_source_test_inventory": {
+      "kerr_geodesic_authored_tests": 40,
+      "kerr_integrator_authored_tests": 16,
+      "new_sachs_jacobi_radial_reference": "authored; previously passed in runner before the latest test-input corrections",
+      "latest_confirmed_status": "no passing exact-head result claimed",
+      "near_extremal_photon_orbit_tests": "five authored; exact-head execution pending"
+    }
+  },
+  "numerical_stability": {
+    "equatorial_polar_symmetry": {
+      "status": "source_fix_and_regression_authored",
+      "issue": "libm cos(pi/2) is a small nonzero value; for Q=0 the computed polar potential becomes spuriously negative, causing adaptive Mino trials to fail at gamma=0",
+      "fix": "When the input theta is exactly FRAC_PI_2, evaluate sin(theta)=1 and cos(theta)=0 analytically in the polar potential and its derivative",
+      "regression": "Exact equality checks for Theta=0, Theta'=0, and zero polar acceleration on representative prograde/retrograde spin cases",
+      "caveat": "This is exact analytic symmetry handling at one exactly represented coordinate value, not a tolerance-based clamp of negative potentials near generic polar turning points."
+    }
+  },
+  "negative_controls": [
+    "use a tolerance clamp to hide genuinely negative polar potential near non-equatorial turning points"
+  ]
+}

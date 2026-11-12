@@ -1,0 +1,44 @@
+name: Kerr event localization audit
+
+on:
+  push:
+    branches:
+      - research/kerr-separated-null-geodesics-v0.1
+    paths:
+      - crates/domains/symtropy-relativity/**
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/kerr-event-localization.yml
+  pull_request:
+    branches:
+      - research/black-hole-physics-program-current
+    paths:
+      - crates/domains/symtropy-relativity/**
+      - Cargo.toml
+      - Cargo.lock
+      - .github/workflows/kerr-event-localization.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kerr-event-localization-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Kerr event localization (Linux, Rust 1.96.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/domains/symtropy-relativity/Cargo.toml -- --check
+      - name: Run Clippy
+        run: cargo clippy --locked --manifest-path crates/domains/symtropy-relativity/Cargo.toml --all-targets -- -D warnings
+      - name: Run crate tests
+        run: cargo test --locked --manifest-path crates/domains/symtropy-relativity/Cargo.toml --lib

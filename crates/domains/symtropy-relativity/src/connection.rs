@@ -185,6 +185,13 @@ impl LeviCivitaConnection4 {
     ///   - Gamma^sigma_(alpha nu) g_(mu sigma) = 0.
     ///
     /// This is a diagnostic, not a rigorous floating-point error bound.
+    /// Normwise residual of metric compatibility:
+    /// max |partial g - Gamma*g - Gamma*g| divided by the largest absolute
+    /// derivative/connection contraction over the complete tensor.
+    ///
+    /// A global scale is deliberate: zero-valued components can contain
+    /// round-off-sized cancellation terms, for which a componentwise relative
+    /// denominator would report an artificial O(1) residual.
     pub fn metric_compatibility_relative_residual(
         &self,
         metric: &MetricComponents4,
@@ -192,7 +199,8 @@ impl LeviCivitaConnection4 {
     ) -> Result<f64, ConnectionError> {
         let g = metric.covariant();
         let d = derivatives.components();
-        let mut maximum: f64 = 0.0;
+        let mut maximum_absolute_residual: f64 = 0.0;
+        let mut global_term_scale: f64 = 0.0;
 
         for alpha in 0..4 {
             for mu in 0..4 {
@@ -205,20 +213,27 @@ impl LeviCivitaConnection4 {
                     }
                     let derivative = d[alpha][mu][nu];
                     let residual = derivative - first - second;
-                    let scale = derivative.abs().max(first.abs()).max(second.abs());
-                    let normalized = if scale == 0.0 {
-                        residual.abs()
-                    } else {
-                        residual.abs() / scale
-                    };
-                    if !normalized.is_finite() {
+                    if !residual.is_finite()
+                        || !derivative.is_finite()
+                        || !first.is_finite()
+                        || !second.is_finite()
+                    {
                         return Err(ConnectionError::NonFiniteMetricCompatibility);
                     }
-                    maximum = maximum.max(normalized);
+                    maximum_absolute_residual = maximum_absolute_residual.max(residual.abs());
+                    global_term_scale = global_term_scale
+                        .max(derivative.abs())
+                        .max(first.abs())
+                        .max(second.abs());
                 }
             }
         }
-        Ok(maximum)
+
+        if global_term_scale == 0.0 {
+            Ok(maximum_absolute_residual)
+        } else {
+            Ok(maximum_absolute_residual / global_term_scale)
+        }
     }
 
     /// Maximum absolute asymmetry between the two lower connection indices.

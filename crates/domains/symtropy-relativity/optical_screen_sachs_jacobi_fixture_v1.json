@@ -1,0 +1,187 @@
+{
+  "schema": "luminous.symtropy.kerr.optical_screen_sachs_jacobi.v1",
+  "status": "fixed-step and adaptive Sachs/Jacobi solvers passed radial and nonradial Schwarzschild regressions in exact-head Rust 1.96 run",
+  "claim_ceiling": "Independent fixed-step and adaptive step-doubled Sachs/Jacobi optical-geodesic formulations. No caustic, fold/cusp or wave-optics claim until exact Schwarzschild, cross-step refinement and canonical-vs-Sachs agreement pass.",
+  "conventions": {
+    "chart_state_order": "(t_bar or v_bar, r_bar, theta, phi, p_t, p_r, p_theta, p_phi)",
+    "tangent": "k^mu = dx^mu/dlambda from the canonical Kerr Hamiltonian",
+    "screen": "two contravariant chart-coordinate basis vectors e_A^mu orthonormal and transverse to k",
+    "tidal_matrix": "T_AB = R_(mu nu rho sigma) e_A^mu k^nu e_B^rho k^sigma",
+    "jacobi_equation": "D''(lambda) = -T(lambda) D(lambda)",
+    "vertex_conditions": "D(0)=0; D'(0)=I_2 under the declared local-energy/affine normalization",
+    "vectorization": "row-major 2x2 D and D'; MSB-first qubit convention not applicable",
+    "solver": "classical fixed-step RK4 over a coupled 24-component state; no adaptive error estimate"
+  },
+  "coupled_state": {
+    "canonical_ray_components": 8,
+    "transported_screen_components": 8,
+    "jacobi_matrix_components": 4,
+    "jacobi_derivative_components": 4,
+    "total": 24
+  },
+  "implementation": {
+    "api": "integrate_kerr_sachs_jacobi_fixed_step",
+    "source": "crates/domains/symtropy-relativity/src/kerr_integrator.rs",
+    "independent_curvature_api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
+    "parallel_transport_rhs_api": "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
+    "observer_screen_lift_api": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
+    "diagnostics": [
+      "canonical null constraint",
+      "screen orthonormality and transversality",
+      "optical tidal symmetry",
+      "vacuum optical tidal trace",
+      "screen orthonormality-rate residual",
+      "screen transversality-rate residual",
+      "metric compatibility",
+      "signed determinant, singular values and condition number"
+    ],
+    "adaptive_api": "integrate_kerr_sachs_jacobi_adaptive",
+    "adaptive_integrator": "step-doubled classical RK4; full step compared with two half steps, with the two-half-step state accepted",
+    "adaptive_error_estimate": "(two_half_steps - full_step)/15",
+    "adaptive_error_channels": [
+      "canonical_ray_8_components",
+      "screen_frame_8_components",
+      "jacobi_matrix_4_components",
+      "jacobi_derivative_4_components"
+    ],
+    "adaptive_diagnostics": [
+      "accepted/rejected steps",
+      "maximum scaled local error per channel",
+      "null and screen constraints",
+      "tidal symmetry and vacuum trace",
+      "transport-rate and metric-compatibility residuals",
+      "last accepted and next proposed step"
+    ]
+  },
+  "analytic_reference": {
+    "id": "SJ-REF-SCHWARZSCHILD-RADIAL-001",
+    "spacetime": "Schwarzschild, spin a=0",
+    "observer": "finite-radius ZAMO at r/M=10, theta=pi/2",
+    "ray": "inward principal radial null ray",
+    "interval": 0.05,
+    "step_count": 16,
+    "exact_jacobi_solution": "D(lambda) = lambda * I_2",
+    "exact_tidal_matrix": "T(lambda) = 0",
+    "exact_endpoint": {
+      "affine_parameter": 0.05,
+      "jacobi_matrix": [
+        [
+          0.05,
+          0
+        ],
+        [
+          0,
+          0.05
+        ]
+      ],
+      "determinant": 0.0025,
+      "singular_values": [
+        0.05,
+        0.05
+      ],
+      "condition_number": 1
+    },
+    "authored_rust_acceptance": {
+      "diagonal_jacobi_absolute_error": 2e-7,
+      "off_diagonal_absolute_error": 2e-7,
+      "endpoint_determinant_absolute_error": 3e-8,
+      "singular_value_absolute_error": 2e-7,
+      "condition_number_absolute_error": 0.000001,
+      "pointwise_tidal_component_absolute_error": 2e-7,
+      "endpoint_null_frame_residual": 1e-7
+    },
+    "execution": {
+      "source_head": "1346e1e641772576e7163c9ab68aebfe8b09d180",
+      "workflow": "Kerr event localization audit",
+      "run_id": 43309182953,
+      "result": "143 passed; 0 failed",
+      "scope": "Includes the radial fixed/adaptive vertex known answer and nonradial fixed/adaptive Sachs solver comparison. This does not include canonical 8x8 versus Sachs-Jacobi comparison."
+    }
+  },
+  "refinement_protocol": {
+    "required_step_counts": [
+      "N",
+      "2N",
+      "4N"
+    ],
+    "compare": [
+      "relative Jacobi-matrix change between 2N and 4N while well-conditioned",
+      "determinant and singular-value convergence",
+      "null, screen and tidal residual envelopes",
+      "screen-frame transport residuals",
+      "canonical fundamental-matrix projection after transforming into the same transported screen frame"
+    ],
+    "proposed_acceptance": {
+      "jacobi_matrix_relative_change_2N_vs_4N": 0.000001,
+      "jacobi_singular_value_relative_change_2N_vs_4N": 0.000001,
+      "canonical_vs_sachs_jacobi_relative_error_well_conditioned": 0.00001,
+      "null_constraint_residual": 1e-8,
+      "screen_orthonormality_residual": 1e-8,
+      "screen_transversality_residual": 1e-8,
+      "optical_tidal_symmetry_residual": 1e-8,
+      "vacuum_trace_residual": 1e-8
+    },
+    "status": "proposed targets; no refinement receipt",
+    "adaptive_comparison": "On identical initial data, compare adaptive output with the highest-resolution fixed-step result. The adaptive step-doubling estimate is a local controller, not a rigorous global bound."
+  },
+  "negative_controls": [
+    "freshly reseed a local screen basis independently at every step instead of integrating parallel transport",
+    "interpolate screen components across the observer-sky chart seam without SO(2) transition",
+    "apply a post-hoc orthonormalization that silently changes the transported frame",
+    "treat fixed RK4 step count as an adaptive global error bound",
+    "classify caustic from a near-zero sampled determinant without root and singular-value refinement",
+    "compare Sachs and canonical Jacobi matrices in different screen gauges",
+    "clip the smaller singular value to fabricate a finite magnification"
+  ],
+  "required_receipt_fields": [
+    "source_sha",
+    "branch",
+    "black_hole_mass_and_spin",
+    "coordinate_chart",
+    "initial_state",
+    "initial_screen_basis",
+    "affine_interval",
+    "step_count",
+    "tolerance",
+    "maximum_null_residual",
+    "maximum_screen_orthonormality_residual",
+    "maximum_screen_transversality_residual",
+    "maximum_tidal_symmetry_residual",
+    "maximum_vacuum_trace_residual",
+    "maximum_metric_compatibility_residual",
+    "endpoint_jacobi_matrix",
+    "endpoint_signed_determinant",
+    "endpoint_singular_values",
+    "endpoint_condition_number",
+    "runtime",
+    "peak_memory"
+  ],
+  "nonradial_cross_solver_reference": {
+    "spacetime": "Schwarzschild",
+    "observer": "finite-radius ZAMO r/M=10, theta=pi/2",
+    "local_direction": "(-0.8,0.6,0.0)",
+    "affine_interval": 0.02,
+    "fixed_step_count": 64,
+    "adaptive_tolerance": {
+      "relative": 1e-9,
+      "absolute": 1e-12,
+      "constraint": 1e-7
+    },
+    "observables": [
+      "nonzero optical-tidal norm",
+      "tidal symmetry",
+      "vacuum trace",
+      "endpoint Jacobi entries",
+      "signed determinant",
+      "both singular values"
+    ],
+    "comparison_tolerance": 0.00002,
+    "execution": "passed in 143-test Rust 1.96 exact-head run"
+  },
+  "remaining_unqualified": [
+    "canonical 8x8 fundamental-matrix versus Sachs-Jacobi agreement in identical transported source frame",
+    "generic Kerr nonradial cross-formulation",
+    "fixed-step N/2N/4N convergence receipts on nonradial cases",
+    "caustic/fold/cusp root localization and finite-frequency wave-optics qualification"
+  ]
+}

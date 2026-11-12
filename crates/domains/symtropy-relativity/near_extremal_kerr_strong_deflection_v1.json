@@ -1,0 +1,161 @@
+{
+  "schema": "luminous.symtropy.kerr.near_extremal_strong_deflection.v1",
+  "status": "analytic_prograde_photon_orbit_helper_and_known_answer_tests_authored; numerical_deflection_integration_comparison_pending",
+  "claim_ceiling": "Analytic critical-orbit helper and leading uniform asymptotic reference for equatorial prograde Kerr null scattering. This does not yet constitute a validated numerical strong-deflection solver, image-branch catalogue, caustic map, or wave-optics calculation. The cited 2026 result is an arXiv preprint, not assumed peer-reviewed.",
+  "reference": {
+    "title": "Uniform Strong-Deflection Lensing in Near-Extremal Kerr",
+    "author": "Shakibul Chowdhury",
+    "date": "2026-10-02",
+    "arxiv": "https://arxiv.org/abs/2610.02900",
+    "reported_validation": "Matched next-to-leading-order correction is compared against high-precision integrations for 55 trajectories; the paper reports improvement for all 55.",
+    "reported_branch_result": "Near-extremal image-branch accumulation crosses between algebraic and exponential behaviour, with crossover order scaling as kappa^-1; the high-order extremal-like coordinate-time spacing approaches 4*pi*M."
+  },
+  "conventions": {
+    "units": "G=c=M=1 for dimensionless formulas; dimensional scale restored with M where noted",
+    "spin": "a = dimensionless Kerr spin a_phys/M, restricted to 0 <= a <= 1 for prograde equatorial branch",
+    "extremality_parameter": "kappa = sqrt(1-a^2)",
+    "photon_orbit_angle": "delta = (2/3)*acos(a)",
+    "photon_orbit_radius": "r_ph/M = 1 + 2*sin(delta/2)^2 + sqrt(3)*sin(delta)",
+    "horizon_delta_at_orbit": "Delta_ph/M^2 = (r_ph/M - 1)^2 - kappa^2",
+    "critical_impact_parameter": "b_c/M = a + 2*(r_ph/M)*sqrt(Delta_ph/M^2)/(r_ph/M - 1), for 0 <= a < 1",
+    "exact_extremal_limit": "a=1: r_ph/M=1 and b_c/M=2",
+    "distinguished_impact_parameter_scaling": "b/M = b_c/M + kappa*chi, chi > 0 (scattering side)",
+    "leading_uniform_phase": "Phi_LO = (1/kappa)*ln(1 + 2*sqrt(3)/chi)",
+    "crossover_function": "F(chi) = ln(1 + 2*sqrt(3)/chi), so kappa*Phi_LO = F(chi)"
+  },
+  "implementation": {
+    "source_api": "KerrEquatorialProgradePhotonOrbit::from_spin(spin)",
+    "source_path": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
+    "APIs": [
+      "KerrEquatorialProgradePhotonOrbit::from_spin",
+      "KerrEquatorialProgradePhotonOrbit::impact_parameter_for_scaled_offset",
+      "KerrEquatorialProgradePhotonOrbit::null_constants_for_scaled_offset",
+      "KerrEquatorialProgradePhotonOrbit::leading_uniform_deflection_phase"
+    ],
+    "properties": [
+      "Use kappa = sqrt((1-a)*(1+a)) to avoid 1-a^2 cancellation.",
+      "Use r_ph/M = 1 + 2*sin(delta/2)^2 + sqrt(3)*sin(delta) to avoid subtracting nearly equal terms in the trigonometric photon-orbit formula.",
+      "Use Delta_ph/M^2 = (r_ph/M - 1)^2 - kappa^2 for the near-horizon orbit.",
+      "Handle the exactly extremal endpoint as the analytic limit; do not divide by kappa=0."
+    ],
+    "tests_authored": [
+      "Schwarzschild r_ph/M=3 and b_c/M=3*sqrt(3)",
+      "spin a=0.9 r_ph/M=1.5578546274233829 and b_c/M=2.844421403476169",
+      "exact extremal a=1 gives r_ph/M=1 and b_c/M=2",
+      "near-extremal (b_c/M-2)/kappa converges monotonically toward sqrt(3) across kappa={0.1,0.03,0.01,0.003,0.001}",
+      "scaled-offset impact parameter, equatorial Q=0 constants, and leading phase identity",
+      "negative spin branch, nonpositive/nonfinite chi and extremal scaled-offset misuse are rejected"
+    ],
+    "limitation": "The helper supplies analytic critical-orbit and asymptotic reference data. The Kerr ray integrator has not yet reproduced the high-precision 55-trajectory numerical deflection comparison."
+  },
+  "analytic_cases": [
+    {
+      "kappa": 0.1,
+      "spin": 0.99498743710662,
+      "r_ph_over_m": 1.1178062715563903,
+      "b_c_over_m": 2.1768032943268842,
+      "normalized_critical_offset": 1.7680329432688424,
+      "chi_0_5_phase": 20.70426431194021
+    },
+    {
+      "kappa": 0.03,
+      "spin": 0.9995498987044118,
+      "r_ph_over_m": 1.0348439573729467,
+      "b_c_over_m": 2.0522685127279696,
+      "normalized_critical_offset": 1.7422837575989873,
+      "chi_0_5_phase": 69.01421437313404
+    },
+    {
+      "kappa": 0.01,
+      "spin": 0.9999499987499375,
+      "r_ph_over_m": 1.0115693351857742,
+      "b_c_over_m": 2.017354098730111,
+      "normalized_critical_offset": 1.7354098730110845,
+      "chi_0_5_phase": 207.04264311940213
+    },
+    {
+      "kappa": 0.003,
+      "spin": 0.9999954999898749,
+      "r_ph_over_m": 1.003466104507249,
+      "b_c_over_m": 2.00519915937014,
+      "normalized_critical_offset": 1.7330531233799757,
+      "chi_0_5_phase": 690.1421437313404
+    },
+    {
+      "kappa": 0.001,
+      "spin": 0.999999499999875,
+      "r_ph_over_m": 1.0011549228675494,
+      "b_c_over_m": 2.0017323843072545,
+      "normalized_critical_offset": 1.7323843072545309,
+      "chi_0_5_phase": 2070.426431194021
+    }
+  ],
+  "leading_phase_reference_chi_values": {
+    "0.1": "ln(1+2*sqrt(3)/0.1)/kappa",
+    "0.5": "ln(1+2*sqrt(3)/0.5)/kappa",
+    "1.0": "ln(1+2*sqrt(3))/kappa",
+    "2.0": "ln(1+sqrt(3))/kappa"
+  },
+  "high_value_numerical_benchmark": {
+    "id": "NEK-55",
+    "goal": "Reproduce the source paper's 55 high-precision subextremal/near-extremal prograde equatorial scattering trajectories after pinning its version and exact initial conditions.",
+    "required_comparison": [
+      "exact Kerr radial-potential turning point and high-precision quadrature/reference trajectory",
+      "leading uniform crossover phase Phi_LO",
+      "paper's matched next-to-leading-order uniform asymptotic phase",
+      "ordinary fixed-subextremal logarithmic strong-deflection approximation"
+    ],
+    "report_per_trajectory": [
+      "spin a and kappa",
+      "critical impact b_c/M",
+      "scaled offset chi=(b-b_c)/(M*kappa)",
+      "turning radius and radial-potential residual",
+      "numerical azimuthal deflection",
+      "leading and matched-NLO phase residuals",
+      "coordinate-time delay",
+      "relative and absolute error",
+      "integration tolerance, step/refinement history and runtime"
+    ],
+    "acceptance": {
+      "critical_orbit_relative_error_against_high_precision_reference": 1e-10,
+      "radial_turning_potential_residual": 1e-10,
+      "asymptotic_convergence": "For each fixed chi>0, kappa*Phi_numeric must converge toward ln(1+2*sqrt(3)/chi) as kappa decreases; estimate and report the observed order instead of imposing an unmeasured universal rate.",
+      "matched_NLO": "Must improve aggregate phase error against the leading formula on the pinned 55-trajectory set; report all individual cases and any exceptions.",
+      "no_unresolved_cases_hidden": true
+    }
+  },
+  "image_branch_and_timing_target": {
+    "branch_order_crossover_scale": "O(kappa^-1)",
+    "high_order_extremal_like_time_delay_spacing": "4*pi*M",
+    "status": "future cross-check; image-branch continuation and timing comparison not implemented"
+  },
+  "negative_controls": [
+    "use the subextremal logarithmic expansion unchanged at exact extremality",
+    "set chi=(b-b_c)/M rather than (b-b_c)/(M*kappa)",
+    "apply the prograde formula to negative-spin or retrograde rays",
+    "evaluate the finite-kappa scaled-offset formula at kappa=0",
+    "treat the leading crossover phase as an exact finite-spin deflection",
+    "claim reproduction of 55 trajectories without pinning the reference version and individual trajectory inputs",
+    "compare phase values after mixing affine, Boyer-Lindquist coordinate-time and azimuthal conventions"
+  ],
+  "required_receipt_fields": [
+    "source_sha",
+    "reference_arxiv_version",
+    "spin",
+    "kappa",
+    "critical_orbit_radius",
+    "critical_impact_parameter",
+    "scaled_offset_chi",
+    "turning_radius",
+    "radial_potential_residual",
+    "numeric_deflection",
+    "leading_phase",
+    "matched_nlo_phase",
+    "absolute_error",
+    "relative_error",
+    "coordinate_time_delay",
+    "refinement_history",
+    "runtime",
+    "peak_memory"
+  ]
+}

@@ -1,0 +1,457 @@
+{
+  "schema": "luminous.symtropy.kerr-mino-trajectory-benchmark",
+  "schema_version": "1.0.0",
+  "artifact_id": "symtropy.relativity.kerr_mino_trajectory.v1",
+  "created_utc": "2026-11-10",
+  "status": "implementation_and_reference_benchmark",
+  "claim_ceiling": "This file specifies exact reference cases and qualification checks for the adaptive separated Kerr Mino integrator, finite-radius ZAMO tetrad and canonical Hamiltonian evaluator. The Rust implementation is not compiled or executed in this editing environment. Python/SciPy values are independent equation-level references, not Luminous Rust run results.",
+  "owner": "Symtropy #4519",
+  "implementation": {
+    "pull_request": "https://github.com/Luminous-Dynamics/symtropy/pull/4543",
+    "source_path": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
+    "source_revision": "8148014c04fcf4df33937eff0268b92f38346b5e",
+    "api": "KerrSeparatedNullGeodesic::integrate_adaptive",
+    "integrator": "RK4 step-doubling on the smooth second-order Mino equations",
+    "local_error_estimate": "(two_half_steps - one_full_step)/15",
+    "invariants": "v_r^2-R(r) and v_theta^2-Theta(theta); monitored separately from local truncation error",
+    "chart": "Boyer-Lindquist exterior; fail-closed at horizon and polar-axis chart boundaries",
+    "limitations": [
+      "No canonical Hamiltonian trajectory integrator is implemented.",
+      "No finite-radius observer tetrad is implemented.",
+      "No Jacobi-field / variational ray-bundle integration is implemented.",
+      "No caustic detection or image-branch topology tracking is implemented.",
+      "No rigorous global error bound is claimed from the adaptive local estimator.",
+      "Boyer-Lindquist trajectories stop at the horizon; the ingoing chart trajectory may cross the future outer horizon for inward rays.",
+      "No event-detection stopping surface is implemented yet; callers choose the terminal Mino parameter.",
+      "The ingoing chart is not claimed to be regular at the ring singularity or on the polar axis."
+    ],
+    "chart_modes": [
+      {
+        "id": "boyer_lindquist",
+        "api": "integrate_adaptive",
+        "domain": "r>r_plus, 0<theta<pi",
+        "time_coordinate": "ct/M",
+        "azimuth_coordinate": "phi"
+      },
+      {
+        "id": "ingoing_kerr",
+        "api": "integrate_adaptive_ingoing",
+        "domain": "r>0, 0<theta<pi, future-ingoing branch",
+        "time_coordinate": "v/M",
+        "azimuth_coordinate": "phi_tilde"
+      }
+    ],
+    "capture_qualification": {
+      "api": "KerrMinoTrajectory::capture_status",
+      "statuses": [
+        "CapturedByHorizon",
+        "NoCrossingWithinIntegratedInterval",
+        "NotQualifiableInBoyerLindquist",
+        "ConstraintDriftExceeded",
+        "IncompleteTrajectory"
+      ],
+      "rule": "CapturedByHorizon requires an ingoing-chart trajectory with an observed outside-to-inside r+ transition and radial/polar first-integral residual maxima below the caller's ceiling.",
+      "non_claim": "No crossing within the finite integrated interval is not evidence of escape."
+    }
+  },
+  "conventions": {
+    "dimensionless_units": "M=G*m/c^2=1",
+    "coordinates": [
+      "ct/M",
+      "r/M",
+      "theta_rad",
+      "phi_rad"
+    ],
+    "constants": [
+      "E=-p_t",
+      "Lz/M",
+      "Q/M^2"
+    ],
+    "radial_potential": "R(r) = [E(r^2+a^2)-a Lz]^2 - Delta*[Q+(Lz-aE)^2]",
+    "polar_potential": "Theta(theta)=Q+a^2*E^2*cos(theta)^2-Lz^2*cot(theta)^2",
+    "mino_parameter": "gamma, dimensionless",
+    "future_directed_energy": "E > 0",
+    "null_constraints": [
+      "(dr/dgamma)^2=R(r)",
+      "(dtheta/dgamma)^2=Theta(theta)"
+    ],
+    "second_order_equations": [
+      "d2(r/M)/dgamma2 = 0.5*dR/d(r/M)",
+      "d2(theta)/dgamma2 = 0.5*dTheta/dtheta"
+    ]
+  },
+  "reference_cases": [
+    {
+      "id": "schwarzschild_critical_impact_double_root",
+      "spin": 0,
+      "constants": {
+        "energy": 1,
+        "angular_momentum_z_over_m": "3*sqrt(3)",
+        "carter_constant_over_m2": 0
+      },
+      "expected": {
+        "radius_over_m": 3,
+        "radial_potential": 0,
+        "radial_potential_derivative": 0,
+        "classification": "unstable_circular_photon_orbit"
+      },
+      "evidence_level": "analytic_identity",
+      "test_status": "authored_in_Rust_not_executed"
+    },
+    {
+      "id": "schwarzschild_scattering_turning_point",
+      "spin": 0,
+      "constants": {
+        "energy": 1,
+        "angular_momentum_z_over_m": 6,
+        "carter_constant_over_m2": 0
+      },
+      "initial_state": {
+        "mino_parameter": 0,
+        "coordinates": {
+          "time_over_m": 0,
+          "radius_over_m": 10,
+          "theta_rad": 1.5707963267948966,
+          "azimuth_rad": 0
+        },
+        "radial_velocity": "-sqrt(R(10))",
+        "polar_velocity": 0
+      },
+      "integration": {
+        "final_mino_parameter": 0.6,
+        "relative_tolerance": 1e-14,
+        "absolute_tolerance": [
+          1e-14,
+          1e-14,
+          1e-14,
+          1e-14,
+          1e-14,
+          1e-14
+        ],
+        "normalized_constraint_tolerance": 3e-8,
+        "initial_step": 0.001,
+        "minimum_step": 1e-12,
+        "maximum_step": 0.02,
+        "maximum_attempts": 200000
+      },
+      "expected": {
+        "outer_turning_radius_over_m": "4.45336319381135493162330361637618506374633524579413608130611216",
+        "turning_point_condition": "R(r_turn)=0",
+        "outgoing_at_final_parameter": true,
+        "final_radius_over_m_approx": 10.1442929,
+        "max_normalized_radial_constraint_residual_limit": 3e-8,
+        "max_normalized_polar_constraint_residual_limit": 3e-8
+      },
+      "independent_references": [
+        {
+          "method": "Python RK4 step-doubling with independent implementation",
+          "accepted_steps": 1001,
+          "rejected_steps": 1,
+          "minimum_sampled_radius_over_m": 4.453365072697782,
+          "final_radius_over_m": 10.144292902314676,
+          "maximum_normalized_radial_constraint_residual": 2.2240524644567023e-8,
+          "result_kind": "equation_level_numerical_reference_not_Rust_output"
+        },
+        {
+          "method": "SciPy solve_ivp independent ODE integration",
+          "relative_tolerance": 1e-11,
+          "final_radius_over_m": 10.144292898165585,
+          "result_kind": "equation_level_numerical_reference_not_Rust_output"
+        }
+      ],
+      "test_status": "authored_in_Rust_not_executed"
+    },
+    {
+      "id": "separated_vs_canonical_hamiltonian_vector_field",
+      "spins": [
+        0,
+        0.5,
+        0.9
+      ],
+      "constants": {
+        "energy": 1,
+        "angular_momentum_z_over_m": 2,
+        "carter_constant_over_m2": 3
+      },
+      "event": {
+        "radius_over_m": 10,
+        "theta_rad": 1
+      },
+      "compare": [
+        "null_Hamiltonian",
+        "recovered_E_Lz_Q",
+        "Sigma_times_d(ct/M)/dlambda",
+        "Sigma_times_d(r/M)/dlambda",
+        "Sigma_times_d(theta)/dlambda",
+        "Sigma_times_d(phi)/dlambda",
+        "conservation_of_p_t_and_p_phi"
+      ],
+      "independent_high_precision_check": {
+        "method": "mpmath, 50 decimal digits",
+        "tested_spins": [
+          0,
+          0.5,
+          0.9
+        ],
+        "maximum_absolute_mass_shell_residual": "<2.4e-51",
+        "maximum_absolute_Sigma_rescaled_coordinate_difference": "<1.8e-49",
+        "result_kind": "independent_equation_check_not_Rust_output"
+      },
+      "test_status": "authored_in_Rust_not_executed"
+    },
+    {
+      "id": "ingoing_kerr_horizon_regular_canonical_vector_field",
+      "spin": 0.9,
+      "constants": {
+        "energy": 1,
+        "angular_momentum_z_over_m": 2,
+        "carter_constant_over_m2": 3
+      },
+      "radii_over_m": [
+        "r_plus+0.1",
+        "r_plus",
+        "0.9*r_plus",
+        "0.5*r_plus"
+      ],
+      "required": [
+        "finite_metric",
+        "finite_inverse",
+        "finite_Hamiltonian",
+        "finite_coordinate_derivatives",
+        "finite_momentum_derivatives"
+      ],
+      "chart_equivalence_outside_horizon": [
+        "v=t+integral((r^2+a^2)/Delta)dr",
+        "phi_tilde=phi+integral(a/Delta)dr"
+      ],
+      "test_status": "authored_in_Rust_not_executed"
+    },
+    {
+      "id": "finite_radius_zamo_tetrad_and_local_sky_mapping",
+      "observer": {
+        "kind": "zero_angular_momentum_observer",
+        "radius_over_m": 10,
+        "theta_rad": 0.8,
+        "spins": [
+          0,
+          0.5,
+          0.9,
+          -0.9
+        ]
+      },
+      "direction": {
+        "radial": -0.8,
+        "polar": 0.6,
+        "azimuthal": 0
+      },
+      "acceptance": {
+        "tetrad_orthonormality": "max_abs(e_(a).g.e_(b)-eta_ab) below 1e-12",
+        "null_local_photon": "g_mu_nu p^mu p^nu below 1e-12 times declared scale",
+        "positive_killing_energy": "ray seed returns E_inf > 0 or typed NegativeKillingEnergy",
+        "radial_polar_constraints": "initial Mino first-integral residuals below 1e-10"
+      },
+      "independent_python_reference": {
+        "method": "direct numerical ZAMO tetrad construction and metric contractions",
+        "maximum_tetrad_orthonormality_residual": 2.220446049250313e-16,
+        "maximum_null_contraction_residual": 3.9431878052092103e-16,
+        "result_kind": "equation_level_reference_not_Rust_output"
+      },
+      "asymptotic_limit": {
+        "observer_radius_over_m": 100000,
+        "spin": 0.7,
+        "inclination_rad": "pi/2",
+        "local_direction": {
+          "radial": "-sqrt(1-0.006^2-0.008^2)",
+          "polar": 0.006,
+          "azimuthal": -0.008
+        },
+        "expected_screen_coordinates_over_radius": {
+          "alpha_over_r_over_m": 0.008,
+          "beta_over_r_over_m": 0.006
+        },
+        "independent_python_screen": {
+          "alpha_over_m": 800.0080001404986,
+          "beta_over_m": 600.0060000906736
+        },
+        "leading_asymptotic_limit": {
+          "alpha_over_m": 800,
+          "beta_over_m": 600
+        },
+        "result_kind": "finite_radius_to_asymptotic_limit_check_not_Rust_output"
+      },
+      "test_status": "authored_in_Rust_not_executed"
+    },
+    {
+      "id": "kerr_future_capture_across_outer_horizon",
+      "spin": 0.9,
+      "constants": {
+        "energy": 1,
+        "angular_momentum_z_over_m": 2,
+        "carter_constant_over_m2": 0
+      },
+      "initial_state": {
+        "coordinate_chart": "ingoing_kerr",
+        "coordinates": {
+          "v_over_m": 0,
+          "radius_over_m": 10,
+          "theta_rad": 1.5707963267948966,
+          "azimuth_tilde_rad": 0
+        },
+        "radial_velocity": "-sqrt(R(10))",
+        "polar_velocity": 0
+      },
+      "integration": {
+        "api": "integrate_adaptive_ingoing",
+        "final_mino_parameter": 1.460728111791428,
+        "relative_tolerance": 1e-12,
+        "absolute_tolerance": [
+          1e-12,
+          1e-12,
+          1e-12,
+          1e-12,
+          1e-12,
+          1e-12
+        ],
+        "normalized_constraint_tolerance": 0.00001,
+        "initial_step": 0.001,
+        "minimum_step": 1e-12,
+        "maximum_step": 0.02,
+        "maximum_attempts": 200000
+      },
+      "expected": {
+        "outer_horizon_radius_over_m": 1.4358898943540672,
+        "final_radius_over_m_approx": 1,
+        "final_radius_is_inside_outer_horizon": true,
+        "finite_ingoing_time_and_azimuth": true,
+        "maximum_normalized_radial_constraint_residual_limit": 0.00001,
+        "capture_status": "CapturedByHorizon"
+      },
+      "independent_reference": {
+        "method": "Python RK4 step-doubling using rationalized ingoing Mino derivatives",
+        "accepted_steps": 389,
+        "rejected_steps": 1,
+        "final_radius_over_m": 1.000000509428882,
+        "maximum_normalized_radial_constraint_residual": 7.113198332837912e-7,
+        "result_kind": "equation_level_numerical_reference_not_Rust_output"
+      },
+      "test_status": "authored_in_Rust_not_executed"
+    }
+  ],
+  "benchmark_ladder": [
+    {
+      "level": "G0",
+      "name": "Analytic separated-potential controls",
+      "metrics": [
+        "R",
+        "R_prime",
+        "Theta",
+        "Theta_prime"
+      ],
+      "acceptance": "Schwarzschild critical double root and Kerr light-ring R=R'=0."
+    },
+    {
+      "level": "G1",
+      "name": "Observer-screen map",
+      "metrics": [
+        "alpha",
+        "beta",
+        "inclination",
+        "E",
+        "Lz",
+        "Q"
+      ],
+      "acceptance": "Screen-to-constants and inverse map agree to floating-point tolerance over the declared non-axis domain."
+    },
+    {
+      "level": "G2",
+      "name": "Independent vector-field comparison",
+      "metrics": [
+        "Hamiltonian",
+        "mass_shell",
+        "coordinate_vector_field",
+        "Killing_constants"
+      ],
+      "acceptance": "Separated and canonical Hamiltonian formulations agree under the declared Mino/affine and coordinate-chart transformations."
+    },
+    {
+      "level": "G3",
+      "name": "Adaptive trajectory",
+      "metrics": [
+        "local_error_estimate",
+        "accepted_steps",
+        "rejected_steps",
+        "trajectory_state"
+      ],
+      "acceptance": "Matched Schwarzschild scattering trajectory crosses the analytic turning point and returns outward."
+    },
+    {
+      "level": "G4",
+      "name": "Constraint preservation",
+      "metrics": [
+        "radial_first_integral_residual",
+        "polar_first_integral_residual",
+        "max_drift"
+      ],
+      "acceptance": "Both normalized constraints remain below the declared ceiling, otherwise typed failure."
+    },
+    {
+      "level": "G5",
+      "name": "Near-critical and trapped ray suite",
+      "metrics": [
+        "dwell_time",
+        "turn_count",
+        "critical_impact_offset",
+        "step_count"
+      ],
+      "acceptance": "Convergence under tolerance refinement and correct logarithmic dwell-time trend near the Schwarzschild/Kerr critical curve."
+    },
+    {
+      "level": "G6",
+      "name": "Hamiltonian symplectic integration",
+      "metrics": [
+        "Hamiltonian_drift",
+        "Carter_drift",
+        "symplectic_form_error",
+        "cost"
+      ],
+      "acceptance": "A symplectic integrator is compared to adaptive RK at matched phase-space error; no method wins on raw speed alone."
+    },
+    {
+      "level": "G7",
+      "name": "Jacobi/ray-bundle transport",
+      "metrics": [
+        "Jacobi_determinant",
+        "singular_values",
+        "parity",
+        "caustic_location",
+        "finite_difference_discrepancy"
+      ],
+      "acceptance": "Variational and independent finite-difference neighboring-ray paths converge under joint screen and integration refinement."
+    },
+    {
+      "level": "G8",
+      "name": "Observable map",
+      "metrics": [
+        "image_branches",
+        "arrival_time",
+        "redshift",
+        "polarization",
+        "error_budget"
+      ],
+      "acceptance": "Every branch is provenance-bound and chart/observer conventions remain explicit."
+    }
+  ],
+  "comparison_targets": {
+    "analytic": "Schwarzschild photon sphere and critical impact parameter; Kerr equatorial light-ring identities.",
+    "independent_implementation": "Canonical Hamiltonian flow using AD-generated Kerr metric derivatives.",
+    "future_sota": "AART for geometric Kerr image branches/lensing bands; ipole/grtrans only for matched polarized radiative-transfer cases; Teukolsky/MST for matched wave-scattering quantities.",
+    "rule": "Compare only matched physics, coordinates, observers, branch coverage and error definitions."
+  },
+  "execution": {
+    "rust_compiled": false,
+    "rust_tests_executed": false,
+    "ci_for_exact_head": "not_verified",
+    "python_reference_checks": "completed_independently",
+    "no_scientific_ray_result_claimed": true
+  }
+}

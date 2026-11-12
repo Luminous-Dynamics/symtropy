@@ -9360,6 +9360,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-relativity"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-render-bridge"
 version = "0.1.0"
 dependencies = [

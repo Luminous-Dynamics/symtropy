@@ -1,13 +1,19 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-//! Analytic, SI-dimensional reference calculations for stationary black holes.
+//! Convention-explicit analytic and numerical reference calculations for
+//! stationary black-hole spacetimes.
 //!
-//! This crate is deliberately narrower than a general-relativity solver. It
-//! provides validated parameters, closed-form Kerr/Schwarzschild observables,
-//! and analytic exterior metric components checked against exact fixtures.
-//! It does not yet implement connection/curvature tensors, geodesic
-//! integration, waveform generation, or numerical-relativity evolution.
+//! The crate currently provides validated SI-valued black-hole parameters,
+//! Schwarzschild/Kerr metric charts, differential geometry and curvature,
+//! Schwarzschild timelike/null geodesics, analytic Kerr light-ring observables,
+//! and a separated Kerr null-geodesic first-integral kernel.
+//!
+//! The Kerr kernel evaluates Carter-separated radial/polar potentials,
+//! asymptotic Bardeen screen constants and Mino-time derivatives. It is not
+//! yet a complete Kerr ray stepper: turning-point event handling, independent
+//! Hamiltonian evolution, Jacobi fields and caustic maps remain separate work.
+//! It does not implement waveform generation or numerical-relativity evolution.
 //!
 //! Conventions:
 //! - SI units are used at the public API boundary.
@@ -32,6 +38,10 @@ pub mod connection;
 pub mod curvature;
 /// Schwarzschild timelike/null geodesics with Christoffel and Hamiltonian formulations.
 pub mod geodesic;
+/// Separated Kerr null-geodesic potentials, asymptotic screen mapping and Mino derivatives.
+pub mod kerr_geodesic;
+/// Adaptive canonical Hamiltonian integration of Kerr null trajectories.
+pub mod kerr_integrator;
 /// Kerr equatorial circular-null-orbit and light-ring observables.
 pub mod light_ring;
 /// Validated stationary black-hole metric components in a declared chart.
