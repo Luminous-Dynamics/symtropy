@@ -72,7 +72,7 @@ A control-aware diagnosis track is separately owned by [MARITIME-CONTROL-AWARE-D
 - controller/actuator state (outputs, feedback, saturation, mode and interlocks);
 - measured physical plant response.
 
-A 24 September 2026 simulation-only paper proposes control-aware feature fusion and multi-class maneuvering-regime discrimination for marine-engine injector diagnosis. It reports improved robustness under control-sensor dropout but explicitly lacks real-engine validation. This was the fifteenth literature baseline when first added. The registry has since been extended with an October 2026 physical WP4 digital-twin / inverse-identifiability baseline and a September 2026 few-shot combustion-diagnosis baseline; see the 17-entry registry for evidence scope and limitations.
+A 24 September 2026 simulation-only paper proposes control-aware feature fusion and multi-class maneuvering-regime discrimination for marine-engine injector diagnosis. It reports improved robustness under control-sensor dropout but explicitly lacks real-engine validation. This was the fifteenth literature baseline when first added. The registry now contains 22 unique IDs and 22 unique DOIs, including the October 2026 physical WP4 digital-twin / inverse-identifiability baseline, September 2026 few-shot combustion diagnosis, July 2026 external-context maritime anomaly analysis, the December 2025 operational-vessel induced-fault study and additional transfer/OOD baselines. See the machine-readable registry for each study's separate evidence scope and limitations.
 
 Command-conditioned residuals must account for actuator lag, load/ambient disturbances, controller mode, sensor bias, clock skew and shared dependencies. Commands are not physical measurements or independent corroboration. If a candidate dataset lacks verified control-signal semantics, this track remains NOT_EVALUATED for that dataset.
 
@@ -161,7 +161,7 @@ This programme currently establishes research artifacts, synthetic evidence-cont
 
 ## Literature update — transfer baselines (10 November 2026)
 
-The diagnostic baseline registry now contains **19 unique IDs and 19 unique source DOIs**. The update adds the October 2026 Weichai WP4 physical test-bench digital-twin study and the September 2026 Wärtsilä 6L20 few-shot combustion-diagnosis study. Each remains a separate protocol; neither headline result is ranked directly against Aalto, LiU-ICE or another study without protocol alignment.
+The diagnostic baseline registry now contains **22 unique IDs and 22 unique source DOIs**. Every result remains bound to its data domain and split protocol; simulation, test-bench, one-vessel and multi-engine evidence are not merged into a single leaderboard. The December 2025 operational-vessel SVM result is a particularly strong reproduction target, but not a cross-engine/fleet benchmark.
 
 - The 2025 Applied Energy cross-working-condition paper reports **95% accuracy** in its abstract and describes **18 transfer tasks** across two engine case studies (8V396SE, 500 kW, and 620 V16, 2,336 kW). Its evidence mix includes experimental bench lubrication-system data and virtual intake/exhaust task data. Keep each subsystem and source type separate. The exact per-task aggregation, sample grouping and split manifest must be recovered before reproduction. This is not a common-protocol or physical fleet-transfer score.
 - The 2025 Energy mean-value-model-assisted dual-transfer paper reports **more than 97.70% average accuracy** for cross-domain lubricating-oil diagnosis. It describes a simulation-to-measured transfer between a 16V396 simulation domain and an 8V396 experimental bench domain, nine transfer tasks, and 70%, 85% and 100% load points. The exact source/target assignments, run grouping, task-level scores and leakage controls need methods/table audit. It is a separate paper from the 18-task Applied Energy study and is not comparable to the Aalto MU323DGSC data.
@@ -286,3 +286,17 @@ Proposed research aims (not achieved results or operational thresholds):
 - Re-optimize the sensor-layout Pareto set only after a declared configuration/mission change; report the number of prior diagnoses whose qualification remains valid, the number requiring requalification, and the cost/time of that process.
 
 The benchmark result should therefore be a scenario-by-scenario evidence passport, not one composite score. A hard-gate violation (future leakage, false-known on an unobservable fault, false-independent channel promotion or unauthorized operating action) cannot be averaged away by a high classification score.
+
+
+### Operational-vessel fault-diagnosis baseline — 99.72% reported balanced accuracy
+
+The registry entry `operational-vessel-turbocharger-diagnosis-2025` records a December 2025 *Information* paper (DOI 10.3390/info17010016) using an in-service 1.89 MW Hyundai HiMSEN auxiliary generator. It reports 99.72% balanced accuracy for a linear SVM over seven classes: healthy plus three severity levels each for turbocharger nozzle-ring clogging and intercooler/charge-air restriction.
+
+Important limits preserved in the registry:
+- Physical fault interventions were on one auxiliary engine and two fault mechanisms, across three steady load points (825, 900 and 975 kW); dynamic transients were excluded.
+- The 96,897-observation / 42-feature dataset is highly imbalanced (about 1.3% fault observations).
+- The paper reports an 80/20 split and ten-fold CV, but the accessible protocol does not establish grouping by intervention, recording/run, chronology, engine or vessel. No independent-vessel fault holdout is reported.
+- Thermodynamic values were captured non-intrusively from engine-room displays rather than direct machine interfaces; the paper identifies detailed measurement-uncertainty analysis as future work.
+- The intercooler-only anomaly result is substantially weaker (75% balanced accuracy, 63.1% F1), making early/low-severity detection a useful falsification target.
+
+Do not claim to beat this result until it is reproduced on the paper's own protocol. Then evaluate whole-run/intervention and chronological holdouts, leave-one-load-point-out, severity-wise event recall, false alarms per valid engine-hour, calibration and unknown-fault rejection. Cross-engine/vessel performance remains NOT_EVALUATED unless independent fault-labeled engines/vessels are actually available. This dedicated reproduction and grouped-split audit is tracked by [MARITIME-OPERATIONAL-BASELINE-001 #4909](https://github.com/Luminous-Dynamics/symtropy/issues/4909).
