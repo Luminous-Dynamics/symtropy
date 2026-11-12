@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: maritime-control-response-${{ github.event.pull_request.head.sha || github.sha }}
-  cancel-in-progress: false
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   verify:
