@@ -1,0 +1,452 @@
+name: CIVDYN self-correction reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-self-correction/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-self-correction.yml"
+  push:
+    paths:
+      - "research/civdyn-self-correction/**"
+      - "research/civdyn-resource-ledger/**"
+      - ".github/workflows/civdyn-self-correction.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    outputs:
+      workspace_present: ${{ steps.detect.outputs.present }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect CIVDYN workspace
+        id: detect
+        shell: bash
+        run: |
+          if [[ -f research/civdyn-self-correction/Cargo.toml ]]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Bootstrap only; workspace arrives in the implementation PR
+        if: steps.detect.outputs.present != 'true'
+        run: echo "CIVDYN workflow registered. Full Rust gates activate once the CIVDYN workspace is present in the PR merge ref."
+
+  validate:
+    needs: bootstrap
+    if: needs.bootstrap.outputs.workspace_present == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-self-correction/Cargo.toml --all -- --check
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets -- -D warnings
+      - name: Compile
+        run: cargo check --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
+      - name: Test correction chain, negative controls and ledger conservation
+        run: cargo test --locked --manifest-path research/civdyn-self-correction/Cargo.toml --all-targets
+      - name: Verify causal-drift detection versus mechanism diagnosis
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin causal-drift-sweep > /tmp/civdyn-causal-drift.csv
+          awk -F, '
+            NR == 1 { if (NF != 24) exit 20; next }
+            NF != 24 { exit 21 }
+            $1 == "sign_reversal" && $2 == "outcome_reactive" {
+              reversal_reactive++
+              if ($4 != "2.000000" || $16 != "true" || $17 != "true" || $19 != "false" || $6 != "8") exit 22
+            }
+            $1 == "sign_reversal" && $2 == "cusum_signal_only" {
+              reversal_cusum++
+              if ($17 != "true" || $18 != "4" || $19 != "false" || $7 != "1") exit 23
+            }
+            $1 == "sign_reversal" && $2 == "mechanism_aware" {
+              reversal_aware++
+              if ($20 != "causal_sign_reversal" || $18 != "4" || $21 != "4" || $7 != "1" || $23 != "true") exit 24
+            }
+            $1 == "gradual_sign_reversal" && $2 == "mechanism_aware" {
+              gradual_aware++
+              if ($3 != "-2.000000" || $4 != "3.000000" || $20 != "causal_sign_reversal" || $18 != "5" || $21 != "6" || $22 != "2" || $7 != "2") exit 25
+            }
+            $1 == "confounded_null" && $2 == "mechanism_aware" {
+              null_aware++
+              if ($4 != "5.000000" || $5 != "0.000000" || $20 != "null_effect_with_confounding" || $21 != "2") exit 26
+            }
+            $1 == "stable_positive" && $2 == "mechanism_aware" {
+              stable_aware++
+              if ($17 != "false" || $19 != "false" || $6 != "8" || $5 != "2.000000") exit 27
+            }
+            $1 == "confounder_shift" && $2 == "cusum_signal_only" {
+              confounder_cusum++
+              if ($3 != "2.000000" || $4 != "-3.000000" || $17 != "true" || $18 != "5" || $19 != "false" || $8 != "3") exit 28
+            }
+            $1 == "confounder_shift" && $2 == "mechanism_aware" {
+              confounder_aware++
+              if ($4 != "-3.000000" || $17 != "true" || $18 != "5" || $5 != "2.000000" || $20 != "confounder_shift_without_causal_effect_change" || $21 != "6" || $6 != "8" || $8 != "0" || $23 != "true") exit 29
+            }
+            $1 == "confounder_shift" && $2 == "outcome_reactive" {
+              confounder_reactive++
+              if ($8 != "3" || $6 != "5" || $19 != "false") exit 30
+            }
+            END {
+              if (NR != 21 || reversal_reactive != 1 || reversal_cusum != 1 || reversal_aware != 1 || gradual_aware != 1 || null_aware != 1 || stable_aware != 1 || confounder_cusum != 1 || confounder_aware != 1 || confounder_reactive != 1) exit 31
+              print "Causal-drift CSV valid: 20 regime/controller cases, 24 columns; causal and confounder controls passed"
+            }
+          ' /tmp/civdyn-causal-drift.csv
+      - name: Verify seeded noisy causal-drift operating characteristics
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin noisy-causal-drift-sweep > /tmp/civdyn-noisy-causal-drift.csv
+          awk -F, '
+            NR == 1 { if (NF != 25) exit 40; next }
+            NF != 25 { exit 41 }
+            $2 == "stable_positive" {
+              stable++
+              if ($6 != "" || $20 != "false" || $9 != "8") exit 42
+            }
+            $2 == "sign_reversal" {
+              reversal++
+              if ($6 == "causal_sign_reversal" && $7 == "4" && $20 == "true" && $10 == "1") reversal_good++
+            }
+            $2 == "gradual_sign_reversal" {
+              gradual++
+              if ($6 == "causal_sign_reversal" && $7 == "6" && $20 == "true" && $10 == "2") gradual_good++
+            }
+            $2 == "confounded_null" {
+              nulls++
+              if ($6 == "null_effect_with_confounding" && $7 == "2" && $20 == "true") null_good++
+              if ($25 == "true") null_false_sign++
+            }
+            $2 == "confounder_shift" {
+              confounder++
+              if ($6 == "confounder_shift_without_causal_effect_change" && $7 == "6" && $20 == "false" && $11 == "0" && $9 == "8") confounder_good++
+            }
+            END {
+              if (NR != 1281 || stable != 256 || reversal != 256 || gradual != 256 || nulls != 256 || confounder != 256) exit 43
+              if (reversal_good < 250 || gradual_good < 250 || null_good < 250 || confounder_good < 250) exit 44
+              if (null_false_sign > 5) exit 45
+              print "Noisy causal-drift Monte Carlo passed: 1,280 retained episodes; stable false-stops=0; reversal=" reversal_good "/256; gradual=" gradual_good "/256; null=" null_good "/256; confounder-shift=" confounder_good "/256; false sign diagnoses on null=" null_false_sign
+            }
+          ' /tmp/civdyn-noisy-causal-drift.csv
+      - name: Verify deterministic CSV contract and known-answer outputs
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin self-correction-sweep > /tmp/civdyn-self-correction.csv
+          awk -F, '
+            NR == 1 { if (NF != 21) exit 10; next }
+            NF != 21 { exit 11 }
+            $1 == "sensor_drift_sham" {
+              sensor++
+              if ($2 == "outcome_reactive" && $6 != "12.000000") exit 12
+              if ($2 == "mechanism_aware" && $6 != "0.000000") exit 13
+            }
+            $1 == "delayed_externality" {
+              delayed++
+              if ($2 == "frozen_policy" && $4 != "25.000000") exit 14
+              if ($2 == "mechanism_aware" && ($4 != "0.000000" || $5 != "30.000000")) exit 15
+            }
+            END {
+              if (sensor != 3 || delayed != 3) exit 16
+              print "CSV valid: 3 sensor-drift controllers + 3 delayed-externality controllers; 21 columns"
+            }
+          ' /tmp/civdyn-self-correction.csv
+
+      - name: Verify common-stream sequential method portfolio
+        run: |
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin sequential-methods-sweep > /tmp/civdyn-sequential-methods.csv 2>/tmp/civdyn-sequential-methods-summary.txt
+          awk -F, '
+            NR == 1 { if (NF != 14) exit 60; next }
+            NF != 14 { exit 61 }
+            {
+              rows++
+              methods[$7]++
+              key = $1 SUBSEP $2 SUBSEP $3
+              if (key in digest && digest[key] != $6) exit 62
+              digest[key] = $6
+              if ($9 < 1 || $9 > 2048) exit 63
+              if ($3 == "stable_positive" || $3 == "confounder_shift") {
+                alt_rows[$7, $3]++
+                if ($8 == "benefit_established") correct[$7, $3]++
+                if ($8 == "harmful_effect_established") false_stop[$7, $3]++
+              }
+              if ($3 == "sign_reversal" || $3 == "gradual_sign_reversal") {
+                alt_rows[$7, $3]++
+                if ($8 == "harmful_effect_established") correct[$7, $3]++
+              }
+              if ($3 == "confounded_null" || $3 == "benefit_boundary") {
+                null_rows[$7, $3]++
+                if ($8 != "inconclusive") false_action[$7, $3]++
+              }
+              if ($3 != "confounded_null" && $3 != "benefit_boundary") {
+                alt_n[$7]++
+                alt_cost[$7] += $9
+              }
+            }
+            END {
+              if (rows != 7680) exit 64
+              method_count = 0
+              for (m in methods) {
+                method_count++
+                if (methods[m] != 1536) exit 65
+                if (null_rows[m, "confounded_null"] != 256 || false_action[m, "confounded_null"] > 12) exit 66
+                if (null_rows[m, "benefit_boundary"] != 256 || false_action[m, "benefit_boundary"] > 12) exit 73
+                if (false_stop[m, "stable_positive"] > 0 || false_stop[m, "confounder_shift"] > 0) exit 72
+                if (alt_rows[m, "stable_positive"] != 256 || correct[m, "stable_positive"] < 250) exit 67
+                if (alt_rows[m, "sign_reversal"] != 256 || correct[m, "sign_reversal"] < 250) exit 68
+                if (alt_rows[m, "gradual_sign_reversal"] != 256 || correct[m, "gradual_sign_reversal"] < 250) exit 69
+                if (alt_rows[m, "confounder_shift"] != 256 || correct[m, "confounder_shift"] < 250) exit 70
+                mean_cost = alt_cost[m] / alt_n[m]
+                if (mean_cost <= 0.70 * 2048) efficient++
+              }
+              if (method_count != 5 || efficient < 1) exit 71
+              print "Sequential portfolio valid: 7,680 receipts; identical stream digests; 256 seeds per regime; false directional actions <=12/256 at both zero-effect and minimum-benefit boundaries; no false harmful stop on positive/confounder-shift regimes; at least one method saves >=30% samples on alternatives"
+            }
+          ' /tmp/civdyn-sequential-methods.csv
+
+
+      - name: Verify prior reachability and split-predictive adequacy contract
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin model-adequacy-sweep > /tmp/civdyn-model-adequacy.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("/tmp/civdyn-model-adequacy.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 24, f"expected 24 columns, got {len(fields or [])}"
+          assert len(rows) == 6, f"expected six statistic assessments, got {len(rows)}"
+
+          expected = {
+              ("prior", "household-water-mean"): "within_reference_interval",
+              ("prior", "health-income-joint"): "outside_reference_interval",
+              ("prior", "rare-service-failure-rate"): "within_reference_interval",
+              ("split_predictive", "household-water-mean"): "within_reference_interval",
+              ("split_predictive", "health-income-joint"): "outside_reference_interval",
+              ("split_predictive", "rare-service-failure-rate"): "outside_reference_interval",
+          }
+          actual = {}
+          for row in rows:
+              key = (row["kind"], row["statistic_id"])
+              assert key not in actual, f"duplicate statistic receipt: {key}"
+              actual[key] = row["status"]
+              assert row["domain_status"] == "primary_discrepancy_detected"
+              assert row["source_digest"] and row["observation_digest"]
+              assert row["model_digest"] and row["draw_set_digest"]
+              assert row["independent_unit"] == "region"
+              assert row["expected_units"] == "1" and row["assessed_units"] == "1"
+              assert row["covered_units"] in {"0", "1"}
+              assert row["empirical_coverage"] in {"0.000000", "1.000000"}
+              assert row["wilson_lower_95"] and row["wilson_upper_95"]
+              assert row["required_evidence_complete"] == "true"
+              assert row["n_draws"] == "20"
+
+          assert actual == expected, f"unexpected reachability/adequacy classifications: {actual}"
+          print("Model-adequacy CSV valid: prior reachability and split-predictive controls preserve marginal, joint and rare-tail discrepancies as separate results.")
+          PY
+
+
+      - name: Verify policy feasibility, regret and model-ranking reversals
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin policy-sensitivity-sweep > /tmp/civdyn-policy-sensitivity.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          path = Path("/tmp/civdyn-policy-sensitivity.csv")
+          with path.open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 29, f"expected 29 columns, got {len(fields or [])}"
+          grouped = {}
+          for row in rows:
+              grouped.setdefault(row["record_type"], []).append(row)
+
+          assert len(grouped.get("model_outcome", [])) == 18
+          assert len(grouped.get("objective_summary", [])) == 6
+          assert len(grouped.get("pairwise_ordering", [])) == 6
+
+          world_a_expand_water = [
+              row for row in grouped["model_outcome"]
+              if row["model_id"] == "world-a"
+              and row["policy_id"] == "expand"
+              and row["metric_id"] == "water-withdrawal"
+          ]
+          assert len(world_a_expand_water) == 1
+          assert world_a_expand_water[0]["feasible"] == "false"
+          assert world_a_expand_water[0]["violated_constraints"] == "water-withdrawal"
+
+          summaries = {
+              (row["policy_id"], row["metric_id"]): row
+              for row in grouped["objective_summary"]
+          }
+          service_conserve = summaries[("conserve", "essential-service")]
+          ecology_conserve = summaries[("conserve", "ecological-integrity")]
+          service_expand = summaries[("expand", "essential-service")]
+          assert service_conserve["policy_feasibility"] == "robustly_feasible"
+          assert service_conserve["worst_case_regret"] == "5.000000"
+          assert ecology_conserve["worst_case_regret"] == "20.000000"
+          assert service_expand["policy_feasibility"] == "feasible_in_some_models"
+          assert service_expand["worst_case_regret"] == ""
+
+          reversal = [
+              row for row in grouped["pairwise_ordering"]
+              if row["metric_id"] == "essential-service"
+              and row["policy_a"] == "baseline"
+              and row["policy_b"] == "conserve"
+          ]
+          assert len(reversal) == 1
+          assert reversal[0]["models_where_a_better"] == "1"
+          assert reversal[0]["models_where_b_better"] == "1"
+          assert reversal[0]["discordant_model_pairs"] == "1"
+
+          for row in rows:
+              assert row["claim_ceiling"] == "exploratory_only"
+              assert row["any_model_without_feasible_policy"] == "false"
+              if row["record_type"] == "model_outcome":
+                  assert row["model_digest"] and row["adequacy_model_digest"] == row["model_digest"]
+                  assert row["adequacy_receipt_digest"] and row["source_digest"]
+          print("Policy-sensitivity CSV valid: constraint-first feasibility, native-unit regret, structural ranking reversal and exploratory claim ceiling.")
+          PY
+
+- name: Verify decision-critical consequences of model discrepancy
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin decision-criticality-sweep > /tmp/civdyn-decision-criticality.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin decision-criticality-sweep > /tmp/civdyn-decision-criticality-replay.csv
+          cmp /tmp/civdyn-decision-criticality.csv /tmp/civdyn-decision-criticality-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-decision-criticality.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 28, f"expected 28 columns, got {len(fields or [])}"
+          assert len(rows) == 12, f"expected four challenge worlds times three policies, got {len(rows)}"
+          by_world = {}
+          for row in rows:
+              by_world.setdefault(row["alternative_model_id"], []).append(row)
+          assert set(by_world) == {"stable-challenge", "ranking-reversal", "feasibility-reversal", "out-of-domain"}
+          assert all(len(group) == 3 for group in by_world.values())
+
+          stable = by_world["stable-challenge"]
+          assert all(row["impact"] == "stable_within_declared_threshold" for row in stable)
+          assert all(row["decision_critical"] == "false" for row in stable)
+          assert all(row["reference_optimal_policy_ids"] == "expand" for row in stable)
+          assert all(row["alternative_optimal_policy_ids"] == "expand" for row in stable)
+          assert next(row for row in stable if row["policy_id"] == "expand")["regret"] == "1.000000"
+
+          ranking = by_world["ranking-reversal"]
+          assert all(row["impact"] == "ranking_changed" for row in ranking)
+          assert all(row["decision_critical"] == "true" for row in ranking)
+          assert all(row["reference_optimal_policy_ids"] == "expand" for row in ranking)
+          assert all(row["alternative_optimal_policy_ids"] == "maintain" for row in ranking)
+          assert next(row for row in ranking if row["policy_id"] == "expand")["regret"] == "25.000000"
+
+          feasibility = by_world["feasibility-reversal"]
+          assert all(row["impact"] == "feasibility_changed" for row in feasibility)
+          assert all(row["decision_critical"] == "true" for row in feasibility)
+          expand = next(row for row in feasibility if row["policy_id"] == "expand")
+          assert expand["reference_feasible"] == "true"
+          assert expand["alternative_feasible"] == "false"
+          assert expand["feasibility_reversed"] == "true"
+          assert expand["regret"] == ""
+          assert expand["alternative_violations"] == "water-reserve-floor"
+
+          unknown = by_world["out-of-domain"]
+          assert all(row["alternative_adequacy_state"] == "out_of_domain" for row in unknown)
+          assert all(row["impact"] == "not_assessed" for row in unknown)
+          assert all(row["decision_critical"] == "false" for row in unknown)
+
+          for row in rows:
+              assert row["reference_model_id"] == "reference"
+              assert row["reference_model_digest"] == "sha256-decision-reference-model"
+              assert row["reference_adequacy_receipt_digest"]
+              assert row["alternative_model_digest"]
+              assert row["alternative_adequacy_receipt_digest"]
+              assert row["objective_id"] == "essential-service-coverage"
+              assert row["measurement_unit"] == "service_units"
+              assert row["direction"] == "maximize"
+              assert row["materiality_threshold"] == "10.000000"
+              assert row["reference_source_digest"] == row["alternative_source_digest"] == "sha256-decision-criticality-source"
+              assert row["reference_outcome_receipt_digest"] and row["alternative_outcome_receipt_digest"]
+          print("Decision-criticality CSV valid: stable, ranking reversal, hard-feasibility reversal and out-of-domain cases remain separate; exact model and outcome lineage; deterministic replay.")
+          PY
+
+- name: Verify prior-free experiment selection by worst-case regret reduction
+        run: |
+          set -euo pipefail
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin decision-voi-sweep > /tmp/civdyn-decision-voi.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-self-correction/Cargo.toml --bin decision-voi-sweep > /tmp/civdyn-decision-voi-replay.csv
+          cmp /tmp/civdyn-decision-voi.csv /tmp/civdyn-decision-voi-replay.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          with Path("/tmp/civdyn-decision-voi.csv").open(newline="", encoding="utf-8") as handle:
+              reader = csv.DictReader(handle)
+              rows = list(reader)
+              fields = reader.fieldnames
+
+          assert fields is not None and len(fields) == 27
+          assert len(rows) == 6
+          experiments = {}
+          for row in rows:
+              experiments.setdefault(row["experiment_id"], []).append(row)
+          assert set(experiments) == {"discriminate", "uninformative", "over-budget"}
+          assert all(len(group) == 2 for group in experiments.values())
+
+          discriminate = experiments["discriminate"]
+          assert all(row["status"] == "evaluated" and row["affordable"] == "true" for row in discriminate)
+          assert all(row["current_minimax_policy_ids"] == "maintain" for row in discriminate)
+          assert all(row["current_minimax_regret"] == "20.000000" for row in discriminate)
+          assert all(row["model_pairs_separated"] == "1" and row["model_pairs_total"] == "1" for row in discriminate)
+          assert all(row["worst_case_post_experiment_regret"] == "0.000000" for row in discriminate)
+          assert all(row["worst_case_regret_reduction"] == "20.000000" for row in discriminate)
+          assert all(row["recommended_experiment_id"] == "discriminate" for row in discriminate)
+          source = next(row for row in discriminate if row["model_id"] == "source")
+          target = next(row for row in discriminate if row["model_id"] == "alternative")
+          assert source["predicted_outcome_id"] == "no-breach"
+          assert source["partition_minimax_policy_ids"] == "expand"
+          assert target["predicted_outcome_id"] == "water-breach"
+          assert target["partition_minimax_policy_ids"] == "conserve"
+
+          uninformative = experiments["uninformative"]
+          assert all(row["model_pairs_separated"] == "0" for row in uninformative)
+          assert all(row["worst_case_post_experiment_regret"] == "20.000000" for row in uninformative)
+          assert all(row["worst_case_regret_reduction"] == "0.000000" for row in uninformative)
+          assert all(row["recommended_experiment_id"] == "discriminate" for row in uninformative)
+
+          over_budget = experiments["over-budget"]
+          assert all(row["status"] == "over_budget" and row["affordable"] == "false" for row in over_budget)
+          assert all(row["worst_case_regret_reduction"] == "20.000000" for row in over_budget)
+          assert all(row["recommended_experiment_id"] == "discriminate" for row in over_budget)
+
+          for row in rows:
+              assert row["cost_unit"] == "analyst_hours"
+              assert row["maximum_experiment_cost"] == "20.000000"
+              assert row["objective_id"] == "essential-service-coverage"
+              assert row["measurement_unit"] == "service_units"
+              assert row["direction"] == "maximize"
+              assert row["model_digest"]
+              assert row["model_adequacy_receipt_digest"]
+              assert row["prediction_receipt_digest"]
+              assert row["protocol_digest"]
+              assert row["model_adequacy_role"] in {"validation", "challenge"}
+          print("Decision-VOI CSV valid: no model priors, discrimination distinguished from decision value, worst-case regret reduction, budget gate and exact prediction lineage.")
+          PY
