@@ -56,7 +56,8 @@ jobs:
       - name: Check IFC delivery schema and fixture JSON
         run: |
           jq -e '
-            (.schema_version == "0.1") and
+            (.["$schema"] == "https://json-schema.org/draft/2020-12/schema") and
+            (.["$id"] == "https://luminousdynamics.io/schemas/scan-bim-ifc-delivery-receipt-v0.1.json") and
             ((.properties.required_gate_ids.const | length) == 9) and
             (.properties.gates.minItems == 9) and
             (.properties.gates.maxItems == 9) and
