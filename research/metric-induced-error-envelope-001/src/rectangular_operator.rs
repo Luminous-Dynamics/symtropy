@@ -243,9 +243,10 @@ fn normalized_column_correlation<const K: usize, const N: usize>(
     }
 }
 
-/// One-sided Jacobi SVD for a K-by-N matrix. For N > K, the returned N-vector
-/// contains N-K zero singular values for a full-row-rank map. We intentionally
-/// retain those zeros: they expose the domain nullspace instead of hiding it.
+/// One-sided Jacobi SVD for a K-by-N matrix. The working array has N columns;
+/// the returned thin singular spectrum contains min(K,N) values. For a wide
+/// full-row-rank map, the extra N-K domain-null directions are reported through
+/// the explicit domain_nullity field rather than padding the thin spectrum.
 fn singular_values_one_sided_jacobi<const K: usize, const N: usize>(
     matrix: &[[f64; N]; K],
     profile: OperatorConditionProfileV1,
@@ -334,9 +335,8 @@ fn singular_values_one_sided_jacobi<const K: usize, const N: usize>(
     }
     singular_values.sort_by(|left, right| right.total_cmp(left));
 
-    // The singular-value multiset has min(K,N) nonzero values and max(K,N)
-    // entries in the one-sided representation. Trim to the conventional
-    // min(K,N) spectrum only after computing numerical null columns.
+    // Return the conventional thin spectrum after the full N-column
+    // orthogonalization has exposed any additional domain-null directions.
     singular_values.truncate(K.min(N));
     Ok((singular_values, maximum_correlation, sweeps))
 }
@@ -620,9 +620,19 @@ mod tests {
 
         assert_eq!(aty_q_receipt.numerical_rank, aty_y_receipt.numerical_rank);
         assert_eq!(atc_q_receipt.numerical_rank, atc_y_receipt.numerical_rank);
-        for index in 0..3 {
-            close(aty_q_receipt.singular_values[index], aty_y_receipt.singular_values[index], 5.0e-11);
-            close(atc_q_receipt.singular_values[index], atc_y_receipt.singular_values[index], 5.0e-11);
+        assert_eq!(aty_q_receipt.singular_values.len(), 2);
+        assert_eq!(atc_q_receipt.singular_values.len(), 2);
+        for index in 0..2 {
+            close(
+                aty_q_receipt.singular_values[index],
+                aty_y_receipt.singular_values[index],
+                5.0e-11,
+            );
+            close(
+                atc_q_receipt.singular_values[index],
+                atc_y_receipt.singular_values[index],
+                5.0e-11,
+            );
         }
         close(
             aty_q_receipt.nonzero_spectrum_condition_estimate.unwrap(),
