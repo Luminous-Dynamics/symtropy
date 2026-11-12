@@ -96,7 +96,10 @@ fn audit_representation_chain(
                 role: output.role,
                 representation: transition.to_representation,
             };
-            if producers.insert(output.artifact_id.clone(), producer).is_some() {
+            if producers
+                .insert(output.artifact_id.clone(), producer)
+                .is_some()
+            {
                 return Err(format!(
                     "artifact {} has more than one transition producer",
                     output.artifact_id
@@ -275,8 +278,7 @@ fn audit_representation_chain(
                         "known producer uncertainty is missing its absolute bound".to_owned()
                     })?;
                     let downstream_before = consumer_before.absolute_bound_m.ok_or_else(|| {
-                        "known consumer before-uncertainty is missing its absolute bound"
-                            .to_owned()
+                        "known consumer before-uncertainty is missing its absolute bound".to_owned()
                     })?;
                     if downstream_before + BOUND_EPSILON_M < upstream_bound {
                         if consumer_uncertainty.update_basis
