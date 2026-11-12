@@ -51,6 +51,7 @@ jobs:
           files=(
             "$root/tournament-v0.1.json"
             "$root/published-six-solution-baselines-v0.1.json"
+            "$root/published-dx2026-graybox-baseline-v0.1.json"
             "$root/active-evidence-selection-v0.1.json"
             "$root/behavioral-set-diagnosis-v0.1.json"
             "$root/deployability-matrix-v0.1.json"
@@ -68,8 +69,8 @@ jobs:
           jq -e '
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 15) and
-            ([.comparators[].id] | unique | length == 15) and
+            (.comparators | length == 16) and
+            ([.comparators[].id] | unique | length == 16) and
             (.hard_evidence_gates | length >= 60) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             ([.comparators[].id] | index("published_solution_1_care_engine") != null) and
@@ -115,6 +116,18 @@ jobs:
             (.protocol_context.comparability_warning | contains("not current DX2026 FIA")) and
             ([.solutions[].reproduction_status] | all(. == "not_reproduced"))
           ' "$root/published-six-solution-baselines-v0.1.json" >/dev/null
+
+          jq -e '
+            .schema_version == "liu-ice-dx2026-graybox-baseline-v0.1" and
+            .status == "published_reference_not_reproduced" and
+            (.official_results.overall.tdr_percent == 92.26) and
+            (.official_results.overall.one_minus_false_alarm_rate_percent == 92.14) and
+            (.official_results.overall.fault_isolation_accuracy_percent == 79.62) and
+            (.official_results.overall.official_score_percent == 88.01) and
+            (.official_results.per_condition | length == 12) and
+            ([.method.disclosed_limitations[]] | any(contains("startup"))) and
+            (.claim_ceiling | contains("not been independently reproduced"))
+          ' "$root/published-dx2026-graybox-baseline-v0.1.json" >/dev/null
 
           jq -e '
             .schema_version == "liu-ice-active-evidence-selection-v0.4" and
