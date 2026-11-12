@@ -24,46 +24,85 @@ jobs:
   benchmark-contract:
     if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 25
     steps:
       - name: Checkout exact triggering revision
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
+      - name: Bind benchmark runner to exact source commit
+        run: echo "METRIC_BENCHMARK_SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+      - name: Format matched benchmark runner
+        run: cargo fmt --manifest-path research/metric-benchmark-comparison-001/Cargo.toml --all -- --check
+      - name: Test matched benchmark runner
+        run: cargo test --locked --manifest-path research/metric-benchmark-comparison-001/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/metric-benchmark-comparison-001/Cargo.toml --all-targets -- -D warnings
+      - name: Execute matched mass-Riesz kernel benchmark
+        run: |
+          set -euo pipefail
+          cargo run --release --locked --manifest-path research/metric-benchmark-comparison-001/Cargo.toml --bin matched-kernel-runner -- "$RUNNER_TEMP/metric-physics-kernel-results.json"
+          test -s "$RUNNER_TEMP/metric-physics-kernel-results.json"
       - name: Install pinned schema validator
         run: python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
-      - name: Validate case and result contracts
+      - name: Validate case, measured results, and fail-closed controls
         run: |
-          python3 - <<'PY'
+          python3 - "$RUNNER_TEMP/metric-physics-kernel-results.json" <<'PY'
           import copy
           import json
+          import sys
           from pathlib import Path
           from jsonschema import Draft202012Validator
           root = Path("research/metric-benchmark-comparison-001")
           case_schema = json.loads((root / "benchmark-case-v0.1.schema.json").read_text())
           result_schema = json.loads((root / "benchmark-result-v0.1.schema.json").read_text())
           case = json.loads((root / "fixtures/dumbbell-dense-rebasis-case-v0.1.json").read_text())
-          result = json.loads((root / "fixtures/not-run-inconclusive-result-v0.1.json").read_text())
+          not_run = json.loads((root / "fixtures/not-run-inconclusive-result-v0.1.json").read_text())
+          with open(sys.argv[1], encoding="utf-8") as stream:
+              results = json.load(stream)
           Draft202012Validator.check_schema(case_schema)
           Draft202012Validator.check_schema(result_schema)
           case_validator = Draft202012Validator(case_schema)
           result_validator = Draft202012Validator(result_schema)
           assert not list(case_validator.iter_errors(case))
-          assert not list(result_validator.iter_errors(result))
-          assert result["record_kind"] == "synthetic_contract_example"
-          assert result["execution"]["status"] == "NOT_RUN"
-          assert result["decision"]["acceptance"] == "INCONCLUSIVE"
-          assert result["decision"]["comparison_status"] == "NOT_COMPARABLE"
-          # A backend with unverified semantics cannot become comparable.
-          forged = copy.deepcopy(result)
+          assert not list(result_validator.iter_errors(not_run))
+          assert len(results) == 4, f"expected 4 matched kernel results, got {len(results)}"
+          backends = {"symtropy_reference_cholesky", "symtropy_reference_lu"}
+          observed = {(item["implementation"]["backend_id"], item["case_binding"]["case_id"]) for item in results}
+          assert len(observed) == 4
+          for item in results:
+              errors = list(result_validator.iter_errors(item))
+              assert not errors, errors
+              assert item["record_kind"] == "measured_result"
+              assert item["execution"]["status"] == "COMPLETED"
+              assert item["decision"]["comparison_status"] == "COMPARABLE"
+              assert item["decision"]["acceptance"] == "INCONCLUSIVE"
+              assert item["model_mapping"]["comparison_scope"] == "mass_metric_riesz_solve_kernel_only"
+              assert item["implementation"]["backend_id"] in backends
+              assert item["metrics"]["decision_quality"]["wrong_law_negative_control_relative_error"] > 1e-6
+          forged = copy.deepcopy(not_run)
           forged["decision"]["comparison_status"] = "COMPARABLE"
-          assert list(result_validator.iter_errors(forged)), "unverified mapping was ranked"
-          # A result cannot quietly bind to a changed physical input fixture.
-          forged = copy.deepcopy(result)
+          assert list(result_validator.iter_errors(forged)), "unverified model mapping was ranked"
+          forged = copy.deepcopy(not_run)
+          forged["decision"]["acceptance"] = "PASS"
+          forged["execution"]["status"] = "COMPLETED"
+          forged["model_mapping"]["status"] = "MATCHED"
+          forged["decision"]["comparison_status"] = "COMPARABLE"
+          assert list(result_validator.iter_errors(forged)), "kernel-only result claimed full physical PASS"
+          forged = copy.deepcopy(not_run)
           forged["case_binding"]["commit_sha"] = "0" * 40
-          assert list(result_validator.iter_errors(forged)), "stale fixture identity was accepted"
-          # A coordinate-family manifest cannot introduce an unpinned family.
+          assert list(result_validator.iter_errors(forged)), "stale case commit was accepted"
           forged = copy.deepcopy(case)
           forged["coordinate_families"][0]["family"] = 1
-          assert list(case_validator.iter_errors(forged)), "unfrozen basis family was accepted"
+          assert list(case_validator.iter_errors(forged)), "unfrozen coordinate family was accepted"
           PY
+      - name: Upload exact matched kernel result records
+        uses: actions/upload-artifact@v4
+        with:
+          name: metric-physics-matched-kernel-${{ github.sha }}
+          path: ${{ runner.temp }}/metric-physics-kernel-results.json
+          if-no-files-found: error
