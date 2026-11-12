@@ -452,11 +452,11 @@ mod tests {
     #[test]
     fn scale_safe_parallel_axis_rejects_lost_or_overflowed_products() {
         assert!(matches!(
-            checked_parallel_axis_tensor(1.0, &SVector::new(1.0e-200, 0.0, 0.0)),
+            checked_parallel_axis_tensor(1.0, &SVector::<f64, 3>::new(1.0e-200, 0.0, 0.0)),
             Err(CompoundInertia3Error::UnrepresentableTensor)
         ));
         assert!(matches!(
-            checked_parallel_axis_tensor(1.0e300, &SVector::new(1.0e100, 0.0, 0.0)),
+            checked_parallel_axis_tensor(1.0e300, &SVector::<f64, 3>::new(1.0e100, 0.0, 0.0)),
             Err(CompoundInertia3Error::UnrepresentableTensor)
         ));
     }
@@ -471,7 +471,7 @@ mod tests {
         let compound = CompoundMassProperties3::compose(&parts).unwrap();
 
         assert_eq!(compound.total_mass, 2.0);
-        assert_eq!(compound.center_of_mass, SVector::zeros());
+        assert_eq!(compound.center_of_mass, SVector::<f64, 3>::zeros());
         assert!((compound.inertia_tensor_body[(0, 0)] - 0.8).abs() < 1.0e-12);
         assert!((compound.inertia_tensor_body[(1, 1)] - 8.8).abs() < 1.0e-12);
         assert!((compound.inertia_tensor_body[(2, 2)] - 8.8).abs() < 1.0e-12);
@@ -494,7 +494,7 @@ mod tests {
         for sample in 1..=32 {
             let k = sample as f64;
             let mass = 0.25 + 0.75 * k;
-            let offset = SVector::new((0.17 * k).sin(), (0.31 * k).cos(), (0.23 * k).sin() + 0.4);
+            let offset = SVector::<f64, 3>::new((0.17 * k).sin(), (0.31 * k).cos(), (0.23 * k).sin() + 0.4);
             let observed = checked_parallel_axis_tensor(mass, &offset).unwrap();
             let expected = (identity * offset.norm_squared() - offset * offset.transpose()) * mass;
             let error = (observed - expected).norm();
