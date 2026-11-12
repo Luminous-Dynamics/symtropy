@@ -57,7 +57,7 @@ jobs:
 
       - name: Execute frozen corpus
         run: |
-          cargo run --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml -- \
+          cargo run --locked --manifest-path benchmarks/maritime-engineering-health/Cargo.toml --bin maritime-engineering-health-evaluator -- \
             benchmarks/maritime/engineering-health-corpus-v0.1.json > /tmp/maritime-engineering-health-report.json
           cat /tmp/maritime-engineering-health-report.json
 
