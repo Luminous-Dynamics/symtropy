@@ -373,6 +373,7 @@ fn validate_ledger(ledger: &EvidenceLedger) -> Result<(), Vec<LedgerError>> {
             errors.push(LedgerError::DuplicateIdentity);
         }
         if event.first_received_at_tick < 0
+            || event.source_tick < 0
             || event.valid_from_tick < 0
             || event.valid_until_tick.is_some_and(|until| until <= event.valid_from_tick)
         {
