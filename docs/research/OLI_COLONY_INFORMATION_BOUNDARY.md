@@ -134,3 +134,18 @@ A replacement cohort responding to a persistent field is evidence of environment
 
 The next benchmark experiment must compare preserved, erased and randomized traces, paired across seeds, while keeping source emission disabled during the recipient phase. It must then compare task competence against independent and fixed-rule baselines. No collective-intelligence advantage is claimed by the unit tests.
 
+
+
+### Randomized-memory negative control
+
+The colony now implements `ColonyWorld::randomize_social_memory(seed)`. It performs separate deterministic Fisher–Yates permutations of FoodPheromone and HomePheromone using SplitMix64 output and rejection sampling.
+
+The control preserves each channel's exact value multiset (histogram) while destroying its original spatial arrangement. Agents, food inventory, danger, obstacles, nutrients and all other field layers remain unchanged.
+
+Regression tests verify:
+- exact sorted value-multiset preservation for both channels;
+- non-social environmental fields and agent/food state are unchanged;
+- identical shuffle seed gives exact replay;
+- a different seed changes the spatial assignment.
+
+The randomized condition is now mandatory beside preserved, erased and externally authored identical-field controls. It separates a benefit due merely to total pheromone intensity from a benefit that depends on spatially organized traces. The API tests are present; no paired colony ensemble has been executed yet.
