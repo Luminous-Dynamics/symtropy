@@ -42,8 +42,8 @@ jobs:
       run: |
         set -euo pipefail
         bash scripts/audit_miss_mdp_reference.sh reference/missingness-mdps > /tmp/miss-mdp-reference.tsv
-        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit.csv
-        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit-replay.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-audit -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-audit -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit-replay.csv
         cmp /tmp/miss-mdp-audit.csv /tmp/miss-mdp-audit-replay.csv
         grep -F 'TOTAL,all,all,NA,3000,2877,123,0.959000,120,3,0,10,40,1,123' /tmp/miss-mdp-audit.csv
     - name: Audit per-cell policy value, missingness TV and run failures
