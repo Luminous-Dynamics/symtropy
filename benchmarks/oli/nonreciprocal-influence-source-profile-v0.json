@@ -1,0 +1,311 @@
+{
+  "schema_version": "oli-external-source-profile-v0.1",
+  "case_id": "OLI-NONRECIPROCAL-INFLUENCE-PANG-WANG-2026",
+  "status": "SOURCE_CODE_PINNED_RUST_REFERENCE_IMPLEMENTED_SOURCE_REPRODUCTION_PENDING",
+  "evidence_class": "SIMULATION_SOURCE_REPRODUCTION",
+  "claim_ceiling": "Source-faithful reproduction of the published two-agent leader-follower nonreciprocal Vicsek model and its influence/information analysis; not a claim that transfer entropy is causal, or that collective influence demonstrates biological life or intelligence.",
+  "publication": {
+    "title": "Quantifying influence and information transfer in a modified Vicsek model with nonreciprocal interactions",
+    "authors": [
+      "Jiahuan Pang",
+      "Wendong Wang"
+    ],
+    "journal": "Physical Review E",
+    "volume": 114,
+    "issue": 2,
+    "article_number": "024111",
+    "published": "2026-08-07",
+    "doi": "10.1103/rf2v-sy5d",
+    "url": "https://doi.org/10.1103/rf2v-sy5d",
+    "arxiv": "https://arxiv.org/abs/2506.20888"
+  },
+  "source_code": {
+    "repository": "https://github.com/Pang-Jiah/Influence_and_information",
+    "default_branch": "master",
+    "commit": "4055debd9711ba46289738c340ee83d50d3797e9",
+    "license": "MIT",
+    "source_blob_shas": {
+      "README.md": "85375bca0c291bd9451bf9996b00e699b279865f",
+      "LICENSE": "89df518914563f3caca46f8b18a11728151f9888",
+      "Vicsek.py": "ec49e178be2f4fe90b78a7bdbc03e6517ed10265",
+      "Vicsek_pairwise/Vicsek_pairwise.py": "1057a3a817888689f2ee48d506db07e1d814a461",
+      "Vicsek_pairwise/parallel_master_Vicsek_pairwise.py": "f9d31ddef3e6bc14c7c0aef06cba9ae74a2d4c28",
+      "Vicsek_pairwise/inf_quantities.py": "853e8aa6bd0f2aff62603427d95ad09e8bbb3817",
+      "Vicsek_pairwise/Entropy_estimator/information_quantities.py": "63bd1a9ab5529512ae4adddbbec60c7412199091",
+      "information_processor.py": "9941aca5e1f4fc135110d896e4b9440c62eb1ec9",
+      "SURD/surd.py": "26a2dd5f7dce9d09aa84d896576291f1bcd26c00",
+      "SURD/mysurd.py": "5bb083b9ea050ebfb6bf2717e829581aceb1729e",
+      "Vicsek_collective/order_parameters.py": "bdb0a5b705666cef02fdc359ee23d32bbb2dbf61"
+    },
+    "dependencies_reported": [
+      "numpy",
+      "dit",
+      "progressbar2",
+      "openpyxl",
+      "h5py",
+      "matplotlib",
+      "ffmpeg",
+      "infomeasure"
+    ],
+    "software_execution_note": "The repository README documents a Python analysis environment, while Symtropy's reproduction will use a separate pinned Rust implementation. Do not import the Python analysis package into production."
+  },
+  "model": {
+    "dimensionality": 2,
+    "domain": "periodic_square_torus",
+    "neighbour_rule": "minimum_image_euclidean_distance <= sensing_radius, including self",
+    "interaction_matrix_orientation": "W[i,j] is the influence weight of source j on receiver i (receiver rows, source columns)",
+    "baseline_interaction_weights": "All entries are 1.",
+    "leader_follower_partition": {
+      "influencer_indices": "0..number_of_influencers-1",
+      "follower_indices": "number_of_influencers..N-1",
+      "leader_to_follower": "W[follower, influencer] = wLF",
+      "follower_to_leader": "W[influencer, follower] = 1",
+      "within_group": "All remaining directed weights equal 1."
+    },
+    "update_equation": "theta_i(t+dt) = wrap(theta_i(t) + sum_j(A_ij * |W_ij| * wrap(theta_j(t)-theta_i(t))) / sum_j(A_ij * |W_ij|) + epsilon_i(t))",
+    "influence_component_equation": "I_{i<-j}(t) = A_ij(t) * |W_ij| * wrap(theta_j(t)-theta_i(t)) / sum_k(A_ik(t) * |W_ik|)",
+    "noise": "epsilon_i ~ Uniform[-eta/2,+eta/2), sampled independently for each particle and update",
+    "movement": "constant speed along updated heading; periodic wrap",
+    "angle_convention": "(-pi, pi]"
+  },
+  "pairwise_source_configuration": {
+    "particle_count": 2,
+    "influencer_count": 1,
+    "box_size": 5,
+    "sensing_radius": 5,
+    "speed": 2,
+    "fps": 20,
+    "dt": 0.05,
+    "steps": 131072,
+    "run_repetitions": 1,
+    "wLF_grid": [
+      1,
+      1.1,
+      1.2,
+      1.3,
+      1.4,
+      1.5,
+      1.7,
+      1.9,
+      2,
+      3,
+      4,
+      5,
+      7,
+      9,
+      10,
+      15,
+      20,
+      25,
+      30,
+      40,
+      50,
+      60,
+      70,
+      80,
+      90,
+      100
+    ],
+    "eta_factor_grid_pi": [
+      0,
+      0.2,
+      0.4,
+      0.6,
+      0.8,
+      1,
+      1.2,
+      1.4,
+      1.6,
+      1.8,
+      2
+    ],
+    "eta_radians_grid": [
+      0,
+      0.6283185307179586,
+      1.2566370614359172,
+      1.8849555921538759,
+      2.5132741228718345,
+      3.141592653589793,
+      3.7699111843077517,
+      4.39822971502571,
+      5.026548245743669,
+      5.654866776461628,
+      6.283185307179586
+    ],
+    "reason_all_to_all": "For two particles on a square torus of side 5, the maximum minimum-image separation is sqrt(2)*2.5 ~= 3.536, below R=5; every pair is in range at all positions."
+  },
+  "stochastic_reproducibility": {
+    "source_initialization": "numpy.random.default_rng() with no explicit seed for positions and headings",
+    "source_noise": "non_reciprocal_update constructs a fresh numpy.random.default_rng() without a seed on each update call",
+    "fixed_source_seed": false,
+    "exact_trajectory_reproduction_possible": false,
+    "correct_reproduction_target": "Reproduce deterministic equations and reported aggregate trends using registered Rust seeds; compare distributions/aggregates rather than pretending exact stochastic trajectory parity with the unseeded source.",
+    "source_noise_caveat": "The original pairwise driver launches one run per parameter combination; because the initial state and per-step noises are unseeded, its exact trajectories cannot be regenerated from the published driver alone."
+  },
+  "source_influence_estimators": {
+    "A_at": "Mean absolute pairwise influence over the analysis window: sum_t |I_{target<-source}(t)| divided by the number of analysed frames (the source passes an all-ones adjacency tensor).",
+    "A_ta": "Absolute net signed pairwise influence: absolute value of sum_t I_{target<-source}(t) divided by the number of analysed frames.",
+    "implementation": "information_processor.py::defined_influence_at and defined_influence_ta",
+    "warning": "These are physically defined model contributions in the weighted-angle update, not generic causal scores; preserve their exact names and formulas."
+  },
+  "information_estimators": {
+    "stationary_start_step": 1000,
+    "lag_steps": 1,
+    "bins_per_angle": 8,
+    "discretization": "equidistant 8-bin partitions over (-pi,pi]",
+    "source_series": "leader theta[0,t] and follower theta[1,t]",
+    "target_series": "follower theta[1,t+1]",
+    "quantities": [
+      "TDMI",
+      "TE_as_conditional_mutual_information",
+      "mutual_information",
+      "intrinsic_mutual_information",
+      "SURD_unique_shared_synergy",
+      "I_min_pid"
+    ],
+    "estimator_sensitivity_pipeline": {
+      "kernel_method": "box kernel bandwidth = 0.05*(2*pi), base 2",
+      "metric_method": "k-nearest-neighbour estimator k=4, base 2",
+      "caveat": "These are distinct estimator profiles and must be reported separately; do not silently pool their outputs."
+    },
+    "source_analysis_caveats": [
+      "The pairwise analysis sets adjacent_matrix to an all-ones tensor. This is valid for the published pairwise configuration because R=5 makes every pair mutually in range in a 5x5 torus, but it must not be generalized to local-neighbour settings.",
+      "Source analysis drops the first 1000 steps as a stationarity burn-in.",
+      "The source script uses float16 storage for orientation, noise, influence and velocity trajectories; a Rust reproduction should retain f64 internally and explicitly quantize only when comparing to source file formats."
+    ]
+  },
+  "benchmark_tasks": [
+    "Reproduce the weighted wrapped-angle update and row-receiver/source-column interaction-matrix semantics.",
+    "Reproduce the leader-follower wLF grid and eta sweep under a registered, seeded Rust protocol.",
+    "Compare the source pairwise influence estimators A_at and A_ta with direct controlled intervention effects.",
+    "Measure transfer entropy separately from interventional influence under source-matched noise sweeps.",
+    "Test the dual noise effect: influencer noise versus follower noise at fixed wLF.",
+    "Test estimator sensitivity across 8-bin histogram, box-kernel and kNN/metric estimators.",
+    "Extend to visual-sector perception only after source-faithful metric-neighbour reproduction is established.",
+    "Extend from two agents to collective populations with common-driver and shuffled-source controls."
+  ],
+  "anti_leakage": [
+    "Use fixed Rust seeds and publish seed lists; do not label them as source trajectory parity.",
+    "Split by entire seed and parameter point, not time frames.",
+    "The wLF and noise grid must be registered before any optimization.",
+    "Compare source and Rust aggregate statistics over enough registered seeds to quantify uncertainty.",
+    "Do not treat TE, mutual information, SURD or PID as causal proof; use paired interventions as the causal reference."
+  ],
+  "result": {
+    "code_pinned": true,
+    "rust_model_implemented": true,
+    "source_trajectory_data_acquired": false,
+    "source_aggregate_reproduction": false,
+    "exact_stochastic_parity": "NOT_POSSIBLE_FROM_UNSEEDED_SOURCE_DRIVER",
+    "data_digest": null,
+    "output_digest": null,
+    "rust_module": "symtropy_lifesim_core::nonreciprocal_vicsek",
+    "rust_validation": "PENDING_EXACT_HEAD_CI"
+  },
+  "rust_reference": {
+    "module": "crates/domains/symtropy-lifesim-core/src/nonreciprocal_vicsek.rs",
+    "matrix_layout": "row_major_receiver_rows_source_columns",
+    "update_equation": "theta_i_next = wrap(theta_i + sum_j(A_ij*abs(W_ij)*wrap(theta_j-theta_i))/sum_j(A_ij*abs(W_ij)) + epsilon_i)",
+    "influence_component": "I_receiver_from_source = A_ij*abs(W_ij)*wrap(theta_j-theta_i)/sum_k(A_ik*abs(W_ik))",
+    "source_summary_metrics": {
+      "A_at": "mean absolute per-frame directed model component",
+      "A_ta": "absolute value of mean signed per-frame directed model component"
+    },
+    "burn_in": "reset_influence_accumulator() allows cumulative A_at/A_ta tracking to begin after the registered 1,000-step source burn-in",
+    "stochasticity": "explicit seeded xorshift64 stream; compare source aggregate distributions, not source trajectory identity",
+    "intervention": "intervene_heading() records explicit heading changes without consuming or resetting the RNG; clone before intervention for a matched sham",
+    "numerical_safeguards": [
+      "finite source matrix",
+      "overflow-safe normalized weights",
+      "explicit matrix size validation",
+      "periodic minimum-image geometry",
+      "finite configuration checks"
+    ],
+    "noise_modes": {
+      "source_faithful": "One scalar angular-noise width from the paper's pairwise driver is applied to all particles; constructors new() and random_uniform() preserve this mode.",
+      "oli_extension": "new_with_noise_profile() accepts one full-width angular-noise interval per particle, validated finite in [0, 2π]. This permits influencer-noise versus follower-noise ablations while preserving the scalar source profile separately.",
+      "seeded_stream": "Per-agent noise draws use the same explicit sequential RNG stream; zero-width agents still consume their draw to keep the draw count stable across noise profiles."
+    }
+  },
+  "rust_reference_cases": [
+    {
+      "id": "ANALYTIC_TWO_AGENT_LEADER_FOLLOWER",
+      "particle_count": 2,
+      "interaction_weights_row_major": [
+        1,
+        1,
+        4,
+        1
+      ],
+      "headings_rad": [
+        0,
+        1.5707963267948966
+      ],
+      "speed": 0,
+      "noise_width_rad": 0,
+      "expected_leader_delta_rad": 0.7853981633974483,
+      "expected_follower_delta_rad": -1.2566370614359172
+    },
+    {
+      "id": "ZERO_DIRECT_WEIGHT_NULL",
+      "particle_count": 2,
+      "interaction_weights_row_major": [
+        1,
+        0,
+        0,
+        1
+      ],
+      "headings_rad": [
+        0,
+        1.5707963267948966
+      ],
+      "speed": 0,
+      "noise_width_rad": 0,
+      "expected_directed_edges": 0,
+      "expected_heading_change": 0
+    },
+    {
+      "id": "SIGN_REVERSAL_A_AT_VS_A_TA",
+      "description": "Intervene to reverse a source's heading between analysis frames; mean absolute influence must exceed absolute mean signed influence",
+      "expected": "A_at >= A_ta and A_at > A_ta"
+    },
+    {
+      "id": "MATCHED_SHAM_INTERVENTION",
+      "description": "Clone pre-intervention state and PRNG; intervene on leader and compare follower's downstream heading to sham",
+      "expected": "nonzero downstream difference with matching future RNG stream"
+    },
+    {
+      "id": "PER_PARTICLE_NOISE_ASYMMETRY_EXTENSION",
+      "status": "OLI_EXTENSION_NOT_SOURCE_FAITHFUL",
+      "noise_widths_rad": [
+        0,
+        3.141592653589793
+      ],
+      "expected": "zero-noise receiver has no stochastic heading perturbation; high-noise receiver changes under the registered seed"
+    },
+    {
+      "id": "INVALID_PER_PARTICLE_NOISE_PROFILE",
+      "status": "VALIDATION_NEGATIVE_CONTROL",
+      "expected": [
+        "reject profile length mismatch",
+        "reject non-finite and out-of-range noise widths"
+      ]
+    }
+  ],
+  "reproduction_constraints": {
+    "exact_trajectory_parity": false,
+    "exact_source_seeds": false,
+    "required_aggregate_comparison": [
+      "A_at by wLF and eta",
+      "A_ta by wLF and eta",
+      "transfer entropy by wLF and eta",
+      "influence-vs-TE curve shape",
+      "noise-on-influencer versus noise-on-follower ablation"
+    ],
+    "source_burn_in_steps": 1000,
+    "source_frames": 131072,
+    "rust_seed_sweep_required": true,
+    "source_noise_profile": "SINGLE_SHARED_SCALAR_ETA_FOR_PAIRWISE_SOURCE_DRIVER",
+    "per_particle_noise_profile": "SEPARATE_OLI_EXTENSION_FOR_INFLUENCER_VS_FOLLOWER_NOISE_ABLATION"
+  }
+}

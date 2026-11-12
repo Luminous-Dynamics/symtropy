@@ -1,0 +1,277 @@
+{
+  "schema_version": "oli-vicsek-phase-diagram-v0.1",
+  "case_id": "OLI-VICSEK-FINITE-SIZE-AND-STRUCTURE-001",
+  "status": "PRE_REGISTERED_SWEEP_SPECIFICATION_NOT_EXECUTED",
+  "evidence_class": "SIMULATION",
+  "claim_ceiling": "Reproducible numerical study of a declared Vicsek-model family; no biological, cognitive, agency, or natural-system claim",
+  "scientific_questions": [
+    "How do global polar order, local order, interaction structure and cluster geometry co-vary as noise and density change?",
+    "Which apparent order transitions persist under finite-size scaling rather than one finite population?",
+    "How much do current-position and erratum-aligned next-position neighbour-time conventions change measured structure?",
+    "Can cluster-local order remain high while global order cancels across oppositely oriented clusters?",
+    "Which observations and sampling intervals are required to distinguish transient ordering from stationary collective structure?"
+  ],
+  "source_reproduction_track": {
+    "id": "RAHMAN_2026_CLUSTER_TOPOLOGY_ERRATUM_ALIGNED",
+    "source": {
+      "title": "Topology and geometry of clusters in the Vicsek model across scales",
+      "authors": [
+        "Ashiqur Rahman",
+        "Michael Napoli",
+        "Ofek Lauber Bonomo",
+        "Maurizio Porfiri",
+        "Nicole Abaid"
+      ],
+      "journal": "Physical Review Research 8, 033039 (2026)",
+      "published": "2026-07-10",
+      "doi": "10.1103/hkrb-wpdr",
+      "url": "https://doi.org/10.1103/hkrb-wpdr",
+      "code_repository": "https://github.com/sqrrahman/Vicsek_interaction_network_critical_noise_geometry_and_topology",
+      "erratum": {
+        "title": "Erratum: Topology and geometry of clusters in the Vicsek model across scales",
+        "published": "2026-10-27",
+        "doi": "10.1103/b9yr-8wmv",
+        "url": "https://doi.org/10.1103/b9yr-8wmv",
+        "corrected_rule": "The focal heading at t+dt is aligned using the neighbour set at predicted positions t+dt, while neighbour headings/velocities are taken from t.",
+        "effect": "The erratum states that the corrected update leaves the published physical interpretation unchanged and yields results indistinguishable from a forward update. The backward update printed in the original paper yields different power-law scaling for average degree and average path length versus cluster mass."
+      }
+    },
+    "exact_parameter_grid_status": "NOT_YET_EXTRACTED_FROM_SOURCE_REPOSITORY_AND_SUPPLEMENT",
+    "source_data_status": "NOT_ADMITTED",
+    "required_update_rule": "NextPositionAlignment",
+    "required_outputs": [
+      "cluster_size_distribution",
+      "average_degree_vs_cluster_mass",
+      "average_path_length_vs_cluster_mass",
+      "average_clustering_coefficient",
+      "cluster_area_vs_mass",
+      "cluster_perimeter_vs_mass",
+      "degree_distribution",
+      "finite_size_and_density_dependence"
+    ],
+    "reported_source_claims_to_reproduce_not_assume": [
+      "At investigated critical-noise conditions, average degree increases polylogarithmically with cluster mass.",
+      "Average path-length scaling indicates a two-dimensional network structure.",
+      "Average clustering coefficient converges across investigated cluster sizes.",
+      "Cluster area grows approximately linearly with mass while perimeter grows more slowly."
+    ],
+    "admission_gates": [
+      "Fetch exact source repository commit and release archive.",
+      "Record all scripts, code/data files, MATLAB version and dependencies.",
+      "Recover exact density, speed, box size, radius, noise, initialization and sampling-window settings.",
+      "Hash every source data file and record license/attribution.",
+      "Reproduce the erratum-aligned update convention before comparing cluster scaling.",
+      "Keep backward-update runs as a separately labelled sensitivity arm, not pooled with the corrected result."
+    ]
+  },
+  "independent_oli_extension": {
+    "id": "OLI_FIXED_DENSITY_FINITE_SIZE_NOISE_GRID",
+    "implementation": {
+      "module": "symtropy-lifesim-core::vicsek",
+      "update_rule": "CurrentPositionAlignment",
+      "perception": "MetricRadius",
+      "graph_semantics": "UndirectedMetric",
+      "arithmetic": "IEEE754_f64",
+      "radius": 1,
+      "speed": 0.03,
+      "dt": 1,
+      "noise_definition": "angular_noise_width_rad is the full width of uniform[-eta/2,+eta/2]",
+      "no_hidden_parameters": true
+    },
+    "design": {
+      "particle_counts": [
+        128,
+        256,
+        512
+      ],
+      "number_densities": [
+        0.5,
+        1
+      ],
+      "box_size_rule": "L = sqrt(N / density)",
+      "noise_widths_rad": [
+        0,
+        0.39269908169872414,
+        0.7853981633974483,
+        1.1780972450961724,
+        1.5707963267948966,
+        1.9634954084936207,
+        2.356194490192345,
+        2.748893571891069,
+        3.141592653589793,
+        3.5342917352885173,
+        3.9269908169872414,
+        4.319689898685965,
+        4.71238898038469,
+        5.105088062083414,
+        5.497787143782138,
+        5.890486225480862,
+        6.283185307179586
+      ],
+      "seed_law": "seed_i = 20261112 + i, for i in 0..29",
+      "independent_seeds_per_design_point": 30,
+      "burn_in_steps": 1000,
+      "measured_steps": 2000,
+      "trajectory_sampling": "record fast metrics at every measured tick",
+      "full_topology_checkpoints": "run full metrics at 10 equally spaced checkpoints in the measurement window",
+      "paired_update_rule_sensitivity": "for selected design points, replay identical initial state and seed under CurrentPositionAlignment and NextPositionAlignment"
+    },
+    "total_design_points": 102,
+    "total_trajectories": 3060,
+    "trajectory_sample_unit": "one independent initialization seed and complete run; time steps are repeated measures, not independent samples"
+  },
+  "observables": {
+    "primary_order": [
+      "global_polar_order",
+      "local_polar_order_mean",
+      "local_polar_order_variance",
+      "local_order_coverage_fraction",
+      "nontrivial_cluster_polar_order",
+      "nontrivial_cluster_coverage_fraction"
+    ],
+    "interaction_structure": [
+      "mean_neighbour_count",
+      "neighbour_count_variance",
+      "degree_distribution",
+      "interaction_reciprocity_fraction",
+      "cluster_size_distribution",
+      "largest_cluster_fraction",
+      "mean_cluster_size",
+      "mean_clustering_coefficient",
+      "mean_shortest_path_length",
+      "connected_pair_fraction"
+    ],
+    "geometry_future_extension": [
+      "cluster_area",
+      "cluster_perimeter",
+      "area_mass_scaling_exponent",
+      "perimeter_mass_scaling_exponent"
+    ],
+    "temporal_and_dynamic": [
+      "order_parameter_autocorrelation",
+      "relaxation_time",
+      "velocity_correlation_vs_distance",
+      "time_to_stationary_window",
+      "hysteresis_under_up_down_noise_sweep"
+    ]
+  },
+  "statistical_analysis": {
+    "per_design_point": "Report seed-level time-averaged observables, across-seed mean/median, dispersion, 95% confidence intervals, and all individual seed outcomes.",
+    "susceptibility": "chi = N * Var_seed(P_bar), where P_bar is the per-run mean polar order over the registered stationary window.",
+    "critical_region": "Identify candidate transition regions from finite-size behaviour of susceptibility and order distributions; do not hard-code a universal critical noise value.",
+    "distribution_checks": [
+      "Inspect order-parameter histograms for unimodality/bimodality.",
+      "Compare transient and stationary windows.",
+      "Test hysteresis with registered upward and downward noise sweeps before classifying a transition type.",
+      "Estimate scaling exponents only over declared cluster-size ranges with fit diagnostics and uncertainty intervals."
+    ],
+    "multiple_testing": "Do not select a transition point or scaling exponent from a visually convenient plot without reporting the full grid and model-selection procedure.",
+    "confidence_intervals": "Bootstrap over independent seed-level trajectory summaries, not frames, particles or connected components."
+  },
+  "baselines_and_ablations": [
+    "CurrentPositionAlignment metric-radius Vicsek",
+    "NextPositionAlignment erratum-corrected Vicsek",
+    "self-only/no-interaction control",
+    "independent particles with matched speed/noise",
+    "opposed-local-flock cancellation control",
+    "common-field correlated-motion control",
+    "visual-sector forward/rear perception",
+    "nonreciprocal influence variant"
+  ],
+  "performance_track": {
+    "manifest": "benchmarks/oli/vicsek-spatial-index-scaling-v0.json",
+    "policy": "Correctness and scientific equivalence are gates before any performance claim.",
+    "report": [
+      "index build time",
+      "candidate count",
+      "neighbour filtering time",
+      "update time",
+      "fast-metric time",
+      "full-topology checkpoint time",
+      "memory",
+      "dense-neighbour fallback frequency"
+    ],
+    "no_claim_before": "Pinned-hardware runs and exact all-pairs parity checks."
+  },
+  "anti_leakage_and_integrity": [
+    "All time points, frames and checkpoints from one seed/configuration remain in one split.",
+    "Hold out entire particle counts and density/noise regions for generalization claims.",
+    "Never pool update rules or perception geometries without reporting them as explicit factors.",
+    "Use a sealed test grid for any learned parameter inference.",
+    "No test data may influence source preprocessing, hyperparameter tuning or the chosen transition/noise interval.",
+    "Keep full result arrays and raw per-seed outputs; aggregate figures are not a sufficient evidence receipt."
+  ],
+  "qualification_targets": {
+    "exploratory_minimum_seeds_per_point": 30,
+    "confirmatory_seed_target": 100,
+    "exact_control_failures_allowed": 0,
+    "local_order_singleton_promotion_allowed": false,
+    "update_rule_mismatch_allowed_in_pooled_analysis": false,
+    "nonfinite_observables_allowed": 0,
+    "phase_transition_claim_requires": [
+      "finite-size trend",
+      "seed-level uncertainty",
+      "stationary-window diagnostics",
+      "sensitivity to update rule",
+      "full-grid reporting"
+    ],
+    "scaling_claim_requires": [
+      "independent source reproduction",
+      "fit-range disclosure",
+      "confidence interval",
+      "goodness-of-fit and alternatives"
+    ]
+  },
+  "results": {
+    "execution_status": "NOT_RUN",
+    "source_reproduction_status": "NOT_RUN",
+    "per_seed_artifacts": [],
+    "checksums": [],
+    "critical_noise_estimate": null,
+    "scaling_exponents": null,
+    "claim_status": "NO_PHASE_BOUNDARY_OR_SCALING_RESULT_CLAIMED"
+  },
+  "symmetry_and_angle_convention_challenge": {
+    "id": "OLI_VICSEK_ANGLE_BRANCHCUT-001",
+    "source_profile": "benchmarks/oli/vicsek-angle-branchcut-source-profile-v0.json",
+    "source_reference": {
+      "title": "Absence of O(2) symmetry in the Vicsek model",
+      "doi": "10.1103/9gcy-ky3z",
+      "publication_date": "2026-07-17",
+      "authors": [
+        "Yushin Takahashi",
+        "Kota Mitsui",
+        "Tsuyoshi Mizohata",
+        "Hideyuki Miyahara"
+      ]
+    },
+    "implementation_conventions": [
+      "QuadrantCorrectAtan2",
+      "PrincipalValueArctanRatio",
+      "ArithmeticScalarMean (separate implementation required; never alias to atan2)"
+    ],
+    "required_protocols": [
+      "Metamorphic global rotation of positions+headings with identical seeds and noise stream, away from square-torus boundaries.",
+      "Adaptive global phase shift phi(t)=phi_bar-mean_i(theta_i(t)) applied to headings before every update, with target phases 0 and pi.",
+      "Exact source profile N=1600, L=8, speed 0.01, radius 0.1, dt 1, eta 0.75 and 10000 time steps, once exact seeds/averaging windows are recovered.",
+      "Keep current-position and next-position neighbour-time conventions as independent model tags."
+    ],
+    "minimal_control_expected": {
+      "initial_headings_rad": [
+        -2.5,
+        -1,
+        1,
+        2.5
+      ],
+      "interaction_radius": 0,
+      "speed": 0,
+      "noise_width_rad": 0,
+      "adaptive_target_phase_rad": 3.141592653589793,
+      "atan2_order_before_after": 0.13042065483939697,
+      "principal_ratio_order_before": 0.13042065483939697,
+      "principal_ratio_order_after": 0.6707229607075367,
+      "interpretation": "Synthetic branch-cut known-truth unit control only; not a full source reproduction or collective dynamics result."
+    },
+    "statistical_rule": "Do not pool outputs from different angle-mean conventions or adaptive phase protocols in one phase diagram."
+  }
+}

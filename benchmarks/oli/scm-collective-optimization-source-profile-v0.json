@@ -1,0 +1,322 @@
+{
+  "schema_version": "oli-external-source-profile-v0.1",
+  "case_id": "OLI-SWARM-COOPERATION-MODEL-NITTI-2025-001",
+  "status": "PAPER_AND_GITHUB_SOURCE_PINNED_REPRODUCTION_PENDING_LICENSE_REVIEW",
+  "evidence_class": "LITERATURE_AND_SOURCE_CODE_REFERENCE",
+  "claim_ceiling": "Reproduction and extension of the published Swarm Cooperation Model (SCM) on low-dimensional static/dynamic optimization landscapes and simulated AUV contaminant localization; not a universal collective-intelligence metric or physical sea-trial evidence",
+  "publication": {
+    "title": "A collective intelligence model for swarm robotics applications",
+    "authors": [
+      "Alessandro Nitti",
+      "Marco D. de Tullio",
+      "Ivan Federico",
+      "Giuseppe Carbone"
+    ],
+    "journal": "Nature Communications",
+    "volume": 16,
+    "article_number": 6572,
+    "published": "2025-07-17",
+    "doi": "10.1038/s41467-025-61985-7",
+    "url": "https://doi.org/10.1038/s41467-025-61985-7",
+    "article_license": "CC BY-NC-ND 4.0 as shown on article record; this article licence does not automatically grant rights to separate MATLAB source code or third-party datasets."
+  },
+  "code_source": {
+    "repository": "https://github.com/AleNit/Swarm-Cooperation-Model",
+    "default_branch": "main",
+    "inspected_commit": "d9ff09d1a8b26df01cc5937e8774018028eebe79",
+    "inspected_commit_message": "uploaded supplementary tables",
+    "zenodo_release": {
+      "doi": "10.5281/zenodo.15629696",
+      "version": "1.0",
+      "published": "2025-06-10",
+      "archive": "SCM.zip",
+      "archive_bytes_approx": 2300000,
+      "archive_md5": "a06b3d6d3f8f9454d264e094f8d55272",
+      "relation": "GitHub repository tag v1.0",
+      "rights_metadata": "The inspected Zenodo Rights field did not expose a license value."
+    },
+    "software_license": {
+      "repository_license_file_found": false,
+      "zenodo_license_value_found": false,
+      "status": "UNRESOLVED_DO_NOT_COPY_OR_REDISTRIBUTE",
+      "note": "The repository has no visible root LICENSE or LICENSE.txt. No MATLAB source was copied to this project. A clean-room independent implementation from the published mathematical description may be considered after exact equation ambiguity is resolved and legal/provenance review is recorded."
+    },
+    "source_blob_shas": {
+      "README.md": "178fb305ad2af175d07754e4188439dd657f022a",
+      "SCM/MAIN_SCM.m": "2979c60a7c6e793035fff89efa8518947cfbda5f",
+      "SCM/MAIN_SCM_replications.m": "51516a628e4b442425f17bcf1147aa45f91cb0fe",
+      "SCM/tstep.m": "d7970b76fc23e5f562df0acbfabdc46424643053",
+      "utils/consensus.m": "bfde911960e02712893a5f45f3824d22f4c2e7e5",
+      "utils/agent_init.m": "ccf92c701200b5502071f7d6409b42ea31f2dda0",
+      "utils/getLand_SCM.m": "bb0144366fe073118ca0a982810b84fd4eb07d0e",
+      "utils/getmaxdist.m": "cda81e08ec2c50abf223d780a7c8eec02909e696",
+      "utils/compLand.m": "c353dbf560c30fe5773ea2adb9050651396856fd",
+      "utils/compLand_an.m": "f7adc3be19392056f957ab0e214ca57bbc8d8e0a",
+      "utils/LandDef.m": "fe2d5a45f3738984999e5ad445f583b3caf1a23d",
+      "utils/preplot.m": "a42571fc05ebeeaedfdcd4feb3291c8a34606bd7",
+      "utils/csq_coords/csq8.txt": "249dc03affe5c99ffdda3fdebbdd6a0f18ce6ea4",
+      "utils/csq_coords/csq16.txt": "d1a4afbfdbbbbac12235bb97247e1d3b406f91ee"
+    },
+    "dependencies_reported_by_readme": [
+      "MATLAB",
+      "Symbolic Math Toolbox",
+      "Statistics and Machine Learning Toolbox",
+      "Optimization Toolbox",
+      "Global Optimization Toolbox"
+    ]
+  },
+  "paper_reported_results": {
+    "static_low_dimensional_landscape_suite": {
+      "functions": [
+        "Ackley",
+        "Rastrigin",
+        "Schwefel",
+        "Griewank",
+        "Styblinski",
+        "fractal"
+      ],
+      "dimensions": "2D and 3D for analytical landscapes; fractal only 2D",
+      "agent_count_condition": "M <= 16",
+      "replications": 100,
+      "stochastic_processes": "100 different Wiener processes for SCM and PSO",
+      "success_definition": "Final swarm centroid within 0.05 * L of the true global optimum",
+      "reported_comparison": "SCM success rate >= PSO/MIPA on 22 of 33 low-dimensional cases",
+      "cost_tradeoff": "About one order of magnitude more function evaluations overall; SCM function evaluations significantly higher on 24 of 33 cases",
+      "common_parameters": {
+        "omega": 0.2,
+        "sigma0": 0.05,
+        "tau_over_dt": 60,
+        "sigma_max": 0.3,
+        "dimensionless_J_dt": 0.1
+      },
+      "reporting": "Success rate, mean function evaluations and standard deviation of function evaluations are distinct metrics."
+    },
+    "auv_dynamic_contaminant_localization": {
+      "evidence_class": "COMPUTATIONAL_PROOF_OF_CONCEPT",
+      "vehicle_count": 5,
+      "replications": 100,
+      "search_region_km": [
+        6,
+        6
+      ],
+      "region": "Gallipoli Bay, southern Italy",
+      "depth_m": [
+        4,
+        6
+      ],
+      "current_speed_m_s": [
+        0.05,
+        0.2
+      ],
+      "tau_over_dt": 30,
+      "success_rate": 0.86,
+      "mean_search_time_hours": 20.8,
+      "search_time_sd_hours": 3.82,
+      "mean_travel_distance_km_per_agent": 93.8,
+      "travel_distance_sd_km_per_agent": 17.3,
+      "communication_payload": [
+        "agent position",
+        "perceived contaminant fitness/concentration",
+        "gradient"
+      ],
+      "limitation": "Simulated hydrodynamics and AUV vehicle dynamics; not a physical fleet experiment."
+    }
+  },
+  "source_replication_driver": {
+    "script": "SCM/MAIN_SCM_replications.m",
+    "script_blob_sha": "51516a628e4b442425f17bcf1147aa45f91cb0fe",
+    "default_case": {
+      "landscape": "Rastrigin",
+      "dimensions": 2,
+      "agent_count": 8,
+      "replications": 100,
+      "maximum_simulation_time": 500,
+      "dt": 0.1,
+      "tau": 6,
+      "omega": 0.2,
+      "sigma0": 0.05,
+      "sigma_max": 0.3,
+      "success_centroid_distance_threshold": 0.05
+    },
+    "initialization": {
+      "function": "utils/agent_init.m",
+      "function_blob_sha": "ccf92c701200b5502071f7d6409b42ea31f2dda0",
+      "geometry_file": "utils/csq_coords/csq8.txt",
+      "geometry_file_blob_sha": "249dc03affe5c99ffdda3fdebbdd6a0f18ce6ea4",
+      "semantics": "When the circle-packing file exists, the eight initial positions are the listed deterministic coordinates shifted by +0.5 in each coordinate. It is not a fresh random initial state per replication in this driver."
+    },
+    "noise_seed_law": "For replication nr (1-based), agent i (1-based) and dimension j (1-based), rng seed = 2*i + M*(j-1) + nr - 1; draw a standard-normal vector of length por.nts for that agent and dimension.",
+    "function_evaluations": "M * completed_time_steps, reported per replication.",
+    "caution": "This default reproduction script is not necessarily the exact driver for every paper figure/table. Preserve source protocol and Supplementary Dataset 1–3 independently."
+  },
+  "model_definition": {
+    "family": "overdamped_Langevin_consensus_coupled_adaptive_stochastic_search",
+    "update_integrator": "Euler_Maruyama",
+    "agent_state": "continuous position vector x_k in a bounded unit domain",
+    "social_interaction": "all_to_all sinusoidal disagreement/consensus coupling",
+    "fitness_term": "gradient of locally perceived scalar fitness",
+    "fitness_weight": "inverse of swarm-mean L2 norm of the fitness gradient as described in the article",
+    "adaptive_noise": "agent-dependent noise factor lambda_k times global sigma(t), driven by consensus trend",
+    "agent_communication": "full network exchange of agent position, perceived fitness and gradient",
+    "memory": "agents do not retain a global best-known position; paper identifies this as static-landscape tradeoff and possible dynamic-landscape benefit",
+    "key_observables": [
+      "fitness-weighted centroid",
+      "swarm consensus",
+      "agent-wise distance from centroid",
+      "adaptive noise state",
+      "function evaluations",
+      "trajectory and search cost"
+    ],
+    "social_interaction_kernel": "sin((pi/2) * position_difference), shared by the published discrete equation and pinned MATLAB tstep.m."
+  },
+  "equation_consistency_audit": {
+    "paper_discrete_equation": "sin((pi/2) * (x_k - x_h))",
+    "inspected_matlab_tstep": "sin((pi/2) * (x_i - x_j))",
+    "source_file": "SCM/tstep.m",
+    "source_blob_sha": "d7970b76fc23e5f562df0acbfabdc46424643053",
+    "status": "RECONCILED_PUBLISHED_AND_PINNED_SOURCE_AGREE",
+    "disposition": "The published discrete update and pinned MATLAB implementation use the same pi/2 sine argument. The earlier apparent 2/pi variant was a misreading, not a source discrepancy.",
+    "implementation": "The Rust reference has one ScmInteractionKernel::PublishedEquationAndMatlabSource variant. No unsupported 2/pi alternative remains.",
+    "consensus_window_discrepancy": {
+      "paper_definition": "Two equal half-windows [t-tau,t-tau/2] and [t-tau/2,t], disjoint in the continuous-time statement.",
+      "inspected_matlab_indices": "I1 = CT(n-ceil(nn/2)+1:n); I2 = CT(n-nn:n-ceil(nn/2)); first eligible update is n=nn+1.",
+      "implication": "For even nn, the source array windows contain nn+1 consensus samples (nn/2+1 older and nn/2 newer) and the first update occurs one tick after nn, unlike a clean disjoint nn-sample split.",
+      "disposition": "The independent Rust reference exposes PublishedEqualHalfIntervals and RepositoryMatlabInclusiveEndpoints; do not blend them."
+    }
+  },
+  "implementation_risks_and_challenges": [
+    "Zero mean gradient makes xi = 1 / mean(||gradient||) undefined or non-finite.",
+    "Coincident agents make maximum pairwise distance Dmax = 0 in lambda_k = d_k/(Dmax*C).",
+    "Fitness-weighted centroid behavior near equal or degenerate fitness values requires tests.",
+    "Out-of-domain agent recovery uses a conical continuation and zero assigned landscape fitness; reproduce this exactly before comparing.",
+    "Consensus-window difference I near zero can destabilize the global sigma update; test finite clamps and exact source semantics.",
+    "The all-to-all communication assumption should be stressed with delay, bandwidth, packet loss and stale-state regimes.",
+    "Fixed circle-packing initialization and stochastic seed protocol must match the chosen paper table/figure."
+  ],
+  "oli_benchmark_design": {
+    "baselines": [
+      "SCM_NITTI_2025",
+      "PSO",
+      "MIPA",
+      "independent_local_gradient_search",
+      "centralized_global_optimizer",
+      "Symtropy_StigmergicFieldOnly",
+      "Symtropy_Vicsek_collective_motion_not_same_task"
+    ],
+    "tasks": [
+      "static multimodal optimization source reproduction",
+      "dynamic moving-peak/advection tracking",
+      "low-agent-count cooperative sensor search",
+      "communication-limited distributed search",
+      "sensor-noise and calibration drift",
+      "agent dropout and unequal travel cost",
+      "multi-peak/multiple-source localization",
+      "energy/range constrained search with return-to-home reserve"
+    ],
+    "metrics": [
+      "success_probability",
+      "function_evaluations_per_success",
+      "sensor_samples_per_success",
+      "energy_per_success",
+      "distance_per_success",
+      "time_to_success",
+      "communication_bytes",
+      "communication_rounds",
+      "dynamic_tracking_error",
+      "relocalization_after_environment_shift",
+      "mission_abort_rate",
+      "calibration_error"
+    ],
+    "anti_leakage": "Keep entire random processes, environment realizations and initial conditions within one split. Time windows from one trajectory are not independent trials.",
+    "improvement_target": "At equal success probability and equal safety envelope, reduce total sensor/function evaluations or energy-distance cost by >=20% on at least two source-reproduced benchmark strata; alternatively improve success rate by >=5 percentage points at equal total cost. Proposed target only, not achieved.",
+    "second_target": "On dynamic environments, improve median peak-relocalization lag by >=20% versus source SCM at matched vehicle count, sensing rate and communications budget, with no increase in mission abort rate. Proposed target only.",
+    "report_pareto": "Publish success-vs-cost Pareto frontiers; do not hide SCM's evaluation-cost tradeoff in one scalar.",
+    "matched_baselines": [
+      "SCM_NITTI_2025",
+      "PSO",
+      "MIPA",
+      "independent_local_gradient_search",
+      "centralized_global_optimizer"
+    ],
+    "resource_metrics": [
+      "sensor_samples_per_success",
+      "function_evaluations_per_success",
+      "energy_per_success",
+      "distance_per_success",
+      "mission_time_per_success",
+      "communication_bytes_and_rounds",
+      "tracking_lag_after_environment_shift",
+      "mission_abort_rate"
+    ],
+    "communication_stressors": [
+      "latency",
+      "bandwidth_cap",
+      "packet_loss",
+      "stale_state",
+      "intermittent_contact",
+      "agent_dropout"
+    ],
+    "dynamic_environment_stressors": [
+      "advecting_peak",
+      "multiple_moving_peaks",
+      "source_extinction_and_reappearance",
+      "sensor_bias_and_drift",
+      "changing_obstacles"
+    ],
+    "claim_status": "PROPOSED_BENCHMARK_AND_TARGETS_ONLY"
+  },
+  "data_admission": {
+    "source_commit_pinned": true,
+    "blob_shas_recorded": true,
+    "zenodo_release_pinned": true,
+    "archive_downloaded": false,
+    "supplementary_datasets_materialized": false,
+    "source_license_resolved": false,
+    "no_source_code_copied": true,
+    "author_permission_request": "NOT_SENT",
+    "admission_next_steps": [
+      "Request explicit software licence/permission and confirm whether v1.0 archive is the intended code version.",
+      "Download Zenodo archive and Supplementary Datasets 1–3 only after confirming redistribution/analysis rights; hash the archive and every extracted file.",
+      "Compare v1.0 archive file inventory and blob digests to the pinned GitHub source commit/tag.",
+      "Recover exact PSO and MIPA parameters and the complete 33-case matrix from the paper and SI.",
+      "Reproduce the exact paper equations and resolve the sine-kernel discrepancy."
+    ],
+    "status": "SOURCE_CODE_AND_PAPER_METADATA_PINNED_ARCHIVE_LICENSE_UNRESOLVED",
+    "no_code_or_data_copied": true,
+    "next_steps": [
+      "Request explicit software licence/permission and confirm the intended v1.0 archive.",
+      "Acquire and hash Supplementary Datasets 1–3 only with verified file-level rights.",
+      "Compare v1.0 archive inventory with GitHub tag and inspected main commit.",
+      "Recover exact PSO/MIPA setup and the complete 33-case matrix.",
+      "Resolve the sine-kernel equation discrepancy before claiming source-faithful dynamics.",
+      "Reproduce dynamic AUV simulation separately from static optimization tests."
+    ]
+  },
+  "results": {
+    "source_reproduction_completed": false,
+    "rust_independent_implementation_completed": false,
+    "matched_comparison_completed": false,
+    "source_data_materialized": false,
+    "qualified_sota_improvement": false,
+    "status": "NOT_RUN",
+    "data_reproduction_completed": false,
+    "independent_rust_reference_added": true,
+    "independent_rust_reference_path": "crates/domains/symtropy-lifesim-core/src/scm.rs",
+    "independent_rust_reference_test_count": 12,
+    "independent_rust_reference_validation": "NOT_RUN",
+    "rust_formatting": "NOT_RUN",
+    "rust_compilation": "NOT_RUN",
+    "exact_head_ci": "PENDING",
+    "rust_independent_implementation_test_count": 13,
+    "partial_observation_attempt_accounting_added": true,
+    "extreme_finite_barrier_gradient_added": true,
+    "rust_independent_implementation_validation": "NOT_RUN",
+    "social_kernel_source_audit": "RESOLVED_PUBLISHED_AND_PINNED_MATLAB_SOURCE_AGREE"
+  },
+  "oli_improvement_targets": {
+    "static_equal_success_cost": "At equal success probability and the same safety envelope, reduce total sensor/function evaluations or energy-distance cost by >=20% on at least two source-reproduced benchmark strata.",
+    "static_equal_cost_success": "Alternatively, improve success probability by >=5 percentage points at equal total sensor/energy/time/communication cost.",
+    "dynamic_tracking": "Reduce median peak-relocalization lag by >=20% versus source SCM on a matched dynamic-environment challenge without increasing mission abort rate.",
+    "qualification_rule": "All are proposed targets. They cannot be claimed until SCM, PSO and MIPA are reproduced on matched conditions with independent environment/random-process holdouts."
+  }
+}

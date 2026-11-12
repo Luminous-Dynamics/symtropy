@@ -1,0 +1,290 @@
+{
+  "schema_version": "oli-collective-competence-v0.1",
+  "case_id": "OLI-COLLECTIVE-COMPETENCE-SCM-001",
+  "status": "BENCHMARK_CONTRACT_FROZEN_EXECUTION_PENDING",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH_SIMULATION",
+  "claim_ceiling": "Budget-matched comparison of objective task competence across communication topologies in a synthetic swarm optimizer; not a universal collective-intelligence, life, agency, or consciousness score",
+  "scientific_premise": {
+    "paradigm": "Measure what the group accomplishes under equal resources; do not use alignment, consensus, transfer entropy, or graph density as a proxy for task competence.",
+    "task_competence_definition": "Externally scored task performance under a registered objective, resource budget, communication budget, and controlled starting distribution.",
+    "separate_quantities": [
+      "correlation",
+      "predictive_information_transfer",
+      "declared_interaction_graph",
+      "interventional_effect",
+      "collective_task_competence"
+    ]
+  },
+  "implementation": {
+    "model": "Independent CPU SCM reference",
+    "source": "Nitti et al. (2025), Nature Communications 16, 6572, DOI 10.1038/s41467-025-61985-7",
+    "module": "symtropy_lifesim_core::scm",
+    "outputs_added": [
+      "best_agent_fitness",
+      "best_fitness_seen",
+      "best_agent_index",
+      "mean_agent_fitness",
+      "agent_fitness_variance"
+    ],
+    "evaluation_accounting": "N agents and T completed updates require N*(T+1) objective evaluations under the cached initial/successor observation contract.",
+    "status": "Rust instrumentation and equal-budget unit tests added; execution awaits exact-head CI."
+  },
+  "landscapes": [
+    {
+      "id": "UNIMODAL_BOUNDED_QUADRATIC",
+      "dimensions": 2,
+      "domain": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "objective": "f(x,y)=1-(x-0.6)^2-(y-0.6)^2",
+      "objective_direction": "maximize",
+      "exact_optimum": {
+        "position": [
+          0.6,
+          0.6
+        ],
+        "fitness": 1
+      },
+      "fitness_range": [
+        0.28,
+        1
+      ],
+      "gradient": "[-2*(x-0.6), -2*(y-0.6)]",
+      "role": "analytic sanity and cost-to-resolution case"
+    },
+    {
+      "id": "MULTIMODAL_PERIODIC_LANDSCAPE",
+      "dimensions": 2,
+      "domain": [
+        [
+          0,
+          1
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "objective": "f(x,y)=0.5+0.25*cos(4*pi*x)*cos(4*pi*y)",
+      "objective_direction": "maximize",
+      "exact_optimum_fitness": 0.75,
+      "global_optimum_set": "cos(4*pi*x)*cos(4*pi*y)=1 within [0,1]^2",
+      "fitness_range": [
+        0.25,
+        0.75
+      ],
+      "gradient": "[-pi*sin(4*pi*x)*cos(4*pi*y), -pi*cos(4*pi*x)*sin(4*pi*y)]",
+      "role": "multiple local optima and topology-dependent search robustness"
+    }
+  ],
+  "frozen_initial_conditions": {
+    "agent_count": 8,
+    "positions": [
+      [
+        0.1,
+        0.1
+      ],
+      [
+        0.9,
+        0.1
+      ],
+      [
+        0.1,
+        0.9
+      ],
+      [
+        0.9,
+        0.9
+      ],
+      [
+        0.3,
+        0.2
+      ],
+      [
+        0.8,
+        0.7
+      ],
+      [
+        0.2,
+        0.8
+      ],
+      [
+        0.7,
+        0.3
+      ]
+    ],
+    "seed_list_generation": "registered deterministic seed list, beginning at 20261112; publish exact 100-seed list before full sweep",
+    "required_seed_count": 100,
+    "exploratory_minimum_seed_count": 30,
+    "matched_seeds_across_all_baselines": true
+  },
+  "resource_contract": {
+    "agent_count": 8,
+    "max_completed_steps": 100,
+    "objective_evaluations_per_run": 808,
+    "total_budget_formula": "N*(T+1)",
+    "per_agent_initialization_equal": true,
+    "objective_evaluation_cost_equal": true,
+    "function_evaluation_budget_equal": true,
+    "communication_cost_reported_separately": true,
+    "communication_budget_modes": [
+      "unmetered_but_counted",
+      "fixed_total_message_budget"
+    ],
+    "energy_and_latency_measurement": "not yet instrumented; do not claim physical resource parity until those costs are measured"
+  },
+  "baseline_portfolios": [
+    {
+      "id": "SCM_COMPLETE_GRAPH",
+      "implementation": "ScmCommunicationTopology::CompleteGraph",
+      "purpose": "published SCM communication baseline"
+    },
+    {
+      "id": "SCM_RING",
+      "implementation": "ScmCommunicationTopology::Ring",
+      "purpose": "sparse regular communication baseline"
+    },
+    {
+      "id": "SCM_LOCAL_RADIUS",
+      "implementation": "ScmCommunicationTopology::MetricRadius",
+      "purpose": "geometry-limited communication with an explicit positive radius; keep separate from no-communication control"
+    },
+    {
+      "id": "SCM_NO_COMMUNICATION",
+      "implementation": "ScmCommunicationTopology::NoCommunication",
+      "purpose": "explicit empty adjacency; no inter-agent messages even for coincident agents; local gradient-only update"
+    },
+    {
+      "id": "INDEPENDENT_PARALLEL_GRADIENT",
+      "implementation": "separate reference adapter required",
+      "purpose": "each agent follows only its own local gradient; no social coupling or consensus"
+    },
+    {
+      "id": "RANDOM_SEARCH_MATCHED_EVALUATIONS",
+      "implementation": "separate baseline adapter required",
+      "purpose": "randomly sample positions using the same total objective-evaluation budget"
+    },
+    {
+      "id": "CENTRALIZED_GRADIENT_REFERENCE",
+      "implementation": "separate baseline adapter required",
+      "purpose": "centralized optimizer under the same total objective-evaluation count; communication/controller costs reported separately"
+    },
+    {
+      "id": "EXACT_ORACLE",
+      "implementation": "analytic optimum for frozen landscapes",
+      "purpose": "computes exact simple-regret lower bound; not counted as an operational baseline"
+    }
+  ],
+  "primary_metrics": {
+    "task_outcomes": [
+      "best_fitness_seen",
+      "current_best_agent_fitness",
+      "mean_agent_fitness",
+      "agent_fitness_variance",
+      "simple_regret",
+      "success_at_registered_threshold",
+      "evaluations_to_threshold",
+      "anytime_best_fitness_auc"
+    ],
+    "social_state": [
+      "consensus",
+      "mean_communicating_neighbors",
+      "isolated_agents",
+      "mean_agent_distance",
+      "maximum_pairwise_distance"
+    ],
+    "cost": [
+      "objective_function_evaluations",
+      "directed_messages_or_edges_per_step",
+      "cumulative_message_count",
+      "wall_clock_latency_when_measured",
+      "energy_when_measured"
+    ],
+    "robustness": [
+      "success_under_seed_shift",
+      "held_out_landscape_performance",
+      "initialization_sensitivity",
+      "noise_sensitivity",
+      "topology_ablation_delta"
+    ],
+    "fairness": [
+      "best_agent_share_of_group_contribution_when_definable",
+      "fitness_gini_or_quantile_spread",
+      "per_agent_outcome_distribution"
+    ]
+  },
+  "success_criteria": {
+    "quadratic_fitness_threshold": 0.99,
+    "multimodal_fitness_threshold": 0.74,
+    "statistical_unit": "independent matched initialization seed and complete optimizer run",
+    "confidence_intervals": "95% interval over independent seeds; not time frames or per-agent measurements",
+    "primary_comparison": "difference in success rate and final best-so-far fitness at exactly the same objective-evaluation budget",
+    "superiority_rule": "only claim a communication-topology advantage if the paired-seed confidence interval for task utility excludes zero and no hard budget is exceeded",
+    "minimum_replicates": 100
+  },
+  "adversarial_controls": [
+    {
+      "id": "HIGH_CONSENSUS_LOW_FITNESS",
+      "purpose": "A coherent but suboptimal cluster must not be awarded task-competence credit from consensus alone.",
+      "scoring": "objective fitness and regret only"
+    },
+    {
+      "id": "COMMON_DRIVER_NO_COMMUNICATION",
+      "purpose": "A shared exogenous signal may synchronize agents without direct messages; co-motion is not a communication or competence claim.",
+      "scoring": "separate exogenous-driver, communication and objective metrics"
+    },
+    {
+      "id": "COMMUNICATION_ABLATION",
+      "purpose": "Compare CompleteGraph, Ring, MetricRadius and radius-zero under matched function calls.",
+      "scoring": "paired-seed performance delta, edge count, evaluation budget"
+    },
+    {
+      "id": "DECEPTIVE_MULTIMODAL",
+      "purpose": "Test whether premature consensus traps the swarm in a suboptimal basin.",
+      "scoring": "global-optimum success rate, regret, recovery after topology changes"
+    },
+    {
+      "id": "RESOURCE_OVERSPEND",
+      "purpose": "Any optimizer that exceeds the function-evaluation budget is inadmissible regardless of final fitness.",
+      "scoring": "zero budget violations"
+    }
+  ],
+  "source_benchmark_context": {
+    "scm_source_report": "Nitti et al. (2025) report SCM success-rate parity or better than PSO/MIPA on 22 of 33 evaluated low-dimensional tasks for M<=16, with about one order of magnitude more function evaluations in aggregate. Their five-AUV contaminant-localization result reports 86% success over 100 simulations and is a computational proof of concept, not a physical fleet trial.",
+    "comparison_warning": "Do not interpret 22/33 as a universal superiority claim. OLI must reproduce matched tasks and budgets, with evaluation counts and source equation variants explicit.",
+    "other_baselines": [
+      "PSO",
+      "MIPA",
+      "random search",
+      "independent parallel gradient",
+      "centralized gradient reference"
+    ],
+    "other_sota_methods": "Include task-matched alternatives only after pinning their exact objective, initialization, stopping rule and evaluation budget."
+  },
+  "anti_leakage": [
+    "Use identical initial positions and seed list across communication topologies.",
+    "Keep all time steps within one run in the same statistical unit.",
+    "Do not tune topology radius or hyperparameters on the sealed seed/landscape set.",
+    "Publish full seed-level outcomes, including failures and outliers.",
+    "Do not combine different SCM sine kernels or consensus-window interpretations into one aggregate.",
+    "The independent/no-message arm must use the explicit NoCommunication topology, not MetricRadius(0), because coincident agents are neighbours at zero metric distance."
+  ],
+  "acceptance": [
+    "Each step reports current and best-seen objective fitness separately from consensus.",
+    "The N*(T+1) objective evaluation count is exactly equal across topology baselines.",
+    "Independent and centralized baselines use the same measured objective-evaluation budget.",
+    "Simple regret and success-at-threshold are evaluated against exact optimum.",
+    "At least 100 matched seeds are completed on both landscapes.",
+    "Any claim of group-level advantage includes paired uncertainty intervals and communication cost.",
+    "High consensus alone never qualifies as collective competence.",
+    "NoCommunication topology produces empty adjacency for all coordinate configurations, including coincident agents."
+  ],
+  "status_note": "This manifest freezes a benchmark contract. The SCM fitness metrics and topology budget test are implemented, but no benchmark sweep, performance win, or source reproduction has yet been executed."
+}

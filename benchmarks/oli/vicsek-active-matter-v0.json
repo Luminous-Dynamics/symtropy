@@ -1,0 +1,751 @@
+{
+  "schema_version": "oli-generator-case-v0.1",
+  "case_id": "OLI-ACTIVE-MATTER-VICSEK-001",
+  "status": "SYNTHETIC_KNOWN_MECHANISM_CONTROL_AWAITING_RUST_VALIDATION",
+  "evidence_class": "SIMULATION",
+  "claim_ceiling": "Two-dimensional metric Vicsek active-particle collective-order control; no claim of biological life, cognition, agency, heredity, or a natural-world system",
+  "source": {
+    "original_model": {
+      "citation": "Vicsek et al., Novel Type of Phase Transition in a System of Self-Driven Particles, Physical Review Letters 75, 1226–1229 (1995)",
+      "doi": "10.1103/PhysRevLett.75.1226",
+      "url": "https://doi.org/10.1103/PhysRevLett.75.1226",
+      "core_rule": "Constant-speed self-driven particles align their heading to the circular mean of neighbours within a metric interaction radius, with angular noise."
+    },
+    "recent_comparator": {
+      "citation": "Jin & Dong, Quantitative relationship between coupled structural dynamics and collective order in the original Vicsek model, Communications Physics (2026-10-20)",
+      "url": "https://www.nature.com/articles/s42005-026-02933-9",
+      "claim_scope": "Recent analysis connects polar order with interaction-number statistics and cluster/system-level structural properties; OLI uses neighbour and connected-component metrics as descriptive observables, not as cognition scores."
+    },
+    "topology_comparator": {
+      "citation": "Rahman, Napoli, Bonomo, Porfiri & Abaid, Topology and geometry of clusters in the Vicsek model across scales, Physical Review Research 8, 033039 (2026-07-10)",
+      "doi": "10.1103/hkrb-wpdr",
+      "url": "https://doi.org/10.1103/hkrb-wpdr",
+      "reported_scope": "Clusters as connected components of the interaction network; average degree, average path length, clustering coefficient, area, perimeter, and cluster-size scaling across speeds/densities near critical noise.",
+      "erratum": {
+        "citation": "Erratum, Physical Review Research 8, 049002(E), published 2026-10-27",
+        "doi": "10.1103/b9yr-8wmv",
+        "url": "https://doi.org/10.1103/b9yr-8wmv",
+        "correction": "Equation (2) time index for the neighbour set corrected: heading at t+dt is aligned using neighbours at t+dt with velocities/headings at t.",
+        "implication": "The corrected forward-update interpretation leaves the authors' physical interpretation unchanged and yields results indistinguishable from their forward-update method. A backward-update implementation yields different power-law scaling of average degree and path length with cluster mass.",
+        "oli_requirement": "Every Vicsek output must record the update rule. OLI must never compare scaling exponents across update conventions as though they were the same model."
+      },
+      "code_repository": "https://github.com/sqrrahman/Vicsek_interaction_network_critical_noise_geometry_and_topology",
+      "code_access_status": "PUBLIC_REPOSITORY_AND_FORWARD_C++_TEMPLATE_INSPECTED_AT_PINNED_COMMIT"
+    },
+    "erratum": {
+      "citation": "Rahman et al., Erratum: Topology and geometry of clusters in the Vicsek model across scales, Physical Review Research 8, 049002(E) (2026)",
+      "doi": "10.1103/b9yr-8wmv",
+      "published": "2026-10-27",
+      "url": "https://doi.org/10.1103/b9yr-8wmv",
+      "correction": "Use the interaction-neighbour set at t+dt, while summing the neighbours' velocity/headings at t, to calculate the focal particle's heading at t+dt.",
+      "note": "The erratum states the corrected results are indistinguishable from the forward update method; the backward update as printed in the original paper gives different cluster network scaling."
+    },
+    "topology_study": {
+      "citation": "Rahman et al., Topology and geometry of clusters in the Vicsek model across scales, Physical Review Research 8, 033039 (2026)",
+      "doi": "10.1103/hkrb-wpdr",
+      "url": "https://doi.org/10.1103/hkrb-wpdr",
+      "published": "2026-07-10",
+      "observables": "interaction networks, connected clusters, degree distributions, average path length, clustering coefficient, cluster mass, geometric area/perimeter"
+    },
+    "structure_order_study": {
+      "citation": "Jin & Dong, Quantitative relationship between coupled structural dynamics and collective order in the original Vicsek model, Communications Physics (2026)",
+      "doi": "10.1038/s42005-026-02933-9",
+      "url": "https://doi.org/10.1038/s42005-026-02933-9",
+      "published": "2026-10-20",
+      "findings": "global polar order correlates with average interaction number; cluster-level and system-level interaction-number distributions show normalized profile similarities; cluster size correlates with orientation."
+    },
+    "information_causality_study": {
+      "citation": "Pang & Wang, Quantifying influence and information transfer in a modified Vicsek model with nonreciprocal interactions, Physical Review E 114, 024111 (2026)",
+      "doi": "10.1103/rf2v-sy5d",
+      "url": "https://doi.org/10.1103/rf2v-sy5d",
+      "published": "2026-08-07",
+      "warning": "Transfer entropy is statistical information transfer, not by itself causal influence; causal influence requires a defined intervention or structural model."
+    },
+    "visual_field_offset_2026": {
+      "title": "Influence of visual field offset on collective behavior: An exploration using the two-dimensional Vicsek model",
+      "authors": [
+        "Poorendra Ramlall",
+        "Sachit Butail",
+        "Subhradeep Roy"
+      ],
+      "journal": "Physical Review E",
+      "published": "2026-06-17",
+      "doi": "10.1103/bbl5-1yjb",
+      "url": "https://doi.org/10.1103/bbl5-1yjb",
+      "dataset_doi": "10.17632/y8fx3shsvx.1",
+      "dataset_url": "https://datacommons.erau.edu/datasets/y8fx3shsvx/1",
+      "dataset_license": "CC BY 4.0 declared at dataset level",
+      "data_inventory_status": "NOT_FETCHED; page exposes Download All but no file rows in retrieved rendering",
+      "source_reproduction_status": "NOT_RUN",
+      "reported_finding": "The authors report that a flipped/rear-facing restricted visual field can produce near-perfect alignment and clustering at the centre of mass even under high noise.",
+      "parameter_grid": "NOT_EXTRACTED; aperture, exact offset grid, density, speed, seeds and measurement windows must be recovered from the full methods and source files."
+    },
+    "reference_implementation": {
+      "repository": "https://github.com/sqrrahman/Vicsek_interaction_network_critical_noise_geometry_and_topology",
+      "repository_commit": "68dfc94192d3fb7324eb980ef095da373ddf5ec1",
+      "source_file": "scripts_1_simulation_upto_steady_state/sml_template.cpp",
+      "source_file_blob_sha": "bb483123de3351f75712877ffcf51c21d3b724ec",
+      "source_file_role": "Forward-update C++ reference used by the authors' topology/geometry workflow",
+      "source_code_audit": {
+        "update_semantics": "Move positions using headings at t; rebuild the interaction cell list from positions at t+dt; for each focal particle, average neighbours' headings at t; add angular noise; retain predicted positions.",
+        "interaction_rule": "Strict Euclidean distance squared < r squared, using periodic minimum-image displacement.",
+        "noise_rule": "The source's scalar noise input nu produces a full angular noise interval of 2*pi*nu radians: 2*pi*nu*(u-0.5). OLI represents the full interval directly as angular_noise_width_rad.",
+        "arithmetic": "C++ float32/f32. OLI reference uses f64; compare statistical results with numerical tolerance, not bitwise trajectories.",
+        "rng": "Upstream uses std::mt19937 seeded by std::random_device with no exposed seed. OLI replaces this with explicit xorshift64 seed and continuous stream for deterministic replay; this is a reproducibility improvement, not identical random-number parity.",
+        "source_parameters_in_inspected_template": {
+          "particle_count": 512,
+          "interaction_radius": 1,
+          "box_size": "sqrt(N/rho)",
+          "total_time_steps": 10000,
+          "realizations_per_noise": 5,
+          "noise_values": "template placeholder; recover from full run scripts / paper parameter table before source reproduction"
+        },
+        "other_update_rule_files": "README identifies forward (FW), backward (BW), and corrected PRR variants in a comparison subfolder. The root forward C++ file was inspected; sibling FW/BW/PRR source files and exact noise/density grids remain to be pinned separately."
+      },
+      "comparison_with_oli": {
+        "NextPositionAlignment": "Algorithmically matches the inspected source forward-update rule / erratum-corrected neighbour-time rule.",
+        "CurrentPositionAlignment": "OLI current-position-neighbour comparator; do not label as exact upstream backward code until the sibling BW source file is inspected.",
+        "parity_scope": "Update-rule semantics and neighbour predicate are pinned; RNG sequence and floating-point bit patterns intentionally differ."
+      }
+    }
+  },
+  "model_definition": {
+    "dimension": 2,
+    "topology": "periodic_square_torus",
+    "update": "synchronous_from_previous_state",
+    "neighbour_rule": "Minimum-image Euclidean distance strictly less than interaction_radius (open disk); self is included separately in heading alignment. The strict '< r^2' boundary matches the pinned Rahman et al. forward-update C++ source.",
+    "heading_update": "CurrentPositionAlignment: neighbours at t, headings from t, then move along new heading. NextPositionAlignment: predict positions at t+dt using headings at t, select neighbours at t+dt, compute new headings from headings at t, and retain predicted positions.",
+    "angular_noise": "uniform[-eta/2,+eta/2], eta is full interval width in radians",
+    "motion": "Constant speed times dt; displacement uses updated heading in CurrentPositionAlignment and prior heading in NextPositionAlignment, as required by the erratum-aligned forward update.",
+    "boundary": "periodic modulo box_size",
+    "numerical_arithmetic": "IEEE754_f64",
+    "implementation_complexity": "O(N^2) CPU reference",
+    "update_rules": {
+      "current_position_alignment": {
+        "semantics": "Select neighbours at positions x(t); compute all new headings from old headings; advance positions along the new headings.",
+        "status": "implemented_default_classic_reference"
+      },
+      "next_position_alignment": {
+        "semantics": "Predict positions using old headings; select neighbours at predicted positions x(t+dt); compute new headings from old headings; retain predicted positions.",
+        "status": "implemented_erratum_aligned_comparator"
+      }
+    },
+    "interaction_boundary": "STRICT_OPEN_RADIUS: d^2 < R^2; exact-radius boundary pairs are excluded"
+  },
+  "implementation": {
+    "crate": "symtropy-lifesim-core",
+    "module": "vicsek",
+    "rng": "xorshift64; zero seed is mapped to a documented non-zero state",
+    "random_initialization": "x,y uniform in [0,L); heading uniform in [0,2pi); initialization and angular-noise draws use one continued deterministic stream",
+    "no_hidden_parameters": true,
+    "update_rule_field": "VicsekConfig.update_rule",
+    "default_update_rule": "CurrentPositionAlignment",
+    "trajectory_metric_mode": "VicsekModel.step, run_steps and fast_metrics use the periodic cell index for candidate pruning; exact neighbour tests, directed visibility and metric semantics are unchanged. Expected near-linear scaling at bounded density; worst-case O(N^2).",
+    "full_topology_mode": "VicsekModel.metrics computes exact graph clustering and shortest-path metrics; call at registered checkpoints, not every tick in large sweeps",
+    "metric_snapshot_provenance": "Every VicsekMetrics record carries tick, update_rule and topology_metrics_computed; aggregation must keep update_rule as a required group key.",
+    "paired_counterfactual_runner": {
+      "function": "run_paired_heading_intervention",
+      "treatment_sham_protocol": "clone identical baseline twice; impose heading only in treatment; both copies retain identical PRNG state",
+      "common_random_numbers": true,
+      "intervention_consumes_random_draws": false,
+      "response_threshold": 1e-12,
+      "recorded_outputs": [
+        "intervention_receipt",
+        "update_rule",
+        "initial_sham_metrics",
+        "initial_treatment_metrics",
+        "per_tick_sham_metrics",
+        "per_tick_treatment_metrics",
+        "mean_untreated_heading_effect_rad",
+        "untreated_heading_response_fraction",
+        "mean_untreated_position_effect",
+        "untreated_position_response_fraction"
+      ],
+      "response_population": "all particles except the directly treated particle",
+      "claim_boundary": "Causal effects are established only inside the declared synthetic dynamics and intervention model."
+    },
+    "visual_sector_perception": {
+      "enum": "VicsekPerception::VisualSector",
+      "parameters": [
+        "half_aperture_rad",
+        "offset_rad"
+      ],
+      "rule": "For each focal particle, a neighbour is visible when its minimum-image bearing is within the visual sector centred at focal_heading + offset and within interaction_radius.",
+      "offset_convention": "0 radians is forward-facing; PI radians is directly behind the focal heading.",
+      "directionality": "Visibility is focal-agent-specific and may be asymmetric; no reciprocal edge is assumed.",
+      "default": "MetricRadius remains the default for existing callers.",
+      "graph_semantics": "Visual-sector topology snapshots use a weakly connected projection, while local visible-neighbour counts and local order use directed out-neighbours.",
+      "validation": "Half-aperture must be finite in [0, PI]; offset must be finite and is normalized to [0, 2PI).",
+      "directional_causal_control": {
+        "case": "ASYMMETRIC_VISUAL_VISIBILITY_INTERVENTION",
+        "setup": "Two particles one unit apart on the x-axis, both initially heading +x; forward visual sector with pi/4 half-aperture and radial range 3",
+        "visibility": "Particle 0 sees particle 1; particle 1 does not see particle 0",
+        "expected": {
+          "intervene_particle_0": "Particle 1's paired sham/treatment heading effect is exactly zero",
+          "intervene_particle_1": "Particle 0 changes by pi/4 after one noiseless update when particle 1 is rotated to pi/2"
+        },
+        "interpretation": "Interventional effect direction must match focal-agent visibility; the test distinguishes directional mechanism from symmetric correlation."
+      }
+    },
+    "spatial_index": {
+      "type": "deterministic_periodic_cell_hash",
+      "cell_geometry": "Periodic square grid with cell width at least the interaction radius; a 3x3 stencil contains all possible range neighbours.",
+      "focal_candidates": "Candidate particle indices are sorted and deduplicated before the exact distance/visual-sector predicate is applied.",
+      "used_by": [
+        "VicsekModel.step",
+        "VicsekModel.fast_metrics"
+      ],
+      "exactness": "The index only prunes impossible distant candidates; final visibility still uses the same exact minimum-image radius and visual-sector predicate.",
+      "fallback": "Brute-force candidate scan is used when interaction_radius <= 0, when floor(box_size / interaction_radius) exceeds 1,000,000 cells per axis, or when the resulting cell width would be smaller than the interaction radius. The fallback is exercised by tests for zero radius, extremely small radius and radius larger than the box.",
+      "complexity": "Expected near O(N + total local candidate work) for bounded density and local range; worst case remains O(N^2). Full shortest-path/clustering metrics remain checkpoint-only and more expensive.",
+      "reproducibility": "Sorted candidate indices preserve the same floating-point heading-summation order as the brute-force reference.",
+      "measured_speedup_status": "NOT_MEASURED; no performance claim is made until matched benchmark runs."
+    },
+    "spatial_index_correctness_gate": {
+      "test": "periodic_neighbor_index_never_omits_a_bruteforce_radius_neighbor",
+      "property": "For every registered focal particle, all brute-force minimum-image radius neighbours must be present in the sorted unique candidate set returned by PeriodicNeighborIndex.",
+      "cases": [
+        "one-cell grid",
+        "two-cell grid",
+        "three-cell grid",
+        "many-cell grid",
+        "periodic boundary neighbours",
+        "radius >= box fallback",
+        "deterministic point clouds"
+      ],
+      "result_status": "TEST_ADDED_NOT_EXECUTED"
+    }
+  },
+  "benchmark_regimes": [
+    {
+      "id": "ALL_TO_ALL_ZERO_NOISE_POSITIVE_CONTROL",
+      "purpose": "Verify the model's alignment mechanism using a finite exact-order control",
+      "particle_count": 6,
+      "box_size": 10,
+      "interaction_radius": 8,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "seed": 7,
+      "initial_headings_rad": [
+        0,
+        0.7,
+        1.4,
+        2.1,
+        3.2,
+        4
+      ],
+      "initial_positions": "six distinct x positions on y=5, equally spaced inside the box",
+      "execution_steps": 1,
+      "expected": {
+        "polar_order": 1,
+        "cluster_count": 1,
+        "largest_cluster_fraction": 1
+      },
+      "update_rule": "CurrentPositionAlignment"
+    },
+    {
+      "id": "SELF_ONLY_ZERO_NOISE_NEGATIVE_CONTROL",
+      "purpose": "Verify that local alignment does not create global order without inter-particle interaction",
+      "particle_count": 5,
+      "box_size": 10,
+      "interaction_radius": 0,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "seed": 11,
+      "initial_headings_rad": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "initial_positions": "five distinct x positions on y=5",
+      "execution_steps": 1,
+      "expected": {
+        "polar_order": "unchanged from initial value",
+        "mean_neighbors_excluding_self": 0,
+        "cluster_count": 5,
+        "mean_local_polar_order": null,
+        "local_order_coverage_fraction": 0
+      },
+      "update_rule": "CurrentPositionAlignment"
+    },
+    {
+      "id": "RANDOM_INITIALIZED_LOW_NOISE_EXPLORATION",
+      "purpose": "Characterize emergent order, neighbour statistics, and clustering under a seeded random initial condition",
+      "particle_count": 256,
+      "box_size": 32,
+      "interaction_radius": 1,
+      "speed": 0.03,
+      "dt": 1,
+      "angular_noise_width_rad": 0.2,
+      "seed": 20261111,
+      "execution_steps": 2000,
+      "expected": "No fixed polar-order value is claimed before exact Rust execution. Report the full trajectory, ensemble variability, transient and stationary windows.",
+      "update_rule": "CurrentPositionAlignment"
+    },
+    {
+      "id": "RANDOM_INITIALIZED_HIGH_NOISE_CONTROL",
+      "purpose": "Test sensitivity to angular disorder without declaring a universal phase boundary",
+      "particle_count": 256,
+      "box_size": 32,
+      "interaction_radius": 1,
+      "speed": 0.03,
+      "dt": 1,
+      "angular_noise_width_rad": 4,
+      "seed": 20261112,
+      "execution_steps": 2000,
+      "expected": "No fixed threshold or universal transition is asserted. Compare distributions and finite-size dependence against the low-noise profile.",
+      "update_rule": "CurrentPositionAlignment"
+    },
+    {
+      "id": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE",
+      "purpose": "Show that current-position versus next-position neighbour selection is a substantive model choice, not an innocuous implementation detail",
+      "particle_count": 2,
+      "box_size": 10,
+      "interaction_radius": 1.5,
+      "speed": 0.8,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "seed": 23,
+      "initial_particles": [
+        {
+          "x": 1,
+          "y": 1,
+          "heading_rad": 0
+        },
+        {
+          "x": 3,
+          "y": 1,
+          "heading_rad": 1.5707963267948966
+        }
+      ],
+      "execution_steps": 1,
+      "compare_update_rules": [
+        "CurrentPositionAlignment",
+        "NextPositionAlignment"
+      ],
+      "expected": {
+        "current_position_alignment": {
+          "neighbour_graph_used_for_heading_update": "two isolated self-only neighbourhoods at t",
+          "post_update_snapshot_cluster_count": 1,
+          "post_update_global_polar_order": 0.7071067811865476,
+          "post_update_headings_rad": [
+            0,
+            1.5707963267948966
+          ]
+        },
+        "next_position_alignment": {
+          "neighbour_graph_used_for_heading_update": "one connected pair at predicted positions t+dt",
+          "post_update_snapshot_cluster_count": 1,
+          "post_update_global_polar_order": 1,
+          "post_update_headings_rad": [
+            0.7853981633974483,
+            0.7853981633974483
+          ]
+        },
+        "interpretation": "The post-update positions are within the interaction radius under both rules. The discriminator is the graph used to compute the heading update: current-position uses two self-only neighbourhoods; erratum-aligned next-position uses the predicted t+dt neighbour edge. Do not infer the causal update graph from the post-update snapshot alone."
+      },
+      "interpretation": "The current-position pair is outside the radius, while their predicted next positions are inside it. Under the corrected next-position-neighbour rule, the particles align using headings at t.",
+      "update_rule": "CurrentPositionAlignment"
+    },
+    {
+      "id": "OPPOSED_LOCAL_FLOCKS_GLOBAL_CANCELLATION",
+      "purpose": "Demonstrate that global polar order can be near zero even when distinct local groups are perfectly aligned",
+      "particle_count": 6,
+      "box_size": 20,
+      "interaction_radius": 1,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "seed": 13,
+      "particles": [
+        {
+          "x": 2,
+          "y": 2,
+          "heading_rad": 0
+        },
+        {
+          "x": 2.5,
+          "y": 2,
+          "heading_rad": 0
+        },
+        {
+          "x": 2,
+          "y": 2.5,
+          "heading_rad": 0
+        },
+        {
+          "x": 12,
+          "y": 12,
+          "heading_rad": 3.141592653589793
+        },
+        {
+          "x": 12.5,
+          "y": 12,
+          "heading_rad": 3.141592653589793
+        },
+        {
+          "x": 12,
+          "y": 12.5,
+          "heading_rad": 3.141592653589793
+        }
+      ],
+      "execution_steps": 0,
+      "expected": {
+        "global_polar_order": "<1e-12",
+        "local_order_coverage_fraction": 1,
+        "mean_local_polar_order": 1,
+        "cluster_count": 2,
+        "largest_cluster_fraction": 0.5
+      },
+      "update_rule": "CurrentPositionAlignment"
+    },
+    {
+      "id": "CAUSAL_INFLUENCE_ALL_TO_ALL_INTERVENTION",
+      "purpose": "Measure downstream causal influence of one particle's imposed heading change against a matched sham trajectory with the same RNG state",
+      "particle_count": 6,
+      "box_size": 10,
+      "interaction_radius": 8,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "update_rule": "NextPositionAlignment",
+      "seed": 31,
+      "initial_particles": "six equally spaced x positions at y=5; all headings 0",
+      "intervention": {
+        "particle_index": 0,
+        "imposed_heading_rad": 1.5707963267948966,
+        "intervention_tick": 0
+      },
+      "sham": "clone the exact pre-intervention state; apply no heading change; advance one step with identical RNG state",
+      "execution_steps": 1,
+      "expected": {
+        "treated_unperturbed_particle_heading_rad": "atan2(1,5) = 0.19739555984988078",
+        "sham_unperturbed_particle_heading_rad": 0,
+        "interpretation": "A direct intervention on one agent changes the next heading of otherwise unmodified agents through all-to-all alignment."
+      }
+    },
+    {
+      "id": "CAUSAL_INFLUENCE_SELF_ONLY_NEGATIVE_CONTROL",
+      "purpose": "Verify a heading intervention has no downstream effect without inter-particle coupling",
+      "particle_count": 3,
+      "box_size": 12,
+      "interaction_radius": 0,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "update_rule": "CurrentPositionAlignment",
+      "seed": 37,
+      "initial_particles": [
+        {
+          "x": 1,
+          "y": 1,
+          "heading_rad": 0
+        },
+        {
+          "x": 5,
+          "y": 5,
+          "heading_rad": 1
+        },
+        {
+          "x": 9,
+          "y": 9,
+          "heading_rad": 2
+        }
+      ],
+      "intervention": {
+        "particle_index": 0,
+        "imposed_heading_rad": 1.5707963267948966,
+        "intervention_tick": 0
+      },
+      "sham": "clone the exact pre-intervention state; apply no heading change; advance one step with identical RNG state",
+      "execution_steps": 1,
+      "expected": {
+        "treated_particle_0_heading_rad": 1.5707963267948966,
+        "particle_1_and_2_heading_difference_vs_sham": 0,
+        "interpretation": "The intervention changes only the treated particle when every particle has a self-only neighbourhood."
+      }
+    },
+    {
+      "id": "COMMON_DRIVER_CORRELATED_MOTION_NO_INTERACTION",
+      "purpose": "Create correlated motion through a shared exogenous environmental signal while the interaction graph has zero edges",
+      "particle_count": 3,
+      "box_size": 12,
+      "interaction_radius": 0,
+      "speed": 0,
+      "dt": 1,
+      "angular_noise_width_rad": 0,
+      "update_rule": "CurrentPositionAlignment",
+      "seed": 43,
+      "initial_particles": [
+        {
+          "x": 1,
+          "y": 1,
+          "heading_rad": 0.25
+        },
+        {
+          "x": 5,
+          "y": 5,
+          "heading_rad": 0.25
+        },
+        {
+          "x": 9,
+          "y": 9,
+          "heading_rad": 0.25
+        }
+      ],
+      "intervention": {
+        "type": "COMMON_EXOGENOUS_HEADING_FIELD",
+        "heading_impulse_rad": 1.0471975511965976,
+        "tick": 0
+      },
+      "sham": "clone the exact pre-field state and apply no shared field",
+      "expected": {
+        "interaction_edges": 0,
+        "cluster_count": 3,
+        "mean_neighbors_excluding_self": 0,
+        "local_order_coverage_fraction": 0,
+        "global_polar_order_change": 0,
+        "circular_heading_change_each_particle_rad": 1.0471975511965976,
+        "interpretation": "All particles co-change because of a shared external driver, not because they influence one another. Pairwise observational dependence must not be promoted to a direct causal edge."
+      }
+    }
+  ],
+  "observables": {
+    "polar_order": "Magnitude of mean unit heading vector, [0,1]",
+    "mean_neighbors_excluding_self": "Mean number of other particles visible to each focal particle (mean directed out-degree); metric-radius mode is reciprocal, visual-sector mode may be asymmetric.",
+    "neighbor_count_variance": "Population variance of focal-agent directed visible-neighbour counts (out-degree variance).",
+    "cluster_count": "Connected components of the configured graph semantics: undirected metric graph or weakly connected projection of directed visual visibility.",
+    "largest_cluster_fraction": "Fraction of all particles in the largest connected component",
+    "mean_local_polar_order": "Mean local polar order among particles with at least one other visible neighbour; null when there are no such particles.",
+    "local_polar_order_variance": "Population variance of per-particle local polar-order values",
+    "note": "Global polar order, local polar order and interaction/cluster statistics must be reported together. A globally disordered system may contain highly ordered local clusters.",
+    "mean_cluster_size": "Mean number of particles per connected component under the declared graph semantics.",
+    "cluster_size_variance": "Population variance of connected-component sizes",
+    "mean_cluster_polar_order": "Unweighted mean polar order calculated within each connected component; distinguishes aligned opposing clusters from global disorder",
+    "cluster_polar_order_variance": "Population variance of per-component polar order",
+    "mean_clustering_coefficient_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION; checkpoint-only",
+    "mean_shortest_path_length_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION; checkpoint-only",
+    "cluster_area_perimeter_scaling_status": "NOT_IMPLEMENTED; future geometry extension",
+    "local_order_coverage_fraction": "Fraction of particles with at least one other visible neighbour; report beside the local-order mean.",
+    "mean_clustering_coefficient": "Mean Watts–Strogatz local clustering coefficient across all particles; degree 0 or 1 contributes zero",
+    "mean_shortest_path_length": "Mean unweighted shortest-path distance over connected unordered pairs only; null if there are no connected pairs",
+    "connected_pair_fraction": "Fraction of all unordered particle pairs belonging to the same connected component",
+    "nontrivial_cluster_coverage_fraction": "Fraction of particles belonging to connected components with at least two members; isolates do not count as collective clusters.",
+    "mean_nontrivial_cluster_polar_order": "Mean per-component polar order over clusters of size >=2; null if all components are singletons.",
+    "nontrivial_cluster_polar_order_variance": "Population variance of the nontrivial-cluster polar-order values; null if all components are singletons.",
+    "singleton_warning": "The unweighted mean over all connected components assigns singleton components polar order 1 by construction. Report nontrivial_cluster_coverage_fraction and mean_nontrivial_cluster_polar_order alongside the all-component statistic.",
+    "directed_interaction_edge_count": "Count of focal-agent directed visibility relations over unordered pairs.",
+    "reciprocal_interaction_pair_count": "Count of unordered pairs where both directed visibility relations exist.",
+    "interaction_reciprocity_fraction": "For directed visual visibility, fraction of directed visibility edges having a reciprocal counterpart; undefined when no directed edges exist.",
+    "graph_semantics": "Every metric row tags whether topology is an undirected metric graph or the weakly connected projection of directed visual visibility.",
+    "h0_component_persistence": {
+      "method": "deterministic H0 filtration over the weakly connected projection of visible interaction pairs",
+      "particle_birth_radius": 0,
+      "edge_activation": "strictly when periodic minimum-image distance < tested radius",
+      "interval_semantics": "finite death_radius is the merge distance; component is connected for radii strictly greater than death_radius; null death_radius is right-censored at max_radius",
+      "elder_rule": "lowest particle-index representative survives equal-birth merges",
+      "recorded_fields": [
+        "representative_particle",
+        "birth_radius",
+        "death_radius",
+        "component_size_at_end",
+        "merged_component_size"
+      ],
+      "complexity": "O(N^2 log N) pair enumeration and edge sort in the current checkpoint reference implementation",
+      "claim_scope": "structural robustness across interaction scales only; not cognition, intelligence or causal influence"
+    },
+    "periodic_convex_cluster_geometry": {
+      "method": "weakly connected interaction graph components; BFS unwraps periodic coordinates along a deterministic spanning tree; monotone-chain convex hull over unwrapped coordinates",
+      "metrics": [
+        "component_particle_count",
+        "convex_hull_vertex_count",
+        "convex_hull_area",
+        "convex_hull_perimeter",
+        "unwrapped_span_x",
+        "unwrapped_span_y",
+        "geometry_status"
+      ],
+      "statuses": {
+        "valid": "consistent unwrapping and at least three convex-hull vertices",
+        "degenerate_hull": "one or two unique hull vertices; zero area with degenerate perimeter measure",
+        "periodic_winding_detected": "a graph cycle implies a nonzero periodic winding; planar hull withheld",
+        "periodic_extent_ambiguous": "unwrapped extent exceeds half the periodic box in either dimension; planar hull withheld"
+      },
+      "caveat": "Convex hull is an upper-envelope baseline and overestimates concave cluster area; not the source's rasterized disk union or MATLAB alpha shape.",
+      "complexity": "O(N^2) pair graph construction plus per-component BFS and O(M log M) convex hull at checkpoint; not every frame of a large trajectory",
+      "independent_validation": "Tests added for analytic triangle area/perimeter, seam-crossing pair unwrapping, and torus winding rejection. Rust validation pending."
+    }
+  },
+  "benchmark_tasks": [
+    "Collective order versus independent-particle baseline",
+    "Interaction-radius and speed sensitivity",
+    "Noise-response and finite-size scaling",
+    "Cluster-size and neighbour-count distribution analysis",
+    "Temporal sampling / observability stress",
+    "Adversarial morphology-vs-mechanism test: high polar order must not be promoted to cognition or life",
+    "Neighbour-time update-rule comparison: current-position versus next-position neighbour selection under identical seeds and parameter sets",
+    "Locally ordered but globally cancelling clusters: opposite-heading clusters must show low global polar order but high local and within-cluster order",
+    "Cluster topology parity: degree, clustering coefficient and path-length scaling as a future qualification against the 2026 cluster topology paper",
+    "Local-versus-global order: detect multiple locally aligned groups whose orientations cancel globally",
+    "Local-order support: do not report perfect local order for isolated particles whose neighbourhood contains only themselves",
+    "Finite-size and density-scaling analysis across independent seeds",
+    "Causal coupling ablation: reduce or remove neighbour alignment while holding initial states and movement noise fixed",
+    "Update-rule sensitivity: compare current-position and corrected next-position neighbour-time conventions with identical initial conditions.",
+    "Network topology: compare degree distributions, local clustering coefficient and mean shortest-path length across cluster sizes and density regimes.",
+    "Causal influence: estimate downstream effects of controlled single-particle interventions against matched sham runs.",
+    "Causal-null control: show zero downstream effects when interaction coupling is absent.",
+    "Statistical information transfer versus causal influence: report observational transfer metrics separately from interventional response.",
+    "Common-driver confounding: distinguish shared external forcing from direct agent-to-agent interaction.",
+    "Causal edge null: a single-particle intervention must have zero downstream effect in an isolated system even when common-driver correlations are present.",
+    "Paired intervention/sham replay with common random numbers and per-tick response curves",
+    "Interventional influence propagation measured on untreated particles, separately for heading and position",
+    "Nontrivial cluster coherence: singleton components must not contribute perfect-order evidence",
+    "Visual-sector source reproduction using the 2026 Ramlall, Butail and Roy paper after exact source parameter admission",
+    "Forward/side/rear perception offset sweep with matched seeds and parameter controls",
+    "Visual-sector directed-edge recovery and reciprocity, including one-way visibility",
+    "Visual-field offset inference from trajectories with angular-error and calibration metrics",
+    "Compare directed out-neighbour local order with weakly connected cluster topology without conflating them",
+    "Interventional influence propagation under visual-sector perception against common-random-number sham trajectories",
+    "Asymmetric visual intervention direction: a particle that is not visible to a focal agent must not causally change that focal agent, while an actually visible particle may change its heading under intervention",
+    "Distinguish locally ordered clusters from globally aligned motion by comparing global and local polar-order distributions",
+    {
+      "id": "INTERACTION_RADIUS_H0_FILTRATION",
+      "purpose": "Determine whether connected groups are robust across scales or artifacts of one selected interaction radius",
+      "cases": [
+        "two isolated close pairs with analytically known merge radii",
+        "strict-radius exact-boundary exclusion",
+        "one-way visual visibility included only through the weakly connected projection",
+        "periodic seam-crossing pair",
+        "global translation across the periodic box"
+      ],
+      "metrics": [
+        "finite_component_death_radii",
+        "right_censored_component_count",
+        "component_size_at_merge",
+        "merge_count"
+      ],
+      "anti_leakage": "Treat each trajectory/seed as one independent system; filtration scales from one snapshot are not independent samples.",
+      "status": "IMPLEMENTED_SOURCE_TESTS_ADDED_RUST_VALIDATION_PENDING"
+    },
+    {
+      "id": "PERIODIC_CLUSTER_CONVEX_ENVELOPE",
+      "purpose": "Establish a periodic-safe convex-envelope geometry baseline without conflating it with the source alpha shape",
+      "required_controls": [
+        "analytic triangle area and perimeter",
+        "compact component crossing the periodic seam",
+        "closed component winding around the torus",
+        "extent ambiguity beyond half the box",
+        "translation invariance"
+      ],
+      "metrics": [
+        "convex_hull_area",
+        "convex_hull_perimeter",
+        "hull_vertex_count",
+        "unwrapped_spans",
+        "geometry_status"
+      ],
+      "claim_boundary": "Convex envelope is not alpha shape, not a biologically specific morphology feature, and not evidence of life.",
+      "status": "IMPLEMENTED_TESTS_ADDED_RUST_VALIDATION_PENDING"
+    }
+  ],
+  "anti_leakage": [
+    "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
+    "Keep all frames from one seed and parameter setting in the same split.",
+    "Report finite-size dependence and ensemble confidence intervals.",
+    "A test at unseen noise amplitude is not a test at unseen interaction rules; reserve whole rule variants for separate open-world evaluation.",
+    "The local-order statistic is undefined (null) when no particle has another neighbour; do not replace null with zero or one.",
+    "For all finite-size and parameter-sweep claims, independent seeds/trajectories—not frames—are the inferential units.",
+    "Record the exact update_rule with every trajectory and benchmark receipt; do not pool CurrentPositionAlignment and NextPositionAlignment results.",
+    "Network paths are computed on the instantaneous interaction graph; report the observation/update time at which the graph was constructed.",
+    "Intervention and sham trajectories must start from identical cloned state and PRNG state; the intervention itself must not consume random draws.",
+    "Report direct treatment effects, downstream effects and sham/null responses separately; transfer entropy alone is not a causal claim.",
+    "Record common environmental inputs separately from agent-to-agent interaction variables.",
+    "A common exogenous intervention affecting multiple agents is not an inter-agent causal edge; include common-driver nulls in false-edge evaluation.",
+    "Every metric snapshot includes its update_rule. Do not pool CurrentPositionAlignment and NextPositionAlignment rows or drop the rule field during export.",
+    "Visual-sector source parameter grids and original source-code outputs must be reproduced before claiming paper parity.",
+    "Do not treat frame-level observations from one visual-field trajectory as independent samples.",
+    "Record offset, aperture, radial range, update rule and graph semantics as required grouping keys.",
+    "A weakly connected component is not evidence of mutual visibility; preserve directed edge and reciprocity fields.",
+    "Any per-run time series is treated as repeated measurement; independent seed/configuration trajectories are the inferential units.",
+    "The corrected Rahman erratum-aligned neighbour-time rule and the current-position rule are separate model identities and must never be pooled in one aggregate."
+  ],
+  "reproducibility": {
+    "manifest_is_input_contract": true,
+    "output_digest_sha256": null,
+    "digest_status": "PENDING_EXACT_HEAD_RUST_EXECUTION",
+    "rust_validation_status": "NOT_RUN_IN_AUTHORING_ENVIRONMENT",
+    "no_physical_observation_claim": true,
+    "update_rule_must_be_recorded": true,
+    "erratum_comparison_pending": true,
+    "source_code_parity_status": "NOT_ESTABLISHED",
+    "exact_head_update_rule_required": true,
+    "update_rule_test": "UPDATE_RULE_NEIGHBOUR_TIME_COUNTEREXAMPLE",
+    "graph_topology_metrics_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "causal_intervention_status": "PAIRED_COUNTERFACTUAL_RUNNER_AND_COMMON_DRIVER_CONTROLS_IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "update_rule_erratum_status": "IMPLEMENTED_AS_EXPLICIT_NEXT_POSITION_ALIGNMENT_MODE; source reproduction not yet run",
+    "topology_checkpoint_schedule": "PENDING_BENCHMARK_RUNNER; initial proposal: tick 0, warm-up completion, then every 50 ticks and final tick",
+    "nontrivial_cluster_order_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "visual_sector_code_status": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "visual_field_source_profile": "benchmarks/oli/visual-field-offset-source-profile-v0.json",
+    "directional_intervention_control": "IMPLEMENTED_IN_BRANCH_AWAITING_RUST_VALIDATION",
+    "spatial_index_status": "IMPLEMENTED_IN_STEP_AND_FAST_METRICS_WITH_BRUTE_FORCE_PARITY_TESTS_AWAITING_RUST_VALIDATION",
+    "spatial_index_fallback_controls": "TESTED_IN_SOURCE_CASES_AWAITING_RUST_VALIDATION",
+    "external_reference": {
+      "repository_commit": "68dfc94192d3fb7324eb980ef095da373ddf5ec1",
+      "source_file_blob_sha": "bb483123de3351f75712877ffcf51c21d3b724ec",
+      "source_rng_bitwise_parity": false,
+      "source_float_width": 32,
+      "oli_float_width": 64,
+      "source_update_parity": "algorithmic forward-update semantics and strict-radius predicate pinned; no bitwise trajectory parity claimed"
+    }
+  },
+  "acceptance": {
+    "intervention_sham_counterfactual_parity_required": true,
+    "zero_false_causal_attribution_on_self_only_negative_control": true,
+    "common_driver_zero_edge_fixture_required": true,
+    "paired_treatment_sham_replay_required": true,
+    "common_random_numbers_must_be_identical": true,
+    "single_particle_intervention_must_have_zero_untreated_effect_on_self_only_null": true,
+    "singleton_components_must_not_count_as_nontrivial_cluster_order": true,
+    "visual_sector_forward_and_rear_controls_required": true,
+    "directed_visibility_and_reciprocity_metrics_required": true,
+    "metric_rows_must_include_perception_and_graph_semantics": true,
+    "source_paper_parameter_grid_reproduction_required_before_sota_claim": true,
+    "asymmetric_visual_intervention_direction_must_match_visibility": true,
+    "spatial_index_must_match_bruteforce_candidate_sets": true,
+    "indexed_trajectory_must_match_bruteforce_metric_and_visual_updates": true,
+    "indexed_metric_degree_reciprocity_and_local_order_must_match_bruteforce": true,
+    "performance_claim_requires_matched_wall_clock_benchmark": false,
+    "spatial_index_fallback_regimes_required": true,
+    "h0_filtration": {
+      "source_semantics": "strict open-radius graph; update rule and perception retained in report",
+      "test_requirements": [
+        "analytic merge-distance control",
+        "right-censoring at max radius",
+        "one-way visual weak projection",
+        "strict exact-boundary exclusion",
+        "periodic translation invariance"
+      ],
+      "status": "TESTS_ADDED_NOT_EXECUTED"
+    },
+    "periodic_geometry": {
+      "hull_kind": "convex_hull_only",
+      "source_alpha_shape_reproduced": false,
+      "torus_unwrap_required": true,
+      "winding_cycle_must_withhold_planar_hull": true,
+      "extent_ambiguity_must_withhold_planar_hull": true
+    }
+  },
+  "phase_diagram_manifest": "benchmarks/oli/vicsek-phase-diagram-v0.json",
+  "spatial_index_scaling_manifest": "benchmarks/oli/vicsek-spatial-index-scaling-v0.json",
+  "scaling_design": {
+    "source_reproduction_profile": "RAHMAN_2026_CLUSTER_TOPOLOGY_ERRATUM_ALIGNED",
+    "independent_oli_profile": "OLI_FIXED_DENSITY_FINITE_SIZE_NOISE_GRID",
+    "status": "PRE_REGISTERED_NOT_EXECUTED",
+    "grid_manifest": "benchmarks/oli/vicsek-phase-diagram-v0.json"
+  }
+}

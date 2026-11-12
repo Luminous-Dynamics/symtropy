@@ -1,0 +1,467 @@
+{
+  "schema_version": "oli-collective-motion-baseline-matrix-v0.1",
+  "case_id": "OLI-COLLECTIVE-DYNAMICS-BASELINE-MATRIX-001",
+  "status": "LITERATURE_PINNED_METHODS_DATA_ADMISSION_AND_REPRODUCTION_PENDING",
+  "claim_ceiling": "Task-matched comparison plan for interaction-geometry inference, relational edge inference and closed-loop collective-motion prediction; not a composite life/intelligence detector",
+  "evaluation_principle": "Baselines must be matched to the inferential task they actually solve. Do not compare one method's scalar accuracy with another method's rollout error, or treat predictive dependence as interventional causation.",
+  "baselines": [
+    {
+      "id": "IGIC_2026",
+      "family": "lagged_circular_correlation_geometry_inference",
+      "citation": "McKinney & Roy, A correlation based framework for inferring interaction geometry in collective motion, Scientific Reports (2026-08-17)",
+      "doi": "10.1038/s41598-026-63720-8",
+      "url": "https://doi.org/10.1038/s41598-026-63720-8",
+      "primary_task": "Infer metric interaction radius and sensing angle from trajectory data.",
+      "reported_claim": "99.2% overall recovery accuracy on the paper's synthetic visual-Vicsek validation data; also tests topological Vicsek and empirical Golden Shiner trajectories.",
+      "comparative_metrics": [
+        "radius_absolute_error",
+        "sensing_angle_circular_error",
+        "geometry_recovery_accuracy",
+        "lag_sensitivity",
+        "risk_coverage"
+      ],
+      "data_source": {
+        "doi": "10.17632/jwkv3cf7fs.1",
+        "url": "https://datacommons.erau.edu/datasets/jwkv3cf7fs/1",
+        "licence": "CC BY 4.0 stated on dataset page",
+        "contents_reported": [
+          "MATLAB code",
+          "synthetic visual Vicsek trajectories",
+          "synthetic topological Vicsek trajectories",
+          "Golden Shiner trajectories",
+          "analysis results"
+        ],
+        "inventory_status": "NOT_FETCHED",
+        "hashes_status": "NOT_COMPUTED",
+        "reproduction_status": "NOT_RUN"
+      },
+      "limits": "The 99.2% result is specific to synthetic visual-Vicsek geometry recovery, not causal discovery, general group intelligence, or life detection. Data package file inventory and per-file provenance still need admission.",
+      "priority": "PRIMARY_GEOMETRY_BASELINE"
+    },
+    {
+      "id": "CRI_EVOLVING_CRI_2024",
+      "family": "joint_probabilistic_heterogeneous_edge_inference",
+      "citation": "Han, Fink & Kammer, Collective relational inference for learning heterogeneous interactions, Nature Communications 15, 3191 (2024-04-12)",
+      "doi": "10.1038/s41467-024-47098-7",
+      "url": "https://doi.org/10.1038/s41467-024-47098-7",
+      "primary_task": "Infer multiple interaction types jointly while accounting for correlations among incoming edges; Evolving-CRI updates edge posteriors for changing neighbourhood topology.",
+      "reported_claim": "The paper reports improved heterogeneous interaction inference against independently inferred-edge baselines including NRI, and tests interpolation/extrapolation on an evolving-topology crystallization system. In that particle-system experiment, the interaction cutoff radius is assumed known.",
+      "comparative_metrics": [
+        "edge_type_accuracy",
+        "pairwise_force_mae",
+        "acceleration_mae",
+        "interpolation_extrapolation_gap",
+        "dynamic_edge_recovery"
+      ],
+      "code_source": {
+        "url": "https://gitlab.ethz.ch/cmbm-public/toolboxes/cri",
+        "framework": "PyTorch",
+        "retrieval_status": "NOT_FETCHED"
+      },
+      "data_source": {
+        "repository": "ETH Research Collection",
+        "handle": "https://www.research-collection.ethz.ch/handle/20.500.11850/610139",
+        "access_status": "PAGE_FETCH_BLOCKED_403",
+        "files_inventory": "NOT_FETCHED",
+        "hashes_status": "NOT_COMPUTED"
+      },
+      "limits": "CRI addresses interaction-type inference and evolving topology, not by itself metric radius/sensing-angle estimation. The cited particle experiments assume the cutoff radius is known. Preserve that assumption in comparisons.",
+      "priority": "PRIMARY_HETEROGENEOUS_EDGE_BASELINE"
+    },
+    {
+      "id": "GDP_AAAI_2024",
+      "family": "graph_dynamics_prior_relational_inference",
+      "citation": "Pan, Shi & Dokmanic, A Graph Dynamics Prior for Relational Inference, AAAI 38(13), 14508–14516 (2024)",
+      "doi": "10.1609/aaai.v38i13.29366",
+      "url": "https://doi.org/10.1609/aaai.v38i13.29366",
+      "primary_task": "Infer direct interaction graphs from observed dynamics with a structural graph-dynamics prior; jointly fit shallow one-step and polynomial multi-step models.",
+      "reported_claim": "The paper reports improved graph reconstruction and robustness to under-sampling versus earlier relational-inference methods on its evaluated tasks.",
+      "comparative_metrics": [
+        "edge_precision_recall",
+        "structural_hamming_distance",
+        "graph_posterior_calibration",
+        "sampling_rate_sensitivity",
+        "multi_step_prediction_error"
+      ],
+      "code_source": {
+        "url": "https://github.com/DaDaCheng/GDP",
+        "retrieval_status": "NOT_FETCHED"
+      },
+      "data_source": {
+        "status": "REQUIRES_SOURCE_REVIEW",
+        "note": "Recover exact datasets, generator versions, sampling rules and splits from the paper and public repository before reproducing."
+      },
+      "limits": "This is a direct interaction graph recovery comparator, not a metric-radius/sensing-angle benchmark or an intervention-based causal oracle.",
+      "priority": "PRIMARY_UNDERSAMPLING_AND_GRAPH_BASELINE"
+    },
+    {
+      "id": "PR_GNN_2026",
+      "family": "physics_regularized_closed_loop_trajectory_prediction",
+      "citation": "Liu, Li, Wang et al., Learning collective motion dynamics from trajectory data with physics-regularized graph neural networks, Complex & Intelligent Systems (published 2026-10-26)",
+      "doi": "10.1007/s40747-026-02566-z",
+      "url": "https://doi.org/10.1007/s40747-026-02566-z",
+      "primary_task": "Predict long-horizon collective motion with dynamic focal-centred graphs, learned neighbour importance, physically motivated self-motion/alignment/spatial-interaction components, multi-step rollout loss and collective-behaviour regularization.",
+      "reported_claim": "On six self-propelled-particle datasets, PR-GNN reports lower closed-loop position errors than all five evaluated baselines while preserving macroscopic indicators including polarization, rotational organization, mean speed and spatial spread.",
+      "comparative_metrics": [
+        "one_step_position_error",
+        "multi_horizon_rollout_error",
+        "closed_loop_stability",
+        "polarization_error",
+        "rotational_order_error",
+        "mean_speed_error",
+        "spatial_spread_error"
+      ],
+      "supplementary_information": {
+        "publisher_lists": "32.315 MB PDF",
+        "retrieval_status": "NOT_DOWNLOADED"
+      },
+      "licence": "Article CC BY-NC-ND 4.0. Do not assume this grants rights to third-party data, code or adapted article material.",
+      "code_and_data_availability": "The accessible main article page examined does not provide a code/data availability statement. Treat implementation and dataset access as pending; do not claim source reproduction.",
+      "limits": "PR-GNN is a trajectory-prediction and collective-organization baseline. Its reported attention weights are post-hoc relational evidence, not by themselves causal edges or interventions.",
+      "priority": "PRIMARY_CLOSED_LOOP_ROLLOUT_BASELINE"
+    },
+    {
+      "id": "VISUAL_FIELD_OFFSET_RAMLALL_2026",
+      "family": "directional_visual_field_offset_and_nonreciprocal_visibility",
+      "citation": "Ramlall, Butail & Roy, Influence of visual field offset on collective behavior: An exploration using the two-dimensional Vicsek model, Physical Review E 113, 064409 (2026-06-17)",
+      "doi": "10.1103/bbl5-1yjb",
+      "url": "https://doi.org/10.1103/bbl5-1yjb",
+      "primary_task": "Study collective dynamics under restricted visual fields offset from the particle's direction of motion, including rear-facing/flipped sensing.",
+      "reported_claim": "The paper reports near-perfect alignment and centre-of-mass clustering for a flipped/rear-facing visual field even under high noise. This is a source-paper finding; no independent reproduction has been performed.",
+      "comparative_metrics": [
+        "visual_offset_circular_error",
+        "visual_aperture_error",
+        "directed_edge_precision_recall",
+        "interaction_reciprocity_fraction",
+        "polar_order",
+        "centre_of_mass_cluster_metric",
+        "risk_coverage"
+      ],
+      "data_source": {
+        "doi": "10.17632/y8fx3shsvx.1",
+        "url": "https://datacommons.erau.edu/datasets/y8fx3shsvx/1",
+        "licence": "CC BY 4.0 declared at dataset level",
+        "contents_reported": [
+          "MATLAB scripts",
+          "simulation data analysed in the paper"
+        ],
+        "inventory_status": "NOT_FETCHED",
+        "hashes_status": "NOT_COMPUTED",
+        "reproduction_status": "NOT_RUN",
+        "note": "The public page exposes a Download All control but no individual file inventory in the retrieved rendering. Recover exact offset/aperture/noise/density grids from source files before reproduction."
+      },
+      "limits": "This is a task-specific synthetic Vicsek perception-geometry study. It does not demonstrate animal cognition, causality, biological life or intelligence. Directional visibility is not equivalent to a learned social rule.",
+      "priority": "PRIMARY_DIRECTIONAL_PERCEPTION_BASELINE"
+    },
+    {
+      "id": "SCM_NITTI_2025",
+      "family": "consensus_coupled_adaptive_stochastic_swarm_optimization_and_vehicle_search",
+      "citation": "Nitti, de Tullio, Federico & Carbone, A collective intelligence model for swarm robotics applications, Nature Communications 16, 6572 (2025-07-17)",
+      "doi": "10.1038/s41467-025-61985-7",
+      "url": "https://doi.org/10.1038/s41467-025-61985-7",
+      "primary_task": "Small-swarm optimization of bounded static/dynamic scalar landscapes, plus a computational AUV contaminant-localization proof of concept.",
+      "reported_claim": "For M <= 16 on low-dimensional 2D/3D static landscapes, SCM reports success rate equal to or higher than PSO/MIPA on 22 of 33 cases. It reports about one order of magnitude more function evaluations overall and significantly higher FE on 24 of the 33 cases. The AUV simulation reports 86% success across 100 runs for a five-AUV swarm, mean search time 20.8 ± 3.82 hours, and mean travel distance 93.8 ± 17.3 km per agent.",
+      "comparative_metrics": [
+        "success_rate_at_declared_spatial_tolerance",
+        "function_evaluations_per_success",
+        "time_to_success",
+        "energy_or_distance_per_success",
+        "communication_bytes_and_rounds",
+        "sensor_sampling_cost",
+        "dynamic_landscape_tracking_error",
+        "recovery_after_peak_advection_or_environment_shift",
+        "failure_rate_and_failure_mode"
+      ],
+      "source_data": {
+        "article_data_availability": "Supplementary Datasets 1–3 are linked by the paper and performance tables are also pointed to in the linked code/data repository.",
+        "code_repository": "https://github.com/AleNit/Swarm-Cooperation-Model",
+        "inspected_repository_commit": "d9ff09d1a8b26df01cc5937e8774018028eebe79",
+        "source_blobs": {
+          "README.md": "178fb305ad2af175d07754e4188439dd657f022a",
+          "SCM/MAIN_SCM.m": "2979c60a7c6e793035fff89efa8518947cfbda5f",
+          "SCM/MAIN_SCM_replications.m": "51516a628e4b442425f17bcf1147aa45f91cb0fe",
+          "SCM/tstep.m": "d7970b76fc23e5f562df0acbfabdc46424643053",
+          "utils/consensus.m": "bfde911960e02712893a5f45f3824d22f4c2e7e5",
+          "utils/agent_init.m": "ccf92c701200b5502071f7d6409b42ea31f2dda0",
+          "utils/getLand_SCM.m": "bb0144366fe073118ca0a982810b84fd4eb07d0e",
+          "utils/getmaxdist.m": "cda81e08ec2c50abf223d780a7c8eec02909e696",
+          "utils/compLand.m": "c353dbf560c30fe5773ea2adb9050651396856fd",
+          "utils/compLand_an.m": "f7adc3be19392056f957ab0e214ca57bbc8d8e0a",
+          "utils/LandDef.m": "fe2d5a45f3738984999e5ad445f583b3caf1a23d",
+          "utils/preplot.m": "a42571fc05ebeeaedfdcd4feb3291c8a34606bd7",
+          "utils/csq_coords/csq8.txt": "249dc03affe5c99ffdda3fdebbdd6a0f18ce6ea4",
+          "utils/csq_coords/csq16.txt": "d1a4afbfdbbbbac12235bb97247e1d3b406f91ee"
+        },
+        "zenodo_release": {
+          "doi": "10.5281/zenodo.15629696",
+          "version": "1.0",
+          "published": "2025-06-10",
+          "archive_name": "SCM.zip",
+          "archive_size_bytes": 2300000,
+          "archive_md5": "a06b3d6d3f8f9454d264e094f8d55272",
+          "repository_relation": "GitHub repository tag v1.0",
+          "rights_field": "No license value visible in the inspected Zenodo Rights metadata."
+        },
+        "software_license_status": "BLOCKED_UNVERIFIED",
+        "software_license_observation": "The inspected public GitHub repository has no LICENSE or LICENSE.txt at the root, and the inspected Zenodo record's Rights field does not provide a license value. The paper itself is open access under CC BY-NC-ND; do not infer that this licenses the separate MATLAB source code, adaptation, or redistribution.",
+        "data_license_status": "VERIFY_PER_SUPPLEMENTARY_DATASET_AND_FILE",
+        "materialized": false,
+        "file_inventory": "NOT_DOWNLOADED",
+        "per_file_sha256": null,
+        "social_kernel_status": "PUBLISHED_EQUATION_AND_PINNED_MATLAB_SOURCE_AGREE"
+      },
+      "task_protocol": {
+        "static_landscape_suite": {
+          "landscape_functions": [
+            "Ackley",
+            "Rastrigin",
+            "Schwefel",
+            "Griewank",
+            "Styblinski",
+            "fractal"
+          ],
+          "dimensions": "Paper compares 2D and 3D analytical landscapes; fractal is 2D only.",
+          "swarm_sizes": "M <= 16 target subset; original figure includes multiple M values.",
+          "replication_count": 100,
+          "stochastic_trials": "100 different Wiener processes for SCM and PSO.",
+          "success_condition": "Distance between the final swarm centroid and the true global optimum <= 0.05 * L.",
+          "stopping_condition": "Consensus integral over the preceding tau-window exceeds gamma(M)*tau, as specified in the paper.",
+          "reported_primary_metrics": [
+            "success_rate",
+            "mean_function_evaluations",
+            "standard_deviation_function_evaluations"
+          ],
+          "shared_parameters": {
+            "omega": 0.2,
+            "sigma0": 0.05,
+            "tau_over_dt": 60,
+            "sigma_max": 0.3,
+            "dimensionless_J_dt": 0.1
+          },
+          "parameter_sensitivity": "omega, tau and sigma0 sensitivity are reported in the supplementary material; recover exact sweep and selection before reproduction."
+        },
+        "repository_replication_script": {
+          "default_function": "Rastrigin",
+          "dimensions": 2,
+          "replication_count": 100,
+          "agent_count": 8,
+          "max_time": 500,
+          "dt": 0.1,
+          "tau": 6,
+          "omega": 0.2,
+          "sigma0": 0.05,
+          "sigma_max": 0.3,
+          "success_distance_threshold": 0.05,
+          "evaluation_count": "M * completed_time_steps",
+          "fixed_initial_geometry": "utils/csq_coords/csq8.txt is read by agent_init when present.",
+          "noise_seed_law": "For each replication nr (1-based), agent i (1-based) and dimension j (1-based), MATLAB rng seed = 2*i + M*(j-1) + nr - 1; a normal vector of length por.nts is drawn for that agent/dimension. Initial csq8 geometry is deterministic in the inspected checkout.",
+          "caution": "The repository script is a specific reproducibility driver; do not assume it is the entire paper figure-generation protocol. Match the release archive and supplementary datasets first."
+        },
+        "auv_proof_of_concept": {
+          "vehicle_count": 5,
+          "independent_replications": 100,
+          "search_area_km": [
+            6,
+            6
+          ],
+          "location": "Gallipoli Bay, southern Italy",
+          "depth_m": [
+            4,
+            6
+          ],
+          "current_speed_m_s": [
+            0.05,
+            0.2
+          ],
+          "tau_over_dt": 30,
+          "success_rate": 0.86,
+          "mean_search_time_hours": 20.8,
+          "search_time_sd_hours": 3.82,
+          "mean_distance_km_per_agent": 93.8,
+          "distance_sd_km_per_agent": 17.3,
+          "communication_payload": "agent location, perceived fitness/concentration, and its gradient",
+          "evidence_class": "COMPUTATIONAL_PROOF_OF_CONCEPT",
+          "limitation": "This is simulated AUV/environment coupling, not physical sea-trial evidence or verified real-world swarm deployment."
+        }
+      },
+      "model_audit": {
+        "source_model": "overdamped Langevin collective search with fitness gradient, all-to-all sinusoidal consensus coupling, fitness-weighted centroid, global consensus estimate and per-agent/global adaptive Gaussian noise",
+        "source_update": "Euler-Maruyama",
+        "key_limitation": "SCM agents do not retain a global best-so-far position; the article identifies this as a disadvantage on static landscapes and a potential advantage on evolving landscapes.",
+        "communication_assumption": "The article describes all-to-all exchange of agent position, perceived fitness and gradient. A practical bandwidth/latency/dropout budget must be tested separately.",
+        "numerical_edge_cases_to_test": [
+          "zero or near-zero mean gradient in xi = 1 / mean(norm(gradient))",
+          "coincident agents causing max pairwise distance Dmax = 0 in lambda_k = d_k/(Dmax*C)",
+          "fitness degeneracy and weighted-centroid denominator behavior",
+          "out-of-domain agent recovery and conical barrier continuation",
+          "noise adaptation division when the consensus-window difference I approaches zero",
+          "synchronous update ordering and floating-point summation"
+        ],
+        "social_kernel": {
+          "published_discrete_equation": "sin((pi/2) * position_difference)",
+          "inspected_matlab_source": "SCM/tstep.m computes sin(dx_ij.*pi/2)",
+          "source_blob_sha": "d7970b76fc23e5f562df0acbfabdc46424643053",
+          "disposition": "RECONCILED_PUBLISHED_AND_PINNED_SOURCE_AGREE",
+          "implementation": "Single ScmInteractionKernel::PublishedEquationAndMatlabSource variant; no unsupported alternative retained."
+        }
+      },
+      "comparison_rules": {
+        "must_reproduce_original_static_task_before_comparison": true,
+        "must_reproduce_dynamic_AUV_simulation_before_claiming_vehicle_generalization": true,
+        "matched_agent_count_and_sensor_budget": true,
+        "matched_environment_information": true,
+        "report_success_and_cost_as_separate_axes": true,
+        "count_function_evaluation_as_sensor_reading_and_acquisition_cost_for_robotics": true,
+        "disclose_full_network_communication_assumption": true,
+        "retain_static_vs_dynamic_landscape_strata": true,
+        "whole_environment_and_random_process_holdouts": true
+      },
+      "limitations": "SCM is a task-specific cooperative optimizer/controller, not a universal collective-intelligence metric and not evidence of biological intelligence. It does not directly address collective cognition recognition or OLI's life/agency ontology.",
+      "priority": "PRIMARY_TASK_LEVEL_COLLECTIVE_SEARCH_AND_DYNAMIC_SENSOR_LOCALIZATION_BASELINE"
+    }
+  ],
+  "matched_task_tracks": [
+    {
+      "track": "GEOMETRY_RECOVERY",
+      "question": "Can the system infer metric radius, field of view and sensing angle?",
+      "primary_baseline": "IGIC_2026",
+      "metrics": [
+        "geometry_recovery_accuracy",
+        "radius_absolute_error",
+        "sensing_angle_circular_error"
+      ],
+      "rule": "Reproduce the exact IGIC benchmark before extending to unseen parameter/seed regimes."
+    },
+    {
+      "track": "HETEROGENEOUS_DYNAMIC_EDGES",
+      "question": "Can the system infer correlated edge types and changing neighbourhood structure?",
+      "primary_baseline": "CRI_EVOLVING_CRI_2024",
+      "metrics": [
+        "edge_type_accuracy",
+        "dynamic_edge_recovery",
+        "pairwise_force_mae",
+        "interpolation_extrapolation_gap"
+      ],
+      "rule": "Keep the known-cutoff assumption explicit where the source experiment uses it."
+    },
+    {
+      "track": "UNDERSAMPLED_GRAPH_RECONSTRUCTION",
+      "question": "Can the system recover direct interactions when observation cadence hides immediate neighbours?",
+      "primary_baseline": "GDP_AAAI_2024",
+      "metrics": [
+        "edge_precision_recall",
+        "structural_hamming_distance",
+        "sampling_rate_sensitivity"
+      ],
+      "rule": "Match sampling rates, observation noise, system size and split protocol."
+    },
+    {
+      "track": "CLOSED_LOOP_COLLECTIVE_PREDICTION",
+      "question": "Can the model preserve long-horizon individual trajectories and group-level organization?",
+      "primary_baseline": "PR_GNN_2026",
+      "metrics": [
+        "multi_horizon_rollout_error",
+        "closed_loop_stability",
+        "polarization_error",
+        "spatial_spread_error"
+      ],
+      "rule": "Compare on the same six source datasets and exact rollout protocol when those materials become available."
+    },
+    {
+      "track": "INTERVENTIONAL_CAUSAL_INFLUENCE",
+      "question": "Does changing one agent's state alter another agent's subsequent behaviour?",
+      "primary_baseline": "KNOWN_TRUTH_STRUCTURAL_INTERVENTION_ORACLE",
+      "metrics": [
+        "interventional_effect_error",
+        "edge_direction_accuracy",
+        "common_driver_false_edge_rate",
+        "treatment_sham_replay_parity"
+      ],
+      "rule": "Observational graph inference is not sufficient; require randomized/simulated intervention and matched sham controls."
+    },
+    {
+      "track": "DIRECTIONAL_VISUAL_PERCEPTION",
+      "question": "Can the system recover focal-agent visual-field offset/aperture and the resulting directed visibility graph?",
+      "primary_baseline": "VISUAL_FIELD_OFFSET_RAMLALL_2026",
+      "metrics": [
+        "visual_offset_circular_error",
+        "visual_aperture_error",
+        "directed_edge_precision_recall",
+        "interaction_reciprocity_fraction",
+        "risk_coverage"
+      ],
+      "rule": "Admit the source MATLAB parameter grid and reproduce first. Keep directed out-neighbours separate from weakly connected topology; a connected pair need not see one another mutually."
+    },
+    {
+      "track": "COLLECTIVE_SEARCH_AND_DYNAMIC_SENSOR_LOCALIZATION",
+      "question": "Can a small mobile group locate a static or evolving scalar signal source using local measurements and bounded communication, and what are the success/resource trade-offs versus optimization and control baselines?",
+      "primary_baseline": "SCM_NITTI_2025",
+      "metrics": [
+        "success_rate",
+        "function_evaluations_per_success",
+        "time_to_success",
+        "distance_or_energy_per_success",
+        "communication_cost",
+        "dynamic_peak_tracking_error",
+        "recovery_after_source_advection"
+      ],
+      "rule": "Reproduce the source profile before comparison. A high success rate cannot hide sensor, travel, communication or time costs; simulated AUV results are not physical sea-trial evidence."
+    }
+  ],
+  "oli_extensions": [
+    "Cross-track calibration: geometry, edge type, rollout prediction and causal effect must retain separate outputs and uncertainty.",
+    "Topology mismatch: distinguish a calibrated effective interaction scale from an asserted physical radius when the true graph is topological.",
+    "Common-driver confounding: two agents responding to one exogenous process must not be assigned a direct causal edge without intervention evidence.",
+    "Nonreciprocity: infer directed influence when A affects B but B does not affect A.",
+    "Temporal aliasing: quantify how downsampling changes inferred neighbours, edge recovery and lag estimates.",
+    "Closed-loop mechanism challenge: compare forecast fidelity with recovery of the correct mechanism; a model may predict well with a wrong graph.",
+    "Model inadequacy: withhold qualification where the true generator is outside the candidate model family.",
+    "Visual-sector perception: support forward, side and flipped/rear visual fields with explicit half-aperture and offset; record directed out-neighbours, reciprocity and graph semantics.",
+    "Directed visibility versus weak connectivity: topology projections may describe components, but they must never be substituted for directed perception or causal influence.",
+    "Visual offset inference: measure circular offset error and aperture error under whole-seed and whole-parameter-regime holdouts.",
+    "Visual-field source reproduction: recover the companion MATLAB package, exact parameter grid and file-level hashes before comparing against reported source results.",
+    "Collective search/resource efficiency: compare SCM, PSO, MIPA, centralized search, independent local search and OLI intervention-guided portfolios on identical static and evolving landscapes.",
+    "Communication realism: add bandwidth, latency, packet-loss, intermittent-contact and stale-state conditions; the SCM paper assumes full-network exchange of position, fitness and gradient.",
+    "Sensor economics: price every function evaluation as a sensor visit/sample, energy draw, navigation time and sample acquisition; report success-cost Pareto curves.",
+    "Dynamic target resilience: test peak motion/advection, multiple peaks, changing field topology, sensor dropout and shifting optima; compare tracking lag and re-localization cost.",
+    "Reproduction-integrity: reconcile paper Eq. (2) sine scaling with the inspected MATLAB tstep.m source before claiming exact reproduction."
+  ],
+  "qualification_targets": {
+    "note": "Research targets only; none are current results.",
+    "matched_source_reproduction": "Reproduce each baseline's original metric on its own exact data/splits before declaring comparative improvement.",
+    "closed_loop": "On matched data, target at least 10% lower multi-horizon normalized rollout error than the strongest reproduced baseline, while not degrading registered macroscopic observables beyond their declared uncertainty.",
+    "geometry": "Maintain IGIC-level performance on the original synthetic visual-Vicsek test distribution, then improve selective risk and calibration on whole-seed/whole-regime holdouts.",
+    "graph": "At least 90% edge-direction recovery on held-out asymmetric known-truth systems at a preregistered sampling envelope.",
+    "null_control": "Zero false causal edges on at least 299 independent common-driver/no-coupling systems to target a one-sided 95% exact upper false-positive bound below 1%.",
+    "adequacy": "Zero false model-adequacy passes on the public omitted-mechanism negative controls.",
+    "abstention": "Report risk-coverage curves and prefer abstention over high-confidence geometry/edge claims under topology mismatch or inadequate cadence.",
+    "collective_search_resource_efficiency": {
+      "baseline": "SCM_NITTI_2025",
+      "target": "At matched success probability and safety envelope, reduce total sensor/function evaluations or energy-distance cost by >=20% on at least two reproduced benchmark strata; alternatively increase success probability by >=5 percentage points at equal total cost.",
+      "status": "PROPOSED_NOT_ACHIEVED"
+    },
+    "dynamic_target_tracking": {
+      "baseline": "SCM_NITTI_2025",
+      "target": "Reduce median peak-relocalization lag by >=20% on matched moving-peak/advection cases without increasing mission abort rate.",
+      "status": "PROPOSED_NOT_ACHIEVED"
+    },
+    "communication_resilience": {
+      "target": "Maintain registered success probability under explicit bandwidth, latency, packet-loss and intermittent-contact sweeps; report the break point and communication cost.",
+      "status": "PROPOSED_NOT_ACHIEVED"
+    }
+  },
+  "source_admission": {
+    "IGIC": "File inventory, exact seeds/splits, per-file hashes and rights must be verified.",
+    "CRI": "Verify GitLab source commit, ETH dataset file inventory and licences, and reproduce source splits.",
+    "GDP": "Pin GitHub commit, datasets and environment, then reproduce under-sampling cases.",
+    "PR_GNN": "Inspect supplementary PDF and contact authors for code/data where not stated; respect CC BY-NC-ND article licence and third-party data rights.",
+    "VISUAL_FIELD_OFFSET_RAMLALL_2026": "Acquire dataset DOI 10.17632/y8fx3shsvx.1, enumerate files, pin MATLAB versions/scripts and per-file hashes, verify data rights and reproduce exact source offset/aperture/noise/density/seed conditions before any SOTA claim.",
+    "SCM_NITTI_2025": "Source commit, key file blob SHAs and Zenodo v1.0 archive digest pinned. The published discrete equation and pinned MATLAB tstep.m both use sin((pi/2)*delta_x); the earlier apparent 2/pi alternative was a misreading and has been removed from the Rust reference. MATLAB consensus-window indexing remains a genuine discrete sensitivity: inclusive source endpoints create tau_steps+1 samples and first update at tau_steps+1, unlike the publication's equal disjoint half-windows. Software licence remains unverified; no MATLAB code copied."
+  },
+  "results": {
+    "baseline_reproductions_completed": [],
+    "comparative_results": null,
+    "source_data_materialized": false,
+    "qualified_sota_improvement": false
+  }
+}

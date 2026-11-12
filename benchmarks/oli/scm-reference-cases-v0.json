@@ -1,0 +1,273 @@
+{
+  "schema_version": "oli-scm-rust-reference-v0.1",
+  "case_id": "OLI-SCM-INDEPENDENT-RUST-REFERENCE-001",
+  "status": "RUST_REFERENCE_TASK_METRICS_ADDED_VALIDATION_PENDING",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH_SIMULATION",
+  "claim_ceiling": "Independent CPU implementation of the published and pinned MATLAB consensus-coupled adaptive-noise swarm optimizer with numerical safeguards; not yet a source-reproduced, qualified optimizer, or physical swarm controller",
+  "source_profile": "benchmarks/oli/scm-collective-optimization-source-profile-v0.json",
+  "implementation": {
+    "repository": "https://github.com/Luminous-Dynamics/symtropy",
+    "crate": "symtropy-lifesim-core",
+    "module": "crates/domains/symtropy-lifesim-core/src/scm.rs",
+    "exported_from": "crates/domains/symtropy-lifesim-core/src/lib.rs",
+    "implementation_style": "independently authored Rust reference from published mathematical description",
+    "copied_source_code": false,
+    "arithmetic": "IEEE754_f64",
+    "rng": "xorshift64 + Box-Muller",
+    "rng_compatible_with_matlab": false,
+    "update_order": "synchronous; all agents update from a shared previous-state snapshot",
+    "function_evaluation_accounting": "initial observations are cached; first step counts initial plus successor observations; each subsequent step counts the newly observed successor positions",
+    "transactional_update": "Agent positions, RNG, tick, successor cache and consensus history commit only after the complete successor observation batch validates. Successfully acquired initial observations and their function-evaluation cost remain cached/countable if a later successor batch fails; no partial movement commits.",
+    "function_evaluation_contract": "Step candidates and successor observations are built locally; positions, RNG state, cache, tick, history and counters commit only if all successor observations validate.",
+    "social_kernel": {
+      "formula": "sin((pi/2) * (x_i - x_j))",
+      "published_discrete_update": "The published discrete-time model equation uses pi/2 inside the sine.",
+      "pinned_matlab_source": "SCM/tstep.m at the pinned upstream commit uses sin(dx_ij.*pi/2).",
+      "disposition": "RECONCILED_PUBLISHED_AND_SOURCE_AGREE",
+      "implementation": "ScmInteractionKernel::PublishedEquationAndMatlabSource"
+    }
+  },
+  "numerical_assurance": {
+    "fitness_range": [
+      0,
+      1
+    ],
+    "zero_mean_gradient": "Use finite zero fitness-gradient gain and flag gradient_degenerate; avoid xi = 1/0.",
+    "zero_agent_spread": "Set all lambda weights to zero and flag swarm_spread_degenerate; avoid division by Dmax=0.",
+    "equal_fitness": "Use unweighted centroid fallback if shifted fitness weights sum below epsilon.",
+    "zero_consensus_trend": "Do not update sigma if I1-I2 is exactly zero; avoid 0/0.",
+    "out_of_domain": "Use declared conical barrier gradient with H=-0.5 and angle=20 degrees; outside observations carry zero fitness.",
+    "transaction": "Candidate positions, RNG state, observations, history and counters commit only if all successor observations succeed.",
+    "deterministic_replay": "Exact same seed, initial state, config, landscape and supported platform replay identically within this Rust implementation."
+  },
+  "unit_controls": [
+    {
+      "id": "PUBLISHED_AND_MATLAB_KERNEL_CONCORDANCE",
+      "purpose": "Prevent regression to the previously misread 2/pi sine argument and pin the shared published/MATLAB update term.",
+      "formula": "sin((pi/2) * position_difference)",
+      "expected": "ScmInteractionKernel::PublishedEquationAndMatlabSource.argument_scale() == pi/2",
+      "test": "published_discrete_equation_and_matlab_source_share_pi_over_two_kernel"
+    },
+    {
+      "id": "DETERMINISTIC_REPLAY",
+      "purpose": "Ensure deterministic reproducibility of the independent Rust implementation.",
+      "initial_positions": [
+        [
+          0.2,
+          0.2
+        ],
+        [
+          0.8,
+          0.2
+        ],
+        [
+          0.5,
+          0.8
+        ]
+      ],
+      "landscape": "unit-bounded quadratic centered at [0.6,0.6]",
+      "seed": 42,
+      "steps": 20,
+      "expected": "complete ScmModel state and ScmStepReport sequence compare equal",
+      "test": "deterministic_seed_replays_the_rust_reference"
+    },
+    {
+      "id": "COINCIDENT_AGENT_ZERO_SPREAD",
+      "purpose": "Exercise Dmax=0 without NaN or infinite lambda weights.",
+      "initial_positions": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ]
+      ],
+      "landscape": "unit-bounded quadratic",
+      "expected": "swarm_spread_degenerate is true and positions/consensus remain finite",
+      "test": "coincident_agents_have_finite_zero_noise_weights"
+    },
+    {
+      "id": "ZERO_GRADIENT_FALLBACK",
+      "purpose": "Exercise xi=1/mean(||gradient||) at a zero-gradient state.",
+      "initial_positions": [
+        [
+          0.2,
+          0.2
+        ],
+        [
+          0.8,
+          0.2
+        ],
+        [
+          0.5,
+          0.8
+        ]
+      ],
+      "landscape": "constant fitness 0.5 with zero gradient",
+      "expected": "gradient_degenerate is true; finite zero-gain fallback is used",
+      "test": "zero_mean_gradient_uses_finite_gain_fallback"
+    },
+    {
+      "id": "FLAT_CONSENSUS_NOISE_ADAPTATION",
+      "purpose": "Exercise I1-I2=0 in the adaptive sigma update.",
+      "initial_positions": [
+        [
+          0.5,
+          0.5
+        ],
+        [
+          0.5,
+          0.5
+        ]
+      ],
+      "landscape": "constant fitness 0.5 with zero gradient",
+      "tau_steps": 4,
+      "steps": 8,
+      "expected": "sigma remains finite and at its initial value",
+      "test": "flat_consensus_window_does_not_generate_nan_noise_adaptation"
+    },
+    {
+      "id": "OUT_OF_DOMAIN_BARRIER",
+      "purpose": "Verify finite conical barrier observations for positions outside the unit domain.",
+      "initial_positions": [
+        [
+          1.1,
+          0.5
+        ],
+        [
+          1.2,
+          0.5
+        ]
+      ],
+      "landscape": "unit-bounded quadratic; not queried for out-of-domain points",
+      "expected": "both agents are recorded as outside-domain; state remains finite",
+      "test": "out_of_domain_agents_use_a_finite_conical_barrier_observation"
+    },
+    {
+      "id": "OBSERVATION_COST_ACCOUNTING",
+      "purpose": "Count initial and successor observations explicitly.",
+      "agent_count": 3,
+      "steps": 2,
+      "expected": {
+        "first_step_evaluations": 6,
+        "second_step_evaluations": 3,
+        "total_evaluations": 9
+      },
+      "test": "function_evaluations_are_explicitly_counted"
+    },
+    {
+      "id": "FAIL_CLOSED_TRANSACTION",
+      "purpose": "Inject a failure during successor observation and ensure no partial model-state commit.",
+      "agent_count": 3,
+      "injected_failure": "landscape evaluator fails on first successor observation after initial three-agent observation",
+      "expected": "On a successor observation error, agent positions, RNG and tick remain unchanged; a completed initial batch remains cached and counted; every attempted successor observation up to and including the failed call is also counted.",
+      "test": "failed_successor_observation_preserves_motion_but_accounts_initial_measurements"
+    },
+    {
+      "id": "FITNESS_BOUNDS",
+      "purpose": "Prevent out-of-range dimensionless fitness from contaminating centroid/consensus calculations.",
+      "injected_input": "fitness=1.1",
+      "expected": "InvalidLandscapeObservation",
+      "test": "rejects_fitness_outside_dimensionless_unit_interval"
+    },
+    {
+      "id": "CONSENSUS_WINDOW_CONVENTION_DIVERGENCE",
+      "purpose": "Prove the paper and repository discrete window schedules have distinct first update ticks.",
+      "tau_steps": 4,
+      "steps": 5,
+      "expected": {
+        "published_equal_half_intervals_first_update_tick": 4,
+        "repository_matlab_inclusive_endpoints_first_update_tick": 5
+      },
+      "test": "consensus_window_conventions_have_distinct_first_update_ticks"
+    },
+    {
+      "id": "EXTREME_FINITE_BARRIER_GRADIENT",
+      "purpose": "Ensure a finite but very large out-of-domain coordinate cannot overflow while normalizing the conical barrier gradient.",
+      "initial_positions": [
+        [
+          1.7976931348623157e+308,
+          0.5
+        ],
+        [
+          1.7976931348623157e+308,
+          0.5
+        ]
+      ],
+      "expected": "Barrier gradient and updated state remain finite; both agents remain explicitly outside the dimensionless domain.",
+      "test": "extreme_finite_out_of_domain_position_keeps_barrier_gradient_finite"
+    }
+  ],
+  "rust_source_tests": {
+    "count": 13,
+    "status": "ADDED_NOT_EXECUTED_IN_AUTHORING_ENVIRONMENT",
+    "rustfmt": "NOT_RUN",
+    "cargo_test": "NOT_RUN",
+    "exact_head_ci": "PENDING",
+    "transactional_failure_injection_test": true,
+    "consensus_window_variant_test": true,
+    "partial_observation_attempt_accounting": true,
+    "extreme_finite_barrier_gradient": true
+  },
+  "source_reproduction": {
+    "matlab_source_copied": false,
+    "source_data_downloaded": false,
+    "bitwise_matlab_parity": false,
+    "paper_source_equation_resolved": true,
+    "static_benchmark_reproduced": false,
+    "dynamic_auv_simulation_reproduced": false,
+    "status": "NOT_A_SOURCE_REPRODUCTION",
+    "independent_rust_reference_added": true,
+    "independent_rust_reference_validated": false,
+    "resolution": "Published discrete equation and pinned MATLAB tstep.m both use sin((pi/2)*delta_x); the earlier claimed 2/pi paper variant was a misreading and has been removed."
+  },
+  "qualification_next_steps": [
+    "Run exact-head fmt, strict Clippy and unit tests for the single published/MATLAB pi/2 social kernel; keep consensus-window indexing as a separate discrete reproduction sensitivity.",
+    "Run cargo fmt and cargo test for symtropy-lifesim-core at the exact PR head.",
+    "Have an independent reviewer compare the Rust update against both the article equations and the pinned tstep/consensus source.",
+    "Add normalized Ackley and Rastrigin landscapes and reproduce the SCM 100-replication source protocol.",
+    "Implement matched PSO and MIPA baselines with identical initial states, sensor/function-evaluation budgets and success criteria.",
+    "Add moving peak/advection scenarios and network constraints before comparing the AUV proof-of-concept."
+  ],
+  "consensus_window_controls": [
+    {
+      "id": "PUBLISHED_EQUAL_HALF_INTERVALS",
+      "implementation": "ScmConsensusWindow::PublishedEqualHalfIntervals",
+      "semantics": "Exactly tau_steps consensus observations; split into two disjoint equal halves; first update at tick tau_steps.",
+      "purpose": "Implements the equal-width continuous-time half-window description."
+    },
+    {
+      "id": "REPOSITORY_MATLAB_INCLUSIVE_ENDPOINTS",
+      "implementation": "ScmConsensusWindow::RepositoryMatlabInclusiveEndpoints",
+      "semantics": "tau_steps+1 observations; early sum uses tau_steps/2+1 values, late sum uses tau_steps/2 values; first update at tick tau_steps+1.",
+      "purpose": "Reproduces the inclusive array-index schedule observed in the inspected MATLAB replication loop; not identical to the paper's equal half-interval definition."
+    }
+  ],
+  "task_performance_outputs": {
+    "current_population_metrics": [
+      "best_agent_fitness",
+      "best_agent_index",
+      "mean_agent_fitness",
+      "agent_fitness_variance"
+    ],
+    "historical_progress": "best_fitness_seen is monotonic and includes all successfully acquired initial and successor observations",
+    "separation_rule": "SCM consensus, centroid cohesion, and communication degree are reported separately from task fitness; no consensus value is a substitute for objective performance.",
+    "accounting": "Under the cache contract, N agents over T completed steps require N*(T+1) objective evaluations: N initial evaluations plus N successor evaluations per step."
+  },
+  "new_tests": [
+    "task_fitness_metrics_are_reported_separately_from_consensus",
+    "best_fitness_seen_is_monotonic_and_includes_initial_observations",
+    "communication_topology_baselines_share_exact_objective_evaluation_budgets"
+  ],
+  "topology_controls": [
+    {
+      "id": "NO_COMMUNICATION_EXPLICIT_EMPTY_ADJACENCY",
+      "implementation": "ScmCommunicationTopology::NoCommunication",
+      "purpose": "Independent local-update baseline; must create no adjacency even for duplicate positions",
+      "expected": "mean_communicating_neighbors=0 and isolated_agents=agent_count for every valid population",
+      "test": "no_communication_topology_never_connects_coincident_agents"
+    }
+  ]
+}

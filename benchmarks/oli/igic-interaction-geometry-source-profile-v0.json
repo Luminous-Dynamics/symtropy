@@ -1,0 +1,179 @@
+{
+  "schema_version": "oli-external-source-profile-v0.1",
+  "case_id": "OLI-ACTIVE-GEOMETRY-IGIC-001",
+  "status": "SOURCE_PINNED_DATA_NOT_MATERIALIZED_REPRODUCTION_NOT_RUN",
+  "evidence_class": "LITERATURE_AND_PUBLIC_DATASET_REFERENCE",
+  "claim_ceiling": "Reproduction and extension of a trajectory-based interaction-geometry inference task; no claim of biological intelligence, agency, or general life detection",
+  "publication": {
+    "title": "A correlation based framework for inferring interaction geometry in collective motion",
+    "authors": [
+      "Ian McKinney",
+      "Subhradeep Roy"
+    ],
+    "journal": "Scientific Reports",
+    "published": "2026-08-17",
+    "doi": "10.1038/s41598-026-63720-8",
+    "url": "https://doi.org/10.1038/s41598-026-63720-8",
+    "primary_finding": "IGIC uses lagged circular correlations between neighbour-averaged headings and subsequent individual motion across candidate interaction geometries; it reports 99.2% overall geometry-recovery accuracy on its synthetic visual-Vicsek validation data."
+  },
+  "source_dataset": {
+    "title": "A correlation based framework for inferring interaction geometry in collective motion (data and code)",
+    "contributors": [
+      "Ian McKinney",
+      "Subhradeep Roy"
+    ],
+    "dataset_doi": "10.17632/jwkv3cf7fs.1",
+    "dataset_url": "https://datacommons.erau.edu/datasets/jwkv3cf7fs/1",
+    "published": "2026-07-21",
+    "version": 1,
+    "dataset_license": "CC BY 4.0",
+    "reported_contents": [
+      "MATLAB implementation of IGIC",
+      "synthetic visual Vicsek trajectory data",
+      "synthetic topological Vicsek trajectory data",
+      "empirical Golden Shiner trajectory data",
+      "analysis results"
+    ],
+    "materialized": false,
+    "file_inventory": null,
+    "per_file_sha256": null,
+    "software_license_status": "VERIFY_PER_FILE_METADATA; dataset-level CC BY metadata is not automatically a software package licence",
+    "admission_note": "The source dataset page identifies a CC BY 4.0 licence and describes the contents, but the file inventory and per-file hashes have not yet been acquired in this branch."
+  },
+  "method_summary": {
+    "name": "Interaction Geometry Inference using Correlation (IGIC)",
+    "inferred_parameters": [
+      "interaction_radius",
+      "sensing_angle"
+    ],
+    "estimator": "Lagged circular correlation between neighbour-averaged headings and subsequent focal-agent motion, evaluated across candidate interaction geometries.",
+    "synthetic_visual_vicsek_claim": "99.2% overall recovery accuracy across a broad range of sensing angles and noise intensities, as reported by the authors.",
+    "topological_vicsek_claim": "Evaluated under deliberate model mismatch where no true metric interaction radius exists; the method estimates an effective interaction scale imposed by the topological neighbourhood.",
+    "empirical_claim": "Applied to Golden Shiner trajectories; inferred radius and sensing-angle estimates were reported as consistent with independently reported visual range and blind zones; robustness to temporal lag was assessed.",
+    "comparisons_reported": [
+      "transfer entropy",
+      "mutual information"
+    ]
+  },
+  "task_definition": {
+    "source_faithful_reproduction": "Reproduce the paper's exact synthetic visual Vicsek conditions, candidate geometry grid, lag range, trajectory selection, preprocessing, score calculation and reported 99.2% metric.",
+    "primary_outputs": [
+      "radius_estimate",
+      "sensing_angle_estimate",
+      "candidate_geometry_score_surface",
+      "lag_sensitivity_profile",
+      "uncertainty_or_confidence"
+    ],
+    "extension_outputs": [
+      "interaction_geometry_recovery_under_topology_shift",
+      "false_metric_radius_confidence",
+      "interventional_edge_effect",
+      "observability_abstention"
+    ]
+  },
+  "baselines": [
+    "source IGIC implementation",
+    "oracle known interaction geometry",
+    "lagged circular correlation with the same candidate geometry grid",
+    "transfer entropy baseline from source paper",
+    "mutual information baseline from source paper",
+    "cross-correlation baseline",
+    "interventional adjacency oracle on synthetic systems"
+  ],
+  "evaluation_protocol": {
+    "source_split": "Recover and preserve exact splits/seeds from the source code; do not invent a nominally equivalent split and call it reproduction.",
+    "grouping_units": [
+      "independent simulation seed",
+      "complete trajectory",
+      "parameter configuration",
+      "noise regime",
+      "sensing-angle regime"
+    ],
+    "anti_leakage": "All frames from the same simulated trajectory remain in one split. Frames, overlapping windows and time lags from one run are not independent test systems.",
+    "holdouts": [
+      "unseen random seeds",
+      "unseen sensing angles",
+      "unseen angular-noise regimes",
+      "unseen particle densities",
+      "unseen speed regimes",
+      "topological neighbour rule",
+      "unknown interaction geometry",
+      "irregular sampling and missing trajectory segments"
+    ],
+    "empirical_data": "Keep Golden Shiner trajectories as an independent empirical evaluation stratum; do not mix them into synthetic train/test partitions."
+  },
+  "metrics": {
+    "exact_source_metric": "paper-defined recovery accuracy, reproduced exactly",
+    "regression": [
+      "interaction-radius absolute error",
+      "sensing-angle circular error",
+      "joint geometry recovery"
+    ],
+    "robustness": [
+      "lag sensitivity",
+      "noise sensitivity",
+      "sampling-cadence sensitivity",
+      "model-mismatch calibration"
+    ],
+    "uncertainty": [
+      "risk-coverage curve",
+      "abstention quality",
+      "interval coverage"
+    ],
+    "causal": [
+      "interventional edge precision/recall",
+      "treatment-effect error",
+      "common-driver false-edge rate"
+    ],
+    "efficiency": [
+      "runtime",
+      "memory",
+      "trajectory length required",
+      "cost-to-resolution"
+    ]
+  },
+  "oli_extensions": [
+    {
+      "id": "GEOMETRY_TOPOLOGY_SHIFT",
+      "question": "Does the inferred metric radius remain calibrated when the true interaction rule is topological and no unique physical radius exists?",
+      "expected_behavior": "Return an effective-scale estimate with explicit model-mismatch status, not a falsely precise physical radius."
+    },
+    {
+      "id": "COMMON_DRIVER_FALSE_EDGE",
+      "question": "Can a trajectory-only estimator distinguish direct interaction from shared exogenous drive?",
+      "expected_behavior": "Statistical dependence may remain, but causal-edge attribution must abstain or be rejected without intervention evidence."
+    },
+    {
+      "id": "NONRECIPROCAL_INTERACTIONS",
+      "question": "Can an asymmetric interaction network be recovered when A influences B but B does not influence A?",
+      "expected_behavior": "Direction and edge strength are separately estimated and calibrated."
+    },
+    {
+      "id": "TEMPORAL_ALIASING",
+      "question": "How does irregular sampling or observation cadence slower than the interaction response affect recovered geometry?",
+      "expected_behavior": "Report degraded power and explicit temporal-aliasing risk; do not silently interpret the wrong lag as a different mechanism."
+    },
+    {
+      "id": "CAUSAL_INTERVENTION",
+      "question": "Do controlled single-agent perturbations confirm the geometry inferred from observational trajectories?",
+      "expected_behavior": "Compare intervention-derived response graph against the IGIC/correlation graph and quantify disagreements."
+    }
+  ],
+  "acceptance": {
+    "source_faithful_reproduction_required": true,
+    "exact_dataset_file_inventory_required": true,
+    "per_file_hashes_required": true,
+    "split_and_seed_recovery_required": true,
+    "whole_trajectory_holdouts_required": true,
+    "topology_shift_abstention_required": true,
+    "causal_and_predictive_outputs_separated": true,
+    "no_fish_trajectory_leakage_into_synthetic_holdouts": true
+  },
+  "results": {
+    "paper_claim_reproduced": false,
+    "source_dataset_materialized": false,
+    "independent_99_2_percent_reproduction": false,
+    "oli_extension_results": null,
+    "output_digest_sha256": null
+  }
+}

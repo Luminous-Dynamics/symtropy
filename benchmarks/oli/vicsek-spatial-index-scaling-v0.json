@@ -1,0 +1,217 @@
+{
+  "schema_version": "oli-performance-benchmark-v0.1",
+  "case_id": "OLI-VICSEK-SPATIAL-INDEX-SCALING-001",
+  "status": "BENCHMARK_CONTRACT_FROZEN_HARNESS_AND_HARDWARE_RUNS_PENDING",
+  "claim_ceiling": "Matched performance and exactness benchmark for deterministic Vicsek spatial candidate indexing; no measured speedup is claimed",
+  "implementation": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "crate": "symtropy-lifesim-core",
+    "module": "vicsek",
+    "implementation_branch": "research/oli-vicsek-active-matter-v0",
+    "spatial_index": "PeriodicNeighborIndex",
+    "brute_force_reference": "Test-only all-pairs reference path for exact one-step and metric parity",
+    "index_policy": {
+      "cell_width": "box_size / floor(box_size / interaction_radius), with at least one cell per axis",
+      "query": "periodic 3x3 cell stencil",
+      "candidate_order": "ascending particle index after sort/dedup",
+      "exact_filter": "minimum-image radius plus configured directed visual-sector visibility",
+      "fallback": [
+        "interaction radius <= 0",
+        "required cell_count > 1,000,000 per axis",
+        "cell_width < interaction_radius"
+      ],
+      "asymptotic_claim": "Expected near O(N + local candidate work) for bounded density and short range; worst case O(N^2)."
+    }
+  },
+  "workload_design": {
+    "particle_counts": [
+      128,
+      256,
+      512,
+      1024,
+      2048,
+      4096,
+      8192,
+      16384
+    ],
+    "number_density_particles_per_area": [
+      0.5,
+      2,
+      8
+    ],
+    "interaction_radius_in_mean_spacing_units": [
+      1,
+      2,
+      4
+    ],
+    "parameterization": {
+      "mean_inter_particle_spacing": "ell = 1 / sqrt(number_density)",
+      "box_size": "L = sqrt(particle_count / number_density)",
+      "interaction_radius": "R = radius_spacing_factor * ell",
+      "rationale": "Holding R/ell fixed approximately holds expected local geometric degree fixed as N grows; this is the primary bounded-density scaling track."
+    },
+    "perception_modes": [
+      {
+        "id": "METRIC_RECIPROCAL",
+        "kind": "MetricRadius"
+      },
+      {
+        "id": "VISUAL_FORWARD",
+        "kind": "VisualSector",
+        "half_aperture_rad": 1.0471975511965976,
+        "offset_rad": 0
+      },
+      {
+        "id": "VISUAL_REAR",
+        "kind": "VisualSector",
+        "half_aperture_rad": 1.0471975511965976,
+        "offset_rad": 3.141592653589793
+      }
+    ],
+    "update_rules": [
+      "CurrentPositionAlignment",
+      "NextPositionAlignment"
+    ],
+    "angular_noise_width_rad": [
+      0,
+      0.4,
+      2
+    ],
+    "speed_in_spacing_units_per_dt": 0.2,
+    "dt": 1,
+    "steps_per_timed_run": 200,
+    "warmup_steps": 50,
+    "repetitions_per_case": 10,
+    "seeds": "10 deterministic seeds per configuration; seed_i = 20261111 + i for i in 0..9"
+  },
+  "separate_stress_regimes": [
+    {
+      "id": "DENSE_NEIGHBOUR_WORST_CASE",
+      "purpose": "Expose worst-case behavior when most agents are inside the radial interaction range.",
+      "particle_count": [
+        128,
+        512,
+        2048,
+        4096
+      ],
+      "box_size": "sqrt(N / 2)",
+      "interaction_radius": "0.45 * box_size",
+      "expectation": "Spatial pruning benefit may collapse; exact parity remains required."
+    },
+    {
+      "id": "PATHOLOGICAL_FALLBACK",
+      "purpose": "Ensure fallback selection has low overhead and preserves exact semantics.",
+      "radii": [
+        "0",
+        "1e-12 * box_size",
+        "1.1 * box_size"
+      ],
+      "expectation": "Brute-force candidate path selected; output parity remains exact."
+    },
+    {
+      "id": "SKEWED_OCCUPANCY",
+      "purpose": "Stress uneven cell occupancy and clustered particle distributions.",
+      "initial_conditions": [
+        "uniform_random",
+        "two_dense_clusters",
+        "one_dense_cluster_plus_dilute_background"
+      ],
+      "expectation": "Report maximum/mean occupancy, candidate counts and tail latency; no silent truncation."
+    }
+  ],
+  "timing_contract": {
+    "environment_metadata_required": [
+      "CPU_model",
+      "core_count",
+      "memory",
+      "OS_kernel",
+      "rustc_version",
+      "target_triple",
+      "compiler_flags",
+      "commit_sha",
+      "power_mode_or_governor",
+      "thermal_state"
+    ],
+    "timing_stages": [
+      "model_initialization",
+      "cell_index_build",
+      "candidate_enumeration_and_sort",
+      "exact_visibility_predicates",
+      "state_update_and_noise",
+      "fast_metrics",
+      "full_topology_checkpoint",
+      "end_to_end_step",
+      "fixed_trajectory"
+    ],
+    "aggregation": [
+      "raw_samples",
+      "median",
+      "p90",
+      "p95",
+      "minimum",
+      "maximum",
+      "standard_deviation"
+    ],
+    "throughput_units": [
+      "particle_updates_per_second",
+      "trajectory_steps_per_second"
+    ],
+    "diagnostics": [
+      "mean_candidates_per_particle",
+      "p95_candidates_per_particle",
+      "max_cell_occupancy",
+      "fallback_frequency",
+      "directed_edges_per_particle",
+      "reciprocity_fraction",
+      "peak_memory_bytes"
+    ],
+    "warmup_and_repetitions": "Do not time compilation, data setup or first-time allocator initialization as steady-state kernel work. Retain raw run records."
+  },
+  "correctness_gates": {
+    "exact_particle_state_parity": true,
+    "exact_prng_state_parity": true,
+    "exact_directed_edge_and_reciprocity_parity": true,
+    "exact_local_order_and_degree_parity": true,
+    "all_bruteforce_radius_neighbours_present_in_candidate_sets": true,
+    "sorted_candidate_order_required": true,
+    "fallback_cases_exercised": true,
+    "no_metric_or_update_semantic_changes_to_improve_performance": true
+  },
+  "proposed_targets_not_results": {
+    "end_to_end_speedup_at_n_ge_4096_and_bounded_density": 5,
+    "maximum_small_n_regression_fraction_at_n_le_256": 0.1,
+    "exact_same_platform_state_parity": true,
+    "severe_regression_in_dense_worst_case_must_be_reported": true,
+    "no_universal_speedup_claim_across_hardware": true
+  },
+  "result_schema": {
+    "hardware_id": null,
+    "commit_sha": null,
+    "compiler_environment_digest": null,
+    "case_id": null,
+    "seed": null,
+    "perception": null,
+    "update_rule": null,
+    "density": null,
+    "radius_spacing_factor": null,
+    "particle_count": null,
+    "stage_timings_ns": null,
+    "raw_samples": null,
+    "median_ns": null,
+    "p95_ns": null,
+    "particle_updates_per_second": null,
+    "mean_candidates_per_particle": null,
+    "max_cell_occupancy": null,
+    "fallback_used": null,
+    "output_state_digest_sha256": null,
+    "exact_reference_parity": null
+  },
+  "reproducibility": {
+    "source_manifest_is_input_contract": true,
+    "raw_results_committed": false,
+    "hardware_runs_pending": true,
+    "rust_execution_pending": true,
+    "performance_claim_status": "NOT_MEASURED",
+    "output_digest": null
+  }
+}
