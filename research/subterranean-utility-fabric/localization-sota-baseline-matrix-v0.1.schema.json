@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/subterranean-utility-fabric-v0-1/research/subterranean-utility-fabric/localization-sota-baseline-matrix-v0.1.schema.json",
+  "title": "SUF localization state-of-the-art baseline matrix v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "snapshot_date",
+    "status",
+    "claim_ceiling",
+    "populations",
+    "studies",
+    "global_rules"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "suf.localization_sota_matrix.v0.1"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "status": {
+      "enum": [
+        "literature_baseline_inventory_not_reproduced",
+        "partially_reproduced",
+        "reproduced"
+      ]
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 30
+    },
+    "populations": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "state",
+          "unit",
+          "methods",
+          "do_not_pool_with"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "unit": {
+            "type": "string"
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "do_not_pool_with": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "studies": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "year",
+          "doi",
+          "population",
+          "sensors",
+          "methods",
+          "reported",
+          "data_access",
+          "limits"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": "integer"
+          },
+          "published": {
+            "type": "string"
+          },
+          "doi": {
+            "type": "string"
+          },
+          "population": {
+            "type": "string"
+          },
+          "secondary_population": {
+            "type": "string"
+          },
+          "applicability": {
+            "type": "string"
+          },
+          "sensors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "reported": {
+            "type": "object"
+          },
+          "data_access": {
+            "type": "string"
+          },
+          "repository": {
+            "type": "string"
+          },
+          "limits": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "global_rules": {
+      "type": "array",
+      "minItems": 4,
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}
