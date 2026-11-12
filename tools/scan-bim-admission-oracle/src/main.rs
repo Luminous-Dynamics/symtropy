@@ -285,18 +285,18 @@ fn evaluate(case: &Case) -> (String, Vec<String>) {
         RegistrationStabilityStatus::Stable => {
             match survey_evidence.registration_stability_receipt.status {
                 EvidenceStatus::Qualified => {
-                if !survey_evidence
-                    .registration_stability_receipt
-                    .receipt_sha256
-                    .as_deref()
-                    .is_some_and(is_sha256)
-                {
-                    return decision(
-                        "STALE_OR_INVALID_EVIDENCE",
-                        "REGISTRATION_STABILITY_RECEIPT_MISSING_OR_INVALID",
-                    );
+                    if !survey_evidence
+                        .registration_stability_receipt
+                        .receipt_sha256
+                        .as_deref()
+                        .is_some_and(is_sha256)
+                    {
+                        return decision(
+                            "STALE_OR_INVALID_EVIDENCE",
+                            "REGISTRATION_STABILITY_RECEIPT_MISSING_OR_INVALID",
+                        );
+                    }
                 }
-            }
                 EvidenceStatus::Unresolved => {
                     return decision(
                         "REQUEST_ADDITIONAL_OBSERVATION",
