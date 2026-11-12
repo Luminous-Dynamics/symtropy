@@ -41,7 +41,11 @@ pub struct MarineCsvFileAudit {
     pub anomaly_free_rows: Option<u64>,
     pub anomaly_rows: Option<u64>,
     pub event_latency_eligible: bool,
-    pub time_rel_strictly_increasing: bool,
+    /// Zero-based column selected from the publisher's role-specific header.
+    pub time_column_index: usize,
+    pub time_column_name: String,
+    pub time_column_unit: String,
+    pub time_strictly_increasing: bool,
     pub missing_channel_columns: Vec<String>,
     pub fully_missing_column_count: usize,
     pub empty_cell_count: u64,
@@ -121,14 +125,14 @@ impl fmt::Display for CsvAuditError {
             ),
             Self::InvalidHeaderSemantics(path) => write!(
                 formatter,
-                "CSV first-row time/label headers do not match the published schema: {path}"
+                "CSV role-specific time/label headers or time units do not match the published schema: {path}"
             ),
             Self::InvalidTimeValue(path) => write!(
                 formatter,
-                "Time_rel contains a missing, non-numeric or non-finite value: {path}"
+                "selected time column contains a missing, non-numeric or non-finite value: {path}"
             ),
             Self::NonMonotonicTime(path) => {
-                write!(formatter, "Time_rel is not strictly increasing: {path}")
+                write!(formatter, "selected time column is not strictly increasing: {path}")
             }
             Self::InvalidAnomalyLabel(path) => write!(
                 formatter,
@@ -252,7 +256,7 @@ pub fn audit_marine_dataset_directory(
     }
 
     Ok(MarineCsvAuditReport {
-        schema_version: "symtropy-marine-csv-audit-v0.1".into(),
+        schema_version: "symtropy-marine-csv-audit-v0.2".into(),
         dataset_doi: "10.5281/zenodo.19857425".into(),
         archive_sha256: archive_sha256.to_owned(),
         archive_csv_entry_count,
@@ -309,20 +313,34 @@ pub fn audit_marine_csv_bytes(
         .iter()
         .map(|value| normalize_header(value))
         .collect::<Vec<_>>();
-    if headers.first().map(String::as_str) != Some("Time_abs")
-        || headers.get(1).map(String::as_str) != Some("Time_rel")
-    {
-        return Err(CsvAuditError::InvalidHeaderSemantics(
-            relative_path.to_owned(),
-        ));
-    }
-    if role == MarineCsvRole::FaultScenario
-        && headers.get(2).map(String::as_str) != Some("Anomaly State")
-    {
-        return Err(CsvAuditError::InvalidHeaderSemantics(
-            relative_path.to_owned(),
-        ));
-    }
+    let (time_column_index, time_column_name, time_column_unit) = match role {
+        MarineCsvRole::BaselineReference => {
+            // Reference_Data.csv has its own publisher schema: one "Time"
+            // column in seconds. It does not contain the scenario-only
+            // Time_abs/Time_rel/Anomaly State prefix.
+            if headers.first().map(String::as_str) != Some("Time")
+                || normalize_header(&records[2][0]) != "sec"
+            {
+                return Err(CsvAuditError::InvalidHeaderSemantics(
+                    relative_path.to_owned(),
+                ));
+            }
+            (0usize, "Time".to_owned(), "sec".to_owned())
+        }
+        MarineCsvRole::FaultScenario => {
+            if headers.first().map(String::as_str) != Some("Time_abs")
+                || headers.get(1).map(String::as_str) != Some("Time_rel")
+                || headers.get(2).map(String::as_str) != Some("Anomaly State")
+                || normalize_header(&records[2][0]) != "sec"
+                || normalize_header(&records[2][1]) != "sec"
+            {
+                return Err(CsvAuditError::InvalidHeaderSemantics(
+                    relative_path.to_owned(),
+                ));
+            }
+            (1usize, "Time_rel".to_owned(), "sec".to_owned())
+        }
+    };
 
     let data_records = &records[MARINE_CSV_HEADER_ROWS..];
     let data_rows = data_records.len() as u64;
@@ -340,7 +358,7 @@ pub fn audit_marine_csv_bytes(
             }
         }
 
-        let time_text = record[1].trim();
+        let time_text = record[time_column_index].trim();
         let time_value = time_text
             .parse::<f64>()
             .map_err(|_| CsvAuditError::InvalidTimeValue(relative_path.to_owned()))?;
@@ -390,7 +408,10 @@ pub fn audit_marine_csv_bytes(
         event_latency_eligible: role == MarineCsvRole::FaultScenario
             && anomaly_free_rows > 0
             && anomaly_rows > 0,
-        time_rel_strictly_increasing: true,
+        time_column_index,
+        time_column_name,
+        time_column_unit,
+        time_strictly_increasing: true,
         missing_channel_columns,
         fully_missing_column_count: fully_missing_columns.len(),
         empty_cell_count,
@@ -644,22 +665,35 @@ mod tests {
         let mut names = (0..columns)
             .map(|index| format!("Channel {index}"))
             .collect::<Vec<_>>();
-        names[0] = "Time_abs".into();
-        names[1] = "Time_rel".into();
         if labels.is_some() {
+            names[0] = "Time_abs".into();
+            names[1] = "Time_rel".into();
             names[2] = "Anomaly State".into();
+        } else {
+            names[0] = "Time".into();
         }
-        let row_one = (0..columns)
+        let mut row_one = (0..columns)
             .map(|index| format!("signal_{index}"))
             .collect::<Vec<_>>();
-        let row_two = (0..columns).map(|_| "unit".to_owned()).collect::<Vec<_>>();
+        let mut row_two = (0..columns).map(|_| "unit".to_owned()).collect::<Vec<_>>();
+        if labels.is_some() {
+            row_one[0] = String::new();
+            row_one[1] = String::new();
+            row_two[0] = "sec".into();
+            row_two[1] = "sec".into();
+        } else {
+            row_one[0] = "T".into();
+            row_two[0] = "sec".into();
+        }
         let mut rows = vec![names, row_one, row_two];
         for (index, time) in ["0.0", "0.05"].iter().enumerate() {
             let mut row = vec!["2026-01-01T00:00:00Z".to_owned(); columns];
-            row[0] = "2026-01-01T00:00:00Z".into();
-            row[1] = (*time).into();
-            if let Some(labels) = labels {
-                row[2] = labels[index].into();
+            if labels.is_some() {
+                row[0] = "2026-01-01T00:00:00Z".into();
+                row[1] = (*time).into();
+                row[2] = labels.unwrap()[index].into();
+            } else {
+                row[0] = (*time).into();
             }
             rows.push(row);
         }
@@ -692,6 +726,10 @@ mod tests {
         assert_eq!(result.anomaly_rows, Some(1));
         assert!(result.event_latency_eligible);
         assert_eq!(result.column_count, 73);
+        assert_eq!(result.time_column_index, 1);
+        assert_eq!(result.time_column_name, "Time_rel");
+        assert_eq!(result.time_column_unit, "sec");
+        assert!(result.time_strictly_increasing);
         assert_eq!(result.sha256, sha256_bytes(&bytes));
     }
 
@@ -701,8 +739,39 @@ mod tests {
         let result = audit_marine_csv_bytes("baseline.csv", &bytes).unwrap();
         assert_eq!(result.role, MarineCsvRole::BaselineReference);
         assert_eq!(result.column_count, 70);
+        assert_eq!(result.time_column_index, 0);
+        assert_eq!(result.time_column_name, "Time");
+        assert_eq!(result.time_column_unit, "sec");
+        assert!(result.time_strictly_increasing);
         assert_eq!(result.anomaly_free_rows, None);
         assert!(!result.event_latency_eligible);
+    }
+
+    #[test]
+    fn baseline_and_scenario_time_columns_are_not_interchangeable() {
+        let mut wrong_baseline = fixture_csv(70, None);
+        let source = String::from_utf8(wrong_baseline.clone()).unwrap();
+        let mut rows = source.lines().map(str::to_owned).collect::<Vec<_>>();
+        let mut header = rows[0].split(',').map(str::to_owned).collect::<Vec<_>>();
+        header[0] = "Time_rel".into();
+        rows[0] = header.join(",");
+        wrong_baseline = rows.join("\n").into_bytes();
+        assert_eq!(
+            audit_marine_csv_bytes("wrong-baseline.csv", &wrong_baseline),
+            Err(CsvAuditError::InvalidHeaderSemantics("wrong-baseline.csv".into()))
+        );
+
+        let mut wrong_units = fixture_csv(73, Some(["0", "1"]));
+        let source = String::from_utf8(wrong_units.clone()).unwrap();
+        let mut rows = source.lines().map(str::to_owned).collect::<Vec<_>>();
+        let mut units = rows[2].split(',').map(str::to_owned).collect::<Vec<_>>();
+        units[1] = "rpm".into();
+        rows[2] = units.join(",");
+        wrong_units = rows.join("\n").into_bytes();
+        assert_eq!(
+            audit_marine_csv_bytes("wrong-units.csv", &wrong_units),
+            Err(CsvAuditError::InvalidHeaderSemantics("wrong-units.csv".into()))
+        );
     }
 
     #[test]
