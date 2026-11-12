@@ -104,9 +104,7 @@ pub struct TangentToCotangentOperator<
     _frames: PhantomData<(Domain, Codomain)>,
 }
 
-fn validate_operator<const N: usize>(
-    matrix: &Matrix<N>,
-) -> Result<(), OperatorConditionErrorV1> {
+fn validate_operator<const N: usize>(matrix: &Matrix<N>) -> Result<(), OperatorConditionErrorV1> {
     if N == 0 {
         return Err(OperatorConditionErrorV1::ZeroDimension);
     }
@@ -116,9 +114,7 @@ fn validate_operator<const N: usize>(
     Ok(())
 }
 
-fn validate_profile(
-    profile: OperatorConditionProfileV1,
-) -> Result<(), OperatorConditionErrorV1> {
+fn validate_profile(profile: OperatorConditionProfileV1) -> Result<(), OperatorConditionErrorV1> {
     if !profile.relative_jacobi_tolerance.is_finite()
         || profile.relative_jacobi_tolerance <= 0.0
         || profile.relative_jacobi_tolerance >= 1.0
@@ -177,11 +173,7 @@ fn right_whiten_domain<const N: usize>(
     Ok(result)
 }
 
-fn whiten_tangent_to_tangent<
-    Domain: CoordinateFrame,
-    Codomain: CoordinateFrame,
-    const N: usize,
->(
+fn whiten_tangent_to_tangent<Domain: CoordinateFrame, Codomain: CoordinateFrame, const N: usize>(
     operator: &Matrix<N>,
     domain: &Metric<Domain, N>,
     codomain: &Metric<Codomain, N>,
@@ -236,10 +228,8 @@ fn normalized_column_correlation<const N: usize>(
     left: usize,
     right: usize,
 ) -> Result<f64, OperatorConditionErrorV1> {
-    let left_norm = (0..N)
-        .fold(0.0_f64, |norm, row| norm.hypot(matrix[row][left]));
-    let right_norm = (0..N)
-        .fold(0.0_f64, |norm, row| norm.hypot(matrix[row][right]));
+    let left_norm = (0..N).fold(0.0_f64, |norm, row| norm.hypot(matrix[row][left]));
+    let right_norm = (0..N).fold(0.0_f64, |norm, row| norm.hypot(matrix[row][right]));
     if !left_norm.is_finite() || !right_norm.is_finite() {
         return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
     }
@@ -270,10 +260,8 @@ fn singular_values_one_sided_jacobi<const N: usize>(
         let mut rotated_any_pair = false;
         for left in 0..N {
             for right in (left + 1)..N {
-                let left_norm = (0..N)
-                    .fold(0.0_f64, |norm, row| norm.hypot(work[row][left]));
-                let right_norm = (0..N)
-                    .fold(0.0_f64, |norm, row| norm.hypot(work[row][right]));
+                let left_norm = (0..N).fold(0.0_f64, |norm, row| norm.hypot(work[row][left]));
+                let right_norm = (0..N).fold(0.0_f64, |norm, row| norm.hypot(work[row][right]));
                 if !left_norm.is_finite() || !right_norm.is_finite() {
                     return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
                 }
@@ -335,9 +323,8 @@ fn singular_values_one_sided_jacobi<const N: usize>(
     let mut maximum_correlation = 0.0_f64;
     for left in 0..N {
         for right in (left + 1)..N {
-            maximum_correlation = maximum_correlation.max(
-                normalized_column_correlation(&work, left, right)?.abs(),
-            );
+            maximum_correlation =
+                maximum_correlation.max(normalized_column_correlation(&work, left, right)?.abs());
         }
     }
     if !converged && maximum_correlation > profile.relative_jacobi_tolerance {
@@ -345,9 +332,7 @@ fn singular_values_one_sided_jacobi<const N: usize>(
     }
 
     let mut singular_values: Vec<f64> = (0..N)
-        .map(|column| {
-            (0..N).fold(0.0_f64, |norm, row| norm.hypot(work[row][column]))
-        })
+        .map(|column| (0..N).fold(0.0_f64, |norm, row| norm.hypot(work[row][column])))
         .collect();
     if singular_values.iter().any(|value| !value.is_finite()) {
         return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
@@ -426,8 +411,7 @@ impl<Domain: CoordinateFrame, Codomain: CoordinateFrame, const N: usize>
         codomain_metric: &Metric<Codomain, N>,
         profile: OperatorConditionProfileV1,
     ) -> Result<OperatorConditionReceiptV1, OperatorConditionErrorV1> {
-        let whitened =
-            whiten_tangent_to_tangent(&self.matrix, domain_metric, codomain_metric)?;
+        let whitened = whiten_tangent_to_tangent(&self.matrix, domain_metric, codomain_metric)?;
         assess_whitened(whitened, profile)
     }
 }
@@ -454,8 +438,7 @@ impl<Domain: CoordinateFrame, Codomain: CoordinateFrame, const N: usize>
         codomain_metric: &Metric<Codomain, N>,
         profile: OperatorConditionProfileV1,
     ) -> Result<OperatorConditionReceiptV1, OperatorConditionErrorV1> {
-        let whitened =
-            whiten_tangent_to_cotangent(&self.matrix, domain_metric, codomain_metric)?;
+        let whitened = whiten_tangent_to_cotangent(&self.matrix, domain_metric, codomain_metric)?;
         assess_whitened(whitened, profile)
     }
 }
@@ -463,9 +446,7 @@ impl<Domain: CoordinateFrame, Codomain: CoordinateFrame, const N: usize>
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        CartesianQ, DenseY, MetricProfileV1, Rebasis,
-    };
+    use crate::{CartesianQ, DenseY, MetricProfileV1, Rebasis};
 
     fn metric_profile() -> MetricProfileV1 {
         MetricProfileV1::default()
@@ -518,8 +499,7 @@ mod tests {
         )
         .unwrap();
         let operator =
-            TangentToCotangentOperator::<CartesianQ, CartesianQ, 3>::new(*metric.matrix())
-                .unwrap();
+            TangentToCotangentOperator::<CartesianQ, CartesianQ, 3>::new(*metric.matrix()).unwrap();
         let receipt = operator
             .assess(&metric, &metric, operator_profile())
             .unwrap();
@@ -534,16 +514,10 @@ mod tests {
 
     #[test]
     fn tangent_operator_spectrum_matches_known_weighted_diagonal_map() {
-        let domain = Metric::<CartesianQ, 2>::admit(
-            [[1.0, 0.0], [0.0, 4.0]],
-            metric_profile(),
-        )
-        .unwrap();
-        let codomain = Metric::<DenseY, 2>::admit(
-            [[9.0, 0.0], [0.0, 16.0]],
-            metric_profile(),
-        )
-        .unwrap();
+        let domain =
+            Metric::<CartesianQ, 2>::admit([[1.0, 0.0], [0.0, 4.0]], metric_profile()).unwrap();
+        let codomain =
+            Metric::<DenseY, 2>::admit([[9.0, 0.0], [0.0, 16.0]], metric_profile()).unwrap();
         let identity =
             TangentToTangentOperator::<CartesianQ, DenseY, 2>::new([[1.0, 0.0], [0.0, 1.0]])
                 .unwrap();
@@ -558,15 +532,11 @@ mod tests {
 
     #[test]
     fn rank_deficient_operator_never_receives_a_finite_condition_claim() {
-        let metric = Metric::<CartesianQ, 2>::admit(
-            [[1.0, 0.0], [0.0, 1.0]],
-            metric_profile(),
-        )
-        .unwrap();
-        let operator = TangentToCotangentOperator::<CartesianQ, CartesianQ, 2>::new(
-            [[1.0, 0.0], [0.0, 0.0]],
-        )
-        .unwrap();
+        let metric =
+            Metric::<CartesianQ, 2>::admit([[1.0, 0.0], [0.0, 1.0]], metric_profile()).unwrap();
+        let operator =
+            TangentToCotangentOperator::<CartesianQ, CartesianQ, 2>::new([[1.0, 0.0], [0.0, 0.0]])
+                .unwrap();
         let receipt = operator
             .assess(&metric, &metric, operator_profile())
             .unwrap();
@@ -614,18 +584,10 @@ mod tests {
             TangentToCotangentOperator::<DenseY, DenseY, 3>::new(operator_y_matrix).unwrap();
 
         let receipt_q = operator_q
-            .assess(
-                &metric_domain_q,
-                &metric_codomain_q,
-                operator_profile(),
-            )
+            .assess(&metric_domain_q, &metric_codomain_q, operator_profile())
             .unwrap();
         let receipt_y = operator_y
-            .assess(
-                &metric_domain_y,
-                &metric_codomain_y,
-                operator_profile(),
-            )
+            .assess(&metric_domain_y, &metric_codomain_y, operator_profile())
             .unwrap();
 
         assert_eq!(receipt_q.numerical_rank, receipt_y.numerical_rank);
@@ -661,16 +623,14 @@ mod tests {
         let correct = multiply(&multiply(&s_t, &a_q), rebasis.matrix());
         let wrong = multiply(&multiply(rebasis.matrix(), &a_q), &s_t);
 
-        let correct_receipt =
-            TangentToCotangentOperator::<DenseY, DenseY, 3>::new(correct)
-                .unwrap()
-                .assess(&metric_y, &metric_y, operator_profile())
-                .unwrap();
-        let wrong_receipt =
-            TangentToCotangentOperator::<DenseY, DenseY, 3>::new(wrong)
-                .unwrap()
-                .assess(&metric_y, &metric_y, operator_profile())
-                .unwrap();
+        let correct_receipt = TangentToCotangentOperator::<DenseY, DenseY, 3>::new(correct)
+            .unwrap()
+            .assess(&metric_y, &metric_y, operator_profile())
+            .unwrap();
+        let wrong_receipt = TangentToCotangentOperator::<DenseY, DenseY, 3>::new(wrong)
+            .unwrap()
+            .assess(&metric_y, &metric_y, operator_profile())
+            .unwrap();
         assert!(
             (correct_receipt.condition_estimate.unwrap()
                 - wrong_receipt.condition_estimate.unwrap())
