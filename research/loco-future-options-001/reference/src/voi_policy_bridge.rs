@@ -14,8 +14,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::EvidenceManifest;
 use super::policy_tree::{
-    BeliefNode, BeliefStateReceipt, FinitePolicyTree, ObservationDisposition,
-    PolicyTransition, StateActionEvidence,
+    BeliefNode, BeliefStateReceipt, FinitePolicyTree, ObservationDisposition, PolicyTransition,
+    StateActionEvidence,
 };
 
 pub const VOI_JOINT_MASS_SCALE_PPB: u64 = 1_000_000_000;
@@ -182,9 +182,7 @@ fn unique_strings<'a>(
     Ok(output)
 }
 
-fn observation_group_id(
-    binding: &ProbeObservationClassView,
-) -> String {
+fn observation_group_id(binding: &ProbeObservationClassView) -> String {
     match binding.disposition {
         ObservationDisposition::Qualified => binding.equivalence_class.clone(),
         ObservationDisposition::Unknown => UNKNOWN_OBSERVATION_CLASS.to_owned(),
@@ -395,14 +393,14 @@ pub fn build_probe_policy_prefix(
         }
     }
     if observations.len() != decisions.len()
-        || decisions.keys().any(|outcome| !observations.contains_key(outcome))
+        || decisions
+            .keys()
+            .any(|outcome| !observations.contains_key(outcome))
     {
         return Err(VoiPolicyBridgeError::OutcomeCoverageMismatch);
     }
     for (outcome_id, observation) in &observations {
-        if continuations[outcome_id].post_state_set_digest
-            != observation.belief_state_set_digest
-        {
+        if continuations[outcome_id].post_state_set_digest != observation.belief_state_set_digest {
             return Err(VoiPolicyBridgeError::ObservationClassConflict(
                 observation.equivalence_class.clone(),
             ));
@@ -464,10 +462,8 @@ pub fn build_probe_policy_prefix(
     }
 
     let mut observed_support = BTreeSet::new();
-    let mut successor_by_group: BTreeMap<
-        String,
-        BTreeMap<String, BeliefStateReceipt>,
-    > = BTreeMap::new();
+    let mut successor_by_group: BTreeMap<String, BTreeMap<String, BeliefStateReceipt>> =
+        BTreeMap::new();
     let mut transition_by_group: BTreeMap<String, Vec<PolicyTransition>> = BTreeMap::new();
     for successor in &input.physical_successors {
         require_nonempty(&[
@@ -513,9 +509,15 @@ pub fn build_probe_policy_prefix(
                 to_state_id: successor.state.state_id.clone(),
                 from_state_digest: context.initial_state.physical_state_digest.clone(),
                 to_state_digest: successor.state.physical_state_digest.clone(),
-                predecessor_reserve_state_digest: context.initial_state.reserve_state_digest.clone(),
+                predecessor_reserve_state_digest: context
+                    .initial_state
+                    .reserve_state_digest
+                    .clone(),
                 resulting_reserve_state_digest: successor.state.reserve_state_digest.clone(),
-                predecessor_thermal_state_digest: context.initial_state.thermal_state_digest.clone(),
+                predecessor_thermal_state_digest: context
+                    .initial_state
+                    .thermal_state_digest
+                    .clone(),
                 resulting_thermal_state_digest: successor.state.thermal_state_digest.clone(),
                 next_belief_node_id: format!("{}/observation/{}", context.root_node_id, group),
                 physically_possible: true,
@@ -561,16 +563,11 @@ pub fn build_probe_policy_prefix(
         root.transitions.extend(transitions.iter().cloned());
     }
     root.transitions.sort_by(|a, b| {
-        (
-            &a.next_belief_node_id,
-            &a.to_state_id,
-            &a.receipt_digest,
-        )
-            .cmp(&(
-                &b.next_belief_node_id,
-                &b.to_state_id,
-                &b.receipt_digest,
-            ))
+        (&a.next_belief_node_id, &a.to_state_id, &a.receipt_digest).cmp(&(
+            &b.next_belief_node_id,
+            &b.to_state_id,
+            &b.receipt_digest,
+        ))
     });
 
     let mut nodes = vec![root];
@@ -583,7 +580,9 @@ pub fn build_probe_policy_prefix(
         let state_map = successor_by_group.get(&group).cloned().unwrap_or_default();
         if state_map.is_empty() {
             return Err(VoiPolicyBridgeError::MissingSuccessorForBranchOutcome(
-                support.iter().find(|pair| outcome_to_group.get(&pair.outcome_id) == Some(&group))
+                support
+                    .iter()
+                    .find(|pair| outcome_to_group.get(&pair.outcome_id) == Some(&group))
                     .cloned()
                     .unwrap_or(BranchOutcomeKey {
                         branch_id: "unknown".to_owned(),
@@ -636,7 +635,9 @@ pub fn build_probe_policy_prefix(
             .iter()
             .map(|state_id| StateActionEvidence {
                 state_id: state_id.clone(),
-                complete: supporting_receipts.iter().all(|value| !value.trim().is_empty()),
+                complete: supporting_receipts
+                    .iter()
+                    .all(|value| !value.trim().is_empty()),
                 receipt_digest: observation_receipt_digest.clone(),
                 supporting_receipt_digests: supporting_receipts.clone(),
                 admitted_action_ids: common_vec.clone(),
@@ -699,9 +700,18 @@ mod tests {
 
     fn input() -> VoiPolicyBridgeInput {
         let branch_outcomes = vec![
-            BranchOutcomeKey { branch_id: "b1".into(), outcome_id: "rough-a".into() },
-            BranchOutcomeKey { branch_id: "b2".into(), outcome_id: "rough-b".into() },
-            BranchOutcomeKey { branch_id: "b3".into(), outcome_id: "unknown".into() },
+            BranchOutcomeKey {
+                branch_id: "b1".into(),
+                outcome_id: "rough-a".into(),
+            },
+            BranchOutcomeKey {
+                branch_id: "b2".into(),
+                outcome_id: "rough-b".into(),
+            },
+            BranchOutcomeKey {
+                branch_id: "b3".into(),
+                outcome_id: "unknown".into(),
+            },
         ];
         let decisions = vec![
             VoiOutcomeDecisionView {
@@ -849,11 +859,19 @@ mod tests {
         source.outcome_decisions[1].joint_mass_ppb = 300_000_000;
         source.unknown_outcome_mass_ppb = 0;
         let prefix = build_probe_policy_prefix(&source).unwrap();
-        assert!(prefix.tree.nodes[0]
-            .transitions
-            .iter()
-            .any(|edge| edge.to_state_id == "s3"));
-        assert!(prefix.tree.nodes.iter().any(|node| node.state_ids.contains(&"s3".to_owned())));
+        assert!(
+            prefix.tree.nodes[0]
+                .transitions
+                .iter()
+                .any(|edge| edge.to_state_id == "s3")
+        );
+        assert!(
+            prefix
+                .tree
+                .nodes
+                .iter()
+                .any(|node| node.state_ids.contains(&"s3".to_owned()))
+        );
     }
 
     #[test]
@@ -889,8 +907,7 @@ mod tests {
         let mut source = input();
         source.continuation_evidence[2].robust_admitted_action_ids =
             vec!["fallback".into(), "retreat".into()];
-        source.outcome_decisions[2].admitted_action_ids =
-            vec!["fallback".into(), "retreat".into()];
+        source.outcome_decisions[2].admitted_action_ids = vec!["fallback".into(), "retreat".into()];
         assert!(matches!(
             build_probe_policy_prefix(&source),
             Err(VoiPolicyBridgeError::UnknownFallbackMismatch(_))
@@ -919,8 +936,16 @@ mod tests {
         source.observations[0].receipt_digest = String::new();
         source.observations[1].receipt_digest = String::new();
         let prefix = build_probe_policy_prefix(&source).unwrap();
-        let unknown = prefix.tree.nodes.iter().find(|node| node.node_id.ends_with(UNKNOWN_OBSERVATION_CLASS)).unwrap();
-        assert_eq!(unknown.observation_disposition, ObservationDisposition::Unknown);
+        let unknown = prefix
+            .tree
+            .nodes
+            .iter()
+            .find(|node| node.node_id.ends_with(UNKNOWN_OBSERVATION_CLASS))
+            .unwrap();
+        assert_eq!(
+            unknown.observation_disposition,
+            ObservationDisposition::Unknown
+        );
         assert_eq!(unknown.state_ids.len(), 2);
     }
 
@@ -936,8 +961,16 @@ mod tests {
         source.observations[0].receipt_digest = String::new();
         source.observations[1].receipt_digest = String::new();
         let prefix = build_probe_policy_prefix(&source).unwrap();
-        let invalid = prefix.tree.nodes.iter().find(|node| node.node_id.ends_with(INVALID_OBSERVATION_CLASS)).unwrap();
-        assert_eq!(invalid.observation_disposition, ObservationDisposition::Invalid);
+        let invalid = prefix
+            .tree
+            .nodes
+            .iter()
+            .find(|node| node.node_id.ends_with(INVALID_OBSERVATION_CLASS))
+            .unwrap();
+        assert_eq!(
+            invalid.observation_disposition,
+            ObservationDisposition::Invalid
+        );
     }
 
     #[test]
@@ -964,8 +997,8 @@ mod tests {
     #[test]
     fn downstream_policy_tree_remains_unknown_until_physical_transition_layer_arrives() {
         let prefix = build_probe_policy_prefix(&input()).unwrap();
-        let report = super::super::policy_tree::evaluate_bounded_policy_tree(&prefix.tree, 2)
-            .unwrap();
+        let report =
+            super::super::policy_tree::evaluate_bounded_policy_tree(&prefix.tree, 2).unwrap();
         assert_eq!(
             report.disposition,
             super::super::policy_tree::PolicyTreeDisposition::Unknown
@@ -975,10 +1008,12 @@ mod tests {
     #[test]
     fn missing_probe_transition_receipt_does_not_make_a_positive_prefix() {
         let mut source = input();
-        source.physical_successors[0].transition_receipt_digest.clear();
+        source.physical_successors[0]
+            .transition_receipt_digest
+            .clear();
         let prefix = build_probe_policy_prefix(&source).unwrap();
-        let report = super::super::policy_tree::evaluate_bounded_policy_tree(&prefix.tree, 2)
-            .unwrap();
+        let report =
+            super::super::policy_tree::evaluate_bounded_policy_tree(&prefix.tree, 2).unwrap();
         assert_eq!(
             report.disposition,
             super::super::policy_tree::PolicyTreeDisposition::Unknown
