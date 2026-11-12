@@ -110,10 +110,12 @@ Use matched service conditions and declared operating envelopes. Split validatio
 |---|---|---|---|
 | Residential toilets | US EPA WaterSense tank-type specification. Version 1.2 is currently in effect; its 1.28 US gal/flush maximum is about 4.85 L/flush. | Test method, effective flush volume, flushability, bowl cleaning and drainline transport | Improve whole-user water use, repairability, clog resistance, cleanability and lifecycle cost without losing certified performance |
 | Non-sewered sanitation | ISO 30500:2025 | Prefabricated integrated NSSS scope, complete input/output and safety conditions | Build interoperable modular service chains with better maintainability and context-specific lifecycle performance |
-| Faecal-sludge treatment | ISO 31800 and applicable national rules | Feedstock composition, capacity, sampling and residuals boundary | Better verified emptying logistics, modular treatment, energy/transport and residual product accounting |
+| Faecal-sludge treatment | ISO 31800:2020 and applicable national rules | Feedstock composition, capacity, sampling and residuals boundary | Better verified emptying logistics, modular treatment, energy/transport and residual product accounting |
+| WWTP process/control benchmark | IWA Benchmark Simulation Models BSM1 / BSM2 | Published plant layout, calibrated equations/parameters, influent disturbance, evaluation horizon and performance criteria | Compare controls on a common, cross-platform whole-plant benchmark; add field evidence only after model-to-plant validation |
+| Utility service performance | ISO 24511:2024 | Service definitions, indicator calculation, customer/utility boundary and data quality | Extend from utility-level indicators to auditable end-to-end service and equity metrics without inventing one universal threshold |
 | Sanitation risk | WHO Sanitation Safety Planning | Entire sanitation chain and hazard-control plan | Bind hazards, barriers, measurements, corrective actions and review evidence into the engineering lifecycle |
 | Storm/sewer networks | EPA SWMM | Same rainfall, catchment, network, boundary and calibration/validation sets | Couple 1D network + 2D surface risk, green/gray assets, uncertainty and observed outcomes without duplicating a mature solver |
-| Urban flood simulation | LISFLOOD-FP 8.2 adaptive GPU-DG2 | Same supported benchmark cases, DEM, forcing, numerical observables and compute hardware | Reduce compute at fixed physical-error budget; prove transfer and robustness, not just speed |
+| Urban flood simulation | LISFLOOD-FP 8.2 adaptive GPU-DG2; HEC-RAS 2D verification/validation and benchmark datasets | Same supported benchmark cases, DEM, forcing, numerical observables, observation operator and compute hardware | Reduce compute at fixed physical-error budget; cross-check independent hydraulic implementations; prove transfer and robustness, not just speed |
 | Decentralized low-energy treatment | 2026 NTSW multi-site field paper | Same influent, effluent quality, climate, unit process and energy boundary | Compete on whole-life O&M, land, resilience, verified reuse and reproducibility—not an unmatched kWh/m³ claim |
 | Utility performance | ISO 24511 / local regulator and utility reports | Definitions, reporting period, population and service boundary | Measure delivered service, asset condition, repair time, safety and equity beyond a single NRW or plant-compliance number |
 
@@ -190,8 +192,11 @@ These clauses become testable requirements and evidence obligations, not merely 
 6. Chowdhury & Kesserwani (2025), [LISFLOOD-FP 8.2: GPU-accelerated multiwavelet DG solver with dynamic resolution adaptivity](https://gmd.copernicus.org/articles/18/9827/2025/), Geoscientific Model Development 18, 9827–9854, DOI: 10.5194/gmd-18-9827-2025.
 7. Ganesapillai et al. (2026), [Beyond the flush: a review of wastewater circular systems](https://www.nature.com/articles/s41545-026-00557-8), npj Clean Water 9, 31, DOI: 10.1038/s41545-026-00557-8.
 8. [Decentralized wastewater treatment and water renewal via natural systems: performance evaluation from household to school-based scale](https://doi.org/10.1016/j.jenvman.2026.130241), Journal of Environmental Management (15 July 2026), DOI: 10.1016/j.jenvman.2026.130241.
-9. European Union, [Directive (EU) 2024/3019 concerning urban wastewater treatment](https://eur-lex.europa.eu/eli/dir/2024/3019/oj).
-10. South African Department of Water and Sanitation, [2025 Green Drop report findings](https://www.gov.za/news/media-statements/minister-senze-mchunu-releases-2025-green-drop-report-01-apr-2026).
+9. IWA Modelling & Integrated Assessment, [Benchmarking / BSM1 and BSM2](https://iwa-mia.org/benchmarking/). BSM2 extends control comparison to a whole plant including primary clarification and sludge treatment/anaerobic digestion.
+10. ISO, [ISO 24511:2024](https://www.iso.org/standard/82489.html), wastewater utility management and service assessment; gives indicator examples but does not prescribe universal thresholds.
+11. USACE HEC, [HEC-RAS verification, validation and 2D benchmarking references](https://www.hec.usace.army.mil/confluence/rasdocs/hgt/latest/reference-documents).
+12. European Union, [Directive (EU) 2024/3019 concerning urban wastewater treatment](https://eur-lex.europa.eu/eli/dir/2024/3019/oj).
+13. South African Department of Water and Sanitation, [2025 Green Drop report findings](https://www.gov.za/news/media-statements/minister-senze-mchunu-releases-2025-green-drop-report-01-apr-2026).
 
 ## Nonclaims
 
