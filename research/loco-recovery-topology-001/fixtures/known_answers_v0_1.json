@@ -1,0 +1,637 @@
+{
+  "protocol": "LOCO-RECOVERY-TOPOLOGY-001",
+  "version": "0.1",
+  "evidence_tier": "synthetic_known_answer",
+  "notes": [
+    "These fixtures exercise finite graph/topology semantics only.",
+    "They are not measured robot results or physical safety evidence.",
+    "Route dependencies are failure-domain IDs; route identity is the ordered physical edge sequence plus terminal-region identity."
+  ],
+  "cases": [
+    {
+      "case_id": "R01_ACTION_ALIAS_DOES_NOT_INFLATE_RESERVE",
+      "failure_domains": [
+        "actuator_hip_fl",
+        "power_bus_a"
+      ],
+      "routes": [
+        {
+          "route_id": "route_a",
+          "action_ids": [
+            "walk_left",
+            "gait_label_alpha"
+          ],
+          "physical_edge_ids": [
+            "e_start",
+            "e_recover"
+          ],
+          "terminal_region_id": "support_tripod_a",
+          "dependencies": [
+            "actuator_hip_fl",
+            "power_bus_a"
+          ],
+          "upstream_admitted": true,
+          "all_physical_branches_covered": true,
+          "intermediate_viability_complete": true,
+          "worst_case_steps": 3,
+          "worst_case_energy_mj": 40,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e_start",
+              "state_id": "route_a_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e_recover",
+              "state_id": "route_a_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "route_a_mid0",
+              "disposition": "Viable"
+            }
+          ]
+        },
+        {
+          "route_id": "route_b",
+          "action_ids": [
+            "walk_left_alias"
+          ],
+          "physical_edge_ids": [
+            "e_start",
+            "e_recover"
+          ],
+          "terminal_region_id": "support_tripod_a",
+          "dependencies": [
+            "actuator_hip_fl",
+            "power_bus_a"
+          ],
+          "upstream_admitted": true,
+          "all_physical_branches_covered": true,
+          "intermediate_viability_complete": true,
+          "worst_case_steps": 3,
+          "worst_case_energy_mj": 40,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e_start",
+              "state_id": "route_b_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e_recover",
+              "state_id": "route_b_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "route_b_mid0",
+              "disposition": "Viable"
+            }
+          ]
+        }
+      ],
+      "resource_limits": {
+        "max_steps": 6,
+        "available_energy_mj": 100
+      },
+      "expected": {
+        "qualification": "VALID",
+        "physical_route_classes": 1,
+        "qualifying_route_ids": [
+          "route_a"
+        ],
+        "independent_route_count": 1,
+        "minimum_cut_size": 1,
+        "distinct_terminal_regions": 1,
+        "all_minimal_cut_sets": [
+          [
+            "actuator_hip_fl"
+          ],
+          [
+            "power_bus_a"
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "R02_DIFFERENT_LEGS_SHARE_POWER_BUS",
+      "failure_domains": [
+        "actuator_hip_fl",
+        "actuator_hip_fr",
+        "power_bus_shared",
+        "imu_clock_shared"
+      ],
+      "routes": [
+        {
+          "route_id": "left_route",
+          "action_ids": [
+            "left_support"
+          ],
+          "physical_edge_ids": [
+            "e0",
+            "e1"
+          ],
+          "terminal_region_id": "left_brace",
+          "dependencies": [
+            "actuator_hip_fl",
+            "power_bus_shared",
+            "imu_clock_shared"
+          ],
+          "upstream_admitted": true,
+          "all_physical_branches_covered": true,
+          "intermediate_viability_complete": true,
+          "worst_case_steps": 4,
+          "worst_case_energy_mj": 45,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e0",
+              "state_id": "left_route_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e1",
+              "state_id": "left_route_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "left_route_mid0",
+              "disposition": "Viable"
+            }
+          ]
+        },
+        {
+          "route_id": "right_route",
+          "action_ids": [
+            "right_support"
+          ],
+          "physical_edge_ids": [
+            "e0",
+            "e2"
+          ],
+          "terminal_region_id": "right_brace",
+          "dependencies": [
+            "actuator_hip_fr",
+            "power_bus_shared",
+            "imu_clock_shared"
+          ],
+          "upstream_admitted": true,
+          "all_physical_branches_covered": true,
+          "intermediate_viability_complete": true,
+          "worst_case_steps": 4,
+          "worst_case_energy_mj": 47,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e0",
+              "state_id": "right_route_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e2",
+              "state_id": "right_route_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "right_route_mid0",
+              "disposition": "Viable"
+            }
+          ]
+        }
+      ],
+      "resource_limits": {
+        "max_steps": 6,
+        "available_energy_mj": 100
+      },
+      "expected": {
+        "qualification": "VALID",
+        "physical_route_classes": 2,
+        "qualifying_route_ids": [
+          "left_route",
+          "right_route"
+        ],
+        "independent_route_count": 1,
+        "minimum_cut_size": 1,
+        "distinct_terminal_regions": 2,
+        "all_minimal_cut_sets": [
+          [
+            "imu_clock_shared"
+          ],
+          [
+            "power_bus_shared"
+          ],
+          [
+            "actuator_hip_fl",
+            "actuator_hip_fr"
+          ]
+        ]
+      }
+    },
+    {
+      "case_id": "R03_PHYSICALLY_POSSIBLE_ZERO_MASS_BRANCH_BLOCKS_ROUTE",
+      "failure_domains": [
+        "actuator_hip_fl",
+        "power_bus_a"
+      ],
+      "routes": [
+        {
+          "route_id": "probe_then_recover",
+          "action_ids": [
+            "diagnostic_shift",
+            "recover"
+          ],
+          "physical_edge_ids": [
+            "e_probe",
+            "e_recover"
+          ],
+          "terminal_region_id": "safe_support",
+          "dependencies": [
+            "actuator_hip_fl",
+            "power_bus_a"
+          ],
+          "upstream_admitted": false,
+          "all_physical_branches_covered": true,
+          "intermediate_viability_complete": false,
+          "possible_successors": [
+            {
+              "state_id": "s_observed",
+              "physically_possible": true,
+              "calibrated_probability_ppm": 1000000
+            },
+            {
+              "state_id": "s_dead_end",
+              "physically_possible": true,
+              "calibrated_probability_ppm": 0
+            }
+          ],
+          "blocking_successor_ids": [
+            "s_dead_end"
+          ],
+          "worst_case_steps": 3,
+          "worst_case_energy_mj": 50,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e_probe",
+              "state_id": "s_observed",
+              "physically_possible": true,
+              "disposition": "Viable",
+              "probability_ppm": 1000000
+            },
+            {
+              "edge_index": 0,
+              "edge_id": "e_probe",
+              "state_id": "s_dead_end",
+              "physically_possible": true,
+              "disposition": "Nonviable",
+              "probability_ppm": 0
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e_recover",
+              "state_id": "probe_then_recover_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "probe_then_recover_mid0",
+              "disposition": "Viable"
+            }
+          ]
+        }
+      ],
+      "resource_limits": {
+        "max_steps": 6,
+        "available_energy_mj": 100
+      },
+      "expected": {
+        "qualification": "REJECTED",
+        "physical_route_classes": 0,
+        "qualifying_route_ids": [],
+        "independent_route_count": 0,
+        "minimum_cut_size": null,
+        "distinct_terminal_regions": 0,
+        "rejection_reasons": [
+          "POSSIBLE_SUCCESSOR_OUTSIDE_ROBUST_CONTINUATION"
+        ],
+        "all_minimal_cut_sets": []
+      }
+    },
+    {
+      "case_id": "R04_TERMINAL_VIABLE_BUT_INTERMEDIATE_LATENCY_STATE_NOT_VIABLE",
+      "failure_domains": [
+        "actuator_knee_rr",
+        "power_bus_a"
+      ],
+      "routes": [
+        {
+          "route_id": "late_terminal_only",
+          "action_ids": [
+            "probe",
+            "recover"
+          ],
+          "physical_edge_ids": [
+            "e_probe",
+            "e_latency",
+            "e_recover"
+          ],
+          "terminal_region_id": "safe_support",
+          "dependencies": [
+            "actuator_knee_rr",
+            "power_bus_a"
+          ],
+          "upstream_admitted": false,
+          "all_physical_branches_covered": true,
+          "intermediate_viability_complete": false,
+          "intermediate_state_ids": [
+            "s_probe",
+            "s_latency",
+            "s_terminal"
+          ],
+          "nonviable_intermediate_state_ids": [
+            "s_latency"
+          ],
+          "worst_case_steps": 4,
+          "worst_case_energy_mj": 55,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e_probe",
+              "state_id": "late_terminal_only_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e_latency",
+              "state_id": "s_latency",
+              "physically_possible": true,
+              "disposition": "Nonviable"
+            },
+            {
+              "edge_index": 2,
+              "edge_id": "e_recover",
+              "state_id": "late_terminal_only_s2",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "late_terminal_only_mid0",
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "state_id": "s_latency",
+              "disposition": "Nonviable"
+            }
+          ]
+        }
+      ],
+      "resource_limits": {
+        "max_steps": 6,
+        "available_energy_mj": 100
+      },
+      "expected": {
+        "qualification": "REJECTED",
+        "physical_route_classes": 0,
+        "qualifying_route_ids": [],
+        "independent_route_count": 0,
+        "minimum_cut_size": null,
+        "distinct_terminal_regions": 0,
+        "rejection_reasons": [
+          "NONVIABLE_INTERMEDIATE_STATE"
+        ],
+        "all_minimal_cut_sets": []
+      }
+    },
+    {
+      "case_id": "R05_MISSING_FAILURE_DOMAIN_METADATA_SUPPRESSES_INDEPENDENCE",
+      "failure_domains": [
+        "actuator_hip_fl",
+        "power_bus_a"
+      ],
+      "routes": [
+        {
+          "route_id": "route_one",
+          "action_ids": [
+            "brace_one"
+          ],
+          "physical_edge_ids": [
+            "e1",
+            "e2"
+          ],
+          "terminal_region_id": "region_one",
+          "dependencies": [
+            "actuator_hip_fl",
+            "power_bus_a"
+          ],
+          "upstream_admitted": true,
+          "all_physical_branches_covered": true,
+          "intermediate_viability_complete": true,
+          "worst_case_steps": 3,
+          "worst_case_energy_mj": 40,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e1",
+              "state_id": "route_one_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e2",
+              "state_id": "route_one_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "route_one_mid0",
+              "disposition": "Viable"
+            }
+          ]
+        },
+        {
+          "route_id": "route_two",
+          "action_ids": [
+            "brace_two"
+          ],
+          "physical_edge_ids": [
+            "e3",
+            "e4"
+          ],
+          "terminal_region_id": "region_two",
+          "dependencies": [
+            "actuator_hip_fr"
+          ],
+          "upstream_admitted": true,
+          "all_physical_branches_covered": true,
+          "intermediate_viability_complete": true,
+          "missing_failure_domain_for": [
+            "actuator_hip_fr"
+          ],
+          "worst_case_steps": 3,
+          "worst_case_energy_mj": 42,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e3",
+              "state_id": "route_two_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e4",
+              "state_id": "route_two_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "route_two_mid0",
+              "disposition": "Viable"
+            }
+          ]
+        }
+      ],
+      "resource_limits": {
+        "max_steps": 6,
+        "available_energy_mj": 100
+      },
+      "expected": {
+        "qualification": "UNKNOWN",
+        "physical_route_classes": null,
+        "qualifying_route_ids": [
+          "route_one"
+        ],
+        "independent_route_count": null,
+        "minimum_cut_size": null,
+        "distinct_terminal_regions": 1,
+        "rejection_reasons": [
+          "INCOMPLETE_FAILURE_DOMAIN_MANIFEST"
+        ],
+        "all_minimal_cut_sets": []
+      }
+    },
+    {
+      "case_id": "R06_ROUTE_EXCEEDS_RECOVERY_ENERGY_RESERVE",
+      "failure_domains": [
+        "actuator_ankle_fl",
+        "power_bus_a"
+      ],
+      "routes": [
+        {
+          "route_id": "energy_unaffordable",
+          "action_ids": [
+            "brace",
+            "crawl",
+            "stop"
+          ],
+          "physical_edge_ids": [
+            "e1",
+            "e2",
+            "e3"
+          ],
+          "terminal_region_id": "safe_stop",
+          "dependencies": [
+            "actuator_ankle_fl",
+            "power_bus_a"
+          ],
+          "upstream_admitted": true,
+          "all_physical_branches_covered": true,
+          "intermediate_viability_complete": true,
+          "worst_case_steps": 5,
+          "worst_case_energy_mj": 125,
+          "successor_evidence": [
+            {
+              "edge_index": 0,
+              "edge_id": "e1",
+              "state_id": "energy_unaffordable_s0",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "edge_id": "e2",
+              "state_id": "energy_unaffordable_s1",
+              "physically_possible": true,
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 2,
+              "edge_id": "e3",
+              "state_id": "energy_unaffordable_s2",
+              "physically_possible": true,
+              "disposition": "Viable"
+            }
+          ],
+          "intermediate_states": [
+            {
+              "edge_index": 0,
+              "state_id": "energy_unaffordable_mid0",
+              "disposition": "Viable"
+            },
+            {
+              "edge_index": 1,
+              "state_id": "energy_unaffordable_mid1",
+              "disposition": "Viable"
+            }
+          ]
+        }
+      ],
+      "resource_limits": {
+        "max_steps": 6,
+        "available_energy_mj": 100
+      },
+      "expected": {
+        "qualification": "REJECTED",
+        "physical_route_classes": 0,
+        "qualifying_route_ids": [],
+        "independent_route_count": 0,
+        "minimum_cut_size": null,
+        "distinct_terminal_regions": 0,
+        "rejection_reasons": [
+          "RECOVERY_ENERGY_LIMIT_EXCEEDED"
+        ],
+        "all_minimal_cut_sets": []
+      }
+    }
+  ]
+}
