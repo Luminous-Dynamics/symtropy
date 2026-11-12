@@ -79,7 +79,7 @@ where
     }
 }
 
-fn fixture() -> (
+type BenchmarkFixture = (
     Metric<CartesianQ, N>,
     Rebasis<CartesianQ, DenseY, N>,
     Tangent<CartesianQ, N>,
@@ -87,7 +87,9 @@ fn fixture() -> (
     Tangent<DenseY, N>,
     Cotangent<DenseY, N>,
     Metric<DenseY, N>,
-) {
+);
+
+fn fixture() -> BenchmarkFixture {
     let profile = MetricProfileV1::default();
     let mass: Matrix<N> = [
         [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -154,14 +156,14 @@ fn rustc_version() -> String {
 }
 
 fn cpu_model() -> String {
-    if let Ok(cpuinfo) = std::fs::read_to_string("/proc/cpuinfo") {
-        if let Some(model) = cpuinfo.lines().find_map(|line| {
+    if let Ok(cpuinfo) = std::fs::read_to_string("/proc/cpuinfo")
+        && let Some(model) = cpuinfo.lines().find_map(|line| {
             line.strip_prefix("model name")
                 .or_else(|| line.strip_prefix("Hardware"))
                 .and_then(|value| value.split_once(':').map(|(_, model)| model.trim()))
-        }) {
-            return model.to_owned();
-        }
+        })
+    {
+        return model.to_owned();
     }
     std::env::var("PROCESSOR_IDENTIFIER").unwrap_or_else(|_| "not-exposed".to_owned())
 }
@@ -286,11 +288,11 @@ fn main() {
     ];
 
     let report = render_report(&measurements, start_all.elapsed());
-    if let Some(path) = std::env::args().nth(1) {
-        if let Err(error) = std::fs::write(&path, &report) {
-            eprintln!("failed to write benchmark report to {path}: {error}");
-            std::process::exit(2);
-        }
+    if let Some(path) = std::env::args().nth(1)
+        && let Err(error) = std::fs::write(&path, &report)
+    {
+        eprintln!("failed to write benchmark report to {path}: {error}");
+        std::process::exit(2);
     }
     print!("{report}");
 }
