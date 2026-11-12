@@ -36,7 +36,7 @@ The independent Rust PRNG (xorshift64 + Box-Muller) is not MATLAB's RNG. It supp
 
 ## Tests added
 
-The source includes sixteen tests for:
+The source includes seventeen tests for:
 - the two equation variants being distinct and producing different one-step social trajectories;
 - paper-style and MATLAB-inclusive consensus-window conventions updating at their separately declared first ticks;
 - trajectory divergence under the two kernels;
@@ -51,7 +51,7 @@ The source includes sixteen tests for:
 - failed successor observation preserves agent/RNG/tick state while retaining the cost and cache for already acquired initial observations;
 - minimum agent count and consensus-window configuration.
 
-These are source-level tests. Rust formatting, compilation, unit execution and exact-head CI remain pending. The sixteen tests are source-level additions only.
+These are source-level tests. Rust formatting, compilation, unit execution and exact-head CI remain pending. The seventeen tests are source-level additions only.
 
 ## What has not yet been reproduced
 
@@ -81,10 +81,12 @@ The per-step report exposes:
 
 Best-seen fitness is an audit statistic, not an elitist agent reintroduced into the swarm. It remains monotonic even if the current population loses its best candidate. These metrics make it possible to evaluate actual landscape progress without substituting consensus or cohesion.
 
-A topology-budget control test now compares CompleteGraph, Ring and MetricRadius(0) using identical initial positions, seed, steps and objective-evaluation budget. For N agents and T complete updates the exact count is N(T+1). The test does not assume that communication improves objective performance.
+A topology-budget control test now compares CompleteGraph, Ring and explicit NoCommunication using identical initial positions, seed, steps and objective-evaluation budget. For N agents and T complete updates the exact count is N(T+1). The test does not assume that communication improves objective performance.
 
 The associated OLI benchmark contract is in:
 - `benchmarks/oli/collective-competence-scm-v0.json`
 - `docs/research/OLI_COLLECTIVE_COMPETENCE_BENCHMARK.md`
 
 It adds a unimodal analytic quadratic and a multimodal periodic landscape; matched communication topologies; random-search and centralized controls to be implemented as separate baseline adapters; success/regret/anytime metrics; a high-consensus/low-fitness adversarial case; and 100 matched seeds for qualification. No performance sweep or improvement claim has been produced yet.
+
+The explicit `NoCommunication` topology always returns empty adjacency, even if two agents occupy identical positions. This is the valid independent-agent/no-message arm; a zero-radius metric graph is not a substitute because coincident positions satisfy the metric distance test.
