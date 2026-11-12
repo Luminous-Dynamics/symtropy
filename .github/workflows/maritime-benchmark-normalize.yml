@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: maritime-benchmark-normalize-${{ github.sha }}
@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-          persist-credentials: false
+          persist-credentials: true
 
       - name: Install pinned Rust toolchain
         uses: dtolnay/rust-toolchain@1.96.0
@@ -44,7 +44,38 @@ jobs:
       - name: Regenerate isolated crate lockfile
         run: cargo generate-lockfile --manifest-path benchmarks/maritime-control-response/Cargo.toml
 
-      - name: Preserve normalized source and lockfile
+      - name: Verify formatted and locked test suite
+        run: cargo test --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets
+
+      - name: Verify strict Clippy
+        run: cargo clippy --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets -- -D warnings
+
+      - name: Commit tested formatter and isolated lockfile output
+        shell: bash
+        env:
+          TARGET_BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tested_tree="$(git write-tree)"
+          git add benchmarks/maritime-control-response/src benchmarks/maritime-control-response/Cargo.lock
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(maritime): normalize benchmark sources and isolate lockfile"
+            commit_sha="$(git rev-parse HEAD)"
+            committed_tree="$(git rev-parse HEAD^{tree})"
+            test "$tested_tree" = "$committed_tree"
+            git push origin "HEAD:$TARGET_BRANCH"
+            {
+              echo "### Normalized branch update"
+              echo "- Tested tree: `$tested_tree`"
+              echo "- Commit pushed: `$commit_sha`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Source and isolated lockfile already normalized; no commit required." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Preserve tested normalized source and lockfile
         shell: bash
         run: |
           set -euo pipefail
@@ -59,9 +90,3 @@ jobs:
           path: ${{ runner.temp }}/maritime-benchmark-normalized.tar.gz
           if-no-files-found: error
           retention-days: 7
-
-      - name: Verify formatted and locked test suite
-        run: cargo test --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets
-
-      - name: Verify strict Clippy
-        run: cargo clippy --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets -- -D warnings
