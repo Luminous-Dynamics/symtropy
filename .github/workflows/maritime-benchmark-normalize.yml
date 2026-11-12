@@ -58,8 +58,8 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          tested_tree="$(git write-tree)"
           git add benchmarks/maritime-control-response/src benchmarks/maritime-control-response/Cargo.lock
+          tested_tree="$(git write-tree)"
           if ! git diff --cached --quiet; then
             git commit -m "chore(maritime): normalize benchmark sources and isolate lockfile"
             commit_sha="$(git rev-parse HEAD)"
