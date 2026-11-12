@@ -38,11 +38,6 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml --all -- --check
 
-      - name: Bootstrap Cargo-generated nested lockfile (temporary)
-        run: |
-          cargo generate-lockfile --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml
-          cat crates/tools/shipyard-tandem-gmaw-admission/Cargo.lock
-
       - name: Run metadata admission verifier tests
         run: cargo test --locked --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml
 
@@ -53,4 +48,4 @@ jobs:
         run: cargo run --locked --manifest-path crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml
 
       - name: Confirm verifier did not modify tracked inputs
-        run: git diff --exit-code -- . ':!crates/tools/shipyard-tandem-gmaw-admission/Cargo.lock'
+        run: git diff --exit-code
