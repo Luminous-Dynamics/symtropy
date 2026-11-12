@@ -18,7 +18,7 @@ The candidate chooses between two physical policies, `defer` and `repair`, with 
 | degraded | 0 (infeasible) | 80 | repair |
 | healthy_sensor_fault | 100 | 85 | defer |
 
-Without sensing, the only physical policy feasible in every world is `repair`. Its minimax regret is 15 service units. The evaluator also includes a separate two-world control where no single blind action is feasible in every world, but a discriminating sensor makes one robust action feasible in each outcome partition. In that case, the report marks `resolves_no_sensing_infeasibility` rather than inventing a finite regret reduction against a nonexistent baseline policy.
+Without sensing, the only physical policy feasible in every world is `repair`. Its minimax regret is 15 service units. The evaluator also includes a separate two-world control where no single blind action is feasible in every world, but a discriminating sensor makes one robust action feasible in each outcome partition, with its 0.5-service-unit energy cost charged to regret. In that case, the report marks `resolves_no_sensing_infeasibility` rather than inventing a finite regret reduction against a nonexistent baseline policy.
 
 Four sensing actions are evaluated:
 
