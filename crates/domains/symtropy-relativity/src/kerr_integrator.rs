@@ -1458,7 +1458,6 @@ fn sachs_jacobi_sample(
     })
 }
 
-
 /// Numerical controls for the coupled Sachs/Jacobi integration. The four
 /// adaptive error channels are scaled independently for the canonical ray,
 /// transported screen frame, Jacobi matrix, and Jacobi derivative.
@@ -1555,11 +1554,7 @@ pub fn integrate_kerr_sachs_jacobi_adaptive(
         options.constraint_tolerance,
     )?
     .1;
-    let mut samples = vec![sachs_jacobi_sample(
-        0.0,
-        values,
-        initial_diagnostics,
-    )?];
+    let mut samples = vec![sachs_jacobi_sample(0.0, values, initial_diagnostics)?];
 
     let mut maximum_null_constraint_residual = initial_diagnostics.null_constraint_residual;
     let mut maximum_screen_orthonormality_residual =
@@ -1568,10 +1563,8 @@ pub fn integrate_kerr_sachs_jacobi_adaptive(
         initial_diagnostics.screen_transversality_residual;
     let mut maximum_tidal_symmetry_residual = initial_diagnostics.tidal_symmetry_residual;
     let mut maximum_vacuum_trace_residual = initial_diagnostics.vacuum_trace_residual;
-    let mut maximum_orthonormality_rate_residual =
-        initial_diagnostics.orthonormality_rate_residual;
-    let mut maximum_transversality_rate_residual =
-        initial_diagnostics.transversality_rate_residual;
+    let mut maximum_orthonormality_rate_residual = initial_diagnostics.orthonormality_rate_residual;
+    let mut maximum_transversality_rate_residual = initial_diagnostics.transversality_rate_residual;
     let mut maximum_metric_compatibility_residual =
         initial_diagnostics.metric_compatibility_residual;
     let mut maximum_scaled_ray_error: f64 = 0.0;
@@ -1580,7 +1573,10 @@ pub fn integrate_kerr_sachs_jacobi_adaptive(
     let mut maximum_scaled_jacobi_derivative_error: f64 = 0.0;
 
     let mut affine = 0.0;
-    let mut step = options.initial_step.min(options.maximum_step).min(affine_interval);
+    let mut step = options
+        .initial_step
+        .min(options.maximum_step)
+        .min(affine_interval);
     let mut accepted_steps = 0usize;
     let mut rejected_steps = 0usize;
 
@@ -1606,13 +1602,8 @@ pub fn integrate_kerr_sachs_jacobi_adaptive(
         let stage_tolerance = options
             .constraint_tolerance
             .max((step * step * 32.0).min(1e-4));
-        let full = sachs_jacobi_rk4_step(
-            hamiltonian,
-            coordinate_chart,
-            values,
-            step,
-            stage_tolerance,
-        )?;
+        let full =
+            sachs_jacobi_rk4_step(hamiltonian, coordinate_chart, values, step, stage_tolerance)?;
         let half = sachs_jacobi_rk4_step(
             hamiltonian,
             coordinate_chart,
@@ -1669,12 +1660,12 @@ pub fn integrate_kerr_sachs_jacobi_adaptive(
                 maximum_tidal_symmetry_residual.max(diagnostics.tidal_symmetry_residual);
             maximum_vacuum_trace_residual =
                 maximum_vacuum_trace_residual.max(diagnostics.vacuum_trace_residual);
-            maximum_orthonormality_rate_residual = maximum_orthonormality_rate_residual
-                .max(diagnostics.orthonormality_rate_residual);
-            maximum_transversality_rate_residual = maximum_transversality_rate_residual
-                .max(diagnostics.transversality_rate_residual);
-            maximum_metric_compatibility_residual =
-                maximum_metric_compatibility_residual.max(diagnostics.metric_compatibility_residual);
+            maximum_orthonormality_rate_residual =
+                maximum_orthonormality_rate_residual.max(diagnostics.orthonormality_rate_residual);
+            maximum_transversality_rate_residual =
+                maximum_transversality_rate_residual.max(diagnostics.transversality_rate_residual);
+            maximum_metric_compatibility_residual = maximum_metric_compatibility_residual
+                .max(diagnostics.metric_compatibility_residual);
             samples.push(sachs_jacobi_sample(affine, values, diagnostics)?);
 
             let factor = if maximum_channel_error == 0.0 {
@@ -1728,13 +1719,7 @@ fn sachs_jacobi_rk4_step(
     step: f64,
     stage_tolerance: f64,
 ) -> Result<[f64; 24], KerrIntegratorError> {
-    let k1 = sachs_jacobi_rhs(
-        hamiltonian,
-        coordinate_chart,
-        state,
-        stage_tolerance,
-    )?
-    .0;
+    let k1 = sachs_jacobi_rhs(hamiltonian, coordinate_chart, state, stage_tolerance)?.0;
     let k2 = sachs_jacobi_rhs(
         hamiltonian,
         coordinate_chart,
@@ -1792,7 +1777,6 @@ fn scaled_sachs_jacobi_step_errors(
     )
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1832,17 +1816,13 @@ mod tests {
     #[test]
     fn adaptive_sachs_jacobi_matches_radial_schwarzschild_vertex_solution() {
         let black_hole = hole(0.0);
-        let observer = KerrFiniteRadiusObserver::new(
-            black_hole,
-            10.0,
-            core::f64::consts::FRAC_PI_2,
-        )
-        .unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let seed = observer
             .canonical_seed(KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap())
             .unwrap();
-        let screen_basis =
-            observer.screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
+        let screen_basis = observer
+            .screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
         let options = KerrSachsJacobiOptions {
             relative_tolerance: 1e-9,
             absolute_tolerance: 1e-12,
@@ -1882,17 +1862,13 @@ mod tests {
     #[test]
     fn adaptive_sachs_jacobi_rejects_invalid_options() {
         let black_hole = hole(0.0);
-        let observer = KerrFiniteRadiusObserver::new(
-            black_hole,
-            10.0,
-            core::f64::consts::FRAC_PI_2,
-        )
-        .unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let seed = observer
             .canonical_seed(KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap())
             .unwrap();
-        let screen_basis =
-            observer.screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
+        let screen_basis = observer
+            .screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
         let valid = KerrSachsJacobiOptions {
             relative_tolerance: 1e-9,
             absolute_tolerance: 1e-12,
@@ -1908,7 +1884,12 @@ mod tests {
         };
         assert!(matches!(
             integrate_kerr_sachs_jacobi_adaptive(
-                black_hole, seed.coordinate_chart, seed.state, screen_basis, 0.05, invalid,
+                black_hole,
+                seed.coordinate_chart,
+                seed.state,
+                screen_basis,
+                0.05,
+                invalid,
             ),
             Err(KerrIntegratorError::InconsistentOptions)
         ));
