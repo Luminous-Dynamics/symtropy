@@ -323,7 +323,10 @@ fn validate_specs(manifest: &ProcessWindowManifest) -> Result<(), ProcessWindowA
         "process parameter ID",
     )?;
     validate_unique_ids(
-        manifest.quality_specs.iter().map(|item| item.metric_id.as_str()),
+        manifest
+            .quality_specs
+            .iter()
+            .map(|item| item.metric_id.as_str()),
         "quality metric ID",
     )?;
 
@@ -459,16 +462,7 @@ fn process_window_disposition(
 fn quality_disposition(
     specs: &[QualityMetricSpec],
     observations: &[QualityObservation],
-) -> Result<
-    (
-        CellQualityDisposition,
-        usize,
-        usize,
-        usize,
-        Vec<String>,
-    ),
-    ProcessWindowAuditError,
-> {
+) -> Result<(CellQualityDisposition, usize, usize, usize, Vec<String>), ProcessWindowAuditError> {
     validate_unique_ids(
         observations.iter().map(|item| item.metric_id.as_str()),
         "quality observation metric ID",
@@ -560,13 +554,7 @@ fn quality_disposition(
 
     out_of_spec.sort();
 
-    Ok((
-        disposition,
-        measured,
-        unmeasured,
-        invalid,
-        out_of_spec,
-    ))
+    Ok((disposition, measured, unmeasured, invalid, out_of_spec))
 }
 
 #[derive(Clone, Debug, Default)]
@@ -617,8 +605,7 @@ impl GroupCounts {
     }
 
     fn in_window_complete_conformance_rate(&self) -> Option<f64> {
-        let denominator =
-            self.conforming_in_window_count + self.nonconforming_in_window_count;
+        let denominator = self.conforming_in_window_count + self.nonconforming_in_window_count;
         if denominator == 0 {
             None
         } else {
@@ -654,11 +641,17 @@ pub fn audit_process_window(
     }
 
     validate_unique_ids(
-        manifest.production_runs.iter().map(|item| item.run_id.as_str()),
+        manifest
+            .production_runs
+            .iter()
+            .map(|item| item.run_id.as_str()),
         "production run ID",
     )?;
     validate_unique_ids(
-        manifest.production_runs.iter().map(|item| item.cell_id.as_str()),
+        manifest
+            .production_runs
+            .iter()
+            .map(|item| item.cell_id.as_str()),
         "physical cell ID",
     )?;
 
@@ -701,11 +694,9 @@ pub fn audit_process_window(
 
     run_audits.sort_by(|left, right| left.run_id.cmp(&right.run_id));
 
-    let mut lot_counts: BTreeMap<(String, String, RunEvidenceTier), GroupCounts> =
-        BTreeMap::new();
+    let mut lot_counts: BTreeMap<(String, String, RunEvidenceTier), GroupCounts> = BTreeMap::new();
     let mut line_counts: BTreeMap<(String, RunEvidenceTier), GroupCounts> = BTreeMap::new();
-    let mut line_lots: BTreeMap<(String, RunEvidenceTier), BTreeSet<String>> =
-        BTreeMap::new();
+    let mut line_lots: BTreeMap<(String, RunEvidenceTier), BTreeSet<String>> = BTreeMap::new();
 
     let mut physical_evidence_run_count = 0usize;
     let mut non_physical_evidence_run_count = 0usize;
@@ -736,10 +727,7 @@ pub fn audit_process_window(
             .add(audit);
 
         line_counts
-            .entry((
-                audit.production_line_id.clone(),
-                audit.evidence_tier,
-            ))
+            .entry((audit.production_line_id.clone(), audit.evidence_tier))
             .or_default()
             .add(audit);
 
@@ -754,40 +742,44 @@ pub fn audit_process_window(
 
     let lot_summaries = lot_counts
         .into_iter()
-        .map(|((production_line_id, lot_id, evidence_tier), counts)| LotSummary {
-            production_line_id,
-            lot_id,
-            evidence_tier,
-            run_count: counts.run_count,
-            in_window_run_count: counts.in_window_run_count,
-            out_of_window_run_count: counts.out_of_window_run_count,
-            conforming_in_window_count: counts.conforming_in_window_count,
-            nonconforming_in_window_count: counts.nonconforming_in_window_count,
-            incomplete_in_window_count: counts.incomplete_in_window_count,
-            first_pass_yield: counts.first_pass_yield(),
-            process_window_adherence_rate: counts.process_window_adherence_rate(),
-            in_window_complete_conformance_rate: counts.in_window_complete_conformance_rate(),
-        })
+        .map(
+            |((production_line_id, lot_id, evidence_tier), counts)| LotSummary {
+                production_line_id,
+                lot_id,
+                evidence_tier,
+                run_count: counts.run_count,
+                in_window_run_count: counts.in_window_run_count,
+                out_of_window_run_count: counts.out_of_window_run_count,
+                conforming_in_window_count: counts.conforming_in_window_count,
+                nonconforming_in_window_count: counts.nonconforming_in_window_count,
+                incomplete_in_window_count: counts.incomplete_in_window_count,
+                first_pass_yield: counts.first_pass_yield(),
+                process_window_adherence_rate: counts.process_window_adherence_rate(),
+                in_window_complete_conformance_rate: counts.in_window_complete_conformance_rate(),
+            },
+        )
         .collect();
 
     let line_summaries = line_counts
         .into_iter()
-        .map(|((production_line_id, evidence_tier), counts)| LineSummary {
-            lot_count: line_lots
-                .get(&(production_line_id.clone(), evidence_tier))
-                .map_or(0, BTreeSet::len),
-            production_line_id,
-            evidence_tier,
-            run_count: counts.run_count,
-            in_window_run_count: counts.in_window_run_count,
-            out_of_window_run_count: counts.out_of_window_run_count,
-            conforming_in_window_count: counts.conforming_in_window_count,
-            nonconforming_in_window_count: counts.nonconforming_in_window_count,
-            incomplete_in_window_count: counts.incomplete_in_window_count,
-            first_pass_yield: counts.first_pass_yield(),
-            process_window_adherence_rate: counts.process_window_adherence_rate(),
-            in_window_complete_conformance_rate: counts.in_window_complete_conformance_rate(),
-        })
+        .map(
+            |((production_line_id, evidence_tier), counts)| LineSummary {
+                lot_count: line_lots
+                    .get(&(production_line_id.clone(), evidence_tier))
+                    .map_or(0, BTreeSet::len),
+                production_line_id,
+                evidence_tier,
+                run_count: counts.run_count,
+                in_window_run_count: counts.in_window_run_count,
+                out_of_window_run_count: counts.out_of_window_run_count,
+                conforming_in_window_count: counts.conforming_in_window_count,
+                nonconforming_in_window_count: counts.nonconforming_in_window_count,
+                incomplete_in_window_count: counts.incomplete_in_window_count,
+                first_pass_yield: counts.first_pass_yield(),
+                process_window_adherence_rate: counts.process_window_adherence_rate(),
+                in_window_complete_conformance_rate: counts.in_window_complete_conformance_rate(),
+            },
+        )
         .collect();
 
     Ok(ProcessWindowAuditReport {
