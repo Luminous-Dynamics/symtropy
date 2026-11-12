@@ -100,15 +100,18 @@ jobs:
             (.hard_evidence_gates | length >= 58) and
             (.streaming_contract.adapter_status == "not_implemented") and
             (.external_dataset_track.schema_version == "symtropy-marine-external-dataset-track-v0.1") and
-            (.external_dataset_track.status == "metadata_audited_archive_not_audited") and
+            (.external_dataset_track.status == "archive_downloaded_publisher_md5_verified_payload_audit_pending") and
             (.external_dataset_track.dataset.doi == "10.5281/zenodo.19857425") and
             (.external_dataset_track.dataset.license == "CC-BY-4.0") and
             (.external_dataset_track.dataset.doi == "10.5281/zenodo.19857425") and
             (.external_dataset_track.dataset.aalto_catalogue.catalogue_doi == "10.5281/zenodo.19857424") and
             (.external_dataset_track.dataset.zenodo_record.file.publisher_reported_md5 == "f4d246c1bb46e05b26e56221acc2606c") and
             (.external_dataset_track.dataset.zenodo_record.file.sha256 == null) and
-            (.external_dataset_track.dataset.zenodo_record.file.md5_independently_verified == false) and
+            (.external_dataset_track.dataset.zenodo_record.file.md5_independently_verified == true) and
+            (.external_dataset_track.dataset.zenodo_record.file.download_status == "downloaded_publisher_size_and_md5_verified_payload_audit_pending") and
             (.external_dataset_track.dataset.files.csv_count == 16) and
+            (.external_dataset_track.dataset.files.archive_csv_entry_count == 18) and
+            (.external_dataset_track.dataset.files.metadata_csv_artifact_count == 2) and
             (.external_dataset_track.dataset.files.fault_scenario_files == 15) and
             (.external_dataset_track.evaluation_tracks | length == 6) and
             (.external_dataset_track.evaluation_tracks | map(.status) | all(. != "qualified")) and
