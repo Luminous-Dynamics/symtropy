@@ -945,6 +945,17 @@ mod tests {
         assert_eq!(report.required_units, 2);
         assert_eq!(report.finally_accepted_units, 1);
         assert_eq!(report.not_finally_accepted_unit_ids, vec!["unit-2"]);
+        let missing_unit = report
+            .work_units
+            .iter()
+            .find(|unit| unit.work_unit_id == "unit-2")
+            .expect("unattempted unit is still represented");
+        assert_eq!(
+            missing_unit.acceptance_contract_ref,
+            "acceptance-contract:unit-2"
+        );
+        assert_eq!(missing_unit.attempt_count, 0);
+        assert_eq!(missing_unit.final_state, None);
         assert!(!report.floor_accepted());
         assert_eq!(report.accepted_floor_cost_minor_units, None);
         assert_eq!(report.cost_per_accepted_unit, Some(MoneyPerUnit {
@@ -1001,6 +1012,55 @@ mod tests {
                 from: TaskState::ExecutorCompleted,
                 to: TaskState::Submitted,
             })
+        );
+    }
+
+    #[test]
+    fn repeated_identical_nonterminal_snapshot_is_idempotent() {
+        let mut ledger = ledger(&["unit-1"]);
+        let machine = executor_completed_machine("task-1");
+        assert_eq!(
+            ledger.observe_attempt("unit-1", &machine, None),
+            Ok(ObserveOutcome::Recorded)
+        );
+        assert_eq!(
+            ledger.observe_attempt("unit-1", &machine, None),
+            Ok(ObserveOutcome::Duplicate)
+        );
+    }
+
+    #[test]
+    fn same_attempt_cannot_change_robot_configuration_or_output_identity() {
+        let mut ledger = ledger(&["unit-1"]);
+        let original = executor_completed_machine("task-1");
+        ledger
+            .observe_attempt("unit-1", &original, None)
+            .expect("record original attempt");
+
+        let mut changed_config = context();
+        changed_config.robot_config_digest = "different-robot-config".to_owned();
+        let changed = TaskMachine::new("task-1", changed_config).expect("valid changed config");
+        assert_eq!(
+            ledger.observe_attempt("unit-1", &changed, None),
+            Err(LedgerError::TaskConfigurationChanged("task-1".to_owned()))
+        );
+
+        let mut changed_output = TaskMachine::new("task-1", context()).expect("valid task");
+        let actor = "actor-task-1-conflicting".to_owned();
+        send(&mut changed_output, &actor, 1, TransitionKind::Accept).expect("accept");
+        send(&mut changed_output, &actor, 2, TransitionKind::Start).expect("start");
+        send(
+            &mut changed_output,
+            &actor,
+            3,
+            TransitionKind::ExecutorComplete {
+                output_evidence_ref: Some("different-output".to_owned()),
+            },
+        )
+        .expect("complete with different output");
+        assert_eq!(
+            ledger.observe_attempt("unit-1", &changed_output, None),
+            Err(LedgerError::ConflictingAttemptSnapshot("task-1".to_owned()))
         );
     }
 
