@@ -235,9 +235,9 @@ fn relative_difference(left: f64, right: f64) -> f64 {
 
 fn matrix_relative_defect(left: &Matrix<N>, right: &Matrix<N>) -> f64 {
     let mut maximum = 0.0_f64;
-    for row in 0..N {
-        for column in 0..N {
-            maximum = maximum.max((left[row][column] - right[row][column]).abs());
+    for (left_row, right_row) in left.iter().zip(right.iter()) {
+        for (left_value, right_value) in left_row.iter().zip(right_row.iter()) {
+            maximum = maximum.max((left_value - right_value).abs());
         }
     }
     maximum / 1.0_f64.max(matrix_inf(left)).max(matrix_inf(right))
@@ -355,10 +355,6 @@ fn json_number(value: f64) -> String {
     } else {
         "null".to_owned()
     }
-}
-
-fn json_optional_number(value: Option<f64>) -> String {
-    value.map(json_number).unwrap_or_else(|| "null".to_owned())
 }
 
 fn source_commit() -> Option<String> {
