@@ -51,6 +51,13 @@ pub enum Admission {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum AcceptanceCriteriaKind {
+    UnR100ThermalPropagation,
+    Iec62660CellSafety,
+    Ul9540aStationaryStorage,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum TriggerMethod {
     LocalizedExternalHeating,
     InternalHeating,
@@ -886,37 +893,42 @@ mod tests {
         evidence_id: &str,
         result: TestResult,
         trigger_achieved: bool,
+        acceptance_kind: AcceptanceCriteriaKind,
     ) -> TestRecord {
+        let (standard_id, standard_revision, criteria_id, criteria_evidence_id) =
+            match acceptance_kind {
+                AcceptanceCriteriaKind::UnR100ThermalPropagation => (
+                    "UN-R100-2026",
+                    "05-series",
+                    "UN-R100-6.15-Annex-9K-05-series-criteria",
+                    "E-CRITERIA-UNR100",
+                ),
+                AcceptanceCriteriaKind::Iec62660CellSafety => (
+                    "IEC-62660-3",
+                    "2022 edition",
+                    "IEC-62660-3-2022-cell-block-safety-criteria",
+                    "E-CRITERIA-IEC62660",
+                ),
+                AcceptanceCriteriaKind::Ul9540aStationaryStorage => (
+                    "UL-9540A",
+                    "6th-edition",
+                    "UL-9540A-6th-edition-acceptance-criteria",
+                    "E-CRITERIA-UL9540A",
+                ),
+            };
+        let needs_acceptance_criteria = matches!(
+            result,
+            TestResult::Pass | TestResult::Fail | TestResult::NoPropagationWithinWindow
+        );
         TestRecord {
             test_id: test_id.into(),
             article,
-            standard_id: "UN-R100-2026".into(),
-            standard_revision: "05-series".into(),
+            standard_id: standard_id.into(),
+            standard_revision: standard_revision.into(),
             protocol_revision: "protocol-r1".into(),
-            acceptance_criteria_id: if matches!(
-                result,
-                TestResult::Pass | TestResult::Fail | TestResult::NoPropagationWithinWindow
-            ) {
-                Some(if cls == "bess" {
-                    "UL-9540A-6th-edition-acceptance-criteria".into()
-                } else {
-                    "UN-R100-6.15-Annex-9K-05-series-criteria".into()
-                })
-            } else {
-                None
-            },
-            acceptance_criteria_evidence_id: if matches!(
-                result,
-                TestResult::Pass | TestResult::Fail | TestResult::NoPropagationWithinWindow
-            ) {
-                Some(if cls == "bess" {
-                    "E-CRITERIA-UL9540A".into()
-                } else {
-                    "E-CRITERIA-UNR100".into()
-                })
-            } else {
-                None
-            },
+            acceptance_criteria_id: needs_acceptance_criteria.then(|| criteria_id.into()),
+            acceptance_criteria_evidence_id: needs_acceptance_criteria
+                .then(|| criteria_evidence_id.into()),
             trigger_method: TriggerMethod::LocalizedExternalHeating,
             trigger_achieved,
             post_trigger_observation_minutes: 120,
@@ -965,6 +977,7 @@ mod tests {
             "E-RISK",
             TestResult::RiskAnalysisSubmitted,
             false,
+            AcceptanceCriteriaKind::UnR100ThermalPropagation,
         );
         risk_test.standard_id = "UN-R100-2026".into();
 
@@ -975,6 +988,7 @@ mod tests {
                 "E-REESS",
                 TestResult::NoPropagationWithinWindow,
                 true,
+                AcceptanceCriteriaKind::UnR100ThermalPropagation,
             ),
             physical_test(
                 "EV-CELL-001",
@@ -982,6 +996,7 @@ mod tests {
                 "E-CELL",
                 TestResult::Pass,
                 true,
+                AcceptanceCriteriaKind::Iec62660CellSafety,
             ),
             physical_test(
                 "BESS-INSTALL-001",
@@ -989,6 +1004,7 @@ mod tests {
                 "E-BESS",
                 TestResult::Pass,
                 true,
+                AcceptanceCriteriaKind::Ul9540aStationaryStorage,
             ),
             risk_test,
         ];
@@ -1056,12 +1072,22 @@ mod tests {
                 },
                 EvidenceRecord {
                     evidence_id: "E-CRITERIA-UL9540A".into(),
-                    source_digest: digest('d'),
+                    source_digest: digest('8'),
                     evidence_class: EvidenceClass::Literature,
                     admission: Admission::AdmittedForEvaluation,
                     claim_scope: "UL-9540A UL-9540A-6th-edition-acceptance-criteria 6th-edition"
                         .into(),
                     authority_or_lab_ref: "SYNTHETIC-UL-9540A-REFERENCE".into(),
+                    metrology_ref: None,
+                },
+                EvidenceRecord {
+                    evidence_id: "E-CRITERIA-IEC62660".into(),
+                    source_digest: digest('9'),
+                    evidence_class: EvidenceClass::Literature,
+                    admission: Admission::AdmittedForEvaluation,
+                    claim_scope: "IEC-62660-3 IEC-62660-3-2022-cell-block-safety-criteria 2022 edition"
+                        .into(),
+                    authority_or_lab_ref: "SYNTHETIC-IEC-62660-3-REFERENCE".into(),
                     metrology_ref: None,
                 },
             ],
