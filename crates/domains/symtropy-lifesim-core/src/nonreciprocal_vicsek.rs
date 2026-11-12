@@ -726,8 +726,16 @@ mod tests {
     ) -> NonreciprocalVicsekModel {
         NonreciprocalVicsekModel::new(
             vec![
-                VicsekParticle { x: 1.0, y: 1.0, heading_rad: leader_heading },
-                VicsekParticle { x: 2.0, y: 1.0, heading_rad: follower_heading },
+                VicsekParticle {
+                    x: 1.0,
+                    y: 1.0,
+                    heading_rad: leader_heading,
+                },
+                VicsekParticle {
+                    x: 2.0,
+                    y: 1.0,
+                    heading_rad: follower_heading,
+                },
             ],
             weights,
             pair_config(),
@@ -898,8 +906,16 @@ mod tests {
     #[test]
     fn per_particle_noise_profile_rejects_wrong_length_and_invalid_values() {
         let particles = vec![
-            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
-            VicsekParticle { x: 2.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 2.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
         ];
         let weights = vec![1.0, 1.0, 4.0, 1.0];
         assert!(matches!(
