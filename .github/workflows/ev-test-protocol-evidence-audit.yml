@@ -1,0 +1,38 @@
+name: EV test protocol evidence v0.1 audit
+
+on:
+  pull_request:
+    paths:
+      - "docs/transport/EV_TEST_PROTOCOL_EVIDENCE_V0_1.md"
+      - "schemas/transport/ev_test_protocol_evidence_v0_1.schema.json"
+      - "fixtures/ev_battery/test_protocol_evidence_scenarios_v0_1.json"
+      - "tools/ev-test-protocol-evidence-audit/**"
+      - ".github/workflows/ev-test-protocol-evidence-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-test-protocol-evidence-audit/Cargo.toml -- --check
+      - name: Run protocol and mutation tests
+        run: cargo test --manifest-path tools/ev-test-protocol-evidence-audit/Cargo.toml
+      - name: Audit frozen test evidence scenarios
+        run: |
+          cargo run --manifest-path tools/ev-test-protocol-evidence-audit/Cargo.toml -- --schema schemas/transport/ev_test_protocol_evidence_v0_1.schema.json --corpus fixtures/ev_battery/test_protocol_evidence_scenarios_v0_1.json > "$RUNNER_TEMP/ev-test-protocol-evidence-report.json"
+          jq -e '
+            .case_count == 18 and
+            .accepted_count == 8 and
+            .rejected_count == 10 and
+            .non_physical_count == 1 and
+            (.report_sha256 | test("^[a-f0-9]{64}$"))
+          ' "$RUNNER_TEMP/ev-test-protocol-evidence-report.json"
