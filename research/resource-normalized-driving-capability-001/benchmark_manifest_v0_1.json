@@ -1,7 +1,7 @@
 {
   "schema_version": "0.1.0",
   "protocol_id": "RESOURCE-NORMALIZED-DRIVING-CAPABILITY-001",
-  "as_of": "2026-11-11",
+  "as_of": "2026-11-12",
   "status": "specification_only_no_model_runs",
   "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4639",
   "related_owners": {
@@ -348,6 +348,21 @@
       "protocol": "Symtropy #4774 jurisdiction profile schema and Rust structural auditor. This is a source skeleton, not a legally reviewed ZA driving rule pack.",
       "source": "https://github.com/Luminous-Dynamics/symtropy/issues/4774",
       "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "waymo_construction_zone_recall_26e035",
+      "class": "regulatory_recall_report",
+      "name": "NHTSA Part 573 Safety Recall Report 26E035 — freeway construction-zone entry",
+      "metric_values": null,
+      "capabilities": [
+        "Official recall report identifies failure to recognize ramp-closure signs and entry into pre-planned freeway construction zones in Phoenix on events from 11 and 19 April 2026",
+        "Report also describes seven events on 18 May 2026 in which vehicles entered freeway lanes between cones designating a lane closure in the San Francisco Bay Area",
+        "Manufacturer report attributes behavior to prioritizing avoidance of other freeway hazards and/or failing to recognize the construction zone",
+        "Described software remedy includes improved awareness/response to freeway closures and detecting when the ADS is inside a construction zone, plus operational protocols"
+      ],
+      "protocol": "Regulatory recall narrative and event chronology only. The report is not a controlled benchmark, fleet failure-rate denominator, independent root-cause study or estimate of public-road prevalence. Use it to motivate scenario families and negative controls, not to rank systems.",
+      "source": "https://static.nhtsa.gov/odi/rcl/2026/RCLRPT-26E035-7637.pdf",
+      "independent_symtropy_reproduction": false
     }
   ],
   "benchmark_ladder": [
@@ -522,6 +537,21 @@
         "false_rule_activation_and_fallback_rate",
         "p99_latency_and_measured_energy"
       ]
+    },
+    {
+      "id": "temporary_traffic_control",
+      "priority": 16,
+      "task": "source-qualified temporary traffic control and construction-zone response: closure signs, cones, barriers, lane shifts, changed lane geometry and conflicts between hazard avoidance and declared closure; include the NHTSA 26E035 event patterns as scenario motivation, not prevalence estimates",
+      "metric_family": [
+        "closure_sign_compliance",
+        "cone_and_barrier_channelization_compliance",
+        "work_zone_boundary_entry_violations",
+        "safe_reroute_completion",
+        "false_positive_closure_response",
+        "temporary_rule_change_detection_latency",
+        "worst_work_zone_scenario_family",
+        "jurisdiction_profile_source_validity"
+      ]
     }
   ],
   "budget_dimensions": [
@@ -604,7 +634,10 @@
     "left_right_traffic_transfer_and_metamorphic_geometry",
     "jurisdiction_profile_staleness_and_contradiction_handling",
     "region_specific_sign_and_marking_semantics",
-    "legal_source_provenance_coverage_and_profile_eligibility"
+    "legal_source_provenance_coverage_and_profile_eligibility",
+    "temporary_traffic_control_compliance_by_sign_and_channelization_family",
+    "work_zone_boundary_entry_and_safe_reroute_outcomes",
+    "temporary_rule_change_detection_latency"
   ],
   "prospective_targets": {
     "status": "not_measured",
@@ -642,7 +675,10 @@
     "stale_or_wrong_effective_date_rule_bundle_applied",
     "jurisdiction_sign_or_traffic_side_profile_leaked_from_evaluator",
     "left_right_geometry_mirror_claimed_as_legal_rule_equivalence",
-    "region_qa_accuracy_claimed_as_closed_loop_rule_compliance"
+    "region_qa_accuracy_claimed_as_closed_loop_rule_compliance",
+    "temporary_closure_sign_or_cone_channelization_ignored",
+    "obstacle_avoidance_priority_overrides_a_declared_work_zone_closure",
+    "temporary_traffic_control_profile_or_effective_time_is_stale_or_unbound"
   ],
   "sources": [
     {
@@ -800,6 +836,12 @@
       "url": "https://www.gov.za/documents/national-road-traffic-act",
       "published": "Act 93 of 1996 source page; consolidated amendment/commencement status pending review",
       "source_type": "South African statutory source"
+    },
+    {
+      "id": "waymo_construction_zone_recall_26e035",
+      "url": "https://static.nhtsa.gov/odi/rcl/2026/RCLRPT-26E035-7637.pdf",
+      "published": "2026-06-17",
+      "source_type": "NHTSA Part 573 regulatory recall report; official event chronology and remedy description"
     }
   ],
   "statistical_method": {
