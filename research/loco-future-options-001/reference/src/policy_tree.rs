@@ -171,6 +171,37 @@ fn require_nonempty(
     Ok(())
 }
 
+fn index_state_receipts<'a>(
+    node: &'a BeliefNode,
+) -> Result<BTreeMap<String, &'a BeliefStateReceipt>, PolicyTreeError> {
+    let mut indexed = BTreeMap::new();
+    for receipt in &node.state_evidence {
+        require_nonempty(&[("belief_state_receipt.state_id", &receipt.state_id)])?;
+        if indexed.insert(receipt.state_id.clone(), receipt).is_some() {
+            return Err(PolicyTreeError::DuplicateStateEvidence {
+                node_id: node.node_id.clone(),
+                state_id: receipt.state_id.clone(),
+            });
+        }
+    }
+    Ok(indexed)
+}
+
+fn state_receipts_complete(
+    node: &BeliefNode,
+    receipts: &BTreeMap<String, &BeliefStateReceipt>,
+) -> bool {
+    receipts.len() == node.state_ids.len()
+        && node.state_ids.iter().all(|state_id| {
+            receipts.get(state_id).is_some_and(|receipt| {
+                !receipt.physical_state_digest.trim().is_empty()
+                    && !receipt.reserve_state_digest.trim().is_empty()
+                    && !receipt.thermal_state_digest.trim().is_empty()
+                    && !receipt.receipt_digest.trim().is_empty()
+            })
+        })
+}
+
 fn solve_node(
     node_id: &str,
     depth: usize,
@@ -205,6 +236,9 @@ fn solve_node(
         }
     }
 
+    let state_receipts = index_state_receipts(node)?;
+    let state_receipts_valid = state_receipts_complete(node, &state_receipts);
+
     let solution = if node.observation_disposition == ObservationDisposition::Invalid {
         NodeSolution {
             disposition: PolicyTreeDisposition::Invalid,
@@ -231,41 +265,94 @@ fn solve_node(
             unknown_reasons: vec![format!("{node_id}:empty-belief-state")],
             invalid_reasons: Vec::new(),
         }
+    } else if !state_receipts_valid {
+        NodeSolution {
+            disposition: PolicyTreeDisposition::Unknown,
+            winning_action_ids: Vec::new(),
+            witness: BTreeMap::new(),
+            unknown_reasons: vec![format!("{node_id}:physical-reserve-or-thermal-state-evidence-incomplete")],
+            invalid_reasons: Vec::new(),
+        }
     } else if depth == 0 {
         match &node.terminal_recovery {
-            Some(TerminalRecoveryEvidence::Qualified {
-                reserve_state_digest,
-                topology_digest,
-                terminal_safe_stop_reachable,
-            }) if !reserve_state_digest.trim().is_empty()
-                && !topology_digest.trim().is_empty()
-                && *terminal_safe_stop_reachable =>
-            {
-                NodeSolution {
-                    disposition: PolicyTreeDisposition::WinningPolicyFound,
-                    winning_action_ids: Vec::new(),
-                    witness: BTreeMap::new(),
-                    unknown_reasons: Vec::new(),
-                    invalid_reasons: Vec::new(),
+            Some(TerminalRecoveryEvidence::Qualified { state_receipts }) => {
+                let mut by_state = BTreeMap::new();
+                let mut duplicate = None;
+                for receipt in state_receipts {
+                    if by_state.insert(receipt.state_id.clone(), receipt).is_some() {
+                        duplicate = Some(receipt.state_id.clone());
+                        break;
+                    }
+                }
+                if let Some(state_id) = duplicate {
+                    return Err(PolicyTreeError::DuplicateTerminalRecoveryState(state_id));
+                }
+                if by_state.len() != node.state_ids.len()
+                    || node.state_ids.iter().any(|state_id| !by_state.contains_key(state_id))
+                {
+                    NodeSolution {
+                        disposition: PolicyTreeDisposition::Unknown,
+                        winning_action_ids: Vec::new(),
+                        witness: BTreeMap::new(),
+                        unknown_reasons: vec![format!("{node_id}:terminal-recovery-state-coverage-incomplete")],
+                        invalid_reasons: Vec::new(),
+                    }
+                } else {
+                    let mut mismatch = None;
+                    let mut unknown = None;
+                    let mut safe_stop_missing = false;
+                    for state_id in &node.state_ids {
+                        let receipt = by_state[state_id];
+                        if receipt.reserve_state_digest.trim().is_empty()
+                            || receipt.topology_digest.trim().is_empty()
+                        {
+                            unknown = Some(format!("{node_id}:{state_id}:terminal-recovery-identity-missing"));
+                            break;
+                        }
+                        let state = state_receipts[state_id];
+                        if receipt.reserve_state_digest != state.reserve_state_digest {
+                            mismatch = Some(format!("{node_id}:{state_id}:terminal-reserve-state-mismatch"));
+                            break;
+                        }
+                        if !receipt.terminal_safe_stop_reachable {
+                            safe_stop_missing = true;
+                        }
+                    }
+                    if let Some(reason) = mismatch {
+                        NodeSolution {
+                            disposition: PolicyTreeDisposition::Invalid,
+                            winning_action_ids: Vec::new(),
+                            witness: BTreeMap::new(),
+                            unknown_reasons: Vec::new(),
+                            invalid_reasons: vec![reason],
+                        }
+                    } else if let Some(reason) = unknown {
+                        NodeSolution {
+                            disposition: PolicyTreeDisposition::Unknown,
+                            winning_action_ids: Vec::new(),
+                            witness: BTreeMap::new(),
+                            unknown_reasons: vec![reason],
+                            invalid_reasons: Vec::new(),
+                        }
+                    } else if safe_stop_missing {
+                        NodeSolution {
+                            disposition: PolicyTreeDisposition::NoWinningPolicyInDeclaredDomain,
+                            winning_action_ids: Vec::new(),
+                            witness: BTreeMap::new(),
+                            unknown_reasons: Vec::new(),
+                            invalid_reasons: Vec::new(),
+                        }
+                    } else {
+                        NodeSolution {
+                            disposition: PolicyTreeDisposition::WinningPolicyFound,
+                            winning_action_ids: Vec::new(),
+                            witness: BTreeMap::new(),
+                            unknown_reasons: Vec::new(),
+                            invalid_reasons: Vec::new(),
+                        }
+                    }
                 }
             }
-            Some(TerminalRecoveryEvidence::Qualified {
-                terminal_safe_stop_reachable: false,
-                ..
-            }) => NodeSolution {
-                disposition: PolicyTreeDisposition::NoWinningPolicyInDeclaredDomain,
-                winning_action_ids: Vec::new(),
-                witness: BTreeMap::new(),
-                unknown_reasons: Vec::new(),
-                invalid_reasons: Vec::new(),
-            },
-            Some(TerminalRecoveryEvidence::Qualified { .. }) => NodeSolution {
-                disposition: PolicyTreeDisposition::Unknown,
-                winning_action_ids: Vec::new(),
-                witness: BTreeMap::new(),
-                unknown_reasons: vec![format!("{node_id}:terminal-recovery-identity-missing")],
-                invalid_reasons: Vec::new(),
-            },
             Some(TerminalRecoveryEvidence::Unknown { reason }) => NodeSolution {
                 disposition: PolicyTreeDisposition::Unknown,
                 winning_action_ids: Vec::new(),
