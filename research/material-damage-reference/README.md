@@ -11,12 +11,16 @@
 - Constant-Delta-K Paris-law crack extension inside a caller-declared Delta-K interval.
 - Typed failure for invalid, non-finite, non-positive, out-of-range, empty, zero-cycle and overflowing inputs.
 - Independent known-answer tests and metamorphic tests for block splitting/permutation, stress-life monotonicity, and constant-Delta-K cycle/coefficient scaling.
+- Mutation-sensitivity audit on disposable copies; selected S-N, Miner and Paris formula defects must be killed by the named analytical/metamorphic tests.
 
 ## Run
 
     cargo fmt --manifest-path research/material-damage-reference/Cargo.toml --all -- --check
     cargo test --locked --manifest-path research/material-damage-reference/Cargo.toml
     cargo clippy --locked --manifest-path research/material-damage-reference/Cargo.toml --all-targets -- -D warnings
+    bash research/material-damage-reference/scripts/verify_material_damage_mutations.sh
+
+The focused GitHub Actions workflow archives the mutation-sensitivity receipt separately from source. A successful mutation gate demonstrates that the selected tests detect those seeded defects; it does not establish model correctness beyond the tested cases.
 
 ## Exact claim boundary
 
@@ -32,7 +36,7 @@ No specimen data or real-material S-N/Paris constants are embedded. Synthetic va
 
 Commercial systems are much broader. Ansys nCode DesignLife documents stress-life, strain-life, vibration, thermo-mechanical, weld and crack-growth analyses, integrated with FEA. SIMULIA fe-safe documents multiaxial fatigue, duty-cycle damage, manufacturing effects, probabilistic warranty curves and FE integration.
 
-This reference does not compete with those products on physics breadth. Its contribution is a small, inspectable, dependency-free contract with strict no-extrapolation behavior and metamorphic checks that can later be composed with Symtropy's physical-state and material-provenance kernel.
+This reference does not compete with those products on physics breadth. Its contribution is a small, inspectable, dependency-free contract with strict no-extrapolation behavior, metamorphic checks and mutation-sensitive tests that can later be composed with Symtropy's physical-state and material-provenance kernel.
 
 ASTM E647-24 is a relevant experimental-method anchor for fatigue crack-growth rate measurement as a function of Delta-K. Any later experimental comparison must preserve load ratio, test environment, specimen geometry/thickness, residual stress, crack measurement method and uncertainty; matching Delta-K alone is not enough to establish transferability.
 
@@ -44,4 +48,4 @@ ASTM E647-24 is a relevant experimental-method anchor for fatigue crack-growth r
 4. Add geometry-specific stress-intensity adapters only with independent references.
 5. Bind admitted damage estimates to component identity, source state, calibration, uncertainty and model applicability before composing them with construction/repair events.
 
-A passing synthetic formula test does not validate a material, structure, remaining-life forecast, inspection interval, or repair/release decision.
+A passing synthetic formula test does not validate a material, structure, remaining-useful-life forecast, inspection interval, or repair/release decision.
