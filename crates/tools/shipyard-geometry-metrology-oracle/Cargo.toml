@@ -1,0 +1,13 @@
+[package]
+name = "shipyard-geometry-metrology-oracle"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Exact synthetic profile differencing with scan provenance and uncertainty gates"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
