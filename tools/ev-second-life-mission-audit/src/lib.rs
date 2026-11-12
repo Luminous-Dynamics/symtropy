@@ -163,12 +163,14 @@ pub struct QualificationCase {
     pub source_pack_id: String,
     pub pack_revision: String,
     pub passport_ref: String,
+    pub passport_evidence_id: String,
     pub configuration_digest: String,
     pub cell_membership_digest: String,
     pub expected_cell_count: usize,
     pub observed_cell_ids: Vec<String>,
     pub history_coverage: HistoryCoverage,
     pub incident_history: IncidentHistory,
+    pub incident_adjudication_ref: Option<String>,
     pub requested_use: RequestedUse,
     pub mission: MissionRequirement,
     pub capability: CapabilityEnvelope,
@@ -393,6 +395,7 @@ fn validate_case_shape(case: &QualificationCase) -> Result<(), AuditError> {
         (case.source_pack_id.as_str(), "source pack ID"),
         (case.pack_revision.as_str(), "pack revision"),
         (case.passport_ref.as_str(), "battery passport reference"),
+        (case.passport_evidence_id.as_str(), "passport evidence ID"),
         (case.bms.hardware_revision.as_str(), "BMS hardware revision"),
         (case.bms.firmware_revision.as_str(), "BMS firmware revision"),
         (case.bms.verification_ref.as_str(), "BMS verification reference"),
@@ -478,6 +481,66 @@ fn evaluate_case(
     let gates = gate_map(&case.gates, registry, &case.case_id, mode)?;
     let mut blockers = Vec::new();
     let mut gates_passed = 0;
+
+    let passport_gate = gates.get(&HardGate::PackIdentity).expect("identity gate exists");
+    if case.passport_evidence_id != passport_gate.evidence_id {
+        return Err(AuditError(format!(
+            "case {} passport evidence ID does not match the pack-identity gate evidence",
+            case.case_id
+        )));
+    }
+    let capability_gate = gates.get(&HardGate::MissionCapability).expect("capability gate exists");
+    if case.capability.evidence_id != capability_gate.evidence_id {
+        return Err(AuditError(format!(
+            "case {} capability evidence ID does not match the mission-capability gate evidence",
+            case.case_id
+        )));
+    }
+    let bms_gate = gates.get(&HardGate::BmsCompatibility).expect("BMS gate exists");
+    if case.bms.verification_ref != bms_gate.evidence_id {
+        return Err(AuditError(format!(
+            "case {} BMS verification reference does not match the BMS gate evidence",
+            case.case_id
+        )));
+    }
+    let thermal_gate = gates
+        .get(&HardGate::ThermalPropagationApproval)
+        .expect("thermal gate exists");
+    if case.thermal_review_status == ThermalReviewStatus::AcceptedByCompetentAuthority
+        && case.thermal_authority_decision_ref.as_deref() != Some(thermal_gate.evidence_id.as_str())
+    {
+        return Err(AuditError(format!(
+            "case {} thermal authority decision reference does not match the thermal gate evidence",
+            case.case_id
+        )));
+    }
+    let history_gate = gates.get(&HardGate::HistoryIntegrity).expect("history gate exists");
+    if case.incident_history == IncidentHistory::AdverseEventsPresentAndAdjudicated
+        && case.incident_adjudication_ref.as_deref() != Some(history_gate.evidence_id.as_str())
+    {
+        return Err(AuditError(format!(
+            "case {} adverse-event adjudication reference does not match history-integrity evidence",
+            case.case_id
+        )));
+    }
+    let _uncertainty_profile = admitted(
+        registry,
+        &case.capability.uncertainty_profile_ref,
+        &format!("case {} uncertainty profile", case.case_id),
+    )?;
+    if mode == EvaluationMode::EvidenceReview {
+        let profile = admitted(
+            registry,
+            &case.capability.uncertainty_profile_ref,
+            &format!("case {} uncertainty profile", case.case_id),
+        )?;
+        if matches!(profile.evidence_class, EvidenceClass::Synthetic | EvidenceClass::Simulation) {
+            return Err(AuditError(format!(
+                "case {} cannot use synthetic/simulation uncertainty profile in evidence review",
+                case.case_id
+            )));
+        }
+    }
 
     for gate in HardGate::ALL {
         let assessment = gates.get(&gate).expect("all gate members validated");
@@ -625,6 +688,7 @@ mod tests {
             source_pack_id: format!("PACK-{id}"),
             pack_revision: "PACK-R3".into(),
             passport_ref: format!("PASSPORT-{id}"),
+            passport_evidence_id: "E-GATE-0".into(),
             configuration_digest: digest('a'),
             cell_membership_digest: digest('b'),
             expected_cell_count: 4,
@@ -636,6 +700,7 @@ mod tests {
             ],
             history_coverage: HistoryCoverage::CompleteSinceFirstCommissioning,
             incident_history: IncidentHistory::NoAdverseEventsRecordedInCompleteHistory,
+            incident_adjudication_ref: None,
             requested_use,
             mission: MissionRequirement {
                 horizon_months: 120,
@@ -652,7 +717,7 @@ mod tests {
                 supported_temperature_min_c: -20.0,
                 supported_temperature_max_c: 45.0,
                 lower_bound_availability_percent: 98.0,
-                uncertainty_profile_ref: "UQ-PROFILE-R2".into(),
+                uncertainty_profile_ref: "E-UQ-PROFILE".into(),
                 evidence_id: format!("E-CAP-{id}"),
             },
             bms: BmsConfiguration {
@@ -664,7 +729,22 @@ mod tests {
             },
             thermal_review_status: ThermalReviewStatus::AcceptedByCompetentAuthority,
             thermal_authority_decision_ref: Some(format!("AUTH-THERMAL-{id}")),
-            gates: gates(),
+            gates: {
+                let mut values = gates();
+                values.iter_mut()
+                    .find(|g| g.gate == HardGate::MissionCapability)
+                    .unwrap()
+                    .evidence_id = format!("E-CAP-{id}");
+                values.iter_mut()
+                    .find(|g| g.gate == HardGate::BmsCompatibility)
+                    .unwrap()
+                    .evidence_id = format!("BMS-VERIFY-{id}");
+                values.iter_mut()
+                    .find(|g| g.gate == HardGate::ThermalPropagationApproval)
+                    .unwrap()
+                    .evidence_id = format!("AUTH-THERMAL-{id}");
+                values
+            },
         }
     }
 
@@ -673,15 +753,15 @@ mod tests {
         for i in 0..10 {
             ev.push(evidence(&format!("E-GATE-{i}"), char::from(b'a' + i as u8)));
         }
-        for (i, id) in ["E-CAP-SECOND", "E-CAP-THIRD", "E-CAP-UNKNOWN"].iter().enumerate() {
-            ev.push(evidence(id, char::from(b'k' + i as u8)));
+        for id in ["SECOND-LIFE", "THIRD-LIFE", "UNKNOWN-HISTORY"] {
+            ev.push(evidence(&format!("E-CAP-{id}"), 'k'));
+            ev.push(evidence(&format!("BMS-VERIFY-{id}"), 'l'));
+            ev.push(evidence(&format!("AUTH-THERMAL-{id}"), 'm'));
         }
+        ev.push(evidence("E-UQ-PROFILE", 'n'));
         let mut second = case("SECOND-LIFE", RequestedUse::SecondLifeStationary);
-        second.capability.evidence_id = "E-CAP-SECOND".into();
         let mut third = case("THIRD-LIFE", RequestedUse::ThirdLifeBackup);
-        third.capability.evidence_id = "E-CAP-THIRD".into();
         let mut unknown = case("UNKNOWN-HISTORY", RequestedUse::SecondLifeStationary);
-        unknown.capability.evidence_id = "E-CAP-UNKNOWN".into();
         unknown.history_coverage = HistoryCoverage::Partial;
         unknown.incident_history = IncidentHistory::Unknown;
         unknown.thermal_review_status = ThermalReviewStatus::CandidateForHumanReview;
@@ -782,11 +862,35 @@ mod tests {
     }
 
     #[test]
-    fn adverse_event_history_requires_adjudication_and_all_gates() {
+    fn adverse_event_history_requires_adjudication_reference_to_exact_history_evidence() {
         let mut m = fixture();
         m.cases[0].incident_history = IncidentHistory::AdverseEventsPresentAndAdjudicated;
-        let r = audit_manifest(&m).expect("adjudicated history may proceed to hard gates");
+        assert!(audit_manifest(&m).is_err());
+        let mut m = fixture();
+        m.cases[0].incident_history = IncidentHistory::AdverseEventsPresentAndAdjudicated;
+        m.cases[0].incident_adjudication_ref = Some("E-GATE-2".into());
+        let r = audit_manifest(&m).expect("exact adjudication evidence is bound");
         assert_eq!(r.synthetic_fixture_count, 2);
+    }
+
+    #[test]
+    fn capability_bms_and_thermal_refs_must_match_gate_evidence() {
+        let mut m = fixture();
+        m.cases[0].capability.evidence_id = "OTHER-CAPABILITY".into();
+        assert!(audit_manifest(&m).is_err());
+        let mut m = fixture();
+        m.cases[0].bms.verification_ref = "STALE-BMS".into();
+        assert!(audit_manifest(&m).is_err());
+        let mut m = fixture();
+        m.cases[0].thermal_authority_decision_ref = Some("STALE-THERMAL-REVIEW".into());
+        assert!(audit_manifest(&m).is_err());
+    }
+
+    #[test]
+    fn uncertainty_profile_must_be_admitted() {
+        let mut m = fixture();
+        m.cases[0].capability.uncertainty_profile_ref = "MISSING-UQ".into();
+        assert!(audit_manifest(&m).is_err());
     }
 
     #[test]
