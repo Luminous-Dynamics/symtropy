@@ -167,6 +167,10 @@ pub struct SearchDiagnostics {
     pub polar_step_rad: f64,
     pub azimuth_step_rad: f64,
     pub maximum_observed_phase_gap_rad: f64,
+    /// Largest shear-path shape index across all searched planes. This is
+    /// independent of the plane maximizing the Findley fatigue parameter.
+    pub maximum_shear_path_shape_index: f64,
+    pub maximum_shape_plane_normal: [f64; 3],
 }
 
 /// Evidence-bound result; output class remains ModelEstimate.
@@ -329,6 +333,7 @@ pub fn evaluate_findley(
     }
 
     let mut best: Option<CriticalPlaneResult> = None;
+    let mut maximum_shape: Option<(f64, [f64; 3])> = None;
     let mut examined = 0usize;
     for polar_index in 0..=profile.polar_steps {
         let theta = (PI / 2.0) * (polar_index as f64) / (profile.polar_steps as f64);
@@ -348,10 +353,18 @@ pub fn evaluate_findley(
             if should_replace {
                 best = Some(candidate);
             }
+            let should_replace_shape = maximum_shape.is_none_or(|(shape, _)| {
+                candidate.shear_path_shape_index > shape
+            });
+            if should_replace_shape {
+                maximum_shape = Some((candidate.shear_path_shape_index, normal));
+            }
         }
     }
 
     let critical_plane = best.ok_or(HcfError::NoFiniteCandidate)?;
+    let (maximum_shear_path_shape_index, maximum_shape_plane_normal) =
+        maximum_shape.ok_or(HcfError::NoFiniteCandidate)?;
     Ok(FindleyReport {
         case_id: history.case_id.clone(),
         material_grade_id: history.material_grade_id.clone(),
@@ -368,6 +381,8 @@ pub fn evaluate_findley(
             polar_step_rad: (PI / 2.0) / (profile.polar_steps as f64),
             azimuth_step_rad: TAU / (profile.azimuth_steps as f64),
             maximum_observed_phase_gap_rad: maximum_phase_gap,
+            maximum_shear_path_shape_index,
+            maximum_shape_plane_normal,
         },
     })
 }
@@ -649,8 +664,13 @@ mod tests {
         let in_phase_report = evaluate_findley(&in_phase, profile(0.3)).unwrap();
         let quadrature_report = evaluate_findley(&quadrature, profile(0.3)).unwrap();
 
-        assert!(in_phase_report.critical_plane.shear_path_shape_index < 1.0e-8);
-        assert!(quadrature_report.critical_plane.shear_path_shape_index > 0.05);
+        assert!(in_phase_report.diagnostics.maximum_shear_path_shape_index < 1.0e-8);
+        assert!(
+            quadrature_report
+                .diagnostics
+                .maximum_shear_path_shape_index
+                > 0.05
+        );
     }
 
     #[test]
