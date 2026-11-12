@@ -1,0 +1,81 @@
+{
+  "schema_version": "luminous.matched_physics_benchmark_adapters.v0.1",
+  "comparison_claim_ceiling": "NONE_UNTIL_SEMANTIC_MAPPING_PASSES",
+  "adapters": [
+    {
+      "adapter_id": "symtropy-reference",
+      "state": "IMPLEMENTED_REFERENCE_LAYER_ONLY",
+      "evidence": "https://github.com/Luminous-Dynamics/symtropy/pull/4797",
+      "measured_scope": [
+        "frame-typed-tangent-cotangent-norms",
+        "dense-coordinate-rebasis",
+        "reference-layer-microbenchmark"
+      ],
+      "limitations": [
+        "not a production multibody solver",
+        "not a Drake/MuJoCo/Pinocchio performance comparison"
+      ]
+    },
+    {
+      "adapter_id": "independent-high-precision-oracle",
+      "state": "IMPLEMENTED_EXACT_RATIONAL_DENSE_FIXTURE_ONLY",
+      "evidence": "matched-physics-benchmark-contract workflow",
+      "measured_scope": [
+        "METRIC-DENSE-REBASE-2D-001"
+      ],
+      "limitations": [
+        "does not yet cover the nonlinear physical dumbbell step"
+      ]
+    },
+    {
+      "adapter_id": "drake",
+      "state": "NOT_IMPLEMENTED",
+      "reference": "https://drake.mit.edu/pydrake/pydrake.multibody.plant.html",
+      "required_mapping": [
+        "generalized_velocity_convention",
+        "mass_matrix",
+        "force_projection",
+        "constraint_model",
+        "integrator_and_timestep",
+        "observable_mapping"
+      ]
+    },
+    {
+      "adapter_id": "mujoco",
+      "state": "NOT_IMPLEMENTED",
+      "reference": "https://mujoco.readthedocs.io/en/latest/computation/",
+      "required_mapping": [
+        "joint_and_tangent_convention",
+        "mass_matrix",
+        "constraint_and_cone_model",
+        "solver_and_tolerances",
+        "integrator_and_timestep",
+        "observable_mapping"
+      ]
+    },
+    {
+      "adapter_id": "pinocchio",
+      "state": "NOT_IMPLEMENTED",
+      "reference": "https://gepettoweb.laas.fr/doc/stack-of-tasks/pinocchio/master/doxygen-html/md_doc_a-features_g-dynamic.html",
+      "required_mapping": [
+        "joint_and_velocity_convention",
+        "inertia_and_force_mapping",
+        "constraint_dynamics",
+        "integrator_and_timestep",
+        "observable_mapping"
+      ]
+    },
+    {
+      "adapter_id": "project-chrono",
+      "state": "FUTURE_OPTIONAL",
+      "reference": "https://api.projectchrono.org/collisions.html",
+      "required_mapping": [
+        "NSC_or_SMC_contact_semantics",
+        "constraint_and_contact_law",
+        "solver_and_tolerances",
+        "integrator_and_timestep",
+        "observable_mapping"
+      ]
+    }
+  ]
+}

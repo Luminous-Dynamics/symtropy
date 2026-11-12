@@ -1,0 +1,88 @@
+{
+  "schema_version": "luminous.matched_physics_benchmark_result.v0.1",
+  "result_id": "synthetic-not-run-result-for-contract-validation",
+  "result_mode": "synthetic_contract_test",
+  "case_id": "METRIC-DENSE-REBASE-2D-001",
+  "case_payload_sha256": "fe7e0edb0056782af6c2d062aad7168d617b9c61273560381998f1041f927ee6",
+  "execution_status": "NOT_RUN",
+  "implementation": {
+    "adapter_id": "symtropy-reference",
+    "implementation_name": "Metric-induced Rust reference",
+    "version": "0.1.0",
+    "algorithm": "frame-typed dense metric and dual-metric norms",
+    "source_commit_sha": "NOT_APPLICABLE",
+    "adapter_contract_version": "0.1",
+    "binary_sha256": "NOT_APPLICABLE",
+    "solver_options_sha256": "NOT_APPLICABLE"
+  },
+  "environment": {
+    "operating_system": "not-run",
+    "architecture": "not-run",
+    "cpu_model": "not-run",
+    "compiler_or_runtime": "not-run",
+    "floating_point_mode": "not-run",
+    "thread_count": 1,
+    "warmup_count": 0,
+    "sample_count": 0,
+    "repetitions_per_sample": 0
+  },
+  "semantic_mapping": {
+    "status": "NOT_APPLICABLE",
+    "case_payload_sha256": "fe7e0edb0056782af6c2d062aad7168d617b9c61273560381998f1041f927ee6",
+    "coordinate_convention": "NOT_APPLICABLE",
+    "units": "NOT_APPLICABLE",
+    "physical_model": "NOT_APPLICABLE",
+    "initial_conditions": "NOT_APPLICABLE",
+    "force_covector_semantics": "NOT_APPLICABLE",
+    "constraints": "NOT_APPLICABLE",
+    "integrator_and_timestep": "NOT_APPLICABLE",
+    "observable_mapping": "NOT_APPLICABLE",
+    "mapping_receipt_sha256": "NOT_APPLICABLE",
+    "mismatch_reasons": [
+      "Synthetic algebra fixture; no external solver executed."
+    ]
+  },
+  "metrics": {
+    "numerical": {
+      "tangent_metric_norm_relative_drift": null,
+      "cotangent_dual_norm_relative_drift": null,
+      "pairing_relative_drift": null,
+      "normwise_backward_error": null,
+      "componentwise_backward_error": null,
+      "condition_estimate": null,
+      "high_precision_forward_error": null,
+      "forward_error_bound": null,
+      "nonlinear_residual": null,
+      "constraint_violation": null
+    },
+    "physical": {
+      "lifted_position_error": null,
+      "lifted_velocity_error": null,
+      "momentum_error": null,
+      "energy_work_defect": null,
+      "step_equivariance_defect": null
+    },
+    "performance": {
+      "median_ns_per_step": null,
+      "p95_ns_per_step": null,
+      "p99_ns_per_step": null,
+      "factorization_ns": null,
+      "peak_memory_bytes": null
+    }
+  },
+  "comparison": {
+    "status": "NOT_COMPARABLE",
+    "basis": "NONE",
+    "claim_class": "NONE",
+    "general_sota_superiority": false
+  },
+  "claim_boundary": {
+    "production_authority": false,
+    "limitations": [
+      "Synthetic contract fixture only; no solver was executed.",
+      "This dense 2D algebra case is not a physical multibody simulation.",
+      "No Drake, MuJoCo, Pinocchio or high-precision result is claimed.",
+      "No SOTA superiority, physical authority or production authority is created."
+    ]
+  }
+}
