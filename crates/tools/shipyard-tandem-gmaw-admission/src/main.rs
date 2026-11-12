@@ -394,7 +394,10 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
             .and_then(Value::as_u64)
             != Some(50)
         || str_at(scan_contract, "coordinates_frame") != Some("welding_reference_frame")
-        || bool_at(scan_contract, "profile_position_recorded_with_robot_position") != Some(true)
+        || bool_at(
+            scan_contract,
+            "profile_position_recorded_with_robot_position",
+        ) != Some(true)
     {
         errors.push(
             "surface scan topology/coordinate metadata differs from the published article"
@@ -668,14 +671,14 @@ mod tests {
     fn final_scan_is_not_falsely_promoted_to_every_layer() {
         let mut manifest = manifest_value();
         manifest["workpieces"][0]["layers"][1]["expected_artifact_roles"] = Value::Array(vec![
-                Value::String("robot_motion".to_owned()),
-                Value::String("process_voltage_current".to_owned()),
-                Value::String("power_source_leading".to_owned()),
-                Value::String("power_source_trailing".to_owned()),
-                Value::String("scan_pre".to_owned()),
-                Value::String("scan_post".to_owned()),
-                Value::String("video".to_owned()),
-            ]);
+            Value::String("robot_motion".to_owned()),
+            Value::String("process_voltage_current".to_owned()),
+            Value::String("power_source_leading".to_owned()),
+            Value::String("power_source_trailing".to_owned()),
+            Value::String("scan_pre".to_owned()),
+            Value::String("scan_post".to_owned()),
+            Value::String("video".to_owned()),
+        ]);
         let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
         assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
     }
