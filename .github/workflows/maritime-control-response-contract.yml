@@ -42,15 +42,16 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Validate tournament, event, shift and streaming protocols
+      - name: Validate tournament, literature and protocol catalogue
         run: |
           set -euo pipefail
           jq -e '
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 8) and
-            ([.comparators[].id] | unique | length == 8) and
-            (.hard_evidence_gates | length >= 30) and
+            (.comparators | length == 17) and
+            ([.comparators[].id] | unique | length == 17) and
+            (.hard_evidence_gates | length >= 90) and
+            (.research_targets_not_achieved | length >= 30) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
             (.calibration.minimum_independent_episodes["900000"] == 9) and
@@ -64,21 +65,41 @@ jobs:
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.status == "protocol_only_not_executed") and
             (.shift_matrix.axes | length == 6) and
+            ([.shift_matrix.axes[].id] | unique | length == 6) and
             ([.shift_matrix.axes[].id] | index("C_SHIFT_DRIVING_CYCLE") != null) and
             ([.shift_matrix.axes[].id] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
             ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
             (.shift_matrix.cross_engine_fleet | contains("unsupported")) and
-            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.2") and
+            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.4") and
             (.active_evidence_selection.status == "protocol_only_not_executed") and
-            (.active_evidence_selection.comparators | length == 6) and
-            (.active_evidence_selection.controlled_perturbations_recommended == 0) and
+            (.active_evidence_selection.comparators | length == 7) and
+            ([.active_evidence_selection.comparators[]] | index("maximum_worst_case_pairwise_chernoff_information") != null) and
             (.active_evidence_selection.execution_performed == false) and
             (.active_evidence_selection.actuation_authorized == false) and
+            (.active_evidence_selection.controlled_perturbations_recommended == 0) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.status == "protocol_only_not_executed") and
             (.streaming_contract.one_sample_one_output == true) and
             (.streaming_contract.historical_output_mutation == false) and
-            (.streaming_contract.rust_core_direct_submission_compatible == false)
+            (.streaming_contract.rust_core_direct_submission_compatible == false) and
+            (.external_dataset_track.schema_version == "symtropy-marine-external-dataset-track-v0.1") and
+            (.external_dataset_track.status == "archive_downloaded_publisher_md5_verified_payload_audit_pending") and
+            (.external_dataset_track.dataset.doi == "10.5281/zenodo.19857425") and
+            (.external_dataset_track.dataset.license == "CC-BY-4.0") and
+            (.external_dataset_track.dataset.zenodo_record.file.md5_independently_verified == true) and
+            (.external_dataset_track.dataset.zenodo_record.file.sha256 == null) and
+            (.deployability_matrix.schema_version == "symtropy-industrial-diagnostic-deployability-v0.1") and
+            (.deployability_matrix.status == "evidence_matrix_defined_not_executed") and
+            (.deployability_matrix.dimensions | length == 9) and
+            (.deployability_matrix.aggregate_readiness_score_allowed == false) and
+            (.behavioral_set_diagnosis.schema_version == "symtropy-behavioral-set-diagnosis-v0.1") and
+            (.behavioral_set_diagnosis.status == "protocol_only_not_executed") and
+            (.startup_adaptation_guard.schema_version == "symtropy-startup-adaptation-guard-v0.1") and
+            (.startup_adaptation_guard.status == "protocol_only_not_executed") and
+            (.dx2026_boundary_falsification.schema_version == "liu-ice-dx2026-boundary-falsification-v0.1") and
+            (.dx2026_boundary_falsification.status == "protocol_only_not_executed") and
+            (.sequential_evidence.schema_version == "symtropy-sequential-evidence-v0.1") and
+            (.sequential_evidence.status == "protocol_only_not_executed")
           ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
           jq -e '
@@ -88,17 +109,20 @@ jobs:
             ([.axes[].id] | unique | length == 6) and
             (.framing.no_row_randomization == true) and
             (.cross_engine_and_fleet.status | contains("unsupported")) and
-            ([.hard_gates[]] | length >= 9)
+            ([.hard_gates[]] | length >= 9) and
+            ([.axes[] | .data_status] | all(. != null))
           ' benchmarks/maritime-control-response/shift-matrix-v0.1.json >/dev/null
 
           jq -e '
-            .schema_version == "liu-ice-active-evidence-selection-v0.2" and
+            .schema_version == "liu-ice-active-evidence-selection-v0.4" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 6) and
+            (.comparators | length == 7) and
+            ([.comparators[].id] | unique | length == 7) and
             ([.comparators[].id] | index("risk_adjusted_worst_case_eig") != null) and
+            ([.comparators[].id] | index("maximum_worst_case_pairwise_chernoff_information") != null) and
             (.candidate_classes.controlled_perturbation.eligible == false) and
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
-            (.hard_gates | length >= 18) and
+            (.hard_gates | length >= 50) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             (.evidence_boundaries.authority_status | contains("upstream mandatory checks"))
           ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
@@ -108,11 +132,56 @@ jobs:
             .status == "protocol_only_not_executed" and
             (.interface.historical_output_mutation == false) and
             (.stream_invariants.sample_sequence | contains("contiguous")) and
-            (.implementation.status == "implemented_source_not_compiled") and
             (.competition_adapter.adapter_status == "not_implemented") and
             ([.hard_gates[]] | length >= 10) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
           ' benchmarks/maritime-control-response/streaming-contract-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-behavioral-set-diagnosis-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.hard_gates | length >= 10) and
+            ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
+          ' benchmarks/maritime-control-response/behavioral-set-diagnosis-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-sequential-evidence-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.familywise_control != null) and
+            ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
+          ' benchmarks/maritime-control-response/sequential-evidence-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-startup-adaptation-guard-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.core_invariant | contains("immutable")) and
+            (.hard_gates | length >= 10) and
+            ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
+          ' benchmarks/maritime-control-response/startup-adaptation-guard-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "liu-ice-dx2026-published-graybox-baseline-v0.1" and
+            .status == "published_reference_not_reproduced" and
+            .official_results.overall.official_score_percent == 88.01 and
+            .matched_reproduction.status == "not_reproduced" and
+            (.claim_ceiling | contains("not Symtropy results"))
+          ' benchmarks/maritime-control-response/published-dx2026-graybox-baseline-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "liu-ice-published-six-solution-baselines-v0.1" and
+            .status == "literature_reference_not_reproduced" and
+            (.solutions | length == 6) and
+            (.protocol_context.comparability_warning | contains("TIR")) and
+            ([.solutions[].reproduction_status] | all(. == "not_reproduced"))
+          ' benchmarks/maritime-control-response/published-six-solution-baselines-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-industrial-diagnostic-deployability-v0.1" and
+            .status == "evidence_matrix_defined_not_executed" and
+            (.dimensions | length == 9) and
+            (.aggregate_readiness_score_allowed == false) and
+            (.overall_status | contains("not_deployable"))
+          ' benchmarks/maritime-control-response/deployability-matrix-v0.1.json >/dev/null
 
       - name: Validate run-manifest schema and evidence gates
         run: |
@@ -125,15 +194,42 @@ jobs:
             (.properties.protocol.required | index("shift_matrix_sha256") != null) and
             (.properties.protocol.required | index("active_evidence_selection") != null) and
             (.properties.protocol.required | index("streaming_contract") != null) and
-            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.2") and
+            (.properties.protocol.required | index("external_dataset_track") != null) and
+            (.properties.protocol.required | index("deployability_assessment") != null) and
+            (.properties.protocol.required | index("behavioral_set_evaluation") != null) and
+            (.properties.protocol.required | index("sequential_evidence") != null) and
+            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.4") and
             (.properties.protocol.properties.active_evidence_selection.properties.execution_performed.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
             (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
-            (.properties.protocol.properties.streaming_contract.properties.historical_output_mutation.const == 0) and
+            (.properties.protocol.properties.streaming_contract.properties.historical_output_mutation_count.const == 0) and
+            (.properties.protocol.properties.external_dataset_track.properties.cross_engine_or_fleet_claim_allowed.const == false) and
+            (.properties.protocol.properties.deployability_assessment.properties.overall_deployability_claim_allowed.const == false) and
+            (.properties.protocol.properties.behavioral_set_evaluation.properties.global_unique_physical_cause_claim_allowed.const == false) and
             (.properties.claims.properties.physical_transfer_claim_allowed.const == false)
           ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
 
-      - name: Validate package metadata and lockfile
+          jq -e '
+            .schema_version == "symtropy-marine-file-manifest-v1" and
+            .dataset_doi == "10.5281/zenodo.19857425" and
+            (.files | length == 16) and
+            ([.files[].schema] | index("baseline70") != null) and
+            ([.files[].schema] | index("scenario73") != null) and
+            (.dataset_license == "CC-BY-4.0")
+          ' benchmarks/maritime-control-response/external-dataset-file-manifest.schema.json >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-marine-external-dataset-track-v0.1" and
+            .status == "archive_downloaded_publisher_md5_verified_payload_audit_pending" and
+            .dataset.doi == "10.5281/zenodo.19857425" and
+            .dataset.license == "CC-BY-4.0" and
+            .dataset.zenodo_record.file.md5_independently_verified == true and
+            .dataset.zenodo_record.file.sha256 == null and
+            (.evaluation_tracks | length >= 5) and
+            (.claim_ceiling | contains("not claim"))
+          ' benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json >/dev/null
+
+      - name: Validate isolated package metadata and lockfile
         run: |
           set -euo pipefail
           test -f benchmarks/maritime-control-response/Cargo.lock
