@@ -863,6 +863,8 @@ mod tests {
             "kind":"ndt",
             "measurement_tick":19,
             "first_received_tick":19,
+            "clock_id":"synthetic-global-tick-v0",
+            "timestamp_precision_ticks":1,
             "valid_from_tick":0,
             "valid_until_tick":100,
             "revoked_known_at_tick":null,
@@ -909,7 +911,7 @@ mod tests {
         let bytes = serde_json::to_vec(&candidate).unwrap();
         let report = evaluate_bytes(&bytes, REFERENCE.as_bytes())
             .expect("unknown clock is reported as a qualification violation");
-        assert_eq!(report.temporal_evidence_violations, 1);
+        assert_eq!(report.temporal_evidence_violations, 4);
         assert!(!report.passed);
     }
 
