@@ -1,0 +1,12 @@
+[package]
+name = "phri-multirate-adaptation-001"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Synchronous proposal expiry and wearer-agency admission gate"
+
+[workspace]
+
+[lib]
+path = "src/lib.rs"
