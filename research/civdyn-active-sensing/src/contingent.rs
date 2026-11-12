@@ -184,6 +184,7 @@ fn stop_solution(
     path_energy_kwh: f64,
     path_latency_ticks: u32,
     penalties: &BTreeMap<String, f64>,
+    tolerance: f64,
 ) -> Result<Option<NodeSolution>, String> {
     if worlds.is_empty() {
         return Err("contingent policy node cannot contain an empty world set".to_owned());
@@ -268,7 +269,7 @@ fn stop_solution(
 
         if best
             .as_ref()
-            .is_none_or(|current| better_solution(&solution, current, TOLERANCE))
+            .is_none_or(|current| better_solution(&solution, current, tolerance))
         {
             best = Some(solution.clone());
         }
@@ -304,6 +305,7 @@ fn solve_node(
         path_energy_kwh,
         path_latency_ticks,
         penalties,
+        config.tie_tolerance,
     )?;
 
     if depth_remaining == 0 {
@@ -471,7 +473,7 @@ fn solve_node(
             leaf_receipts.extend(child.leaf_receipts);
         }
 
-        let mut solution = NodeSolution {
+        let solution = NodeSolution {
             candidate: CandidatePolicyNode::RequestSensor {
                 sensor_id: sensor.sensor_id.clone(),
                 branches,
