@@ -997,6 +997,9 @@ mod tests {
         channel_mut(&mut case, "dp-filter")["independence_group_ref"] = pressure_group;
         // Make both pressure channels discriminating in this known-truth
         // fixture, then prove they still contribute only one principle.
+        let line = response_mut(&mut case, "FILTER_CYCLONE_LOADING", "dp-line");
+        line["value_lower"] = serde_json::json!(30.0);
+        line["value_upper"] = serde_json::json!(40.0);
         let filter = response_mut(&mut case, "FILTER_CYCLONE_LOADING", "dp-filter");
         filter["value_lower"] = serde_json::json!(100.0);
         filter["value_upper"] = serde_json::json!(110.0);
@@ -1180,6 +1183,16 @@ mod tests {
             domain["asset_configuration_ref"] = asset_configuration_ref.clone();
             domain["operating_domain_ref"] = operating_domain_ref.clone();
         }
+        // Response evidence must use the same asset/domain vocabulary as its
+        // channel declaration; transforming only one side correctly fails.
+        for response in case["responses"].as_array_mut().unwrap() {
+            let domain = &mut response["domain"];
+            rename_key(domain, "material_cohort_ref", "asset_family_ref");
+            rename_key(domain, "path_configuration_ref", "operating_domain_ref");
+            rename_key(domain, "geometry_profile_ref", "installation_profile_ref");
+            domain["asset_configuration_ref"] = asset_configuration_ref.clone();
+            domain["operating_domain_ref"] = operating_domain_ref.clone();
+        }
         case["layout_profile"]["state_taxonomy_ref"] = serde_json::json!("taxonomy:marine-diesel-faults-v0.1");
         replace_string(&mut case, "DEVELOPING_BLOCKAGE", "ENGINE_FUEL_INJECTION_FAULT");
 
@@ -1222,7 +1235,7 @@ mod tests {
             serde_json::json!(1);
         assert!(has(
             &validate_case(&case, &parent()),
-            "PAIR_THRESHOLD_BELOW_PROFILE"
+            "CRITICAL_PAIR_BELOW_LAYOUT_THRESHOLD"
         ));
     }
 
