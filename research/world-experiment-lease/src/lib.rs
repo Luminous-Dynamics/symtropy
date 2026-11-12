@@ -390,10 +390,7 @@ fn usage_scope_matches(
     Ok(())
 }
 
-fn validate_usage_shape(
-    lease: &LeaseReceiptV1,
-    usage: &UsageSnapshotV1,
-) -> Result<(), LeaseError> {
+fn validate_usage_shape(lease: &LeaseReceiptV1, usage: &UsageSnapshotV1) -> Result<(), LeaseError> {
     if usage.schema_version != SCHEMA_VERSION {
         return Err(LeaseError::UnsupportedSchema(usage.schema_version));
     }
@@ -440,7 +437,6 @@ fn validate_usage_shape(
         rendered_frames = rendered_frames
             .checked_add(view.rendered_frames)
             .ok_or(LeaseError::CounterOverflow)?;
-
     }
 
     if view_events != usage.view_event_count || rendered_frames != usage.rendered_frames_total {
@@ -471,14 +467,10 @@ pub fn usage_snapshot_sha256(usage: &UsageSnapshotV1) -> Result<String, LeaseErr
     }
     // Duplicate IDs are invalid usage (the evaluator rejects them), but the digest helper
     // remains deterministic for every typed input by using encoded content as a tie-breaker.
-    keyed_views.sort_by(|left, right| {
-        (left.0, left.1.as_slice()).cmp(&(right.0, right.1.as_slice()))
-    });
+    keyed_views
+        .sort_by(|left, right| (left.0, left.1.as_slice()).cmp(&(right.0, right.1.as_slice())));
     let mut canonical = usage.clone();
-    canonical.views = keyed_views
-        .into_iter()
-        .map(|(_, _, view)| view)
-        .collect();
+    canonical.views = keyed_views.into_iter().map(|(_, _, view)| view).collect();
     let bytes = serde_json::to_vec(&canonical)
         .map_err(|error| LeaseError::Serialization(error.to_string()))?;
     let mut material = Vec::with_capacity(USAGE_HASH_DOMAIN.len() + bytes.len());
@@ -573,7 +565,9 @@ pub fn evaluate_usage(
             || current.view_event_count < previous.view_event_count
             || current.rendered_frames_total < previous.rendered_frames_total
             || current.peak_system_memory_bytes < previous.peak_system_memory_bytes
-            || current.gpu_energy_uj_total.zip(previous.gpu_energy_uj_total)
+            || current
+                .gpu_energy_uj_total
+                .zip(previous.gpu_energy_uj_total)
                 .is_some_and(|(now, before)| now < before)
             || (previous.gpu_energy_uj_total.is_some() && current.gpu_energy_uj_total.is_none())
         {
@@ -740,7 +734,10 @@ mod tests {
         usage.gpu_energy_receipt_sha256 = Some("c".repeat(64));
         assert!(matches!(
             evaluate_usage(&lease, &usage, None),
-            Ok(UsageDecision::Stop { reason: StopReason::GpuEnergyBudgetExceeded, .. })
+            Ok(UsageDecision::Stop {
+                reason: StopReason::GpuEnergyBudgetExceeded,
+                ..
+            })
         ));
     }
 
