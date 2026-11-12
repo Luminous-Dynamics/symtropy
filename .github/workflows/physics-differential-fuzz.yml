@@ -1,0 +1,34 @@
+name: Physics Differential Fuzz Seed
+
+on:
+  pull_request:
+    paths:
+      - "research/physics-differential-fuzz-001/**"
+      - ".github/workflows/physics-differential-fuzz.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "research/physics-differential-fuzz-001/**"
+      - ".github/workflows/physics-differential-fuzz.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate deterministic physics candidate generator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/physics-differential-fuzz-001/Cargo.toml -- --check
+      - name: Test analytic oracle and deterministic generator
+        run: cargo +1.96.0 test --manifest-path research/physics-differential-fuzz-001/Cargo.toml --locked
+      - name: Strict Clippy
+        run: cargo +1.96.0 clippy --manifest-path research/physics-differential-fuzz-001/Cargo.toml --all-targets --locked -- -D warnings
