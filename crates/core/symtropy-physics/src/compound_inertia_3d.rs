@@ -494,14 +494,9 @@ mod tests {
         for sample in 1..=32 {
             let k = sample as f64;
             let mass = 0.25 + 0.75 * k;
-            let offset = SVector::new(
-                (0.17 * k).sin(),
-                (0.31 * k).cos(),
-                (0.23 * k).sin() + 0.4,
-            );
+            let offset = SVector::new((0.17 * k).sin(), (0.31 * k).cos(), (0.23 * k).sin() + 0.4);
             let observed = checked_parallel_axis_tensor(mass, &offset).unwrap();
-            let expected =
-                (identity * offset.norm_squared() - offset * offset.transpose()) * mass;
+            let expected = (identity * offset.norm_squared() - offset * offset.transpose()) * mass;
             let error = (observed - expected).norm();
             let scale = expected.norm().max(f64::MIN_POSITIVE);
             assert!(
@@ -545,13 +540,9 @@ mod tests {
             &Bivector::<3>::unit_plane(0, 1),
             std::f64::consts::FRAC_PI_4,
         );
-        let compound = CompoundMassProperties3::compose(&[part(
-            1,
-            [0.0, 0.0, 0.0],
-            rotation,
-            cuboid,
-        )])
-        .unwrap();
+        let compound =
+            CompoundMassProperties3::compose(&[part(1, [0.0, 0.0, 0.0], rotation, cuboid)])
+                .unwrap();
 
         assert!((compound.inertia_tensor_body[(0, 0)] - 46.0).abs() < 1.0e-10);
         assert!((compound.inertia_tensor_body[(1, 1)] - 46.0).abs() < 1.0e-10);
@@ -594,9 +585,8 @@ mod tests {
             .iter()
             .map(|part| {
                 let mut transformed = part.clone();
-                transformed.local_transform.translation = Point(
-                    global.rotate_vector(&part.local_transform.translation.0),
-                );
+                transformed.local_transform.translation =
+                    Point(global.rotate_vector(&part.local_transform.translation.0));
                 transformed.local_transform.rotation =
                     global.compose(&part.local_transform.rotation);
                 transformed
@@ -687,17 +677,13 @@ mod tests {
             &Bivector::<3>::unit_plane(0, 1),
             std::f64::consts::FRAC_PI_4,
         );
-        let compound = CompoundMassProperties3::compose(&[part(
-            1,
-            [0.0, 0.0, 0.0],
-            rotation,
-            cuboid,
-        )])
-        .unwrap();
+        let compound =
+            CompoundMassProperties3::compose(&[part(1, [0.0, 0.0, 0.0], rotation, cuboid)])
+                .unwrap();
         let omega = SVector::from([1.0, 1.0, 0.0]);
         let energy = compound.rotational_energy_body_checked(&omega).unwrap();
-        let diagonal_only = 0.5
-            * (compound.inertia_tensor_body[(0, 0)] + compound.inertia_tensor_body[(1, 1)]);
+        let diagonal_only =
+            0.5 * (compound.inertia_tensor_body[(0, 0)] + compound.inertia_tensor_body[(1, 1)]);
         assert!((energy - diagonal_only).abs() > 1.0);
     }
 
@@ -708,13 +694,9 @@ mod tests {
             &Bivector::<3>::unit_plane(0, 1),
             std::f64::consts::FRAC_PI_4,
         );
-        let compound = CompoundMassProperties3::compose(&[part(
-            1,
-            [0.0, 0.0, 0.0],
-            rotation,
-            cuboid,
-        )])
-        .unwrap();
+        let compound =
+            CompoundMassProperties3::compose(&[part(1, [0.0, 0.0, 0.0], rotation, cuboid)])
+                .unwrap();
         let operator = compound.to_bivector_inertia_reference().unwrap();
 
         for omega in [
@@ -734,8 +716,7 @@ mod tests {
             );
         }
         assert!(
-            (operator.inertia_tensor_3d().unwrap() - compound.inertia_tensor_body).norm()
-                < 1.0e-11
+            (operator.inertia_tensor_3d().unwrap() - compound.inertia_tensor_body).norm() < 1.0e-11
         );
     }
 
@@ -750,9 +731,14 @@ mod tests {
         )])
         .unwrap();
         compound.inertia_tensor_body[(0, 1)] = 1.0;
-        assert_eq!(compound.validate(), Err(CompoundInertia3Error::NonSymmetricTensor));
-        assert!(compound
-            .rotational_energy_body_checked(&SVector::from([1.0, 0.0, 0.0]))
-            .is_err());
+        assert_eq!(
+            compound.validate(),
+            Err(CompoundInertia3Error::NonSymmetricTensor)
+        );
+        assert!(
+            compound
+                .rotational_energy_body_checked(&SVector::from([1.0, 0.0, 0.0]))
+                .is_err()
+        );
     }
 }
