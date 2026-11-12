@@ -1,0 +1,322 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic shipyard twin composition commissioning request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "composition_id",
+    "composition_revision",
+    "mode",
+    "members",
+    "interfaces",
+    "topology_evidence",
+    "requested_capability",
+    "decision_at_tick",
+    "receipt_ttl_ticks",
+    "maximum_end_to_end_latency_ticks",
+    "unknown_update_outcome",
+    "live_operation_requested",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-DT-COMPOSITION-COMMISSIONING-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "composition_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "composition_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "mode": {
+      "enum": [
+        "integrated",
+        "unified",
+        "federated"
+      ]
+    },
+    "members": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "$ref": "#/$defs/member"
+      }
+    },
+    "interfaces": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/interface"
+      }
+    },
+    "topology_evidence": {
+      "$ref": "#/$defs/topology"
+    },
+    "requested_capability": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_at_tick": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "receipt_ttl_ticks": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "maximum_end_to_end_latency_ticks": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "unknown_update_outcome": {
+      "const": false
+    },
+    "live_operation_requested": {
+      "const": false
+    },
+    "claim_ceiling": {
+      "const": "SYNTHETIC_TWIN_COMPOSITION_COMMISSIONING_CONTRACT_ONLY"
+    }
+  },
+  "$defs": {
+    "member": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "member_id",
+        "owner_id",
+        "workpiece_id",
+        "revision",
+        "schema_version",
+        "units_signature",
+        "coordinate_frame",
+        "calibration_revision",
+        "clock_domain",
+        "authority_domain",
+        "allowed_capabilities",
+        "source_sha256",
+        "evidence_class",
+        "current"
+      ],
+      "properties": {
+        "member_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "owner_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "units_signature": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "clock_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authority_domain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allowed_capabilities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "evidence_class": {
+          "const": "synthetic_only"
+        },
+        "current": {
+          "const": true
+        }
+      }
+    },
+    "interface": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "from_member_id",
+        "to_member_id",
+        "source_revision",
+        "target_revision",
+        "source_schema_version",
+        "target_schema_version",
+        "schema_compatible",
+        "units_compatible",
+        "transform_receipt_sha256",
+        "source_calibration_revision",
+        "target_calibration_revision",
+        "clock_mapping_receipt_sha256",
+        "clock_offset_bound_ticks",
+        "maximum_clock_offset_ticks",
+        "update_period_ticks",
+        "maximum_update_period_ticks",
+        "latency_ticks",
+        "maximum_latency_ticks",
+        "jitter_ticks",
+        "maximum_jitter_ticks",
+        "fidelity_permille",
+        "minimum_fidelity_permille",
+        "unified_semantic_schema",
+        "authority_preserved"
+      ],
+      "properties": {
+        "from_member_id": {
+          "type": "string"
+        },
+        "to_member_id": {
+          "type": "string"
+        },
+        "source_revision": {
+          "type": "string"
+        },
+        "target_revision": {
+          "type": "string"
+        },
+        "source_schema_version": {
+          "type": "string"
+        },
+        "target_schema_version": {
+          "type": "string"
+        },
+        "schema_compatible": {
+          "const": true
+        },
+        "units_compatible": {
+          "const": true
+        },
+        "transform_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source_calibration_revision": {
+          "type": "string"
+        },
+        "target_calibration_revision": {
+          "type": "string"
+        },
+        "clock_mapping_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "clock_offset_bound_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_clock_offset_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "update_period_ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maximum_update_period_ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "latency_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_latency_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "jitter_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_jitter_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fidelity_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "minimum_fidelity_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "unified_semantic_schema": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "authority_preserved": {
+          "const": true
+        }
+      }
+    },
+    "topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "integrated_authority_domain",
+        "unified_semantic_schema",
+        "federated_authority_receipt_sha256"
+      ],
+      "properties": {
+        "integrated_authority_domain": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unified_semantic_schema": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "federated_authority_receipt_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
