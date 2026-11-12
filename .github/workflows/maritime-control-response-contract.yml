@@ -154,7 +154,7 @@ jobs:
           jq -e '
             .schema_version == "symtropy-startup-adaptation-guard-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.core_invariant | contains("immutable")) and
+            (.core_invariant | contains("frozen")) and
             (.hard_gates | length >= 10) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
           ' benchmarks/maritime-control-response/startup-adaptation-guard-v0.1.json >/dev/null
