@@ -140,6 +140,10 @@ jobs:
             assert float(row["mean_return"]) <= float(row["maximum_return"])
             assert float(row["mean_reported_return_std"]) >= 0.0
 
+        expected_missing_ids = {
+            "experiments/logs_PPO_stacked/icu/mnar-unident": "7",
+            "experiments/logs_PPO_stacked/icu/smar": "11",
+        }
         for group, row in groups.items():
             observed_models = set(filter(None, row["observed_model_values"].split(";")))
             if group.startswith("experiments/logs_PPO_stacked/predator/"):
@@ -147,6 +151,19 @@ jobs:
                 assert observed_models <= {"pred", "predator"}
             else:
                 assert observed_models == {row["model"]}
+            assert row["missing_run_ids"] == expected_missing_ids.get(group, "")
+            observed_ids = [int(value) for value in row["observed_run_ids"].split(";")]
+            assert len(observed_ids) == int(row["run_count"])
+            assert len(set(observed_ids)) == len(observed_ids)
+
+        stacked_unident = groups["experiments/logs_PPO_stacked/icu/mnar-unident"]
+        assert stacked_unident["run_count"] == "19"
+        assert stacked_unident["unique_run_ids"] == "19"
+        assert stacked_unident["unique_seeds"] == "17"
+        assert stacked_unident["duplicate_seed_values"] == "421x2;422x2"
+        stacked_smar = groups["experiments/logs_PPO_stacked/icu/smar"]
+        assert stacked_smar["run_count"] == "23"
+        assert stacked_smar["missing_run_ids"] == "11"
 
         total = next(row for row in rows if row["group"] == "TOTAL")
         assert total["run_count"] == "242"
