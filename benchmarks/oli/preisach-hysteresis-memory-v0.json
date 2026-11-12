@@ -1,0 +1,225 @@
+{
+  "schema_version": "oli-generator-case-v0.1",
+  "case_id": "OLI-PHYSICAL-MEMORY-PREISACH-001",
+  "status": "SYNTHETIC_KNOWN_MECHANISM_CONTROL_AWAITING_RUST_VALIDATION",
+  "evidence_class": "SIMULATION",
+  "claim_ceiling": "Independent Preisach-style rate-independent relay memory; demonstrates physical input-history dependence and return-point memory, not learning, intelligence, agency, or biological life",
+  "source": {
+    "classical_model": "Preisach-style ensemble of independent bistable hysterons with upper/lower switching thresholds",
+    "physical_background": [
+      {
+        "citation": "Du, Behera & Vaikuntanathan, Physical Considerations in Memory and Information Storage, Annual Review of Physical Chemistry 76 (2025), 471–495",
+        "doi": "10.1146/annurev-physchem-083122-010308",
+        "url": "https://doi.org/10.1146/annurev-physchem-083122-010308",
+        "relevance": "Reviews information storage/retrieval through energetics, dynamics, statistical mechanics, Hopfield models and physical realizations."
+      },
+      {
+        "citation": "Generalizing multiple memories from a single drive: The hysteron latch, Science Advances (2025-01-29)",
+        "doi": "10.1126/sciadv.adr5933",
+        "url": "https://doi.org/10.1126/sciadv.adr5933",
+        "relevance": "Demonstrates return-point memory in hysteron systems and richer sequence memory with frustrated interactions; the OLI v0 control uses independent hysterons only."
+      },
+      {
+        "citation": "Mörée & Leijon, Review of Hysteresis Models for Magnetic Materials, Energies 16(9), 3908 (2023)",
+        "doi": "10.3390/en16093908",
+        "url": "https://doi.org/10.3390/en16093908",
+        "relevance": "Distinguishes history-dependent Preisach-type models from simpler direction-dependent Duhem-type models and from rate-dependent dynamic hysteresis."
+      }
+    ]
+  },
+  "model": {
+    "family": "INDEPENDENT_PREISACH_RELAY_ENSEMBLE",
+    "dimension": 0,
+    "dynamics": "rate_independent_threshold_relay",
+    "state_space": "finite collection of bistable hysteron states",
+    "input": "scalar external drive h",
+    "transition_rule": {
+      "negative_to_positive": "if h >= upper_threshold",
+      "positive_to_negative": "if h <= lower_threshold",
+      "otherwise": "retain prior state"
+    },
+    "output": "weight-normalized positive fraction and magnetization 2*positive_fraction-1",
+    "interactions_between_hysterons": false,
+    "adaptive_parameter_updates": false,
+    "task_objective": false,
+    "stochasticity": false,
+    "hidden_state": "explicit hysteron state vector",
+    "reset": "drive below the minimum lower threshold",
+    "learning_mechanism": false,
+    "reproduction_or_heredity": false
+  },
+  "implementation": {
+    "crate": "symtropy-lifesim-core",
+    "module": "hysteresis",
+    "arithmetic": "IEEE754_f64",
+    "dependencies_added": [],
+    "total_weight_must_be_finite": true
+  },
+  "initial_ensemble": {
+    "initial_state": "NEGATIVE",
+    "hysterons": [
+      {
+        "id": "H0",
+        "lower_threshold": -1,
+        "upper_threshold": 1,
+        "weight": 1
+      },
+      {
+        "id": "H1",
+        "lower_threshold": -0.5,
+        "upper_threshold": 0.5,
+        "weight": 1
+      },
+      {
+        "id": "H2",
+        "lower_threshold": -0.2,
+        "upper_threshold": 0.2,
+        "weight": 1
+      }
+    ]
+  },
+  "benchmark_cases": [
+    {
+      "id": "SAME_INPUT_DIFFERENT_HISTORY",
+      "protocol_a": [
+        -2,
+        1,
+        0
+      ],
+      "protocol_b": [
+        -2,
+        -1,
+        0
+      ],
+      "comparison_input": 0,
+      "expected_a": {
+        "states": [
+          "POSITIVE",
+          "POSITIVE",
+          "POSITIVE"
+        ],
+        "magnetization": 1
+      },
+      "expected_b": {
+        "states": [
+          "NEGATIVE",
+          "NEGATIVE",
+          "NEGATIVE"
+        ],
+        "magnetization": -1
+      },
+      "interpretation": "Current input alone is insufficient; the relay state carries physical input history."
+    },
+    {
+      "id": "NESTED_RETURN_POINT_MEMORY",
+      "protocol": [
+        -2,
+        0.75,
+        0,
+        0.75
+      ],
+      "expected": "The hysteron-state vector at the second visit to 0.75 must equal the vector at the first visit to 0.75.",
+      "interpretation": "A nested minor loop returns to the same state when the prior extremum is revisited."
+    },
+    {
+      "id": "MAJOR_LOOP_ERASURE",
+      "protocol": [
+        2,
+        -2
+      ],
+      "expected_after_first": {
+        "states": [
+          "POSITIVE",
+          "POSITIVE",
+          "POSITIVE"
+        ]
+      },
+      "expected_after_second": {
+        "states": [
+          "NEGATIVE",
+          "NEGATIVE",
+          "NEGATIVE"
+        ]
+      },
+      "interpretation": "Opposite saturation erases the prior relay configuration for this finite ensemble."
+    },
+    {
+      "id": "RATE_INDEPENDENCE",
+      "coarse_protocol": [
+        -2,
+        1
+      ],
+      "fine_protocol": [
+        -2,
+        -1.5,
+        -1,
+        -0.75,
+        -0.5,
+        -0.25,
+        0,
+        0.25,
+        0.5,
+        0.75,
+        1
+      ],
+      "expected": "Both monotone paths reach identical relay state at the same final drive, independent of the number of intermediate dwell samples.",
+      "interpretation": "This relay model is rate-independent; do not confuse with dynamic hysteresis generated by frequency-dependent lag."
+    },
+    {
+      "id": "REPEATED_CYCLE_NO_LEARNING",
+      "cycle": [
+        -2,
+        2,
+        -2
+      ],
+      "repetitions": 2,
+      "expected": "Both cycles have identical outputs; thresholds and weights are unchanged.",
+      "interpretation": "Repeatable physical memory does not imply task learning or parameter adaptation."
+    }
+  ],
+  "metrics": {
+    "positive_weight_fraction": "sum of weights in positive state / total weight",
+    "weighted_magnetization": "2*positive_weight_fraction - 1",
+    "same_input_history_separation": "absolute difference in magnetization after two histories at identical current input",
+    "return_point_state_error": "Hamming distance between relay states at repeated turning point",
+    "rate_independence_state_error": "Hamming distance between coarse/fine monotone protocol final states",
+    "threshold_drift": "maximum absolute threshold change across cycles",
+    "loop_area": "not currently emitted by the Rust module; compute from the externally recorded input-output trace in benchmark analysis"
+  },
+  "anti_leakage": [
+    "All samples from one ensemble and initial state belong to one trajectory.",
+    "Do not count repeated input points within one history as independent physical specimens.",
+    "Split benchmark cases by threshold ensembles, not by points from the same drive sequence.",
+    "Keep independent-hysteron and interacting-hysteron systems as separate mechanism families."
+  ],
+  "benchmark_baselines": [
+    "memoryless_static_map_output=f(input)",
+    "direction_only_Duhem_style_control",
+    "independent_Preisach_hysteron_ensemble",
+    "interacting_hysteron_latch_extension_future"
+  ],
+  "qualification_targets": {
+    "same_input_history_separation_min": 1,
+    "return_point_state_error": 0,
+    "rate_independence_state_error": 0,
+    "opposite_saturation_erasure_error": 0,
+    "threshold_drift": 0,
+    "false_learning_promotion_from_hysteresis_only": 0
+  },
+  "reproducibility": {
+    "seed": null,
+    "stochasticity": false,
+    "output_digest_sha256": null,
+    "digest_status": "PENDING_EXACT_HEAD_RUST_EXECUTION",
+    "rust_validation_status": "NOT_RUN_IN_AUTHORING_ENVIRONMENT"
+  },
+  "ontology_guardrails": {
+    "information_retention": "SUPPORTED_WITHIN_DECLARED_RELAY_SCOPE",
+    "adaptation": "NOT_TESTED",
+    "learning": "NOT_DEMONSTRATED",
+    "agency": "NOT_DEMONSTRATED",
+    "intelligence": "NOT_DEMONSTRATED",
+    "biological_life": "NOT_ESTABLISHED",
+    "consciousness": "NOT_ASSESSED"
+  }
+}
