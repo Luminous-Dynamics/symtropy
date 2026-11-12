@@ -1,15 +1,24 @@
+use material_damage_reference::DamageError;
 use material_damage_reference::fatigue::{
     LoadBlock, MinerAssessment, SnCurve, SnPoint, miner_damage,
 };
 use material_damage_reference::paris::ParisLaw;
-use material_damage_reference::DamageError;
 
 fn synthetic_sn_curve() -> SnCurve {
     // Synthetic verification points only; not properties of a real material.
     SnCurve::new(vec![
-        SnPoint { stress_amplitude_mpa: 300.0, cycles_to_failure: 10_000 },
-        SnPoint { stress_amplitude_mpa: 200.0, cycles_to_failure: 40_000 },
-        SnPoint { stress_amplitude_mpa: 100.0, cycles_to_failure: 1_000_000 },
+        SnPoint {
+            stress_amplitude_mpa: 300.0,
+            cycles_to_failure: 10_000,
+        },
+        SnPoint {
+            stress_amplitude_mpa: 200.0,
+            cycles_to_failure: 40_000,
+        },
+        SnPoint {
+            stress_amplitude_mpa: 100.0,
+            cycles_to_failure: 1_000_000,
+        },
     ])
     .expect("synthetic S-N curve should be valid")
 }
@@ -17,8 +26,14 @@ fn synthetic_sn_curve() -> SnCurve {
 #[test]
 fn sn_curve_returns_frozen_endpoints_and_log_log_midpoint() {
     let curve = SnCurve::new(vec![
-        SnPoint { stress_amplitude_mpa: 300.0, cycles_to_failure: 10_000 },
-        SnPoint { stress_amplitude_mpa: 100.0, cycles_to_failure: 1_000_000 },
+        SnPoint {
+            stress_amplitude_mpa: 300.0,
+            cycles_to_failure: 10_000,
+        },
+        SnPoint {
+            stress_amplitude_mpa: 100.0,
+            cycles_to_failure: 1_000_000,
+        },
     ])
     .unwrap();
 
@@ -36,8 +51,14 @@ fn miner_rule_matches_independent_block_damage_known_answer() {
     let report = miner_damage(
         &curve,
         &[
-            LoadBlock { stress_amplitude_mpa: 200.0, cycles: 10_000 },
-            LoadBlock { stress_amplitude_mpa: 300.0, cycles: 2_500 },
+            LoadBlock {
+                stress_amplitude_mpa: 200.0,
+                cycles: 10_000,
+            },
+            LoadBlock {
+                stress_amplitude_mpa: 300.0,
+                cycles: 2_500,
+            },
         ],
     )
     .unwrap();
@@ -53,7 +74,10 @@ fn miner_unity_threshold_is_reported_without_claiming_physical_failure() {
     let curve = synthetic_sn_curve();
     let report = miner_damage(
         &curve,
-        &[LoadBlock { stress_amplitude_mpa: 200.0, cycles: 40_000 }],
+        &[LoadBlock {
+            stress_amplitude_mpa: 200.0,
+            cycles: 40_000,
+        }],
     )
     .unwrap();
 
@@ -100,22 +124,40 @@ fn unsupported_extrapolation_is_rejected() {
 #[test]
 fn malformed_curves_spectra_and_laws_fail_closed() {
     assert!(matches!(
-        SnCurve::new(vec![SnPoint { stress_amplitude_mpa: 100.0, cycles_to_failure: 1_000 }]),
+        SnCurve::new(vec![SnPoint {
+            stress_amplitude_mpa: 100.0,
+            cycles_to_failure: 1_000,
+        }]),
         Err(DamageError::InsufficientSnPoints { .. })
     ));
 
     assert!(matches!(
         SnCurve::new(vec![
-            SnPoint { stress_amplitude_mpa: 100.0, cycles_to_failure: 1_000 },
-            SnPoint { stress_amplitude_mpa: 110.0, cycles_to_failure: 2_000 },
+            SnPoint {
+                stress_amplitude_mpa: 100.0,
+                cycles_to_failure: 1_000,
+            },
+            SnPoint {
+                stress_amplitude_mpa: 110.0,
+                cycles_to_failure: 2_000,
+            },
         ]),
         Err(DamageError::InvalidSnOrdering)
     ));
 
     let curve = synthetic_sn_curve();
-    assert_eq!(miner_damage(&curve, &[]), Err(DamageError::EmptyLoadSpectrum));
     assert_eq!(
-        miner_damage(&curve, &[LoadBlock { stress_amplitude_mpa: 200.0, cycles: 0 }]),
+        miner_damage(&curve, &[]),
+        Err(DamageError::EmptyLoadSpectrum)
+    );
+    assert_eq!(
+        miner_damage(
+            &curve,
+            &[LoadBlock {
+                stress_amplitude_mpa: 200.0,
+                cycles: 0,
+            }]
+        ),
         Err(DamageError::ZeroCycleCount)
     );
     assert!(matches!(
