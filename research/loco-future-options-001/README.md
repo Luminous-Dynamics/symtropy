@@ -152,4 +152,6 @@ Prospective finite-reference goals:
 This is a finite action-domain benchmark, not a continuous viability proof or a controller. The Rust output always has `actuation_authorized = false`.
 
 
+The updated seven-case JSON corpus and schema were fetched back and parsed. A separate semantic replay compared each case's expected disposition and continuation sets against the expanded receipts: **7/7 cases matched**. This remains a semantic preflight; no Draft 2020-12 JSON Schema validator has been executed.
+
 The package uses typed Rust receipts and intentionally has no third-party JSON parser/runtime dependency. The JSON corpus is a separate, versioned interchange/known-answer artefact governed by its schema; the Rust tests instantiate the same finite semantics directly. The current workflow validates Rust source only. A separate schema-validator execution / corpus-to-Rust ingestion adapter remains a subsequent qualification step.
