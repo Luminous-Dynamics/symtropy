@@ -448,8 +448,8 @@ pub fn evaluate_case(case: &Value, parent: &Value) -> Result<EvaluationReport, V
         let mut unresolved_evidence = false;
 
         for (channel_id, channel) in &channel_map {
-            let a = response_map[&(state_a, channel_id)];
-            let b = response_map[&(state_b, channel_id)];
+            let a = response_map[&(state_a, *channel_id)];
+            let b = response_map[&(state_b, *channel_id)];
             let admissible_role = |response: &Value| {
                 match text(response, "evidence_role") {
                     Some("INDEPENDENT_MEASUREMENT") => {
