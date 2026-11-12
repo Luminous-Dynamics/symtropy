@@ -80,7 +80,6 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
 
     let mut component_ids = HashSet::new();
     let mut schemas = HashSet::new();
-    let mut source_authorities = HashSet::new();
     for (index, component) in components.iter().enumerate() {
         let id = str_at(component, "component_id")
             .ok_or_else(|| format!("{case_id}: component[{index}] has no component_id"))?;
@@ -100,9 +99,6 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
         }
         if let Some(schema) = str_at(component, "schema_id") {
             schemas.insert(schema.to_owned());
-        }
-        if let Some(authority) = str_at(component, "authority_mode") {
-            source_authorities.insert(authority.to_owned());
         }
     }
 
@@ -134,6 +130,19 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             return Err(format!("{case_id}: {id} has unsupported mapping mode"));
         }
         mapping_modes.insert(mapping_mode.to_owned());
+        match mapping_mode {
+            "integrated" if !nonempty(str_at(interface, "composition_schema_id")) => {
+                failures.insert("COMPOSITION_MODE".to_owned());
+            }
+            "unified" | "federated"
+                if !interface
+                    .get("composition_schema_id")
+                    .is_some_and(Value::is_null) =>
+            {
+                failures.insert("COMPOSITION_MODE".to_owned());
+            }
+            _ => {}
+        }
 
         let event_id = str_at(interface, "source_event_id")
             .ok_or_else(|| format!("{case_id}: {id}.source_event_id missing"))?;
@@ -582,6 +591,25 @@ mod tests {
         case["interfaces"][0]["peer_identity_sha256"] = Value::Null;
         let result = evaluate_case(case).expect("case evaluates");
         assert!(result.failures.contains(&"PROVENANCE".to_owned()));
+    }
+
+    #[test]
+    fn mixed_composition_requires_explicit_canonical_schema_per_integrated_edge() {
+        let mut corpus = corpus_value();
+        let case = case_named(&mut corpus, "DTC-004");
+        case["interfaces"][0]["composition_schema_id"] = Value::Null;
+        let result = evaluate_case(case).expect("case evaluates");
+        assert!(result.failures.contains(&"COMPOSITION_MODE".to_owned()));
+    }
+
+    #[test]
+    fn unified_composition_does_not_silently_add_a_global_schema() {
+        let mut corpus = corpus_value();
+        let case = case_named(&mut corpus, "DTC-002");
+        case["interfaces"][0]["composition_schema_id"] =
+            Value::String("shipyard.manufacturing.common.v1".to_owned());
+        let result = evaluate_case(case).expect("case evaluates");
+        assert!(result.failures.contains(&"COMPOSITION_MODE".to_owned()));
     }
 
     #[test]
