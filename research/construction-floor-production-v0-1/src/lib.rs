@@ -105,6 +105,15 @@ pub struct MoneyPerUnit {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorkUnitDisposition {
+    pub work_unit_id: String,
+    pub acceptance_contract_ref: String,
+    pub attempt_count: u64,
+    pub final_state: Option<TaskState>,
+    pub finally_accepted: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AttemptReport {
     pub work_unit_id: String,
     pub acceptance_contract_ref: String,
@@ -132,6 +141,7 @@ pub struct FloorReport {
     pub finally_accepted_units: u64,
     pub rework_attempts: u64,
     pub not_finally_accepted_unit_ids: Vec<String>,
+    pub work_units: Vec<WorkUnitDisposition>,
     pub attempts: Vec<AttemptReport>,
     pub total_workflow_crew_minutes: u64,
     pub crew_minutes_by_role: BTreeMap<String, u64>,
@@ -174,6 +184,8 @@ pub enum LedgerError {
     UnexpectedReworkAuthorization,
     TerminalAttemptMutation(String),
     AttemptAuthorizationConflict(String),
+    TaskConfigurationChanged(String),
+    ConflictingAttemptSnapshot(String),
     InvalidStateProgression { from: TaskState, to: TaskState },
     MissingAcceptanceEvidence,
     DuplicateCostEntry(String),
@@ -302,16 +314,21 @@ impl FloorLedger {
                 .filter(|item| item.attempt_number == *owner_attempt)
                 .ok_or_else(|| LedgerError::TaskIdAlreadyAssigned(task_id.clone()))?;
 
+            if previous.robot_config_digest != snapshot.robot_config_digest {
+                return Err(LedgerError::TaskConfigurationChanged(task_id));
+            }
             if snapshot.rework_authorization_ref.is_some()
                 && previous.rework_authorization_ref != snapshot.rework_authorization_ref
             {
                 return Err(LedgerError::AttemptAuthorizationConflict(task_id));
             }
-            if previous.state == snapshot.state
-                && previous.output_evidence_ref == snapshot.output_evidence_ref
-                && previous.acceptance_receipt_ref == snapshot.acceptance_receipt_ref
-            {
-                return Ok(ObserveOutcome::Duplicate);
+            if previous.state == snapshot.state {
+                if previous.output_evidence_ref == snapshot.output_evidence_ref
+                    && previous.acceptance_receipt_ref == snapshot.acceptance_receipt_ref
+                {
+                    return Ok(ObserveOutcome::Duplicate);
+                }
+                return Err(LedgerError::ConflictingAttemptSnapshot(task_id));
             }
             if previous.state.is_terminal() {
                 return Err(LedgerError::TerminalAttemptMutation(task_id));
@@ -431,9 +448,10 @@ impl FloorLedger {
         let mut finally_accepted = 0_u64;
         let mut rework_attempts = 0_u64;
         let mut not_finally_accepted = Vec::new();
+        let mut work_units = Vec::new();
         let mut attempts = Vec::new();
 
-        for work_unit_id in self.required_units.keys() {
+        for (work_unit_id, acceptance_contract_ref) in &self.required_units {
             match self.attempts.get(work_unit_id) {
                 Some(history) if !history.is_empty() => {
                     attempted_units = checked_add(attempted_units, 1)?;
@@ -454,15 +472,26 @@ impl FloorLedger {
                             .map_err(|_| LedgerError::ArithmeticOverflow)?,
                     )?;
 
-                    let final_state = &history
+                    let final_state = history
                         .last()
                         .expect("non-empty history has a last attempt")
-                        .state;
-                    if *final_state == TaskState::IndependentlyAccepted {
+                        .state
+                        .clone();
+                    let finally_accepted_for_unit =
+                        final_state == TaskState::IndependentlyAccepted;
+                    if finally_accepted_for_unit {
                         finally_accepted = checked_add(finally_accepted, 1)?;
                     } else {
                         not_finally_accepted.push(work_unit_id.clone());
                     }
+                    work_units.push(WorkUnitDisposition {
+                        work_unit_id: work_unit_id.clone(),
+                        acceptance_contract_ref: acceptance_contract_ref.clone(),
+                        attempt_count: u64::try_from(history.len())
+                            .map_err(|_| LedgerError::ArithmeticOverflow)?,
+                        final_state: Some(final_state),
+                        finally_accepted: finally_accepted_for_unit,
+                    });
                     for attempt in history {
                         let acceptance_contract_ref = self
                             .required_units
@@ -484,7 +513,16 @@ impl FloorLedger {
                         });
                     }
                 }
-                _ => not_finally_accepted.push(work_unit_id.clone()),
+                _ => {
+                    not_finally_accepted.push(work_unit_id.clone());
+                    work_units.push(WorkUnitDisposition {
+                        work_unit_id: work_unit_id.clone(),
+                        acceptance_contract_ref: acceptance_contract_ref.clone(),
+                        attempt_count: 0,
+                        final_state: None,
+                        finally_accepted: false,
+                    });
+                }
             }
         }
 
@@ -537,6 +575,7 @@ impl FloorLedger {
             finally_accepted_units: finally_accepted,
             rework_attempts,
             not_finally_accepted_unit_ids: not_finally_accepted,
+            work_units,
             attempts,
             total_workflow_crew_minutes: total_crew_minutes,
             crew_minutes_by_role: crew_by_role,
