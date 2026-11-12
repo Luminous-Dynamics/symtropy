@@ -63,7 +63,10 @@ impl VicsekPerception {
     fn normalized(self) -> Result<Self, VicsekError> {
         match self {
             Self::MetricRadius => Ok(Self::MetricRadius),
-            Self::VisualSector { half_aperture_rad, offset_rad } => {
+            Self::VisualSector {
+                half_aperture_rad,
+                offset_rad,
+            } => {
                 if !half_aperture_rad.is_finite()
                     || !(0.0..=std::f64::consts::PI).contains(&half_aperture_rad)
                 {
@@ -187,17 +190,28 @@ impl VicsekConfig {
 #[derive(Debug, Clone, PartialEq)]
 pub enum VicsekError {
     EmptyParticleSet,
-    InvalidParameter { name: &'static str, value: f64 },
-    NonFinitePosition { particle: usize, coordinate: &'static str },
+    InvalidParameter {
+        name: &'static str,
+        value: f64,
+    },
+    NonFinitePosition {
+        particle: usize,
+        coordinate: &'static str,
+    },
     PositionOutOfBounds {
         particle: usize,
         coordinate: &'static str,
         value: f64,
         box_size: f64,
     },
-    NonFiniteHeading { particle: usize },
+    NonFiniteHeading {
+        particle: usize,
+    },
     NonFiniteCommonFieldImpulse(f64),
-    ParticleIndexOutOfBounds { particle: usize, particle_count: usize },
+    ParticleIndexOutOfBounds {
+        particle: usize,
+        particle_count: usize,
+    },
     TickOverflow,
 }
 
@@ -208,7 +222,10 @@ impl fmt::Display for VicsekError {
             Self::InvalidParameter { name, value } => {
                 write!(f, "invalid Vicsek parameter {name}={value}")
             }
-            Self::NonFinitePosition { particle, coordinate } => write!(
+            Self::NonFinitePosition {
+                particle,
+                coordinate,
+            } => write!(
                 f,
                 "particle {particle} has a non-finite {coordinate} position"
             ),
@@ -225,7 +242,10 @@ impl fmt::Display for VicsekError {
                 write!(f, "particle {particle} has a non-finite heading")
             }
             Self::NonFiniteCommonFieldImpulse(value) => {
-                write!(f, "common-field heading impulse must be finite, got {value}")
+                write!(
+                    f,
+                    "common-field heading impulse must be finite, got {value}"
+                )
             }
             Self::ParticleIndexOutOfBounds {
                 particle,
@@ -396,12 +416,7 @@ impl VicsekModel {
         seed: u64,
         perception: VicsekPerception,
     ) -> Result<Self, VicsekError> {
-        Self::from_particles_and_rng(
-            particles,
-            config,
-            XorShift64::new(seed),
-            perception,
-        )
+        Self::from_particles_and_rng(particles, config, XorShift64::new(seed), perception)
     }
 
     fn from_particles_and_rng(
@@ -581,7 +596,9 @@ impl VicsekModel {
         heading_impulse_rad: f64,
     ) -> Result<CommonFieldIntervention, VicsekError> {
         if !heading_impulse_rad.is_finite() {
-            return Err(VicsekError::NonFiniteCommonFieldImpulse(heading_impulse_rad));
+            return Err(VicsekError::NonFiniteCommonFieldImpulse(
+                heading_impulse_rad,
+            ));
         }
         let heading_impulse_rad = wrap_signed_angle(heading_impulse_rad);
         for particle in &mut self.particles {
@@ -678,16 +695,8 @@ impl VicsekModel {
 
             let (x, y) = match self.config.update_rule {
                 VicsekUpdateRule::CurrentPositionAlignment => (
-                    add_periodic(
-                        particle.x,
-                        distance * heading.cos(),
-                        self.config.box_size,
-                    ),
-                    add_periodic(
-                        particle.y,
-                        distance * heading.sin(),
-                        self.config.box_size,
-                    ),
+                    add_periodic(particle.x, distance * heading.cos(), self.config.box_size),
+                    add_periodic(particle.y, distance * heading.sin(), self.config.box_size),
                 ),
                 VicsekUpdateRule::NextPositionAlignment => neighbour_positions[index],
             };
@@ -889,8 +898,7 @@ impl VicsekModel {
                     .clamp(0.0, 1.0)
             })
             .collect();
-        let mean_cluster_polar_order =
-            cluster_orders.iter().sum::<f64>() / cluster_count as f64;
+        let mean_cluster_polar_order = cluster_orders.iter().sum::<f64>() / cluster_count as f64;
         let cluster_polar_order_variance = cluster_orders
             .iter()
             .map(|order| {
@@ -904,10 +912,8 @@ impl VicsekModel {
         // of whether it interacts with anything. Keep the all-component statistic for
         // source compatibility, but expose support and order for nontrivial clusters
         // separately so an isolated gas cannot appear perfectly cluster-coherent.
-        let nontrivial_cluster_particle_count: usize = component_sizes
-            .iter()
-            .filter(|size| **size > 1)
-            .sum();
+        let nontrivial_cluster_particle_count: usize =
+            component_sizes.iter().filter(|size| **size > 1).sum();
         let nontrivial_cluster_orders: Vec<f64> = (0..count)
             .filter(|root| component_sizes[*root] > 1)
             .map(|root| {
@@ -956,8 +962,7 @@ impl VicsekModel {
                     }
                 }
                 let possible_neighbor_pairs = degree * (degree - 1) / 2;
-                clustering_sum +=
-                    connected_neighbor_pairs as f64 / possible_neighbor_pairs as f64;
+                clustering_sum += connected_neighbor_pairs as f64 / possible_neighbor_pairs as f64;
             }
             let mean_clustering_coefficient = clustering_sum / count as f64;
 
@@ -1083,10 +1088,8 @@ pub fn run_paired_heading_intervention(
             }
             let sham_particle = sham.particles[index];
             let treatment_particle = treatment.particles[index];
-            let heading_effect = wrap_signed_angle(
-                treatment_particle.heading_rad - sham_particle.heading_rad,
-            )
-            .abs();
+            let heading_effect =
+                wrap_signed_angle(treatment_particle.heading_rad - sham_particle.heading_rad).abs();
             let (dx, dy) = periodic_displacement(
                 sham_particle.x,
                 sham_particle.y,
@@ -1105,18 +1108,21 @@ pub fn run_paired_heading_intervention(
             }
         }
 
-        let (mean_untreated_heading_effect_rad, untreated_heading_response_fraction,
-            mean_untreated_position_effect, untreated_position_response_fraction) =
-            if untreated_count == 0 {
-                (None, None, None, None)
-            } else {
-                (
-                    Some(heading_effect_sum / untreated_count as f64),
-                    Some(heading_responders as f64 / untreated_count as f64),
-                    Some(position_effect_sum / untreated_count as f64),
-                    Some(position_responders as f64 / untreated_count as f64),
-                )
-            };
+        let (
+            mean_untreated_heading_effect_rad,
+            untreated_heading_response_fraction,
+            mean_untreated_position_effect,
+            untreated_position_response_fraction,
+        ) = if untreated_count == 0 {
+            (None, None, None, None)
+        } else {
+            (
+                Some(heading_effect_sum / untreated_count as f64),
+                Some(heading_responders as f64 / untreated_count as f64),
+                Some(position_effect_sum / untreated_count as f64),
+                Some(position_responders as f64 / untreated_count as f64),
+            )
+        };
 
         response_rows.push(PairedInterventionStep {
             tick: treatment.tick,
@@ -1158,11 +1164,7 @@ struct PeriodicNeighborIndex {
 impl PeriodicNeighborIndex {
     const MAX_CELL_COUNT_PER_AXIS: usize = 1_000_000;
 
-    fn new(
-        positions: &[(f64, f64)],
-        box_size: f64,
-        interaction_radius: f64,
-    ) -> Option<Self> {
+    fn new(positions: &[(f64, f64)], box_size: f64, interaction_radius: f64) -> Option<Self> {
         if interaction_radius <= 0.0 {
             return None;
         }
@@ -1380,7 +1382,11 @@ mod tests {
             update_rule: VicsekUpdateRule::CurrentPositionAlignment,
         };
         let visual = VicsekModel::new_with_perception(
-            vec![VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.0 }],
+            vec![VicsekParticle {
+                x: 5.0,
+                y: 5.0,
+                heading_rad: 0.0,
+            }],
             config,
             61,
             VicsekPerception::VisualSector {
@@ -1394,7 +1400,11 @@ mod tests {
         assert!(!visual.perceives((5.0, 5.0), 0.0, (4.0, 5.0)));
 
         let flipped = VicsekModel::new_with_perception(
-            vec![VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.0 }],
+            vec![VicsekParticle {
+                x: 5.0,
+                y: 5.0,
+                heading_rad: 0.0,
+            }],
             config,
             61,
             VicsekPerception::VisualSector {
@@ -1412,8 +1422,16 @@ mod tests {
     fn visual_sector_builds_directed_out_neighbours_and_weak_cluster_projection() {
         let model = VicsekModel::new_with_perception(
             vec![
-                VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.0 },
-                VicsekParticle { x: 6.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle {
+                    x: 5.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                },
+                VicsekParticle {
+                    x: 6.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                },
             ],
             VicsekConfig {
                 box_size: 12.0,
@@ -1462,8 +1480,16 @@ mod tests {
     fn asymmetric_visual_visibility_predicts_directional_intervention_effect() {
         let baseline = VicsekModel::new_with_perception(
             vec![
-                VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.0 },
-                VicsekParticle { x: 6.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle {
+                    x: 5.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                },
+                VicsekParticle {
+                    x: 6.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                },
             ],
             VicsekConfig {
                 box_size: 12.0,
@@ -1488,13 +1514,8 @@ mod tests {
         assert_eq!(metrics.interaction_reciprocity_fraction, Some(0.0));
 
         // Change the unseen particle (0): particle 1 must remain exactly on its sham path.
-        let unseen_intervention = run_paired_heading_intervention(
-            &baseline,
-            0,
-            std::f64::consts::FRAC_PI_2,
-            1,
-        )
-        .unwrap();
+        let unseen_intervention =
+            run_paired_heading_intervention(&baseline, 0, std::f64::consts::FRAC_PI_2, 1).unwrap();
         assert_eq!(
             unseen_intervention.steps[0].mean_untreated_heading_effect_rad,
             Some(0.0)
@@ -1506,18 +1527,14 @@ mod tests {
 
         // Change the visible particle (1): particle 0 sees its new heading and rotates
         // halfway toward it, so the downstream effect is analytically PI/4.
-        let visible_intervention = run_paired_heading_intervention(
-            &baseline,
-            1,
-            std::f64::consts::FRAC_PI_2,
-            1,
-        )
-        .unwrap();
+        let visible_intervention =
+            run_paired_heading_intervention(&baseline, 1, std::f64::consts::FRAC_PI_2, 1).unwrap();
         assert!(
-            (visible_intervention.steps[0].mean_untreated_heading_effect_rad
+            (visible_intervention.steps[0]
+                .mean_untreated_heading_effect_rad
                 .unwrap()
                 - std::f64::consts::FRAC_PI_4)
-            .abs()
+                .abs()
                 < 1.0e-12
         );
         assert_eq!(
@@ -1528,7 +1545,11 @@ mod tests {
 
     #[test]
     fn visual_sector_rejects_invalid_aperture_and_offset() {
-        let particles = vec![VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 }];
+        let particles = vec![VicsekParticle {
+            x: 1.0,
+            y: 1.0,
+            heading_rad: 0.0,
+        }];
         let config = VicsekConfig::default();
         assert!(matches!(
             VicsekModel::new_with_perception(
@@ -1565,7 +1586,11 @@ mod tests {
     #[test]
     fn next_position_neighbour_rule_detects_newly_adjacent_particles() {
         let initial = vec![
-            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
             VicsekParticle {
                 x: 3.0,
                 y: 1.0,
@@ -1616,10 +1641,26 @@ mod tests {
     #[test]
     fn cluster_and_local_order_detect_coherent_groups_with_opposing_headings() {
         let particles = vec![
-            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
-            VicsekParticle { x: 1.5, y: 1.0, heading_rad: 0.0 },
-            VicsekParticle { x: 10.0, y: 10.0, heading_rad: std::f64::consts::PI },
-            VicsekParticle { x: 10.5, y: 10.0, heading_rad: std::f64::consts::PI },
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 1.5,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 10.0,
+                y: 10.0,
+                heading_rad: std::f64::consts::PI,
+            },
+            VicsekParticle {
+                x: 10.5,
+                y: 10.0,
+                heading_rad: std::f64::consts::PI,
+            },
         ];
         let model = VicsekModel::new(
             particles,
@@ -1686,12 +1727,36 @@ mod tests {
     #[test]
     fn opposed_local_flocks_cancel_global_order_but_preserve_local_order() {
         let particles = vec![
-            VicsekParticle { x: 2.0, y: 2.0, heading_rad: 0.0 },
-            VicsekParticle { x: 2.5, y: 2.0, heading_rad: 0.0 },
-            VicsekParticle { x: 2.0, y: 2.5, heading_rad: 0.0 },
-            VicsekParticle { x: 12.0, y: 12.0, heading_rad: std::f64::consts::PI },
-            VicsekParticle { x: 12.5, y: 12.0, heading_rad: std::f64::consts::PI },
-            VicsekParticle { x: 12.0, y: 12.5, heading_rad: std::f64::consts::PI },
+            VicsekParticle {
+                x: 2.0,
+                y: 2.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 2.5,
+                y: 2.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 2.0,
+                y: 2.5,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 12.0,
+                y: 12.0,
+                heading_rad: std::f64::consts::PI,
+            },
+            VicsekParticle {
+                x: 12.5,
+                y: 12.0,
+                heading_rad: std::f64::consts::PI,
+            },
+            VicsekParticle {
+                x: 12.0,
+                y: 12.5,
+                heading_rad: std::f64::consts::PI,
+            },
         ];
         let model = VicsekModel::new(
             particles,
@@ -1727,9 +1792,21 @@ mod tests {
     fn path_graph_has_known_shortest_path_and_zero_clustering() {
         let model = VicsekModel::new(
             vec![
-                VicsekParticle { x: 2.0, y: 5.0, heading_rad: 0.0 },
-                VicsekParticle { x: 3.0, y: 5.0, heading_rad: 0.0 },
-                VicsekParticle { x: 4.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle {
+                    x: 2.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                },
+                VicsekParticle {
+                    x: 3.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                },
+                VicsekParticle {
+                    x: 4.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                },
             ],
             VicsekConfig {
                 box_size: 10.0,
@@ -1771,7 +1848,9 @@ mod tests {
         let mut sham = baseline.clone();
         let mut treated = baseline;
 
-        let receipt = treated.intervene_heading(0, std::f64::consts::FRAC_PI_2).unwrap();
+        let receipt = treated
+            .intervene_heading(0, std::f64::consts::FRAC_PI_2)
+            .unwrap();
         assert_eq!(receipt.tick, 0);
         assert_eq!(receipt.particle_index, 0);
         assert_eq!(receipt.previous_heading_rad, 0.0);
@@ -1807,24 +1886,17 @@ mod tests {
         };
         let baseline = VicsekModel::new(particles, config, 53).unwrap();
 
-        let first = run_paired_heading_intervention(
-            &baseline,
-            0,
-            std::f64::consts::FRAC_PI_2,
-            5,
-        )
-        .unwrap();
-        let second = run_paired_heading_intervention(
-            &baseline,
-            0,
-            std::f64::consts::FRAC_PI_2,
-            5,
-        )
-        .unwrap();
+        let first =
+            run_paired_heading_intervention(&baseline, 0, std::f64::consts::FRAC_PI_2, 5).unwrap();
+        let second =
+            run_paired_heading_intervention(&baseline, 0, std::f64::consts::FRAC_PI_2, 5).unwrap();
 
         assert_eq!(first, second);
         assert!(first.common_random_numbers);
-        assert_eq!(first.update_rule, VicsekUpdateRule::CurrentPositionAlignment);
+        assert_eq!(
+            first.update_rule,
+            VicsekUpdateRule::CurrentPositionAlignment
+        );
         assert_eq!(first.intervention.tick, 0);
         assert_eq!(first.steps.len(), 5);
         let first_step = &first.steps[0];
@@ -1832,9 +1904,7 @@ mod tests {
         assert!((first_step.treatment_metrics.polar_order - 1.0).abs() < 1.0e-12);
         assert!(first_step.sham_metrics.polar_order > 1.0 - 1.0e-12);
         assert!(
-            (first_step.mean_untreated_heading_effect_rad.unwrap()
-                - 1.0_f64.atan2(5.0))
-            .abs()
+            (first_step.mean_untreated_heading_effect_rad.unwrap() - 1.0_f64.atan2(5.0)).abs()
                 < 1.0e-12
         );
         assert_eq!(first_step.untreated_heading_response_fraction, Some(1.0));
@@ -1845,9 +1915,21 @@ mod tests {
     #[test]
     fn paired_intervention_uses_common_noise_and_has_zero_untreated_effect_without_coupling() {
         let particles = vec![
-            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
-            VicsekParticle { x: 5.0, y: 5.0, heading_rad: 1.0 },
-            VicsekParticle { x: 9.0, y: 9.0, heading_rad: 2.0 },
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 5.0,
+                y: 5.0,
+                heading_rad: 1.0,
+            },
+            VicsekParticle {
+                x: 9.0,
+                y: 9.0,
+                heading_rad: 2.0,
+            },
         ];
         let config = VicsekConfig {
             box_size: 12.0,
@@ -1858,13 +1940,8 @@ mod tests {
             update_rule: VicsekUpdateRule::NextPositionAlignment,
         };
         let baseline = VicsekModel::new(particles, config, 59).unwrap();
-        let result = run_paired_heading_intervention(
-            &baseline,
-            0,
-            std::f64::consts::FRAC_PI_2,
-            20,
-        )
-        .unwrap();
+        let result =
+            run_paired_heading_intervention(&baseline, 0, std::f64::consts::FRAC_PI_2, 20).unwrap();
 
         assert!(result.common_random_numbers);
         assert_eq!(result.update_rule, VicsekUpdateRule::NextPositionAlignment);
@@ -1879,9 +1956,21 @@ mod tests {
     #[test]
     fn self_only_heading_intervention_does_not_change_other_particles() {
         let particles = vec![
-            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
-            VicsekParticle { x: 5.0, y: 5.0, heading_rad: 1.0 },
-            VicsekParticle { x: 9.0, y: 9.0, heading_rad: 2.0 },
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 5.0,
+                y: 5.0,
+                heading_rad: 1.0,
+            },
+            VicsekParticle {
+                x: 9.0,
+                y: 9.0,
+                heading_rad: 2.0,
+            },
         ];
         let config = VicsekConfig {
             box_size: 12.0,
@@ -1901,17 +1990,38 @@ mod tests {
         sham.step().unwrap();
         treated.step().unwrap();
 
-        assert_eq!(treated.particles()[0].heading_rad, std::f64::consts::FRAC_PI_2);
-        assert_eq!(treated.particles()[1].heading_rad, sham.particles()[1].heading_rad);
-        assert_eq!(treated.particles()[2].heading_rad, sham.particles()[2].heading_rad);
+        assert_eq!(
+            treated.particles()[0].heading_rad,
+            std::f64::consts::FRAC_PI_2
+        );
+        assert_eq!(
+            treated.particles()[1].heading_rad,
+            sham.particles()[1].heading_rad
+        );
+        assert_eq!(
+            treated.particles()[2].heading_rad,
+            sham.particles()[2].heading_rad
+        );
     }
 
     #[test]
     fn shared_environmental_heading_field_correlates_isolated_particles_without_edges() {
         let particles = vec![
-            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.25 },
-            VicsekParticle { x: 5.0, y: 5.0, heading_rad: 0.25 },
-            VicsekParticle { x: 9.0, y: 9.0, heading_rad: 0.25 },
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.25,
+            },
+            VicsekParticle {
+                x: 5.0,
+                y: 5.0,
+                heading_rad: 0.25,
+            },
+            VicsekParticle {
+                x: 9.0,
+                y: 9.0,
+                heading_rad: 0.25,
+            },
         ];
         let config = VicsekConfig {
             box_size: 12.0,
@@ -1943,13 +2053,13 @@ mod tests {
             .particles()
             .iter()
             .zip(sham.particles())
-            .map(|(treated, control)| {
-                wrap_signed_angle(treated.heading_rad - control.heading_rad)
-            })
+            .map(|(treated, control)| wrap_signed_angle(treated.heading_rad - control.heading_rad))
             .collect();
-        assert!(common_deltas.iter().all(|delta| {
-            (*delta - std::f64::consts::FRAC_PI_3).abs() < 1.0e-12
-        }));
+        assert!(
+            common_deltas
+                .iter()
+                .all(|delta| { (*delta - std::f64::consts::FRAC_PI_3).abs() < 1.0e-12 })
+        );
     }
 
     #[test]
@@ -2019,12 +2129,12 @@ mod tests {
                 && metrics.neighbor_count_variance.is_finite()
                 && metrics.local_order_coverage_fraction.is_finite()
                 && (0.0..=1.0).contains(&metrics.local_order_coverage_fraction)
-                && metrics.mean_local_polar_order.is_none_or(|value| {
-                    value.is_finite() && (0.0..=1.0).contains(&value)
-                })
-                && metrics.local_polar_order_variance.is_none_or(|value| {
-                    value.is_finite() && value >= 0.0
-                })
+                && metrics
+                    .mean_local_polar_order
+                    .is_none_or(|value| value.is_finite() && (0.0..=1.0).contains(&value))
+                && metrics
+                    .local_polar_order_variance
+                    .is_none_or(|value| value.is_finite() && value >= 0.0)
                 && metrics.mean_cluster_size.is_finite()
                 && metrics.cluster_size_variance.is_finite()
                 && metrics.mean_cluster_polar_order.is_finite()
@@ -2054,7 +2164,11 @@ mod tests {
                 .map(|_| (rng.next_unit() * box_size, rng.next_unit() * box_size))
                 .collect();
             let index = PeriodicNeighborIndex::new(&positions, box_size, radius);
-            assert_eq!(index.is_some(), expect_index, "box={box_size} radius={radius}");
+            assert_eq!(
+                index.is_some(),
+                expect_index,
+                "box={box_size} radius={radius}"
+            );
             if let Some(index) = index {
                 for (focal, &position) in positions.iter().enumerate() {
                     let candidates = index.candidates(position);
@@ -2105,13 +2219,9 @@ mod tests {
                 offset_rad: std::f64::consts::PI,
             },
         ] {
-            let model = VicsekModel::new_with_perception(
-                particles.clone(),
-                config,
-                0xA11CE,
-                perception,
-            )
-            .unwrap();
+            let model =
+                VicsekModel::new_with_perception(particles.clone(), config, 0xA11CE, perception)
+                    .unwrap();
             let indexed = model.fast_metrics();
 
             let count = model.particles.len();
@@ -2123,10 +2233,8 @@ mod tests {
                 for right in (left + 1)..count {
                     let a = model.particles[left];
                     let b = model.particles[right];
-                    let left_sees_right =
-                        model.perceives((a.x, a.y), a.heading_rad, (b.x, b.y));
-                    let right_sees_left =
-                        model.perceives((b.x, b.y), b.heading_rad, (a.x, a.y));
+                    let left_sees_right = model.perceives((a.x, a.y), a.heading_rad, (b.x, b.y));
+                    let right_sees_left = model.perceives((b.x, b.y), b.heading_rad, (a.x, a.y));
                     if left_sees_right {
                         degrees[left] += 1;
                         directed_edges += 1;
@@ -2158,9 +2266,8 @@ mod tests {
                         sum_sin += b.heading_rad.sin();
                     }
                 }
-                local_orders.push(
-                    (sum_cos.hypot(sum_sin) / (degrees[focal] + 1) as f64).clamp(0.0, 1.0),
-                );
+                local_orders
+                    .push((sum_cos.hypot(sum_sin) / (degrees[focal] + 1) as f64).clamp(0.0, 1.0));
             }
             let mean_degree = degrees.iter().sum::<usize>() as f64 / count as f64;
             let degree_variance = degrees
@@ -2224,13 +2331,9 @@ mod tests {
                 offset_rad: std::f64::consts::PI,
             },
         ] {
-            let model = VicsekModel::new_with_perception(
-                particles.clone(),
-                config,
-                0xC311_1D3,
-                perception,
-            )
-            .unwrap();
+            let model =
+                VicsekModel::new_with_perception(particles.clone(), config, 0xC311_1D3, perception)
+                    .unwrap();
             let indexed = model.clone();
             let mut expected = model.clone();
             let mut actual = indexed.clone();
@@ -2245,10 +2348,20 @@ mod tests {
                     .collect(),
                 VicsekUpdateRule::NextPositionAlignment => previous
                     .iter()
-                    .map(|particle| (
-                        add_periodic(particle.x, distance * particle.heading_rad.cos(), expected.config.box_size),
-                        add_periodic(particle.y, distance * particle.heading_rad.sin(), expected.config.box_size),
-                    ))
+                    .map(|particle| {
+                        (
+                            add_periodic(
+                                particle.x,
+                                distance * particle.heading_rad.cos(),
+                                expected.config.box_size,
+                            ),
+                            add_periodic(
+                                particle.y,
+                                distance * particle.heading_rad.sin(),
+                                expected.config.box_size,
+                            ),
+                        )
+                    })
                     .collect(),
             };
             let mut next = Vec::with_capacity(previous.len());
@@ -2272,7 +2385,8 @@ mod tests {
                 } else {
                     sum_sin.atan2(sum_cos)
                 };
-                let noise = expected.config.angular_noise_width_rad * (expected.rng.next_unit() - 0.5);
+                let noise =
+                    expected.config.angular_noise_width_rad * (expected.rng.next_unit() - 0.5);
                 let heading = wrap_angle(alignment + noise);
                 let (x, y) = match expected.config.update_rule {
                     VicsekUpdateRule::CurrentPositionAlignment => (
@@ -2281,7 +2395,11 @@ mod tests {
                     ),
                     VicsekUpdateRule::NextPositionAlignment => neighbour_positions[focal_index],
                 };
-                next.push(VicsekParticle { x, y, heading_rad: heading });
+                next.push(VicsekParticle {
+                    x,
+                    y,
+                    heading_rad: heading,
+                });
             }
             expected.particles = next;
             expected.tick += 1;
@@ -2295,10 +2413,26 @@ mod tests {
     #[test]
     fn locally_ordered_opposing_clusters_can_have_zero_global_order() {
         let particles = vec![
-            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
-            VicsekParticle { x: 1.2, y: 1.0, heading_rad: 0.0 },
-            VicsekParticle { x: 10.0, y: 10.0, heading_rad: std::f64::consts::PI },
-            VicsekParticle { x: 10.2, y: 10.0, heading_rad: std::f64::consts::PI },
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 1.2,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 10.0,
+                y: 10.0,
+                heading_rad: std::f64::consts::PI,
+            },
+            VicsekParticle {
+                x: 10.2,
+                y: 10.0,
+                heading_rad: std::f64::consts::PI,
+            },
         ];
         let model = VicsekModel::new(
             particles,
@@ -2364,7 +2498,10 @@ mod tests {
                 },
                 1
             ),
-            Err(VicsekError::InvalidParameter { name: "box_size", .. })
+            Err(VicsekError::InvalidParameter {
+                name: "box_size",
+                ..
+            })
         ));
         assert!(matches!(
             VicsekModel::random_uniform(
@@ -2390,7 +2527,10 @@ mod tests {
                 },
                 1
             ),
-            Err(VicsekError::InvalidParameter { name: "speed_times_dt", .. })
+            Err(VicsekError::InvalidParameter {
+                name: "speed_times_dt",
+                ..
+            })
         ));
         assert!(matches!(
             VicsekModel::new(
