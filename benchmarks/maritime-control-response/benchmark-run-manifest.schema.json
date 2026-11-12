@@ -412,11 +412,12 @@
             "prior_distribution_sha256",
             "selected_baseline",
             "sequential_update_status",
-            "joint_scenario_posterior_ledger_sha256"
+            "joint_scenario_posterior_ledger_sha256",
+            "joint_scenario_observation_count"
           ],
           "properties": {
             "schema_version": {
-              "const": "liu-ice-active-evidence-selection-v0.5"
+              "const": "liu-ice-active-evidence-selection-v0.6"
             },
             "status": {
               "enum": [
@@ -754,7 +755,8 @@
                 "not_executed",
                 "single_point_model_only",
                 "multi_scenario_blocked_joint_posterior_missing",
-                "joint_hypothesis_scenario_ledger_qualified"
+                "joint_hypothesis_scenario_ledger_qualified",
+                "joint_scenario_ledger_synthetic_contract_only"
               ]
             },
             "joint_scenario_posterior_ledger_sha256": {
@@ -767,6 +769,10 @@
                   "type": "null"
                 }
               ]
+            },
+            "joint_scenario_observation_count": {
+              "type": "integer",
+              "minimum": 0
             }
           },
           "allOf": [
@@ -805,6 +811,30 @@
                 "properties": {
                   "joint_scenario_posterior_ledger_sha256": {
                     "type": "null"
+                  }
+                }
+              }
+            },
+            {
+              "if": {
+                "properties": {
+                  "sequential_update_status": {
+                    "const": "joint_scenario_ledger_synthetic_contract_only"
+                  }
+                },
+                "required": [
+                  "sequential_update_status"
+                ]
+              },
+              "then": {
+                "properties": {
+                  "joint_scenario_posterior_ledger_sha256": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "joint_scenario_observation_count": {
+                    "type": "integer",
+                    "minimum": 0
                   }
                 }
               }
@@ -2101,6 +2131,54 @@
           "minimum": 0
         },
         "sequential_unsupported_outcome_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "joint_scenario_observation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "joint_posterior_normalization_error": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "hypothesis_posterior_normalization_error": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scenario_posterior_normalization_error": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "scenario_posterior_weight_change_per_observation": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "ledger_replay_match_rate": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "duplicate_observation_receipt_rejection_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "impossible_joint_outcome_rejection_count": {
           "type": "integer",
           "minimum": 0
         }
