@@ -12,11 +12,11 @@ This benchmark separates three questions that are too often merged:
 2. Does the sampled and executed controller satisfy a discrete physical-port energy contract under sensing/actuation imperfections?
 3. Does the integrated system deliver useful assistance while preserving user agency and acceptable burden?
 
-A pass in one layer does not imply a pass in another. The current manifest includes 22 adversarial scenario families, six cross-sensor transfer regimes, and five analytic optimizer fixtures.
+A pass in one layer does not imply a pass in another. The current manifest includes 34 adversarial scenario families, 14 comparator/negative-control arms, six cross-sensor transfer regimes, and five analytic optimizer fixtures. Twelve added families qualify cross-domain composition, identity coherence, missing evidence, authorization, actuator authority, revocation/re-arm and time-of-check/time-of-use races.
 
 ## Comparator arms
 
-Use independent implementations/adapters for fixed full-matrix impedance/admittance, energy-tank/passivity-observer methods, the Dinc diagonal VIC QP, the Dinc generalized-eigenbasis compliance method, Mühlbauer-style passive matrix stiffness/shared-control, Poignonec-style passivity-constrained NMPC, and the Luminous candidate. Record exact paper version, code revision, model assumptions, parameterization, and any deviations. Do not fabricate a baseline where source code or method details are unavailable; label that arm not_reproduced and explain why.
+Use independent implementations/adapters for fixed full-matrix impedance/admittance, energy-tank/passivity-observer methods, the Dinc diagonal VIC QP, the Dinc generalized-eigenbasis compliance method, Mühlbauer-style passive matrix stiffness/shared-control, Poignonec-style passivity-constrained NMPC, matrix-valued LTI passivity-index analysis, the Luminous candidates, a conjunctive interaction-envelope gate, and two negative controls: a weighted composite-risk score and independently evaluated but identity-unbound evidence. These last three arms are architecture comparisons, not claims that all methods have a ready-made public implementation. Record exact paper version, code revision, model assumptions, parameterization, and any deviations. Do not fabricate a baseline where source code or method details are unavailable; label that arm not_reproduced and explain why.
 
 ## Comparison regimes
 
@@ -46,7 +46,7 @@ Tune on a development set. Freeze settings, then evaluate on a held-out set. Pub
 
 ## Scenario manifest
 
-The cases-v0.json file is a machine-readable starting manifest. The receipt-v0.schema.json file defines the provenance-bound record required for each eventual benchmark arm/run, including the declared control-volume graph, external boundary ports and paired internal connections; no receipt is populated with fictitious results. It defines adversarial families and the assertions each family is intended to exercise. It also contains five hand-derived, diagonal known-answer fixtures for the proposed matrix-rate optimizer, including the scalar boundary-only case. Four additional scenario families cover sensor-identity/lot-held-out tactile transfer, matrix-valued passivity-index analysis within an explicitly declared LTI scope, multi-port control-volume/cut-set reconciliation, and local pressure/exposure constraints that must not be hidden by a favourable global energy balance, plus multirate proposal expiry and fast-loop compute-contention cases. It also distinguishes global port-energy accounting from local pressure, deformation, power and exposure-time envelopes using a non-human viscoelastic phantom. These expected outputs are analytic fixtures, not executed optimizer tests or benchmark results. The manifest deliberately does not invent hardware thresholds or physical measurements. Extend the schema version when semantics change. A case is not evidence until a concrete trace, source SHA, run receipt and independently reproduced result exist.
+The cases-v0.json file is a machine-readable starting manifest. The receipt-v0.schema.json file defines the provenance-bound record required for each eventual benchmark arm/run, including the declared control-volume graph, external boundary ports and paired internal connections; no receipt is populated with fictitious results. The manifest now contains 34 scenario families across optimizer conditioning, sampled energy, multi-port cut sets, tactile metrology/transfer, local exposure, wearer agency, proposal expiry, fast-loop contention, and compositional admission. The compositional extension includes explicit negative controls for weighted-score compensation and evidence checks that do not bind to a shared identity. It also includes five hand-derived optimizer known-answer fixtures and six tactile-transfer regimes. A fixed-seed campaign targeting 30,000 generated fault combinations (seed 20261112) is a planned benchmark target, not an executed test. Expected fixtures are analytic and hand-derived; no simulation, HIL, physical phantom, or human-subject benchmark has been executed. The manifest deliberately does not invent hardware thresholds or physical measurements. Extend the schema version when semantics change. A case is not evidence until a concrete trace, source SHA, run receipt and independently reproduced result exist.
 
 ## Scorecards
 
@@ -66,3 +66,18 @@ Every headline number needs a unit, sample count, distribution, uncertainty meth
 ## Standards note
 
 Standards applicability depends on intended use and regulatory classification. The research protocol is not a conformity assessment. In particular, the current scopes of ISO 13482, ISO 25785-1, ISO 10218 and ISO/TS 15066 differ; medical rehabilitation systems and external limb prostheses require separate classification analysis. See the parent issue for current references and scope caveats.
+
+## Compositional admission extension
+
+The v0 manifest compares a conjunctive interaction-envelope gate against two explicit negative controls: (1) a weighted risk score that can trade a local contact failure against an energy surplus, and (2) separate domain checks that do not bind all evidence to the same command and state revision. The candidate architecture admits only when sampled-energy, local-contact, explicit wearer authority, freshness/identity, and independent actuator-authority predicates all pass for the same event.
+
+The planned generated-fault campaign uses seed 20261112 and targets at least 30,000 combinations. Report false admissions and false rejections separately, preserve the per-domain rejection vector, and retain the exact case manifest. The target is zero false admissions in the declared finite matrix; this is a target, not a current result or universal risk guarantee.
+
+Target performance reporting:
+- gate runtime p50/p95/p99/maximum on each declared target computer; aspirational p99 less than 10% of the local-loop period, measured rather than assumed;
+- zero blocking or waiting of the local loop on the optimizer in injected contention scenarios;
+- 100% exact identity match for every admitted bundle;
+- zero use of receipts after revocation, supersession, expiry or evidence-digest change;
+- false rejection, abstention, and infeasibility remain visible rather than being optimized away.
+
+These are software/protocol targets only. Hardware timing, physical stop latency, calibration uncertainty, local contact metrology, and user-agency outcomes require their own instrumented evidence and must not be inferred from host unit tests.
