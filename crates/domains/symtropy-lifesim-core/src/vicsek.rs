@@ -2331,9 +2331,13 @@ mod tests {
                 offset_rad: std::f64::consts::PI,
             },
         ] {
-            let model =
-                VicsekModel::new_with_perception(particles.clone(), config, 0x0C31_11D3, perception)
-                    .unwrap();
+            let model = VicsekModel::new_with_perception(
+                particles.clone(),
+                config,
+                0x0C31_11D3,
+                perception,
+            )
+            .unwrap();
             let indexed = model.clone();
             let mut expected = model.clone();
             let mut actual = indexed.clone();
