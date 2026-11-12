@@ -2009,14 +2009,14 @@ mod tests {
                                offsets: &[SVector<f64, 3>; 2],
                                normal: &SVector<f64, 3>| {
             let mut matrix = SMatrix::<f64, 2, 2>::zeros();
-            for column in 0..2 {
-                let angular_impulse = Bivector::from_wedge(&offsets[column], normal);
+            for (column, offset_column) in offsets.iter().enumerate() {
+                let angular_impulse = Bivector::from_wedge(offset_column, normal);
                 let angular_response = operator
                     .angular_velocity_from_momentum(&angular_impulse, 1.0e-12)
                     .unwrap();
-                for row in 0..2 {
-                    let point_velocity_change = *normal / mass
-                        - angular_response.apply_to_vector(&offsets[row]);
+                for (row, offset_row) in offsets.iter().enumerate() {
+                    let point_velocity_change =
+                        *normal / mass - angular_response.apply_to_vector(offset_row);
                     matrix[(row, column)] = normal.dot(&point_velocity_change);
                 }
             }
@@ -2028,11 +2028,11 @@ mod tests {
         let tensor = SMatrix::<f64, 3, 3>::identity() * second_moment.trace() - second_moment;
         let tensor_factor = tensor.cholesky().expect("physical inertia tensor is SPD");
         let mut tensor_metric = SMatrix::<f64, 2, 2>::zeros();
-        for column in 0..2 {
-            let torque = offsets[column].cross(&normal);
+        for (column, offset_column) in offsets.iter().enumerate() {
+            let torque = offset_column.cross(&normal);
             let omega = tensor_factor.solve(&torque);
-            for row in 0..2 {
-                let point_velocity_change = normal / mass + omega.cross(&offsets[row]);
+            for (row, offset_row) in offsets.iter().enumerate() {
+                let point_velocity_change = normal / mass + omega.cross(offset_row);
                 tensor_metric[(row, column)] = normal.dot(&point_velocity_change);
             }
         }
@@ -2041,7 +2041,7 @@ mod tests {
         let scale = observed.norm().max(f64::MIN_POSITIVE);
         assert!(
             (observed - tensor_metric).norm() / scale < 2.0e-11,
-            "bivector and independent 3D tensor Delassus matrices disagree:              operator={observed:?}, tensor={tensor_metric:?}"
+            "bivector and independent tensor Delassus matrices disagree: {observed:?} != {tensor_metric:?}"
         );
         assert!(
             (observed - observed.transpose()).norm() / scale < 2.0e-12,
