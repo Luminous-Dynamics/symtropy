@@ -285,11 +285,12 @@ fn validate_contract(contract: &Contract, expected: ExpectedExperiment) -> Resul
     if contract.pomcp_count != 8 || contract.pomcp_failed != 0 {
         return Err(format!("POMCP contract mismatch for {}", contract.id));
     }
-    let expected_algorithms = vec![
+    let mut expected_algorithms = vec![
         "AIMI".to_owned(),
         "AsMAR (MCAR)".to_owned(),
         "AsMAR (MAR)".to_owned(),
     ];
+    expected_algorithms.sort();
     if contract.algorithms != expected_algorithms {
         return Err(format!(
             "learning algorithm identities mismatch for {}",
