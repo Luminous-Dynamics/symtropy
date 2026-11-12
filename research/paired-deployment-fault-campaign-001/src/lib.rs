@@ -572,11 +572,9 @@ impl FaultCampaign {
         if keys != metric_ids {
             findings.push(Finding::MetricSetMismatch);
         }
-        for (metric_id, metric) in &run.metrics {
-            if let Some(value) = metric.value {
-                if !value.is_finite() {
-                    findings.push(Finding::InvalidMetricValue);
-                }
+        for metric in run.metrics.values() {
+            if metric.value.is_some_and(|value| !value.is_finite()) {
+                findings.push(Finding::InvalidMetricValue);
             }
             if let (Some(lower), Some(value), Some(upper)) =
                 (metric.lower_95, metric.value, metric.upper_95)
