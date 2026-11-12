@@ -16,11 +16,7 @@ struct RecordingCallback {
 }
 
 impl PhysicsCallback<3> for RecordingCallback {
-    fn modulate_force(
-        &self,
-        _body: BodyHandle,
-        force: &SVector<f64, 3>,
-    ) -> SVector<f64, 3> {
+    fn modulate_force(&self, _body: BodyHandle, force: &SVector<f64, 3>) -> SVector<f64, 3> {
         *force
     }
 
@@ -68,12 +64,8 @@ fn friction_callback_receives_measured_kinetic_energy_change() {
     );
     fixed.friction = 1.0;
 
-    let mut moving = RigidBody::<3>::dynamic_sphere(
-        BodyHandle(1),
-        Point::new([0.0, 1.0, 0.0]),
-        0.5,
-        1.0,
-    );
+    let mut moving =
+        RigidBody::<3>::dynamic_sphere(BodyHandle(1), Point::new([0.0, 1.0, 0.0]), 0.5, 1.0);
     moving.linear_velocity = SVector::from([1.0, -1.0, 0.0]);
     moving.friction = 1.0;
 
