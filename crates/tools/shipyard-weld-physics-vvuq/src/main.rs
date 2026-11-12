@@ -35,14 +35,12 @@ fn is_date(value: &str) -> bool {
 
 fn valid_source_id(value: &str) -> bool {
     !value.is_empty()
-        && value
-            .split('-')
-            .all(|part| {
-                !part.is_empty()
-                    && part
-                        .bytes()
-                        .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
-            })
+        && value.split('-').all(|part| {
+            !part.is_empty()
+                && part
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit())
+        })
 }
 
 fn valid_case_id(value: &str) -> bool {
@@ -124,14 +122,18 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
             errors.push(format!("duplicate source_id: {source_id}"));
         }
 
-        for field in ["title", "citation_uri", "known_scope_summary", "admission_notes"] {
+        for field in [
+            "title",
+            "citation_uri",
+            "known_scope_summary",
+            "admission_notes",
+        ] {
             if string_at(source, field).is_none_or(str::is_empty) {
                 errors.push(format!("{context}.{field} must be a non-empty string"));
             }
         }
-        if string_at(source, "citation_uri").is_none_or(|uri| {
-            !uri.starts_with("https://") && !uri.starts_with("http://")
-        })
+        if string_at(source, "citation_uri")
+            .is_none_or(|uri| !uri.starts_with("https://") && !uri.starts_with("http://"))
         {
             errors.push(format!("{context}.citation_uri must be an HTTP(S) URI"));
         }
@@ -143,25 +145,38 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
         {
             errors.push(format!("{context}.admission_status is unknown"));
         }
-        if source.get("numerical_scoring_eligible").and_then(Value::as_bool) != Some(false) {
+        if source
+            .get("numerical_scoring_eligible")
+            .and_then(Value::as_bool)
+            != Some(false)
+        {
             errors.push(
                 "v0.1 sources cannot score numerical data; revise the admission contract first"
                     .to_owned(),
             );
         }
-        if source.get("raw_data_bytes_available").and_then(Value::as_bool) != Some(false) {
+        if source
+            .get("raw_data_bytes_available")
+            .and_then(Value::as_bool)
+            != Some(false)
+        {
             errors.push(format!(
                 "{context} must not claim raw measurement bytes in the metadata-only v0.1 inventory"
             ));
         }
         if source
             .get("source_bytes_sha256")
-            .is_none_or(|value| !value.is_null()) {
+            .is_none_or(|value| !value.is_null())
+        {
             errors.push(
                 "source digest must be null until exact source bytes are admitted".to_owned(),
             );
         }
-        if source.get("measurement_modalities").and_then(Value::as_array).is_none() {
+        if source
+            .get("measurement_modalities")
+            .and_then(Value::as_array)
+            .is_none()
+        {
             errors.push(format!("{context}.measurement_modalities must be an array"));
         }
     }
@@ -199,7 +214,9 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
             _ => errors.push(format!("{context}.case_class is unknown")),
         }
         if class.is_none_or(|value| !allowed_classes.contains(&value)) {
-            errors.push(format!("{context}.case_class is not in the frozen vocabulary"));
+            errors.push(format!(
+                "{context}.case_class is not in the frozen vocabulary"
+            ));
         }
         for field in ["target", "mutation", "rationale"] {
             if string_at(case, field).is_none_or(str::is_empty) {
@@ -213,30 +230,26 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
         }
         if case_id == "WPHYS-027" {
             let claim_scope = case.get("claim_scope");
-            let output_scope_matches =
-                claim_scope.is_some_and(|scope| {
-                    string_at(scope, "validated_output") == Some("post_weld_residual_stress")
-                        && string_at(scope, "claimed_output")
-                            == Some("molten_pool_peak_temperature")
-                        && string_at(scope, "documented_limitation")
-                            == Some("liquid_solid_coupling_omitted")
-                        && scope.get("supports_claimed_output").and_then(Value::as_bool)
-                            == Some(false)
-                });
+            let output_scope_matches = claim_scope.is_some_and(|scope| {
+                string_at(scope, "validated_output") == Some("post_weld_residual_stress")
+                    && string_at(scope, "claimed_output") == Some("molten_pool_peak_temperature")
+                    && string_at(scope, "documented_limitation")
+                        == Some("liquid_solid_coupling_omitted")
+                    && scope
+                        .get("supports_claimed_output")
+                        .and_then(Value::as_bool)
+                        == Some(false)
+            });
             if !output_scope_matches
                 || string_at(case, "expected_disposition") != Some("BLOCK_VALIDATION")
             {
-                errors.push(
-                    "{context} must block cross-output validation promotion".to_owned(),
-                );
+                errors.push("{context} must block cross-output validation promotion".to_owned());
             }
         }
 
         if case_id == "WPHYS-028"
-            && (string_at(case, "source_id")
-                != Some("s460g2m-multipass-gmaw-distortion-2022")
-                || string_at(case, "expected_disposition")
-                    != Some("BLOCK_NUMERICAL_SCORING"))
+            && (string_at(case, "source_id") != Some("s460g2m-multipass-gmaw-distortion-2022")
+                || string_at(case, "expected_disposition") != Some("BLOCK_NUMERICAL_SCORING"))
         {
             errors.push(
                 "{context} must keep abstract-only S460 error percentages non-scoring".to_owned(),
@@ -245,7 +258,9 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
 
         if let Some(source_id) = case.get("source_id").and_then(Value::as_str) {
             if !source_ids.contains(source_id) {
-                errors.push(format!("{context} references unknown source_id {source_id}"));
+                errors.push(format!(
+                    "{context} references unknown source_id {source_id}"
+                ));
             }
         }
         if class == Some("positive_contract_control")
@@ -261,7 +276,10 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
         errors.push(format!("expected 10 v0.1 sources, found {}", sources.len()));
     }
     if cases.len() != 28 {
-        errors.push(format!("v0.1 frozen corpus must contain 28 cases, found {}", cases.len()));
+        errors.push(format!(
+            "v0.1 frozen corpus must contain 28 cases, found {}",
+            cases.len()
+        ));
     }
     if positive_count != 1 || negative_count != 27 {
         errors.push(format!(
