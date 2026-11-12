@@ -104,5 +104,44 @@
   "proposed_improvement_targets_not_achieved": {
     "potable_treatment": ">=20% lifecycle-cost reduction per 1000 L profile-conforming water in at least one matched context without quality or service regression",
     "pump_system": "investigate >=10% time-integrated wire-to-water energy reduction and >=20% lifecycle-cost reduction in at least one matched duty context without service or reliability regression"
+  },
+  "pressurized_leak_diagnostics": {
+    "tracking_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4963",
+    "service_unit": "independently_confirmed_leak_event_with_useful_localization_and_verified_post_repair_outcome",
+    "scales": [
+      "household_building",
+      "community_DMA",
+      "municipal_trunk_distribution"
+    ],
+    "proposed_case_ids": [
+      "WDN-T0-001-legitimate-demand-shift",
+      "WDN-T0-002-pump-valve-transient-confounder",
+      "WDN-T0-003-insufficient-localization-observability",
+      "WDN-T0-004-common-mode-sensor-drift",
+      "WDN-T0-005-missing-telemetry-no-leak-absence",
+      "WDN-T0-006-repair-claim-without-outcome-observation"
+    ],
+    "comparator_populations": [
+      "synthetic_EPANET_WNTR_Net3_2026",
+      "real_Slovak_utility_hourly_SCADA_2026",
+      "physical_LeakTestbed_280_signals"
+    ],
+    "metrics": [
+      "event_precision_recall_and_PR_AUC",
+      "false_alarms_per_service_denominator",
+      "detection_delay",
+      "localization_distance_P50_P95_max",
+      "leak_volume_interval_coverage",
+      "high_confidence_wrong_segment_rate",
+      "abstention_and_observability",
+      "independent_repair_outcome"
+    ],
+    "hard_gates": [
+      "missing_or_unobserved_telemetry_never_implies_no_leak",
+      "physical_event_splits_prevent_train_test_leakage",
+      "simulated_scores_never_presented_as_field_accuracy",
+      "model_only_alerts_never_authorize_physical_actuation",
+      "saved_water_and_repair_claims_require_independent_post_repair_measurements"
+    ]
   }
 }
