@@ -309,7 +309,6 @@ fn expected_string_map(
 }
 
 fn actual_common_map(
-    scenario: &FutureOptionScenario,
     report: &loco_future_options_reference::FutureOptionReport,
 ) -> BTreeMap<String, Vec<String>> {
     report
@@ -360,7 +359,7 @@ fn compare_case(
 
     if let Some(raw) = object(expected, "expected")?.get("common_continuations_by_observation") {
         let expected_map = expected_string_map(raw, "common_continuations_by_observation")?;
-        let actual_map = actual_common_map(scenario, &report);
+        let actual_map = actual_common_map(&report);
         if actual_map != expected_map {
             return Err(format!(
                 "{case_id}: common continuation mismatch: actual {actual_map:?}, expected {expected_map:?}"
