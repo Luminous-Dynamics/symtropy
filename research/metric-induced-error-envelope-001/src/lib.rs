@@ -20,6 +20,9 @@ use std::fmt;
 
 pub mod constraint_metric;
 
+#[cfg(test)]
+mod exact_constraint_oracle;
+
 pub type Vector<const N: usize> = [f64; N];
 pub type Matrix<const N: usize> = [[f64; N]; N];
 
