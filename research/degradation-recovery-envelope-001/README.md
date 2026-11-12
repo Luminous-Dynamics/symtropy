@@ -17,29 +17,35 @@ The state trajectory is:
 
 We therefore report event-specific latency, rejection, false-positive, recovery, deadline and resource axes separately. There is deliberately no weighted composite "robustness score".
 
-## What the field is measuring (snapshot: 11 November 2026)
+## What the field is measuring (snapshot: 12 November 2026)
 
-The current industry landscape makes a nominal-score-only comparison inadequate:
+The strongest public comparisons are not one leaderboard. They measure different tasks, sensor permissions, hardware and evidence classes.
 
-| Reference | Publicly reported result or capability | Correct comparison use |
+| Reference | Public result or capability | Correct comparison use |
 |---|---|---|
-| Bench2Drive v0.0.4 | LEAD: 95.59 Driving Score, 87.28% Success Rate; separate efficiency and comfort values | Closed-loop route benchmark. Pin exact tag, route/sensor profile and evaluator; do not infer fault recovery from the nominal aggregate |
-| NVIDIA Alpamayo 2 Edge | Model card: 2.45B-parameter backbone plus 0.2B action expert; 115,000 hours of multi-camera driving video and about 3.7M Chain-of-Causation traces; 15.15 ± 0.04 km per at-fault incident on 875 AlpaSim scenarios with three rollout sets; separate minADE_6 0.52m at 5s and Lingo-Judge 75.2 | Strong edge-oriented VLA reference. These are separate closed-loop, open-loop and reasoning measures, not interchangeable metrics |
-| Alpamayo 2 Edge deployment recipe | NVIDIA reports 160–190ms pixel-to-trajectory latency on DRIVE AGX Thor-X with DRIVE OS 7.2.7.0, CUDA 13.4 and TensorRT 11.3.1.9 | Reference for a precisely declared target-hardware latency experiment; not comparable to laptop CPU timing |
-| WOD-E2E, CVPR 2026 | 4,021 segments, approximately 12 hours, curated for challenging long-tail scenarios with frequency below 0.03% | Useful rare-event dataset reference. It is not itself a closed-loop safe-stop or recovery score |
-| Waymo Open Dataset | The 2026 formal challenge programme is not running, but its public leaderboards remain active | Candidate public datasets and evaluator family; distinguish public leaderboard metrics from operational fleet evidence |
-| CARLA Leaderboard 2.0 | Historical sensor/map tracks and a multi-metric route evaluator; the official site states submissions and evaluation servers are permanently closed | Protocol reference only. Do not present it as a currently open submission track |
+| Bench2Drive v0.0.4 | Upstream README lists LEAD at 95.59 Driving Score, 87.28% Success Rate, 201.55 Efficiency and 20.56 Comfort | Closed-loop CARLA route benchmark. Pin the exact v0.0.4 tag, scenario set, sensors and evaluator. Do not infer fault recovery from the aggregate score |
+| NAVSIM v2 end-to-end planning (test) | Third-party SOTA2 snapshot lists WAM-Flow at 84.7 EPDMS(*) and DriveVLA-W0 at 86.1 EPDMS(*); Discrete-WAM has 87.0 EPDMS(*) and 90.4 in the separate EPDMS column | End-to-end planning track. Preserve the starred and unstarred metrics as separate evaluator columns |
+| NAVSIM v2 closed-loop planning | Third-party SOTA2 snapshot lists CLEAR at 88.6 EPDMS; DriveWorld-VLA at 86.8 | Closed-loop planning track, distinct from the end-to-end planning test table above |
+| NVIDIA Alpamayo 2 Edge model card | Hugging Face model card: 2.45B backbone + 0.2B diffusion action expert; 115,000 hours of driving video and about 3.7M Chain-of-Causation traces; 15.15 ± 0.04 km per at-fault incident on 875 AlpaSim scenarios with three rollout sets; minADE_6 0.52m at 5s; Lingo-Judge 75.2 | Strong edge-oriented VLA and training-data comparator. These are distinct closed-loop, open-loop and reasoning measures |
+| Alpamayo 2 Edge deployment recipe | NVIDIA's 10 November article reports 160–190ms pixel-to-trajectory latency on DRIVE AGX Thor-X, DRIVE OS 7.2.7.0, CUDA 13.4 and TensorRT 11.3.1.9; it describes adaptive reasoning, offline distillation, AlpaGym closed-loop RL, multi-resolution inputs and speculative decoding | A target-hardware deployment reference. Report the full pipeline and exact board/software/power profile; laptop timing is not a fair comparison |
+| NVIDIA Alpamayo Edge comparison figure | The same 10 November blog separately reports 9.87km versus 0.25km between at-fault incidents for Alpamayo 2 Edge and Qwen-Drive-1.0 (4B) in its figure | Keep this distinct from the model-card 15.15km figure: evaluation protocol/configuration differs. Do not average or substitute the two |
+| WOD-E2E (CVPR 2026) | 4,021 segments (about 12 hours), curated for challenging long-tail events reported at under 0.03% occurrence frequency | Useful rare-event evaluation data; not a closed-loop safe-stop or recovery result |
+| Waymo Driver operational safety dashboard | Through June 2026: 271.3M rider-only miles; company-reported 95% fewer serious-injury-or-worse crashes and 82% fewer injury-causing crashes than its location-adjusted human benchmark | Real-world fleet evidence, not a simulator leaderboard or an independently reproduced Symtropy result |
+| CARLA Leaderboard 2.1 | Official site states the leaderboard is permanently closed and its evaluation servers shut down | Historical protocol and local evaluation reference only; no current hosted submission path |
 
 Sources:
-- Bench2Drive v0.0.4: https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md
-- Alpamayo 2 Edge model card and evaluation: https://huggingface.co/nvidia/Alpamayo2-Edge
-- NVIDIA edge deployment and latency recipe: https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/
+- Bench2Drive v0.0.4 upstream table: https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md
+- NAVSIM v2 end-to-end planning snapshot: https://www.sota2.com/research/sota/end-to-end-planning-on-navsim-v2-test
+- NAVSIM v2 closed-loop planning snapshot: https://www.sota2.com/research/sota/closed-loop-planning-on-navsim-v2
+- Alpamayo 2 Edge model card: https://huggingface.co/nvidia/Alpamayo2-Edge
+- NVIDIA edge deployment, latency and AlpaGym workflow (10 Nov 2026): https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/
 - WOD-E2E CVPR 2026: https://openaccess.thecvf.com/content/CVPR2026/html/Xu_WOD-E2E_Waymo_Open_Dataset_for_End-to-End_Driving_in_Challenging_Long-tail_CVPR_2026_paper.html
-- Waymo Open Dataset challenge status: https://www.waymo.com/open/challenges/
-- CARLA Leaderboard 2.0 evaluation notice: https://leaderboard.carla.org/evaluation_v2_0/
+- Waymo Safety Impact dashboard: https://waymo.com/safety/impact/
+- CARLA Leaderboard 2.1 status: https://leaderboard.carla.org/get_started_v2_1/
 
-The Alpamayo model card reports a 2.45B backbone plus 0.2B action expert, while NVIDIA's blog headline describes the model as a 2B-parameter edge model. We preserve the model-card breakdown rather than silently equating the two counts. Reported model-card results are vendor-published and are not independently reproduced by this repository.
+The model-card 15.15 ± 0.04km and the NVIDIA article's 9.87km figures are intentionally recorded as separate outputs, not reconciled by guesswork. Likewise, NAVSIM v2 EPDMS(*) and EPDMS, end-to-end test and closed-loop planning, Bench2Drive DS, AlpaSim kilometres-per-incident, Waymo incident-per-mile and WOD-E2E dataset coverage must never be collapsed into one leaderboard.
 
+The third-party NAVSIM leaderboard snapshots are useful for orientation, not a substitute for pinning the official evaluator, data split and checkpoint. Waymo's results are company-published retrospective operational comparisons; the dashboard itself distinguishes them from its formal safety case.
 ## Fault families in v0.1
 
 The deterministic schedule generator supports:
