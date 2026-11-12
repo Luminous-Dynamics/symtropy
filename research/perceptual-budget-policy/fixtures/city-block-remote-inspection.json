@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "workload_id": "city-block-frozen-camera-rail-01",
+  "scene_capture_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "metric_bundle_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "contract": {
+    "task_mode": "engineering_inspection",
+    "max_spatial_error": 0.1,
+    "max_temporal_error": 0.1,
+    "min_task_legibility": 0.8,
+    "required_semantic_channels": [
+      "units",
+      "reference_frame",
+      "uncertainty",
+      "freshness",
+      "evidence_class"
+    ],
+    "protected_asset_ids": [
+      "asset-critical-01"
+    ],
+    "require_measured_workload": false,
+    "min_panel_evaluators": 0,
+    "min_preference_lower_95": null,
+    "human_panel_protocol_sha256": null,
+    "human_panel_sample_set_sha256": null
+  },
+  "budget": {
+    "max_p95_frame_time_us": 16700,
+    "max_p99_frame_time_us": 25000,
+    "max_peak_vram_bytes": 6000000000,
+    "max_gpu_energy_uj_per_frame": 8000,
+    "max_energy_sample_gap_us": 1250000
+  },
+  "profiles": [
+    {
+      "profile_id": "high-quality",
+      "task_mode": "engineering_inspection",
+      "scene_capture_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "metric_bundle_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "measurement_receipt_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_class": "synthetic_only",
+      "preserved_asset_ids": [
+        "asset-critical-01"
+      ],
+      "semantic_channels": [
+        "units",
+        "reference_frame",
+        "uncertainty",
+        "freshness",
+        "evidence_class"
+      ],
+      "spatial_error_upper_bound": 0.03,
+      "temporal_error_upper_bound": 0.04,
+      "task_legibility_lower_bound": 0.98,
+      "frame_time_p95_us": 14000,
+      "frame_time_p99_us": 19000,
+      "peak_vram_bytes": 5000000000,
+      "human_preference": null,
+      "energy_measurement": {
+        "source": "nvml_power_samples",
+        "sample_series_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "integrated_gpu_energy_uj": 7500000,
+        "measurement_window_us": 16000000,
+        "rendered_frame_count": 1000,
+        "power_sample_count": 17,
+        "max_sample_gap_us": 1000000,
+        "source_api_version": "nvml-api-version-bound-by-synthetic-fixture",
+        "sampling_semantics": "window_average"
+      }
+    },
+    {
+      "profile_id": "balanced",
+      "task_mode": "engineering_inspection",
+      "scene_capture_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "metric_bundle_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "measurement_receipt_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence_class": "synthetic_only",
+      "preserved_asset_ids": [
+        "asset-critical-01"
+      ],
+      "semantic_channels": [
+        "units",
+        "reference_frame",
+        "uncertainty",
+        "freshness",
+        "evidence_class"
+      ],
+      "spatial_error_upper_bound": 0.06,
+      "temporal_error_upper_bound": 0.07,
+      "task_legibility_lower_bound": 0.9,
+      "frame_time_p95_us": 12000,
+      "frame_time_p99_us": 17000,
+      "peak_vram_bytes": 4000000000,
+      "human_preference": null,
+      "energy_measurement": {
+        "source": "nvml_power_samples",
+        "sample_series_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        "integrated_gpu_energy_uj": 5000000,
+        "measurement_window_us": 16000000,
+        "rendered_frame_count": 1000,
+        "power_sample_count": 17,
+        "max_sample_gap_us": 1000000,
+        "source_api_version": "nvml-api-version-bound-by-synthetic-fixture",
+        "sampling_semantics": "window_average"
+      }
+    }
+  ]
+}
