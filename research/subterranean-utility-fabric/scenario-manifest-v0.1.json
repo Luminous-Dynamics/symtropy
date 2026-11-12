@@ -276,6 +276,30 @@
         "stale calibration or wrong duct-profile revision",
         "dummy cable has unknown mechanical limits"
       ]
+    },
+    {
+      "id": "B7_WAYLEAVE_COORDINATION",
+      "name": "Wayleave and utility-owner coordination",
+      "purpose": "Measure the evidence and elapsed-time performance of the real authority process without granting the software permission to approve work.",
+      "metrics": [
+        "elapsed time for service inquiry service-owner response cross-cut planning wayleave decision and authorization",
+        "service-owner identification coverage before excavation",
+        "cross-cut confirmation / unresolved yield",
+        "design iteration count from previously unknown or conflicting services",
+        "utility strike near-miss damage and reinstatement defect rates",
+        "permit correction or rejection reasons",
+        "time from completion to accepted as-built",
+        "repeat road cuts avoided with verified work-order comparison"
+      ],
+      "adversarial_cases": [
+        "municipality-specific rule applied to another municipality",
+        "draft by-law mistaken for enacted rule",
+        "missing or expired wayleave treated as approval",
+        "service-owner response omitted or stale",
+        "cross-cut result not tied to surveyed location and coordinate frame",
+        "approved design revision differs from constructed revision",
+        "work performed outside permitted time or location"
+      ]
     }
   ],
   "quantitative_inputs_required": [
