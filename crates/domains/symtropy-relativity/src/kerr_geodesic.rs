@@ -2043,9 +2043,9 @@ impl KerrFiniteRadiusObserver {
     /// Construct a canonical Kerr state and two local-sky tangent vectors.
     ///
     /// The screen basis is defined deterministically from the local ZAMO
-    /// orthonormal frame [radial, polar, azimuthal]: a reference polar axis is
-    /// used unless the ray is within a cone about that axis, in which case the
-    /// azimuthal axis is used. The resulting pair is orthonormal and tangent
+    /// orthonormal frame [radial, polar, azimuthal]: the azimuthal reference
+    /// axis is used except within a cone about that axis, where the polar
+    /// reference axis is used. The resulting pair is orthonormal and tangent
     /// to the unit direction. A basis seam exists where the reference axis
     /// switches; callers should preserve the returned basis as part of any
     /// image/branch identity.
