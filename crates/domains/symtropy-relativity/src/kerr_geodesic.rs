@@ -4232,8 +4232,19 @@ mod tests {
             captured.capture_status(black_hole, 1.0e-5),
             KerrMinoCaptureStatus::CapturedByHorizon
         );
+        // The equatorial invariant-plane and compensated radial-potential
+        // fixes now keep this same trajectory below the tighter 1e-8 ceiling.
         assert_eq!(
             captured.capture_status(black_hole, 1.0e-8),
+            KerrMinoCaptureStatus::CapturedByHorizon
+        );
+        // Keep the fail-closed classifier control independent of the current
+        // solver's achieved accuracy: inject an explicitly unqualified receipt.
+        let mut deliberately_unqualified = captured.clone();
+        deliberately_unqualified.maximum_unprojected_normalized_radial_constraint_residual =
+            1.0e-4;
+        assert_eq!(
+            deliberately_unqualified.capture_status(black_hole, 1.0e-5),
             KerrMinoCaptureStatus::ConstraintDriftExceeded
         );
         let incomplete_interval = geodesic
