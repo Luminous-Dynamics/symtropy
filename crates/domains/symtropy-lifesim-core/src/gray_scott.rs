@@ -149,7 +149,10 @@ impl fmt::Display for GrayScottError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::GridTooSmall { width, height } => {
-                write!(f, "Gray–Scott grid must be at least 3x3, got {width}x{height}")
+                write!(
+                    f,
+                    "Gray–Scott grid must be at least 3x3, got {width}x{height}"
+                )
             }
             Self::GridSizeOverflow { width, height } => {
                 write!(f, "Gray–Scott grid size overflows usize: {width}x{height}")
@@ -371,11 +374,9 @@ impl GrayScottField {
     ) -> Result<(), GrayScottError> {
         if patch_width == 0
             || patch_height == 0
-            || x
-                .checked_add(patch_width)
+            || x.checked_add(patch_width)
                 .is_none_or(|end| end > self.width)
-            || y
-                .checked_add(patch_height)
+            || y.checked_add(patch_height)
                 .is_none_or(|end| end > self.height)
         {
             return Err(GrayScottError::PatchOutOfBounds {
