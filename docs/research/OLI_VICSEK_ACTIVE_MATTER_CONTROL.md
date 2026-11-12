@@ -308,3 +308,26 @@ The output contains:
 This yields a persistence profile: components that merge only at larger scales are structurally more robust to the selected interaction radius than components that disappear at very small scales. It does not prove agency, intelligence or causality. The current checkpoint implementation is (O(N^2log N)); it is not a per-frame metric for large populations.
 
 Regression tests cover analytic pair-merge radii, strict boundary exclusion, one-way visual projection and invariance under global translation across the periodic box. The tests are committed but Rust validation remains pending.
+
+
+## Periodic-aware convex-envelope baseline
+
+The new `VicsekModel::cluster_geometry()` method reports convex-envelope geometry for each connected component at a registered snapshot.
+
+It:
+1. Builds components using the same declared metric or weakly connected visual graph semantics as the current model.
+2. Unwraps particle positions through a deterministic breadth-first spanning tree using minimum-image edge displacements.
+3. Detects inconsistent cycle closure that implies non-zero winding around the torus.
+4. Withholds planar hull area/perimeter if a winding is detected or if unwrapped extent exceeds half the periodic box in either dimension.
+5. Otherwise computes a monotone-chain convex hull and reports hull area, perimeter, vertex count and unwrapped spans.
+
+Statuses are explicit: `Valid`, `DegenerateHull`, `PeriodicWindingDetected`, and `PeriodicExtentAmbiguous`. When the periodic image is ambiguous, hull area/perimeter are `None`, not a fabricated value.
+
+This is deliberately a **convex hull baseline**, not the authors' MATLAB alpha shape and not the radius-1 disk-union area. Convex hulls overestimate concave geometry. The source-faithful methods remain separately documented in [cluster geometry profile PR #4843](https://github.com/Luminous-Dynamics/symtropy/pull/4843).
+
+Tests added:
+- exact area and perimeter of an analytic right triangle;
+- correct unwrapping of a small component crossing the periodic seam;
+- rejection of a component whose cycle winds around the torus.
+
+The method is checkpoint-only and currently uses O(N²) pair construction. Rust formatting, compilation and test results remain pending exact-head CI.
