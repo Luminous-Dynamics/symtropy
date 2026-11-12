@@ -252,6 +252,8 @@ pub struct ProbePortfolio {
     pub risk_evidence_reviewed_by_authority_owner: bool,
     pub likelihood_calibration_catalogue_sha256: String,
     pub likelihood_calibration_reviewed_by_independent_validator: bool,
+    /// Sorted hypothesis IDs and exact prior probabilities used by this portfolio.
+    pub prior: Vec<HypothesisPrior>,
     pub prior_entropy_nats: f64,
     pub ranked_recommendations: Vec<RankedDiagnosticProbe>,
     /// Retains eligible and rejected candidates so exclusion is inspectable.
@@ -736,17 +738,44 @@ pub fn worst_case_pairwise_chernoff_information_nats(
             grid_intervals,
         );
     }
-    if !candidate.outcomes.is_empty() {
+    if !candidate.outcomes.is_empty() || candidate.uncertainty_scenarios.is_empty() {
         return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
     }
+    let mut scenario_ids = BTreeSet::new();
+    let mut reference_outcome_ids: Option<BTreeSet<String>> = None;
+    let mut scenario_weight_sum = 0.0;
     let mut worst_case = f64::INFINITY;
     for scenario in &candidate.uncertainty_scenarios {
+        if scenario.scenario_id.trim().is_empty()
+            || !scenario_ids.insert(scenario.scenario_id.clone())
+            || !scenario.scenario_weight.is_finite()
+            || scenario.scenario_weight <= 0.0
+            || scenario.scenario_weight > 1.0
+        {
+            return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        }
+        let outcome_ids = scenario
+            .outcomes
+            .iter()
+            .map(|outcome| outcome.outcome_id.clone())
+            .collect::<BTreeSet<_>>();
+        if reference_outcome_ids
+            .as_ref()
+            .is_some_and(|reference| reference != &outcome_ids)
+        {
+            return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        }
+        reference_outcome_ids.get_or_insert(outcome_ids);
+        scenario_weight_sum += scenario.scenario_weight;
         let distance = minimum_pairwise_chernoff_information_nats(
             prior,
             &scenario.outcomes,
             grid_intervals,
         )?;
         worst_case = worst_case.min(distance);
+    }
+    if (scenario_weight_sum - 1.0).abs() > PROBABILITY_TOLERANCE {
+        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
     }
     if !worst_case.is_finite() {
         return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
@@ -903,7 +932,15 @@ pub fn select_probe_baseline(
             .map(|candidate| {
                 Ok((
                     candidate.candidate_id.as_str(),
-                    worst_case_pairwise_chernoff_information_nats(candidate, &portfolio.prior, 100)?,
+                    worst_case_pairwise_chernoff_information_nats(
+                        candidate,
+                        &portfolio
+                            .prior
+                            .iter()
+                            .map(|item| item.prior_probability)
+                            .collect::<Vec<_>>(),
+                        100,
+                    )?,
                 ))
             })
             .collect::<Result<Vec<_>, ProbeError>>()?
