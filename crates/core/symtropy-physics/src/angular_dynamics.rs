@@ -95,11 +95,7 @@ fn vector_is_finite(vector: &SVector<f64, 3>) -> bool {
 /// whose cross-product matrix is the generator used by `Rotor`.
 #[inline]
 pub fn bivector_to_angular_vector(bivector: &Bivector<3>) -> SVector<f64, 3> {
-    SVector::from([
-        bivector.get(1, 2),
-        -bivector.get(0, 2),
-        bivector.get(0, 1),
-    ])
+    SVector::from([bivector.get(1, 2), -bivector.get(0, 2), bivector.get(0, 1)])
 }
 
 /// Inverse of [`bivector_to_angular_vector`].
@@ -411,14 +407,8 @@ mod tests {
         let initial_l = world_angular_momentum(&rotation, &omega, inertia).unwrap();
 
         for _ in 0..2_000 {
-            let step = step_principal_inertia(
-                &rotation,
-                &omega,
-                inertia,
-                &SVector::zeros(),
-                0.001,
-            )
-            .unwrap();
+            let step = step_principal_inertia(&rotation, &omega, inertia, &SVector::zeros(), 0.001)
+                .unwrap();
             rotation = step.rotation;
             omega = step.angular_velocity;
         }
@@ -439,14 +429,8 @@ mod tests {
         let initial_l = world_angular_momentum(&rotation, &omega, inertia).unwrap();
 
         for _ in 0..1_000 {
-            let step = step_principal_inertia(
-                &rotation,
-                &omega,
-                inertia,
-                &SVector::zeros(),
-                0.001,
-            )
-            .unwrap();
+            let step = step_principal_inertia(&rotation, &omega, inertia, &SVector::zeros(), 0.001)
+                .unwrap();
             rotation = step.rotation;
             omega = step.angular_velocity;
         }
@@ -468,14 +452,8 @@ mod tests {
         let initial = rotational_kinetic_energy(&rotation, &omega, inertia).unwrap();
         let steps = (duration / dt).round() as usize;
         for _ in 0..steps {
-            let step = step_principal_inertia(
-                &rotation,
-                &omega,
-                inertia,
-                &SVector::zeros(),
-                dt,
-            )
-            .unwrap();
+            let step =
+                step_principal_inertia(&rotation, &omega, inertia, &SVector::zeros(), dt).unwrap();
             rotation = step.rotation;
             omega = step.angular_velocity;
         }
@@ -502,14 +480,8 @@ mod tests {
         let steps = (duration / dt).round() as usize;
 
         for _ in 0..steps {
-            let step = step_principal_inertia(
-                &rotation,
-                &omega,
-                inertia,
-                &SVector::zeros(),
-                dt,
-            )
-            .unwrap();
+            let step =
+                step_principal_inertia(&rotation, &omega, inertia, &SVector::zeros(), dt).unwrap();
             rotation = step.rotation;
             omega = step.angular_velocity;
         }
@@ -542,13 +514,11 @@ mod tests {
         let inertia = PrincipalInertia3::new([1.0, 4.0, 9.0]).unwrap();
         let momentum = SVector::from([1.0, 0.0, 0.0]);
         let identity = Rotor::<3>::identity();
-        let quarter_turn = Rotor::from_bivector(
-            &angular_vector_to_bivector(&SVector::from([
-                0.0,
-                0.0,
-                std::f64::consts::FRAC_PI_2,
-            ])),
-        );
+        let quarter_turn = Rotor::from_bivector(&angular_vector_to_bivector(&SVector::from([
+            0.0,
+            0.0,
+            std::f64::consts::FRAC_PI_2,
+        ])));
 
         let omega_identity = bivector_to_angular_vector(
             &angular_velocity_from_world_momentum(&identity, &momentum, inertia).unwrap(),
@@ -569,8 +539,8 @@ mod tests {
         let mut rotation = Rotor::<3>::identity();
         let initial_body_omega = SVector::from([0.01, 1.0, 0.02]);
         let mut angular_velocity = angular_vector_to_bivector(&initial_body_omega);
-        let initial_transverse = (initial_body_omega[0].powi(2) + initial_body_omega[2].powi(2))
-            .sqrt();
+        let initial_transverse =
+            (initial_body_omega[0].powi(2) + initial_body_omega[2].powi(2)).sqrt();
         let dt = 0.001;
         let steps = 20_000;
         let mut maximum_transverse = initial_transverse;
@@ -620,11 +590,7 @@ mod tests {
 
         let step = step_principal_inertia(&rotation, &omega, inertia, &torque, dt).unwrap();
         let expected = initial_l + torque * dt;
-        assert!(vec_close(
-            &step.world_angular_momentum,
-            &expected,
-            1.0e-13
-        ));
+        assert!(vec_close(&step.world_angular_momentum, &expected, 1.0e-13));
         let reconstructed =
             world_angular_momentum(&step.rotation, &step.angular_velocity, inertia).unwrap();
         assert!(vec_close(&reconstructed, &expected, 1.0e-10));
@@ -678,7 +644,10 @@ mod tests {
         let expected_rotation = global.compose(&reference.rotation);
         let rotation_error =
             (transformed.rotation.to_matrix() - expected_rotation.to_matrix()).norm();
-        assert!(rotation_error < 2.0e-11, "rotation covariance error={rotation_error:e}");
+        assert!(
+            rotation_error < 2.0e-11,
+            "rotation covariance error={rotation_error:e}"
+        );
         let reference_omega = bivector_to_angular_vector(&reference.angular_velocity);
         let expected_omega = global.rotate_vector(&reference_omega);
         assert!(vec_close(
@@ -712,9 +681,7 @@ mod tests {
 
     fn skew3(vector: &SVector<f64, 3>) -> SMatrix<f64, 3, 3> {
         SMatrix::new(
-            0.0, -vector[2], vector[1],
-            vector[2], 0.0, -vector[0],
-            -vector[1], vector[0], 0.0,
+            0.0, -vector[2], vector[1], vector[2], 0.0, -vector[0], -vector[1], vector[0], 0.0,
         )
     }
 
@@ -747,11 +714,9 @@ mod tests {
             let k4_rotation = rotation_4 * skew3(&omega_4);
             let k4_omega = euler_top_body_derivative(&omega_4, principal_moments);
 
-            rotation += (
-                k1_rotation + k2_rotation * 2.0 + k3_rotation * 2.0 + k4_rotation
-            ) * (dt / 6.0);
-            omega += (k1_omega + k2_omega * 2.0 + k3_omega * 2.0 + k4_omega)
-                * (dt / 6.0);
+            rotation +=
+                (k1_rotation + k2_rotation * 2.0 + k3_rotation * 2.0 + k4_rotation) * (dt / 6.0);
+            omega += (k1_omega + k2_omega * 2.0 + k3_omega * 2.0 + k4_omega) * (dt / 6.0);
         }
         (rotation, omega)
     }
@@ -793,9 +758,8 @@ mod tests {
             rk4_euler_top_body(initial_omega, principal_moments, duration, 1.0e-5);
         let (reference_rotation_half, reference_omega_half) =
             rk4_euler_top_body(initial_omega, principal_moments, duration, 5.0e-6);
-        let reference_self_error =
-            (reference_rotation - reference_rotation_half).norm()
-                + (reference_omega - reference_omega_half).norm();
+        let reference_self_error = (reference_rotation - reference_rotation_half).norm()
+            + (reference_omega - reference_omega_half).norm();
         assert!(
             reference_self_error < 1.0e-11,
             "RK4 reference must converge: error={reference_self_error:e}"
@@ -840,13 +804,7 @@ mod tests {
             Err(AngularDynamicsError::InvalidTimestep)
         ));
         assert!(matches!(
-            step_principal_inertia(
-                &rotation,
-                &omega,
-                inertia,
-                &SVector::zeros(),
-                f64::NAN
-            ),
+            step_principal_inertia(&rotation, &omega, inertia, &SVector::zeros(), f64::NAN),
             Err(AngularDynamicsError::InvalidTimestep)
         ));
     }
