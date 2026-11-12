@@ -1,0 +1,319 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Shipyard distortion co-design benchmark corpus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "claim_ceiling",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-DISTORTION-CO-DESIGN-001"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 30
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 31,
+      "maxItems": 31,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "pair": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string"
+        }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "release_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "event_order",
+        "state_after",
+        "cooling_complete",
+        "all_restraints_removed"
+      ],
+      "properties": {
+        "event_id": {
+          "type": "string"
+        },
+        "cooling_complete": {
+          "type": "boolean"
+        },
+        "all_restraints_removed": {
+          "type": "boolean"
+        },
+        "event_order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "state_after": {
+          "enum": [
+            "partially_restrained",
+            "fully_released"
+          ]
+        }
+      }
+    },
+    "final_measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "panel_id",
+        "panel_revision",
+        "fixture_id",
+        "phase",
+        "cooling_complete",
+        "restraints_removed",
+        "datum_id",
+        "coordinate_frame",
+        "uncertainty_present",
+        "evidence_class"
+      ],
+      "properties": {
+        "phase": {
+          "enum": [
+            "final_free_state",
+            "in_fixture",
+            "intermediate"
+          ]
+        },
+        "cooling_complete": {
+          "type": "boolean"
+        },
+        "restraints_removed": {
+          "type": "boolean"
+        },
+        "datum_id": {
+          "type": "string"
+        },
+        "uncertainty_present": {
+          "type": "boolean"
+        },
+        "evidence_class": {
+          "enum": [
+            "synthetic_contract",
+            "measured_physical",
+            "simulated"
+          ]
+        },
+        "panel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "panel_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_frame": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_id",
+        "model_revision",
+        "scope",
+        "validation_state",
+        "out_of_domain",
+        "physical_claim"
+      ],
+      "properties": {
+        "scope": {
+          "enum": [
+            "synthetic_toy",
+            "qualified_physical",
+            "unsupported"
+          ]
+        },
+        "validation_state": {
+          "enum": [
+            "synthetic_contract_only",
+            "independently_validated",
+            "unqualified",
+            "missing"
+          ]
+        },
+        "out_of_domain": {
+          "type": "boolean"
+        },
+        "physical_claim": {
+          "type": "boolean"
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "case_class",
+        "panel_revision",
+        "weld_tasks",
+        "sequence",
+        "precedence",
+        "fixture_reaction_limit_units",
+        "predicted_fixture_reaction_units",
+        "release_events",
+        "final_measurement",
+        "model",
+        "future_information_used",
+        "resource_conflict",
+        "objective_vector",
+        "as_built_writeback",
+        "expected_disposition",
+        "panel_id",
+        "fixture_id",
+        "fixture_revision"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^SDC-[0-9]{3}$"
+        },
+        "case_class": {
+          "enum": [
+            "positive_contract_control",
+            "negative_control"
+          ]
+        },
+        "panel_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "weld_tasks": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "sequence": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string"
+          }
+        },
+        "precedence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/pair"
+          }
+        },
+        "fixture_reaction_limit_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "predicted_fixture_reaction_units": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "release_events": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/release_event"
+          }
+        },
+        "final_measurement": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/final_measurement"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model": {
+          "$ref": "#/$defs/model"
+        },
+        "future_information_used": {
+          "type": "boolean"
+        },
+        "resource_conflict": {
+          "type": "boolean"
+        },
+        "objective_vector": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "final_free_state_geometry",
+              "production_time",
+              "fixture_cost",
+              "worst_case_robustness"
+            ]
+          }
+        },
+        "as_built_writeback": {
+          "type": "boolean"
+        },
+        "expected_disposition": {
+          "enum": [
+            "SYNTHETIC_PLAN_CONTRACT_VALID",
+            "BLOCK_SEQUENCE",
+            "BLOCK_FIXTURE_LIMIT",
+            "BLOCK_RELEASE_STATE",
+            "BLOCK_FINAL_MEASUREMENT",
+            "BLOCK_MODEL_SCOPE",
+            "BLOCK_SCHEDULE",
+            "BLOCK_OBJECTIVES",
+            "BLOCK_AUTHORITY",
+            "BLOCK_CONFIGURATION"
+          ]
+        },
+        "panel_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fixture_revision": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
