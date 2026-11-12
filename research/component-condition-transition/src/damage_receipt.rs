@@ -894,7 +894,10 @@ mod tests {
         let event = receipt.into_condition_event("event-1", 3, time()).unwrap();
         let mut ledger = ConditionLedger::new(subject(), "test-clock").unwrap();
         let before = ledger.clone();
-        assert_eq!(ledger.apply(event), Err(crate::TransitionError::StaleRevision));
+        assert_eq!(
+            ledger.apply(event),
+            Err(crate::TransitionError::StaleRevision)
+        );
         assert_eq!(ledger, before);
     }
 }
