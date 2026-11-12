@@ -789,7 +789,10 @@ mod tests {
     fn lease_must_bind_exactly_one_snapshot_tick() {
         let mut input = fixture();
         input.budget.valid_through_tick += 1;
-        assert_eq!(compile_lease(input).unwrap_err(), LeaseError::InvalidTickWindow);
+        assert_eq!(
+            compile_lease(input).unwrap_err(),
+            LeaseError::InvalidTickWindow
+        );
     }
 
     #[test]
@@ -809,7 +812,10 @@ mod tests {
         usage.physical_mutation_attempted = true;
         assert!(matches!(
             evaluate_usage(&lease, &usage, None),
-            Ok(UsageDecision::Stop { reason: StopReason::PhysicalMutationAttempted, .. })
+            Ok(UsageDecision::Stop {
+                reason: StopReason::PhysicalMutationAttempted,
+                ..
+            })
         ));
     }
 
@@ -821,7 +827,10 @@ mod tests {
         usage.gpu_energy_receipt_sha256 = None;
         assert!(matches!(
             evaluate_usage(&lease, &usage, None),
-            Ok(UsageDecision::Stop { reason: StopReason::RequiredEnergyMissing, .. })
+            Ok(UsageDecision::Stop {
+                reason: StopReason::RequiredEnergyMissing,
+                ..
+            })
         ));
     }
 
@@ -834,7 +843,10 @@ mod tests {
         // The independent lease-wide energy sample remains below its cap.
         assert!(matches!(
             evaluate_usage(&lease, &usage, None),
-            Ok(UsageDecision::Stop { reason: StopReason::RenderedFrameBudgetExceeded, .. })
+            Ok(UsageDecision::Stop {
+                reason: StopReason::RenderedFrameBudgetExceeded,
+                ..
+            })
         ));
     }
 
@@ -967,7 +979,10 @@ mod tests {
     fn modified_receipt_is_rejected() {
         let mut lease = compile_fixture();
         lease.budget.max_rendered_frames += 1;
-        assert_eq!(verify_lease_receipt(&lease).unwrap_err(), LeaseError::ReceiptMismatch);
+        assert_eq!(
+            verify_lease_receipt(&lease).unwrap_err(),
+            LeaseError::ReceiptMismatch
+        );
     }
 
 }
