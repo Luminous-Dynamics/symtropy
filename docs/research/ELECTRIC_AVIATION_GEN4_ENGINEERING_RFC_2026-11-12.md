@@ -151,6 +151,7 @@ The following are **proposed Luminous research gates**, not regulatory threshold
 |---|---|---|---|
 | Mission energy | Wh per passenger-km and tonne-km, including all auxiliaries and reserve | Complete segment ledger; no energy-balance violations | Demonstrate a repeatable improvement over a matched aircraft/mission baseline |
 | Accounting implementation | Segment-level DC-bus energy, explicit reserve profile, continuous/peak power, SOC margin | Known-answer tests; empty reserve, non-finite inputs, and power-limit breaches fail closed | Independent reimplementation and agreement with calibrated component data within declared uncertainty |
+| Fixed-wing cruise model | ISA atmosphere, lift coefficient, drag polar, useful thrust power, shaft power, lift margin | Equation-level known answers and explicit model-domain rejection | Qualify against independently measured drag polars and propeller efficiency maps over a held-out speed/altitude envelope |
 | Mass closure | MTOW, empty mass, payload, installed energy system, centre of gravity | Close mass and CG budgets with explicit growth allowance | Reduce installed energy-system mass without reducing reserve or containment |
 | Battery | Cell, module, pack, installed Wh/kg and Wh/L; usable SOC; C-rate; ageing | Evaluate designs at present commercially supported cell data and measured pack overhead | Pack-level 250–300 Wh/kg as an aspirational design range; never infer it from cell data |
 | Propulsion | Continuous/peak kW/kg, efficiency maps, cooling mass, vibration, fault response | Full operating maps and thermally sustainable continuous rating | Compare against NASA HEMM's stated 16 kW/kg and 99% targets at equivalent measurement boundaries |
@@ -219,6 +220,18 @@ No vehicle layout is selected until these mission cards are complete.
 
 The first executable increment now exists on the Generation 4 branch as `tools/airborne-energy-observability-validator/src/mission_energy.rs`, exported as a separate `mission_energy` module. It is part of the root Cargo workspace and is covered by the repository's existing package-specific CI step.
 
+A second analytical module now exists at `tools/airborne-energy-observability-validator/src/fixedwing.rs`. It provides:
+- a tropospheric ISA atmosphere approximation from sea level to 11 km;
+- steady, level, unaccelerated fixed-wing lift closure (lift = weight);
+- induced drag from `CL² / (π · Oswald · aspect ratio)`, added to a supplied zero-lift drag coefficient;
+- useful thrust power and propulsor shaft power using a supplied propulsive-efficiency value;
+- an explicit error when the calculated cruise lift coefficient reaches the declared maximum-lift coefficient;
+- a tested output seam from fixed-wing cruise shaft power into the battery mission-energy ledger.
+
+Seven fixed-wing tests cover sea-level/tropopause atmosphere references, the drag/power equations, insufficient lift margin, invalid/non-finite input, unsupported atmosphere altitude, and end-to-end energy-ledger use.
+
+This is a low-fidelity analytical model. It requires a sourced drag polar and efficiency inputs; it is not validated by wind-tunnel, component, or flight data. It does not model climb, manoeuvres, takeoff, stall dynamics, VTOL hover, conversion/transition, trim drag, compressibility, Reynolds effects, propwash, aeroelasticity, or structural/certification constraints.
+
 The v0.1 ledger:
 - requires planned-mission segments and a separate, explicit reserve scenario;
 - converts declared propulsor-shaft power to pack DC-bus power using separate inverter and motor efficiencies;
@@ -228,7 +241,7 @@ The v0.1 ledger:
 - reports end-of-mission SOC, energy margin, Wh/passenger-km, and Wh/tonne-km where inputs permit;
 - rejects empty reserve assumptions, invalid efficiencies, non-finite values, and zero-energy mission profiles.
 
-Eight focused Rust tests cover those behaviours. They are source-level tests, not a reported compile or CI pass. This first calculator does **not** predict lift/drag, propeller demand, battery voltage/current, non-linear SOC, thermal propagation, ageing, hybrid-generator dispatch, or uncertainty. Its required shaft-power profile must come from a separately justified model or measured data. The NASA four-passenger/50-mile reference mission card remains explicitly not-defined for flight segments and reserve; it must not be treated as a runnable aircraft design.
+Eight focused mission-energy tests and seven fixed-wing cruise tests cover the analytical ledger and its first physics integration seam (plus 12 pre-existing receiver-observability tests in the same package). They are source-level tests, not a reported compile or CI pass. This first calculator does **not** predict lift/drag, propeller demand, battery voltage/current, non-linear SOC, thermal propagation, ageing, hybrid-generator dispatch, or uncertainty. Its required shaft-power profile must come from a separately justified model or measured data. The NASA four-passenger/50-mile reference mission card remains explicitly not-defined for flight segments and reserve; it must not be treated as a runnable aircraft design.
 
 Next steps: add a strict JSON mission-card adapter, versioned efficiency and battery-map inputs, and independent known-answer test vectors. Then extend the ledger with thermal/voltage limits and hybrid energy-source accounting. Do not put an optimizer or AI controller in front of an unqualified energy model.
 
