@@ -172,13 +172,10 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
             return Err(StreamingError::NonMonotonicSample);
         }
 
-        let input_sha256 = match sha256_serializable(
+        let input_sha256 = sha256_serializable(
             b"symtropy-liu-ice-streaming-input-v1\0",
             sample,
-        ) {
-            Ok(digest) => digest,
-            Err(error) => return Err(error),
-        };
+        )?;
 
         // A model error may have mutated hidden state; poison rather than retry
         // or silently accept a new sample against an unknown internal state.
