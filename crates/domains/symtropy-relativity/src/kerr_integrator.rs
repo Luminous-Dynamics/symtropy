@@ -1167,6 +1167,338 @@ fn add_scaled(state: [f64; 8], derivative: [f64; 8], scale: f64) -> [f64; 8] {
     result
 }
 
+
+/// One sample of an independently integrated Sachs screen frame and 2x2
+/// optical Jacobi matrix. The frame is parallel transported along the
+/// canonical null geodesic; D satisfies D'' = -T D with vertex data
+/// D(0)=0, D'(0)=I under the declared affine/local-energy normalization.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrSachsJacobiSample {
+    pub affine_parameter: f64,
+    pub state: KerrCanonicalState,
+    pub screen_basis: [[f64; 4]; 2],
+    pub tidal_matrix: [[f64; 2]; 2],
+    pub jacobi_matrix: [[f64; 2]; 2],
+    pub jacobi_derivative: [[f64; 2]; 2],
+    pub determinant: f64,
+    pub singular_values: [f64; 2],
+    pub condition_number: f64,
+    pub null_constraint_residual: f64,
+    pub screen_orthonormality_residual: f64,
+    pub screen_transversality_residual: f64,
+    pub tidal_symmetry_residual: f64,
+    pub vacuum_trace_residual: f64,
+    pub orthonormality_rate_residual: f64,
+    pub transversality_rate_residual: f64,
+    pub metric_compatibility_residual: f64,
+}
+
+/// Fixed-step RK4 Sachs/Jacobi trajectory. Refinement must be demonstrated by
+/// rerunning with 2x and 4x step counts; the fixed step size is not an
+/// adaptive error bound.
+#[derive(Debug, Clone, PartialEq)]
+pub struct KerrSachsJacobiTrajectoryResult {
+    pub coordinate_chart: KerrMinoCoordinateChart,
+    pub affine_interval: f64,
+    pub step_count: usize,
+    pub maximum_null_constraint_residual: f64,
+    pub maximum_screen_orthonormality_residual: f64,
+    pub maximum_screen_transversality_residual: f64,
+    pub maximum_tidal_symmetry_residual: f64,
+    pub maximum_vacuum_trace_residual: f64,
+    pub maximum_orthonormality_rate_residual: f64,
+    pub maximum_transversality_rate_residual: f64,
+    pub maximum_metric_compatibility_residual: f64,
+    pub samples: Vec<KerrSachsJacobiSample>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct KerrSachsJacobiDiagnostics {
+    tidal_matrix: [[f64; 2]; 2],
+    null_constraint_residual: f64,
+    screen_orthonormality_residual: f64,
+    screen_transversality_residual: f64,
+    tidal_symmetry_residual: f64,
+    vacuum_trace_residual: f64,
+    orthonormality_rate_residual: f64,
+    transversality_rate_residual: f64,
+    metric_compatibility_residual: f64,
+}
+
+/// Integrate the canonical null ray, a parallel-transported Sachs screen
+/// frame, and its 2x2 Jacobi matrix as one coupled 24-component ODE.
+///
+/// initial_screen_basis must be an orthonormal, transverse screen basis in
+/// the same dimensionless coordinate chart as initial_state. Use
+/// KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates to lift a
+/// finite-observer ZAMO screen basis. Initial Jacobi data are D=0 and D'=I,
+/// so the exact radial Schwarzschild vertex solution is D(lambda)=lambda I.
+///
+/// This is an independent optical-geodesic formulation: its tidal matrix is
+/// computed from the Riemann tensor and its screen is parallel transported;
+/// it does not use the canonical 8x8 fundamental matrix. The fixed-step RK4
+/// integrator reports residuals at every stored endpoint. A result only
+/// qualifies after step-refinement and comparison against the canonical
+/// variational optical map.
+pub fn integrate_kerr_sachs_jacobi_fixed_step(
+    hole: KerrBlackHole,
+    coordinate_chart: KerrMinoCoordinateChart,
+    initial_state: KerrCanonicalState,
+    initial_screen_basis: [[f64; 4]; 2],
+    affine_interval: f64,
+    step_count: usize,
+    tolerance: f64,
+) -> Result<KerrSachsJacobiTrajectoryResult, KerrIntegratorError> {
+    if !affine_interval.is_finite() || affine_interval <= 0.0 {
+        return Err(KerrIntegratorError::InvalidAffineInterval(affine_interval));
+    }
+    if step_count == 0 {
+        return Err(KerrIntegratorError::InconsistentOptions);
+    }
+    if !tolerance.is_finite() || tolerance <= 0.0 {
+        return Err(KerrIntegratorError::InvalidOption {
+            name: "sachs_jacobi_tolerance",
+            value: tolerance,
+        });
+    }
+
+    let mut values = [0.0; 24];
+    values[..8].copy_from_slice(&flatten(initial_state));
+    for screen in 0..2 {
+        for coordinate in 0..4 {
+            values[8 + screen * 4 + coordinate] = initial_screen_basis[screen][coordinate];
+        }
+        // D(0)=0 and D'(0)=I: local angular coordinate derivatives at the vertex.
+        values[20 + screen * 2 + screen] = 1.0;
+    }
+
+    let step = affine_interval / step_count as f64;
+    let hamiltonian = KerrCanonicalHamiltonian::new(hole);
+    let mut samples = Vec::with_capacity(step_count + 1);
+    let initial_diagnostics =
+        sachs_jacobi_rhs(hamiltonian, coordinate_chart, values, tolerance)?.1;
+    samples.push(sachs_jacobi_sample(0.0, values, initial_diagnostics)?);
+
+    let mut maximum_null_constraint_residual = initial_diagnostics.null_constraint_residual;
+    let mut maximum_screen_orthonormality_residual =
+        initial_diagnostics.screen_orthonormality_residual;
+    let mut maximum_screen_transversality_residual =
+        initial_diagnostics.screen_transversality_residual;
+    let mut maximum_tidal_symmetry_residual = initial_diagnostics.tidal_symmetry_residual;
+    let mut maximum_vacuum_trace_residual = initial_diagnostics.vacuum_trace_residual;
+    let mut maximum_orthonormality_rate_residual =
+        initial_diagnostics.orthonormality_rate_residual;
+    let mut maximum_transversality_rate_residual =
+        initial_diagnostics.transversality_rate_residual;
+    let mut maximum_metric_compatibility_residual =
+        initial_diagnostics.metric_compatibility_residual;
+
+    for step_index in 0..step_count {
+        // Intermediate RK stages need a tolerance that admits their O(h^2)
+        // off-manifold truncation error. Endpoint diagnostics are checked at
+        // the caller's strict tolerance and retained in the receipt.
+        let stage_tolerance = tolerance.max((step * step * 32.0).min(1e-4));
+        let (k1, _) = sachs_jacobi_rhs(
+            hamiltonian,
+            coordinate_chart,
+            values,
+            stage_tolerance,
+        )?;
+        let stage2 = add_scaled_sachs_jacobi(values, k1, 0.5 * step);
+        let (k2, _) = sachs_jacobi_rhs(
+            hamiltonian,
+            coordinate_chart,
+            stage2,
+            stage_tolerance,
+        )?;
+        let stage3 = add_scaled_sachs_jacobi(values, k2, 0.5 * step);
+        let (k3, _) = sachs_jacobi_rhs(
+            hamiltonian,
+            coordinate_chart,
+            stage3,
+            stage_tolerance,
+        )?;
+        let stage4 = add_scaled_sachs_jacobi(values, k3, step);
+        let (k4, _) = sachs_jacobi_rhs(
+            hamiltonian,
+            coordinate_chart,
+            stage4,
+            stage_tolerance,
+        )?;
+
+        for index in 0..24 {
+            values[index] += step / 6.0 * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index]);
+        }
+        if values.iter().any(|value| !value.is_finite()) {
+            return Err(KerrIntegratorError::NonFiniteState);
+        }
+
+        let affine_parameter = (step_index + 1) as f64 * step;
+        let diagnostics =
+            sachs_jacobi_rhs(hamiltonian, coordinate_chart, values, tolerance)?.1;
+        maximum_null_constraint_residual =
+            maximum_null_constraint_residual.max(diagnostics.null_constraint_residual);
+        maximum_screen_orthonormality_residual = maximum_screen_orthonormality_residual
+            .max(diagnostics.screen_orthonormality_residual);
+        maximum_screen_transversality_residual = maximum_screen_transversality_residual
+            .max(diagnostics.screen_transversality_residual);
+        maximum_tidal_symmetry_residual =
+            maximum_tidal_symmetry_residual.max(diagnostics.tidal_symmetry_residual);
+        maximum_vacuum_trace_residual =
+            maximum_vacuum_trace_residual.max(diagnostics.vacuum_trace_residual);
+        maximum_orthonormality_rate_residual = maximum_orthonormality_rate_residual
+            .max(diagnostics.orthonormality_rate_residual);
+        maximum_transversality_rate_residual = maximum_transversality_rate_residual
+            .max(diagnostics.transversality_rate_residual);
+        maximum_metric_compatibility_residual =
+            maximum_metric_compatibility_residual.max(diagnostics.metric_compatibility_residual);
+        samples.push(sachs_jacobi_sample(
+            affine_parameter,
+            values,
+            diagnostics,
+        )?);
+    }
+
+    Ok(KerrSachsJacobiTrajectoryResult {
+        coordinate_chart,
+        affine_interval,
+        step_count,
+        maximum_null_constraint_residual,
+        maximum_screen_orthonormality_residual,
+        maximum_screen_transversality_residual,
+        maximum_tidal_symmetry_residual,
+        maximum_vacuum_trace_residual,
+        maximum_orthonormality_rate_residual,
+        maximum_transversality_rate_residual,
+        maximum_metric_compatibility_residual,
+        samples,
+    })
+}
+
+fn sachs_jacobi_rhs(
+    hamiltonian: KerrCanonicalHamiltonian,
+    coordinate_chart: KerrMinoCoordinateChart,
+    values: [f64; 24],
+    tolerance: f64,
+) -> Result<([f64; 24], KerrSachsJacobiDiagnostics), KerrIntegratorError> {
+    let mut canonical_values = [0.0; 8];
+    canonical_values.copy_from_slice(&values[..8]);
+    let state = unflatten(canonical_values);
+    let screen_basis = core::array::from_fn(|screen| {
+        core::array::from_fn(|coordinate| values[8 + screen * 4 + coordinate])
+    });
+    let jacobi = core::array::from_fn(|row| {
+        core::array::from_fn(|column| values[16 + row * 2 + column])
+    });
+    let jacobi_derivative = core::array::from_fn(|row| {
+        core::array::from_fn(|column| values[20 + row * 2 + column])
+    });
+
+    let evaluation = match coordinate_chart {
+        KerrMinoCoordinateChart::BoyerLindquist => hamiltonian.evaluate(state)?,
+        KerrMinoCoordinateChart::IngoingKerr => hamiltonian.evaluate_ingoing(state)?,
+    };
+    let frame = hamiltonian.sachs_frame_transport_derivative(
+        state,
+        coordinate_chart,
+        screen_basis,
+        tolerance,
+    )?;
+    let optical_tide = hamiltonian.optical_tidal_matrix(
+        state,
+        coordinate_chart,
+        screen_basis,
+        tolerance,
+    )?;
+
+    let mut derivative = [0.0; 24];
+    derivative[..4].copy_from_slice(&evaluation.derivative.coordinates);
+    derivative[4..8].copy_from_slice(&evaluation.derivative.momenta);
+    for screen in 0..2 {
+        for coordinate in 0..4 {
+            derivative[8 + screen * 4 + coordinate] =
+                frame.screen_basis_derivative[screen][coordinate];
+        }
+        for column in 0..2 {
+            derivative[16 + screen * 2 + column] =
+                jacobi_derivative[screen][column];
+            derivative[20 + screen * 2 + column] =
+                -(optical_tide.tidal_matrix[screen][0] * jacobi[0][column]
+                    + optical_tide.tidal_matrix[screen][1] * jacobi[1][column]);
+        }
+    }
+
+    Ok((
+        derivative,
+        KerrSachsJacobiDiagnostics {
+            tidal_matrix: optical_tide.tidal_matrix,
+            null_constraint_residual: optical_tide.null_constraint_residual,
+            screen_orthonormality_residual: optical_tide.screen_orthonormality_residual,
+            screen_transversality_residual: optical_tide.screen_transversality_residual,
+            tidal_symmetry_residual: optical_tide.tidal_symmetry_residual,
+            vacuum_trace_residual: optical_tide.vacuum_trace_residual,
+            orthonormality_rate_residual: frame.orthonormality_rate_residual,
+            transversality_rate_residual: frame.transversality_rate_residual,
+            metric_compatibility_residual: frame.metric_compatibility_residual,
+        },
+    ))
+}
+
+fn add_scaled_sachs_jacobi(
+    state: [f64; 24],
+    derivative: [f64; 24],
+    scale: f64,
+) -> [f64; 24] {
+    let mut result = state;
+    for index in 0..24 {
+        result[index] += scale * derivative[index];
+    }
+    result
+}
+
+fn sachs_jacobi_sample(
+    affine_parameter: f64,
+    values: [f64; 24],
+    diagnostics: KerrSachsJacobiDiagnostics,
+) -> Result<KerrSachsJacobiSample, KerrIntegratorError> {
+    let mut canonical_values = [0.0; 8];
+    canonical_values.copy_from_slice(&values[..8]);
+    let state = unflatten(canonical_values);
+    let screen_basis = core::array::from_fn(|screen| {
+        core::array::from_fn(|coordinate| values[8 + screen * 4 + coordinate])
+    });
+    let jacobi_matrix = core::array::from_fn(|row| {
+        core::array::from_fn(|column| values[16 + row * 2 + column])
+    });
+    let jacobi_derivative = core::array::from_fn(|row| {
+        core::array::from_fn(|column| values[20 + row * 2 + column])
+    });
+    let (determinant, small, large) = optical_matrix_invariants(jacobi_matrix)?;
+    Ok(KerrSachsJacobiSample {
+        affine_parameter,
+        state,
+        screen_basis,
+        tidal_matrix: diagnostics.tidal_matrix,
+        jacobi_matrix,
+        jacobi_derivative,
+        determinant,
+        singular_values: [small, large],
+        condition_number: if small > 0.0 {
+            large / small
+        } else {
+            f64::INFINITY
+        },
+        null_constraint_residual: diagnostics.null_constraint_residual,
+        screen_orthonormality_residual: diagnostics.screen_orthonormality_residual,
+        screen_transversality_residual: diagnostics.screen_transversality_residual,
+        tidal_symmetry_residual: diagnostics.tidal_symmetry_residual,
+        vacuum_trace_residual: diagnostics.vacuum_trace_residual,
+        orthonormality_rate_residual: diagnostics.orthonormality_rate_residual,
+        transversality_rate_residual: diagnostics.transversality_rate_residual,
+        metric_compatibility_residual: diagnostics.metric_compatibility_residual,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
