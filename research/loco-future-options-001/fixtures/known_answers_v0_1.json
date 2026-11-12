@@ -90,9 +90,21 @@
       },
       "recovery_evidence": {
         "status": "qualified",
-        "reserve_state_digest": "sha256:fo01_clairvoyance_trap-reserve",
-        "topology_digest": "sha256:fo01_clairvoyance_trap-topology",
-        "terminal_safe_stop_reachable": true
+        "branch_manifest_digest": "sha256:fo01-branches",
+        "branch_receipts": [
+          {
+            "branch_id": "b1",
+            "reserve_state_digest": "sha256:fo01_clairvoyance_trap-b1-reserve",
+            "topology_digest": "sha256:fo01_clairvoyance_trap-b1-topology",
+            "terminal_safe_stop_reachable": true
+          },
+          {
+            "branch_id": "b2",
+            "reserve_state_digest": "sha256:fo01_clairvoyance_trap-b2-reserve",
+            "topology_digest": "sha256:fo01_clairvoyance_trap-b2-topology",
+            "terminal_safe_stop_reachable": true
+          }
+        ]
       }
     },
     {
@@ -188,9 +200,21 @@
       },
       "recovery_evidence": {
         "status": "qualified",
-        "reserve_state_digest": "sha256:fo02_valid_observation_splits_states-reserve",
-        "topology_digest": "sha256:fo02_valid_observation_splits_states-topology",
-        "terminal_safe_stop_reachable": true
+        "branch_manifest_digest": "sha256:fo02-branches",
+        "branch_receipts": [
+          {
+            "branch_id": "b1",
+            "reserve_state_digest": "sha256:fo02_valid_observation_splits_states-b1-reserve",
+            "topology_digest": "sha256:fo02_valid_observation_splits_states-b1-topology",
+            "terminal_safe_stop_reachable": true
+          },
+          {
+            "branch_id": "b2",
+            "reserve_state_digest": "sha256:fo02_valid_observation_splits_states-b2-reserve",
+            "topology_digest": "sha256:fo02_valid_observation_splits_states-b2-topology",
+            "terminal_safe_stop_reachable": true
+          }
+        ]
       }
     },
     {
@@ -283,9 +307,15 @@
       },
       "recovery_evidence": {
         "status": "qualified",
-        "reserve_state_digest": "sha256:fo03_hot_node_hidden_by_mean-reserve",
-        "topology_digest": "sha256:fo03_hot_node_hidden_by_mean-topology",
-        "terminal_safe_stop_reachable": true
+        "branch_manifest_digest": "sha256:fo03-branches",
+        "branch_receipts": [
+          {
+            "branch_id": "b1",
+            "reserve_state_digest": "sha256:fo03_hot_node_hidden_by_mean-b1-reserve",
+            "topology_digest": "sha256:fo03_hot_node_hidden_by_mean-b1-topology",
+            "terminal_safe_stop_reachable": true
+          }
+        ]
       }
     },
     {
@@ -364,9 +394,21 @@
       },
       "recovery_evidence": {
         "status": "qualified",
-        "reserve_state_digest": "sha256:fo04_zero_mass_physical_branch-reserve",
-        "topology_digest": "sha256:fo04_zero_mass_physical_branch-topology",
-        "terminal_safe_stop_reachable": true
+        "branch_manifest_digest": "sha256:fo04-branches",
+        "branch_receipts": [
+          {
+            "branch_id": "b1",
+            "reserve_state_digest": "sha256:fo04_zero_mass_physical_branch-b1-reserve",
+            "topology_digest": "sha256:fo04_zero_mass_physical_branch-b1-topology",
+            "terminal_safe_stop_reachable": true
+          },
+          {
+            "branch_id": "b2",
+            "reserve_state_digest": "sha256:fo04_zero_mass_physical_branch-b2-reserve",
+            "topology_digest": "sha256:fo04_zero_mass_physical_branch-b2-topology",
+            "terminal_safe_stop_reachable": true
+          }
+        ]
       }
     },
     {
@@ -421,9 +463,15 @@
       },
       "recovery_evidence": {
         "status": "qualified",
-        "reserve_state_digest": "sha256:fo05_incomplete_branch_manifest-reserve",
-        "topology_digest": "sha256:fo05_incomplete_branch_manifest-topology",
-        "terminal_safe_stop_reachable": true
+        "branch_manifest_digest": "sha256:fo05-partial-branches",
+        "branch_receipts": [
+          {
+            "branch_id": "b1",
+            "reserve_state_digest": "sha256:fo05_incomplete_branch_manifest-b1-reserve",
+            "topology_digest": "sha256:fo05_incomplete_branch_manifest-b1-topology",
+            "terminal_safe_stop_reachable": true
+          }
+        ]
       }
     },
     {
@@ -492,9 +540,15 @@
       },
       "recovery_evidence": {
         "status": "qualified",
-        "reserve_state_digest": "sha256:fo06_action_alias_collapse-reserve",
-        "topology_digest": "sha256:fo06_action_alias_collapse-topology",
-        "terminal_safe_stop_reachable": true
+        "branch_manifest_digest": "sha256:fo06-branches",
+        "branch_receipts": [
+          {
+            "branch_id": "b1",
+            "reserve_state_digest": "sha256:fo06_action_alias_collapse-b1-reserve",
+            "topology_digest": "sha256:fo06_action_alias_collapse-b1-topology",
+            "terminal_safe_stop_reachable": true
+          }
+        ]
       }
     },
     {
@@ -554,9 +608,15 @@
       },
       "recovery_evidence": {
         "status": "qualified",
-        "reserve_state_digest": "sha256:fo07_thermal_predecessor_mismatch-reserve",
-        "topology_digest": "sha256:fo07_thermal_predecessor_mismatch-topology",
-        "terminal_safe_stop_reachable": true
+        "branch_manifest_digest": "sha256:fo07-branches",
+        "branch_receipts": [
+          {
+            "branch_id": "b1",
+            "reserve_state_digest": "sha256:fo07_thermal_predecessor_mismatch-b1-reserve",
+            "topology_digest": "sha256:fo07_thermal_predecessor_mismatch-b1-topology",
+            "terminal_safe_stop_reachable": true
+          }
+        ]
       }
     }
   ]
