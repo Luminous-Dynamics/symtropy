@@ -1,6 +1,6 @@
 # CAMERA-BOUNDARY-FAULT-INJECTION-001
 
-**Status:** 14-case real-bridge boundary fault harness authored, including temporal-state non-advance evidence; exact-head Rust validation pending  
+**Status:** 14-case real-bridge boundary fault harness authored, including source-episode provenance gates, per-artifact HDC reconciliation and temporal-state non-advance evidence; exact-head Rust validation pending  
 **Issue:** https://github.com/Luminous-Dynamics/symtropy/issues/4794  
 **Source episode owner:** #4618 — fresh-process renderer-to-Symthaea replay  
 **Bridge owner:** https://github.com/Luminous-Dynamics/symthaea/pull/11480  
@@ -19,6 +19,8 @@ Each event begins with a real clean observation emitted by the #4618 renderer. T
 
 For each case:
 - the source clean episode remains immutable;
+- the #4618 source report must attest to passing fresh-process renderer replay, fresh-process bridge replay and branch-auditor positive/negative controls;
+- every source RGB frame is rehashed and compared to its renderer receipt; persisted policy-receipt JSON must exactly equal the corresponding receipt embedded in the episode request;
 - all frame inputs are copied into a case-specific workspace;
 - the altered request is written independently;
 - a separate operating-system process starts a new bridge and temporal Vision Manifold;
@@ -94,12 +96,14 @@ The report is `all_cases_passed` only when:
 - every negative control reports `frames_processed_before_rejection` equal to the expected count (0 for first-observation faults; 1 for the cases whose second observation triggers the rejection), demonstrating that the rejected observation itself did not advance temporal state;
 - exactly 14 independent bridge processes were spawned; every rejected observation reports the bridge frame count immediately before rejection, which must equal the number of preceding valid observations in that case.
 
-The report schema is `schemas/fault-campaign-report-v1.schema.json`.
+The report schema is `schemas/fault-campaign-report-v1.schema.json`. It binds the exact #4618 `episode-report.json`, `episode-request.json` and bridge executable bytes by SHA-256.
 
 ## Tests and validation
 
-Seventeen authored Rust tests cover:
+Nineteen authored Rust tests cover:
 - calibration pinning from the clean renderer receipt;
+- source #4618 report pass flags, expected/observed denominator reconciliation, frame digest verification and persisted receipt equality;
+- recomputed missing-action receipt commitment and synchronized skewed vehicle timestamp metadata;
 - valid-but-different calibration mutation;
 - delayed delivery versus invalid clock ordering;
 - clock-skew versus exact prior-observation replay;
