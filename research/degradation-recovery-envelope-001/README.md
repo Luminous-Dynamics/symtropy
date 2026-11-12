@@ -119,6 +119,8 @@ Its numeric latency and energy fields are synthetic fixture values used to test 
 
 The declared `policy_visible_inputs` list and `fault_schedule_visible_to_policy=false` flag make intended privileges explicit; the auditor cannot authenticate the actual runtime wiring. Raw frame/receipt artifacts and independent runtime attestation remain necessary for empirical claims.
 
+Machine-readable external comparison snapshot: `fixtures/driving-comparator-snapshot-2026-11-12.json`. It preserves 11 references in native metric/evidence classes; it does not create one cross-benchmark ranking.
+
 ## Reusable Rust tooling
 
 Pinned to Rust 1.96.0. The crate lives at `research/degradation-recovery-envelope-001/`.
@@ -202,7 +204,9 @@ Do not impose universal millisecond deadlines before the sensor cadence, target 
 
 ## Next implementation step
 
-Wire this schedule into Symtropy #4616/#4618 and inject the first faults at the actual observation boundary: a missing frame, a delivered-late frame, a repeated/stale sequence, pixel bytes that no longer match the upstream receipt, camera-calibration digest mismatch and a deliberate compute-deadline overrun. Then run the same episode through the real Symthaea bridge and record whether it rejects, degrades and recovers as specified. Only after this works should we add vehicle dynamics and closed-loop policy comparisons.
+The next integration owner is [#4794 — CAMERA-BOUNDARY-FAULT-INJECTION-001](https://github.com/Luminous-Dynamics/symtropy/issues/4794). It will use the #4618 replay artifacts and the real Symthaea camera bridge to inject missing/delayed/stale frames, pixel corruption, calibration-pin mismatch, clock-order/skew violations and compute-deadline faults. Each negative-control case must run in a fresh bridge process and prove the rejected input produced no policy-input receipt or artifact.
+
+The current #4657 validator is a record auditor and schedule generator. It does not inject a fault into the bridge, operate a controller, or measure actual degraded-mode recovery. After the boundary adapter is in place, add a trained policy plus an independent degraded-mode supervisor, run the paired fault campaigns in a closed-loop simulator, and only then consider HIL/closed-course work.
 
 ## Claim ceiling
 
