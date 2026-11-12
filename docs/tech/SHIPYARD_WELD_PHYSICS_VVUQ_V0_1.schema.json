@@ -1,0 +1,359 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/tech/SHIPYARD_WELD_PHYSICS_VVUQ_V0_1.schema.json",
+  "title": "Shipyard weld physics VVUQ benchmark manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "claim_ceiling",
+    "sources",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-WELD-PHYSICS-VVUQ-001"
+    },
+    "snapshot_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 30
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/source"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_id",
+        "title",
+        "citation_uri",
+        "publication_year",
+        "artifact_kind",
+        "evidence_class",
+        "admission_status",
+        "rights_status",
+        "retrieved_on",
+        "source_bytes_sha256",
+        "raw_data_bytes_available",
+        "numerical_scoring_eligible",
+        "measurement_modalities",
+        "known_scope_summary",
+        "admission_notes"
+      ],
+      "properties": {
+        "source_id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 5
+        },
+        "citation_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "doi": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "publication_year": {
+          "type": "integer",
+          "minimum": 1900,
+          "maximum": 2100
+        },
+        "artifact_kind": {
+          "enum": [
+            "literature_review",
+            "dataset_index",
+            "round_robin_report",
+            "journal_article",
+            "technical_report"
+          ]
+        },
+        "evidence_class": {
+          "enum": [
+            "literature_metadata",
+            "published_report_metadata",
+            "published_table_metadata",
+            "raw_measurement",
+            "digitized_measurement",
+            "synthetic"
+          ]
+        },
+        "admission_status": {
+          "enum": [
+            "ADMITTED_RAW",
+            "ADMITTED_TABLE",
+            "ADMITTED_DIGITIZED",
+            "METADATA_ONLY",
+            "RIGHTS_PENDING",
+            "INCOMPLETE_INPUTS",
+            "CONFLICTED",
+            "REJECTED"
+          ]
+        },
+        "rights_status": {
+          "enum": [
+            "CC_BY_4_0_METADATA_ONLY",
+            "PENDING_REVIEW",
+            "MEMBER_ACCESS_REVIEW",
+            "UNKNOWN",
+            "RESTRICTED",
+            "CLEARED"
+          ]
+        },
+        "retrieved_on": {
+          "type": "string",
+          "format": "date"
+        },
+        "source_bytes_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "raw_data_bytes_available": {
+          "type": "boolean"
+        },
+        "numerical_scoring_eligible": {
+          "type": "boolean"
+        },
+        "measurement_modalities": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "thermocouple",
+              "pyrometry",
+              "strain_gauge",
+              "displacement",
+              "laser_scan",
+              "XRD",
+              "neutron_diffraction",
+              "hole_drilling",
+              "contour_method",
+              "hardness",
+              "macrograph",
+              "published_figure",
+              "published_table",
+              "unknown"
+            ]
+          }
+        },
+        "known_scope_summary": {
+          "type": "string",
+          "minLength": 10
+        },
+        "admission_notes": {
+          "type": "string",
+          "minLength": 10
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "numerical_scoring_eligible": {
+                "const": true
+              }
+            },
+            "required": [
+              "numerical_scoring_eligible"
+            ]
+          },
+          "then": {
+            "properties": {
+              "admission_status": {
+                "enum": [
+                  "ADMITTED_RAW",
+                  "ADMITTED_TABLE",
+                  "ADMITTED_DIGITIZED"
+                ]
+              },
+              "rights_status": {
+                "const": "CLEARED"
+              },
+              "source_bytes_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            },
+            "required": [
+              "source_bytes_sha256"
+            ]
+          }
+        }
+      ]
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "case_class",
+        "target",
+        "mutation",
+        "expected_disposition",
+        "rationale"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^WPHYS-[0-9]{3}$"
+        },
+        "case_class": {
+          "enum": [
+            "positive_contract_control",
+            "negative_control"
+          ]
+        },
+        "source_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "target": {
+          "type": "string",
+          "minLength": 3
+        },
+        "mutation": {
+          "type": "string",
+          "minLength": 3
+        },
+        "expected_disposition": {
+          "enum": [
+            "METADATA_ONLY_RETAINED",
+            "BLOCK_NUMERICAL_SCORING",
+            "REJECT_SOURCE",
+            "BLOCK_VALIDATION",
+            "ABSTAIN_OUT_OF_DOMAIN",
+            "BLOCK_CLAIM_PROMOTION"
+          ]
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 10
+        },
+        "claim_scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "validated_output",
+            "claimed_output",
+            "documented_limitation",
+            "supports_claimed_output"
+          ],
+          "properties": {
+            "validated_output": {
+              "type": "string",
+              "minLength": 3
+            },
+            "claimed_output": {
+              "type": "string",
+              "minLength": 3
+            },
+            "documented_limitation": {
+              "type": "string",
+              "minLength": 3
+            },
+            "supports_claimed_output": {
+              "type": "boolean"
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "case_id": {
+                "const": "WPHYS-027"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "then": {
+            "required": [
+              "claim_scope"
+            ],
+            "properties": {
+              "expected_disposition": {
+                "const": "BLOCK_VALIDATION"
+              },
+              "claim_scope": {
+                "properties": {
+                  "validated_output": {
+                    "const": "post_weld_residual_stress"
+                  },
+                  "claimed_output": {
+                    "const": "molten_pool_peak_temperature"
+                  },
+                  "documented_limitation": {
+                    "const": "liquid_solid_coupling_omitted"
+                  },
+                  "supports_claimed_output": {
+                    "const": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "case_id": {
+                "const": "WPHYS-028"
+              }
+            },
+            "required": [
+              "case_id"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_id": {
+                "const": "s460g2m-multipass-gmaw-distortion-2022"
+              },
+              "expected_disposition": {
+                "const": "BLOCK_NUMERICAL_SCORING"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
