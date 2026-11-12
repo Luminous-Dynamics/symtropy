@@ -2,7 +2,7 @@ name: Scan-to-BIM Replay Contract
 
 on:
   pull_request:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-ifc-delivery-v0-1", "research/scan-bim-representation-continuity-v0-1", "research/scan-bim-representation-continuity-v0-1-review-2", "research/scan-bim-critical-attribute-retention-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-ifc-delivery-v0-1", "research/scan-bim-representation-continuity-v0-1", "research/scan-bim-representation-continuity-v0-1-review-2", "research/scan-bim-critical-attribute-retention-v0-1", "research/scan-bim-compositional-continuity-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "research/scan-bim-ifc-delivery-001/**"
@@ -114,6 +114,27 @@ jobs:
             (.incomplete_relation_inventory_count == 0) and
             (.continuity_state == "continuity_preserved")
           ' /tmp/scan-bim-continuity-report.json
+      - name: Execute compositional representation chain audit
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml \
+            --bin scan_bim_continuity_chain_audit -- \
+            research/scan-bim-representation-continuity-001/fixtures/compositional_known_answers_v0_1.json \
+            > /tmp/scan-bim-continuity-chain-report.json
+          jq -e '
+            (.schema_version == "0.1") and
+            (.receipt_id == "SCAN-BIM-CONTINUITY-ROOM-A-001") and
+            (.transition_count == 2) and
+            (.dependency_edge_count == 1) and
+            (.artifact_handoff_count == 1) and
+            (.root_transition_count == 1) and
+            (.terminal_transition_count == 1) and
+            (.root_to_terminal_path_count == 1) and
+            (.connected_component_count == 1) and
+            (.uncertainty_handoff_count == 1) and
+            (.unknown_uncertainty_handoff_count == 0) and
+            (.evidence_conditioned_uncertainty_handoff_count == 0) and
+            (.composition_state == "composed")
+          ' /tmp/scan-bim-continuity-chain-report.json
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
