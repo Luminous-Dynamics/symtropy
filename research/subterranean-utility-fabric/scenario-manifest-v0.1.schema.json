@@ -167,7 +167,8 @@
               "B3_ROBOTIC_MAINTENANCE",
               "B4_THEFT_RESILIENCE",
               "B5_LIFECYCLE_ECONOMICS",
-              "B6_ASSURANCE_INTEROPERABILITY"
+              "B6_ASSURANCE_INTEROPERABILITY",
+              "B8_CABLE_DUCT_ROBOT"
             ]
           },
           "name": {
