@@ -1,0 +1,476 @@
+{
+  "schema_version": 1,
+  "benchmark": "CIVDYN-STATE-OBSERVABILITY-001",
+  "upstream": {
+    "repository": "https://github.com/ai-fm/missingness-mdps",
+    "commit": "186c454c8e1581adbbf3cbb49ed9e0df510356f4",
+    "commit_url": "https://github.com/ai-fm/missingness-mdps/commit/186c454c8e1581adbbf3cbb49ed9e0df510356f4",
+    "license": "MIT",
+    "license_path": "LICENSE",
+    "license_git_blob": "859c41b3529fe6408802113bf8931575339e3262",
+    "source_files": [
+      {
+        "path": "src/Experiment.jl",
+        "git_blob": "8765725aa592ea5ce3cd628cac6d0b3e52d0abdf"
+      },
+      {
+        "path": "src/Learning.jl",
+        "git_blob": "379f57bb6eca65b3f0bb7dea389c10d4c3ea506b"
+      },
+      {
+        "path": "src/Metrics.jl",
+        "git_blob": "3a96b9184969720fc78f993862e81c5d8b3134ad"
+      },
+      {
+        "path": "src/benchmarks/Icu.jl",
+        "git_blob": "b2ca11258ed56f8abae7e15247b9af2536a246e6"
+      },
+      {
+        "path": "src/benchmarks/PredatorFactored.jl",
+        "git_blob": "fd4fbedc1bf519d04da9eed99bba8538e052cce7"
+      }
+    ]
+  },
+  "experiment_contract": {
+    "repetitions_per_dataset_size": 20,
+    "dataset_sizes": [
+      10,
+      50,
+      100,
+      500,
+      1000,
+      5000,
+      10000,
+      100000,
+      1000000,
+      10000000
+    ],
+    "learning_assumptions": [
+      "MCAR",
+      "MAR",
+      "MNAR"
+    ],
+    "expected_learning_rows_per_experiment": 600,
+    "expected_unique_run_keys_per_experiment": 600,
+    "baseline_identities": [
+      "upper",
+      "random"
+    ],
+    "mconst_rows": 1,
+    "pomcp_rows": 8
+  },
+  "artifacts": [
+    {
+      "experiment_id": "icu/smar",
+      "path": "experiments/logs/icu/smar/results.json",
+      "git_blob": "33c6bfc9d14f2fd6e174aff758f02f39e581817d",
+      "pomdp_states": 800,
+      "finished_learning_rows": 567,
+      "exception_learning_rows": 33
+    },
+    {
+      "experiment_id": "icu/mnar-ident",
+      "path": "experiments/logs/icu/mnar-ident/results.json",
+      "git_blob": "9d6ca66d366bc4c8360f124c7124d320be3a0b43",
+      "pomdp_states": 800,
+      "finished_learning_rows": 564,
+      "exception_learning_rows": 36
+    },
+    {
+      "experiment_id": "icu/mnar-unident",
+      "path": "experiments/logs/icu/mnar-unident/results.json",
+      "git_blob": "2bf5bca7ecfa79fe7ef619123e0b7c24186decf7",
+      "pomdp_states": 800,
+      "finished_learning_rows": 585,
+      "exception_learning_rows": 15
+    },
+    {
+      "experiment_id": "predator-factored/smar",
+      "path": "experiments/logs/predator/smar/results.json",
+      "git_blob": "619033929aed329d75f6800e45fc22e9e2881ece",
+      "pomdp_states": 626,
+      "finished_learning_rows": 600,
+      "exception_learning_rows": 0
+    },
+    {
+      "experiment_id": "predator-factored/mnar-unident",
+      "path": "experiments/logs/predator/mnar-unident/results.json",
+      "git_blob": "6bdc39a53cf37916b644478c6ed67af127e2f56e",
+      "pomdp_states": 626,
+      "finished_learning_rows": 561,
+      "exception_learning_rows": 39
+    }
+  ],
+  "known_artifact_audit": {
+    "learning_rows_total": 3000,
+    "finished_learning_rows_total": 2877,
+    "exception_learning_rows_total": 123,
+    "exception_rate": 0.041,
+    "exception_rows_by_dataset_size": {
+      "10": 120,
+      "50": 3,
+      "other": 0
+    },
+    "artifact_timestamp": "2025-07-15",
+    "limitations": [
+      "The five locked primary results.json artifacts do not constitute the full paper benchmark matrix.",
+      "No primary ICU MCAR results.json is present under experiments/logs/icu at this commit.",
+      "Predator MCAR search artifacts are a separate experiment contract and are not merged into the five primary result bundles.",
+      "PPO and stacked-PPO outputs live in separate logs_PPO and logs_PPO_stacked trees (242 results.json files at this commit) and are not counted as completed baseline coverage by this adapter.",
+      "An exception row is retained and reported; it is never silently dropped or counted as a successful policy evaluation."
+    ],
+    "exception_taxonomy": {
+      "exception_classes": [
+        "RemoteException"
+      ],
+      "exception_rows_with_known_message": 123,
+      "message": "Failed discrete belief update: new probabilities sum to zero.",
+      "affected_learning_experiment_bundles": 4,
+      "unaffected_learning_experiment_bundles": 1,
+      "message_fingerprint_claim": "All 123 failed learning rows carry the same top-level belief-update failure message; raw stack traces remain in the pinned result JSON blobs."
+    }
+  },
+  "ppo_artifact_matrix": {
+    "expected_total": 242,
+    "directories": [
+      {
+        "path": "experiments/logs_PPO/icu/mnar-ident",
+        "stacked": false,
+        "model": "icu",
+        "pattern": "mnar-ident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/icu/mnar-unident",
+        "stacked": false,
+        "model": "icu",
+        "pattern": "mnar-unident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/icu/smar",
+        "stacked": false,
+        "model": "icu",
+        "pattern": "smar",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/predator/mcar_search_big",
+        "stacked": false,
+        "model": "predator",
+        "pattern": "mcar_search_big",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/predator/mnar-unident",
+        "stacked": false,
+        "model": "predator",
+        "pattern": "mnar-unident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO/predator/smar",
+        "stacked": false,
+        "model": "predator",
+        "pattern": "smar",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/icu/mnar-ident",
+        "stacked": true,
+        "model": "icu",
+        "pattern": "mnar-ident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/icu/mnar-unident",
+        "stacked": true,
+        "model": "icu",
+        "pattern": "mnar-unident",
+        "runs": 19,
+        "observed_run_ids": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ],
+        "missing_run_ids": [
+          7
+        ],
+        "unique_seeds": 17,
+        "duplicate_seed_values": [
+          421,
+          422
+        ],
+        "duplicate_seed_counts": {
+          "421": 2,
+          "422": 2
+        }
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/icu/smar",
+        "stacked": true,
+        "model": "icu",
+        "pattern": "smar",
+        "runs": 23,
+        "observed_run_ids": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24
+        ],
+        "missing_run_ids": [
+          11
+        ]
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/predator/mcar_search_big",
+        "stacked": true,
+        "model": "pred",
+        "pattern": "mcar_search_big",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/predator/mnar-unident",
+        "stacked": true,
+        "model": "pred",
+        "pattern": "mnar-unident",
+        "runs": 20
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/predator/smar",
+        "stacked": true,
+        "model": "pred",
+        "pattern": "smar",
+        "runs": 20
+      }
+    ],
+    "manifest_contract": {
+      "algorithm": "PPO",
+      "train_steps": 1000000,
+      "eval_episodes": 2000,
+      "required_fields": [
+        "is_stacked",
+        "model",
+        "train_steps",
+        "pattern",
+        "id",
+        "n_frames",
+        "n_layers",
+        "n_hidden",
+        "algorithm",
+        "return_std",
+        "ppo_hparams",
+        "eval_episodes",
+        "return_mean",
+        "seed"
+      ],
+      "output_metrics": [
+        "run_count",
+        "unique_run_ids",
+        "unique_seeds",
+        "minimum_seed",
+        "maximum_seed",
+        "architecture_ranges",
+        "mean_return",
+        "median_return",
+        "minimum_return",
+        "maximum_return",
+        "mean_reported_return_std",
+        "unique_hyperparameter_sets"
+      ],
+      "comparison_rule": "Do not pool ICU and Predator return values; keep stacked and unstacked as separate groups."
+    },
+    "producer_sources": [
+      {
+        "path": "experiments/PPO_baseline.jl",
+        "git_blob": "90b6ad874df4914ed9b66c3be03cbcbed3068c1c"
+      },
+      {
+        "path": "src/PPO.jl",
+        "git_blob": "5486ac1891d9501524a640f060c42c10f8fff04d"
+      },
+      {
+        "path": "src/FrameStacking.jl",
+        "git_blob": "58fa3eb8e95ff093261de09cc843634dc4e9d236"
+      },
+      {
+        "path": "src/LogUtils.jl",
+        "git_blob": "2babf17a1f6c28ed5182a046a78baf292d411d94"
+      },
+      {
+        "path": "src/Missingness.jl",
+        "git_blob": "ab3037fa2d86f696f7af659ad9a43c59b481ae4e"
+      },
+      {
+        "path": "jenv/Project.toml",
+        "git_blob": "a70a44625b91af2d092902efe914b6c420580f08"
+      }
+    ],
+    "reproducibility_finding": {
+      "baseline_entrypoint": "experiments/PPO_baseline.jl",
+      "baseline_entrypoint_git_blob": "90b6ad874df4914ed9b66c3be03cbcbed3068c1c",
+      "declared_runs": 0,
+      "declared_n_frames": 1,
+      "declared_seed": 1500,
+      "source_conclusion": "The checked-in baseline entrypoint as pinned generates no PPO training runs because RUNS is zero; it also does not generate the stacked n_frames=149 artifacts.",
+      "stacked_entrypoint_found": false,
+      "limitation": "The result JSON files have no generating source commit, raw per-episode returns, or immutable run receipt. They can be audited as artifacts but their exact training execution is not reproducible from the pinned checked-in experiment entrypoint alone."
+    },
+    "known_artifact_irregularities": [
+      {
+        "path": "experiments/logs_PPO_stacked/icu/mnar-unident",
+        "file_count": 19,
+        "observed_run_ids": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ],
+        "missing_run_ids": [
+          7
+        ],
+        "unique_seed_count": 17,
+        "duplicate_seed_counts": {
+          "421": 2,
+          "422": 2
+        }
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/icu/smar",
+        "file_count": 23,
+        "observed_run_ids": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24
+        ],
+        "missing_run_ids": [
+          11
+        ]
+      }
+    ]
+  },
+  "policy_value_summary": {
+    "formula": "(candidate mean return - random policy mean) / (SARSOP true-M mean - random policy mean)",
+    "rows": 150,
+    "cells": "5 pinned experiment bundles x 10 dataset sizes x 3 assumed missingness classes",
+    "aggregation": "Successful per-seed learning rows only; failed rows remain an explicit per-cell denominator and are never silently discarded.",
+    "no_pooling": "No pooled ICU/Predator reward statistic; anchors are specific to each experiment bundle.",
+    "known_answers": [
+      {
+        "experiment": "icu/smar",
+        "dataset_size": 10,
+        "assumption": "MAR",
+        "algorithm": "AsMAR (MAR)",
+        "finished": 9,
+        "exceptions": 11,
+        "normalized_policy_value": 0.930564355,
+        "mean_average_tv": 0.43830096,
+        "mean_worst_tv": 0.768261905
+      },
+      {
+        "experiment": "icu/smar",
+        "dataset_size": 10000000,
+        "assumption": "MAR",
+        "algorithm": "AsMAR (MAR)",
+        "finished": 20,
+        "exceptions": 0,
+        "normalized_policy_value": 0.998560304,
+        "mean_average_tv": 0.000671432,
+        "mean_worst_tv": 0.001598136
+      },
+      {
+        "experiment": "icu/mnar-ident",
+        "dataset_size": 10000000,
+        "assumption": "MNAR",
+        "algorithm": "AIMI",
+        "finished": 20,
+        "exceptions": 0,
+        "normalized_policy_value": 0.997682956,
+        "mean_average_tv": 0.002521442,
+        "mean_worst_tv": 0.013326983
+      },
+      {
+        "experiment": "predator-factored/mnar-unident",
+        "dataset_size": 10000000,
+        "assumption": "MNAR",
+        "algorithm": "AIMI",
+        "finished": 20,
+        "exceptions": 0,
+        "normalized_policy_value": 0.909338052,
+        "mean_average_tv": 0.827299736,
+        "mean_worst_tv": 0.9525
+      }
+    ],
+    "claim_limit": "Descriptive normalization on completed run rows, not a confidence interval, statistical guarantee, reproduction of upstream plots or SOTA superiority."
+  }
+}

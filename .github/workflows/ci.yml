@@ -14,6 +14,165 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+
+  civdyn-state-observability-reference-audit:
+    name: CIVDYN State Observability Reference Audit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        repository: ai-fm/missingness-mdps
+        ref: 186c454c8e1581adbbf3cbb49ed9e0df510356f4
+        path: reference/missingness-mdps
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+      with:
+        toolchain: 1.96.0
+        components: clippy, rustfmt
+    - name: Check Formatting
+      run: cargo fmt --manifest-path research/civdyn-state-observability/Cargo.toml --all -- --check
+    - name: Run Strict Clippy
+      run: cargo clippy --locked --manifest-path research/civdyn-state-observability/Cargo.toml --all-targets -- -D warnings
+    - name: Compile and Test
+      run: |
+        cargo check --locked --manifest-path research/civdyn-state-observability/Cargo.toml --all-targets
+        cargo test --locked --manifest-path research/civdyn-state-observability/Cargo.toml --all-targets
+    - name: Audit Immutable Upstream Artifacts
+      run: |
+        set -euo pipefail
+        bash scripts/audit_miss_mdp_reference.sh reference/missingness-mdps > /tmp/miss-mdp-reference.tsv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-audit -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-audit -- /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-audit-replay.csv
+        cmp /tmp/miss-mdp-audit.csv /tmp/miss-mdp-audit-replay.csv
+        grep -F 'TOTAL,all,all,NA,3000,2877,123,0.959000,120,3,0,10,40,1,123' /tmp/miss-mdp-audit.csv
+    - name: Audit per-cell policy value, missingness TV and run failures
+      run: |
+        set -euo pipefail
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-audit -- --policy-summary /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-policy-summary.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-audit -- --policy-summary /tmp/miss-mdp-reference.tsv > /tmp/miss-mdp-policy-summary-replay.csv
+        cmp /tmp/miss-mdp-policy-summary.csv /tmp/miss-mdp-policy-summary-replay.csv
+        python3 - <<'PY'
+        import csv
+        import math
+        from pathlib import Path
+
+        with Path("/tmp/miss-mdp-policy-summary.csv").open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            assert reader.fieldnames is not None and len(reader.fieldnames) == 15
+            rows = list(reader)
+
+        assert len(rows) == 150
+        by_key = {(row["experiment_id"], int(row["dataset_size"]), row["assumed_missingness"]): row for row in rows}
+        assert len(by_key) == 150
+
+        for row in rows:
+            assert int(row["finished"]) + int(row["exceptions"]) == 20
+            if int(row["finished"]) > 0:
+                for key in ("mean_return", "median_return", "minimum_return", "maximum_return", "mean_average_tv", "mean_worst_tv", "normalized_policy_value", "oracle_anchor", "random_anchor"):
+                    assert math.isfinite(float(row[key]))
+                assert float(row["minimum_return"]) <= float(row["median_return"]) <= float(row["maximum_return"])
+                assert float(row["minimum_return"]) <= float(row["mean_return"]) <= float(row["maximum_return"])
+                expected = (float(row["mean_return"]) - float(row["random_anchor"])) / (float(row["oracle_anchor"]) - float(row["random_anchor"]))
+                assert math.isclose(float(row["normalized_policy_value"]), expected, rel_tol=1e-8, abs_tol=1e-8)
+            else:
+                assert row["mean_return"] == "" and row["normalized_policy_value"] == ""
+
+        icu_smar_small = by_key[("icu/smar", 10, "MAR")]
+        assert icu_smar_small["finished"] == "9"
+        assert icu_smar_small["exceptions"] == "11"
+        assert math.isclose(float(icu_smar_small["normalized_policy_value"]), 0.930564355, abs_tol=1e-8)
+
+        icu_smar_large = by_key[("icu/smar", 10000000, "MAR")]
+        assert icu_smar_large["finished"] == "20"
+        assert icu_smar_large["exceptions"] == "0"
+        assert math.isclose(float(icu_smar_large["normalized_policy_value"]), 0.998560304, abs_tol=1e-8)
+        assert math.isclose(float(icu_smar_large["mean_average_tv"]), 0.000671432, abs_tol=1e-8)
+        assert math.isclose(float(icu_smar_large["mean_worst_tv"]), 0.001598136, abs_tol=1e-8)
+
+        predator_unident = by_key[("predator-factored/mnar-unident", 10000000, "MNAR")]
+        assert predator_unident["finished"] == "20"
+        assert predator_unident["exceptions"] == "0"
+        assert math.isclose(float(predator_unident["normalized_policy_value"]), 0.909338052, abs_tol=1e-8)
+        assert math.isclose(float(predator_unident["mean_average_tv"]), 0.827299736, abs_tol=1e-8)
+        assert math.isclose(float(predator_unident["mean_worst_tv"]), 0.9525, abs_tol=1e-8)
+
+        print("Miss-MDP policy summary passed: 150 cells, denominator retention, matched per-experiment normalization, TV/policy-value separation and known-answer replay.")
+        PY
+    - name: Audit and replay the pinned PPO/stacked-PPO artifact matrix
+      run: |
+        set -euo pipefail
+        bash scripts/audit_miss_mdp_ppo_reference.sh reference/missingness-mdps > /tmp/miss-mdp-ppo.tsv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-ppo-audit -- /tmp/miss-mdp-ppo.tsv > /tmp/miss-mdp-ppo-audit.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-state-observability/Cargo.toml --bin miss-mdp-ppo-audit -- /tmp/miss-mdp-ppo.tsv > /tmp/miss-mdp-ppo-audit-replay.csv
+        cmp /tmp/miss-mdp-ppo-audit.csv /tmp/miss-mdp-ppo-audit-replay.csv
+        python3 - <<'PY'
+        import csv
+        from pathlib import Path
+
+        with Path("/tmp/miss-mdp-ppo-audit.csv").open(newline="", encoding="utf-8") as handle:
+            rows = list(csv.DictReader(handle))
+
+        assert len(rows) == 13
+        groups = {row["group"]: row for row in rows if row["group"] != "TOTAL"}
+        assert len(groups) == 12
+        expected = {
+            "experiments/logs_PPO/icu/mnar-ident": 20,
+            "experiments/logs_PPO/icu/mnar-unident": 20,
+            "experiments/logs_PPO/icu/smar": 20,
+            "experiments/logs_PPO/predator/mcar_search_big": 20,
+            "experiments/logs_PPO/predator/mnar-unident": 20,
+            "experiments/logs_PPO/predator/smar": 20,
+            "experiments/logs_PPO_stacked/icu/mnar-ident": 20,
+            "experiments/logs_PPO_stacked/icu/mnar-unident": 19,
+            "experiments/logs_PPO_stacked/icu/smar": 23,
+            "experiments/logs_PPO_stacked/predator/mcar_search_big": 20,
+            "experiments/logs_PPO_stacked/predator/mnar-unident": 20,
+            "experiments/logs_PPO_stacked/predator/smar": 20,
+        }
+        assert {key: int(row["run_count"]) for key, row in groups.items()} == expected
+        for row in groups.values():
+            assert row["run_count"] == row["unique_run_ids"]
+            assert int(row["unique_seeds"]) > 0
+            assert float(row["minimum_return"]) <= float(row["median_return"])
+            assert float(row["median_return"]) <= float(row["maximum_return"])
+            assert float(row["minimum_return"]) <= float(row["mean_return"])
+            assert float(row["mean_return"]) <= float(row["maximum_return"])
+            assert float(row["mean_reported_return_std"]) >= 0.0
+
+        expected_missing_ids = {
+            "experiments/logs_PPO_stacked/icu/mnar-unident": "7",
+            "experiments/logs_PPO_stacked/icu/smar": "11",
+        }
+        for group, row in groups.items():
+            observed_models = set(filter(None, row["observed_model_values"].split(";")))
+            if group.startswith("experiments/logs_PPO_stacked/predator/"):
+                assert observed_models
+                assert observed_models <= {"pred", "predator"}
+            else:
+                assert observed_models == {row["model"]}
+            assert row["missing_run_ids"] == expected_missing_ids.get(group, "")
+            observed_ids = [int(value) for value in row["observed_run_ids"].split(";")]
+            assert len(observed_ids) == int(row["run_count"])
+            assert len(set(observed_ids)) == len(observed_ids)
+
+        stacked_unident = groups["experiments/logs_PPO_stacked/icu/mnar-unident"]
+        assert stacked_unident["run_count"] == "19"
+        assert stacked_unident["unique_run_ids"] == "19"
+        assert stacked_unident["unique_seeds"] == "17"
+        assert stacked_unident["duplicate_seed_values"] == "421x2;422x2"
+        stacked_smar = groups["experiments/logs_PPO_stacked/icu/smar"]
+        assert stacked_smar["run_count"] == "23"
+        assert stacked_smar["missing_run_ids"] == "11"
+
+        total = next(row for row in rows if row["group"] == "TOTAL")
+        assert total["run_count"] == "242"
+        assert total["unique_run_ids"] == "242"
+        assert total["mean_return"] == "NA"
+        assert total["median_return"] == "NA"
+        print("PPO artifact contract passed: 242 run records, 12 groups, identity/budget integrity, seed coverage, return distributions and deterministic replay.")
+        PY
+
   test:
     # Living World exact-head qualification helpers have their own dedicated,
     # immutable-product workflows. Running the full 3-OS workspace matrix on

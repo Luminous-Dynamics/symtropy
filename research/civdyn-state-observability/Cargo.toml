@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "civdyn-state-observability-audit"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Pinned artifact completeness and failure audit for IJCAI 2026 missingness-MDP results"
+
+[[bin]]
+name = "miss-mdp-audit"
+path = "src/main.rs"
+
+[dependencies]
+
+[[bin]]
+name = "miss-mdp-ppo-audit"
+path = "src/ppo_audit.rs"
