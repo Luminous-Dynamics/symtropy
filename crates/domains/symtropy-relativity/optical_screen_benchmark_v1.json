@@ -159,7 +159,7 @@
     {
       "id": "OS-5B",
       "name": "independent Sachs optical-Jacobi equation cross-check",
-      "status": "not_implemented",
+      "status": "local optical tidal evaluation source authored; Rust execution pending",
       "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
       "observables": [
         "screen_basis_parallel_transport_residual",
@@ -167,14 +167,21 @@
         "optical_tidal_symmetry_residual",
         "vacuum_optical_tidal_trace_residual",
         "Jacobi_matrix_relative_error_vs_canonical_phase_space_variation",
-        "singular_value_and_signed_determinant_agreement"
+        "singular_value_and_signed_determinant_agreement",
+        "local_Riemann_optical_tidal_matrix",
+        "screen_null_orthonormality_and_transversality_residuals",
+        "vacuum_optical_tidal_trace",
+        "optical_tidal_matrix_symmetry"
       ],
       "target": {
         "screen_basis_parallel_transport_residual": 1e-10,
         "screen_basis_orthonormality_residual": 1e-10,
         "optical_tidal_symmetry_residual": 1e-10,
         "vacuum_optical_tidal_trace_residual": 1e-10,
-        "jacobi_matrix_relative_error_well_conditioned": 0.00001
+        "jacobi_matrix_relative_error_well_conditioned": 0.00001,
+        "radial_Schwarzschild_optical_tidal_absolute_residual": 1e-10,
+        "nonradial_Schwarzschild_vacuum_trace": 1e-8,
+        "nonradial_Schwarzschild_tidal_symmetry": 1e-8
       },
       "required": [
         "integrate the screen basis and 2x2 Jacobi matrix without reselecting a fresh reference-axis frame at every sample",
@@ -182,7 +189,30 @@
         "verify the exact Schwarzschild radial vertex solution D(lambda)=lambda*I",
         "report conditioning and unresolved near-caustic cases; do not regularize the smaller singular value"
       ],
-      "claim_ceiling": "An independent optical-geodesic formulation cross-check, not a caustic catalogue or finite-frequency wave solution."
+      "claim_ceiling": "An independent optical-geodesic formulation cross-check, not a caustic catalogue or finite-frequency wave solution.",
+      "implementation": {
+        "api": "KerrCanonicalHamiltonian::optical_tidal_matrix(state, chart, screen_basis, tolerance)",
+        "observer_screen_helper": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates(local_basis, chart)",
+        "curvature_path": "DifferentiatedMetric4 -> dimensionless chart scaling -> MetricDerivatives4/MetricSecondDerivatives4 -> RiemannTensor4 -> fully covariant Riemann -> T_AB",
+        "diagnostics": [
+          "null tangent constraint residual",
+          "screen orthonormality residual",
+          "screen transversality residual",
+          "optical tidal matrix symmetry residual",
+          "vacuum trace residual"
+        ],
+        "tests_authored": [
+          "radial Schwarzschild principal null ray has zero optical tidal matrix",
+          "nonradial Schwarzschild optical tide is nonzero, symmetric and trace-free",
+          "non-transverse screen frame is rejected with a typed error"
+        ],
+        "limitations": [
+          "pointwise optical tidal matrix only; no Sachs screen parallel-transport ODE",
+          "no integrated 2x2 optical Jacobi matrix from the curvature route",
+          "no independent OS-5B numerical agreement receipt against the canonical 8x8 variation yet",
+          "the caller must supply a screen frame tied to the same event and null direction"
+        ]
+      }
     },
     {
       "id": "OS-5C",
@@ -381,7 +411,8 @@
         "exclude unresolved/failed rays from benchmark accounting without reporting the exclusion rate",
         "combine caustic, wave-optics and geodesic workloads into one opaque score"
       ]
-    }
+    },
+    "sachs_curvature_comparison_required_before_caustic_claim": true
   },
   "references": [
     "https://einsteintoolkit.org/about/releases/ET_2026_05_announcement.html",
@@ -396,7 +427,7 @@
     "https://www.nature.com/articles/s41550-026-02874-x"
   ],
   "screen_frame_policy": {
-    "status": "same-event SO(2) source-screen re-expression implemented; parallel-transported Sachs frame and across-event atlas remain not implemented",
+    "status": "same-event SO(2) re-expression implemented; pointwise Sachs optical tidal matrix implemented at source level; transported Sachs screen remains not implemented",
     "topology": "An orthonormal tangent frame cannot be chosen globally continuously over the full observer sky S^2; use overlapping local charts or a transported screen frame.",
     "current_source_observation": "local_sky_tangent_basis selects between two reference axes at abs(azimuthal_direction)=0.9. The resulting bases are co-oriented, so an ideal chart transition is in SO(2), but the displayed 2x2 components can jump at the seam.",
     "risks": [
@@ -430,7 +461,9 @@
       "parallel-transport Sachs screen basis across source events",
       "continuous atlas transition across the observer-sky seam",
       "fold/cusp classification remains blocked until transported-frame and independent Sachs-Jacobi checks pass"
-    ]
+    ],
+    "sachs_pointwise_api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
+    "sachs_transport_status": "not implemented"
   },
   "caustic_qualification_policy": {
     "status": "future_gate_not_implemented",
