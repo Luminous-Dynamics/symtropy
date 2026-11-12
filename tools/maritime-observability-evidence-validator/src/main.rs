@@ -2,7 +2,6 @@ use serde_json::{json, Value};
 use std::{collections::{BTreeMap, BTreeSet}, env, fs, process::ExitCode};
 
 const VERSION: &str = "0.1.0";
-const FIXTURE: &str = include_str!("../../../benchmarks/maritime-observability/synthetic-report-v0.1.json");
 
 fn text<'a>(v: &'a Value, key: &str) -> Option<&'a str> {
     v.get(key).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty())
@@ -128,11 +127,12 @@ fn validate(report:&Value)->Result<Value,Vec<Value>>{
         let _deps=string_set(s,"dependency_groups",&path,&mut errors);
         if text(s,"source_role")==Some("measured")&&!parents.is_empty(){push(&mut errors,"MEASURED_HAS_PARENTS",&path,"directly measured channels cannot claim derivation parents");}
         if matches!(text(s,"source_role"),Some("derived"|"reconstructed"))&&parents.is_empty(){push(&mut errors,"DERIVED_PARENTS_REQUIRED",&path,"derived/reconstructed channels require parentage");}
-        if text(s,"timebase_qualification_state")==Some("qualified"){
-            if nullable_text(s,"timebase_id").is_none()||number(s,"timestamp_uncertainty_ms").is_none_or(|n|n<0.0)
-                ||!s["timebase_qualification_sha256"].as_str().is_some_and(sha){
-                push(&mut errors,"QUALIFIED_TIMEBASE_INCOMPLETE",&path,"qualified clock needs timebase ID, uncertainty bound and qualification SHA-256");
-            }
+        if text(s,"timebase_qualification_state")==Some("qualified")
+            && (nullable_text(s,"timebase_id").is_none()
+                ||number(s,"timestamp_uncertainty_ms").is_none_or(|n|n<0.0)
+                ||!s["timebase_qualification_sha256"].as_str().is_some_and(sha))
+        {
+            push(&mut errors,"QUALIFIED_TIMEBASE_INCOMPLETE",&path,"qualified clock needs timebase ID, uncertainty bound and qualification SHA-256");
         }
         if !s["timebase_qualification_sha256"].is_null()&&!s["timebase_qualification_sha256"].as_str().is_some_and(sha){push(&mut errors,"TIMEBASE_DIGEST_INVALID",&path,"invalid timebase qualification digest");}
         if !s["timestamp_uncertainty_ms"].is_null()&&number(s,"timestamp_uncertainty_ms").is_none_or(|n|n<0.0){push(&mut errors,"TIMESTAMP_UNCERTAINTY_INVALID",&path,"uncertainty must be finite/non-negative or null");}
