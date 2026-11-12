@@ -1,6 +1,6 @@
 # Airborne Energy Observability Validator
 
-An isolated Rust package for two separate research contracts:
+An isolated Rust package for three separate research contracts:
 
 1. **Receiver-pose observability** — finite synthetic field/receiver pose maps, alias detection, and explicit claim ceilings.
 2. **Mission energy ledger** — deterministic battery-electric segment energy accounting, explicit reserve segments, and continuous/peak DC-bus power screening.
@@ -28,7 +28,7 @@ It does not model climb/descent, manoeuvres, takeoff, stall dynamics, VTOL hover
 
 The v0.1 model is an analytical bookkeeping reference, not an aircraft performance or battery electrochemistry simulator.
 
-- Shaft-power inputs must come from a separately justified aerodynamic/propulsion model or measurement.
+- Shaft-power inputs must come from physical measurements or a separately justified aerodynamic/propulsion model. The included fixed-wing cruise estimator is an initial analytical option, not independently validated.
 - Motor and inverter efficiencies convert propulsor-shaft power to pack DC-bus power.
 - Auxiliary loads are already measured at the pack DC-bus boundary.
 - An explicit reserve segment is mandatory; an empty reserve profile is rejected.
