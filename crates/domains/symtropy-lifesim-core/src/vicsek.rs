@@ -2090,8 +2090,8 @@ mod tests {
     #[test]
     fn seeded_initialization_and_replay_are_deterministic() {
         let config = VicsekConfig::default();
-        let mut left = VicsekModel::random_uniform(64, config, 0x0A11_CE).unwrap();
-        let mut right = VicsekModel::random_uniform(64, config, 0x0A11_CE).unwrap();
+        let mut left = VicsekModel::random_uniform(64, config, 0x000A_11CE).unwrap();
+        let mut right = VicsekModel::random_uniform(64, config, 0x000A_11CE).unwrap();
 
         let left_reports = left.run_steps(40).unwrap();
         let right_reports = right.run_steps(40).unwrap();
@@ -2159,7 +2159,7 @@ mod tests {
             (10.0, 11.0, 20, false),
         ];
         for (box_size, radius, count, expect_index) in fixtures {
-            let mut rng = XorShift64::new(0xC311_1D3);
+            let mut rng = XorShift64::new(0x0C31_11D3);
             let positions: Vec<(f64, f64)> = (0..count)
                 .map(|_| (rng.next_unit() * box_size, rng.next_unit() * box_size))
                 .collect();
@@ -2215,7 +2215,7 @@ mod tests {
         for perception in [
             VicsekPerception::MetricRadius,
             VicsekPerception::VisualSector {
-                half_aperture_rad: std::f64::consts::FRAC_PI_5,
+                half_aperture_rad: (std::f64::consts::PI / 5.0),
                 offset_rad: std::f64::consts::PI,
             },
         ] {
@@ -2332,7 +2332,7 @@ mod tests {
             },
         ] {
             let model =
-                VicsekModel::new_with_perception(particles.clone(), config, 0xC311_1D3, perception)
+                VicsekModel::new_with_perception(particles.clone(), config, 0x0C31_11D3, perception)
                     .unwrap();
             let indexed = model.clone();
             let mut expected = model.clone();
@@ -2442,6 +2442,7 @@ mod tests {
                 speed: 0.0,
                 dt: 1.0,
                 angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
             },
             17,
         )
@@ -2449,8 +2450,8 @@ mod tests {
 
         let metrics = model.metrics();
         assert!(metrics.polar_order < 1.0e-12);
-        assert!((metrics.mean_local_polar_order - 1.0).abs() < 1.0e-12);
-        assert!(metrics.local_polar_order_variance < 1.0e-12);
+        assert!((metrics.mean_local_polar_order.unwrap() - 1.0).abs() < 1.0e-12);
+        assert!(metrics.local_polar_order_variance.unwrap() < 1.0e-12);
         assert_eq!(metrics.cluster_count, 2);
         assert_eq!(metrics.largest_cluster_fraction, 0.5);
     }
