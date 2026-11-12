@@ -337,9 +337,8 @@
           "additionalProperties": false,
           "required": [
             "status",
-            "reserve_state_digest",
-            "topology_digest",
-            "terminal_safe_stop_reachable"
+            "branch_manifest_digest",
+            "branch_receipts"
           ],
           "properties": {
             "status": {
@@ -349,14 +348,35 @@
                 "invalid"
               ]
             },
-            "reserve_state_digest": {
+            "branch_manifest_digest": {
               "$ref": "#/$defs/digest"
             },
-            "topology_digest": {
-              "$ref": "#/$defs/digest"
-            },
-            "terminal_safe_stop_reachable": {
-              "type": "boolean"
+            "branch_receipts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "branch_id",
+                  "reserve_state_digest",
+                  "topology_digest",
+                  "terminal_safe_stop_reachable"
+                ],
+                "properties": {
+                  "branch_id": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "reserve_state_digest": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "topology_digest": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "terminal_safe_stop_reachable": {
+                    "type": "boolean"
+                  }
+                }
+              }
             }
           }
         }
