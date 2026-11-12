@@ -71,6 +71,26 @@ This is complementary to the October paired S-N/FCGR workbook. Do not assume tha
 - No random point-level train/test split. Adjacent observations from one curve/specimen/publication must remain in the same evaluation group.
 - CC BY 4.0 requires attribution for public derivatives; retain original source-publication attribution as well as dataset DOI attribution.
 
+## 4.4A Exact NASA/SwRI equation semantics and curve-level uncertainty
+
+NASA/CR-2005-213585 Section 2.7 distinguishes two formulations:
+
+- Its NASGRO-compatible equation uses an effective cyclic driving-force term with a threshold factor involving Delta-K-th and a terminal acceleration factor involving K-max/K-c.
+- Its Saxena-Hudak three-component equation combines three reciprocal-rate contributions: a near-threshold Paris-like term, a classic Paris-regime term, and a term that permits acceleration near instability.
+
+The NASA report states that the three-component equation does **not** require a mathematical threshold. In that report, an operational Delta-K-th is inferred at a declared da/dN reporting level (10^-9 inch/cycle, following the cited ASTM practice). Therefore an operational threshold at a stated reporting level and a mathematical no-growth cutoff are different claims. The model can produce very small growth below the reported operational Delta-K-th.
+
+The same report notes that neighbouring da/dN observations are not independent: crack-growth-rate points are derived from a(N) measurements, and the transformation introduces substantial serial correlation. It examines an autoregressive residual model rather than assuming independent errors.
+
+Benchmark consequences:
+- Keep the NASA/SwRI three-component equation and NASGRO equation as distinct candidate families; record their exact formula/version, parameters and assumptions.
+- Distinguish an operational threshold at a stated da/dN reporting/detection level from a true no-growth cutoff.
+- Preserve original crack-length-versus-cycle observations wherever licensing/schema permits; retain the finite-difference/window method used to derive da/dN and Delta-K.
+- Propagate crack-length, cycle/time, geometry and load/stress-intensity measurement uncertainties through the derived response where supported.
+- Treat a test curve/specimen/publication as the statistical unit for split and resampling. Do not treat adjacent derived points as independent replicate specimens.
+- Evaluate curve-level covariance/autocorrelation (for example a declared AR(1) residual profile) against independent residual diagnostics. Do not assume AR(1) is universal; compare alternatives only where data support them.
+- Report both pointwise predictive errors and curve-integrated crack-growth/life consequences, retaining the covariance model and its version in the receipt.
+
 ## 5. Candidate model tournament
 
 Evaluate all candidate models on identical admitted curve groups and the same fitting budget.
@@ -106,6 +126,9 @@ Report per curve, regime, grade, environment and force-ratio stratum:
 - log10(da/dN) MAE/RMSE and signed bias;
 - curve-wise error distributions and worst-group performance;
 - transition-location error and transition stability across resamples;
+- residual autocorrelation diagnostics and grouped curve-level uncertainty (not an IID point-count surrogate);
+- propagated uncertainty from original a(N), cycle/time, geometry and load/SIF measurements where source metadata support it;
+- curve-integrated crack-growth/life discrepancy under the declared covariance model;
 - predictive interval coverage and width when an uncertainty method is justified;
 - false-slow / unconservative error separately from overprediction;
 - regime-domain coverage, abstention rate and out-of-domain detection;
@@ -207,7 +230,7 @@ A claimed improvement must beat the strongest matched eligible baseline on the p
 - ASTM E647-24: https://store.astm.org/standards/e647
 - Ansys SMART fatigue crack-growth options and temperature/R-ratio/closure features: https://ansyshelp.ansys.com/public/Views/Secured/corp/v261/en/ans_frac/fracSMART.html
 - Ansys Mechanical APDL Fracture Analysis Guide (region-II restriction stated for its cited XFEM fatigue-growth implementation): https://ansyshelp.ansys.com/public/Views/Secured/corp/v252/en/pdf/Ansys_Mechanical_APDL_Fracture_Analysis_Guide.pdf
-- NASA/CR-2005-213585, *Probabilistic Fracture Mechanics Analysis of the Orbiter's LH2 Feedline Flowliner*, Section 2.7: NASGRO-compatible and NASA/SwRI three-component equations: https://ntrs.nasa.gov/api/citations/20050186899/downloads/20050186899.pdf
+- NASA/CR-2005-213585, *Probabilistic Fracture Mechanics Analysis of the Orbiter's LH2 Feedline Flowliner*, Section 2.7: NASGRO-compatible and NASA/SwRI three-component equations: https://ntrs.nasa.gov/api/citations/20050186899/downloads/20050186899.pdf (Sections 2.7 and 4.3.4 discuss the two equation families and correlated crack-growth-rate residuals)
 - NASA NASGRO 2025 fracture/fatigue report: https://ntrs.nasa.gov/api/citations/20250011200/downloads/NASGRO%20FFS%20Final%20Report%20July%202025%20formatted.pdf
 - NASA Probabilistic Risk Assessment Guide, NASGRO equation and crack-growth parameter definitions: https://ntrs.nasa.gov/api/citations/20120001369/downloads/20120001369.pdf
 - NAFEMS code verification: https://www.nafems.org/publications/code-verification/
