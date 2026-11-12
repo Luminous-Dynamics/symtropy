@@ -77,6 +77,7 @@ jobs:
             (.active_evidence_selection.execution_performed == false) and
             (.active_evidence_selection.actuation_authorized == false) and
             (.active_evidence_selection.controlled_perturbations_recommended == 0) and
+            (.active_evidence_selection.sequential_updates.status == "single_point_model_updates_supported_multiscenario_updates_blocked") and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.status == "protocol_only_not_executed") and
             (.streaming_contract.one_sample_one_output == true) and
@@ -124,7 +125,6 @@ jobs:
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
             (.method.sequential_update_policy.status == "single_point_model_updates_supported_multiscenario_updates_blocked") and
             (.method.sequential_update_policy.no_silent_fallback == true) and
-            (.sequential_updates.status == "single_point_model_updates_supported_multiscenario_updates_blocked") and
             (.hard_gates | length >= 50) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             (.evidence_boundaries.authority_status | contains("upstream mandatory checks"))
