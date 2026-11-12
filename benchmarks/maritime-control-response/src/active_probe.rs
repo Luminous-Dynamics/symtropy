@@ -271,6 +271,8 @@ pub enum ProbeError {
     InvalidLikelihoodProbability(String),
     InvalidLikelihoodNormalization(String),
     InvalidScenarioSet(String),
+    RiskEvidenceNotReviewed,
+    LikelihoodCalibrationNotReviewed,
     CandidateCatalogMismatch,
     InvalidSeedDigest,
     ObservationCandidateMismatch,
@@ -1342,6 +1344,15 @@ mod tests {
         };
         candidate.candidate_manifest_sha256 = candidate_manifest_sha256(&candidate).unwrap();
         candidate
+    }
+
+    #[test]
+    fn unreviewed_risk_and_likelihood_evidence_have_distinct_error_codes() {
+        let risk_error = ProbeError::RiskEvidenceNotReviewed;
+        let calibration_error = ProbeError::LikelihoodCalibrationNotReviewed;
+        assert!(risk_error.to_string().contains("authority owner"));
+        assert!(calibration_error.to_string().contains("independent validator"));
+        assert_ne!(risk_error, calibration_error);
     }
 
     #[test]
