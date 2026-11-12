@@ -4,9 +4,9 @@
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
-use symtropy_physics::{NetId, PhysicsWorld, RigidBody, WorldSnapshot, body::BodyHandle};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
+use symtropy_physics::{NetId, PhysicsWorld, RigidBody, WorldSnapshot, body::BodyHandle};
 
 fn bench_gjk_sphere_sphere(c: &mut Criterion) {
     let a = Sphere::<3>::unit();
@@ -224,11 +224,7 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
                 .expect("benchmark NetIds are unique");
             for index in 0..body_count {
                 if (index as u64 % 100) >= coverage_percent {
-                    profiled_world.add_sphere(
-                        Point::new([index as f64 * 2.0, 0.0, 0.0]),
-                        0.5,
-                        1.0,
-                    );
+                    profiled_world.add_sphere(Point::new([index as f64 * 2.0, 0.0, 0.0]), 0.5, 1.0);
                 }
             }
             let sidecar = WorldSnapshot::capture_with_runtime_ids(&profiled_world);
@@ -258,7 +254,13 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
                 BenchmarkId::new("sidecar_validation", format!("netid-{coverage_percent}pct")),
                 &sidecar,
                 |bencher, snapshot| {
-                    bencher.iter(|| black_box(snapshot.validate_alignment().expect("valid benchmark sidecar")));
+                    bencher.iter(|| {
+                        black_box(
+                            snapshot
+                                .validate_alignment()
+                                .expect("valid benchmark sidecar"),
+                        )
+                    });
                 },
             );
 
@@ -270,9 +272,12 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
                 &profiled_world,
                 |bencher, source| {
                     bencher.iter(|| {
-                        let snapshot =
-                            WorldSnapshot::capture_with_runtime_ids(black_box(source));
-                        black_box(snapshot.validate_alignment().expect("valid benchmark sidecar"))
+                        let snapshot = WorldSnapshot::capture_with_runtime_ids(black_box(source));
+                        black_box(
+                            snapshot
+                                .validate_alignment()
+                                .expect("valid benchmark sidecar"),
+                        )
                     });
                 },
             );
