@@ -17,9 +17,7 @@
 
 use core::marker::PhantomData;
 
-use super::{
-    CoordinateFrame, Matrix, Metric, MetricErrorV1,
-};
+use super::{CoordinateFrame, Matrix, Metric, MetricErrorV1};
 use super::operator::{
     OperatorConditionErrorV1, OperatorConditionProfileV1, OperatorConditionStatusV1,
 };
@@ -210,10 +208,7 @@ fn whiten_tangent_to_cotangent<
     Ok(result)
 }
 
-fn column_norm<const K: usize, const N: usize>(
-    matrix: &[[f64; N]; K],
-    column: usize,
-) -> f64 {
+fn column_norm<const K: usize, const N: usize>(matrix: &[[f64; N]; K], column: usize) -> f64 {
     matrix
         .iter()
         .fold(0.0_f64, |norm, row| norm.hypot(row[column]))
@@ -321,8 +316,8 @@ fn singular_values_one_sided_jacobi<const K: usize, const N: usize>(
     let mut maximum_correlation = 0.0_f64;
     for left in 0..N {
         for right in (left + 1)..N {
-            maximum_correlation = maximum_correlation
-                .max(normalized_column_correlation(&work, left, right)?.abs());
+            maximum_correlation =
+                maximum_correlation.max(normalized_column_correlation(&work, left, right)?.abs());
         }
     }
     if !converged && maximum_correlation > profile.relative_jacobi_tolerance {
@@ -434,8 +429,7 @@ impl<Domain: CoordinateFrame, Codomain: CoordinateFrame, const K: usize, const N
         codomain_metric: &Metric<Codomain, K>,
         profile: OperatorConditionProfileV1,
     ) -> Result<RectangularOperatorConditionReceiptV1, OperatorConditionErrorV1> {
-        let whitened =
-            whiten_tangent_to_tangent(&self.matrix, domain_metric, codomain_metric)?;
+        let whitened = whiten_tangent_to_tangent(&self.matrix, domain_metric, codomain_metric)?;
         assess_whitened(whitened, profile)
     }
 }
@@ -461,8 +455,7 @@ impl<Domain: CoordinateFrame, Codomain: CoordinateFrame, const K: usize, const N
         codomain_metric: &Metric<Codomain, K>,
         profile: OperatorConditionProfileV1,
     ) -> Result<RectangularOperatorConditionReceiptV1, OperatorConditionErrorV1> {
-        let whitened =
-            whiten_tangent_to_cotangent(&self.matrix, domain_metric, codomain_metric)?;
+        let whitened = whiten_tangent_to_cotangent(&self.matrix, domain_metric, codomain_metric)?;
         assess_whitened(whitened, profile)
     }
 }
@@ -513,22 +506,28 @@ mod tests {
         let domain = Metric::<CartesianQ, 3>::admit(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             metric_profile(),
-        ).unwrap();
-        let codomain = Metric::<DenseY, 2>::admit(
-            [[1.0, 0.0], [0.0, 1.0]],
-            metric_profile(),
-        ).unwrap();
+        )
+        .unwrap();
+        let codomain =
+            Metric::<DenseY, 2>::admit([[1.0, 0.0], [0.0, 1.0]], metric_profile()).unwrap();
         let operator = RectangularTangentToTangentOperator::<CartesianQ, DenseY, 2, 3>::new([
             [1.0, 0.0, 0.0],
             [0.0, 2.0, 0.0],
-        ]).unwrap();
+        ])
+        .unwrap();
 
-        let receipt = operator.assess(&domain, &codomain, operator_profile()).unwrap();
+        let receipt = operator
+            .assess(&domain, &codomain, operator_profile())
+            .unwrap();
         assert_eq!(receipt.numerical_rank, 2);
         assert_eq!(receipt.domain_nullity, 1);
         assert_eq!(receipt.codomain_nullity, 0);
         assert_eq!(receipt.condition_estimate, None);
-        close(receipt.nonzero_spectrum_condition_estimate.unwrap(), 2.0, 1.0e-12);
+        close(
+            receipt.nonzero_spectrum_condition_estimate.unwrap(),
+            2.0,
+            1.0e-12,
+        );
         assert_eq!(receipt.status, RectangularOperatorStatusV1::NonInjective);
     }
 
@@ -537,17 +536,19 @@ mod tests {
         let domain = Metric::<CartesianQ, 3>::admit(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             metric_profile(),
-        ).unwrap();
-        let codomain = Metric::<DenseY, 2>::admit(
-            [[1.0, 0.0], [0.0, 1.0]],
-            metric_profile(),
-        ).unwrap();
+        )
+        .unwrap();
+        let codomain =
+            Metric::<DenseY, 2>::admit([[1.0, 0.0], [0.0, 1.0]], metric_profile()).unwrap();
         let operator = RectangularTangentToTangentOperator::<CartesianQ, DenseY, 2, 3>::new([
             [1.0, 0.0, 0.0],
             [2.0, 0.0, 0.0],
-        ]).unwrap();
+        ])
+        .unwrap();
 
-        let receipt = operator.assess(&domain, &codomain, operator_profile()).unwrap();
+        let receipt = operator
+            .assess(&domain, &codomain, operator_profile())
+            .unwrap();
         assert_eq!(receipt.numerical_rank, 1);
         assert_eq!(receipt.domain_nullity, 2);
         assert_eq!(receipt.codomain_nullity, 1);
@@ -557,21 +558,23 @@ mod tests {
 
     #[test]
     fn tall_full_column_rank_map_has_a_finite_condition_estimate() {
-        let domain = Metric::<CartesianQ, 2>::admit(
-            [[1.0, 0.0], [0.0, 1.0]],
-            metric_profile(),
-        ).unwrap();
+        let domain =
+            Metric::<CartesianQ, 2>::admit([[1.0, 0.0], [0.0, 1.0]], metric_profile()).unwrap();
         let codomain = Metric::<DenseY, 3>::admit(
             [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
             metric_profile(),
-        ).unwrap();
+        )
+        .unwrap();
         let operator = RectangularTangentToCotangentOperator::<CartesianQ, DenseY, 3, 2>::new([
             [2.0, 0.0],
             [0.0, 3.0],
             [0.0, 0.0],
-        ]).unwrap();
+        ])
+        .unwrap();
 
-        let receipt = operator.assess(&domain, &codomain, operator_profile()).unwrap();
+        let receipt = operator
+            .assess(&domain, &codomain, operator_profile())
+            .unwrap();
         assert_eq!(receipt.numerical_rank, 2);
         assert_eq!(receipt.domain_nullity, 0);
         assert_eq!(receipt.codomain_nullity, 1);
@@ -586,37 +589,48 @@ mod tests {
         let domain_q = Metric::<CartesianQ, 3>::admit(
             [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]],
             source_profile,
-        ).unwrap();
-        let codomain_q = Metric::<CartesianQ, 2>::admit(
-            [[4.0, 0.0], [0.0, 2.0]],
-            source_profile,
-        ).unwrap();
+        )
+        .unwrap();
+        let codomain_q =
+            Metric::<CartesianQ, 2>::admit([[4.0, 0.0], [0.0, 2.0]], source_profile).unwrap();
         let sx = Rebasis::<CartesianQ, DenseY, 3>::new(
             [[1.0, 2.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]],
             source_profile,
-        ).unwrap();
-        let sy = Rebasis::<CartesianQ, DenseY, 2>::new(
-            [[1.0, 2.0], [0.0, 1.0]],
-            source_profile,
-        ).unwrap();
+        )
+        .unwrap();
+        let sy = Rebasis::<CartesianQ, DenseY, 2>::new([[1.0, 2.0], [0.0, 1.0]], source_profile)
+            .unwrap();
         let domain_y = sx.metric_to_to(&domain_q, source_profile).unwrap();
         let codomain_y = sy.metric_to_to(&codomain_q, source_profile).unwrap();
         let aq = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
         let sx_matrix = *sx.matrix();
         let sy_inverse = [[1.0, -2.0], [0.0, 1.0]];
         let sy_transpose = [[1.0, 0.0], [2.0, 1.0]];
-        let aty_q = RectangularTangentToTangentOperator::<CartesianQ, CartesianQ, 2, 3>::new(aq).unwrap();
+        let aty_q =
+            RectangularTangentToTangentOperator::<CartesianQ, CartesianQ, 2, 3>::new(aq).unwrap();
         let aty_y_matrix = multiply(&multiply(&sy_inverse, &aq), &sx_matrix);
-        let aty_y = RectangularTangentToTangentOperator::<DenseY, DenseY, 2, 3>::new(aty_y_matrix).unwrap();
+        let aty_y =
+            RectangularTangentToTangentOperator::<DenseY, DenseY, 2, 3>::new(aty_y_matrix).unwrap();
 
-        let atc_q = RectangularTangentToCotangentOperator::<CartesianQ, CartesianQ, 2, 3>::new(aq).unwrap();
+        let atc_q =
+            RectangularTangentToCotangentOperator::<CartesianQ, CartesianQ, 2, 3>::new(aq).unwrap();
         let atc_y_matrix = multiply(&multiply(&sy_transpose, &aq), &sx_matrix);
-        let atc_y = RectangularTangentToCotangentOperator::<DenseY, DenseY, 2, 3>::new(atc_y_matrix).unwrap();
+        let atc_y =
+            RectangularTangentToCotangentOperator::<DenseY, DenseY, 2, 3>::new(atc_y_matrix)
+                .unwrap();
 
-        let aty_q_receipt = aty_q.assess(&domain_q, &codomain_q, source_operator_profile).unwrap();
-        let aty_y_receipt = aty_y.assess(&domain_y, &codomain_y, source_operator_profile).unwrap();
-        let atc_q_receipt = atc_q.assess(&domain_q, &codomain_q, source_operator_profile).unwrap();
-        let atc_y_receipt = atc_y.assess(&domain_y, &codomain_y, source_operator_profile).unwrap();
+        let aty_q_receipt = aty_q
+            .assess(&domain_q, &codomain_q, source_operator_profile)
+            .unwrap();
+        let aty_y_receipt = aty_y
+            .assess(&domain_y, &codomain_y, source_operator_profile)
+            .unwrap();
+        let atc_q_receipt = atc_q
+            .assess(&domain_q, &codomain_q, source_operator_profile)
+            .unwrap();
+        let atc_y_receipt = atc_y
+            .assess(&domain_y, &codomain_y, source_operator_profile)
+            .unwrap();
 
         assert_eq!(aty_q_receipt.numerical_rank, aty_y_receipt.numerical_rank);
         assert_eq!(atc_q_receipt.numerical_rank, atc_y_receipt.numerical_rank);
@@ -655,33 +669,38 @@ mod tests {
         let domain = Metric::<CartesianQ, 3>::admit(
             [[2.0, 0.0, 0.0], [0.0, 3.0, 0.0], [0.0, 0.0, 5.0]],
             profile,
-        ).unwrap();
-        let codomain = Metric::<CartesianQ, 2>::admit(
-            [[4.0, 0.0], [0.0, 2.0]],
-            profile,
-        ).unwrap();
+        )
+        .unwrap();
+        let codomain = Metric::<CartesianQ, 2>::admit([[4.0, 0.0], [0.0, 2.0]], profile).unwrap();
         let sx = Rebasis::<CartesianQ, DenseY, 3>::new(
             [[1.0, 2.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]],
             profile,
-        ).unwrap();
-        let sy = Rebasis::<CartesianQ, DenseY, 2>::new(
-            [[1.0, 2.0], [0.0, 1.0]],
-            profile,
-        ).unwrap();
+        )
+        .unwrap();
+        let sy = Rebasis::<CartesianQ, DenseY, 2>::new([[1.0, 2.0], [0.0, 1.0]], profile).unwrap();
         let domain_y = sx.metric_to_to(&domain, profile).unwrap();
         let codomain_y = sy.metric_to_to(&codomain, profile).unwrap();
         let aq = [[1.0, 0.0, 1.0], [0.0, 2.0, -1.0]];
         let wrong_left = [[1.0, 0.0], [2.0, 1.0]];
         let wrong_matrix = multiply(&multiply(&wrong_left, &aq), sx.matrix());
-        let wrong = RectangularTangentToTangentOperator::<DenseY, DenseY, 2, 3>::new(wrong_matrix).unwrap();
-        let correct = RectangularTangentToTangentOperator::<DenseY, DenseY, 2, 3>::new(
-            multiply(&multiply(&[[1.0, -2.0], [0.0, 1.0]], &aq), sx.matrix())
-        ).unwrap();
-        let wrong_receipt = wrong.assess(&domain_y, &codomain_y, operator_profile).unwrap();
-        let correct_receipt = correct.assess(&domain_y, &codomain_y, operator_profile).unwrap();
+        let wrong =
+            RectangularTangentToTangentOperator::<DenseY, DenseY, 2, 3>::new(wrong_matrix).unwrap();
+        let correct = RectangularTangentToTangentOperator::<DenseY, DenseY, 2, 3>::new(multiply(
+            &multiply(&[[1.0, -2.0], [0.0, 1.0]], &aq),
+            sx.matrix(),
+        ))
+        .unwrap();
+        let wrong_receipt = wrong
+            .assess(&domain_y, &codomain_y, operator_profile)
+            .unwrap();
+        let correct_receipt = correct
+            .assess(&domain_y, &codomain_y, operator_profile)
+            .unwrap();
         assert!(
             (wrong_receipt.nonzero_spectrum_condition_estimate.unwrap()
-                - correct_receipt.nonzero_spectrum_condition_estimate.unwrap()).abs() > 1.0e-3
+                - correct_receipt.nonzero_spectrum_condition_estimate.unwrap())
+            .abs()
+                > 1.0e-3
         );
     }
 
