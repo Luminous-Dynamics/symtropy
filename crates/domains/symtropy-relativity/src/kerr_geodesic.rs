@@ -40,7 +40,7 @@ use core::fmt;
 use super::{
     KerrBlackHole, PhysicsDomainError,
     autodiff::{DifferentiatedMetric4, JetError},
-    connection::MetricDerivatives4,
+    connection::{LeviCivitaConnection4, MetricDerivatives4},
     curvature::{MetricSecondDerivatives4, RiemannTensor4},
     metric::{MetricComponents4, MetricError},
 };
@@ -531,6 +531,20 @@ pub struct KerrOpticalTidalEvaluation {
     pub tidal_symmetry_residual: f64,
     /// For vacuum Kerr, abs(trace(T)) should vanish with the Ricci contraction.
     pub vacuum_trace_residual: f64,
+}
+
+/// Local right-hand side for parallel transport of a two-vector Sachs screen.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrSachsFrameTransportDerivative {
+    pub coordinate_chart: KerrMinoCoordinateChart,
+    /// de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta.
+    pub screen_basis_derivative: [[f64; 4]; 2],
+    pub null_constraint_residual: f64,
+    pub screen_orthonormality_residual: f64,
+    pub screen_transversality_residual: f64,
+    pub orthonormality_rate_residual: f64,
+    pub transversality_rate_residual: f64,
+    pub metric_compatibility_residual: f64,
 }
 
 /// Independent canonical Hamiltonian evaluator for exterior Kerr rays.
@@ -1382,6 +1396,202 @@ impl KerrCanonicalHamiltonian {
             screen_transversality_residual,
             tidal_symmetry_residual,
             vacuum_trace_residual: (tidal_matrix[0][0] + tidal_matrix[1][1]).abs(),
+        })
+    }
+
+    /// Evaluate the covariant transport derivative of a pointwise Sachs
+    /// screen frame along a canonical Kerr null geodesic.
+    ///
+    /// This returns the ODE right-hand side for a parallel-transported screen:
+    /// de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta.
+    /// It does not step or renormalize the frame. The returned rate residuals
+    /// independently check that the metric inner products and transversality
+    /// are preserved by the supplied connection and affine geodesic tangent.
+    pub fn sachs_frame_transport_derivative(
+        self,
+        state: KerrCanonicalState,
+        coordinate_chart: KerrMinoCoordinateChart,
+        screen_basis: [[f64; 4]; 2],
+        tolerance: f64,
+    ) -> Result<KerrSachsFrameTransportDerivative, KerrGeodesicError> {
+        if !tolerance.is_finite() || tolerance <= 0.0 {
+            return Err(KerrGeodesicError::InvalidProjectionTolerance(tolerance));
+        }
+        let radius_m = state.coordinates.radius_over_m * self.hole.gravitational_radius_m();
+        let differentiated = match coordinate_chart {
+            KerrMinoCoordinateChart::BoyerLindquist => {
+                DifferentiatedMetric4::kerr_exterior(
+                    self.hole,
+                    radius_m,
+                    state.coordinates.theta_rad,
+                )?
+            }
+            KerrMinoCoordinateChart::IngoingKerr => {
+                DifferentiatedMetric4::kerr_ingoing(
+                    self.hole,
+                    radius_m,
+                    state.coordinates.theta_rad,
+                )?
+            }
+        };
+        let evaluation = self.evaluate_differentiated(state, differentiated)?;
+        let k = evaluation.derivative.coordinates;
+        let mass_length = self.hole.gravitational_radius_m();
+        let factors = [1.0, 1.0, 1.0 / mass_length, 1.0 / mass_length];
+        let source_metric = differentiated.metric.covariant();
+        let source_first = differentiated.first.components();
+        let mut metric_components = [[0.0; 4]; 4];
+        let mut first_components = [[[0.0; 4]; 4]; 4];
+        for mu in 0..4 {
+            for nu in 0..4 {
+                let scale = factors[mu] * factors[nu];
+                metric_components[mu][nu] = source_metric[mu][nu] * scale;
+                first_components[1][mu][nu] =
+                    source_first[1][mu][nu] * mass_length * scale;
+                first_components[2][mu][nu] = source_first[2][mu][nu] * scale;
+            }
+        }
+        let metric = MetricComponents4::new(metric_components)?;
+        let first = MetricDerivatives4::new(first_components).map_err(JetError::from)?;
+        let connection = LeviCivitaConnection4::from_metric_and_derivatives(&metric, &first)
+            .map_err(JetError::from)?;
+        let gamma = connection.symbols();
+        let g = metric.covariant();
+        let d_g = first.components();
+        let metric_inner = |left: [f64; 4], right: [f64; 4]| -> f64 {
+            let mut value = 0.0;
+            for mu in 0..4 {
+                for nu in 0..4 {
+                    value += g[mu][nu] * left[mu] * right[nu];
+                }
+            }
+            value
+        };
+        let null_constraint_residual = metric_inner(k, k).abs();
+        let mut screen_orthonormality_residual: f64 = 0.0;
+        let mut screen_transversality_residual: f64 = 0.0;
+        for first_screen in 0..2 {
+            screen_transversality_residual = screen_transversality_residual
+                .max(metric_inner(screen_basis[first_screen], k).abs());
+            for second_screen in 0..2 {
+                let expected = if first_screen == second_screen { 1.0 } else { 0.0 };
+                screen_orthonormality_residual = screen_orthonormality_residual.max(
+                    (metric_inner(
+                        screen_basis[first_screen],
+                        screen_basis[second_screen],
+                    ) - expected)
+                        .abs(),
+                );
+            }
+        }
+        if !null_constraint_residual.is_finite()
+            || !screen_orthonormality_residual.is_finite()
+            || !screen_transversality_residual.is_finite()
+            || null_constraint_residual > tolerance
+            || screen_orthonormality_residual > tolerance
+            || screen_transversality_residual > tolerance
+        {
+            return Err(KerrGeodesicError::OpticalFrameConstraintViolation {
+                null_residual: null_constraint_residual,
+                orthonormality_residual: screen_orthonormality_residual,
+                transversality_residual: screen_transversality_residual,
+                tolerance,
+            });
+        }
+
+        let mut screen_basis_derivative = [[0.0; 4]; 2];
+        for screen in 0..2 {
+            for mu in 0..4 {
+                for alpha in 0..4 {
+                    for beta in 0..4 {
+                        screen_basis_derivative[screen][mu] -=
+                            gamma[mu][alpha][beta] * k[alpha] * screen_basis[screen][beta];
+                    }
+                }
+            }
+        }
+        let mut geodesic_acceleration = [0.0; 4];
+        for mu in 0..4 {
+            for alpha in 0..4 {
+                for beta in 0..4 {
+                    geodesic_acceleration[mu] -= gamma[mu][alpha][beta] * k[alpha] * k[beta];
+                }
+            }
+        }
+
+        let mut orthonormality_rate_residual: f64 = 0.0;
+        for first_screen in 0..2 {
+            for second_screen in 0..2 {
+                let mut rate = 0.0;
+                for alpha in 0..4 {
+                    for mu in 0..4 {
+                        for nu in 0..4 {
+                            rate += k[alpha]
+                                * d_g[alpha][mu][nu]
+                                * screen_basis[first_screen][mu]
+                                * screen_basis[second_screen][nu];
+                        }
+                    }
+                }
+                for mu in 0..4 {
+                    for nu in 0..4 {
+                        rate += g[mu][nu]
+                            * screen_basis_derivative[first_screen][mu]
+                            * screen_basis[second_screen][nu]
+                            + g[mu][nu]
+                                * screen_basis[first_screen][mu]
+                                * screen_basis_derivative[second_screen][nu];
+                    }
+                }
+                orthonormality_rate_residual = orthonormality_rate_residual.max(rate.abs());
+            }
+        }
+
+        let mut transversality_rate_residual: f64 = 0.0;
+        for screen in 0..2 {
+            let mut rate = 0.0;
+            for alpha in 0..4 {
+                for mu in 0..4 {
+                    for nu in 0..4 {
+                        rate += k[alpha]
+                            * d_g[alpha][mu][nu]
+                            * screen_basis[screen][mu]
+                            * k[nu];
+                    }
+                }
+            }
+            for mu in 0..4 {
+                for nu in 0..4 {
+                    rate += g[mu][nu]
+                        * screen_basis_derivative[screen][mu]
+                        * k[nu]
+                        + g[mu][nu]
+                            * screen_basis[screen][mu]
+                            * geodesic_acceleration[nu];
+                }
+            }
+            transversality_rate_residual =
+                transversality_rate_residual.max(rate.abs());
+        }
+        let metric_compatibility_residual = connection
+            .metric_compatibility_relative_residual(&metric, &first)
+            .map_err(JetError::from)?;
+        if screen_basis_derivative.iter().flatten().any(|value| !value.is_finite())
+            || !orthonormality_rate_residual.is_finite()
+            || !transversality_rate_residual.is_finite()
+            || !metric_compatibility_residual.is_finite()
+        {
+            return Err(KerrGeodesicError::NonFinite("sachs_frame_transport_derivative"));
+        }
+        Ok(KerrSachsFrameTransportDerivative {
+            coordinate_chart,
+            screen_basis_derivative,
+            null_constraint_residual,
+            screen_orthonormality_residual,
+            screen_transversality_residual,
+            orthonormality_rate_residual,
+            transversality_rate_residual,
+            metric_compatibility_residual,
         })
     }
 
