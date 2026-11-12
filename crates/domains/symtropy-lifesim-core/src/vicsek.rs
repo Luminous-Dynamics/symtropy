@@ -3369,19 +3369,60 @@ mod tests {
     #[test]
     fn global_rotation_equivariance_holds_for_both_update_conventions() {
         let center = (50.0, 50.0);
-        let phase = 1.137;
-        let cosine = phase.cos();
-        let sine = phase.sin();
+        let phases = [
+            1.0e-9,
+            std::f64::consts::PI - 1.0e-9,
+            std::f64::consts::PI + 1.0e-9,
+            std::f64::consts::TAU - 1.0e-9,
+            1.137,
+        ];
+        let seeds = [0x51A7, 1, 99];
         let initial = vec![
-            VicsekParticle { x: 48.0, y: 48.0, heading_rad: 0.1 },
-            VicsekParticle { x: 50.0, y: 48.0, heading_rad: 0.8 },
-            VicsekParticle { x: 52.0, y: 48.0, heading_rad: 1.5 },
-            VicsekParticle { x: 48.0, y: 50.0, heading_rad: 2.2 },
-            VicsekParticle { x: 50.0, y: 50.0, heading_rad: 2.9 },
-            VicsekParticle { x: 52.0, y: 50.0, heading_rad: 3.6 },
-            VicsekParticle { x: 48.0, y: 52.0, heading_rad: 4.3 },
-            VicsekParticle { x: 50.0, y: 52.0, heading_rad: 5.0 },
-            VicsekParticle { x: 52.0, y: 52.0, heading_rad: 5.7 },
+            VicsekParticle {
+                x: 48.0,
+                y: 48.0,
+                heading_rad: 0.1,
+            },
+            VicsekParticle {
+                x: 50.0,
+                y: 48.0,
+                heading_rad: 0.8,
+            },
+            VicsekParticle {
+                x: 52.0,
+                y: 48.0,
+                heading_rad: 1.5,
+            },
+            VicsekParticle {
+                x: 48.0,
+                y: 50.0,
+                heading_rad: 2.2,
+            },
+            VicsekParticle {
+                x: 50.0,
+                y: 50.0,
+                heading_rad: 2.9,
+            },
+            VicsekParticle {
+                x: 52.0,
+                y: 50.0,
+                heading_rad: 3.6,
+            },
+            VicsekParticle {
+                x: 48.0,
+                y: 52.0,
+                heading_rad: 4.3,
+            },
+            VicsekParticle {
+                x: 50.0,
+                y: 52.0,
+                heading_rad: 5.0,
+            },
+            VicsekParticle {
+                x: 52.0,
+                y: 52.0,
+                heading_rad: 5.7,
+            },
         ];
         let config_for = |update_rule| VicsekConfig {
             box_size: 100.0,
@@ -3391,49 +3432,66 @@ mod tests {
             angular_noise_width_rad: 0.35,
             update_rule,
         };
-        let mut rotated_initial = initial.clone();
-        for particle in &mut rotated_initial {
-            let dx = particle.x - center.0;
-            let dy = particle.y - center.1;
-            particle.x = center.0 + cosine * dx - sine * dy;
-            particle.y = center.1 + sine * dx + cosine * dy;
-            particle.heading_rad = wrap_angle(particle.heading_rad + phase);
-        }
 
-        for update_rule in [
-            VicsekUpdateRule::CurrentPositionAlignment,
-            VicsekUpdateRule::NextPositionAlignment,
-        ] {
-            let mut original = VicsekModel::new(initial.clone(), config_for(update_rule), 0x51A7).unwrap();
-            let mut rotated = VicsekModel::new(rotated_initial.clone(), config_for(update_rule), 0x51A7).unwrap();
+        for phase in phases {
+            let cosine = phase.cos();
+            let sine = phase.sin();
+            let mut rotated_initial = initial.clone();
+            for particle in &mut rotated_initial {
+                let dx = particle.x - center.0;
+                let dy = particle.y - center.1;
+                particle.x = center.0 + cosine * dx - sine * dy;
+                particle.y = center.1 + sine * dx + cosine * dy;
+                particle.heading_rad = wrap_angle(particle.heading_rad + phase);
+            }
 
-            for _ in 0..40 {
-                let original_metrics = original.step().unwrap();
-                let rotated_metrics = rotated.step().unwrap();
-                assert!((original_metrics.polar_order - rotated_metrics.polar_order).abs() < 1.0e-10);
-                assert_eq!(original_metrics.cluster_count, rotated_metrics.cluster_count);
-                assert_eq!(
-                    original_metrics.directed_interaction_edge_count,
-                    rotated_metrics.directed_interaction_edge_count
-                );
+            for update_rule in [
+                VicsekUpdateRule::CurrentPositionAlignment,
+                VicsekUpdateRule::NextPositionAlignment,
+            ] {
+                for seed in seeds {
+                    let mut original =
+                        VicsekModel::new(initial.clone(), config_for(update_rule), seed).unwrap();
+                    let mut rotated =
+                        VicsekModel::new(rotated_initial.clone(), config_for(update_rule), seed)
+                            .unwrap();
 
-                for (particle, rotated_particle) in
-                    original.particles().iter().zip(rotated.particles())
-                {
-                    let dx = particle.x - center.0;
-                    let dy = particle.y - center.1;
-                    let expected_x = center.0 + cosine * dx - sine * dy;
-                    let expected_y = center.1 + sine * dx + cosine * dy;
-                    assert!((rotated_particle.x - expected_x).abs() < 1.0e-9);
-                    assert!((rotated_particle.y - expected_y).abs() < 1.0e-9);
-                    assert!(
-                        wrapped_angular_difference(
-                            rotated_particle.heading_rad,
-                            particle.heading_rad + phase,
-                        )
-                        .abs()
-                            < 1.0e-9
-                    );
+                    for _ in 0..40 {
+                        let original_metrics = original.step().unwrap();
+                        let rotated_metrics = rotated.step().unwrap();
+                        assert!(
+                            (original_metrics.polar_order - rotated_metrics.polar_order).abs()
+                                < 1.0e-10
+                        );
+                        assert_eq!(original_metrics.cluster_count, rotated_metrics.cluster_count);
+                        assert_eq!(
+                            original_metrics.directed_interaction_edge_count,
+                            rotated_metrics.directed_interaction_edge_count
+                        );
+                        assert_eq!(
+                            original_metrics.local_order_coverage_fraction,
+                            rotated_metrics.local_order_coverage_fraction
+                        );
+
+                        for (particle, rotated_particle) in
+                            original.particles().iter().zip(rotated.particles())
+                        {
+                            let dx = particle.x - center.0;
+                            let dy = particle.y - center.1;
+                            let expected_x = center.0 + cosine * dx - sine * dy;
+                            let expected_y = center.1 + sine * dx + cosine * dy;
+                            assert!((rotated_particle.x - expected_x).abs() < 1.0e-9);
+                            assert!((rotated_particle.y - expected_y).abs() < 1.0e-9);
+                            assert!(
+                                wrapped_angular_difference(
+                                    rotated_particle.heading_rad,
+                                    particle.heading_rad + phase,
+                                )
+                                .abs()
+                                    < 1.0e-9
+                            );
+                        }
+                    }
                 }
             }
         }
