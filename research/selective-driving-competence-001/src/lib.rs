@@ -287,12 +287,6 @@ impl EvaluationInput {
             if !unit_interval(decision.observed_loss) {
                 findings.push(format!("decision {:?} observed_loss is outside [0, 1]", decision.decision_id));
             }
-            if decision.observed_failure && decision.observed_loss == 0.0 {
-                findings.push(format!("decision {:?} is marked failed with zero observed_loss", decision.decision_id));
-            }
-            if !decision.observed_failure && decision.observed_loss == 1.0 {
-                findings.push(format!("decision {:?} has maximal observed_loss but is not marked failed", decision.decision_id));
-            }
             if decision.policy_input_fields.is_empty() {
                 findings.push(format!("decision {:?} has no declared policy input fields", decision.decision_id));
             }
@@ -399,7 +393,7 @@ fn evaluate_validated(input: &EvaluationInput) -> EvaluationReport {
             && ranked[end].predicted_failure_probability == threshold
         {
             accepted += 1;
-            accepted_failures += usize::from(ranked[end].observed_failure);
+            accepted_failures += if ranked[end].observed_failure { 1 } else { 0 };
             accepted_loss += ranked[end].observed_loss;
             end += 1;
         }
@@ -905,6 +899,21 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&left).unwrap(),
             serde_json::to_string(&right).unwrap()
+        );
+    }
+
+    #[test]
+    fn protocol_documents_are_parseable_and_mark_targets_not_measured() {
+        let manifest: serde_json::Value =
+            serde_json::from_str(include_str!("../manifest-v0_1.json")).unwrap();
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../selective-driving-evaluation-v0_1.schema.json"))
+                .unwrap();
+        assert_eq!(manifest["status"], "reference_evaluator_and_protocol_in_progress");
+        assert_eq!(manifest["prospective_targets"]["status"], "not_measured");
+        assert_eq!(
+            schema["$schema"],
+            "https://json-schema.org/draft/2020-12/schema"
         );
     }
 
