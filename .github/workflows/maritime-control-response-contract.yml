@@ -104,7 +104,7 @@ jobs:
             (.external_dataset_track.status == "archive_downloaded_publisher_md5_verified_payload_audit_pending") and
             (.external_dataset_track.dataset_doi == "10.5281/zenodo.19857425") and
             (.external_dataset_track.dataset_license == "CC-BY-4.0") and
-            (.external_dataset_track.engine == "Matsui Iron Works MU323DGSC") and
+            (.external_dataset_track.engine_transfer | contains("one MU323DGSC test-bench identity")) and
             (.external_dataset_track.dataset_file_inventory.publisher_reported_recording_data_csv_count == 16) and
             (.external_dataset_track.evaluation_tracks | length == 6) and
             ([.external_dataset_track.research_targets_not_achieved[].status] | all(. == "aspirational"))
@@ -114,9 +114,9 @@ jobs:
             .schema_version == "liu-ice-published-six-solution-baselines-v0.1" and
             .status == "literature_reference_not_reproduced" and
             (.solutions | length == 6) and
-            (.solutions[3].mean.one_minus_far == 99.9) and
-            (.solutions[3].mean.tdr == 97.2) and
-            (.solutions[1].mean.tir == 85.5) and
+            (.solutions[3].historical_mean_percent.one_minus_far == 99.9) and
+            (.solutions[3].historical_mean_percent.tdr == 97.2) and
+            (.solutions[1].historical_mean_percent.tir == 85.5) and
             (.protocol_context.comparability_warning | contains("not current DX2026 scores")) and
             ([.solutions[].reproduction_status] | all(. == "not_reproduced"))
           ' "$root/published-six-solution-baselines-v0.1.json" >/dev/null
