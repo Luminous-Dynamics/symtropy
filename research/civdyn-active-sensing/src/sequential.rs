@@ -11,8 +11,8 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     ActiveSensingConfig, ActiveSensingReport, DecisionWorld, NoSensingAssessment,
-    ObservationPartition, PartitionWorldRegret, SensorAction, SensorPrediction, SensorStatus,
-    WorldOracle, TOLERANCE, assess_active_sensing, baseline_no_sensing, find_policy,
+    SensorAction, SensorPrediction, SensorStatus, TOLERANCE, assess_active_sensing,
+    baseline_no_sensing, find_policy,
     finite_nonnegative, oracle_for, validate_config, validate_sensor, validate_worlds,
 };
 
@@ -103,8 +103,12 @@ fn validate_plan<'a>(
         .filter(|value| !value.trim().is_empty())
         .ok_or_else(|| "the second sensing stage must declare its prerequisite observation".to_owned())?;
 
+    let mut stage_ids = BTreeSet::new();
     let mut stage_predictions = Vec::with_capacity(2);
     for stage in &plan.stages {
+        if !stage_ids.insert(stage.sensor.sensor_id.as_str()) {
+            return Err("sequential plan contains duplicate sensor-stage identities".to_owned());
+        }
         stage_predictions.push(validate_sensor(&stage.sensor, worlds)?);
     }
 
