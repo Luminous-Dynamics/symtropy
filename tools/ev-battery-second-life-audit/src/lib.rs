@@ -1012,7 +1012,7 @@ mod tests {
     fn make_pack_eligible(manifest: &mut SecondLifeManifest, pack_id: &str) {
         let pack = manifest.packs.iter_mut().find(|x| x.pack_id == pack_id).unwrap();
         pack.history_completeness = HistoryCompleteness::Complete;
-        pack.incident_history[0].state = IncidentState::VerifiedAbsent;
+        pack.incident_history = complete_incident_history(IncidentState::VerifiedAbsent);
         for incident in &mut pack.incident_history {
             incident.evidence_id = "E-PHYSICAL".into();
         }
