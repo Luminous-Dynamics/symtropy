@@ -717,9 +717,35 @@ mod tests {
             serde_json::from_str(include_str!("../sequential-evidence-v0.1.json")).unwrap();
         assert_eq!(protocol["schema_version"], "symtropy-sequential-evidence-v0.1");
         assert_eq!(protocol["status"], "protocol_only_not_executed");
-        assert_eq!(protocol["fixed_channel_per_session"], true);
-        assert_eq!(protocol["changing_channel_within_session_allowed"], false);
-        assert_eq!(protocol["familywise_control"], "bonferroni");
+        assert_eq!(
+            protocol["protocol_constraints"]["one_input_one_receipt"],
+            true
+        );
+        assert_eq!(
+            protocol["protocol_constraints"]["contiguous_sample_indices"],
+            true
+        );
+        assert_eq!(
+            protocol["protocol_constraints"]["model_and_calibration_bound_per_session"],
+            true
+        );
+        assert_eq!(
+            protocol["protocol_constraints"]["receipt_chain_replay"],
+            true
+        );
+        assert_eq!(
+            protocol["protocol_constraints"]["unknown_outcome_poisons_session"],
+            true
+        );
+        assert_eq!(
+            protocol["protocol_constraints"]["changing_channel_within_session_allowed"],
+            false
+        );
+        assert_eq!(protocol["familywise_control"]["method"], "bonferroni");
+        assert_eq!(
+            protocol["familywise_control"]["default"]["alternative_count"],
+            4
+        );
         assert!(protocol["validity_conditions"]["observations"]
             .as_str()
             .unwrap()
