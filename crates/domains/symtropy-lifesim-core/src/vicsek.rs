@@ -2979,6 +2979,34 @@ mod tests {
     }
 
     #[test]
+    fn cluster_geometry_withholds_hull_for_half_box_extent_ambiguity() {
+        let model = VicsekModel::new(
+            vec![
+                VicsekParticle { x: 1.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle { x: 4.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle { x: 7.0, y: 5.0, heading_rad: 0.0 },
+            ],
+            VicsekConfig {
+                box_size: 10.0,
+                interaction_radius: 3.1,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            104,
+        )
+        .unwrap();
+        let report = model.cluster_geometry();
+        assert_eq!(report.clusters.len(), 1);
+        let cluster = &report.clusters[0];
+        assert_eq!(cluster.status, VicsekGeometryStatus::PeriodicExtentAmbiguous);
+        assert!(cluster.unwrapped_span_x > 5.0);
+        assert_eq!(cluster.convex_hull_area, None);
+        assert_eq!(cluster.convex_hull_perimeter, None);
+    }
+
+    #[test]
     fn cluster_geometry_rejects_a_component_that_winds_around_the_torus() {
         let model = VicsekModel::new(
             vec![
