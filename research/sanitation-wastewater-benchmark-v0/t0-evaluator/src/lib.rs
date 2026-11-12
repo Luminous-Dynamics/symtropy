@@ -158,10 +158,16 @@ pub fn evaluate_case(input: &str) -> Result<T0Report, EvaluationError> {
     }
 
     let case_id = string(child(&root, "case_id", "case")?, "case.case_id")?;
+    let starts_valid = case_id
+        .as_bytes()
+        .first()
+        .is_some_and(|b| b.is_ascii_lowercase() || b.is_ascii_digit());
     let valid_case_id = (3..=96).contains(&case_id.len())
-        && case_id.as_bytes()[0].is_ascii_lowercase().then_some(true).unwrap_or(false)
-            || case_id.as_bytes()[0].is_ascii_digit();
-    if !valid_case_id || !case_id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"._-".contains(&b)) {
+        && starts_valid
+        && case_id
+            .bytes()
+            .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"._-".contains(&b));
+    if !valid_case_id {
         return Err(EvaluationError("case_id must match the lowercase benchmark ID profile".into()));
     }
     let scope = child(&root, "model_scope", "case")?;
