@@ -2509,7 +2509,7 @@
       "asset_configuration_id": "engine-config-a",
       "regime_id": "steady-load",
       "regime_qualified": true,
-      "prediction_time_ms": 18446744073709552000,
+      "prediction_time_ms": 18446744073709551615,
       "command": {
         "signal_id": "fuel_index_command",
         "role": "CONTROL_INTENT",
