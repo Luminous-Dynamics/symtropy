@@ -669,7 +669,10 @@ pub fn snapshot_as_of(ledger: &EvidenceLedger, request: &DecisionRequest) -> Sna
     let lifecycle_order = |left: &LifecycleEvent, right: &LifecycleEvent| {
         left.effective_at_tick
             .cmp(&right.effective_at_tick)
-            .then_with(|| left.first_received_at_tick.cmp(&right.first_received_at_tick))
+            .then_with(|| {
+                left.first_received_at_tick
+                    .cmp(&right.first_received_at_tick)
+            })
             .then_with(|| left.event_id.cmp(&right.event_id))
     };
     pending_lifecycle_events.sort_by(lifecycle_order);
