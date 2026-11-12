@@ -245,6 +245,7 @@ pub enum HcfError {
     InvalidFatigueStrengthRatio,
     CalibrationEvidenceMustBeMeasuredOrSynthetic,
     DuplicateCalibrationEvidenceId,
+    InvalidFatigueParameter,
 }
 
 impl fmt::Display for HcfError {
@@ -431,6 +432,34 @@ impl FindleyProfile {
         }
         Ok(())
     }
+}
+
+/// Convert a Findley parameter into the equivalent fully reversed
+/// uniaxial axial stress amplitude for the same normal-stress sensitivity.
+///
+/// For a fully reversed uniaxial axial cycle, the maximum Findley parameter is
+/// sigma_a * (k + sqrt(1 + k*k)) / 2. This function inverts that relation.
+/// The result can be passed to a separately qualified uniaxial S-N evaluator;
+/// it is not itself an FS_N or Nf prediction.
+pub fn equivalent_reversed_axial_stress_mpa(
+    findley_parameter_mpa: f64,
+    normal_stress_sensitivity: f64,
+) -> Result<f64, HcfError> {
+    if !findley_parameter_mpa.is_finite()
+        || findley_parameter_mpa < 0.0
+        || !normal_stress_sensitivity.is_finite()
+        || normal_stress_sensitivity < 0.0
+    {
+        return Err(HcfError::InvalidFatigueParameter);
+    }
+    let factor = 0.5
+        * (normal_stress_sensitivity
+            + (1.0 + normal_stress_sensitivity.powi(2)).sqrt());
+    let equivalent_stress = findley_parameter_mpa / factor;
+    if !equivalent_stress.is_finite() {
+        return Err(HcfError::InvalidFatigueParameter);
+    }
+    Ok(equivalent_stress)
 }
 
 /// Evaluate the Findley parameter over a deterministic grid of undirected
@@ -898,6 +927,35 @@ mod tests {
         assert!((report.critical_plane.findley_parameter_mpa - expected).abs() < 0.5);
         assert_eq!(report.output_evidence_class, EvidenceClass::ModelEstimate);
         assert_eq!(report.diagnostics.evaluated_planes, 37 * 72);
+    }
+
+    #[test]
+    fn uniaxial_findley_result_inverts_to_equivalent_reversed_axial_amplitude() {
+        let amplitude = 100.0;
+        let sensitivity = 0.3;
+        let h = history("uniaxial-equivalent", |phase| StressTensorMpa {
+            sigma_xx: amplitude * phase.sin(),
+            ..zero_stress()
+        });
+        let report = evaluate_findley(&h, profile(sensitivity)).unwrap();
+        let equivalent = equivalent_reversed_axial_stress_mpa(
+            report.critical_plane.findley_parameter_mpa,
+            sensitivity,
+        )
+        .unwrap();
+        assert!((equivalent - amplitude).abs() < 0.5);
+    }
+
+    #[test]
+    fn equivalent_axial_mapping_rejects_invalid_parameters() {
+        assert_eq!(
+            equivalent_reversed_axial_stress_mpa(-1.0, 0.3),
+            Err(HcfError::InvalidFatigueParameter)
+        );
+        assert_eq!(
+            equivalent_reversed_axial_stress_mpa(10.0, f64::NAN),
+            Err(HcfError::InvalidFatigueParameter)
+        );
     }
 
     #[test]
