@@ -1,0 +1,17 @@
+{
+  "schema_version": "0.1",
+  "title": "Temporal Scan-to-BIM sequence replay v0.1",
+  "claim_ceiling": "Synthetic sequence scoring only; no physical identity, survey accuracy or real-world SOTA claim.",
+  "candidate_corpus": "candidate-sequences.json",
+  "reference_corpus": "evaluator-reference.json",
+  "metrics": [
+    "IDF1",
+    "identity_switches",
+    "fragmentations",
+    "event_attribution_agreement",
+    "false_physical_change_events",
+    "temporal_evidence_violations"
+  ],
+  "sequence_count": 7,
+  "building_group_count": 7
+}
