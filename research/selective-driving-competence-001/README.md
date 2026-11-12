@@ -19,11 +19,12 @@ The evaluator is offline and has no vehicle, actuator, network or host-control i
 
 | Comparator | Published result | Interpretation |
 |---|---:|---|
-| Bench2Drive v0.0.3 self-reported table — BridgeDrive (LEAD) | 96.34 DS / 89.25 SR | Public leaderboard comparator; data, experts, training and compute vary |
-| Bench2Drive v0.0.3 self-reported table — TFv6 | 95.28 DS / 86.81 SR | Non-privileged listed comparator |
-| Bench2Drive v0.0.3 privileged section — PDM-Lite | 97.02 DS / 92.27 SR | Ground-truth/privileged results are not a fair vision-only matched comparator |
+| Bench2Drive v0.0.4 current release — LEAD | 95.59 DS / 87.28 SR; efficiency 201.55; comfort 20.56 | Maintainers mark v0.0.4 current; uniform 44-scenario × 25-route training data, 220-route validation set and added 3D occupancy |
+| Bench2Drive v0.0.3 public leaderboard — BridgeDrive (LEAD) | 96.34 DS / 89.25 SR | Separate self-reported v0.0.3 snapshot; data, experts, training and compute vary |
+| Bench2Drive v0.0.3 public leaderboard — TFv6 | 95.28 DS / 86.81 SR | Separate v0.0.3 non-privileged result |
+| Bench2Drive v0.0.3 privileged section — PDM-Lite | 97.02 DS / 92.27 SR | Ground-truth/privileged result; not a fair vision-only matched comparator |
 | NAVSIM v2 end-to-end test — NTR (2026.05) | 90.9 EPDMS | Native NAVSIM v2 end-to-end metric; not comparable to Bench2Drive DS |
-| NVIDIA Alpamayo 2 Edge | 2B params; reported 160–190 ms pixel-to-trajectory on DRIVE AGX Thor; reported 48.9% uplift from closed-loop RL post-training | Industry technical-blog claims; not independently reproduced here |
+| NVIDIA Alpamayo 2 Edge | Vendor article describes a 2B edge reasoning model; the released model card details a 2.45B backbone + 0.2B action expert; reported 160–190 ms pixel-to-trajectory and 48.9% uplift from closed-loop RL | Model card and technical-blog claims; keep parameter accounting and latency configuration distinct; not independently reproduced here |
 | Waymo Safety Impact dashboard through June 2026 | 271.3M rider-only miles; company-reported 95% fewer serious-injury-or-worse crashes, 82% fewer injury-causing crashes | Operational retrospective safety evidence; distinct from its formal safety case |
 
 Sources:
@@ -33,7 +34,7 @@ Sources:
 - Waymo safety impact: https://waymo.com/safety/impact/
 - Sensor-centric uncertainty and integrity survey (Sensors, June 2026): https://pmc.ncbi.nlm.nih.gov/articles/PMC13306937/
 
-These results are distinct protocols and evidence classes. Do not pool or rank them as though they form one leaderboard.
+Bench2Drive v0.0.4 is the maintainer-designated current release. The public community leaderboard table reports v0.0.3. v0.0.4 changes the training distribution and adds occupancy input, so its DS/SR figures must not be compared directly with the v0.0.3 leaderboard. All of these results are distinct protocols and evidence classes; do not pool them as one leaderboard.
 
 ## Protocol
 
