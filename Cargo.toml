@@ -134,6 +134,7 @@ members = [
     "crates/domains/symtropy-net",
     "crates/domains/symtropy-lifesim-core",
     "crates/domains/symtropy-colony",
+    "crates/domains/symtropy-oli-abiotic",
     "crates/domains/symtropy-mycelium",
     "crates/domains/symtropy-basin",
 
