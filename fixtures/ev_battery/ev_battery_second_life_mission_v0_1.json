@@ -176,6 +176,21 @@
           "event_type": "water_ingress",
           "state": "verified_absent",
           "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "overcharge",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "deep_discharge",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "crash_or_mechanical_abuse",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
         }
       ],
       "bms_strategy": "replace_bms",
@@ -235,6 +250,26 @@
         {
           "event_type": "service_or_repair",
           "state": "event_recorded",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "deep_discharge",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "crash_or_mechanical_abuse",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "water_ingress",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "isolation_fault",
+          "state": "verified_absent",
           "evidence_id": "E-SYN-HISTORY"
         }
       ],
