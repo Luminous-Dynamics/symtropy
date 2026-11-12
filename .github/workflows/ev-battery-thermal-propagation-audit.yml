@@ -9,6 +9,14 @@ on:
       - "fixtures/ev_battery/ev_battery_thermal_propagation_evidence_v0_1.json"
       - "tools/ev-battery-thermal-propagation-audit/**"
       - ".github/workflows/ev-battery-thermal-propagation-audit.yml"
+  push:
+    branches: [research/ev-battery-thermal-propagation-evidence-v0.1]
+    paths:
+      - "docs/transport/EV_BATTERY_THERMAL_PROPAGATION_EVIDENCE_V0_1.md"
+      - "schemas/transport/ev_battery_thermal_propagation_evidence_v0_1.schema.json"
+      - "fixtures/ev_battery/ev_battery_thermal_propagation_evidence_v0_1.json"
+      - "tools/ev-battery-thermal-propagation-audit/**"
+      - ".github/workflows/ev-battery-thermal-propagation-audit.yml"
 
 permissions:
   contents: read
@@ -25,9 +33,23 @@ jobs:
         with:
           toolchain: 1.96.0
           components: rustfmt, clippy
-      - name: Check JSON syntax
+      - name: Validate Draft 2020-12 schema and synthetic fixture
         run: |
-          python3 -c 'import json; json.load(open("schemas/transport/ev_battery_thermal_propagation_evidence_v0_1.schema.json", encoding="utf-8")); json.load(open("fixtures/ev_battery/ev_battery_thermal_propagation_evidence_v0_1.json", encoding="utf-8"))'
+          python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          schema = json.loads(Path("schemas/transport/ev_battery_thermal_propagation_evidence_v0_1.schema.json").read_text(encoding="utf-8"))
+          fixture = json.loads(Path("fixtures/ev_battery/ev_battery_thermal_propagation_evidence_v0_1.json").read_text(encoding="utf-8"))
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator(schema).validate(fixture)
+          assert len(fixture["tests"]) == 4
+          assert len(fixture["claims"]) == 5
+          assert all(len(claim["equivalence"]) == 6 for claim in fixture["claims"])
+          print("schema=VALID fixture=VALID tests=4 claims=5")
+          PY
       - name: Check locked package metadata
         run: cargo metadata --manifest-path tools/ev-battery-thermal-propagation-audit/Cargo.toml --locked --no-deps
       - name: Check formatting
