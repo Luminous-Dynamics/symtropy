@@ -324,18 +324,16 @@ impl ResultCard {
         if let (Some(p50), Some(p95)) = (
             self.compute.inference_p50_ms,
             self.compute.inference_p95_ms,
-        ) {
-            if p50 > p95 {
-                errors.push("inference p50 latency exceeds p95".into());
-            }
+        ) && p50 > p95
+        {
+            errors.push("inference p50 latency exceeds p95".into());
         }
         if let (Some(p95), Some(p99)) = (
             self.compute.inference_p95_ms,
             self.compute.inference_p99_ms,
-        ) {
-            if p95 > p99 {
-                errors.push("inference p95 latency exceeds p99".into());
-            }
+        ) && p95 > p99
+        {
+            errors.push("inference p95 latency exceeds p99".into());
         }
 
         for (group, values) in [
@@ -376,17 +374,16 @@ impl ResultCard {
             errors.push("observed_episode_count exceeds expected_episode_count".into());
         }
 
-        if self.status == RunStatus::NotRun {
-            if self.evidence.expected_episode_count != 0
+        if self.status == RunStatus::NotRun
+            && (self.evidence.expected_episode_count != 0
                 || self.evidence.observed_episode_count != 0
                 || self.outcomes.completed_episodes != 0
                 || self.outcomes.failed_episodes != 0
                 || self.outcomes.incomplete_episodes != 0
                 || self.outcomes.censored_episodes != 0
-                || self.outcomes.native_metrics.values().any(Option::is_some)
-            {
-                errors.push("not_run cards must not contain episode outcomes or metric values".into());
-            }
+                || self.outcomes.native_metrics.values().any(Option::is_some))
+        {
+            errors.push("not_run cards must not contain episode outcomes or metric values".into());
         }
         let mut episode_ids = std::collections::BTreeSet::new();
         let mut cluster_families = BTreeMap::<&str, &str>::new();
@@ -407,13 +404,12 @@ impl ResultCard {
             if let Some(existing_family) = cluster_families.insert(
                 episode.scenario_cluster_id.as_str(),
                 episode.scenario_family.as_str(),
-            ) {
-                if existing_family != episode.scenario_family {
-                    errors.push(format!(
-                        "scenario cluster {:?} appears in multiple scenario families",
-                        episode.scenario_cluster_id
-                    ));
-                }
+            ) && existing_family != episode.scenario_family
+            {
+                errors.push(format!(
+                    "scenario cluster {:?} appears in multiple scenario families",
+                    episode.scenario_cluster_id
+                ));
             }
             let disposition_index = match episode.disposition {
                 EpisodeDisposition::Completed => 0,
