@@ -745,7 +745,10 @@ impl fmt::Display for KerrGeodesicError {
                 f,
                 "Sachs frame constraints failed: null={null_residual}, orthonormality={orthonormality_residual}, transversality={transversality_residual}, tolerance={tolerance}"
             ),
-            Self::OpticalTidalAsymmetry { residual, tolerance } => write!(
+            Self::OpticalTidalAsymmetry {
+                residual,
+                tolerance,
+            } => write!(
                 f,
                 "Sachs optical tidal matrix asymmetry {residual} exceeds {tolerance}"
             ),
@@ -1244,20 +1247,16 @@ impl KerrCanonicalHamiltonian {
         }
         let radius_m = state.coordinates.radius_over_m * self.hole.gravitational_radius_m();
         let differentiated = match coordinate_chart {
-            KerrMinoCoordinateChart::BoyerLindquist => {
-                DifferentiatedMetric4::kerr_exterior(
-                    self.hole,
-                    radius_m,
-                    state.coordinates.theta_rad,
-                )?
-            }
-            KerrMinoCoordinateChart::IngoingKerr => {
-                DifferentiatedMetric4::kerr_ingoing(
-                    self.hole,
-                    radius_m,
-                    state.coordinates.theta_rad,
-                )?
-            }
+            KerrMinoCoordinateChart::BoyerLindquist => DifferentiatedMetric4::kerr_exterior(
+                self.hole,
+                radius_m,
+                state.coordinates.theta_rad,
+            )?,
+            KerrMinoCoordinateChart::IngoingKerr => DifferentiatedMetric4::kerr_ingoing(
+                self.hole,
+                radius_m,
+                state.coordinates.theta_rad,
+            )?,
         };
         let evaluation = self.evaluate_differentiated(state, differentiated)?;
         let null_tangent = evaluation.derivative.coordinates;
@@ -1277,23 +1276,18 @@ impl KerrCanonicalHamiltonian {
             for nu in 0..4 {
                 let scale = factors[mu] * factors[nu];
                 metric_components[mu][nu] = source_metric[mu][nu] * scale;
-                first_components[1][mu][nu] =
-                    source_first[1][mu][nu] * mass_length * scale;
+                first_components[1][mu][nu] = source_first[1][mu][nu] * mass_length * scale;
                 first_components[2][mu][nu] = source_first[2][mu][nu] * scale;
                 second_components[1][1][mu][nu] =
                     source_second[1][1][mu][nu] * mass_length * mass_length * scale;
-                second_components[1][2][mu][nu] =
-                    source_second[1][2][mu][nu] * mass_length * scale;
-                second_components[2][1][mu][nu] =
-                    source_second[2][1][mu][nu] * mass_length * scale;
-                second_components[2][2][mu][nu] =
-                    source_second[2][2][mu][nu] * scale;
+                second_components[1][2][mu][nu] = source_second[1][2][mu][nu] * mass_length * scale;
+                second_components[2][1][mu][nu] = source_second[2][1][mu][nu] * mass_length * scale;
+                second_components[2][2][mu][nu] = source_second[2][2][mu][nu] * scale;
             }
         }
         let metric = MetricComponents4::new(metric_components)?;
         let first = MetricDerivatives4::new(first_components).map_err(JetError::from)?;
-        let second =
-            MetricSecondDerivatives4::new(second_components).map_err(JetError::from)?;
+        let second = MetricSecondDerivatives4::new(second_components).map_err(JetError::from)?;
         let curvature = RiemannTensor4::from_metric_derivatives(&metric, &first, &second)
             .map_err(JetError::from)?;
         let riemann_covariant = curvature.fully_covariant(&metric).map_err(JetError::from)?;
@@ -1315,12 +1309,14 @@ impl KerrCanonicalHamiltonian {
             screen_transversality_residual = screen_transversality_residual
                 .max(metric_inner(screen_basis[first_screen], null_tangent).abs());
             for second_screen in 0..2 {
-                let expected = if first_screen == second_screen { 1.0 } else { 0.0 };
+                let expected = if first_screen == second_screen {
+                    1.0
+                } else {
+                    0.0
+                };
                 screen_orthonormality_residual = screen_orthonormality_residual.max(
-                    (metric_inner(
-                        screen_basis[first_screen],
-                        screen_basis[second_screen],
-                    ) - expected)
+                    (metric_inner(screen_basis[first_screen], screen_basis[second_screen])
+                        - expected)
                         .abs(),
                 );
             }
@@ -1347,19 +1343,23 @@ impl KerrCanonicalHamiltonian {
                     for nu in 0..4 {
                         for rho in 0..4 {
                             for sigma in 0..4 {
-                                tidal_matrix[first_screen][second_screen] +=
-                                    riemann_covariant[mu][nu][rho][sigma]
-                                        * screen_basis[first_screen][mu]
-                                        * null_tangent[nu]
-                                        * screen_basis[second_screen][rho]
-                                        * null_tangent[sigma];
+                                tidal_matrix[first_screen][second_screen] += riemann_covariant[mu]
+                                    [nu][rho][sigma]
+                                    * screen_basis[first_screen][mu]
+                                    * null_tangent[nu]
+                                    * screen_basis[second_screen][rho]
+                                    * null_tangent[sigma];
                             }
                         }
                     }
                 }
             }
         }
-        if tidal_matrix.iter().flatten().any(|value| !value.is_finite()) {
+        if tidal_matrix
+            .iter()
+            .flatten()
+            .any(|value| !value.is_finite())
+        {
             return Err(KerrGeodesicError::NonFinite("optical_tidal_matrix"));
         }
         let tidal_symmetry_residual = (tidal_matrix[0][1] - tidal_matrix[1][0]).abs();
@@ -2807,18 +2807,12 @@ mod tests {
     #[test]
     fn radial_schwarzschild_sachs_optical_tidal_matrix_is_zero() {
         let black_hole = hole(0.0);
-        let observer = KerrFiniteRadiusObserver::new(
-            black_hole,
-            10.0,
-            core::f64::consts::FRAC_PI_2,
-        )
-        .unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
-        let screen_basis = observer.screen_basis_to_chart_coordinates(
-            seed.local_screen_basis,
-            seed.coordinate_chart,
-        );
+        let screen_basis = observer
+            .screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
         let result = KerrCanonicalHamiltonian::new(black_hole)
             .optical_tidal_matrix(seed.state, seed.coordinate_chart, screen_basis, 1e-9)
             .unwrap();
@@ -2835,25 +2829,23 @@ mod tests {
     #[test]
     fn nonradial_schwarzschild_sachs_matrix_is_symmetric_and_vacuum_trace_free() {
         let black_hole = hole(0.0);
-        let observer = KerrFiniteRadiusObserver::new(
-            black_hole,
-            10.0,
-            core::f64::consts::FRAC_PI_2,
-        )
-        .unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let direction = KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
-        let screen_basis = observer.screen_basis_to_chart_coordinates(
-            seed.local_screen_basis,
-            seed.coordinate_chart,
-        );
+        let screen_basis = observer
+            .screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
         let result = KerrCanonicalHamiltonian::new(black_hole)
             .optical_tidal_matrix(seed.state, seed.coordinate_chart, screen_basis, 1e-8)
             .unwrap();
         assert!(result.tidal_symmetry_residual < 1e-8);
         assert!(result.vacuum_trace_residual < 1e-8);
         assert!(
-            result.tidal_matrix.iter().flatten().any(|value| value.abs() > 1e-10),
+            result
+                .tidal_matrix
+                .iter()
+                .flatten()
+                .any(|value| value.abs() > 1e-10),
             "nonradial Schwarzschild ray should have nonzero Weyl optical tide"
         );
     }
@@ -2861,18 +2853,12 @@ mod tests {
     #[test]
     fn sachs_optical_tidal_rejects_nontransverse_screen_frame() {
         let black_hole = hole(0.0);
-        let observer = KerrFiniteRadiusObserver::new(
-            black_hole,
-            10.0,
-            core::f64::consts::FRAC_PI_2,
-        )
-        .unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
-        let mut screen_basis = observer.screen_basis_to_chart_coordinates(
-            seed.local_screen_basis,
-            seed.coordinate_chart,
-        );
+        let mut screen_basis = observer
+            .screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
         screen_basis[0] = observer.tetrad().timelike;
         assert!(matches!(
             KerrCanonicalHamiltonian::new(black_hole).optical_tidal_matrix(
