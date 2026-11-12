@@ -54,12 +54,13 @@
           "assurance_event_sequence": 4,
           "command_id": "command-01",
           "actuator_application_event_id": "application-01",
-          "actuator_application_event_sequence": 5,
+          "actuator_application_event_sequence": 6,
           "physical_transition_id": "physical-transition-01",
-          "physical_transition_event_sequence": 6,
+          "physical_transition_event_sequence": 7,
           "terminal_event_id": "terminal-01",
-          "terminal_event_sequence": 7,
-          "actuator_id": "joint-actuator-01"
+          "terminal_event_sequence": 8,
+          "actuator_id": "joint-actuator-01",
+          "command_event_sequence": 5
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-01-sha256",
@@ -148,12 +149,13 @@
           "assurance_event_sequence": 4,
           "command_id": "command-02",
           "actuator_application_event_id": "application-02",
-          "actuator_application_event_sequence": 5,
+          "actuator_application_event_sequence": 6,
           "physical_transition_id": "physical-transition-02",
-          "physical_transition_event_sequence": 6,
+          "physical_transition_event_sequence": 7,
           "terminal_event_id": "terminal-02",
-          "terminal_event_sequence": 7,
-          "actuator_id": "joint-actuator-01"
+          "terminal_event_sequence": 8,
+          "actuator_id": "joint-actuator-01",
+          "command_event_sequence": 5
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-02-sha256",
@@ -242,12 +244,13 @@
           "assurance_event_sequence": 4,
           "command_id": "command-03",
           "actuator_application_event_id": "application-03",
-          "actuator_application_event_sequence": 5,
+          "actuator_application_event_sequence": 6,
           "physical_transition_id": "physical-transition-03",
-          "physical_transition_event_sequence": 6,
+          "physical_transition_event_sequence": 7,
           "terminal_event_id": "terminal-03",
-          "terminal_event_sequence": 7,
-          "actuator_id": "joint-actuator-01"
+          "terminal_event_sequence": 8,
+          "actuator_id": "joint-actuator-01",
+          "command_event_sequence": 5
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-03-sha256",
@@ -336,12 +339,13 @@
           "assurance_event_sequence": 4,
           "command_id": "command-04",
           "actuator_application_event_id": "application-04",
-          "actuator_application_event_sequence": 5,
+          "actuator_application_event_sequence": 6,
           "physical_transition_id": "physical-transition-04",
-          "physical_transition_event_sequence": 6,
+          "physical_transition_event_sequence": 7,
           "terminal_event_id": "terminal-04",
-          "terminal_event_sequence": 7,
-          "actuator_id": "joint-actuator-01"
+          "terminal_event_sequence": 8,
+          "actuator_id": "joint-actuator-01",
+          "command_event_sequence": 5
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-04-sha256",
@@ -430,12 +434,13 @@
           "assurance_event_sequence": 4,
           "command_id": "command-05",
           "actuator_application_event_id": "application-05",
-          "actuator_application_event_sequence": 5,
+          "actuator_application_event_sequence": 6,
           "physical_transition_id": "physical-transition-05",
-          "physical_transition_event_sequence": 6,
+          "physical_transition_event_sequence": 7,
           "terminal_event_id": "terminal-05",
-          "terminal_event_sequence": 7,
-          "actuator_id": "joint-actuator-01"
+          "terminal_event_sequence": 8,
+          "actuator_id": "joint-actuator-01",
+          "command_event_sequence": 5
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-05-sha256",
@@ -523,12 +528,13 @@
           "assurance_event_sequence": 4,
           "command_id": "command-06",
           "actuator_application_event_id": "application-06",
-          "actuator_application_event_sequence": 5,
+          "actuator_application_event_sequence": 6,
           "physical_transition_id": "physical-transition-06",
-          "physical_transition_event_sequence": 6,
+          "physical_transition_event_sequence": 7,
           "terminal_event_id": "terminal-06",
-          "terminal_event_sequence": 7,
-          "actuator_id": "joint-actuator-01"
+          "terminal_event_sequence": 8,
+          "actuator_id": "joint-actuator-01",
+          "command_event_sequence": 5
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-06-sha256",
@@ -617,12 +623,13 @@
           "assurance_event_sequence": 4,
           "command_id": "command-07",
           "actuator_application_event_id": "application-07",
-          "actuator_application_event_sequence": 5,
+          "actuator_application_event_sequence": 6,
           "physical_transition_id": "physical-transition-07",
-          "physical_transition_event_sequence": 6,
+          "physical_transition_event_sequence": 7,
           "terminal_event_id": "terminal-07",
-          "terminal_event_sequence": 7,
-          "actuator_id": "joint-actuator-01"
+          "terminal_event_sequence": 8,
+          "actuator_id": "joint-actuator-01",
+          "command_event_sequence": 5
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-07-sha256",
@@ -711,12 +718,13 @@
           "assurance_event_sequence": 4,
           "command_id": "command-08",
           "actuator_application_event_id": "application-08",
-          "actuator_application_event_sequence": 5,
+          "actuator_application_event_sequence": 6,
           "physical_transition_id": "physical-transition-08",
-          "physical_transition_event_sequence": 6,
+          "physical_transition_event_sequence": 7,
           "terminal_event_id": "terminal-08",
-          "terminal_event_sequence": 7,
-          "actuator_id": "joint-actuator-01"
+          "terminal_event_sequence": 8,
+          "actuator_id": "joint-actuator-01",
+          "command_event_sequence": 5
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-08-sha256",
@@ -805,12 +813,13 @@
           "assurance_event_sequence": 4,
           "command_id": "command-09",
           "actuator_application_event_id": "application-09",
-          "actuator_application_event_sequence": 5,
+          "actuator_application_event_sequence": 6,
           "physical_transition_id": "physical-transition-09",
-          "physical_transition_event_sequence": 6,
+          "physical_transition_event_sequence": 7,
           "terminal_event_id": "terminal-09",
-          "terminal_event_sequence": 7,
-          "actuator_id": "joint-actuator-01"
+          "terminal_event_sequence": 8,
+          "actuator_id": "joint-actuator-01",
+          "command_event_sequence": 5
         },
         "configuration_and_calibration": {
           "actuator_configuration_digest": "actuator-config-09-sha256",
