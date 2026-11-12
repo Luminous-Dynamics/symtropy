@@ -228,6 +228,7 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
                 }
             }
             let sidecar = WorldSnapshot::capture_with_runtime_ids(&profiled_world);
+            assert!(sidecar.validate_alignment().is_ok());
 
             group.bench_with_input(
                 BenchmarkId::new("ordinary_capture", format!("netid-{coverage_percent}pct")),
@@ -254,13 +255,7 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
                 BenchmarkId::new("sidecar_validation", format!("netid-{coverage_percent}pct")),
                 &sidecar,
                 |bencher, snapshot| {
-                    bencher.iter(|| {
-                        black_box(
-                            snapshot
-                                .validate_alignment()
-                                .expect("valid benchmark sidecar"),
-                        )
-                    });
+                    bencher.iter(|| black_box(snapshot.validate_alignment().is_ok()));
                 },
             );
 
@@ -273,11 +268,7 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
                 |bencher, source| {
                     bencher.iter(|| {
                         let snapshot = WorldSnapshot::capture_with_runtime_ids(black_box(source));
-                        black_box(
-                            snapshot
-                                .validate_alignment()
-                                .expect("valid benchmark sidecar"),
-                        )
+                        black_box(snapshot.validate_alignment().is_ok())
                     });
                 },
             );
