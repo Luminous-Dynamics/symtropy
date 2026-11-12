@@ -135,6 +135,8 @@ struct ReferenceEvidenceEvent {
     valid_from_tick: u64,
     valid_until_tick: Option<u64>,
     revoked_known_at_tick: Option<u64>,
+    superseded_by_event_id: Option<String>,
+    supersession_known_at_tick: Option<u64>,
     allowed_purposes: Vec<DecisionPurpose>,
 }
 
@@ -292,6 +294,41 @@ fn evaluate_sequence(
         }
     }
 
+    for event in evidence_events.values() {
+        match (
+            event.superseded_by_event_id.as_deref(),
+            event.supersession_known_at_tick,
+        ) {
+            (None, None) => {}
+            (Some(successor_id), Some(known_at)) => {
+                if successor_id == event.event_id {
+                    return Err(format!(
+                        "{} evidence event supersedes itself",
+                        candidate.sequence_id
+                    ));
+                }
+                let successor = evidence_events.get(successor_id).ok_or_else(|| {
+                    format!(
+                        "{} supersession references an unknown successor event",
+                        candidate.sequence_id
+                    )
+                })?;
+                if successor.first_received_tick > known_at {
+                    return Err(format!(
+                        "{} supersession is known before its successor was received",
+                        candidate.sequence_id
+                    ));
+                }
+            }
+            _ => {
+                return Err(format!(
+                    "{} has an incomplete supersession reference",
+                    candidate.sequence_id
+                ));
+            }
+        }
+    }
+
     let mut reference_observations: BTreeMap<(&str, &str), &ReferenceObservation> =
         BTreeMap::new();
     let mut entity_ids = BTreeSet::new();
@@ -413,6 +450,9 @@ fn evaluate_sequence(
                 && event
                     .revoked_known_at_tick
                     .is_none_or(|revoked_at| cutoff < revoked_at)
+                && event
+                    .supersession_known_at_tick
+                    .is_none_or(|superseded_at| cutoff < superseded_at)
                 && event.allowed_purposes.contains(&step.decision_purpose)
                 && !(matches!(event.kind, EvidenceKind::Ndt | EvidenceKind::Repair)
                     && step.decision_purpose != DecisionPurpose::SlowQualityRequalification);
@@ -1020,6 +1060,114 @@ mod tests {
         let reference_bytes = serde_json::to_vec(&reference).unwrap();
         let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
             .expect("later revocation preserves the earlier information set");
+        assert_eq!(report.temporal_evidence_violations, 0);
+        assert!(report.passed);
+    }
+
+    #[test]
+    fn supersession_known_by_cutoff_invalidates_the_old_scan() {
+        let (mut candidate, mut reference) = parsed_fixture();
+        let sequence = reference["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
+            .unwrap();
+        let old_scan = sequence["evidence_events"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|event| event["event_id"] == "ev-scan")
+            .unwrap();
+        old_scan["superseded_by_event_id"] = json!("ev-scan-v2");
+        old_scan["supersession_known_at_tick"] = json!(20);
+        sequence["evidence_events"].as_array_mut().unwrap().push(json!({
+            "event_id":"ev-scan-v2",
+            "kind":"survey",
+            "measurement_tick":19,
+            "first_received_tick":20,
+            "clock_id":"synthetic-global-tick-v0",
+            "timestamp_precision_ticks":1,
+            "valid_from_tick":0,
+            "valid_until_tick":100,
+            "revoked_known_at_tick":null,
+            "superseded_by_event_id":null,
+            "supersession_known_at_tick":null,
+            "allowed_purposes":["medium_building_update","slow_quality_requalification"]
+        }));
+        let step = candidate["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
+            .unwrap()["steps"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|step| step["step_id"] == "f-02")
+            .unwrap();
+        step["decision_evidence_event_ids"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("ev-scan"));
+        let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
+        let reference_bytes = serde_json::to_vec(&reference).unwrap();
+        let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
+            .expect("known supersession is scored");
+        assert_eq!(report.temporal_evidence_violations, 1);
+        assert!(!report.passed);
+    }
+
+    #[test]
+    fn supersession_learned_after_cutoff_preserves_historical_scan() {
+        let (mut candidate, mut reference) = parsed_fixture();
+        let sequence = reference["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
+            .unwrap();
+        let old_scan = sequence["evidence_events"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|event| event["event_id"] == "ev-scan")
+            .unwrap();
+        old_scan["superseded_by_event_id"] = json!("ev-scan-v2");
+        old_scan["supersession_known_at_tick"] = json!(25);
+        sequence["evidence_events"].as_array_mut().unwrap().push(json!({
+            "event_id":"ev-scan-v2",
+            "kind":"survey",
+            "measurement_tick":19,
+            "first_received_tick":25,
+            "clock_id":"synthetic-global-tick-v0",
+            "timestamp_precision_ticks":1,
+            "valid_from_tick":0,
+            "valid_until_tick":100,
+            "revoked_known_at_tick":null,
+            "superseded_by_event_id":null,
+            "supersession_known_at_tick":null,
+            "allowed_purposes":["medium_building_update","slow_quality_requalification"]
+        }));
+        let step = candidate["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
+            .unwrap()["steps"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|step| step["step_id"] == "f-02")
+            .unwrap();
+        step["decision_evidence_event_ids"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("ev-scan"));
+        let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
+        let reference_bytes = serde_json::to_vec(&reference).unwrap();
+        let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
+            .expect("later supersession preserves the earlier information set");
         assert_eq!(report.temporal_evidence_violations, 0);
         assert!(report.passed);
     }
