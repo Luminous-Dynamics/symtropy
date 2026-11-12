@@ -129,8 +129,8 @@ fn validate_clock_qualification(input:&Value,clock:&Value,clock_sha256:&str)->Ch
         if uncertainty+1e-9<declared||uncertainty-profile_max>1e-9{
             return Err(err("CLOCK_SENSOR_UNCERTAINTY_RANGE",&at,"sensor uncertainty must be between common-timebase uncertainty and layout maximum"));
         }
-        if synthetic&&txt(sensor,"clock_domain",&at)?!=clock_domain{
-            return Err(err("SYNTHETIC_CLOCK_DOMAIN_MISMATCH",&at,"identity mapping requires the declared synthetic clock domain"));
+        if txt(sensor,"clock_domain",&at)?!=clock_domain{
+            return Err(err("CLOCK_DOMAIN_MISMATCH",&at,"v0.1 clock artifact declares one source domain; every installed sensor must bind that exact domain"));
         }
     }
     if installed==0{return Err(err("NO_INSTALLED_CLOCKED_SENSORS","$.sensors","at least one installed sensor must bind the common timebase"));}
@@ -322,11 +322,16 @@ fn validate_input(input:&Value)->Check<()>{
 }
 
 fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_dependencies:&BTreeSet<String>)->Check<(Value,Value)>{
-    let asset=&input["asset"];let regime=&input["operating_domain"];let digests=&input["evidence_digests"];
+    let asset=&input["asset"];let regime=&input["operating_domain"];
     let family=format!("engine-family:{}",txt(asset,"engine_model","$.asset")?);
     let config=format!("asset-config-sha256:{}",txt(asset,"configuration_sha256","$.asset")?);
     let domain=format!("operating-domain:{}",txt(regime,"regime_id","$.operating_domain")?);
-    let installation=format!("sensor-topology-sha256:{}",txt(digests,"sensor_topology_sha256","$.evidence_digests")?);
+    // The v0.1 input deliberately leaves evidence_digests null until external
+    // artifact bytes are available. Use a declared profile identity here; do
+    // not fabricate a sensor-topology SHA-256 from a name or null value.
+    let installation=format!("installation-profile:{}:{}", 
+        txt(&input["layout_profile"],"layout_profile_ref","$.layout_profile")?,
+        txt(asset,"configuration_revision","$.asset")?);
     let parent_id=format!("asset:{}",txt(asset,"asset_id","$.asset")?);
     let interval=format!("regime:{}",txt(regime,"regime_id","$.operating_domain")?);
     let trial=format!("configuration:{}",txt(asset,"configuration_revision","$.asset")?);
@@ -338,7 +343,6 @@ fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_d
     let installed:Vec<&Value>=sensors.iter().filter(|s|s["installed"]==true).collect();
     let time_domain=&input["operating_domain"];
     let layout_profile=&input["layout_profile"];
-    let evidence_class=txt(input,"evidence_class","$")?;
     let domain_qualified=txt(time_domain,"qualification_state","$.operating_domain")?=="qualified";
     let mut channel_map=BTreeMap::new();let mut channels=Vec::new();
     for s in &installed{
