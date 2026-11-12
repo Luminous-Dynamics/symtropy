@@ -28,10 +28,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      - uses: dtolnay/rust-toolchain@1.96.0
         with:
-          toolchain: "1.96.0"
           components: rustfmt, clippy
+      - name: Verify package metadata and committed lockfile
+        run: cargo metadata --manifest-path research/construction-floor-production-v0-1/Cargo.toml --locked --format-version 1
       - name: Formatting
         run: cargo fmt --manifest-path research/construction-floor-production-v0-1/Cargo.toml -- --check
       - name: Tests
