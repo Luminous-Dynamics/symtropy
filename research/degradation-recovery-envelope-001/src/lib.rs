@@ -444,10 +444,10 @@ fn validate_run(run: &RunTrace, expected_ticks: u64, findings: &mut BTreeSet<Fin
         if !seen.insert(tick.tick) {
             findings.insert(Finding::DuplicateTick);
         }
-        if let Some(previous) = previous_capture {
-            if tick.capture_timestamp_us <= previous {
-                findings.insert(Finding::NonMonotonicCaptureClock);
-            }
+        if let Some(previous) = previous_capture
+            && tick.capture_timestamp_us <= previous
+        {
+            findings.insert(Finding::NonMonotonicCaptureClock);
         }
         previous_capture = Some(tick.capture_timestamp_us);
         if tick.delivered_timestamp_us < tick.capture_timestamp_us {
