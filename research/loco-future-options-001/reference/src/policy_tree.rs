@@ -1146,6 +1146,15 @@ mod tests {
 
 
     #[test]
+    fn missing_mission_sequence_digest_blocks_policy_synthesis() {
+        let mut tree = root_two_step_tree();
+        tree.nodes[0].state_evidence[0].mission_sequence_digest.clear();
+        let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
+        assert_eq!(report.disposition, PolicyTreeDisposition::Unknown);
+        assert!(report.policy_witness.is_empty());
+    }
+
+    #[test]
     fn transition_cannot_reuse_a_state_receipt_from_a_different_event_order() {
         let mut tree = root_two_step_tree();
         tree.nodes[1].state_evidence[0].mission_sequence_digest =
