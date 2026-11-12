@@ -408,7 +408,8 @@
             "likelihood_calibration_catalogue_sha256",
             "likelihood_calibration_reviewed_by_independent_validator",
             "upstream_likelihood_calibration_verification_sha256",
-            "prior_distribution_sha256"
+            "prior_distribution_sha256",
+            "selected_baseline"
           ],
           "properties": {
             "schema_version": {
@@ -731,6 +732,18 @@
                 {
                   "type": "null"
                 }
+              ]
+            },
+            "selected_baseline": {
+              "enum": [
+                "no_additional_evidence",
+                "cheapest_eligible",
+                "maximum_information_gain",
+                "information_gain_per_cost",
+                "seeded_random_eligible",
+                "risk_adjusted_worst_case_information_gain",
+                "maximum_worst_case_chernoff_information",
+                null
               ]
             }
           }
@@ -1803,6 +1816,24 @@
               "type": "null"
             }
           ]
+        },
+        "minimum_pairwise_chernoff_information_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "worst_case_pairwise_chernoff_information_nats": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "chernoff_discretization_intervals": {
+          "type": "integer",
+          "minimum": 2
         }
       }
     },
