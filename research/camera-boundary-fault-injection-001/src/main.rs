@@ -125,7 +125,10 @@ struct FaultCampaignReport {
     campaign_id: String,
     status: String,
     source_episode_id: String,
+    source_episode_report_sha256: String,
+    source_episode_request_sha256: String,
     bridge_binary: String,
+    bridge_binary_sha256: String,
     camera_calibration_pin_sha256: String,
     maximum_observation_delivery_age_us: u64,
     maximum_sensor_clock_skew_us: u64,
@@ -473,8 +476,12 @@ fn prepare_request(
             let capture = observations[0]["timestamp_us"]
                 .as_u64()
                 .ok_or("first observation lacks timestamp_us")?;
-            observations[0]["vehicle_state_timestamp_us"] =
-                json!(capture.saturating_add(maximum_clock_skew).saturating_add(1));
+            let skewed_timestamp = capture
+                .saturating_add(maximum_clock_skew)
+                .saturating_add(1);
+            observations[0]["vehicle_state_timestamp_us"] = json!(skewed_timestamp);
+            observations[0]["vehicle_state"]["timestamp"] =
+                json!(skewed_timestamp as f64 / 1_000_000.0);
         }
         FaultCase::DeliveryAgeExceeded => {
             let capture = observations[0]["upstream"]["capture_timestamp_us"]
@@ -493,6 +500,7 @@ fn prepare_request(
             observations[0]["upstream"]["applied_action_receipt_sha256"] = Value::Null;
             observations[0]["upstream"]["applied_action_command_id"] = Value::Null;
             observations[0]["upstream"]["applied_action_tick"] = Value::Null;
+            recompute_upstream_policy_receipt(&mut observations[0]["upstream"])?;
         }
     }
 
@@ -634,17 +642,79 @@ fn run_case(
         if case == FaultCase::CleanControl {
             let output_valid = if child_output.status.success() && receipt_exists {
                 let output: Value = serde_json::from_slice(&fs::read(&output_path)?)?;
-                let receipt_count = output["receipts"].as_array().map(Vec::len).unwrap_or(0);
-                let artifact_count = output["policy_input_artifacts"]
-                    .as_array()
-                    .map(Vec::len)
-                    .unwrap_or(0);
+                let receipts = output["receipts"].as_array();
+                let artifacts = output["policy_input_artifacts"].as_array();
+                let receipt_count = receipts.map(Vec::len).unwrap_or(0);
+                let artifact_count = artifacts.map(Vec::len).unwrap_or(0);
+                let mut every_artifact_reconciled = true;
+                if let (Some(receipts), Some(artifacts)) = (receipts, artifacts) {
+                    for (index, (receipt, artifact)) in
+                        receipts.iter().zip(artifacts).enumerate()
+                    {
+                        let upstream = &request["observations"][index]["upstream"];
+                        if receipt["upstream_observation_id"] != upstream["observation_id"]
+                            || receipt["upstream_receipt_sha256"] != upstream["receipt_sha256"]
+                            || receipt["upstream_frame_sha256"] != upstream["frame_sha256"]
+                            || receipt["capture_sequence"] != request["observations"][index]["sequence"]
+                            || artifact["sequence"] != request["observations"][index]["sequence"]
+                            || artifact["dimension"].as_u64() != Some(16_384)
+                            || artifact["sha256"] != receipt["fused_policy_input_sha256"]
+                        {
+                            every_artifact_reconciled = false;
+                            break;
+                        }
+                        if index == 0 {
+                            if !receipt["previous_receipt_sha256"].is_null() {
+                                every_artifact_reconciled = false;
+                                break;
+                            }
+                        } else if receipt["previous_receipt_sha256"]
+                            != receipts[index - 1]["receipt_sha256"]
+                        {
+                            every_artifact_reconciled = false;
+                            break;
+                        }
+                        let relative_name = match artifact["relative_path"].as_str() {
+                            Some(value) => value,
+                            None => {
+                                every_artifact_reconciled = false;
+                                break;
+                            }
+                        };
+                        let relative = match safe_relative_path(relative_name) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                every_artifact_reconciled = false;
+                                break;
+                            }
+                        };
+                        let bytes = match fs::read(policy_input_dir.join(relative)) {
+                            Ok(value) => value,
+                            Err(_) => {
+                                every_artifact_reconciled = false;
+                                break;
+                            }
+                        };
+                        if bytes.len() != 8 + 16_384 * 4
+                            || artifact["byte_length"].as_u64() != Some(bytes.len() as u64)
+                            || artifact["sha256"].as_str() != Some(sha256_hex(&bytes).as_str())
+                        {
+                            every_artifact_reconciled = false;
+                            break;
+                        }
+                    }
+                } else {
+                    every_artifact_reconciled = false;
+                }
                 output["expected_observations"].as_u64() == Some(observation_count as u64)
                     && output["processed_observations"].as_u64() == Some(observation_count as u64)
+                    && output["frames_processed"].as_u64() == Some(observation_count as u64)
                     && receipt_count == observation_count
                     && artifact_count == observation_count
                     && policy_artifact_count == observation_count
                     && output["vision_learning_frozen"].as_bool() == Some(true)
+                    && output["vision_training_steps_before"] == output["vision_training_steps_after"]
+                    && every_artifact_reconciled
             } else {
                 false
             };
@@ -652,7 +722,8 @@ fn run_case(
         } else {
             let expected_observed = !child_output.status.success()
                 && expected_error.is_some_and(|error| stderr.contains(error));
-            let no_commit = !receipt_exists && policy_artifact_count == 0;
+            let no_commit =
+                !receipt_exists && policy_artifact_count == 0 && (!policy_dir_exists || policy_artifact_count == 0);
             (false, expected_observed, no_commit)
         };
 
@@ -673,6 +744,90 @@ fn run_case(
         input_observation_count: observation_count,
         stderr,
     })
+}
+
+fn validate_source_episode(
+    episode_dir: &Path,
+    request: &Value,
+) -> Result<(String, String, String), Box<dyn Error>> {
+    let report_path = episode_dir.join("episode-report.json");
+    let report_bytes = fs::read(&report_path)?;
+    if report_bytes.len() as u64 > MAX_REQUEST_BYTES {
+        return Err("episode report exceeds 64 MiB".into());
+    }
+    let report: Value = serde_json::from_slice(&report_bytes)?;
+    for field in [
+        "fresh_process_renderer_replay_exact",
+        "fresh_process_symthaea_bridge_replay_exact",
+        "branch_evidence_audit_valid",
+        "stale_actor_replay_negative_control_rejected",
+        "symthaea_receipt_chain_valid",
+        "policy_input_artifacts_valid",
+    ] {
+        if report[field].as_bool() != Some(true) {
+            return Err(format!(
+                "source #4618 episode report is missing a passing {field} result"
+            )
+            .into());
+        }
+    }
+    if report["status"].as_str() != Some("complete_for_declared_non_learning_fixture") {
+        return Err("source episode report does not declare a complete non-learning fixture".into());
+    }
+    let expected = report["expected_ticks"].as_u64().ok_or("source report lacks expected_ticks")?;
+    let delivered = report["delivered_observations"]
+        .as_u64()
+        .ok_or("source report lacks delivered_observations")?;
+    if delivered != request["observations"].as_array().map(Vec::len).unwrap_or(0) as u64
+        || delivered + report["missing_observations"].as_u64().unwrap_or(u64::MAX) != expected
+    {
+        return Err("source episode report and request observation denominators disagree".into());
+    }
+
+    let observations = request["observations"]
+        .as_array()
+        .ok_or("episode request lacks observations[]")?;
+    let mut seen = std::collections::BTreeSet::new();
+    for observation in observations {
+        let sequence = observation["sequence"].as_u64().ok_or("observation sequence missing")?;
+        if !seen.insert(sequence) {
+            return Err("source episode contains duplicate observation sequences".into());
+        }
+        let relative_text = observation["pixels_file"]
+            .as_str()
+            .ok_or("observation lacks pixels_file")?;
+        let relative = safe_relative_path(relative_text)?;
+        let source = resolve_inside(episode_dir, &relative)?;
+        let bytes = fs::read(source)?;
+        let expected_frame = observation["upstream"]["frame_sha256"]
+            .as_str()
+            .ok_or("upstream frame SHA-256 missing")?;
+        if sha256_hex(&bytes) != expected_frame {
+            return Err(format!("source frame digest mismatch at sequence {sequence}").into());
+        }
+        let receipt_path = episode_dir.join("policy-receipts").join(format!(
+            "policy_receipt_{sequence:04}.json"
+        ));
+        let receipt: Value = serde_json::from_slice(&fs::read(&receipt_path)?)?;
+        if receipt != observation["upstream"] {
+            return Err(format!("persisted policy receipt does not match episode request at sequence {sequence}").into());
+        }
+    }
+
+    let episode_id = request["bridge_config"]["identity"]["episode_id"]
+        .as_str()
+        .ok_or("BridgeConfig episode identity missing")?
+        .to_string();
+    if report["episode_id"].as_str() != Some(episode_id.as_str()) {
+        return Err("episode report and bridge request episode IDs differ".into());
+    }
+    let request_path = episode_dir.join(REQUEST_FILE);
+    let request_bytes = fs::read(request_path)?;
+    Ok((
+        sha256_hex(&report_bytes),
+        sha256_hex(&request_bytes),
+        episode_id,
+    ))
 }
 
 fn run_campaign(
@@ -701,7 +856,12 @@ fn run_campaign(
     if !metadata.is_file() || metadata.len() > MAX_REQUEST_BYTES {
         return Err("episode request must be a regular file no larger than 64 MiB".into());
     }
-    let base_request: Value = serde_json::from_slice(&fs::read(&request_path)?)?;
+    let request_bytes = fs::read(&request_path)?;
+    let base_request: Value = serde_json::from_slice(&request_bytes)?;
+    let (source_report_sha256, source_request_sha256, source_episode_id) =
+        validate_source_episode(&episode_dir, &base_request)?;
+    let bridge_binary_bytes = fs::read(&bridge_binary)?;
+    let bridge_binary_sha256 = sha256_hex(&bridge_binary_bytes);
 
     let (_, _, calibration_pin, maximum_age, maximum_skew) =
         prepare_request(&base_request, FaultCase::CleanControl)?;
@@ -744,11 +904,11 @@ fn run_campaign(
                 .unwrap_or("unknown-episode")
         ),
         status: if all_pass { "all_cases_passed" } else { "rejected" }.to_string(),
-        source_episode_id: base_request["bridge_config"]["identity"]["episode_id"]
-            .as_str()
-            .unwrap_or("unknown-episode")
-            .to_string(),
+        source_episode_id,
+        source_episode_report_sha256: source_report_sha256,
+        source_episode_request_sha256: source_request_sha256,
         bridge_binary: bridge_binary.display().to_string(),
+        bridge_binary_sha256,
         camera_calibration_pin_sha256: calibration_pin,
         maximum_observation_delivery_age_us: maximum_age,
         maximum_sensor_clock_skew_us: maximum_skew,
