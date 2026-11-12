@@ -93,3 +93,8 @@ This programme does not yet establish a safe-water product, treatment efficacy, 
 The programme now also includes household/building leak detection, community / district-metered-area diagnosis and municipal pressurized-network localization. This is separate from gravity-sewer robot inspection and from PAT energy recovery. See [Symtropy #4963](https://github.com/Luminous-Dynamics/symtropy/issues/4963) and [PRESSURIZED_WATER_DIAGNOSTICS_BENCHMARK_V0_1.md](./PRESSURIZED_WATER_DIAGNOSTICS_BENCHMARK_V0_1.md).
 
 The comparison set includes the 2026 47k+ synthetic EPANET/WNTR Net3 benchmark, the 2026 one-year hourly real-utility SCADA dataset, the physical LeakTestbed (280 controlled signals), and the 2026 systematic review. They remain separate populations; simulated detection accuracy is not field accuracy.
+
+
+## Physical test-cell concept
+
+The staged, non-construction design basis is in [T1_WATER_TEST_CELL_DESIGN_BASIS_V0_1.md](./T1_WATER_TEST_CELL_DESIGN_BASIS_V0_1.md). It defines isolated PUMP-T1, FILTER-T1 and LEAK-T1 configurations, reuses Mycelix H1 instrumentation concepts without misrepresenting H1 as an industrial acceptance rig, and requires competent pressure/electrical/mechanical safety review before build or energization.
