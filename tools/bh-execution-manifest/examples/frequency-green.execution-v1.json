@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0.0",
+  "manifest_id": "execution-frequency-green",
+  "evidence_status": "illustrative_not_executed",
+  "method_id": "frequency-green",
+  "implementation_id": "frequency-domain-green-method",
+  "implementation_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+  "code": {
+    "repository": "https://github.com/Luminous-Dynamics/symtropy",
+    "revision": "0123456789abcdef0123456789abcdef01234567",
+    "working_tree": "unknown",
+    "source_tree_sha256": null
+  },
+  "build": {
+    "command": "not executed: illustrative contract fixture",
+    "compiler": "rustc",
+    "compiler_version": "not_recorded",
+    "target_triple": "x86_64-unknown-linux-gnu",
+    "profile": "release",
+    "flags": [],
+    "dependency_lock_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "executable_sha256": null
+  },
+  "invocation": {
+    "argv": [
+      "green-frequency-reference",
+      "--study",
+      "pt-response-example-v0.2"
+    ],
+    "working_directory": ".",
+    "input_files": [
+      {
+        "name": "source-pulse-config",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    ],
+    "input_set_format": "utf8_bytewise_name_tab_lowercase_sha256_lf_v1",
+    "input_set_sha256": "46697b288f82a2660f571957eb394c59c99718e03bb7c5a1293aca7341468666",
+    "environment": []
+  },
+  "runtime": {
+    "operating_system": "linux",
+    "kernel": "not_recorded_fixture",
+    "architecture": "x86_64",
+    "runtime": "not_executed",
+    "container_image_sha256": null
+  },
+  "hardware": {
+    "cpu_model": "not_recorded_fixture",
+    "logical_cpus": 1,
+    "memory_bytes": null,
+    "accelerators": []
+  },
+  "arithmetic": {
+    "format": "IEEE-754 binary64",
+    "precision_bits": 53,
+    "rounding_mode": "roundTiesToEven",
+    "deterministic_reductions": false
+  },
+  "solver": {
+    "solver_id": "green-frequency-reference",
+    "solver_version": "not_recorded",
+    "algorithm": "illustrative_only",
+    "settings_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "parameters": {
+      "width": "1",
+      "lambda": "0.75"
+    },
+    "stopping_criteria": "not executed; fixture only",
+    "max_steps": null,
+    "random_seed": null
+  },
+  "result": {
+    "started_at_unix_ns": null,
+    "finished_at_unix_ns": null,
+    "elapsed_ns": null,
+    "exit_code": null,
+    "stdout_sha256": null,
+    "stderr_sha256": null
+  },
+  "outputs": []
+}

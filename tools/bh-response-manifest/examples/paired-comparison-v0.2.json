@@ -1,0 +1,94 @@
+{
+  "schema_version": "0.2.0",
+  "study": {
+    "study_id": "pt-response-example-v0.2",
+    "model_id": "poschl-teller-1d",
+    "equation_id": "wave-sech2-v1",
+    "convention_id": "fourier-minus-iwt-v1",
+    "coordinate_system": "dimensionless-x-over-width",
+    "source_id": "compact-pulse-example-01",
+    "observer_id": "observer-right-x2"
+  },
+  "qualification": "independently_cross_checked",
+  "oracle_reference": {
+    "reference_id": "poschl-teller-analytic-response",
+    "version": "source-pinned-reference-v1",
+    "locator": "https://doi.org/10.1103/1bcl-q79x",
+    "artifact_sha256": null
+  },
+  "provenance": {
+    "git_commit": "0123456789abcdef0123456789abcdef01234567",
+    "dependency_lock_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "input_digests": [
+      {
+        "name": "source-pulse-config",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    ],
+    "reproduction_command": "cargo run --release -- --study pt-response-example-v0.2",
+    "environment": "rustc-1.96.0; binary64; linux-x86_64",
+    "canonical_input_set_sha256": "46697b288f82a2660f571957eb394c59c99718e03bb7c5a1293aca7341468666",
+    "canonical_input_set_format": "utf8_bytewise_name_tab_lowercase_sha256_lf_v1"
+  },
+  "numerical": {
+    "solver_id": "analytic-example-not-an-executed-run",
+    "arithmetic": "binary64",
+    "precision_bits": 53,
+    "parameters": {
+      "width": 1,
+      "lambda": 0.75,
+      "observer_x": 2,
+      "source_x": -1
+    }
+  },
+  "methods": [
+    {
+      "method_id": "direct-pde",
+      "implementation_id": "independent-fdtd-method",
+      "implementation_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "input_set_sha256": "46697b288f82a2660f571957eb394c59c99718e03bb7c5a1293aca7341468666",
+      "response_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "execution_manifest_id": "execution-direct-pde",
+      "execution_manifest_sha256": "307d607482790bfbfb046421662cd22ed5477fdce2a032c253ee6146a61bd83c"
+    },
+    {
+      "method_id": "frequency-green",
+      "implementation_id": "frequency-domain-green-method",
+      "implementation_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "input_set_sha256": "46697b288f82a2660f571957eb394c59c99718e03bb7c5a1293aca7341468666",
+      "response_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "execution_manifest_id": "execution-frequency-green",
+      "execution_manifest_sha256": "f4e4f8297659202df35831bd49f6d579e0bd167ccdd1567d3651d9455d092991"
+    }
+  ],
+  "error_budget": [],
+  "response_windows": [
+    {
+      "window_id": "retarded-prompt-window",
+      "causal_region": "source-support-through-prompt-arrival-before-boundary-return",
+      "norm_id": "complex-l2-relative-v1",
+      "observed_error": 0.00032,
+      "acceptance_limit": 0.001
+    }
+  ],
+  "comparisons": [
+    {
+      "comparison_id": "direct-pde-vs-frequency-green-prompt",
+      "window_id": "retarded-prompt-window",
+      "left_method_id": "direct-pde",
+      "right_method_id": "frequency-green",
+      "alignment_definition_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+      "metric_definition_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+      "aligned_samples_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+      "comparison_artifact_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+      "norm_id": "complex-l2-relative-v1",
+      "observed_error": 0.00032,
+      "acceptance_limit": 0.001,
+      "accepted": true,
+      "left_response_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "right_response_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  ],
+  "convergence": [],
+  "negative_controls": []
+}
