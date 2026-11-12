@@ -297,7 +297,9 @@ pub fn compare_profiles(input: &ComparisonInput) -> Result<ComparisonResult, Rej
         coverage_permille,
         valid_interval_count: interval_count,
         absolute_deviation_area_upper_bound_twice_units: area_twice,
-        registration_vertical_error_bound_units: input.registration.registration_vertical_error_bound_units,
+        registration_vertical_error_bound_units: input
+            .registration
+            .registration_vertical_error_bound_units,
         interpolation_assumption: "piecewise_linear_between_valid_adjacent_samples_only",
         claim_ceiling: "REGISTERED_2D_CROSS_SECTION_PROFILE_DEVIATION_ONLY",
     })
@@ -315,9 +317,18 @@ mod tests {
             profile_id: "REFERENCE-01".to_owned(),
             sha256: [0x11; 32],
             points: vec![
-                ProfilePoint { station_units: 0, height_units: 0 },
-                ProfilePoint { station_units: 100, height_units: 100 },
-                ProfilePoint { station_units: 200, height_units: 0 },
+                ProfilePoint {
+                    station_units: 0,
+                    height_units: 0,
+                },
+                ProfilePoint {
+                    station_units: 100,
+                    height_units: 100,
+                },
+                ProfilePoint {
+                    station_units: 200,
+                    height_units: 0,
+                },
             ],
         };
         let measured = MeasuredProfile {
@@ -328,16 +339,22 @@ mod tests {
             sha256: [0x22; 32],
             points: vec![
                 MeasuredPoint {
-                    station_units: 0, height_units: 0,
-                    vertical_uncertainty_bound_units: 1, valid: true,
+                    station_units: 0,
+                    height_units: 0,
+                    vertical_uncertainty_bound_units: 1,
+                    valid: true,
                 },
                 MeasuredPoint {
-                    station_units: 100, height_units: 90,
-                    vertical_uncertainty_bound_units: 1, valid: true,
+                    station_units: 100,
+                    height_units: 90,
+                    vertical_uncertainty_bound_units: 1,
+                    valid: true,
                 },
                 MeasuredPoint {
-                    station_units: 200, height_units: 0,
-                    vertical_uncertainty_bound_units: 1, valid: true,
+                    station_units: 200,
+                    height_units: 0,
+                    vertical_uncertainty_bound_units: 1,
+                    valid: true,
                 },
             ],
         };
@@ -349,7 +366,9 @@ mod tests {
             registration_vertical_error_bound_units: 1,
         };
         ComparisonInput {
-            reference, measured, registration,
+            reference,
+            measured,
+            registration,
             minimum_coverage_permille: 1_000,
             maximum_station_gap_units: 100,
         }
@@ -362,18 +381,27 @@ mod tests {
         assert_eq!(result.valid_interval_count, 2);
         assert_eq!(result.covered_length_units, 200);
         assert_eq!(result.total_length_units, 200);
-        assert_eq!(result.absolute_deviation_area_upper_bound_twice_units, 2_800);
-        assert_eq!(result.claim_ceiling, "REGISTERED_2D_CROSS_SECTION_PROFILE_DEVIATION_ONLY");
+        assert_eq!(
+            result.absolute_deviation_area_upper_bound_twice_units,
+            2_800
+        );
+        assert_eq!(
+            result.claim_ceiling,
+            "REGISTERED_2D_CROSS_SECTION_PROFILE_DEVIATION_ONLY"
+        );
     }
 
     #[test]
     fn identical_profiles_with_zero_uncertainty_have_zero_deviation_bound() {
         let mut input = profile_input();
         for point in &mut input.measured.points {
-            point.height_units = input.reference.points
+            point.height_units = input
+                .reference
+                .points
                 .iter()
                 .find(|reference| reference.station_units == point.station_units)
-                .expect("matching reference station").height_units;
+                .expect("matching reference station")
+                .height_units;
             point.vertical_uncertainty_bound_units = 0;
         }
         input.registration.registration_vertical_error_bound_units = 0;
@@ -384,7 +412,10 @@ mod tests {
     #[test]
     fn measurement_and_registration_uncertainty_are_composed() {
         let result = compare_profiles(&profile_input()).expect("valid profile pair");
-        assert_eq!(result.absolute_deviation_area_upper_bound_twice_units, 2_800);
+        assert_eq!(
+            result.absolute_deviation_area_upper_bound_twice_units,
+            2_800
+        );
         assert_eq!(result.registration_vertical_error_bound_units, 1);
     }
 
@@ -392,21 +423,30 @@ mod tests {
     fn wrong_coordinate_frame_is_rejected() {
         let mut input = profile_input();
         input.measured.coordinate_frame = "OTHER-FRAME".to_owned();
-        assert_eq!(compare_profiles(&input), Err(Rejection::CoordinateFrameMismatch));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::CoordinateFrameMismatch)
+        );
     }
 
     #[test]
     fn wrong_joint_revision_is_rejected() {
         let mut input = profile_input();
         input.measured.joint_revision = "JOINT-R2".to_owned();
-        assert_eq!(compare_profiles(&input), Err(Rejection::JointRevisionMismatch));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::JointRevisionMismatch)
+        );
     }
 
     #[test]
     fn registration_receipt_must_bind_both_profile_digests() {
         let mut input = profile_input();
         input.registration.source_scan_sha256 = [0x44; 32];
-        assert_eq!(compare_profiles(&input), Err(Rejection::RegistrationReceiptSourceMismatch));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::RegistrationReceiptSourceMismatch)
+        );
     }
 
     #[test]
@@ -420,21 +460,30 @@ mod tests {
     fn missing_reference_digest_is_rejected() {
         let mut input = profile_input();
         input.reference.sha256 = [0; 32];
-        assert_eq!(compare_profiles(&input), Err(Rejection::MissingReferenceDigest));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::MissingReferenceDigest)
+        );
     }
 
     #[test]
     fn missing_registration_digest_is_rejected() {
         let mut input = profile_input();
         input.registration.sha256 = [0; 32];
-        assert_eq!(compare_profiles(&input), Err(Rejection::MissingRegistrationDigest));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::MissingRegistrationDigest)
+        );
     }
 
     #[test]
     fn mismatched_station_grid_is_rejected() {
         let mut input = profile_input();
         input.measured.points[1].station_units = 101;
-        assert_eq!(compare_profiles(&input), Err(Rejection::StationGridMismatch));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::StationGridMismatch)
+        );
     }
 
     #[test]
@@ -442,14 +491,20 @@ mod tests {
         let mut input = profile_input();
         input.reference.points[2].station_units = 90;
         input.measured.points[2].station_units = 90;
-        assert_eq!(compare_profiles(&input), Err(Rejection::NonMonotonicStationGrid));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::NonMonotonicStationGrid)
+        );
     }
 
     #[test]
     fn excessive_station_gap_is_rejected() {
         let mut input = profile_input();
         input.maximum_station_gap_units = 99;
-        assert_eq!(compare_profiles(&input), Err(Rejection::StationGapExceedsLimit));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::StationGapExceedsLimit)
+        );
     }
 
     #[test]
@@ -463,16 +518,20 @@ mod tests {
     #[test]
     fn partial_coverage_is_measured_only_on_valid_adjacent_spans() {
         let mut input = profile_input();
-        input.reference.points = (0..=4).map(|i| ProfilePoint {
-            station_units: i * 25,
-            height_units: 10,
-        }).collect();
-        input.measured.points = (0..=4).map(|i| MeasuredPoint {
-            station_units: i * 25,
-            height_units: 10,
-            vertical_uncertainty_bound_units: 1,
-            valid: i != 2,
-        }).collect();
+        input.reference.points = (0..=4)
+            .map(|i| ProfilePoint {
+                station_units: i * 25,
+                height_units: 10,
+            })
+            .collect();
+        input.measured.points = (0..=4)
+            .map(|i| MeasuredPoint {
+                station_units: i * 25,
+                height_units: 10,
+                vertical_uncertainty_bound_units: 1,
+                valid: i != 2,
+            })
+            .collect();
         input.maximum_station_gap_units = 25;
         input.minimum_coverage_permille = 500;
         let result = compare_profiles(&input).expect("two edge intervals meet 50% coverage");
@@ -485,19 +544,26 @@ mod tests {
     #[test]
     fn coverage_below_threshold_is_rejected() {
         let mut input = profile_input();
-        input.reference.points = (0..=4).map(|i| ProfilePoint {
-            station_units: i * 25,
-            height_units: 10,
-        }).collect();
-        input.measured.points = (0..=4).map(|i| MeasuredPoint {
-            station_units: i * 25,
-            height_units: 10,
-            vertical_uncertainty_bound_units: 1,
-            valid: i != 2,
-        }).collect();
+        input.reference.points = (0..=4)
+            .map(|i| ProfilePoint {
+                station_units: i * 25,
+                height_units: 10,
+            })
+            .collect();
+        input.measured.points = (0..=4)
+            .map(|i| MeasuredPoint {
+                station_units: i * 25,
+                height_units: 10,
+                vertical_uncertainty_bound_units: 1,
+                valid: i != 2,
+            })
+            .collect();
         input.maximum_station_gap_units = 25;
         input.minimum_coverage_permille = 501;
-        assert_eq!(compare_profiles(&input), Err(Rejection::InsufficientCoverage));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::InsufficientCoverage)
+        );
     }
 
     #[test]
@@ -513,26 +579,48 @@ mod tests {
     fn empty_transform_revision_is_rejected() {
         let mut input = profile_input();
         input.registration.transform_revision.clear();
-        assert_eq!(compare_profiles(&input), Err(Rejection::EmptyTransformRevision));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::EmptyTransformRevision)
+        );
     }
 
     #[test]
     fn invalid_coverage_threshold_is_rejected() {
         let mut input = profile_input();
         input.minimum_coverage_permille = 0;
-        assert_eq!(compare_profiles(&input), Err(Rejection::InvalidCoverageThreshold));
+        assert_eq!(
+            compare_profiles(&input),
+            Err(Rejection::InvalidCoverageThreshold)
+        );
     }
 
     #[test]
     fn arithmetic_overflow_in_integral_is_rejected() {
         let mut input = profile_input();
         input.reference.points = vec![
-            ProfilePoint { station_units: 0, height_units: i64::MIN },
-            ProfilePoint { station_units: u64::MAX, height_units: i64::MIN },
+            ProfilePoint {
+                station_units: 0,
+                height_units: i64::MIN,
+            },
+            ProfilePoint {
+                station_units: u64::MAX,
+                height_units: i64::MIN,
+            },
         ];
         input.measured.points = vec![
-            MeasuredPoint { station_units: 0, height_units: i64::MAX, vertical_uncertainty_bound_units: 0, valid: true },
-            MeasuredPoint { station_units: u64::MAX, height_units: i64::MAX, vertical_uncertainty_bound_units: 0, valid: true },
+            MeasuredPoint {
+                station_units: 0,
+                height_units: i64::MAX,
+                vertical_uncertainty_bound_units: 0,
+                valid: true,
+            },
+            MeasuredPoint {
+                station_units: u64::MAX,
+                height_units: i64::MAX,
+                vertical_uncertainty_bound_units: 0,
+                valid: true,
+            },
         ];
         input.maximum_station_gap_units = u64::MAX;
         assert_eq!(compare_profiles(&input), Err(Rejection::ArithmeticOverflow));
