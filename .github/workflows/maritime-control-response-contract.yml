@@ -87,7 +87,11 @@ jobs:
             (.active_evidence_selection.execution_performed == false) and
             (.active_evidence_selection.actuation_authorized == false) and
             (.active_evidence_selection.controlled_perturbations_recommended == 0) and
+            (.active_evidence_selection.comparators | length == 7) and
             (.active_evidence_selection.comparators | index("risk_adjusted_worst_case_eig") != null) and
+            (.active_evidence_selection.comparators | index("maximum_worst_case_pairwise_chernoff_information") != null)
+            and (.active_evidence_selection.chernoff.s_grid_intervals == 100)
+            and (.active_evidence_selection.chernoff.assumption | contains("not a finite-sample diagnostic error guarantee"))
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.one_sample_one_output == true) and
             (.streaming_contract.historical_output_mutation == false) and
@@ -136,7 +140,11 @@ jobs:
           jq -e '
             .schema_version == "liu-ice-active-evidence-selection-v0.4" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 6) and
+            (.comparators | length == 7) and
+            ([.comparators[].id] | unique | length == 7) and
+            ([.comparators[].id] | index("maximum_worst_case_pairwise_chernoff_information") != null) and
+            (.method.chernoff_information.grid | contains("100 uniform intervals")) and
+            (.method.chernoff_information.assumptions | contains("not a finite-sample error guarantee")) and
             (.candidate_classes.controlled_perturbation.eligible_when == false) and
             (.hard_gates | length >= 40) and
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
