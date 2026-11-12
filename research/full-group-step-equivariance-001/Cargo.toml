@@ -1,0 +1,16 @@
+[package]
+name = "full-group-step-equivariance-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "O(2)-equivariant constrained discrete-step reference under dense coordinate rebasing"
+
+[dependencies]
+metric-induced-error-envelope-reference = { path = "../metric-induced-error-envelope-001" }
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
