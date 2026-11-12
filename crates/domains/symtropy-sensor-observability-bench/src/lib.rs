@@ -734,12 +734,12 @@ mod tests {
         report.pair_results.iter().find(|p| p.pair_id == id).unwrap()
     }
 
-    fn response_mut(case: &mut Value, state: &str, channel: &str) -> &mut Value {
+    fn response_mut<'a>(case: &'a mut Value, state: &str, channel: &str) -> &'a mut Value {
         case["responses"].as_array_mut().unwrap().iter_mut()
             .find(|r| r["state_id"] == state && r["channel_id"] == channel).unwrap()
     }
 
-    fn channel_mut(case: &mut Value, channel: &str) -> &mut Value {
+    fn channel_mut<'a>(case: &'a mut Value, channel: &str) -> &'a mut Value {
         case["channels"].as_array_mut().unwrap().iter_mut()
             .find(|c| c["channel_id"] == channel).unwrap()
     }
@@ -1156,12 +1156,13 @@ mod tests {
         case["parent_context"]["installation_profile_ref"] = installation.clone();
         parent_case["profile"]["installation_profile_ref"] = installation;
 
+        let operating_domain_ref = case["parent_context"]["operating_domain_ref"].clone();
         for channel in case["channels"].as_array_mut().unwrap() {
             let domain = &mut channel["domain"];
             rename_key(domain, "material_cohort_ref", "asset_family_ref");
             rename_key(domain, "path_configuration_ref", "asset_configuration_ref");
             rename_key(domain, "geometry_profile_ref", "installation_profile_ref");
-            domain["operating_domain_ref"] = case["parent_context"]["operating_domain_ref"].clone();
+            domain["operating_domain_ref"] = operating_domain_ref.clone();
         }
         case["layout_profile"]["state_taxonomy_ref"] = serde_json::json!("taxonomy:marine-diesel-faults-v0.1");
         replace_string(&mut case, "DEVELOPING_BLOCKAGE", "ENGINE_FUEL_INJECTION_FAULT");
