@@ -165,10 +165,16 @@ fn validate_input(input: &Input) -> Result<(Vec<String>, Vec<CanonicalSession>, 
             return Err(format!("{label} must be a lowercase SHA-256 digest"));
         }
     }
-    validate_non_empty(&input.setup.coordinate_frame_id, "setup.coordinate_frame_id")?;
+    validate_non_empty(
+        &input.setup.coordinate_frame_id,
+        "setup.coordinate_frame_id",
+    )?;
     validate_non_empty(&input.setup.range_stratum, "setup.range_stratum")?;
     validate_non_empty(&input.setup.incidence_stratum, "setup.incidence_stratum")?;
-    validate_non_empty(&input.setup.environment_stratum, "setup.environment_stratum")?;
+    validate_non_empty(
+        &input.setup.environment_stratum,
+        "setup.environment_stratum",
+    )?;
 
     if !input.alpha.is_finite() || !(0.001..=0.2).contains(&input.alpha) {
         return Err("alpha must be finite and within [0.001, 0.2]".to_owned());
@@ -194,9 +200,8 @@ fn validate_input(input: &Input) -> Result<(Vec<String>, Vec<CanonicalSession>, 
 
     let mut session_ids = BTreeSet::new();
     let mut target_ids = BTreeSet::new();
-    let mut canonical = Vec::with_capacity(
-        input.baseline_sessions.len() + input.current_sessions.len(),
-    );
+    let mut canonical =
+        Vec::with_capacity(input.baseline_sessions.len() + input.current_sessions.len());
 
     for (sessions, label, is_baseline) in [
         (input.baseline_sessions.as_slice(), "baseline", true),
@@ -271,11 +276,7 @@ fn validate_input(input: &Input) -> Result<(Vec<String>, Vec<CanonicalSession>, 
     }
     sessions.sort_by(|left, right| left.session_id.cmp(&right.session_id));
 
-    Ok((
-        target_ids,
-        sessions,
-        input.baseline_sessions.len(),
-    ))
+    Ok((target_ids, sessions, input.baseline_sessions.len()))
 }
 
 fn median(values: &mut [f64]) -> f64 {
@@ -352,18 +353,13 @@ fn permutation_p_value(
             order.swap(index, swap_index);
         }
         let (baseline_indices, current_indices) = order.split_at(baseline_count);
-        let (statistic, _) = max_log_ratio(
-            sessions,
-            baseline_indices,
-            current_indices,
-            target_count,
-        );
+        let (statistic, _) =
+            max_log_ratio(sessions, baseline_indices, current_indices, target_count);
         if statistic >= observed_statistic - 1e-12 {
             exceedances += 1;
         }
     }
-    let p_value =
-        (exceedances as f64 + 1.0) / (permutation_count as f64 + 1.0);
+    let p_value = (exceedances as f64 + 1.0) / (permutation_count as f64 + 1.0);
     (exceedances, p_value)
 }
 
@@ -372,9 +368,8 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<HealthReport, Box<dyn Error>> {
         return Err("input exceeds the 4 MiB monitor budget".into());
     }
     let input: Input = serde_json::from_slice(bytes)?;
-    let (target_ids, sessions, baseline_count) = validate_input(&input).map_err(|error| {
-        std::io::Error::new(std::io::ErrorKind::InvalidData, error)
-    })?;
+    let (target_ids, sessions, baseline_count) = validate_input(&input)
+        .map_err(|error| std::io::Error::new(std::io::ErrorKind::InvalidData, error))?;
     let current_count = sessions.len() - baseline_count;
     let baseline_indices: Vec<usize> = sessions
         .iter()
@@ -404,19 +399,21 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<HealthReport, Box<dyn Error>> {
     let target_results: Vec<TargetResult> = target_ids
         .iter()
         .zip(summaries.iter())
-        .map(|(target_id, (baseline_median, current_median, ratio))| TargetResult {
-            target_id: target_id.clone(),
-            baseline_median_standard_deviation_mm: *baseline_median,
-            current_median_standard_deviation_mm: *current_median,
-            standard_deviation_ratio_testing_over_baseline: *ratio,
-            direction: if *ratio > 1.0 {
-                "degraded".to_owned()
-            } else if *ratio < 1.0 {
-                "improved".to_owned()
-            } else {
-                "unchanged".to_owned()
+        .map(
+            |(target_id, (baseline_median, current_median, ratio))| TargetResult {
+                target_id: target_id.clone(),
+                baseline_median_standard_deviation_mm: *baseline_median,
+                current_median_standard_deviation_mm: *current_median,
+                standard_deviation_ratio_testing_over_baseline: *ratio,
+                direction: if *ratio > 1.0 {
+                    "degraded".to_owned()
+                } else if *ratio < 1.0 {
+                    "improved".to_owned()
+                } else {
+                    "unchanged".to_owned()
+                },
             },
-        })
+        )
         .collect();
     let ratios: Vec<f64> = target_results
         .iter()
@@ -462,7 +459,8 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<HealthReport, Box<dyn Error>> {
         precision_direction,
         accuracy_disposition: "NOT_EVALUATED".to_owned(),
         task_fitness_disposition: "NOT_EVALUATED".to_owned(),
-        statistical_method: "session_label_permutation_max_abs_log_median_standard_deviation_ratio".to_owned(),
+        statistical_method: "session_label_permutation_max_abs_log_median_standard_deviation_ratio"
+            .to_owned(),
         input_sha256: sha256_hex(bytes),
         claim_ceiling: CLAIM_CEILING.to_owned(),
     })
@@ -470,9 +468,7 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<HealthReport, Box<dyn Error>> {
 
 fn parse_input_path() -> Result<PathBuf, Box<dyn Error>> {
     let mut args = env::args().skip(1);
-    let mut input = PathBuf::from(
-        "tools/scan-bim-tls-health-monitor/fixtures/no-change.json",
-    );
+    let mut input = PathBuf::from("tools/scan-bim-tls-health-monitor/fixtures/no-change.json");
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--input" => {
@@ -493,8 +489,10 @@ fn run() -> Result<bool, Box<dyn Error>> {
     let bytes = fs::read(path)?;
     let report = evaluate_bytes(&bytes)?;
     println!("{}", serde_json::to_string_pretty(&report)?);
-    Ok(report.disposition == "NO_SIGNIFICANT_PRECISION_CHANGE_DETECTED"
-        || report.disposition == "SIGNIFICANT_PRECISION_CHANGE_DETECTED")
+    Ok(
+        report.disposition == "NO_SIGNIFICANT_PRECISION_CHANGE_DETECTED"
+            || report.disposition == "SIGNIFICANT_PRECISION_CHANGE_DETECTED",
+    )
 }
 
 fn main() {
@@ -512,15 +510,16 @@ fn main() {
 mod tests {
     use super::*;
 
-    const NO_CHANGE: &str =
-        include_str!("../fixtures/no-change.json");
-    const PRECISION_CHANGE: &str =
-        include_str!("../fixtures/precision-change.json");
+    const NO_CHANGE: &str = include_str!("../fixtures/no-change.json");
+    const PRECISION_CHANGE: &str = include_str!("../fixtures/precision-change.json");
 
     #[test]
     fn no_change_control_is_not_a_significant_precision_change() {
         let report = evaluate_bytes(NO_CHANGE.as_bytes()).expect("no-change fixture evaluates");
-        assert_eq!(report.disposition, "NO_SIGNIFICANT_PRECISION_CHANGE_DETECTED");
+        assert_eq!(
+            report.disposition,
+            "NO_SIGNIFICANT_PRECISION_CHANGE_DETECTED"
+        );
         assert!(report.p_value >= report.alpha);
         assert_eq!(report.accuracy_disposition, "NOT_EVALUATED");
         assert_eq!(report.task_fitness_disposition, "NOT_EVALUATED");
@@ -578,8 +577,7 @@ mod tests {
 
     #[test]
     fn changed_sensor_identity_or_configuration_is_not_an_input_comparison() {
-        let mut input: serde_json::Value =
-            serde_json::from_str(NO_CHANGE).expect("fixture parses");
+        let mut input: serde_json::Value = serde_json::from_str(NO_CHANGE).expect("fixture parses");
         input["sensor"]["unit_id"] = serde_json::Value::String("another-scanner".to_owned());
         let bytes = serde_json::to_vec(&input).expect("modified input serializes");
         // Both periods share one explicit sensor identity; a different unit is a different
@@ -613,10 +611,9 @@ mod tests {
 
     #[test]
     fn invalid_standard_deviation_is_rejected() {
-        let mut input: serde_json::Value =
-            serde_json::from_str(NO_CHANGE).expect("fixture parses");
-        input["baseline_sessions"][0]["targets"][0]
-            ["within_session_standard_deviation_mm"] = serde_json::Value::from(0.0);
+        let mut input: serde_json::Value = serde_json::from_str(NO_CHANGE).expect("fixture parses");
+        input["baseline_sessions"][0]["targets"][0]["within_session_standard_deviation_mm"] =
+            serde_json::Value::from(0.0);
         let bytes = serde_json::to_vec(&input).expect("modified input serializes");
         assert!(evaluate_bytes(&bytes).is_err());
     }
