@@ -857,9 +857,15 @@ mod tests {
             10,
             TransitionKind::Replacement {
                 successor,
-                initial_claims: vec![model_claim("replacement-model-only", "replacement-model-output")],
+                initial_claims: vec![model_claim(
+                    "replacement-model-only",
+                    "replacement-model-output",
+                )],
             },
-            vec![source("replacement-model-output", EvidenceClass::ModelEstimate)],
+            vec![source(
+                "replacement-model-output",
+                EvidenceClass::ModelEstimate,
+            )],
         ));
         assert_eq!(result, Err(TransitionError::MissingMeasuredPostcondition));
         assert_eq!(ledger, before);
