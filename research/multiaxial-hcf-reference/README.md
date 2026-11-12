@@ -31,6 +31,12 @@ The critical plane reports its local shear-path shape index; search diagnostics 
     f = sigma_w / 2 * (k + sqrt(1 + k*k))
 
 The function accepts only the positive-k domain 1 < r <= 2, rejects mismatched grade/cycle count and refuses predicted calibration evidence. It does not fit S-N curves or create fatigue-strength values. The material values must come from permitted calibration data; no universal or calibrated 42CrMo4+QT value is embedded.
+
+The Findley parameter can be converted into an equivalent fully reversed axial stress amplitude:
+
+    sigma_a,eq = 2 * P_F / (k + sqrt(1 + k*k))
+
+That equivalent stress can be passed to a separately qualified uniaxial S-N reference (such as the existing Symtropy #4860 owner). This crate does not perform the S-N interpolation or produce FS_N/Nf itself.
 - This crate calculates a critical-plane parameter, not FS_N, Nf, fatigue damage, crack growth, remaining life or a structural safety factor.
 - Notch gradients, critical-distance corrections, residual stresses, stabilized cyclic plasticity and manufacturing effects are not yet implemented.
 - Evidence digest syntax is checked; source bytes and FEA/measurement correctness are not authenticated.
