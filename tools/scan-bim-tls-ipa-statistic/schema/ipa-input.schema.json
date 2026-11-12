@@ -1,0 +1,233 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/scan-bim/tls-ipa-part-ii-input-v0.1.0.json",
+  "title": "TLS IPA Part II residual consumer input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "input_id",
+    "alpha",
+    "baseline",
+    "testing"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "input_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "alpha": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 0.5
+    },
+    "baseline": {
+      "$ref": "#/$defs/period"
+    },
+    "testing": {
+      "$ref": "#/$defs/period"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "instrument": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "manufacturer",
+        "model",
+        "serial_id",
+        "firmware_version",
+        "profile_id",
+        "profile_sha256",
+        "calibration_reference_sha256"
+      ],
+      "properties": {
+        "manufacturer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serial_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firmware_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "profile_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "calibration_reference_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "setup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acquisition_config_sha256",
+        "residual_producer_id",
+        "residual_producer_sha256",
+        "centralization_method_id",
+        "centralization_method_sha256",
+        "target_lineage_sha256",
+        "angle_unit",
+        "range_unit"
+      ],
+      "properties": {
+        "acquisition_config_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "residual_producer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "residual_producer_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "centralization_method_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "centralization_method_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "target_lineage_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "angle_unit": {
+          "const": "radian"
+        },
+        "range_unit": {
+          "enum": [
+            "metre",
+            "millimetre"
+          ]
+        }
+      }
+    },
+    "residualRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "row_id",
+        "target_id",
+        "position_id",
+        "theta_residual",
+        "phi_residual",
+        "range_residual"
+      ],
+      "properties": {
+        "row_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "position_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "theta_residual": {
+          "type": "number"
+        },
+        "phi_residual": {
+          "type": "number"
+        },
+        "range_residual": {
+          "type": "number"
+        }
+      }
+    },
+    "period": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "period_id",
+        "timestamp_utc",
+        "instrument",
+        "setup",
+        "residual_artifact_sha256",
+        "centralization_receipt_sha256",
+        "target_layout_sha256",
+        "station_manifest_sha256",
+        "target_ids",
+        "position_ids",
+        "rows"
+      ],
+      "properties": {
+        "period_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timestamp_utc": {
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+        },
+        "instrument": {
+          "$ref": "#/$defs/instrument"
+        },
+        "setup": {
+          "$ref": "#/$defs/setup"
+        },
+        "residual_artifact_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "centralization_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "target_layout_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "station_manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "target_ids": {
+          "type": "array",
+          "minItems": 20,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "position_ids": {
+          "type": "array",
+          "minItems": 4,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "rows": {
+          "type": "array",
+          "minItems": 80,
+          "maxItems": 10000,
+          "items": {
+            "$ref": "#/$defs/residualRow"
+          }
+        }
+      }
+    }
+  }
+}

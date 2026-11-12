@@ -1,0 +1,1399 @@
+{
+  "schema_version": "0.1.0",
+  "input_id": "TLS-IPA-PART-II-SYNTHETIC-NO-CHANGE",
+  "alpha": 0.01,
+  "baseline": {
+    "period_id": "baseline",
+    "timestamp_utc": "2026-10-01T09:00:00Z",
+    "instrument": {
+      "manufacturer": "Synthetic Instruments",
+      "model": "TLS-Reference-Unit",
+      "serial_id": "tls-unit-synthetic-001",
+      "firmware_version": "4.2.1-synthetic",
+      "profile_id": "tls-profile-unit-001",
+      "profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "calibration_reference_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "setup": {
+      "acquisition_config_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "residual_producer_id": "synthetic-centralized-residual-producer-v0.1",
+      "residual_producer_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "centralization_method_id": "centralized-target-mean-residual-v1",
+      "centralization_method_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "target_lineage_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "angle_unit": "radian",
+      "range_unit": "metre"
+    },
+    "residual_artifact_sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+    "centralization_receipt_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+    "target_layout_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "station_manifest_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+    "target_ids": [
+      "target-01",
+      "target-02",
+      "target-03",
+      "target-04",
+      "target-05",
+      "target-06",
+      "target-07",
+      "target-08",
+      "target-09",
+      "target-10",
+      "target-11",
+      "target-12",
+      "target-13",
+      "target-14",
+      "target-15",
+      "target-16",
+      "target-17",
+      "target-18",
+      "target-19",
+      "target-20"
+    ],
+    "position_ids": [
+      "station-01",
+      "station-02",
+      "station-03",
+      "station-04"
+    ],
+    "rows": [
+      {
+        "row_id": "baseline-target-01-station-01",
+        "target_id": "target-01",
+        "position_id": "station-01",
+        "theta_residual": 0.0000034925547353089972,
+        "phi_residual": 0.000009662689899800221,
+        "range_residual": -0.00011819768667102638
+      },
+      {
+        "row_id": "baseline-target-01-station-02",
+        "target_id": "target-01",
+        "position_id": "station-02",
+        "theta_residual": 0.0000016814869175098312,
+        "phi_residual": -2.534215464805357e-7,
+        "range_residual": -0.0005973382993637632
+      },
+      {
+        "row_id": "baseline-target-01-station-03",
+        "target_id": "target-01",
+        "position_id": "station-03",
+        "theta_residual": -0.000005503291888581279,
+        "phi_residual": -0.000008220174887490024,
+        "range_residual": 0.0013391084700787885
+      },
+      {
+        "row_id": "baseline-target-01-station-04",
+        "target_id": "target-01",
+        "position_id": "station-04",
+        "theta_residual": -0.0000025807554025093244,
+        "phi_residual": 0.000014376493689589891,
+        "range_residual": -0.00021552629366651722
+      },
+      {
+        "row_id": "baseline-target-02-station-01",
+        "target_id": "target-02",
+        "position_id": "station-01",
+        "theta_residual": 0.000004931803097473159,
+        "phi_residual": 0.000001287171113457012,
+        "range_residual": 0.0008501560655428141
+      },
+      {
+        "row_id": "baseline-target-02-station-02",
+        "target_id": "target-02",
+        "position_id": "station-02",
+        "theta_residual": -0.0000013159806886607607,
+        "phi_residual": 0.0000029801392102017516,
+        "range_residual": -0.000001565157406012396
+      },
+      {
+        "row_id": "baseline-target-02-station-03",
+        "target_id": "target-02",
+        "position_id": "station-03",
+        "theta_residual": -0.000007915310217871822,
+        "phi_residual": 0.0000020424405115424677,
+        "range_residual": -0.000311420669351742
+      },
+      {
+        "row_id": "baseline-target-02-station-04",
+        "target_id": "target-02",
+        "position_id": "station-04",
+        "theta_residual": -0.000003017300010100474,
+        "phi_residual": -0.000002138341468953297,
+        "range_residual": 0.00034677368507479754
+      },
+      {
+        "row_id": "baseline-target-03-station-01",
+        "target_id": "target-03",
+        "position_id": "station-01",
+        "theta_residual": 0.00000354116769279147,
+        "phi_residual": 0.0000025492254070596943,
+        "range_residual": 0.00018739543725719332
+      },
+      {
+        "row_id": "baseline-target-03-station-02",
+        "target_id": "target-03",
+        "position_id": "station-02",
+        "theta_residual": 0.0000048769865685041104,
+        "phi_residual": 0.000006776256538871547,
+        "range_residual": 0.000374273598965942
+      },
+      {
+        "row_id": "baseline-target-03-station-03",
+        "target_id": "target-03",
+        "position_id": "station-03",
+        "theta_residual": 0.0000028012601122231075,
+        "phi_residual": 0.000010565217341316434,
+        "range_residual": 0.00009059671970899246
+      },
+      {
+        "row_id": "baseline-target-03-station-04",
+        "target_id": "target-03",
+        "position_id": "station-04",
+        "theta_residual": 0.000003673332436620091,
+        "phi_residual": 0.0000013047860448451855,
+        "range_residual": -0.00043160900502066667
+      },
+      {
+        "row_id": "baseline-target-04-station-01",
+        "target_id": "target-04",
+        "position_id": "station-01",
+        "theta_residual": -0.000006695246260249325,
+        "phi_residual": 2.1233229714351805e-7,
+        "range_residual": 0.00041414348416172716
+      },
+      {
+        "row_id": "baseline-target-04-station-02",
+        "target_id": "target-04",
+        "position_id": "station-02",
+        "theta_residual": 0.000009371464851760689,
+        "phi_residual": -1.5165577236603829e-7,
+        "range_residual": 0.00021443844069796012
+      },
+      {
+        "row_id": "baseline-target-04-station-03",
+        "target_id": "target-04",
+        "position_id": "station-03",
+        "theta_residual": -0.000005970538184299718,
+        "phi_residual": -0.000005158170620056635,
+        "range_residual": 0.0010670637244311226
+      },
+      {
+        "row_id": "baseline-target-04-station-04",
+        "target_id": "target-04",
+        "position_id": "station-04",
+        "theta_residual": -0.000007401765836059461,
+        "phi_residual": 0.000006768665396652435,
+        "range_residual": -0.0004103589483250255
+      },
+      {
+        "row_id": "baseline-target-05-station-01",
+        "target_id": "target-05",
+        "position_id": "station-01",
+        "theta_residual": -0.000003776745523906975,
+        "phi_residual": 0.000002001543800736941,
+        "range_residual": -0.00009924035621517277
+      },
+      {
+        "row_id": "baseline-target-05-station-02",
+        "target_id": "target-05",
+        "position_id": "station-02",
+        "theta_residual": -0.000010789816909968634,
+        "phi_residual": 0.000002346760213073348,
+        "range_residual": 0.0002493879796394937
+      },
+      {
+        "row_id": "baseline-target-05-station-03",
+        "target_id": "target-05",
+        "position_id": "station-03",
+        "theta_residual": -0.000002813588799340031,
+        "phi_residual": -0.000006089418889018971,
+        "range_residual": -0.00028763634974033974
+      },
+      {
+        "row_id": "baseline-target-05-station-04",
+        "target_id": "target-05",
+        "position_id": "station-04",
+        "theta_residual": 8.361457416803293e-8,
+        "phi_residual": -0.000004555137952124356,
+        "range_residual": 0.00001782221231519487
+      },
+      {
+        "row_id": "baseline-target-06-station-01",
+        "target_id": "target-06",
+        "position_id": "station-01",
+        "theta_residual": 0.0000027268895852730274,
+        "phi_residual": 0.0000022409910754454387,
+        "range_residual": 0.00024184897214349243
+      },
+      {
+        "row_id": "baseline-target-06-station-02",
+        "target_id": "target-06",
+        "position_id": "station-02",
+        "theta_residual": -0.000005165025855691922,
+        "phi_residual": 0.000012044009808311392,
+        "range_residual": 0.0006863775109296651
+      },
+      {
+        "row_id": "baseline-target-06-station-03",
+        "target_id": "target-06",
+        "position_id": "station-03",
+        "theta_residual": -0.000002441015841924547,
+        "phi_residual": 0.000004357537827316674,
+        "range_residual": 0.000059332567033200146
+      },
+      {
+        "row_id": "baseline-target-06-station-04",
+        "target_id": "target-06",
+        "position_id": "station-04",
+        "theta_residual": 0.0000015420866172792099,
+        "phi_residual": 0.000005153594459485542,
+        "range_residual": -0.0001300923931732802
+      },
+      {
+        "row_id": "baseline-target-07-station-01",
+        "target_id": "target-07",
+        "position_id": "station-01",
+        "theta_residual": -0.000009023196789698486,
+        "phi_residual": 0.0000048857982144061095,
+        "range_residual": 0.00034616964084858813
+      },
+      {
+        "row_id": "baseline-target-07-station-02",
+        "target_id": "target-07",
+        "position_id": "station-02",
+        "theta_residual": 0.000006600250488988629,
+        "phi_residual": -0.000004422893684008132,
+        "range_residual": 0.0002471158786112929
+      },
+      {
+        "row_id": "baseline-target-07-station-03",
+        "target_id": "target-07",
+        "position_id": "station-03",
+        "theta_residual": -0.000003408275531305775,
+        "phi_residual": -0.0000018031711286303802,
+        "range_residual": 0.0003356563492081612
+      },
+      {
+        "row_id": "baseline-target-07-station-04",
+        "target_id": "target-07",
+        "position_id": "station-04",
+        "theta_residual": 0.0000013483604468905139,
+        "phi_residual": 3.655082680739149e-7,
+        "range_residual": 0.0005528615506008494
+      },
+      {
+        "row_id": "baseline-target-08-station-01",
+        "target_id": "target-08",
+        "position_id": "station-01",
+        "theta_residual": 7.75347585120534e-7,
+        "phi_residual": 0.0000011483720799365581,
+        "range_residual": -0.00047072620816436024
+      },
+      {
+        "row_id": "baseline-target-08-station-02",
+        "target_id": "target-08",
+        "position_id": "station-02",
+        "theta_residual": -0.000005202619000410088,
+        "phi_residual": -7.862336624595422e-7,
+        "range_residual": -0.00008843625163822324
+      },
+      {
+        "row_id": "baseline-target-08-station-03",
+        "target_id": "target-08",
+        "position_id": "station-03",
+        "theta_residual": -0.00001038427975056299,
+        "phi_residual": -0.000001699982986615067,
+        "range_residual": 0.000443313718301463
+      },
+      {
+        "row_id": "baseline-target-08-station-04",
+        "target_id": "target-08",
+        "position_id": "station-04",
+        "theta_residual": -0.0000014385552309820418,
+        "phi_residual": -0.000009543399778759167,
+        "range_residual": 0.000522062397883864
+      },
+      {
+        "row_id": "baseline-target-09-station-01",
+        "target_id": "target-09",
+        "position_id": "station-01",
+        "theta_residual": -0.00000849413221319923,
+        "phi_residual": 0.000005153599242217701,
+        "range_residual": 0.00009811306379275694
+      },
+      {
+        "row_id": "baseline-target-09-station-02",
+        "target_id": "target-09",
+        "position_id": "station-02",
+        "theta_residual": 0.000010103210570797521,
+        "phi_residual": -0.000007498270214666672,
+        "range_residual": -0.0006168866847806117
+      },
+      {
+        "row_id": "baseline-target-09-station-03",
+        "target_id": "target-09",
+        "position_id": "station-03",
+        "theta_residual": 0.000007486335066205639,
+        "phi_residual": 0.000006472749413637142,
+        "range_residual": 0.00036780706427369693
+      },
+      {
+        "row_id": "baseline-target-09-station-04",
+        "target_id": "target-09",
+        "position_id": "station-04",
+        "theta_residual": 0.0000065141587822303184,
+        "phi_residual": -0.00000990519924318059,
+        "range_residual": 0.00013171719662651062
+      },
+      {
+        "row_id": "baseline-target-10-station-01",
+        "target_id": "target-10",
+        "position_id": "station-01",
+        "theta_residual": 0.000004629579321114949,
+        "phi_residual": 0.0000025031172126911297,
+        "range_residual": 0.00014367039988336255
+      },
+      {
+        "row_id": "baseline-target-10-station-02",
+        "target_id": "target-10",
+        "position_id": "station-02",
+        "theta_residual": -0.0000019380156530171383,
+        "phi_residual": -0.0000017008548738503804,
+        "range_residual": 0.000025280732966007047
+      },
+      {
+        "row_id": "baseline-target-10-station-03",
+        "target_id": "target-10",
+        "position_id": "station-03",
+        "theta_residual": -0.0000013168927642225743,
+        "phi_residual": -0.000002879065179297222,
+        "range_residual": 0.000024065987164736294
+      },
+      {
+        "row_id": "baseline-target-10-station-04",
+        "target_id": "target-10",
+        "position_id": "station-04",
+        "theta_residual": -8.562585351033964e-7,
+        "phi_residual": -0.000002821744288685288,
+        "range_residual": 0.0009786077854557497
+      },
+      {
+        "row_id": "baseline-target-11-station-01",
+        "target_id": "target-11",
+        "position_id": "station-01",
+        "theta_residual": -0.00000839792825302307,
+        "phi_residual": -0.0000015556937256867275,
+        "range_residual": -0.00006787710592205708
+      },
+      {
+        "row_id": "baseline-target-11-station-02",
+        "target_id": "target-11",
+        "position_id": "station-02",
+        "theta_residual": -0.000006457321642442359,
+        "phi_residual": -0.000002633103983894591,
+        "range_residual": 0.00002813471129912591
+      },
+      {
+        "row_id": "baseline-target-11-station-03",
+        "target_id": "target-11",
+        "position_id": "station-03",
+        "theta_residual": -0.000006281398831334676,
+        "phi_residual": 8.476562758278768e-7,
+        "range_residual": 0.0002834118566730978
+      },
+      {
+        "row_id": "baseline-target-11-station-04",
+        "target_id": "target-11",
+        "position_id": "station-04",
+        "theta_residual": 0.000013230264407664204,
+        "phi_residual": 0.000005248605064373336,
+        "range_residual": 0.00044440133969735225
+      },
+      {
+        "row_id": "baseline-target-12-station-01",
+        "target_id": "target-12",
+        "position_id": "station-01",
+        "theta_residual": -0.00001237251982953335,
+        "phi_residual": 0.000006149301015147349,
+        "range_residual": 0.00006939262218585361
+      },
+      {
+        "row_id": "baseline-target-12-station-02",
+        "target_id": "target-12",
+        "position_id": "station-02",
+        "theta_residual": 0.000001392788748938715,
+        "phi_residual": 0.000004926057761569338,
+        "range_residual": 0.000015317294391732484
+      },
+      {
+        "row_id": "baseline-target-12-station-03",
+        "target_id": "target-12",
+        "position_id": "station-03",
+        "theta_residual": -0.000005904091966489438,
+        "phi_residual": -0.000006455571539905559,
+        "range_residual": -0.00028569826165405446
+      },
+      {
+        "row_id": "baseline-target-12-station-04",
+        "target_id": "target-12",
+        "position_id": "station-04",
+        "theta_residual": 0.000011427794344236168,
+        "phi_residual": 6.093496333583096e-8,
+        "range_residual": -0.00028167331113352224
+      },
+      {
+        "row_id": "baseline-target-13-station-01",
+        "target_id": "target-13",
+        "position_id": "station-01",
+        "theta_residual": 0.000002749318557273916,
+        "phi_residual": 0.000004198180437776813,
+        "range_residual": -0.00014415927936858362
+      },
+      {
+        "row_id": "baseline-target-13-station-02",
+        "target_id": "target-13",
+        "position_id": "station-02",
+        "theta_residual": -0.0000064497928218369174,
+        "phi_residual": 0.000005721185425459508,
+        "range_residual": -0.00046401979584269316
+      },
+      {
+        "row_id": "baseline-target-13-station-03",
+        "target_id": "target-13",
+        "position_id": "station-03",
+        "theta_residual": 0.000004520831856521319,
+        "phi_residual": -0.0000037581943729080034,
+        "range_residual": -0.00012743809832494154
+      },
+      {
+        "row_id": "baseline-target-13-station-04",
+        "target_id": "target-13",
+        "position_id": "station-04",
+        "theta_residual": 0.000005200136517349919,
+        "phi_residual": 0.00000185736232788127,
+        "range_residual": 0.00003733120844752627
+      },
+      {
+        "row_id": "baseline-target-14-station-01",
+        "target_id": "target-14",
+        "position_id": "station-01",
+        "theta_residual": 0.0000021660599805699727,
+        "phi_residual": 0.000002161391482712669,
+        "range_residual": 0.00035702169699269756
+      },
+      {
+        "row_id": "baseline-target-14-station-02",
+        "target_id": "target-14",
+        "position_id": "station-02",
+        "theta_residual": -8.926401965554484e-7,
+        "phi_residual": 0.000006736494804203378,
+        "range_residual": 0.00013378024799988594
+      },
+      {
+        "row_id": "baseline-target-14-station-03",
+        "target_id": "target-14",
+        "position_id": "station-03",
+        "theta_residual": 0.000004764574754718553,
+        "phi_residual": -0.000002669764897083203,
+        "range_residual": -0.0004712545432391141
+      },
+      {
+        "row_id": "baseline-target-14-station-04",
+        "target_id": "target-14",
+        "position_id": "station-04",
+        "theta_residual": -0.0000022021349360540777,
+        "phi_residual": -0.0000030814366949470215,
+        "range_residual": 0.0004791434695353564
+      },
+      {
+        "row_id": "baseline-target-15-station-01",
+        "target_id": "target-15",
+        "position_id": "station-01",
+        "theta_residual": -0.000001926120620016903,
+        "phi_residual": -0.0000074456372654908745,
+        "range_residual": -0.00048772573072054657
+      },
+      {
+        "row_id": "baseline-target-15-station-02",
+        "target_id": "target-15",
+        "position_id": "station-02",
+        "theta_residual": -0.000010008450693938085,
+        "phi_residual": 0.0000035619415729923056,
+        "range_residual": 0.0003556006383947352
+      },
+      {
+        "row_id": "baseline-target-15-station-03",
+        "target_id": "target-15",
+        "position_id": "station-03",
+        "theta_residual": -0.000008259562622247737,
+        "phi_residual": 0.0000037488314280767997,
+        "range_residual": -0.00031339077800317293
+      },
+      {
+        "row_id": "baseline-target-15-station-04",
+        "target_id": "target-15",
+        "position_id": "station-04",
+        "theta_residual": 0.000003832944137056108,
+        "phi_residual": 0.000006005646510113926,
+        "range_residual": 0.00021408911545103148
+      },
+      {
+        "row_id": "baseline-target-16-station-01",
+        "target_id": "target-16",
+        "position_id": "station-01",
+        "theta_residual": 0.0000043104385656766255,
+        "phi_residual": 0.000003781018545243082,
+        "range_residual": -0.0005719337013467439
+      },
+      {
+        "row_id": "baseline-target-16-station-02",
+        "target_id": "target-16",
+        "position_id": "station-02",
+        "theta_residual": -0.000004501952597017128,
+        "phi_residual": -8.183977132598654e-7,
+        "range_residual": 0.00038790064264264287
+      },
+      {
+        "row_id": "baseline-target-16-station-03",
+        "target_id": "target-16",
+        "position_id": "station-03",
+        "theta_residual": 5.425921836511031e-7,
+        "phi_residual": -0.000004487186660110068,
+        "range_residual": 0.00006602857383495603
+      },
+      {
+        "row_id": "baseline-target-16-station-04",
+        "target_id": "target-16",
+        "position_id": "station-04",
+        "theta_residual": 0.000004805007121919971,
+        "phi_residual": -0.0000021230810603713074,
+        "range_residual": 0.00025051560098234796
+      },
+      {
+        "row_id": "baseline-target-17-station-01",
+        "target_id": "target-17",
+        "position_id": "station-01",
+        "theta_residual": 9.805093831187223e-7,
+        "phi_residual": 0.000008497282097980067,
+        "range_residual": 0.0001424342233022213
+      },
+      {
+        "row_id": "baseline-target-17-station-02",
+        "target_id": "target-17",
+        "position_id": "station-02",
+        "theta_residual": 0.0000027366592999615974,
+        "phi_residual": -5.655655509282555e-7,
+        "range_residual": 0.0008454457517694399
+      },
+      {
+        "row_id": "baseline-target-17-station-03",
+        "target_id": "target-17",
+        "position_id": "station-03",
+        "theta_residual": -0.000012529232063829922,
+        "phi_residual": -0.000002103843952643291,
+        "range_residual": -0.0011775570494735798
+      },
+      {
+        "row_id": "baseline-target-17-station-04",
+        "target_id": "target-17",
+        "position_id": "station-04",
+        "theta_residual": -0.000011532785588438308,
+        "phi_residual": -0.000004339466907930358,
+        "range_residual": -0.00024697516831532015
+      },
+      {
+        "row_id": "baseline-target-18-station-01",
+        "target_id": "target-18",
+        "position_id": "station-01",
+        "theta_residual": -0.000001775646302675782,
+        "phi_residual": 0.000012795014128138758,
+        "range_residual": 0.000002682220871237524
+      },
+      {
+        "row_id": "baseline-target-18-station-02",
+        "target_id": "target-18",
+        "position_id": "station-02",
+        "theta_residual": -0.000007775372523561084,
+        "phi_residual": -0.00000498080365942462,
+        "range_residual": -0.000013373988270359996
+      },
+      {
+        "row_id": "baseline-target-18-station-03",
+        "target_id": "target-18",
+        "position_id": "station-03",
+        "theta_residual": 0.000001264539046206354,
+        "phi_residual": -0.0000026135515630639565,
+        "range_residual": -0.00031770334134202785
+      },
+      {
+        "row_id": "baseline-target-18-station-04",
+        "target_id": "target-18",
+        "position_id": "station-04",
+        "theta_residual": -0.0000018037821281973188,
+        "phi_residual": -9.845339885878907e-7,
+        "range_residual": 0.00017173103542771564
+      },
+      {
+        "row_id": "baseline-target-19-station-01",
+        "target_id": "target-19",
+        "position_id": "station-01",
+        "theta_residual": -0.000009695061492327666,
+        "phi_residual": 0.000006025640206765942,
+        "range_residual": -0.0004370501630412209
+      },
+      {
+        "row_id": "baseline-target-19-station-02",
+        "target_id": "target-19",
+        "position_id": "station-02",
+        "theta_residual": -0.000005788144608280134,
+        "phi_residual": 0.000002942985869248452,
+        "range_residual": -0.000052813009125940574
+      },
+      {
+        "row_id": "baseline-target-19-station-03",
+        "target_id": "target-19",
+        "position_id": "station-03",
+        "theta_residual": -0.0000035727885243094806,
+        "phi_residual": -0.0000010495847507654955,
+        "range_residual": -0.00010708007187864202
+      },
+      {
+        "row_id": "baseline-target-19-station-04",
+        "target_id": "target-19",
+        "position_id": "station-04",
+        "theta_residual": -0.000004911065076237551,
+        "phi_residual": -0.000002337597033070521,
+        "range_residual": 0.000810037957640407
+      },
+      {
+        "row_id": "baseline-target-20-station-01",
+        "target_id": "target-20",
+        "position_id": "station-01",
+        "theta_residual": -0.000004087185219918831,
+        "phi_residual": 0.000003238922966887499,
+        "range_residual": -0.000566907598321006
+      },
+      {
+        "row_id": "baseline-target-20-station-02",
+        "target_id": "target-20",
+        "position_id": "station-02",
+        "theta_residual": 0.000005325964670831775,
+        "phi_residual": 7.719911524774656e-7,
+        "range_residual": -0.00022274530928479474
+      },
+      {
+        "row_id": "baseline-target-20-station-03",
+        "target_id": "target-20",
+        "position_id": "station-03",
+        "theta_residual": -0.000004817543361216924,
+        "phi_residual": 0.000005630419992691391,
+        "range_residual": -0.0005812649388316217
+      },
+      {
+        "row_id": "baseline-target-20-station-04",
+        "target_id": "target-20",
+        "position_id": "station-04",
+        "theta_residual": 0.000006631304271798933,
+        "phi_residual": -8.762754964685546e-7,
+        "range_residual": -0.000493296094925133
+      }
+    ]
+  },
+  "testing": {
+    "period_id": "testing",
+    "timestamp_utc": "2026-11-01T09:00:00Z",
+    "instrument": {
+      "manufacturer": "Synthetic Instruments",
+      "model": "TLS-Reference-Unit",
+      "serial_id": "tls-unit-synthetic-001",
+      "firmware_version": "4.2.1-synthetic",
+      "profile_id": "tls-profile-unit-001",
+      "profile_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "calibration_reference_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    },
+    "setup": {
+      "acquisition_config_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "residual_producer_id": "synthetic-centralized-residual-producer-v0.1",
+      "residual_producer_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "centralization_method_id": "centralized-target-mean-residual-v1",
+      "centralization_method_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "target_lineage_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "angle_unit": "radian",
+      "range_unit": "metre"
+    },
+    "residual_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "centralization_receipt_sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+    "target_layout_sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+    "station_manifest_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+    "target_ids": [
+      "target-01",
+      "target-02",
+      "target-03",
+      "target-04",
+      "target-05",
+      "target-06",
+      "target-07",
+      "target-08",
+      "target-09",
+      "target-10",
+      "target-11",
+      "target-12",
+      "target-13",
+      "target-14",
+      "target-15",
+      "target-16",
+      "target-17",
+      "target-18",
+      "target-19",
+      "target-20"
+    ],
+    "position_ids": [
+      "station-01",
+      "station-02",
+      "station-03",
+      "station-04"
+    ],
+    "rows": [
+      {
+        "row_id": "testing-target-01-station-01",
+        "target_id": "target-01",
+        "position_id": "station-01",
+        "theta_residual": 0.000004604232554167042,
+        "phi_residual": 0.000009334934216484024,
+        "range_residual": -0.00047258025285315823
+      },
+      {
+        "row_id": "testing-target-01-station-02",
+        "target_id": "target-01",
+        "position_id": "station-02",
+        "theta_residual": 0.000002292342389497648,
+        "phi_residual": -0.000002416884086922422,
+        "range_residual": -0.00009698750052903379
+      },
+      {
+        "row_id": "testing-target-01-station-03",
+        "target_id": "target-01",
+        "position_id": "station-03",
+        "theta_residual": -0.000004614523540479226,
+        "phi_residual": -0.000011394229786092707,
+        "range_residual": -0.00026544872515916844
+      },
+      {
+        "row_id": "testing-target-01-station-04",
+        "target_id": "target-01",
+        "position_id": "station-04",
+        "theta_residual": 0.000006251878072634304,
+        "phi_residual": -0.000003350642545048288,
+        "range_residual": -0.00028763002859594753
+      },
+      {
+        "row_id": "testing-target-02-station-01",
+        "target_id": "target-02",
+        "position_id": "station-01",
+        "theta_residual": 0.000016874629913406705,
+        "phi_residual": 0.0000030647078706270174,
+        "range_residual": 0.00027565191921495895
+      },
+      {
+        "row_id": "testing-target-02-station-02",
+        "target_id": "target-02",
+        "position_id": "station-02",
+        "theta_residual": 0.00001159792494811903,
+        "phi_residual": 3.7685568419023467e-7,
+        "range_residual": 0.0001921096225805591
+      },
+      {
+        "row_id": "testing-target-02-station-03",
+        "target_id": "target-02",
+        "position_id": "station-03",
+        "theta_residual": -0.000007289996555482127,
+        "phi_residual": -0.0000019379646347181325,
+        "range_residual": -0.0007377590777256126
+      },
+      {
+        "row_id": "testing-target-02-station-04",
+        "target_id": "target-02",
+        "position_id": "station-04",
+        "theta_residual": 0.0000031928610486097334,
+        "phi_residual": -0.0000015835686277969299,
+        "range_residual": -0.000035466577593053093
+      },
+      {
+        "row_id": "testing-target-03-station-01",
+        "target_id": "target-03",
+        "position_id": "station-01",
+        "theta_residual": -1.2068845706821237e-8,
+        "phi_residual": 0.000003845454851514945,
+        "range_residual": 0.00011542618250276484
+      },
+      {
+        "row_id": "testing-target-03-station-02",
+        "target_id": "target-03",
+        "position_id": "station-02",
+        "theta_residual": 0.00001046353084958257,
+        "phi_residual": -3.4340215535621865e-7,
+        "range_residual": -0.0004790998312113119
+      },
+      {
+        "row_id": "testing-target-03-station-03",
+        "target_id": "target-03",
+        "position_id": "station-03",
+        "theta_residual": 0.000012576021495400311,
+        "phi_residual": -9.551997047385566e-7,
+        "range_residual": -0.0001973225768784779
+      },
+      {
+        "row_id": "testing-target-03-station-04",
+        "target_id": "target-03",
+        "position_id": "station-04",
+        "theta_residual": -0.0000026355247557849595,
+        "phi_residual": 0.000002945075253192686,
+        "range_residual": -0.00007443612606077463
+      },
+      {
+        "row_id": "testing-target-04-station-01",
+        "target_id": "target-04",
+        "position_id": "station-01",
+        "theta_residual": 0.000001191260630505224,
+        "phi_residual": 0.000007986862941707008,
+        "range_residual": -0.0003420822620934347
+      },
+      {
+        "row_id": "testing-target-04-station-02",
+        "target_id": "target-04",
+        "position_id": "station-02",
+        "theta_residual": 0.00001135215533917352,
+        "phi_residual": 0.000004575063159554578,
+        "range_residual": -0.00007291665418385112
+      },
+      {
+        "row_id": "testing-target-04-station-03",
+        "target_id": "target-04",
+        "position_id": "station-03",
+        "theta_residual": 0.000005639511665900308,
+        "phi_residual": 0.00001032495902014664,
+        "range_residual": -0.0005712104747015505
+      },
+      {
+        "row_id": "testing-target-04-station-04",
+        "target_id": "target-04",
+        "position_id": "station-04",
+        "theta_residual": 0.000013440130990196619,
+        "phi_residual": -0.0000014356157708286448,
+        "range_residual": 0.00007355422689211974
+      },
+      {
+        "row_id": "testing-target-05-station-01",
+        "target_id": "target-05",
+        "position_id": "station-01",
+        "theta_residual": 0.000007272278746496963,
+        "phi_residual": -0.0000012404231116662394,
+        "range_residual": -0.00047802521539916143
+      },
+      {
+        "row_id": "testing-target-05-station-02",
+        "target_id": "target-05",
+        "position_id": "station-02",
+        "theta_residual": 0.000003914616355916599,
+        "phi_residual": 0.000004269377002725988,
+        "range_residual": -0.00015596093656313368
+      },
+      {
+        "row_id": "testing-target-05-station-03",
+        "target_id": "target-05",
+        "position_id": "station-03",
+        "theta_residual": -0.0000029224124910648686,
+        "phi_residual": -0.000008787320599911091,
+        "range_residual": 0.0001473144912463184
+      },
+      {
+        "row_id": "testing-target-05-station-04",
+        "target_id": "target-05",
+        "position_id": "station-04",
+        "theta_residual": 3.942040185582075e-7,
+        "phi_residual": -7.172209700871917e-7,
+        "range_residual": -0.00030100226404120993
+      },
+      {
+        "row_id": "testing-target-06-station-01",
+        "target_id": "target-06",
+        "position_id": "station-01",
+        "theta_residual": 0.0000027265947731428016,
+        "phi_residual": 3.5814663767989497e-7,
+        "range_residual": 0.0002914251801112763
+      },
+      {
+        "row_id": "testing-target-06-station-02",
+        "target_id": "target-06",
+        "position_id": "station-02",
+        "theta_residual": -0.0000018876972591562143,
+        "phi_residual": -0.000003362107099472606,
+        "range_residual": -0.0009296255400391371
+      },
+      {
+        "row_id": "testing-target-06-station-03",
+        "target_id": "target-06",
+        "position_id": "station-03",
+        "theta_residual": -0.0000024191727880785018,
+        "phi_residual": -0.000005603230607167792,
+        "range_residual": 0.00042623500195271036
+      },
+      {
+        "row_id": "testing-target-06-station-04",
+        "target_id": "target-06",
+        "position_id": "station-04",
+        "theta_residual": -0.0000010182376097618252,
+        "phi_residual": -0.000004064376001647793,
+        "range_residual": -0.0004437228913133953
+      },
+      {
+        "row_id": "testing-target-07-station-01",
+        "target_id": "target-07",
+        "position_id": "station-01",
+        "theta_residual": 0.000004283168072540554,
+        "phi_residual": -3.234337295759842e-7,
+        "range_residual": -0.0001636586789032297
+      },
+      {
+        "row_id": "testing-target-07-station-02",
+        "target_id": "target-07",
+        "position_id": "station-02",
+        "theta_residual": 2.2244713588935195e-7,
+        "phi_residual": 5.719801618397898e-7,
+        "range_residual": -0.0005576963576244652
+      },
+      {
+        "row_id": "testing-target-07-station-03",
+        "target_id": "target-07",
+        "position_id": "station-03",
+        "theta_residual": 0.000002506159644691863,
+        "phi_residual": 0.000004520170625421915,
+        "range_residual": 0.00014350569295309984
+      },
+      {
+        "row_id": "testing-target-07-station-04",
+        "target_id": "target-07",
+        "position_id": "station-04",
+        "theta_residual": -0.000012531600601046714,
+        "phi_residual": 0.0000013062704801676595,
+        "range_residual": 0.0004357616328924179
+      },
+      {
+        "row_id": "testing-target-08-station-01",
+        "target_id": "target-08",
+        "position_id": "station-01",
+        "theta_residual": 5.745584279247656e-7,
+        "phi_residual": -0.0000029171648124640267,
+        "range_residual": 0.0005460534136145546
+      },
+      {
+        "row_id": "testing-target-08-station-02",
+        "target_id": "target-08",
+        "position_id": "station-02",
+        "theta_residual": -0.000005299057308032344,
+        "phi_residual": -0.0000011511930253687843,
+        "range_residual": 0.00012397929194329005
+      },
+      {
+        "row_id": "testing-target-08-station-03",
+        "target_id": "target-08",
+        "position_id": "station-03",
+        "theta_residual": -0.0000073817254607336004,
+        "phi_residual": -0.00000434067043000214,
+        "range_residual": 0.0003102653283085133
+      },
+      {
+        "row_id": "testing-target-08-station-04",
+        "target_id": "target-08",
+        "position_id": "station-04",
+        "theta_residual": 0.00000709738529476419,
+        "phi_residual": 3.598728826350587e-7,
+        "range_residual": 0.0004756763054794677
+      },
+      {
+        "row_id": "testing-target-09-station-01",
+        "target_id": "target-09",
+        "position_id": "station-01",
+        "theta_residual": 0.000005401308458141144,
+        "phi_residual": 0.000006192834610437921,
+        "range_residual": 0.00013579897748958162
+      },
+      {
+        "row_id": "testing-target-09-station-02",
+        "target_id": "target-09",
+        "position_id": "station-02",
+        "theta_residual": 0.000006076856727950534,
+        "phi_residual": -7.480773406507983e-7,
+        "range_residual": -0.00028543864651999065
+      },
+      {
+        "row_id": "testing-target-09-station-03",
+        "target_id": "target-09",
+        "position_id": "station-03",
+        "theta_residual": 0.000003692387866121286,
+        "phi_residual": -0.000003351979558559381,
+        "range_residual": -0.00018347977255281977
+      },
+      {
+        "row_id": "testing-target-09-station-04",
+        "target_id": "target-09",
+        "position_id": "station-04",
+        "theta_residual": -0.0000026642299713951013,
+        "phi_residual": 0.0000019761282737085126,
+        "range_residual": 0.0001397742871236729
+      },
+      {
+        "row_id": "testing-target-10-station-01",
+        "target_id": "target-10",
+        "position_id": "station-01",
+        "theta_residual": 0.0000010769726135687152,
+        "phi_residual": -0.000002218054267243131,
+        "range_residual": -0.0005504907182078961
+      },
+      {
+        "row_id": "testing-target-10-station-02",
+        "target_id": "target-10",
+        "position_id": "station-02",
+        "theta_residual": 0.000008407904029956335,
+        "phi_residual": -0.000004118229399944682,
+        "range_residual": 0.0000814348616689969
+      },
+      {
+        "row_id": "testing-target-10-station-03",
+        "target_id": "target-10",
+        "position_id": "station-03",
+        "theta_residual": -0.0000022500026300972483,
+        "phi_residual": 0.000004362048048974356,
+        "range_residual": 0.00014681416023881754
+      },
+      {
+        "row_id": "testing-target-10-station-04",
+        "target_id": "target-10",
+        "position_id": "station-04",
+        "theta_residual": 0.000006635907351140991,
+        "phi_residual": 0.00001340408665107613,
+        "range_residual": -0.00018089588982904265
+      },
+      {
+        "row_id": "testing-target-11-station-01",
+        "target_id": "target-11",
+        "position_id": "station-01",
+        "theta_residual": 0.0000013617450466333424,
+        "phi_residual": 0.0000039679590000152435,
+        "range_residual": 0.0004359484663455949
+      },
+      {
+        "row_id": "testing-target-11-station-02",
+        "target_id": "target-11",
+        "position_id": "station-02",
+        "theta_residual": -0.000009133000087307242,
+        "phi_residual": -0.0000018666813511472487,
+        "range_residual": 0.00022697337379633289
+      },
+      {
+        "row_id": "testing-target-11-station-03",
+        "target_id": "target-11",
+        "position_id": "station-03",
+        "theta_residual": 0.000011640291973269803,
+        "phi_residual": 0.0000016207669355355635,
+        "range_residual": -0.0006718471353661181
+      },
+      {
+        "row_id": "testing-target-11-station-04",
+        "target_id": "target-11",
+        "position_id": "station-04",
+        "theta_residual": -0.0000034025672438691427,
+        "phi_residual": -0.0000046375619682197826,
+        "range_residual": 0.00026599036300433706
+      },
+      {
+        "row_id": "testing-target-12-station-01",
+        "target_id": "target-12",
+        "position_id": "station-01",
+        "theta_residual": 0.00000743706165023923,
+        "phi_residual": 0.0000024249397072854607,
+        "range_residual": 0.0003613168941390998
+      },
+      {
+        "row_id": "testing-target-12-station-02",
+        "target_id": "target-12",
+        "position_id": "station-02",
+        "theta_residual": 0.000009605453611367749,
+        "phi_residual": -0.0000074434112553175235,
+        "range_residual": 0.0005413042462592339
+      },
+      {
+        "row_id": "testing-target-12-station-03",
+        "target_id": "target-12",
+        "position_id": "station-03",
+        "theta_residual": -0.000003364821313520037,
+        "phi_residual": 4.275701979617748e-7,
+        "range_residual": -0.0005451605349488975
+      },
+      {
+        "row_id": "testing-target-12-station-04",
+        "target_id": "target-12",
+        "position_id": "station-04",
+        "theta_residual": -0.000004428187310302691,
+        "phi_residual": -0.0000039816485432460255,
+        "range_residual": -0.00023817905965216562
+      },
+      {
+        "row_id": "testing-target-13-station-01",
+        "target_id": "target-13",
+        "position_id": "station-01",
+        "theta_residual": 6.882887207009346e-7,
+        "phi_residual": 0.000004485054576832053,
+        "range_residual": 0.000400322890201274
+      },
+      {
+        "row_id": "testing-target-13-station-02",
+        "target_id": "target-13",
+        "position_id": "station-02",
+        "theta_residual": -0.000004814935934943561,
+        "phi_residual": -0.000005033745670850961,
+        "range_residual": 0.00044702606033229515
+      },
+      {
+        "row_id": "testing-target-13-station-03",
+        "target_id": "target-13",
+        "position_id": "station-03",
+        "theta_residual": 0.000006888409707865071,
+        "phi_residual": 0.000003608369870712713,
+        "range_residual": -0.0006747737885516503
+      },
+      {
+        "row_id": "testing-target-13-station-04",
+        "target_id": "target-13",
+        "position_id": "station-04",
+        "theta_residual": 0.000014668542209126658,
+        "phi_residual": 0.0000047122349612643035,
+        "range_residual": -0.00014933057457697889
+      },
+      {
+        "row_id": "testing-target-14-station-01",
+        "target_id": "target-14",
+        "position_id": "station-01",
+        "theta_residual": 8.518644417843976e-7,
+        "phi_residual": -0.000002305507479690771,
+        "range_residual": -0.0007815618099282586
+      },
+      {
+        "row_id": "testing-target-14-station-02",
+        "target_id": "target-14",
+        "position_id": "station-02",
+        "theta_residual": 0.0000029208020582482286,
+        "phi_residual": -8.688146743074379e-7,
+        "range_residual": -0.00020834829744398507
+      },
+      {
+        "row_id": "testing-target-14-station-03",
+        "target_id": "target-14",
+        "position_id": "station-03",
+        "theta_residual": -0.0000035553050852752965,
+        "phi_residual": 2.7153499426616105e-7,
+        "range_residual": 0.00025775389618779004
+      },
+      {
+        "row_id": "testing-target-14-station-04",
+        "target_id": "target-14",
+        "position_id": "station-04",
+        "theta_residual": -0.000001793885266296431,
+        "phi_residual": 0.0000030790117555025252,
+        "range_residual": -0.000005645622777283749
+      },
+      {
+        "row_id": "testing-target-15-station-01",
+        "target_id": "target-15",
+        "position_id": "station-01",
+        "theta_residual": 0.0000025718437121605926,
+        "phi_residual": -3.3323863926742966e-7,
+        "range_residual": -0.000621204838127253
+      },
+      {
+        "row_id": "testing-target-15-station-02",
+        "target_id": "target-15",
+        "position_id": "station-02",
+        "theta_residual": 0.0000027524988283923625,
+        "phi_residual": 7.310861843937344e-7,
+        "range_residual": -0.0000347679897015633
+      },
+      {
+        "row_id": "testing-target-15-station-03",
+        "target_id": "target-15",
+        "position_id": "station-03",
+        "theta_residual": 0.0000047065224673372394,
+        "phi_residual": 0.000007062028639364526,
+        "range_residual": -0.00004402109320642432
+      },
+      {
+        "row_id": "testing-target-15-station-04",
+        "target_id": "target-15",
+        "position_id": "station-04",
+        "theta_residual": 0.0000017933987928703451,
+        "phi_residual": 0.0000027601239875232054,
+        "range_residual": -0.0003522456103356564
+      },
+      {
+        "row_id": "testing-target-16-station-01",
+        "target_id": "target-16",
+        "position_id": "station-01",
+        "theta_residual": -0.000002509794654137616,
+        "phi_residual": 0.000005520384670749761,
+        "range_residual": 0.0009308015431237832
+      },
+      {
+        "row_id": "testing-target-16-station-02",
+        "target_id": "target-16",
+        "position_id": "station-02",
+        "theta_residual": -0.000009831931644623682,
+        "phi_residual": -0.000006492031204735847,
+        "range_residual": -0.00017687785581876076
+      },
+      {
+        "row_id": "testing-target-16-station-03",
+        "target_id": "target-16",
+        "position_id": "station-03",
+        "theta_residual": -0.000003690750118814481,
+        "phi_residual": -0.000009273669766936273,
+        "range_residual": -0.00010929542703012104
+      },
+      {
+        "row_id": "testing-target-16-station-04",
+        "target_id": "target-16",
+        "position_id": "station-04",
+        "theta_residual": -0.000003387294128640152,
+        "phi_residual": -0.000001934914027915497,
+        "range_residual": 0.00015864818156211257
+      },
+      {
+        "row_id": "testing-target-17-station-01",
+        "target_id": "target-17",
+        "position_id": "station-01",
+        "theta_residual": -0.0000031564823771666737,
+        "phi_residual": -0.000003895732914885681,
+        "range_residual": 0.00011600574864168574
+      },
+      {
+        "row_id": "testing-target-17-station-02",
+        "target_id": "target-17",
+        "position_id": "station-02",
+        "theta_residual": 8.790123133372807e-7,
+        "phi_residual": -0.000004494822418514666,
+        "range_residual": 0.0003955813172178498
+      },
+      {
+        "row_id": "testing-target-17-station-03",
+        "target_id": "target-17",
+        "position_id": "station-03",
+        "theta_residual": 0.000005298047278678822,
+        "phi_residual": 7.867474434343267e-7,
+        "range_residual": 0.0005057434667946649
+      },
+      {
+        "row_id": "testing-target-17-station-04",
+        "target_id": "target-17",
+        "position_id": "station-04",
+        "theta_residual": -0.000003073667659798762,
+        "phi_residual": -0.0000011450483278358624,
+        "range_residual": -0.00027098343590669066
+      },
+      {
+        "row_id": "testing-target-18-station-01",
+        "target_id": "target-18",
+        "position_id": "station-01",
+        "theta_residual": 0.0000026726642088686992,
+        "phi_residual": 0.00000449694541985621,
+        "range_residual": 0.0008076919399878906
+      },
+      {
+        "row_id": "testing-target-18-station-02",
+        "target_id": "target-18",
+        "position_id": "station-02",
+        "theta_residual": -0.000001774499769292974,
+        "phi_residual": 0.0000052057780689701795,
+        "range_residual": 0.00012061100007708446
+      },
+      {
+        "row_id": "testing-target-18-station-03",
+        "target_id": "target-18",
+        "position_id": "station-03",
+        "theta_residual": 0.000002563783020366153,
+        "phi_residual": 0.0000024767743548096924,
+        "range_residual": -0.00033527000177783
+      },
+      {
+        "row_id": "testing-target-18-station-04",
+        "target_id": "target-18",
+        "position_id": "station-04",
+        "theta_residual": -0.000005811837805229182,
+        "phi_residual": -0.00000533984753138179,
+        "range_residual": 0.0003966859163931337
+      },
+      {
+        "row_id": "testing-target-19-station-01",
+        "target_id": "target-19",
+        "position_id": "station-01",
+        "theta_residual": -0.000005014677917277188,
+        "phi_residual": -0.000004121300855125329,
+        "range_residual": -0.00015311817013378704
+      },
+      {
+        "row_id": "testing-target-19-station-02",
+        "target_id": "target-19",
+        "position_id": "station-02",
+        "theta_residual": -0.0000015224303357507207,
+        "phi_residual": -0.000007043700773601578,
+        "range_residual": -0.0003003956636486645
+      },
+      {
+        "row_id": "testing-target-19-station-03",
+        "target_id": "target-19",
+        "position_id": "station-03",
+        "theta_residual": -0.00000230066964141539,
+        "phi_residual": 0.000004974779615966549,
+        "range_residual": -0.0007030350063543131
+      },
+      {
+        "row_id": "testing-target-19-station-04",
+        "target_id": "target-19",
+        "position_id": "station-04",
+        "theta_residual": 0.0000031985182343803998,
+        "phi_residual": 0.0000037158402280775995,
+        "range_residual": -0.00044692982308452875
+      },
+      {
+        "row_id": "testing-target-20-station-01",
+        "target_id": "target-20",
+        "position_id": "station-01",
+        "theta_residual": -0.0000018012908423093187,
+        "phi_residual": 0.000001409361498775695,
+        "range_residual": -0.0008602156507511437
+      },
+      {
+        "row_id": "testing-target-20-station-02",
+        "target_id": "target-20",
+        "position_id": "station-02",
+        "theta_residual": 0.000002786185583658085,
+        "phi_residual": 0.00000579777715706959,
+        "range_residual": 0.00020230633893649754
+      },
+      {
+        "row_id": "testing-target-20-station-03",
+        "target_id": "target-20",
+        "position_id": "station-03",
+        "theta_residual": -0.0000022939794571833025,
+        "phi_residual": -0.0000011252871466967725,
+        "range_residual": -0.00036448433203398585
+      },
+      {
+        "row_id": "testing-target-20-station-04",
+        "target_id": "target-20",
+        "position_id": "station-04",
+        "theta_residual": 0.000003256707908242017,
+        "phi_residual": 0.0000031258395683509886,
+        "range_residual": -0.0004469207693274234
+      }
+    ]
+  }
+}
