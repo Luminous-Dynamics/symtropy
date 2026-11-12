@@ -194,9 +194,18 @@ impl RecoveryEpisode {
             ("scenario_family", self.scenario_family.as_str()),
             ("policy_revision", self.policy_revision.as_str()),
             ("pairing.pair_id", self.pairing.pair_id.as_str()),
-            ("pairing.baseline_run_id", self.pairing.baseline_run_id.as_str()),
-            ("pairing.simulator_revision", self.pairing.simulator_revision.as_str()),
-            ("pairing.evaluator_revision", self.pairing.evaluator_revision.as_str()),
+            (
+                "pairing.baseline_run_id",
+                self.pairing.baseline_run_id.as_str(),
+            ),
+            (
+                "pairing.simulator_revision",
+                self.pairing.simulator_revision.as_str(),
+            ),
+            (
+                "pairing.evaluator_revision",
+                self.pairing.evaluator_revision.as_str(),
+            ),
         ] {
             if value.trim().is_empty() {
                 errors.push(format!("{name} must be non-empty"));
@@ -205,8 +214,14 @@ impl RecoveryEpisode {
 
         for (name, digest) in [
             ("pairing.world_seed_sha256", &self.pairing.world_seed_sha256),
-            ("pairing.baseline_checkpoint_sha256", &self.pairing.baseline_checkpoint_sha256),
-            ("pairing.candidate_checkpoint_sha256", &self.pairing.candidate_checkpoint_sha256),
+            (
+                "pairing.baseline_checkpoint_sha256",
+                &self.pairing.baseline_checkpoint_sha256,
+            ),
+            (
+                "pairing.candidate_checkpoint_sha256",
+                &self.pairing.candidate_checkpoint_sha256,
+            ),
         ] {
             if !is_sha256(digest) {
                 errors.push(format!("{name} must be a lowercase SHA-256 digest"));
@@ -214,9 +229,7 @@ impl RecoveryEpisode {
         }
 
         if self.expected_ticks == 0 || self.expected_ticks > MAX_TICKS {
-            errors.push(format!(
-                "expected_ticks must be in 1..={MAX_TICKS}"
-            ));
+            errors.push(format!("expected_ticks must be in 1..={MAX_TICKS}"));
         }
         if self.trace.len() != self.expected_ticks {
             errors.push(format!(
@@ -281,7 +294,10 @@ impl RecoveryEpisode {
                 || event.channel.trim().is_empty()
                 || !ids.insert(event.fault_id.as_str())
             {
-                errors.push(format!("fault event has empty or duplicate identity {:?}", event.fault_id));
+                errors.push(format!(
+                    "fault event has empty or duplicate identity {:?}",
+                    event.fault_id
+                ));
             }
             if event.onset_tick == 0
                 || event.end_tick_exclusive <= event.onset_tick
@@ -289,10 +305,7 @@ impl RecoveryEpisode {
             {
                 errors.push(format!(
                     "fault {} has invalid interval [{}, {}) for {} expected ticks",
-                    event.fault_id,
-                    event.onset_tick,
-                    event.end_tick_exclusive,
-                    self.expected_ticks
+                    event.fault_id, event.onset_tick, event.end_tick_exclusive, self.expected_ticks
                 ));
             }
             if event.severity_ppm == 0 || event.severity_ppm > 1_000_000 {
@@ -319,20 +332,30 @@ impl RecoveryEpisode {
                 .as_ref()
                 .is_some_and(|group| group.trim().is_empty())
             {
-                errors.push(format!("fault {} has an empty correlation_group", event.fault_id));
+                errors.push(format!(
+                    "fault {} has an empty correlation_group",
+                    event.fault_id
+                ));
             }
             if event
                 .critical_phase
                 .as_ref()
                 .is_some_and(|phase| phase.trim().is_empty())
             {
-                errors.push(format!("fault {} has an empty critical_phase", event.fault_id));
+                errors.push(format!(
+                    "fault {} has an empty critical_phase",
+                    event.fault_id
+                ));
             }
         }
 
         for tick in &self.trace {
             for fault_id in &tick.detected_fault_ids {
-                match self.fault_events.iter().find(|event| event.fault_id == *fault_id) {
+                match self
+                    .fault_events
+                    .iter()
+                    .find(|event| event.fault_id == *fault_id)
+                {
                     None => errors.push(format!(
                         "tick {} detects unknown fault ID {:?}",
                         tick.tick, fault_id
@@ -351,7 +374,11 @@ impl RecoveryEpisode {
                 }
             }
             for fault_id in &tick.fallback_reason_fault_ids {
-                match self.fault_events.iter().find(|event| event.fault_id == *fault_id) {
+                match self
+                    .fault_events
+                    .iter()
+                    .find(|event| event.fault_id == *fault_id)
+                {
                     None => errors.push(format!(
                         "tick {} attributes fallback to unknown fault ID {:?}",
                         tick.tick, fault_id
@@ -407,8 +434,14 @@ impl RecoveryEpisode {
             maximum_concurrency(&self.fault_events, self.expected_ticks as u64);
 
         let detected_fault_count = results.iter().filter(|result| result.detected).count();
-        let fallback_fault_count = results.iter().filter(|result| result.fallback_observed).count();
-        let recovered_fault_count = results.iter().filter(|result| result.recovery_tick.is_some()).count();
+        let fallback_fault_count = results
+            .iter()
+            .filter(|result| result.fallback_observed)
+            .count();
+        let recovered_fault_count = results
+            .iter()
+            .filter(|result| result.recovery_tick.is_some())
+            .count();
         let contract_met_fault_count = results.iter().filter(|result| result.contract_met).count();
 
         let total_constraint_violation_ticks = self
@@ -458,10 +491,13 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
     let detection_tick = episode
         .trace
         .iter()
-        .find(|tick| tick.detected_fault_ids.iter().any(|id| id == &event.fault_id))
+        .find(|tick| {
+            tick.detected_fault_ids
+                .iter()
+                .any(|id| id == &event.fault_id)
+        })
         .map(|tick| tick.tick);
-    let detection_delay_ticks =
-        detection_tick.map(|tick| tick.saturating_sub(event.onset_tick));
+    let detection_delay_ticks = detection_tick.map(|tick| tick.saturating_sub(event.onset_tick));
 
     let fallback_tick = episode
         .trace
@@ -469,7 +505,10 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
         .find(|tick| {
             tick.tick >= event.onset_tick
                 && tick.mode == OperatingMode::Fallback
-                && tick.fallback_reason_fault_ids.iter().any(|id| id == &event.fault_id)
+                && tick
+                    .fallback_reason_fault_ids
+                    .iter()
+                    .any(|id| id == &event.fault_id)
         })
         .map(|tick| tick.tick);
     let fallback_delay_ticks = fallback_tick.map(|tick| tick.saturating_sub(event.onset_tick));
@@ -520,18 +559,28 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
         });
         let ticks = phase_ticks.collect::<Vec<_>>();
         (
-            ticks.first().is_some_and(|tick| tick.tick == event.onset_tick),
+            ticks
+                .first()
+                .is_some_and(|tick| tick.tick == event.onset_tick),
             ticks.len() as u64,
-            ticks.iter().filter(|tick| {
-                tick.mode == OperatingMode::Fallback
-                    && tick.fallback_reason_fault_ids.iter().any(|id| id == &event.fault_id)
-            }).count() as u64,
-            ticks.iter().filter(|tick| {
-                tick.inference_duration_us > tick.control_deadline_us
-            }).count() as u64,
-            ticks.iter().filter(|tick| {
-                tick.oracle_outcome == OracleOutcome::ConstraintViolation
-            }).count() as u64,
+            ticks
+                .iter()
+                .filter(|tick| {
+                    tick.mode == OperatingMode::Fallback
+                        && tick
+                            .fallback_reason_fault_ids
+                            .iter()
+                            .any(|id| id == &event.fault_id)
+                })
+                .count() as u64,
+            ticks
+                .iter()
+                .filter(|tick| tick.inference_duration_us > tick.control_deadline_us)
+                .count() as u64,
+            ticks
+                .iter()
+                .filter(|tick| tick.oracle_outcome == OracleOutcome::ConstraintViolation)
+                .count() as u64,
         )
     });
 
@@ -546,7 +595,10 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
             tick.tick >= event.onset_tick
                 && tick.tick < recovery_tick.unwrap_or(u64::MAX)
                 && tick.mode == OperatingMode::Fallback
-                && tick.fallback_reason_fault_ids.iter().any(|id| id == &event.fault_id)
+                && tick
+                    .fallback_reason_fault_ids
+                    .iter()
+                    .any(|id| id == &event.fault_id)
         })
         .count() as u64;
 
@@ -619,9 +671,10 @@ fn find_stable_recovery(episode: &RecoveryEpisode, event: &FaultEvent) -> Option
     let mut stable_count = 0_u64;
 
     for tick in episode.trace.iter().filter(|tick| tick.tick >= start_tick) {
-        let no_scheduled_fault_active = !episode.fault_events.iter().any(|other| {
-            tick.tick >= other.onset_tick && tick.tick < other.end_tick_exclusive
-        });
+        let no_scheduled_fault_active = !episode
+            .fault_events
+            .iter()
+            .any(|other| tick.tick >= other.onset_tick && tick.tick < other.end_tick_exclusive);
         let stable = no_scheduled_fault_active
             && tick.mode == OperatingMode::Nominal
             && tick.oracle_outcome == OracleOutcome::WithinEnvelope
@@ -700,9 +753,9 @@ mod tests {
 
         let mut trace = Vec::new();
         for tick in 1..=10 {
-            let active = events.iter().any(|event| {
-                tick >= event.onset_tick && tick < event.end_tick_exclusive
-            });
+            let active = events
+                .iter()
+                .any(|event| tick >= event.onset_tick && tick < event.end_tick_exclusive);
             let mode = match tick {
                 1 => OperatingMode::Nominal,
                 2 => OperatingMode::Degraded,
@@ -722,7 +775,11 @@ mod tests {
                     6 => "exit-merge".into(),
                     _ => "recovery".into(),
                 },
-                camera_age_us: if tick == 2 || tick == 3 { None } else { Some(1_000) },
+                camera_age_us: if tick == 2 || tick == 3 {
+                    None
+                } else {
+                    Some(1_000)
+                },
                 vehicle_state_age_us: Some(1_000),
                 inference_duration_us: if tick == 3 { 15_000 } else { 4_000 },
                 control_deadline_us: 10_000,
@@ -776,8 +833,16 @@ mod tests {
     #[test]
     fn reports_phase_conditioned_fault_impact_without_weighted_score() {
         let report = valid_episode().evaluate().unwrap();
-        let camera = report.results.iter().find(|result| result.fault_id == "camera-drop").unwrap();
-        let compute = report.results.iter().find(|result| result.fault_id == "inference-delay").unwrap();
+        let camera = report
+            .results
+            .iter()
+            .find(|result| result.fault_id == "camera-drop")
+            .unwrap();
+        let compute = report
+            .results
+            .iter()
+            .find(|result| result.fault_id == "inference-delay")
+            .unwrap();
         assert_eq!(camera.onset_in_critical_phase, Some(true));
         assert_eq!(camera.critical_phase_overlap_ticks, Some(2));
         assert_eq!(camera.critical_phase_fallback_ticks, Some(1));
@@ -792,7 +857,11 @@ mod tests {
         let mut episode = valid_episode();
         episode.trace[1].maneuver_phase = "approach".into();
         let report = episode.evaluate().unwrap();
-        let camera = report.results.iter().find(|result| result.fault_id == "camera-drop").unwrap();
+        let camera = report
+            .results
+            .iter()
+            .find(|result| result.fault_id == "camera-drop")
+            .unwrap();
         assert_eq!(camera.onset_in_critical_phase, Some(false));
         assert_eq!(camera.critical_phase_overlap_ticks, Some(1));
     }
@@ -802,7 +871,11 @@ mod tests {
         let mut episode = valid_episode();
         episode.fault_events[0].critical_phase = Some("emergency_braking".into());
         let errors = episode.validate().unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("does not overlap that phase")));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("does not overlap that phase"))
+        );
     }
 
     #[test]
@@ -812,11 +885,19 @@ mod tests {
         episode.trace[1].oracle_outcome = OracleOutcome::ConstraintViolation;
         episode.trace[4].oracle_outcome = OracleOutcome::ConstraintViolation;
         let report = episode.evaluate().unwrap();
-        let camera = report.results.iter().find(|result| result.fault_id == "camera-drop").unwrap();
+        let camera = report
+            .results
+            .iter()
+            .find(|result| result.fault_id == "camera-drop")
+            .unwrap();
         assert_eq!(camera.constraint_violation_ticks, 1);
         assert_eq!(camera.critical_phase_overlap_ticks, Some(1));
         assert_eq!(camera.critical_phase_constraint_violation_ticks, Some(0));
-        let compute = report.results.iter().find(|result| result.fault_id == "inference-delay").unwrap();
+        let compute = report
+            .results
+            .iter()
+            .find(|result| result.fault_id == "inference-delay")
+            .unwrap();
         assert_eq!(compute.critical_phase_constraint_violation_ticks, Some(1));
     }
 
@@ -827,8 +908,16 @@ mod tests {
         episode.trace[3].fallback_reason_fault_ids = vec!["inference-delay".into()];
         episode.trace[4].fallback_reason_fault_ids = vec!["inference-delay".into()];
         let report = episode.evaluate().unwrap();
-        let camera = report.results.iter().find(|item| item.fault_id == "camera-drop").unwrap();
-        let compute = report.results.iter().find(|item| item.fault_id == "inference-delay").unwrap();
+        let camera = report
+            .results
+            .iter()
+            .find(|item| item.fault_id == "camera-drop")
+            .unwrap();
+        let compute = report
+            .results
+            .iter()
+            .find(|item| item.fault_id == "inference-delay")
+            .unwrap();
         assert!(!camera.fallback_observed);
         assert!(compute.fallback_observed);
     }
@@ -856,8 +945,13 @@ mod tests {
         );
         assert_eq!(schema["title"], "Recoverability envelope episode v1");
         assert_eq!(report_schema["title"], "Recoverability envelope report v1");
-        assert!(schema["$defs"]["tick_trace"]["required"]
-            .as_array().unwrap().iter().any(|field| field == "maneuver_phase"));
+        assert!(
+            schema["$defs"]["tick_trace"]["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|field| field == "maneuver_phase")
+        );
         for field in [
             "onset_in_critical_phase",
             "critical_phase_overlap_ticks",
@@ -865,8 +959,13 @@ mod tests {
             "critical_phase_deadline_miss_ticks",
             "critical_phase_constraint_violation_ticks",
         ] {
-            assert!(report_schema["$defs"]["fault_result"]["required"]
-                .as_array().unwrap().iter().any(|item| item == field));
+            assert!(
+                report_schema["$defs"]["fault_result"]["required"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|item| item == field)
+            );
         }
     }
 
@@ -875,10 +974,18 @@ mod tests {
         let mut episode = valid_episode();
         episode.contract.max_deadline_miss_ticks_during_fault = 0;
         let report = episode.evaluate().unwrap();
-        let delayed = report.results.iter().find(|item| item.fault_id == "inference-delay").unwrap();
+        let delayed = report
+            .results
+            .iter()
+            .find(|item| item.fault_id == "inference-delay")
+            .unwrap();
         assert_eq!(delayed.deadline_miss_ticks_during_fault, 1);
         assert!(!delayed.contract_met);
-        assert!(delayed.unmet_conditions.contains(&"deadline_miss_budget_exceeded".to_string()));
+        assert!(
+            delayed
+                .unmet_conditions
+                .contains(&"deadline_miss_budget_exceeded".to_string())
+        );
     }
 
     #[test]
@@ -910,28 +1017,54 @@ mod tests {
     fn rejects_missing_tick_denominator() {
         let mut episode = valid_episode();
         episode.trace.pop();
-        assert!(episode.validate().unwrap_err().iter().any(|e| e.contains("denominator mismatch")));
+        assert!(
+            episode
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("denominator mismatch"))
+        );
     }
 
     #[test]
     fn rejects_duplicate_fault_ids() {
         let mut episode = valid_episode();
         episode.fault_events[1].fault_id = episode.fault_events[0].fault_id.clone();
-        assert!(episode.validate().unwrap_err().iter().any(|e| e.contains("duplicate identity")));
+        assert!(
+            episode
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("duplicate identity"))
+        );
     }
 
     #[test]
     fn rejects_unknown_detected_fault_ids() {
         let mut episode = valid_episode();
-        episode.trace[1].detected_fault_ids.push("not-scheduled".into());
-        assert!(episode.validate().unwrap_err().iter().any(|e| e.contains("unknown fault ID")));
+        episode.trace[1]
+            .detected_fault_ids
+            .push("not-scheduled".into());
+        assert!(
+            episode
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("unknown fault ID"))
+        );
     }
 
     #[test]
     fn rejects_faults_outside_episode_or_with_zero_duration() {
         let mut episode = valid_episode();
         episode.fault_events[0].end_tick_exclusive = 99;
-        assert!(episode.validate().unwrap_err().iter().any(|e| e.contains("invalid interval")));
+        assert!(
+            episode
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("invalid interval"))
+        );
         let mut zero = valid_episode();
         zero.fault_events[0].end_tick_exclusive = zero.fault_events[0].onset_tick;
         assert!(zero.validate().is_err());
@@ -942,12 +1075,21 @@ mod tests {
         let mut episode = valid_episode();
         episode.fault_events[1].end_tick_exclusive = 10;
         episode.contract.max_fault_concurrency = 2;
-        for tick in episode.trace.iter_mut().filter(|tick| tick.tick >= 6 && tick.tick < 10) {
+        for tick in episode
+            .trace
+            .iter_mut()
+            .filter(|tick| tick.tick >= 6 && tick.tick < 10)
+        {
             tick.mode = OperatingMode::Degraded;
             tick.oracle_outcome = OracleOutcome::DegradedWithinEnvelope;
         }
         let report = episode.evaluate().unwrap();
-        assert!(report.results.iter().all(|result| result.recovery_tick.is_none()));
+        assert!(
+            report
+                .results
+                .iter()
+                .all(|result| result.recovery_tick.is_none())
+        );
     }
 
     #[test]
@@ -958,9 +1100,11 @@ mod tests {
         assert!(report.total_constraint_violation_ticks >= 1);
         assert_eq!(report.results[0].constraint_violation_ticks, 1);
         assert!(!report.results[0].contract_met);
-        assert!(report.results[0]
-            .unmet_conditions
-            .contains(&"constraint_violation_during_fault".to_string()));
+        assert!(
+            report.results[0]
+                .unmet_conditions
+                .contains(&"constraint_violation_during_fault".to_string())
+        );
     }
 
     #[test]
@@ -970,7 +1114,12 @@ mod tests {
             tick.camera_age_us = None;
         }
         let report = episode.evaluate().unwrap();
-        assert!(report.results.iter().all(|result| result.recovery_tick.is_none()));
+        assert!(
+            report
+                .results
+                .iter()
+                .all(|result| result.recovery_tick.is_none())
+        );
     }
 
     #[test]
@@ -978,32 +1127,8 @@ mod tests {
         let report = valid_episode().evaluate().unwrap();
         assert_eq!(report.deadline_miss_ticks, 1);
         assert_eq!(report.results[1].deadline_miss_ticks_during_fault, 1);
-        assert!(report.results.iter().all(|result| result.unmet_conditions.is_empty()));
-    }
-
-    #[test]
-    fn rejects_non_sha256_pairing_identity() {
-        let mut episode = valid_episode();
-        episode.pairing.world_seed_sha256 = "not-a-hash".into();
-        assert!(episode.validate().unwrap_err().iter().any(|e| e.contains("lowercase SHA-256")));
-    }
-
-    #[test]
-    fn rejects_fault_concurrency_over_contract() {
-        let mut episode = valid_episode();
-        episode.contract.max_fault_concurrency = 1;
-        assert!(episode.validate().unwrap_err().iter().any(|e| e.contains("fault concurrency")));
-    }
-
-    #[test]
-    fn stable_recovery_requires_full_fault_envelope_clearance() {
-        let mut episode = valid_episode();
-        episode.fault_events[1].end_tick_exclusive = 7;
-        // Tick 6 looks nominal but the second scheduled fault is still active.
-        episode.trace[5].mode = OperatingMode::Nominal;
-        episode.trace[5].oracle_outcome = OracleOutcome::WithinEnvelope;
-        let report = episode.evaluate().unwrap();
-        assert_eq!(report.results[0].recovery_tick, Some(8));
-        assert_eq!(report.results[1].recovery_tick, Some(8));
-    }
-}
+        assert!(
+            report
+                .results
+                .iter()
+                .all(|resul
