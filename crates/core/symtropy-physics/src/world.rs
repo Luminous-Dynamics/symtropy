@@ -1198,7 +1198,25 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
                     integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
 
-                    total_friction_dissipation += j_t.abs() * 0.1;
+                    // Contact impulse work is measured at the contact point using
+                    // the midpoint of pre- and post-impulse tangential velocity.
+                    // The impulse has units N·s; only its dot product with a
+                    // velocity has units J. Relative velocity is v_b - v_a,
+                    // and friction_impulse is the impulse applied to body B.
+                    let v_rel_after = {
+                        let va = self.bodies[a].linear_velocity
+                            + self.bodies[a].angular_velocity.apply_to_vector(&r_a);
+                        let vb = self.bodies[b].linear_velocity
+                            + self.bodies[b].angular_velocity.apply_to_vector(&r_b);
+                        vb - va
+                    };
+                    let v_t_after =
+                        v_rel_after - contact.normal * v_rel_after.dot(&contact.normal);
+                    let friction_work_joules =
+                        friction_impulse.dot(&((v_t + v_t_after) * 0.5));
+                    if friction_work_joules.is_finite() && friction_work_joules < 0.0 {
+                        total_friction_dissipation += -friction_work_joules;
+                    }
                 }
             }
         }
@@ -2560,4 +2578,85 @@ mod transformed_halfspace_tests {
 
         assert!(world.static_tree_dirty);
     }
+    #[derive(Default)]
+    struct DissipationRecorder {
+        values: Vec<f64>,
+    }
+
+    impl<const D: usize> PhysicsCallback<D> for DissipationRecorder {
+        fn modulate_force(
+            &self,
+            _body: BodyHandle,
+            force: &SVector<f64, D>,
+        ) -> SVector<f64, D> {
+            *force
+        }
+
+        fn modulate_impulse(&self, impulse: f64, _contact_point: &SVector<f64, D>) -> f64 {
+            impulse
+        }
+
+        fn friction_multiplier(&self, _contact_point: &SVector<f64, D>, _body: BodyHandle) -> f64 {
+            1.0
+        }
+
+        fn on_collision(&mut self, _event: &CollisionEvent<D>) {}
+
+        fn record_dissipation(&mut self, energy_joules: f64) {
+            self.values.push(energy_joules);
+        }
+
+        fn record_work(&mut self, _body: BodyHandle, _work_joules: f64) {}
+
+        fn apply_trauma(&mut self, _event: &CollisionEvent<D>) {}
+    }
+
+    #[test]
+    fn friction_dissipation_is_measured_as_contact_impulse_work_in_joules() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.baumgarte = 0.0;
+        world.slop = 0.0;
+
+        let mut fixed = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::<3>::unit()),
+        );
+        fixed.friction = 0.5;
+
+        let mut moving = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::new([0.0, 2.0, 0.0]),
+            1.0,
+            1.0,
+        );
+        moving.linear_velocity = SVector::from([-1.0, -1.0, 0.0]);
+        moving.friction = 0.5;
+
+        let fixed_handle = world.add_body(fixed);
+        let moving_handle = world.add_body(moving);
+        let contact = ContactManifold::<3>::single(
+            fixed_handle,
+            moving_handle,
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            0.0,
+        );
+
+        // Normal response removes the independent 0.5 J normal kinetic energy.
+        // For the unit sphere, the tangential effective inverse mass at this
+        // one-unit lever arm is 1/m + 1/I = 1 + 2.5. The unclamped tangential
+        // impulse is 1/3.5 N·s, and its midpoint work is 1/7 J of dissipation.
+        let expected_friction_dissipation = 1.0 / 7.0;
+        let mut callback = DissipationRecorder::default();
+        let _ = world.resolve_contact(contact, 1.0 / 60.0, &mut callback);
+
+        assert_eq!(callback.values.len(), 1);
+        assert!(
+            (callback.values[0] / expected_friction_dissipation - 1.0).abs() < 1.0e-12,
+            "friction dissipation must be contact impulse work in joules, not a scaled impulse: observed={:e} J, expected={expected_friction_dissipation:e} J",
+            callback.values[0]
+        );
+    }
+
 }
