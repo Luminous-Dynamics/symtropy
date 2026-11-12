@@ -1165,12 +1165,9 @@ mod tests {
                     }
                 }
 
-                let report = audit_transition(
-                    &previous,
-                    &next,
-                    &transition(&previous, &next, changes),
-                )
-                .expect("complete finite change evidence");
+                let report =
+                    audit_transition(&previous, &next, &transition(&previous, &next, changes))
+                        .expect("complete finite change evidence");
                 assert_eq!(report.disposition, AuditDisposition::Qualified);
 
                 let mut expected_losses: Vec<String> = previous_ids
@@ -1190,7 +1187,11 @@ mod tests {
                 expected_result.sort();
 
                 assert_eq!(
-                    report.losses.iter().map(|entry| entry.action_id.clone()).collect::<Vec<_>>(),
+                    report
+                        .losses
+                        .iter()
+                        .map(|entry| entry.action_id.clone())
+                        .collect::<Vec<_>>(),
                     expected_losses
                 );
                 assert_eq!(
