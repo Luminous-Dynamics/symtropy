@@ -126,6 +126,8 @@ pub enum VoiPolicyBridgeError {
     SuccessorOutsideBranchOutcomeSupport(BranchOutcomeKey),
     EmptyPhysicalSupport,
     InvalidMass(u64),
+    IncompleteManifest(&'static str),
+    InitialStateReceiptIncomplete,
 }
 
 impl std::fmt::Display for VoiPolicyBridgeError {
@@ -224,6 +226,10 @@ pub fn build_probe_policy_prefix(
             "initial_belief_state_set_digest",
             &context.initial_belief_state_set_digest,
         ),
+        (
+            "initial_observation_receipt_digest",
+            &context.initial_observation_receipt_digest,
+        ),
         ("initial_state.state_id", &context.initial_state.state_id),
         ("action_domain.digest", &context.action_domain.digest),
         (
@@ -231,6 +237,16 @@ pub fn build_probe_policy_prefix(
             &context.branch_outcome_manifest.digest,
         ),
     ])?;
+
+    if !context.action_domain.complete {
+        return Err(VoiPolicyBridgeError::IncompleteManifest("action_domain"));
+    }
+    if !context.branch_outcome_manifest.complete {
+        return Err(VoiPolicyBridgeError::IncompleteManifest("branch_outcome"));
+    }
+    if !receipt_state_complete(&context.initial_state) {
+        return Err(VoiPolicyBridgeError::InitialStateReceiptIncomplete);
+    }
 
     let action_ids = unique_strings(&context.action_ids, "action_id")?;
     if !action_ids.contains(context.probe_action_id.as_str()) {
@@ -464,6 +480,7 @@ pub fn build_probe_policy_prefix(
     let mut observed_support = BTreeSet::new();
     let mut successor_by_group: BTreeMap<String, BTreeMap<String, BeliefStateReceipt>> =
         BTreeMap::new();
+    let mut state_receipt_complete_by_group: BTreeMap<String, bool> = BTreeMap::new();
     let mut transition_by_group: BTreeMap<String, Vec<PolicyTransition>> = BTreeMap::new();
     for successor in &input.physical_successors {
         require_nonempty(&[
@@ -486,6 +503,10 @@ pub fn build_probe_policy_prefix(
             .ok_or(VoiPolicyBridgeError::OutcomeCoverageMismatch)?
             .clone();
         let state_map = successor_by_group.entry(group.clone()).or_default();
+        state_receipt_complete_by_group
+            .entry(group.clone())
+            .and_modify(|complete| *complete &= receipt_state_complete(&successor.state))
+            .or_insert_with(|| receipt_state_complete(&successor.state));
         if let Some(previous) = state_map.get(&successor.state.state_id) {
             if previous != &successor.state {
                 return Err(VoiPolicyBridgeError::ConflictingSuccessorState {
@@ -526,8 +547,13 @@ pub fn build_probe_policy_prefix(
             });
     }
 
-    if context.branch_outcome_manifest.complete && observed_support != support {
+    if observed_support != support {
         return Err(VoiPolicyBridgeError::BranchOutcomeSupportMismatch);
+    }
+    for (group, complete) in &state_receipt_complete_by_group {
+        if !complete {
+            group_disposition.insert(group.clone(), ObservationDisposition::Unknown);
+        }
     }
     for pair in &support {
         if context.branch_outcome_manifest.complete && !observed_support.contains(pair) {
@@ -616,6 +642,14 @@ pub fn build_probe_policy_prefix(
         supporting_receipts.sort();
         supporting_receipts.dedup();
         let common_actions = common_actions.unwrap_or_default();
+        // Outcome-local viability cannot become a positive deployable set when
+        // the observation class or its physical successor-state evidence is
+        // Unknown/Invalid.
+        let common_actions = if disposition == ObservationDisposition::Qualified {
+            common_actions
+        } else {
+            BTreeSet::new()
+        };
         let common_vec = common_actions.iter().cloned().collect::<Vec<_>>();
         let (belief_set_digest, observation_receipt_digest) = group_identity[&group].clone();
         let disposition = group_disposition[&group];
@@ -970,6 +1004,68 @@ mod tests {
         assert_eq!(
             invalid.observation_disposition,
             ObservationDisposition::Invalid
+        );
+    }
+
+
+    #[test]
+    fn unknown_and_invalid_observation_classes_expose_no_positive_action_set() {
+        let mut unknown_source = input();
+        unknown_source.observations[0].disposition = ObservationDisposition::Unknown;
+        unknown_source.observations[1].disposition = ObservationDisposition::Unknown;
+        unknown_source.observations[0].equivalence_class = "stale-a".into();
+        unknown_source.observations[1].equivalence_class = "stale-b".into();
+        unknown_source.observations[0].belief_state_set_digest = "state-set:stale".into();
+        unknown_source.observations[1].belief_state_set_digest = "state-set:stale".into();
+        unknown_source.observations[0].receipt_digest.clear();
+        unknown_source.observations[1].receipt_digest.clear();
+        let unknown = build_probe_policy_prefix(&unknown_source).unwrap();
+        assert!(unknown.deployable_actions_by_observation[UNKNOWN_OBSERVATION_CLASS].is_empty());
+        assert!(!unknown.local_selection_is_deployable_by_observation[UNKNOWN_OBSERVATION_CLASS]);
+
+        let mut invalid_source = input();
+        invalid_source.observations[0].disposition = ObservationDisposition::Invalid;
+        invalid_source.observations[1].disposition = ObservationDisposition::Invalid;
+        invalid_source.observations[0].equivalence_class = "invalid-a".into();
+        invalid_source.observations[1].equivalence_class = "invalid-b".into();
+        invalid_source.observations[0].belief_state_set_digest = "state-set:invalid".into();
+        invalid_source.observations[1].belief_state_set_digest = "state-set:invalid".into();
+        invalid_source.observations[0].receipt_digest.clear();
+        invalid_source.observations[1].receipt_digest.clear();
+        let invalid = build_probe_policy_prefix(&invalid_source).unwrap();
+        assert!(invalid.deployable_actions_by_observation[INVALID_OBSERVATION_CLASS].is_empty());
+        assert!(!invalid.local_selection_is_deployable_by_observation[INVALID_OBSERVATION_CLASS]);
+    }
+
+    #[test]
+    fn incomplete_action_or_branch_outcome_domain_cannot_emit_a_probe_prefix() {
+        let mut actions = input();
+        actions.context.action_domain.complete = false;
+        assert!(matches!(
+            build_probe_policy_prefix(&actions),
+            Err(VoiPolicyBridgeError::IncompleteManifest("action_domain"))
+        ));
+
+        let mut branches = input();
+        branches.context.branch_outcome_manifest.complete = false;
+        assert!(matches!(
+            build_probe_policy_prefix(&branches),
+            Err(VoiPolicyBridgeError::IncompleteManifest("branch_outcome"))
+        ));
+    }
+
+    #[test]
+    fn incomplete_physical_successor_state_receipt_clears_its_option_set() {
+        let mut source = input();
+        source.physical_successors[0].state.thermal_state_digest.clear();
+        let prefix = build_probe_policy_prefix(&source).unwrap();
+        assert!(prefix.deployable_actions_by_observation["rough"].is_empty());
+        assert!(!prefix.local_selection_is_deployable_by_observation["rough"]);
+        let report =
+            super::super::policy_tree::evaluate_bounded_policy_tree(&prefix.tree, 2).unwrap();
+        assert_eq!(
+            report.disposition,
+            super::super::policy_tree::PolicyTreeDisposition::Unknown
         );
     }
 
