@@ -241,7 +241,10 @@
           "timestamp_uncertainty_source",
           "timebase_qualification_state",
           "timebase_qualification_artifact_id",
-          "timebase_qualification_sha256"
+          "timebase_qualification_sha256",
+          "dependency_review_state",
+          "dependency_review_record_id",
+          "dependency_review_record_sha256"
         ],
         "properties": {
           "sensor_id": {
@@ -368,6 +371,35 @@
                 "type": "null"
               }
             ]
+          },
+          "dependency_review_state": {
+            "enum": [
+              "synthetic_conformance",
+              "independently_reviewed",
+              "unreviewed",
+              "unknown"
+            ]
+          },
+          "dependency_review_record_id": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ref"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dependency_review_record_sha256": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "allOf": [
@@ -404,6 +436,88 @@
                 "timestamp_uncertainty_ms",
                 "timebase_qualification_artifact_id",
                 "timebase_qualification_sha256"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "dependency_review_state": {
+                  "const": "synthetic_conformance"
+                }
+              },
+              "required": [
+                "dependency_review_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "dependency_review_record_id": {
+                  "type": "null"
+                },
+                "dependency_review_record_sha256": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "dependency_review_record_id",
+                "dependency_review_record_sha256"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "dependency_review_state": {
+                  "const": "independently_reviewed"
+                }
+              },
+              "required": [
+                "dependency_review_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "dependency_review_record_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "dependency_review_record_sha256": {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                }
+              },
+              "required": [
+                "dependency_review_record_id",
+                "dependency_review_record_sha256"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "dependency_review_state": {
+                  "enum": [
+                    "unreviewed",
+                    "unknown"
+                  ]
+                }
+              },
+              "required": [
+                "dependency_review_state"
+              ]
+            },
+            "then": {
+              "properties": {
+                "dependency_review_record_id": {
+                  "type": "null"
+                },
+                "dependency_review_record_sha256": {
+                  "type": "null"
+                }
+              },
+              "required": [
+                "dependency_review_record_id",
+                "dependency_review_record_sha256"
               ]
             }
           }

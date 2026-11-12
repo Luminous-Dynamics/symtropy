@@ -52,3 +52,10 @@ The calibration-outage negative control now checks graceful degradation correctl
 - The report keeps all six embedded artifact-digest slots null. It binds the exact source commit, case bytes and synthetic clock-artifact bytes separately. Null means the artifact bytes were not supplied; it does not mean a zero hash or inferred provenance.
 
 The passing workflow establishes reproducibility of this synthetic software contract only. It does not establish measured sensor independence, real clock accuracy, physical marine-engine fault separability, vessel performance or regulatory compliance.
+
+
+## P0.6 — dependency-map review and common-cause coverage
+
+A declared dependency map is itself evidence and can be incomplete. The adapter now requires an explicit per-sensor dependency-review state. Synthetic fixtures are marked `synthetic_conformance` and cannot claim independent review. For measured cases, only `independently_reviewed` dependency maps with a separately hashed review record are eligible to support physical evidence; `unreviewed` and `unknown` sensors remain visible but are excluded.
+
+The validator requires explicit outage scenarios for each dependency group shared by multiple installed sensors. The synthetic suite includes gateway-only, clock-only, combined gateway-plus-clock, and single fuel-pressure sensor loss. The combined case verifies that two shared dependencies failing together do not restore evidence merely because they are declared separately. No physical engine topology or dependency review is claimed by this synthetic fixture.

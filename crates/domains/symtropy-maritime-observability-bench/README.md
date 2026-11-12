@@ -62,3 +62,9 @@ A qualified sensor must bind the exact common timebase artifact ID/SHA and decla
 The exact adapter head `98a35a3c85f5318eacae854849ef5f1fe655a521` passed both focused adapter workflows (43162088096 and 43162080730): 21/21 Rust unit tests, strict Clippy, frozen-case execution and receipt checks. The generated report has eleven fault pairs: eight isolable, two non-isolable and one not evaluated. A shared gateway loss removes all eight base-isolable distinctions; loss of the fuel-pressure transducer alone removes none because other independent principles remain. This is synthetic conformance only.
 
 The case's separate sensor-topology/evaluator/data/split/model digest slots remain null, because those exact artifact bytes were not supplied. The execution receipt binds only the exact commit, frozen case bytes, and synthetic clock artifact bytes.
+
+## P0.6 — reviewed dependency topology and shared-failure coverage
+
+Every installed sensor now declares a dependency-review state. Synthetic cases may claim only `synthetic_conformance`; they cannot label a fabricated dependency graph independently reviewed. Measured cases may contribute physical evidence only when the dependency graph has an independently reviewed record ID and SHA-256. Unreviewed/unknown dependency state preserves the sensor in the report but excludes it from physical evidence.
+
+Every installed sensor must declare at least one dependency group. The validator counts group membership and requires an explicit outage scenario for every dependency group shared by two or more installed sensors. The synthetic fixture now replays four scenarios: gateway loss, clock loss, combined gateway-plus-clock loss, and individual fuel-pressure sensor loss. These are fabricated topology/outage controls; they do not establish the real engine's acquisition architecture.

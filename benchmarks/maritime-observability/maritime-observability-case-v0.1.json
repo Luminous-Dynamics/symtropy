@@ -65,7 +65,10 @@
       "timestamp_uncertainty_source": "synthetic_fixture",
       "timebase_qualification_state": "synthetic_conformance",
       "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
-      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
     },
     {
       "sensor_id": "crankshaft-speed-sensor",
@@ -93,7 +96,10 @@
       "timestamp_uncertainty_source": "synthetic_fixture",
       "timebase_qualification_state": "synthetic_conformance",
       "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
-      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
     },
     {
       "sensor_id": "exhaust-thermocouple",
@@ -121,7 +127,10 @@
       "timestamp_uncertainty_source": "synthetic_fixture",
       "timebase_qualification_state": "synthetic_conformance",
       "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
-      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
     },
     {
       "sensor_id": "rack-position-transducer",
@@ -149,7 +158,10 @@
       "timestamp_uncertainty_source": "synthetic_fixture",
       "timebase_qualification_state": "synthetic_conformance",
       "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
-      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
     },
     {
       "sensor_id": "engine-vibration-sensor",
@@ -177,7 +189,10 @@
       "timestamp_uncertainty_source": "synthetic_fixture",
       "timebase_qualification_state": "synthetic_conformance",
       "timebase_qualification_artifact_id": "SYNTHETIC-CLOCK-QUALIFICATION-001",
-      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15"
+      "timebase_qualification_sha256": "b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15",
+      "dependency_review_state": "synthetic_conformance",
+      "dependency_review_record_id": null,
+      "dependency_review_record_sha256": null
     }
   ],
   "states": [
@@ -729,6 +744,21 @@
         "fuel-rail-pressure-sensor"
       ],
       "removed_dependency_groups": []
+    },
+    {
+      "scenario_id": "shared-clock-loss",
+      "removed_sensor_ids": [],
+      "removed_dependency_groups": [
+        "clock:ptp-engine-1"
+      ]
+    },
+    {
+      "scenario_id": "gateway-and-clock-loss",
+      "removed_sensor_ids": [],
+      "removed_dependency_groups": [
+        "gateway:engine-io-1",
+        "clock:ptp-engine-1"
+      ]
     }
   ],
   "claim_ceiling": "Fabricated conformance data only. No physical maritime engine, calibration, sensor topology, fault diagnosis, shipboard or maintenance claim."

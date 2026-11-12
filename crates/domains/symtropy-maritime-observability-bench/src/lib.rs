@@ -191,7 +191,7 @@ fn validate_input(input:&Value)->Check<()>{
     let mut sensor_ids=BTreeSet::new();let mut channel_ids=BTreeSet::new();let mut dependencies=BTreeSet::new();
     for (i,s) in sensors.iter().enumerate(){
         let p=format!("$.sensors[{i}]");
-        allowed_keys(s,&["sensor_id","channel_id","installed","measurement_principle_ref","measurand","technique","unit","physical_location_ref","calibration_ref","calibration_state","quality_state","source_role","dependency_groups","derived_from_channel_ids","source_artifact_ref","clock_domain","timebase_id","timestamp_uncertainty_ms","timestamp_uncertainty_source","timebase_qualification_state","timebase_qualification_artifact_id","timebase_qualification_sha256"],&p)?;
+        allowed_keys(s,&["sensor_id","channel_id","installed","measurement_principle_ref","measurand","technique","unit","physical_location_ref","calibration_ref","calibration_state","quality_state","source_role","dependency_groups","dependency_review_state","dependency_review_record_id","dependency_review_record_sha256","derived_from_channel_ids","source_artifact_ref","clock_domain","timebase_id","timestamp_uncertainty_ms","timestamp_uncertainty_source","timebase_qualification_state","timebase_qualification_artifact_id","timebase_qualification_sha256"],&p)?;
         let sid=txt(s,"sensor_id",&p)?;let cid=txt(s,"channel_id",&p)?;
         if !sensor_ids.insert(sid.to_owned())||!channel_ids.insert(cid.to_owned()){return Err(err("DUPLICATE_SENSOR_CHANNEL_ID",&p,"IDs must be unique"));}
         for k in ["measurement_principle_ref","measurand","technique","unit","physical_location_ref","calibration_ref","calibration_state","quality_state","source_role","source_artifact_ref","clock_domain","timebase_id","timestamp_uncertainty_source","timebase_qualification_state"]{let _=txt(s,k,&p)?;}
@@ -219,8 +219,45 @@ fn validate_input(input:&Value)->Check<()>{
                 || s["timebase_qualification_artifact_id"].as_str().is_none_or(|x|x.trim().is_empty())){
             return Err(err("INCOMPLETE_TIMEBASE_QUALIFICATION",&p,"qualified timebase requires a numeric uncertainty bound and exact artifact ID/SHA-256"));
         }
-        let _=boolean(s,"installed",&p)?;
-        dependencies.extend(set(s,"dependency_groups",&p)?);
+        let installed=boolean(s,"installed",&p)?;
+        let dep_groups=set(s,"dependency_groups",&p)?;
+        if installed&&dep_groups.is_empty(){
+            return Err(err("INSTALLED_SENSOR_WITHOUT_DEPENDENCIES",&p,"every installed sensor must declare its reviewed dependency groups"));
+        }
+        dependencies.extend(dep_groups);
+        let review_state=txt(s,"dependency_review_state",&p)?;
+        if !matches!(review_state,"synthetic_conformance"|"independently_reviewed"|"unreviewed"|"unknown"){
+            return Err(err("DEPENDENCY_REVIEW_STATE",&format!("{p}.dependency_review_state"),"unsupported dependency-review state"));
+        }
+        let review_id=s["dependency_review_record_id"].as_str().filter(|x|!x.trim().is_empty());
+        let review_sha=s["dependency_review_record_sha256"].as_str();
+        if !s["dependency_review_record_sha256"].is_null()&&review_sha.is_none_or(|x|!hex64(x)){
+            return Err(err("DEPENDENCY_REVIEW_SHA256",&format!("{p}.dependency_review_record_sha256"),"digest must be null or lowercase SHA-256"));
+        }
+        match txt(input,"evidence_class","$")? {
+            "SYNTHETIC_CONFORMANCE_FIXTURE" => {
+                if review_state=="independently_reviewed"{
+                    return Err(err("SYNTHETIC_DEPENDENCY_REVIEW_OVERCLAIM",&format!("{p}.dependency_review_state"),"synthetic fixtures cannot claim independent physical dependency review"));
+                }
+                if review_state=="synthetic_conformance"{
+                    if review_id.is_some()||review_sha.is_some(){
+                        return Err(err("SYNTHETIC_DEPENDENCY_REVIEW_BINDING",&p,"synthetic conformance review must not carry a physical review record"));
+                    }
+                }else if review_id.is_some()||review_sha.is_some(){
+                    return Err(err("UNREVIEWED_DEPENDENCY_HAS_RECORD",&p,"unreviewed dependency state must not carry a review record"));
+                }
+            }
+            "MEASURED" => {
+                if review_state=="independently_reviewed"{
+                    if review_id.is_none()||review_sha.is_none_or(|x|!hex64(x)){
+                        return Err(err("INCOMPLETE_DEPENDENCY_REVIEW",&p,"independent dependency review requires exact record ID and SHA-256"));
+                    }
+                }else if review_id.is_some()||review_sha.is_some(){
+                    return Err(err("UNREVIEWED_DEPENDENCY_HAS_RECORD",&p,"unreviewed dependency state must not carry a review record"));
+                }
+            }
+            _=>unreachable!()
+        }
         let derived=set(s,"derived_from_channel_ids",&p)?;
         if !matches!(txt(s,"source_role",&p)?,"measured"|"derived"|"reconstructed"|"simulated"|"synthetic"){return Err(err("SENSOR_SOURCE_ROLE",&format!("{p}.source_role"),"unsupported source role"));}
         if !matches!(txt(s,"quality_state",&p)?,"current"|"missing"|"stale"|"rejected"|"conflicted"|"unknown"){return Err(err("SENSOR_QUALITY",&format!("{p}.quality_state"),"unsupported quality state"));}
@@ -315,6 +352,7 @@ fn validate_input(input:&Value)->Check<()>{
         return Err(err("INCOMPLETE_REQUIRED_PAIR_SET","$.required_fault_pairs","declared pairs must cover all in-domain state pairs plus reference-vs-OOD pairs exactly"));
     }
     let scenarios=array(input,"common_cause_scenarios","$")?;let mut scenario_ids=BTreeSet::new();
+    let mut covered_dependency_groups=BTreeSet::new();
     for (i,s) in scenarios.iter().enumerate(){
         let p=format!("$.common_cause_scenarios[{i}]");
         allowed_keys(s,&["scenario_id","removed_sensor_ids","removed_dependency_groups"],&p)?;
@@ -324,6 +362,20 @@ fn validate_input(input:&Value)->Check<()>{
         if removed_s.is_empty()&&removed_d.is_empty(){return Err(err("EMPTY_SENSOR_LOSS_SCENARIO",&p,"remove at least one sensor/dependency group"));}
         if removed_s.iter().any(|x|!sensor_ids.contains(x)){return Err(err("UNKNOWN_REMOVED_SENSOR",&p,"unknown removed sensor"));}
         if removed_d.iter().any(|x|!dependencies.contains(x)){return Err(err("UNKNOWN_REMOVED_DEPENDENCY",&p,"unknown dependency group"));}
+        covered_dependency_groups.extend(removed_d);
+    }
+    let mut dependency_member_counts:BTreeMap<String,usize>=BTreeMap::new();
+    for sensor in sensors.iter().filter(|s|s["installed"]==true){
+        for dependency in set(sensor,"dependency_groups","$.sensors[]")?{
+            *dependency_member_counts.entry(dependency).or_default()+=1;
+        }
+    }
+    let missing_shared:Vec<String>=dependency_member_counts.iter()
+        .filter(|(group,count)|**count>1&&!covered_dependency_groups.contains(*group))
+        .map(|(group,_)|group.clone()).collect();
+    if !missing_shared.is_empty(){
+        return Err(err("SHARED_DEPENDENCY_OUTAGE_NOT_COVERED","$.common_cause_scenarios",
+            format!("every shared installed dependency requires at least one outage scenario: {}",missing_shared.join(", "))));
     }
     Ok(())
 }
@@ -384,10 +436,17 @@ fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_d
         let cid=txt(r,"channel_id","$.responses[]")?;
         let Some(sensor)=installed.iter().find(|s|s["channel_id"]==cid) else {continue};
         let sid=txt(sensor,"sensor_id","$.sensors[]")?;
+        let dependency_reviewed=match (evidence_class,txt(sensor,"dependency_review_state","$.sensors[]")?) {
+            ("SYNTHETIC_CONFORMANCE_FIXTURE","synthetic_conformance")=>true,
+            ("MEASURED","independently_reviewed")=>sensor["dependency_review_record_id"].as_str().is_some_and(|x|!x.trim().is_empty())
+                &&sensor["dependency_review_record_sha256"].as_str().is_some_and(hex64),
+            _=>false
+        };
         let ok=txt(sensor,"quality_state","$.sensors[]")?=="current"
             && matches!(txt(sensor,"calibration_state","$.sensors[]")?,"current"|"not_applicable")
             && domain_qualified
-            && sensor_timebase_qualified(sensor,time_domain,layout_profile,evidence_class);
+            && sensor_timebase_qualified(sensor,time_domain,layout_profile,evidence_class)
+            && dependency_reviewed;
         let deps=set(sensor,"dependency_groups","$.sensors[]")?;
         let scenario_removed=removed_sensors.contains(sid)||deps.iter().any(|g|removed_dependencies.contains(g));
         let raw_availability=txt(r,"availability","$.responses[]")?;
@@ -572,7 +631,10 @@ fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
         "measurement_principle":s["measurement_principle_ref"],"physical_location":s["physical_location_ref"],
         "unit":s["unit"],"source_role":s["source_role"],"quality_state":s["quality_state"],
         "calibration_state":s["calibration_state"],"clock_domain":s["clock_domain"],
-        "dependency_groups":s["dependency_groups"],"derived_from_channel_ids":s["derived_from_channel_ids"],
+        "dependency_groups":s["dependency_groups"],"dependency_review_state":s["dependency_review_state"],
+        "dependency_review_record_id":s["dependency_review_record_id"],
+        "dependency_review_record_sha256":s["dependency_review_record_sha256"],
+        "derived_from_channel_ids":s["derived_from_channel_ids"],
         "timebase_id":s["timebase_id"],"timestamp_uncertainty_ms":s["timestamp_uncertainty_ms"],
         "timestamp_uncertainty_source":s["timestamp_uncertainty_source"],
         "timebase_qualification_state":s["timebase_qualification_state"],
@@ -584,6 +646,13 @@ fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
     let evidence_class=input["evidence_class"].as_str().unwrap_or("");
     let timebase_qualified_count=input["sensors"].as_array().unwrap().iter()
         .filter(|s|s["installed"]==true&&sensor_timebase_qualified(s,domain,profile,evidence_class)).count();
+    let dependency_reviewed_count=input["sensors"].as_array().unwrap().iter()
+        .filter(|s|s["installed"]==true&&match (evidence_class,s["dependency_review_state"].as_str()) {
+            ("SYNTHETIC_CONFORMANCE_FIXTURE",Some("synthetic_conformance"))=>true,
+            ("MEASURED",Some("independently_reviewed"))=>s["dependency_review_record_id"].as_str().is_some_and(|x|!x.trim().is_empty())
+                &&s["dependency_review_record_sha256"].as_str().is_some_and(hex64),
+            _=>false
+        }).count();
     let installed_count=input["sensors"].as_array().unwrap().iter().filter(|s|s["installed"]==true).count();
     let (fault_report,ambiguity_report)=fault_assessments(input,base);
     let metric=|id:&str,value:usize|json!({"metric_id":id,"value":value,"unit":"count","stratum":stratum,"sample_count":0});
@@ -598,7 +667,9 @@ fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
             metric("identifiable_fault_pair_count",base.identifiable_pair_count),metric("non_identifiable_fault_pair_count",base.not_identifiable_pair_count),
             metric("insufficient_evidence_fault_pair_count",base.insufficient_evidence_pair_count),metric("critical_unidentifiable_fault_pair_count",base.critical_unidentifiable_pair_count),
             metric("timebase_qualified_installed_sensor_count",timebase_qualified_count),
-            metric("timebase_unqualified_installed_sensor_count",installed_count.saturating_sub(timebase_qualified_count))],
+            metric("timebase_unqualified_installed_sensor_count",installed_count.saturating_sub(timebase_qualified_count)),
+            metric("dependency_reviewed_installed_sensor_count",dependency_reviewed_count),
+            metric("dependency_unreviewed_installed_sensor_count",installed_count.saturating_sub(dependency_reviewed_count))],
         "authority_boundary":{"read_only":true,"actuation":false,"maintenance_authorization":false,"mode_transition_authorization":false,"restriction_clearance":false},
         "claim_ceiling":"Pairwise structural diagnosability only for the exact declared asset/configuration, installed sensors, dependency groups, operating domain, response intervals, declared clock/timebase metadata and evidence class. Timebase hashes are bound to declared artifact references but this report does not authenticate the clock qualification process or prove the physical synchronization network. Synthetic timebase evidence remains synthetic only. No individual-fault detectability, trained model accuracy, physical engine validation, shipboard safety, maintenance authorization, ODD clearance or permission to operate."
     })
@@ -660,6 +731,8 @@ mod tests{
         let r=eval(&fixture()).expect("adapter evaluates");
         assert_eq!(r["pair_assessments"].as_array().unwrap().len(),11);
         assert_eq!(r["fault_assessments"].as_array().unwrap().len(),5);
+        assert_eq!(r["sensor_loss_scenarios"].as_array().unwrap().len(),4);
+        assert_eq!(r["metrics"].as_array().unwrap().iter().find(|m|m["metric_id"]=="dependency_reviewed_installed_sensor_count").unwrap()["value"],5);
         assert_eq!(r["authority_boundary"]["actuation"],false);
     }
     #[test]
@@ -848,6 +921,48 @@ mod tests{
         assert!(get("ENGINE_FUEL_INJECTION_FAULT")["ambiguity_class_id"].is_null());
         assert!(!get("ENGINE_TURBOCHARGER_DEGRADATION")["candidate_fault_ids"].as_array().unwrap().contains(&json!("ENGINE_COOLING_RESTRICTION")));
         assert!(!get("ENGINE_COOLING_RESTRICTION")["candidate_fault_ids"].as_array().unwrap().contains(&json!("ENGINE_TURBOCHARGER_DEGRADATION")));
+    }
+    #[test]
+    fn unreviewed_dependency_map_withdraws_only_affected_sensor_evidence(){
+        let mut c=fixture();
+        c["sensors"][0]["dependency_review_state"]=json!("unknown");
+        let r=eval(&c).expect("unreviewed sensor is preserved but excluded");
+        let pair=r["pair_assessments"].as_array().unwrap().iter()
+            .find(|p|p["fault_a"]=="ENGINE_NORMAL_STEADY"&&p["fault_b"]=="ENGINE_FUEL_INJECTION_FAULT").unwrap();
+        assert_eq!(pair["state"],"not_evaluated");
+        assert!(!pair["evidence_refs"].as_array().unwrap()
+            .any(|e|e["channel_ids"].as_array().unwrap().contains(&json!("fuel-rail-pressure"))));
+        assert_eq!(r["metrics"].as_array().unwrap().iter()
+            .find(|m|m["metric_id"]=="dependency_unreviewed_installed_sensor_count").unwrap()["value"],1);
+    }
+    #[test]
+    fn synthetic_fixture_cannot_claim_independent_physical_dependency_review(){
+        let mut c=fixture();
+        c["sensors"][0]["dependency_review_state"]=json!("independently_reviewed");
+        c["sensors"][0]["dependency_review_record_id"]=json!("fake-review");
+        c["sensors"][0]["dependency_review_record_sha256"]=json!("a".repeat(64));
+        assert!(eval(&c).is_err());
+    }
+    #[test]
+    fn installed_sensor_without_dependency_groups_is_rejected(){
+        let mut c=fixture();
+        c["sensors"][0]["dependency_groups"]=json!([]);
+        assert!(eval(&c).is_err());
+    }
+    #[test]
+    fn every_shared_dependency_requires_an_explicit_outage_scenario(){
+        let mut c=fixture();
+        c["common_cause_scenarios"].as_array_mut().unwrap().retain(|s|s["scenario_id"]!="shared-clock-loss");
+        c["common_cause_scenarios"].as_array_mut().unwrap().retain(|s|s["scenario_id"]!="gateway-and-clock-loss");
+        assert!(eval(&c).is_err());
+    }
+    #[test]
+    fn combined_gateway_and_clock_loss_recomputes_all_base_isolable_pairs(){
+        let r=eval(&fixture()).unwrap();
+        let scenario=r["sensor_loss_scenarios"].as_array().unwrap().iter()
+            .find(|s|s["scenario_id"]=="gateway-and-clock-loss").unwrap();
+        assert_eq!(scenario["assessment_state"],"recomputed");
+        assert_eq!(scenario["lost_isolability_pairs"].as_array().unwrap().len(),8);
     }
     #[test]
     fn same_input_is_deterministic(){
