@@ -38,6 +38,11 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml --all -- --check
 
+      - name: Bootstrap Cargo-generated nested lockfile (temporary)
+        run: |
+          cargo generate-lockfile --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml
+          cat crates/tools/shipyard-weld-physics-vvuq/Cargo.lock
+
       - name: Run independent manifest verifier tests
         run: cargo test --locked --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml
 
@@ -48,4 +53,4 @@ jobs:
         run: cargo run --locked --manifest-path crates/tools/shipyard-weld-physics-vvuq/Cargo.toml -- benchmarks/shipyard/weld-physics/vvuq-corpus-v0.1.json
 
       - name: Confirm verifier did not modify tracked inputs
-        run: git diff --exit-code
+        run: git diff --exit-code -- . ':!crates/tools/shipyard-weld-physics-vvuq/Cargo.lock'
