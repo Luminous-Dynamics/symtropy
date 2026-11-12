@@ -785,6 +785,8 @@ pub fn audit_process_window(
             nonconforming_in_window_count: counts.nonconforming_in_window_count,
             incomplete_in_window_count: counts.incomplete_in_window_count,
             first_pass_yield: counts.first_pass_yield(),
+            process_window_adherence_rate: counts.process_window_adherence_rate(),
+            in_window_complete_conformance_rate: counts.in_window_complete_conformance_rate(),
         })
         .collect();
 
@@ -1072,7 +1074,7 @@ mod tests {
 
     #[test]
     fn report_is_deterministic_under_input_permutation() {
-        let mut first = valid_manifest();
+        let first = valid_manifest();
         let mut second = valid_manifest();
         second.production_runs.reverse();
         second.evidence.reverse();
