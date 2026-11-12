@@ -108,7 +108,7 @@ impl fmt::Display for CsvAuditError {
             Self::NonMonotonicTime(path) => write!(formatter, "Time_rel is not strictly increasing: {path}"),
             Self::InvalidAnomalyLabel(path) => write!(formatter, "Anomaly State contains a value other than 0 or 1: {path}"),
             Self::InvalidRelativePath(path) => write!(formatter, "dataset path is empty, absolute or traverses outside the root: {path}"),
-            Self::WrongCsvInventory { expected, actual } => write!(formatter, "expected {expected} CSV files, found {actual}"),
+            Self::WrongCsvInventory { expected, actual } => write!(formatter, "expected {expected} recording-data CSV files after metadata-export filtering, found {actual}"),
             Self::WrongRoleInventory { baseline, scenario } => write!(formatter, "expected one 70-column baseline and fifteen 73-column scenarios; found {baseline} and {scenario}"),
             Self::MissingMetadataArtifact(name) => write!(formatter, "required metadata artifact was not found: {name}"),
             Self::DuplicateMetadataArtifact(name) => write!(formatter, "multiple files match metadata artifact: {name}"),
