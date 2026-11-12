@@ -143,11 +143,29 @@ fn push_reason(reasons: &mut Vec<String>, code: &str) {
 pub fn evaluate_case(input: &str) -> Result<T0Report, EvaluationError> {
     let root: Value = serde_json::from_str(input)
         .map_err(|e| EvaluationError(format!("invalid JSON: {e}")))?;
-    let root_obj = object(&root, "case")?;
+    object(&root, "case")?;
+
+    let schema_version = string(child(&root, "schema_version", "case")?, "case.schema_version")?;
+    let case_class = string(child(&root, "case_class", "case")?, "case.case_class")?;
+    let evidence_ceiling = string(child(&root, "evidence_ceiling", "case")?, "case.evidence_ceiling")?;
+    let description = string(child(&root, "description", "case")?, "case.description")?;
+    if schema_version != "0.1.0"
+        || case_class != "synthetic_accounting_only"
+        || evidence_ceiling != "arithmetic_conformance_only_no_physical_or_safety_claim"
+        || description.len() > 1024
+    {
+        return Err(EvaluationError("case identity, evidence ceiling, or schema version is invalid".into()));
+    }
 
     let case_id = string(child(&root, "case_id", "case")?, "case.case_id")?;
+    let valid_case_id = (3..=96).contains(&case_id.len())
+        && case_id.as_bytes()[0].is_ascii_lowercase().then_some(true).unwrap_or(false)
+            || case_id.as_bytes()[0].is_ascii_digit();
+    if !valid_case_id || !case_id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b"._-".contains(&b)) {
+        return Err(EvaluationError("case_id must match the lowercase benchmark ID profile".into()));
+    }
     let scope = child(&root, "model_scope", "case")?;
-    let scope_obj = object(scope, "model_scope")?;
+    object(scope, "model_scope")?;
     let process_kinetics = string(child(scope, "process_kinetics", "model_scope")?, "model_scope.process_kinetics")?;
     let pathogen_model = string(child(scope, "pathogen_model", "model_scope")?, "model_scope.pathogen_model")?;
     let physical_measurements = string(child(scope, "physical_measurements", "model_scope")?, "model_scope.physical_measurements")?;
@@ -161,6 +179,15 @@ pub fn evaluate_case(input: &str) -> Result<T0Report, EvaluationError> {
         return Err(EvaluationError("unknown expected_disposition".into()));
     }
     let declared_reasons = expected_codes(child(&root, "expected_reason_codes", "case")?)?;
+    const ALLOWED_REASON_CODES: &[&str] = &[
+        "WATER_BALANCE_EXCEEDS_TOLERANCE",
+        "CONSTITUENT_BALANCE_EXCEEDS_TOLERANCE",
+        "INVALID_OR_MISSING_REQUIRED_INPUT",
+        "UNSUPPORTED_PROCESS_OR_EVIDENCE_CLASS",
+    ];
+    if declared_reasons.iter().any(|code| !ALLOWED_REASON_CODES.contains(&code.as_str())) {
+        return Err(EvaluationError("expected_reason_codes contains an unknown code".into()));
+    }
 
     let mut reasons = Vec::new();
     if process_kinetics != "not_modelled"
@@ -347,10 +374,7 @@ pub fn evaluate_case(input: &str) -> Result<T0Report, EvaluationError> {
     let oracle_matches = disposition == expected_disposition
         && reasons == declared_reasons;
 
-    // Silence unused-binding warnings without introducing semantic defaults.
-    let _ = root_obj;
-
-    Ok(T0Report {
+     Ok(T0Report {
         evaluator_version: "0.1.0",
         case_id,
         disposition,
