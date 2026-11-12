@@ -2,8 +2,8 @@
 
 **Parent owner:** Symtropy issue #4628, MARITIME-CONTROL-AWARE-DIAGNOSIS-001  
 **External benchmark:** [LiU-ICE Industrial Fault Diagnosis Benchmark 2026](https://vehsys.gitlab-pages.liu.se/dx_benchmarks/liuice/liuice_index), DX37  
-**Status:** Rust evaluator, event metrics, robust read-only value-of-information selector, append-only streaming contract and separate external marine-dataset protocol authored; exact-head compilation and archive execution not verified  
-**Claim ceiling:** source contracts, synthetic fixtures and dataset metadata protocols only; no trained model, public-data score, competition submission, or physical validation claim
+**Status:** Rust evaluator, event metrics, robust read-only value-of-information selector, append-only streaming contract, behavioral-set diagnosis, external marine dataset audit, and shadow baseline quarantine authored; exact-head compilation and archive payload execution not verified  
+**Claim ceiling:** source contracts, synthetic fixtures and dataset metadata protocols only; the DX2026 figures are published references, not Symtropy results; no trained Symtropy model, public-data score, competition submission, or physical validation claim
 
 ## External benchmark fit
 
@@ -221,6 +221,34 @@ The six baselines have separate IDs in the machine-readable tournament and separ
 
 The current DX2026 comparison uses the official sample-wise FAR/TDR/FIA/total score as its primary cross-team metric, plus event-level latency/false alarms, magnitude/cycle robustness, unknown-fault false-known and abstention, calibration, resource usage and streaming correctness. Only matched, current-protocol results can establish a SOTA comparison.
 
+## Current DX2026 official reference: grey-box physics-informed LSTM
+
+The current-year comparator is [Rogowski and Sztyber-Betley, *Physics-Informed ML Diagnostic Engine: DXC’26 LiU-ICE Track Solution*](https://doi.org/10.4230/OASIcs.DX.2026.15), published in the DX 2026 proceedings. Table 7 reports the official current metrics: **TDR 92.26%, 1−FAR 92.14% (FAR 7.86%), FIA 79.62%, official score 88.01%**. The 12 per-condition rows are transcribed in [published-dx2026-graybox-baseline-v0.1.json](published-dx2026-graybox-baseline-v0.1.json). This is a literature reference, not a Symtropy reproduction or result.
+
+The method is a physics-informed grey-box recurrent network with physical hidden states and derivative/direction features, four virtual sensors built around MSO-derived residual structure, a diagnosis matrix and fixed alarm thresholds, plus adaptive covariate-shift compensation. Its published limitations are unusually useful for falsification:
+
+- A **0.75-second / 15-sample** high-inertia debounce reduces false alarms but creates detection delay.
+- A **90-second / 1800-sample warm-up** adapts residual thresholds to operating conditions, but the paper explicitly warns that a fault present from startup can be assimilated into the healthy baseline.
+- Under FTP75 Standard, the `f_pim -10%` cell had only 21.12% TDR; under WLTP, `f_pic +8%` had FIA 0.00% and 1−FAR 34.61%, despite a high detection rate.
+- Air-mass-flow sensor faults were a stated weakness.
+
+These are better than aggregate SOTA labels: they are exact test cells where a new method can be challenged. A fair comparison must recover the same split, preprocessing, sensor set, warm-up, debounce, virtual-sensor implementation and scorer. Do not optimize the new method on the hidden test outcomes.
+
+### What would actually beat this reference?
+
+The preregistered targets are: at least **+2.00 absolute official-score points over 88.01%** on a matched protocol, while keeping FAR at or below 7.86%; p95 event confirmation latency at or below 0.50 seconds at the same false-alarm budget; and zero startup-fault episodes absorbed into the healthy baseline. These are ambitions, not measured results. All 12 per-condition cells must be reported so that an aggregate score cannot conceal failures like the published `f_pim -10%` and `f_pic +8%` cases.
+
+## Paradigm shift: a frozen live baseline with a quarantined shadow candidate
+
+The 90-second adaptation warm-up exposes a structural conflict: a system needs to adapt to changing conditions, but it must not learn a fault as normal. The new [startup-adaptation-guard-v0.1.json](startup-adaptation-guard-v0.1.json) and Rust module `src/startup_adaptation.rs` enforce a two-track architecture:
+
+1. **Live reference:** keep the last independently qualified baseline and model digest frozen. It continues producing diagnosis from sample zero; shadow collection is not a reason to suppress current detection.
+2. **Shadow candidate:** collect new samples in an append-only, content-addressed lane. The live inference path never consumes these candidate statistics.
+3. **Quarantine on doubt:** any alarm, unknown/ambiguous hypothesis set, out-of-support regime, stale/missing sensor, invalid command timing, residual excursion, sample gap or unverified dependency-health state quarantines the whole candidate.
+4. **Independent review:** after the predeclared sample count, the candidate may produce a review package bound to the old baseline, model and receipt chain. At least two distinct issuers from independently verified dependency domains must attest to the exact candidate digest. The digest and caller-supplied review flags still require upstream signature, authority, competence, expiry and revocation verification.
+5. **Separate activation authority:** this module has no baseline-commit or activation function. Replacing the live reference requires a separate owner decision, rollback evidence and full prior-regime regression tests.
+
+The default stress protocol uses 1,800 samples (90 seconds at 20 Hz) but unlike a blind warm-up, the old detector remains live for the entire period. This is a shadow evidence-acquisition window, not a diagnosis blackout. The current code and synthetic tests are authored but have not been compiled or physically validated.
 ## Report beyond the leaderboard
 
 Every run should be serialized against [`benchmark-run-manifest.schema.json`](benchmark-run-manifest.schema.json). It binds dataset bytes and recording membership, split membership, comparator configuration, model artifact, evaluator revision, dependency lock, protocol/seed manifest, metric outputs and the independent-unit uncertainty method. A score without these bindings is not a qualified result.
