@@ -75,6 +75,33 @@
         "P2_TUNNEL_POSITIONING",
         "P3_ACOUSTIC_FEATURE_INSPECTION"
       ]
+    },
+    {
+      "id": "P6_GUIDED_WAVE_NDT",
+      "state": "defect_detection_and_localization_on_test_article",
+      "unit": "mm_or_paper_defined",
+      "methods": [
+        "guided_acoustic_wave",
+        "ultrasonic_array"
+      ],
+      "do_not_pool_with": [
+        "P1_PIPE_CHAINAGE",
+        "P2_TUNNEL_POSITIONING"
+      ]
+    },
+    {
+      "id": "P7_ACTIVE_SENSING_FRAMEWORK",
+      "state": "task_dependent_state_and_map_uncertainty",
+      "unit": "method_specific",
+      "methods": [
+        "active_slam_uncertainty_map",
+        "uncertainty_frontier_planning"
+      ],
+      "do_not_pool_with": [
+        "P1_PIPE_CHAINAGE",
+        "P2_TUNNEL_POSITIONING",
+        "P3_ACOUSTIC_FEATURE_INSPECTION"
+      ]
     }
   ],
   "studies": [
@@ -260,6 +287,130 @@
       "limits": [
         "research_programme_not_qualified_field_result",
         "water_pipe_condition_assessment_not_cable_duct_localization"
+      ]
+    },
+    {
+      "id": "YU_2025_MOVING_ACOUSTIC_ARRAY",
+      "title": "Sparse representation for artefact/defect localization with an acoustic array on a mobile pipe inspection robot",
+      "year": 2025,
+      "published": "2025-03-01",
+      "doi": "10.1016/j.apacoust.2025.110545",
+      "population": "P1_PIPE_CHAINAGE",
+      "secondary_population": "P3_ACOUSTIC_FEATURE_INSPECTION",
+      "sensors": [
+        "circular_microphone_array",
+        "acoustic_excitation",
+        "robot_motion_state"
+      ],
+      "methods": [
+        "frequency_domain_sparse_representation",
+        "moving_robot_phase_shift_compensation",
+        "echo_direction_and_distance_estimation"
+      ],
+      "reported": {
+        "robot_motion": "moving_operation_claimed",
+        "excitation_duration": "explicitly evaluated",
+        "defect_localization": "direction_and_distance_amid_overlapping_echoes",
+        "quantitative_cross_study_score": null
+      },
+      "data_access": "accepted_manuscript_CC_BY_4_0_at_University_of_Sheffield; code_and_raw_data_access_to_be_checked",
+      "repository": "https://eprints.whiterose.ac.uk/id/eprint/239017/",
+      "limits": [
+        "no cable_duct_qualification",
+        "do_not_transfer numerical scores between pipe profiles",
+        "requires faithful reproduction of excitation and phase compensation",
+        "not a claim of Luminous implementation"
+      ]
+    },
+    {
+      "id": "YU_2024_LINEAR_ARRAY_BEAMFORMING",
+      "title": "An application of a beamforming technique, linear acoustic array and robot for pipe condition localization",
+      "year": 2024,
+      "published": "2024-10-01",
+      "doi": "10.1016/j.measurement.2024.115361",
+      "population": "P1_PIPE_CHAINAGE",
+      "secondary_population": "P3_ACOUSTIC_FEATURE_INSPECTION",
+      "sensors": [
+        "linear_microphone_array",
+        "acoustic_excitation"
+      ],
+      "methods": [
+        "sparse_representation_beamforming",
+        "plane_wave_and_first_non_axisymmetric_mode"
+      ],
+      "reported": {
+        "pipe_diameter_mm": 150,
+        "condition_localization_error": "within_3_percent_of_sensing_distance",
+        "frequency_range_hz": "below_2200_with_combined_modes",
+        "pipe_length_error": "within_2_percent",
+        "blockage_vs_lateral_distinction": true
+      },
+      "data_access": "open_access_CC_BY_4_0_published_version; source_data_will_be_made_available_on_request",
+      "repository": "https://eprints.whiterose.ac.uk/id/eprint/215683/",
+      "limits": [
+        "pipe_test_profile_specific",
+        "3_percent_of_sensing_distance_is_not_absolute_fixed_error",
+        "not cable_duct_qualified",
+        "faithful reproduction needed"
+      ]
+    },
+    {
+      "id": "YU_2023_GUIDED_WAVE_PIPE_NDT",
+      "title": "Pipe inspection using guided acoustic wave sensors integrated with mobile robots",
+      "year": 2023,
+      "published": "2023-10-01",
+      "doi": "10.1016/j.ndteint.2023.102929",
+      "population": "P6_GUIDED_WAVE_NDT",
+      "sensors": [
+        "guided_acoustic_wave",
+        "ultrasonic_array"
+      ],
+      "methods": [
+        "two_stage_defect_detection_and_localization",
+        "ROC_threshold_and_follow_up_measurements"
+      ],
+      "reported": {
+        "test_article": "steel_pipe",
+        "reference_defect_hole_diameter_mm": 8.5,
+        "reported_reference_defect_localization_error_mm": "less_than_30",
+        "robot_context": "conceptual_integration; experimental sensors manually manipulated"
+      },
+      "data_access": "open_access_CC_BY; data_and_code_repository_available",
+      "repository": "http://dx.doi.org/10.5523/bris.3h2h1qucs7wmr23wravarfiiy2",
+      "limits": [
+        "sensor_manipulation_was_manual_not_autonomous_robot_navigation",
+        "steel_pipe_test_article",
+        "not sewer or cable_duct qualification",
+        "defect sensing not route localization"
+      ]
+    },
+    {
+      "id": "SANSONI_2025_ACTIVE_SLAM_UNCERTAINTY",
+      "title": "Optimizing exploration with a new uncertainty framework for active SLAM systems",
+      "year": 2025,
+      "published": "2025-11-01",
+      "doi": "10.1016/j.robot.2025.105059",
+      "population": "P7_ACTIVE_SENSING_FRAMEWORK",
+      "sensors": [
+        "map_observations",
+        "robot_state"
+      ],
+      "methods": [
+        "uncertainty_map",
+        "uncertainty_frontier",
+        "signed_relative_entropy"
+      ],
+      "reported": {
+        "active_slam_framework": true,
+        "uncertainty_map": true,
+        "uncertainty_frontiers": true,
+        "signed_relative_entropy_metric": true
+      },
+      "data_access": "paper_specific_data_and_code_access_to_verify",
+      "limits": [
+        "general_active_slam_not_buried_pipe_validation",
+        "method baseline not direct acoustic benchmark",
+        "use as planning-method reference only"
       ]
     }
   ],
