@@ -4,7 +4,7 @@
 use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
-use symtropy_physics::{PhysicsWorld, WorldSnapshot};
+use symtropy_physics::{NetId, PhysicsWorld, RigidBody, WorldSnapshot, body::BodyHandle};
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
 
@@ -205,16 +205,29 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
 
         for coverage_percent in [0_u64, 50, 100] {
             let mut profiled_world = PhysicsWorld::<3>::new(SVector::zeros());
+            let identified_bodies = (0..body_count)
+                .filter(|index| (*index as u64 % 100) < coverage_percent)
+                .map(|index| {
+                    (
+                        NetId(index as u64 + 1),
+                        RigidBody::dynamic_sphere(
+                            BodyHandle(usize::MAX),
+                            Point::new([index as f64 * 2.0, 0.0, 0.0]),
+                            0.5,
+                            1.0,
+                        ),
+                    )
+                })
+                .collect();
+            profiled_world
+                .add_bodies_deterministic(identified_bodies)
+                .expect("benchmark NetIds are unique");
             for index in 0..body_count {
-                let handle = profiled_world.add_sphere(
-                    Point::new([index as f64 * 2.0, 0.0, 0.0]),
-                    0.5,
-                    1.0,
-                );
-                if (index as u64 % 100) < coverage_percent {
-                    profiled_world.set_net_id(
-                        handle,
-                        symtropy_physics::body::NetId(index as u64 + 1),
+                if (index as u64 % 100) >= coverage_percent {
+                    profiled_world.add_sphere(
+                        Point::new([index as f64 * 2.0, 0.0, 0.0]),
+                        0.5,
+                        1.0,
                     );
                 }
             }
@@ -245,7 +258,7 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
                 BenchmarkId::new("sidecar_validation", format!("netid-{coverage_percent}pct")),
                 &sidecar,
                 |bencher, snapshot| {
-                    bencher.iter(|| black_box(snapshot.validate_alignment()));
+                    bencher.iter(|| black_box(snapshot.validate_alignment().expect("valid benchmark sidecar")));
                 },
             );
 
@@ -259,7 +272,7 @@ fn bench_snapshot_runtime_identity(c: &mut Criterion) {
                     bencher.iter(|| {
                         let snapshot =
                             WorldSnapshot::capture_with_runtime_ids(black_box(source));
-                        black_box(snapshot.validate_alignment())
+                        black_box(snapshot.validate_alignment().expect("valid benchmark sidecar"))
                     });
                 },
             );
