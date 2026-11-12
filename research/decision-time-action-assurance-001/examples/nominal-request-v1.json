@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "decision_time_us": 1020000,
+  "bundle": {
+    "run_id": "example-run-001",
+    "episode_id": "example-episode-001",
+    "agent_id": "ego",
+    "clock_id": "vehicle-monotonic-001",
+    "samples": [
+      {
+        "modality": "camera_front",
+        "sensor_id": "front-camera",
+        "sequence": 1,
+        "capture_timestamp_us": 950000,
+        "ready_timestamp_us": 950500,
+        "delivered_timestamp_us": 951000,
+        "clock_id": "vehicle-monotonic-001",
+        "payload_sha256": "000000000000000000000000000000000000000000000000000000000000000b",
+        "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "health": "healthy",
+        "disposition": "fresh"
+      },
+      {
+        "modality": "camera_front",
+        "sensor_id": "front-camera",
+        "sequence": 2,
+        "capture_timestamp_us": 1000000,
+        "ready_timestamp_us": 1000500,
+        "delivered_timestamp_us": 1001000,
+        "clock_id": "vehicle-monotonic-001",
+        "payload_sha256": "000000000000000000000000000000000000000000000000000000000000000c",
+        "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "health": "healthy",
+        "disposition": "fresh"
+      },
+      {
+        "modality": "vehicle_state",
+        "sensor_id": "ego-state",
+        "sequence": 1,
+        "capture_timestamp_us": 950000,
+        "ready_timestamp_us": 950500,
+        "delivered_timestamp_us": 951000,
+        "clock_id": "vehicle-monotonic-001",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000015",
+        "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "health": "healthy",
+        "disposition": "fresh"
+      },
+      {
+        "modality": "vehicle_state",
+        "sensor_id": "ego-state",
+        "sequence": 2,
+        "capture_timestamp_us": 1000000,
+        "ready_timestamp_us": 1000500,
+        "delivered_timestamp_us": 1001000,
+        "clock_id": "vehicle-monotonic-001",
+        "payload_sha256": "0000000000000000000000000000000000000000000000000000000000000016",
+        "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "health": "healthy",
+        "disposition": "fresh"
+      }
+    ],
+    "missing_events": []
+  },
+  "proposal": {
+    "run_id": "example-run-001",
+    "episode_id": "example-episode-001",
+    "agent_id": "ego",
+    "clock_id": "vehicle-monotonic-001",
+    "proposal_id": "example-proposal-001",
+    "action_class": "routine",
+    "action_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "source_evidence_bundle_sha256": "0af7aefafa7be9eab0a91dd0a624b8b1aacbb07b995d15e9ec6a02a800a09f26",
+    "issued_at_us": 1010000,
+    "expires_at_us": 1090000
+  },
+  "policy": {
+    "policy_id": "example-policy-v1",
+    "nominal": {
+      "profile_id": "routine-nominal-v1",
+      "allowed_action_classes": ["routine", "lane_change"],
+      "requirements": [
+        {
+          "modality": "camera_front",
+          "sensor_id": "front-camera",
+          "minimum_samples": 2,
+          "max_capture_age_us": 100000,
+          "max_processing_delay_us": 5000,
+          "max_delivery_delay_us": 8000,
+          "max_inter_sample_gap_us": 60000,
+          "require_healthy": true,
+          "allow_delayed": false
+        },
+        {
+          "modality": "vehicle_state",
+          "sensor_id": "ego-state",
+          "minimum_samples": 2,
+          "max_capture_age_us": 100000,
+          "max_processing_delay_us": 5000,
+          "max_delivery_delay_us": 8000,
+          "max_inter_sample_gap_us": 60000,
+          "require_healthy": true,
+          "allow_delayed": false
+        }
+      ],
+      "max_inter_sensor_skew_us": 20000,
+      "max_proposal_age_us": 30000,
+      "max_authorization_lifetime_us": 60000
+    },
+    "restricted": null,
+    "fallback": "request_independent_fallback"
+  }
+}
