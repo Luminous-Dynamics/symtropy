@@ -724,8 +724,10 @@ impl VicsekModel {
     /// Compute trajectory-scale metrics without all-pairs network path analysis.
     ///
     /// This is the method used by `step` and `run_steps`. It computes polar/local order,
-    /// neighbour distributions and connected components in O(N²) time, but leaves optional
-    /// clustering/path topology metrics unset so that long trajectories remain tractable.
+    /// neighbour distributions and connected components using the periodic cell index. At
+    /// bounded density and fixed interaction radius this is expected to scale near-linearly
+    /// in particle count; the dense-neighbour/fallback worst case remains O(N²). Optional
+    /// clustering/path topology metrics are left unset so long trajectories remain tractable.
     pub fn fast_metrics(&self) -> VicsekMetrics {
         self.metrics_impl(false)
     }
@@ -2458,6 +2460,57 @@ mod tests {
         assert!(metrics.local_polar_order_variance.unwrap() < 1.0e-12);
         assert_eq!(metrics.cluster_count, 2);
         assert_eq!(metrics.largest_cluster_fraction, 0.5);
+    }
+
+    #[test]
+    fn periodic_neighbor_index_never_omits_a_bruteforce_radius_neighbor() {
+        // Cover one-, two-, three-, and many-cell grids; periodic wrap edges; radii
+        // comparable to or larger than the box; and deterministic pseudo-random clouds.
+        for box_size in [1.0, 2.0, 3.1, 10.0] {
+            for radius in [0.05, 0.5, 1.0, 1.1, 2.0, 10.0] {
+                let mut positions = vec![
+                    (0.0, 0.0),
+                    (box_size * 1.0e-9, box_size * 0.99),
+                    (box_size * 0.5, box_size * 0.5),
+                    (box_size * 0.25, box_size * 0.75),
+                ];
+                for index in 0..97usize {
+                    let x = ((index * 37 % 101) as f64 / 101.0) * box_size;
+                    let y = ((index * 61 % 103) as f64 / 103.0) * box_size;
+                    positions.push((x, y));
+                }
+
+                let Some(index) = PeriodicNeighborIndex::new(&positions, box_size, radius)
+                else {
+                    // The documented fallback scans all particles and cannot omit a neighbour.
+                    continue;
+                };
+
+                for (focal_index, &focal) in positions.iter().enumerate() {
+                    let candidates = index.candidates(focal);
+                    assert!(
+                        candidates.windows(2).all(|window| window[0] < window[1]),
+                        "candidate indices must be sorted and unique"
+                    );
+                    for (target_index, &target) in positions.iter().enumerate() {
+                        let (dx, dy) = periodic_displacement(
+                            focal.0,
+                            focal.1,
+                            target.0,
+                            target.1,
+                            box_size,
+                        );
+                        let is_true_neighbor = dx.hypot(dy) <= radius;
+                        if is_true_neighbor {
+                            assert!(
+                                candidates.binary_search(&target_index).is_ok(),
+                                "index omitted true neighbor: box={box_size}, radius={radius}, focal={focal_index}, target={target_index}, displacement=({dx},{dy})"
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 
     #[test]
