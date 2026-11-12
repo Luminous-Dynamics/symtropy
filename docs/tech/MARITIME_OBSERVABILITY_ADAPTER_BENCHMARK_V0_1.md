@@ -9,7 +9,7 @@
 - Asset family = declared engine model/family.
 - Asset configuration = exact configuration SHA-256.
 - Operating domain = versioned engine regime.
-- Installation profile = sensor-topology SHA-256.
+- Installation profile = the declared `layout_profile_ref` plus configuration revision. `sensor_topology_sha256` remains null in P0 because no separate topology artifact bytes have been supplied; the adapter must not manufacture a digest from a label.
 - `measurement_principle_ref` maps to the generic independent-principle group.
 - `dependency_groups` remain separate and are exercised through explicit outage scenarios.
 - State IDs are case-local and bound to `state_taxonomy_ref`; marine fault IDs are not translated to excavation labels.
@@ -18,9 +18,9 @@
 
 ## Frozen synthetic corpus
 
-Five installed measurement principles, six state hypotheses, eleven required pairs, thirty response cells and two common-cause/outage scenarios. The fixture contains two separable fault pairs, one deliberately non-isolable cooling pair, one non-isolable pressure-sensor-fault pair (the faulty sensor cannot validate itself), and one OOD pair that must remain insufficient-evidence.
+Five installed measurement principles, six state hypotheses, eleven required pairs, thirty response cells and two common-cause/outage scenarios. The fixture contains five in-domain states (normal plus four fault hypotheses) and one OOD state. The full unordered in-domain matrix plus reference-vs-OOD control yields eleven pairs: eight isolable, two non-isolable (normal-vs-pressure-sensor-fault; turbocharger-degradation-vs-cooling-restriction), and one not evaluated (normal-vs-OOD). The two latter physical fault signatures are deliberately equivalent; the faulty pressure sensor cannot validate itself.
 
-A complete shared gateway loss withdraws both previously identifiable pairs. The fuel-pressure-transducer loss does not withdraw those two pairs because independent shaft-speed, exhaust-temperature, rack-position and vibration evidence remains available. This is a synthetic software conformance outcome, not a physical resilience result.
+A complete shared gateway loss withdraws all eight pairs that were isolable in the base synthetic report because every installed channel shares that gateway dependency. The fuel-pressure-transducer loss withdraws no additional pair: independent shaft-speed, exhaust-temperature, rack-position and vibration evidence remains sufficient for those declared pair distinctions. This is a synthetic software conformance outcome, not a physical resilience result.
 
 ## Claim ceiling
 
@@ -39,3 +39,16 @@ Per-fault assessments are derived from the declared reference-state pair and all
 The common timebase artifact now establishes the clock-domain reference while individual installed sensors retain their own qualification state. UNQUALIFIED/UNKNOWN sensors remain visible in the inventory and are excluded from independent physical response evidence; null sensor-level qualification digest/uncertainty fields are allowed only in those states. A qualified sensor must bind the exact artifact ID/SHA and exact clock domain. An uncertainty claim below the artifact's declared lower bound is rejected; a bound above the layout maximum withdraws that sensor's evidence instead of discarding the complete assessment.
 
 The calibration-outage negative control now checks graceful degradation correctly: losing exhaust-temperature calibration must remove that channel from evidence, but it must not force a pair to NOT_IDENTIFIABLE where independent shaft-speed, rack-position and vibration principles still discriminate it. A separate test preserves MODEL_ESTIMATE provenance on an actual fault hypothesis rather than the omitted healthy reference state.
+
+
+## P0.5 — exact-head execution evidence (12 November 2026)
+
+- Adapter branch head: `98a35a3c85f5318eacae854849ef5f1fe655a521`.
+- Exact-head workflow runs: [43162088096](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43162088096) and [43162080730](https://github.com/Luminous-Dynamics/symtropy/actions/runs/43162080730), both successful.
+- The workflow executed 21 Rust unit tests (21 passed), strict Clippy, the frozen corpus and deterministic receipt checks. It uploaded `maritime-observability-adapter-report`.
+- Generated case SHA-256: `8dfce2d66cdcca7788a2413c6c4f884864f49c38b7ffb0c5d199fb517073fda2`.
+- Generated synthetic clock-artifact SHA-256: `b4d2b0bae0b963afc4612bf7b0b4822e8d8d66cff4c810a2bde6f348d85f0e15`.
+- Report result: five installed sensors; five declared independent measurement-principle groups; eleven required pairs (8 isolable, 2 non-isolable, 1 not evaluated); one pairwise ambiguity class; two replayed sensor-loss scenarios.
+- The report keeps all six embedded artifact-digest slots null. It binds the exact source commit, case bytes and synthetic clock-artifact bytes separately. Null means the artifact bytes were not supplied; it does not mean a zero hash or inferred provenance.
+
+The passing workflow establishes reproducibility of this synthetic software contract only. It does not establish measured sensor independence, real clock accuracy, physical marine-engine fault separability, vessel performance or regulatory compliance.

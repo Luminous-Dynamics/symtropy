@@ -55,3 +55,10 @@ The embedded sensor-topology, fault-model, evaluator, dataset, split and model S
 The common timebase artifact and each sensor's clock qualification are separate evidence objects. An installed sensor may be present but have UNQUALIFIED/UNKNOWN timebase state; it remains in the report and unqualified-sensor count, but its responses are treated as UNKNOWN and cannot contribute to pairwise physical evidence. Missing per-sensor clock artifact ID/SHA and timestamp-uncertainty values are permitted only for those unqualified states.
 
 A qualified sensor must bind the exact common timebase artifact ID/SHA and declared clock domain. Its uncertainty bound may not understate the common artifact's declared uncertainty. An uncertainty bound above the layout maximum withdraws that sensor's evidence rather than invalidating the whole assessment. This preserves valid independent channels when one sensor's clock is not qualified.
+
+
+## P0.5 — exact-head validation
+
+The exact adapter head `98a35a3c85f5318eacae854849ef5f1fe655a521` passed both focused adapter workflows (43162088096 and 43162080730): 21/21 Rust unit tests, strict Clippy, frozen-case execution and receipt checks. The generated report has eleven fault pairs: eight isolable, two non-isolable and one not evaluated. A shared gateway loss removes all eight base-isolable distinctions; loss of the fuel-pressure transducer alone removes none because other independent principles remain. This is synthetic conformance only.
+
+The case's separate sensor-topology/evaluator/data/split/model digest slots remain null, because those exact artifact bytes were not supplied. The execution receipt binds only the exact commit, frozen case bytes, and synthetic clock artifact bytes.
