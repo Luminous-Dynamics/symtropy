@@ -229,9 +229,9 @@ fn validate_digest(value: &str) -> bool {
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
 }
 
-fn evidence_registry<'a>(
-    evidence: &'a [EvidenceRecord],
-) -> Result<BTreeMap<&'a str, &'a EvidenceRecord>, ProcessWindowAuditError> {
+fn evidence_registry(
+    evidence: &[EvidenceRecord],
+) -> Result<BTreeMap<&str, &EvidenceRecord>, ProcessWindowAuditError> {
     if evidence.is_empty() {
         return Err(ProcessWindowAuditError(
             "at least one evidence record is required".into(),
