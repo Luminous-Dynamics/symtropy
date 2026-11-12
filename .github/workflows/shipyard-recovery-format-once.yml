@@ -1,0 +1,62 @@
+name: One-time Shipyard Rust Formatter Repair
+
+on:
+  pull_request:
+    types: [opened, synchronize, edited]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  format-and-commit:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.title, '[FORMAT-ONCE]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up pinned Rust formatter
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+
+      - name: Apply pinned formatter to isolated verifier workspaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          for manifest in \
+            crates/tools/shipyard-weld-physics-vvuq/Cargo.toml \
+            crates/tools/shipyard-distortion-co-design/Cargo.toml \
+            crates/tools/shipyard-tandem-gmaw-admission/Cargo.toml \
+            crates/tools/shipyard-interpass-adaptive/Cargo.toml \
+            crates/tools/shipyard-profile-geometry-oracle/Cargo.toml
+          do
+            cargo fmt --manifest-path "$manifest" --all
+          done
+
+      - name: Commit formatting-only changes to this branch
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          PR_HEAD: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "All five verifier workspaces are already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            crates/tools/shipyard-weld-physics-vvuq \
+            crates/tools/shipyard-distortion-co-design \
+            crates/tools/shipyard-tandem-gmaw-admission \
+            crates/tools/shipyard-interpass-adaptive \
+            crates/tools/shipyard-profile-geometry-oracle
+          git commit -m "style(shipyard): apply pinned Rust 1.96 formatting"
+          git push origin "HEAD:${PR_HEAD}"
