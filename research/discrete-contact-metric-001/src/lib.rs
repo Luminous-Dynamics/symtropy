@@ -673,10 +673,7 @@ fn relative_primal_feasibility(
         .zip(slack)
         .zip(free_normal_velocity)
     {
-        if !normal.is_finite()
-            || !target.is_finite()
-            || !row_slack.is_finite()
-            || !free.is_finite()
+        if !normal.is_finite() || !target.is_finite() || !row_slack.is_finite() || !free.is_finite()
         {
             return f64::INFINITY;
         }
@@ -1232,5 +1229,4 @@ mod tests {
             Err(StepError::NoComplementarySolution)
         );
     }
-
 }
