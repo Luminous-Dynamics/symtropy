@@ -28,7 +28,10 @@
           "admission",
           "claim_scope",
           "authority_or_lab_ref",
-          "metrology_ref"
+          "metrology_ref",
+          "reference_id",
+          "standard_id",
+          "standard_revision"
         ],
         "properties": {
           "evidence_id": {
@@ -70,6 +73,27 @@
               "string",
               "null"
             ]
+          },
+          "reference_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "standard_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "standard_revision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
           }
         }
       }
