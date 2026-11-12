@@ -1,0 +1,15 @@
+[workspace]
+
+[package]
+name = "civdyn-safe-shift-response"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Anytime-valid observation monitoring, information-structure feasibility and evidence-gated safe requalification"
+
+[[bin]]
+name = "safe-shift-response-sweep"
+path = "src/bin/safe_shift_response_sweep.rs"
+
+[dependencies]
