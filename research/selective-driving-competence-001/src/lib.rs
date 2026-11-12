@@ -81,7 +81,8 @@ pub struct RiskCoveragePoint {
 pub struct CalibrationBin {
     pub bin_index: usize,
     pub lower_probability_inclusive: f64,
-    pub upper_probability_inclusive: f64,
+    pub upper_probability_bound: f64,
+    pub upper_bound_inclusive: bool,
     pub count: usize,
     pub mean_predicted_failure_probability: Option<f64>,
     pub observed_failure_rate: Option<f64>,
@@ -329,6 +330,18 @@ impl EvaluationInput {
                         decision.decision_id
                     ));
                 }
+                if decision.abstention_timestamp_us.is_some_and(|timestamp| timestamp < decision.prediction_timestamp_us) {
+                    findings.push(format!(
+                        "abstained decision {:?} has abstention timestamp before prediction",
+                        decision.decision_id
+                    ));
+                }
+                if decision.decision_deadline_us.is_some_and(|deadline| deadline < decision.prediction_timestamp_us) {
+                    findings.push(format!(
+                        "abstained decision {:?} has decision deadline before prediction",
+                        decision.decision_id
+                    ));
+                }
             } else if decision.abstention_timestamp_us.is_some()
                 || decision.decision_deadline_us.is_some()
                 || decision.fallback_succeeded.is_some()
@@ -530,7 +543,8 @@ fn calibration_metrics(decisions: &[DecisionRecord], bin_count: usize) -> Calibr
                 CalibrationBin {
                     bin_index,
                     lower_probability_inclusive: lower,
-                    upper_probability_inclusive: upper,
+                    upper_probability_bound: upper,
+                    upper_bound_inclusive: bin_index + 1 == bin_count,
                     count: 0,
                     mean_predicted_failure_probability: None,
                     observed_failure_rate: None,
@@ -543,7 +557,8 @@ fn calibration_metrics(decisions: &[DecisionRecord], bin_count: usize) -> Calibr
                 CalibrationBin {
                     bin_index,
                     lower_probability_inclusive: lower,
-                    upper_probability_inclusive: upper,
+                    upper_probability_bound: upper,
+                    upper_bound_inclusive: bin_index + 1 == bin_count,
                     count: members.len(),
                     mean_predicted_failure_probability: Some(predicted),
                     observed_failure_rate: Some(observed),
@@ -818,6 +833,21 @@ mod tests {
         let mut value = input(vec![record("a", "urban", 0.4, false, 0.0)]);
         value.decisions[0].abstained = true;
         assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("lacks timestamp")));
+    }
+
+    #[test]
+    fn rejects_abstention_timestamp_or_deadline_before_prediction() {
+        let mut value = input(vec![record("a", "urban", 0.4, false, 0.0)]);
+        value.decisions[0].abstained = true;
+        value.decisions[0].abstention_timestamp_us = Some(900);
+        value.decisions[0].decision_deadline_us = Some(1_200);
+        value.decisions[0].fallback_succeeded = Some(true);
+        value.decisions[0].fallback_duration_ms = Some(100.0);
+        assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("abstention timestamp before prediction")));
+
+        value.decisions[0].abstention_timestamp_us = Some(1_100);
+        value.decisions[0].decision_deadline_us = Some(999);
+        assert!(value.validate().unwrap_err().findings.iter().any(|item| item.contains("decision deadline before prediction")));
     }
 
     #[test]
