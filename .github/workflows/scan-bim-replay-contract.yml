@@ -2,7 +2,7 @@ name: Scan-to-BIM Replay Contract
 
 on:
   pull_request:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-residual-uncertainty-v0-1", "research/scan-bim-surface-normal-uncertainty-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
@@ -15,8 +15,10 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_BUILD_ATTESTATION_AND_EXECUTION_RECEIPT_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_DIRECTED_ACCURACY_CORE_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_SURFACE_SAMPLING_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_RESIDUAL_UNCERTAINTY_ADAPTER_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_INDUSTRY_BENCHMARK_PROTOCOL_2026_V0_1.md"
   push:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-directed-accuracy-v0-6", "research/scan-bim-surface-sampling-v0-1", "research/scan-bim-residual-uncertainty-v0-1"]
     paths:
       - "tools/scan-bim-replay-contract/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
@@ -29,6 +31,8 @@ on:
       - "docs/research/built-asset/scan-bim/SCAN_BIM_BUILD_ATTESTATION_AND_EXECUTION_RECEIPT_V0_1.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_DIRECTED_ACCURACY_CORE_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_SURFACE_SAMPLING_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_RESIDUAL_UNCERTAINTY_ADAPTER_V0_1.md"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_INDUSTRY_BENCHMARK_PROTOCOL_2026_V0_1.md"
 
 permissions:
   contents: read
