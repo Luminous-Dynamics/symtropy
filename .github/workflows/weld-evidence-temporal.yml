@@ -6,8 +6,8 @@ on:
     paths:
       - "Cargo.toml"
       - "crates/tools/weld-evidence-temporal/**"
+      - "docs/tech/WELD_EVIDENCE_TEMPORAL_V0_1*"
       - ".github/workflows/weld-evidence-temporal.yml"
-      - ".github/workflows/shipyard-workspace-topology.yml"
       - ".github/workflows/shipyard-workspace-topology.yml"
       - "rust-toolchain.toml"
   workflow_dispatch:
