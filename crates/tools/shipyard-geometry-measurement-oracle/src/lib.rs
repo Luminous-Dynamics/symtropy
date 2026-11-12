@@ -45,6 +45,7 @@ pub struct Domain {
 #[derive(Clone, Debug, Deserialize)]
 pub struct QualityLimits {
     pub maximum_point_gap_um: u64,
+    pub coverage_gap_threshold_um: u64,
     pub minimum_coverage_permille: u64,
     pub maximum_point_uncertainty_um: u64,
     pub maximum_registration_residual_um: u64,
@@ -244,13 +245,14 @@ fn coverage_metrics(
         return Err(BlockReason::InvalidDomain);
     }
     let max_allowed = u128::from(limits.maximum_point_gap_um);
+    let coverage_gap_threshold = u128::from(limits.coverage_gap_threshold_um);
     let mut maximum_gap = 0u128;
     let mut covered = 0u128;
 
     let left_gap = (i128::from(points[0].x_um) - i128::from(domain.x_min_um))
         .unsigned_abs();
     maximum_gap = maximum_gap.max(left_gap);
-    if left_gap <= max_allowed {
+    if left_gap <= coverage_gap_threshold {
         covered = covered
             .checked_add(left_gap)
             .ok_or(BlockReason::NumericOverflow)?;
@@ -260,7 +262,7 @@ fn coverage_metrics(
         let gap = (i128::from(pair[1].x_um) - i128::from(pair[0].x_um))
             .unsigned_abs();
         maximum_gap = maximum_gap.max(gap);
-        if gap <= max_allowed {
+        if gap <= coverage_gap_threshold {
             covered = covered.checked_add(gap).ok_or(BlockReason::NumericOverflow)?;
         }
     }
@@ -268,7 +270,7 @@ fn coverage_metrics(
     let right_gap = (i128::from(domain.x_max_um) - i128::from(points[points.len() - 1].x_um))
         .unsigned_abs();
     maximum_gap = maximum_gap.max(right_gap);
-    if right_gap <= max_allowed {
+    if right_gap <= coverage_gap_threshold {
         covered = covered
             .checked_add(right_gap)
             .ok_or(BlockReason::NumericOverflow)?;
@@ -497,6 +499,16 @@ fn apply_mutation(
         "invalid_domain" => {
             input.domain.x_max_um = input.domain.x_min_um;
         }
+        "coverage_below_minimum" => {
+            let point = input.observed_points.get_mut(1)
+                .ok_or_else(|| "coverage fixture has no middle point".to_owned())?;
+            point.x_um = input.domain.x_min_um.saturating_add(1_100);
+        }
+        "point_outside_domain" => {
+            let point = input.observed_points.get_mut(1)
+                .ok_or_else(|| "domain fixture has no middle point".to_owned())?;
+            point.x_um = input.domain.x_max_um.saturating_add(1);
+        }
         _ => return Err(format!("unknown mutation: {mutation}")),
     }
     Ok(input)
@@ -516,8 +528,8 @@ pub fn verify_corpus(corpus: &Corpus) -> Result<CorpusSummary, Vec<String>> {
     if corpus.claim_ceiling != "SYNTHETIC_2D_PROFILE_COMPARISON_ONLY" {
         errors.push("claim ceiling mismatch".to_owned());
     }
-    if corpus.cases.len() != 14 {
-        errors.push(format!("expected 14 cases, found {}", corpus.cases.len()));
+    if corpus.cases.len() != 16 {
+        errors.push(format!("expected 16 cases, found {}", corpus.cases.len()));
     }
 
     let mut case_ids = HashSet::new();
@@ -571,9 +583,9 @@ pub fn verify_corpus(corpus: &Corpus) -> Result<CorpusSummary, Vec<String>> {
         }
     }
 
-    if qualified != 3 || blocked != 11 {
+    if qualified != 3 || blocked != 13 {
         errors.push(format!(
-            "expected 3 positive / 11 negative cases, observed {qualified}/{blocked}"
+            "expected 3 positive / 13 negative cases, observed {qualified}/{blocked}"
         ));
     }
 
@@ -606,9 +618,9 @@ mod tests {
         assert_eq!(
             summary,
             CorpusSummary {
-                cases: 14,
+                cases: 16,
                 qualified: 3,
-                blocked: 11,
+                blocked: 13,
             }
         );
     }
@@ -743,6 +755,25 @@ mod tests {
         let input = apply_mutation(&corpus.baseline, "invalid_domain")
             .expect("domain mutation");
         assert_eq!(assess(&input), Assessment::Blocked(BlockReason::InvalidDomain));
+    }
+
+    #[test]
+    fn aggregate_coverage_has_a_threshold_distinct_from_maximum_gap() {
+        let corpus = corpus();
+        let input = apply_mutation(&corpus.baseline, "coverage_below_minimum")
+            .expect("coverage mutation");
+        assert_eq!(assess(&input), Assessment::Blocked(BlockReason::CoverageTooLow));
+    }
+
+    #[test]
+    fn point_outside_declared_profile_domain_is_rejected() {
+        let corpus = corpus();
+        let input = apply_mutation(&corpus.baseline, "point_outside_domain")
+            .expect("domain point mutation");
+        assert_eq!(
+            assess(&input),
+            Assessment::Blocked(BlockReason::PointOutsideDomain)
+        );
     }
 
     #[test]
