@@ -574,7 +574,7 @@
   "external_dataset_track": {
     "path": "external-marine-engine-dataset-v0.1.json",
     "schema_version": "symtropy-marine-external-dataset-track-v0.1",
-    "status": "metadata_audited_archive_not_audited",
+    "status": "archive_downloaded_publisher_md5_verified_payload_audit_pending",
     "dataset_doi": "10.5281/zenodo.19857425",
     "dataset_license": "CC-BY-4.0",
     "purpose": "Separate external evaluation track for physically induced marine-engine fault scenarios across fixed loads; never pooled with LiU-ICE.",
@@ -588,7 +588,14 @@
     ],
     "class_mapping_rule": "No direct sample-level class mapping. Reviewed component/function mappings only where dictionaries, units and fault mechanisms justify equivalence.",
     "engine_transfer": "unsupported: one MU323DGSC test-bench identity is not a multi-engine or fleet sample",
-    "execution_status": "metadata_only_no_archive_sha_no_scores"
+    "execution_status": "archive_downloaded_publisher_md5_verified_payload_audit_pending",
+    "dataset_file_inventory": {
+      "publisher_reported_recording_data_csv_count": 16,
+      "archive_csv_entry_count": 18,
+      "metadata_csv_artifact_count": 2,
+      "audit_status": "metadata_csv_classification_pending_exact_file_name_receipt",
+      "claim_ceiling": "Archive size and publisher MD5 matched by a GitHub runner; CSV payload audit not yet complete."
+    }
   },
   "published_comparator_reference": {
     "path": "published-six-solution-baselines-v0.1.json",
