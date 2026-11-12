@@ -2,12 +2,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_active_sensing::contingent::{
-    assess_contingent_sensing, CandidatePolicyNode, ContingentPredictionReceipt,
-    ContingentSearchLimits, ContingentSensor,
+    CandidatePolicyNode, ContingentPredictionReceipt, ContingentSearchLimits, ContingentSensor,
+    assess_contingent_sensing,
 };
 use civdyn_active_sensing::{
-    DecisionWorld, MissingCause, PolicyOutcome, SensorAction, SensorPrediction,
-    ActiveSensingConfig,
+    ActiveSensingConfig, DecisionWorld, MissingCause, PolicyOutcome, SensorAction, SensorPrediction,
 };
 
 const SCENARIO_ID: &str = "contingent-three-world-screen-and-inspect-v1";
@@ -15,11 +14,7 @@ const SOURCE_DIGEST: &str = "sha256-contingent-three-world-source-v1";
 const EVALUATOR_COLUMNS: usize = 36;
 
 fn csv_field(value: &str) -> String {
-    if value.contains(',')
-        || value.contains('"')
-        || value.contains('\n')
-        || value.contains('\r')
-    {
+    if value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r') {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value.to_owned()
@@ -197,27 +192,53 @@ fn limits() -> ContingentSearchLimits {
 
 fn base_fields(report: &civdyn_active_sensing::contingent::ContingentSensingReport) -> Vec<String> {
     vec![
-        "summary".to_owned(),                             // 0
-        report.scenario_id.clone(),                      // 1
-        report.source_digest.clone(),                    // 2
-        report.status.id().to_owned(),                   // 3
-        report.recommended.to_string(),                  // 4
+        "summary".to_owned(),                                     // 0
+        report.scenario_id.clone(),                               // 1
+        report.source_digest.clone(),                             // 2
+        report.status.id().to_owned(),                            // 3
+        report.recommended.to_string(),                           // 4
         report.baseline.common_feasible_policy_count.to_string(), // 5
-        report.baseline.selected_policy_id.clone().unwrap_or_default(), // 6
-        report.baseline.worst_case_regret.map_or_else(String::new, |v| format!("{v:.6}")), // 7
-        report.worst_case_post_sensing_regret.map_or_else(String::new, |v| format!("{v:.6}")), // 8
-        report.worst_case_regret_reduction.map_or_else(String::new, |v| format!("{v:.6}")), // 9
-        report.resolves_no_sensing_infeasibility.to_string(), // 10
-        report.maximum_sensor_depth.to_string(),         // 11
-        report.search_nodes_evaluated.to_string(),        // 12
-        report.selected_tree_depth.to_string(),           // 13
-        format!("{:.6}", report.maximum_path_energy_kwh), // 14
-        report.maximum_path_latency_ticks.to_string(),   // 15
+        report
+            .baseline
+            .selected_policy_id
+            .clone()
+            .unwrap_or_default(), // 6
+        report
+            .baseline
+            .worst_case_regret
+            .map_or_else(String::new, |v| format!("{v:.6}")), // 7
+        report
+            .worst_case_post_sensing_regret
+            .map_or_else(String::new, |v| format!("{v:.6}")), // 8
+        report
+            .worst_case_regret_reduction
+            .map_or_else(String::new, |v| format!("{v:.6}")), // 9
+        report.resolves_no_sensing_infeasibility.to_string(),     // 10
+        report.maximum_sensor_depth.to_string(),                  // 11
+        report.search_nodes_evaluated.to_string(),                // 12
+        report.selected_tree_depth.to_string(),                   // 13
+        format!("{:.6}", report.maximum_path_energy_kwh),         // 14
+        report.maximum_path_latency_ticks.to_string(),            // 15
         format!("{:.6}", report.maximum_path_penalty_service_units), // 16
-        String::new(), String::new(), String::new(), String::new(), String::new(), // 17..21
-        String::new(), String::new(), String::new(), String::new(), String::new(), // 22..26
-        String::new(), String::new(), String::new(), String::new(), String::new(), // 27..31
-        String::new(), String::new(), String::new(), String::new(), // 32..35
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(), // 17..21
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(), // 22..26
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(), // 27..31
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(), // 32..35
     ]
 }
 
@@ -275,11 +296,7 @@ fn leaf_fields(
     fields
 }
 
-fn emit_candidate_tree(
-    scenario_id: &str,
-    node: &CandidatePolicyNode,
-    history: &[String],
-) {
+fn emit_candidate_tree(scenario_id: &str, node: &CandidatePolicyNode, history: &[String]) {
     match node {
         CandidatePolicyNode::StopAndAct { action_id } => {
             println!(
@@ -290,7 +307,10 @@ fn emit_candidate_tree(
                 csv_field(action_id)
             );
         }
-        CandidatePolicyNode::RequestSensor { sensor_id, branches } => {
+        CandidatePolicyNode::RequestSensor {
+            sensor_id,
+            branches,
+        } => {
             println!(
                 "{},{},{},{},,",
                 csv_field(scenario_id),
@@ -347,8 +367,18 @@ fn false_reassurance_sensors() -> Vec<ContingentSensor> {
             None,
             vec![
                 ("healthy", "healthy", None, 0.1),
-                ("degraded", "missing", Some(MissingCause::CommonCausePowerLoss), 0.1),
-                ("healthy_sensor_fault", "missing", Some(MissingCause::TelemetryNetworkFault), 0.1),
+                (
+                    "degraded",
+                    "missing",
+                    Some(MissingCause::CommonCausePowerLoss),
+                    0.1,
+                ),
+                (
+                    "healthy_sensor_fault",
+                    "missing",
+                    Some(MissingCause::TelemetryNetworkFault),
+                    0.1,
+                ),
                 ("degraded_stuck_high", "healthy", None, 0.1),
             ],
         ),
