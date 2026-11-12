@@ -401,9 +401,11 @@ mod tests {
 
     #[test]
     fn non_contiguous_artifact_ids_are_preserved_as_gaps_not_renumbered() {
-        let ids = [1_u64, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]
-            .into_iter()
-            .collect::<BTreeSet<_>>();
+        let ids = [
+            1_u64, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        ]
+        .into_iter()
+        .collect::<BTreeSet<_>>();
         let gaps = (1..=ids.iter().copied().max().unwrap())
             .filter(|id| !ids.contains(id))
             .collect::<Vec<_>>();
@@ -416,7 +418,8 @@ mod tests {
         for seed in [520_u64, 421, 422, 420, 421, 422] {
             *counts.entry(seed).or_insert(0_usize) += 1;
         }
-        let duplicates = counts.iter()
+        let duplicates = counts
+            .iter()
             .filter(|(_, count)| **count > 1)
             .map(|(seed, count)| format!("{seed}x{count}"))
             .collect::<Vec<_>>()
