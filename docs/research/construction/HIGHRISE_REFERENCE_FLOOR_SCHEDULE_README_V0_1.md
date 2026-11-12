@@ -74,3 +74,24 @@ This adapter is intentionally a duplicate serialization of the cases, not a seco
 The JSON is intended to be checked by the companion closed JSON Schema and then translated into the exact #1902 generic schedule fixture shape for the existing exhaustive oracle and hybrid planner. A schema pass establishes document shape only. A local witness check establishes only the frozen abstract schedule semantics. Neither establishes field productivity, physical safety, code compliance, lift/temporary-works adequacy or an optimal real-world floor programme.
 
 No task execution, procurement, motion authority, lifting, site access or construction authorization is represented by this profile.
+
+## Disturbance and recovery corpus
+
+The companion [HIGHRISE_REFERENCE_FLOOR_DISRUPTION_MATRIX_V0_1.json](./HIGHRISE_REFERENCE_FLOOR_DISRUPTION_MATRIX_V0_1.json) defines ten synthetic disturbance cases to specialize the recovery semantics from #1843:
+
+1. exclusive hoist outage;
+2. late, damaged or misidentified material;
+3. stale design revision or site epoch;
+4. independent inspection rejection and corrective rework;
+5. calibration invalidation after a tool/sensor/fixture change;
+6. communications loss and stale executor state;
+7. weather/ODD exit;
+8. bounded-search exhaustion;
+9. common-mode survey/control reference failure;
+10. as-built interface conflict.
+
+Each case distinguishes physical event time from when the planner learns of it. The planner must not use future knowledge. Every case declares affected tasks, invalidation scope, required preconditions, allowed responses, forbidden inferences, terminal dispositions, acceptance effects and reportable metrics.
+
+The comparison tracks are fixed schedule, deterministic rule-based recovery, evidence-bounded adaptive replanning and a bounded exact oracle for tiny cases. A failed robot action, stale event, resource reservation, or planner timeout does not become accepted work. Search exhaustion is incomplete/unknown, never proven infeasible or optimal. Inspection rejection remains rejected until corrective work and reinspection pass.
+
+The matrix is a scenario design, not an executed recovery benchmark. Its JSON/schema documents were parsed and passed a local structural walk over the schema's declared constraints. No recovery planner, safety controller, physical robot or hosted CI result is claimed.
