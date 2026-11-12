@@ -541,8 +541,8 @@ fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_d
         let faulted= set(state,"faulted_sensor_ids","$.states[]")?;
         let declared_sensor_fault=faulted.contains(sid);
         let availability=if scenario_removed{"MISSING"}
-            else if unaligned_states.contains(r["state_id"].as_str().unwrap_or("")){"UNKNOWN"}
             else if declared_sensor_fault&&matches!(raw_availability,"MISSING"|"DEGRADED"){raw_availability}
+            else if unaligned_states.contains(r["state_id"].as_str().unwrap_or("")){"UNKNOWN"}
             else if !ok{"UNKNOWN"}else{raw_availability};
         let role=txt(sensor,"source_role","$.sensors[]")?;
         let derived=set(sensor,"derived_from_channel_ids","$.sensors[]")?;
@@ -1071,8 +1071,11 @@ mod tests{
         let r=eval(&fixture()).unwrap();
         let windows=r["measurement_window_assessments"].as_array().unwrap();
         assert_eq!(windows.len(),6);
-        assert!(windows.iter().all(|w|w["status"]=="qualified"));
-        assert!(windows.iter().all(|w|w["guaranteed_common_overlap_ms"].as_f64().unwrap()>=w["required_common_overlap_ms"].as_f64().unwrap()));
+        let in_domain:Vec<&Value>=windows.iter().filter(|w|w["state_id"]!="ENGINE_UNKNOWN_OUT_OF_DOMAIN").collect();
+        assert_eq!(in_domain.len(),5);
+        assert!(in_domain.iter().all(|w|w["status"]=="qualified"));
+        assert!(in_domain.iter().all(|w|w["guaranteed_common_overlap_ms"].as_f64().unwrap()>=w["required_common_overlap_ms"].as_f64().unwrap()));
+        assert_eq!(windows.iter().find(|w|w["state_id"]=="ENGINE_UNKNOWN_OUT_OF_DOMAIN").unwrap()["status"],"not_evaluated");
         assert_eq!(windows[0]["guaranteed_common_overlap_ms"],json!(9998.0));
     }
     #[test]
