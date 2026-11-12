@@ -2806,9 +2806,7 @@ mod tests {
                         sum_sin += b.heading_rad.sin();
                     }
                 }
-                local_orders.push(
-                    (sum_cos.hypot(sum_sin) / (degree + 1) as f64).clamp(0.0, 1.0),
-                );
+                local_orders.push((sum_cos.hypot(sum_sin) / (degree + 1) as f64).clamp(0.0, 1.0));
             }
             let mean_degree = degrees.iter().sum::<usize>() as f64 / count as f64;
             let degree_variance = degrees
