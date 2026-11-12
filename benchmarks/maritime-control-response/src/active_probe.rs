@@ -2543,10 +2543,10 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("not self-authenticating"));
-        assert!(protocol["method"]["chernoff_information"]["assumptions"]
+        assert!(protocol["method"]["chernoff_information"]["assumptions"]["assumptions"]
             .as_str()
             .unwrap()
-            .contains("not a finite-sample classification error guarantee"));
+            .contains("not a finite-sample error guarantee"));
         assert!(protocol["comparators"]
             .as_array()
             .unwrap()
