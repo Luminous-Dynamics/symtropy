@@ -385,10 +385,10 @@ mod tests {
         let correct = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
 
         let mut wrong = [[0.0; 3]; 2];
-        for row in 0..2 {
-            for column in 0..3 {
-                for inner in 0..3 {
-                    wrong[row][column] += jacobian_q[row][inner] * rebasis.matrix()[column][inner];
+        for (row, wrong_row) in wrong.iter_mut().enumerate() {
+            for (column, value) in wrong_row.iter_mut().enumerate() {
+                for (inner, jacobian_value) in jacobian_q[row].iter().enumerate() {
+                    *value += jacobian_value * rebasis.matrix()[column][inner];
                 }
             }
         }
