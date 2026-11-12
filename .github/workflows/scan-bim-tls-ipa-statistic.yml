@@ -1,0 +1,85 @@
+name: Scan-to-BIM TLS IPA Part II Statistical Consumer
+
+on:
+  pull_request:
+    branches: ["main", "research/scan-bim-measurement-observability-v0-1"]
+    paths:
+      - "tools/scan-bim-tls-ipa-statistic/**"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_TLS_HEALTH_V0_1.md"
+      - ".github/workflows/scan-bim-tls-ipa-statistic.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/scan-bim-tls-ipa-statistic/**"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_TLS_HEALTH_V0_1.md"
+      - ".github/workflows/scan-bim-tls-ipa-statistic.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scan-bim-tls-ipa-statistic-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa-statistic:
+    name: IPA Part II robust covariance statistic (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/scan-bim-tls-ipa-statistic/Cargo.toml -- --check
+      - name: Test robust omnibus consumer
+        run: cargo test --locked --manifest-path tools/scan-bim-tls-ipa-statistic/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/scan-bim-tls-ipa-statistic/Cargo.toml --all-targets -- -D warnings
+      - name: Evaluate no-change residual control
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-tls-ipa-statistic/Cargo.toml -- \
+            --input tools/scan-bim-tls-ipa-statistic/fixtures/no-change.json \
+            > /tmp/scan-bim-tls-ipa-no-change.json
+          jq -e '
+            .method_id == "ipa_part_ii_obrien_robust_omnibus_v1" and
+            .p_value >= .alpha and
+            .accuracy_disposition == "NOT_EVALUATED" and
+            .task_fitness_disposition == "NOT_EVALUATED"
+          ' /tmp/scan-bim-tls-ipa-no-change.json
+      - name: Evaluate known multivariate precision change
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-tls-ipa-statistic/Cargo.toml -- \
+            --input tools/scan-bim-tls-ipa-statistic/fixtures/covariance-change.json \
+            > /tmp/scan-bim-tls-ipa-covariance-change.json
+          jq -e '
+            .method_id == "ipa_part_ii_obrien_robust_omnibus_v1" and
+            .p_value < .alpha and
+            .accuracy_disposition == "NOT_EVALUATED" and
+            .task_fitness_disposition == "NOT_EVALUATED"
+          ' /tmp/scan-bim-tls-ipa-covariance-change.json
+      - name: Bind results to exact source and residual artifacts
+        run: |
+          sha256sum \
+            tools/scan-bim-tls-ipa-statistic/Cargo.toml \
+            tools/scan-bim-tls-ipa-statistic/Cargo.lock \
+            tools/scan-bim-tls-ipa-statistic/src/main.rs \
+            tools/scan-bim-tls-ipa-statistic/fixtures/no-change.json \
+            tools/scan-bim-tls-ipa-statistic/fixtures/covariance-change.json \
+            /tmp/scan-bim-tls-ipa-no-change.json \
+            /tmp/scan-bim-tls-ipa-covariance-change.json > /tmp/scan-bim-tls-ipa.sha256
+          git rev-parse HEAD > /tmp/scan-bim-tls-ipa.commit
+      - name: Upload exact-head statistical receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-bim-tls-ipa-statistical-receipt
+          if-no-files-found: error
+          path: |
+            /tmp/scan-bim-tls-ipa-no-change.json
+            /tmp/scan-bim-tls-ipa-covariance-change.json
+            /tmp/scan-bim-tls-ipa.sha256
+            /tmp/scan-bim-tls-ipa.commit
+            tools/scan-bim-tls-ipa-statistic/Cargo.lock
