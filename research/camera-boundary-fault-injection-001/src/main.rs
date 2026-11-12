@@ -10,7 +10,7 @@
 //! no receipt file and no policy-input artifact.
 
 use serde::Serialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::env;
 use std::error::Error;
 use std::fs;
@@ -157,18 +157,22 @@ fn safe_relative_path(value: &str) -> Result<PathBuf, String> {
             )
         })
     {
-        return Err(format!("pixels_file is not a safe relative path: {value:?}"));
+        return Err(format!(
+            "pixels_file is not a safe relative path: {value:?}"
+        ));
     }
     Ok(path.to_path_buf())
 }
 
 fn resolve_inside(base: &Path, relative: &Path) -> Result<PathBuf, String> {
-    let canonical_base = fs::canonicalize(base)
-        .map_err(|error| format!("cannot resolve input base: {error}"))?;
+    let canonical_base =
+        fs::canonicalize(base).map_err(|error| format!("cannot resolve input base: {error}"))?;
     let candidate = fs::canonicalize(canonical_base.join(relative))
         .map_err(|error| format!("cannot resolve source artifact {relative:?}: {error}"))?;
     if !candidate.starts_with(&canonical_base) {
-        return Err(format!("source artifact escapes episode directory: {relative:?}"));
+        return Err(format!(
+            "source artifact escapes episode directory: {relative:?}"
+        ));
     }
     let metadata = fs::metadata(&candidate)
         .map_err(|error| format!("cannot inspect source artifact: {error}"))?;
@@ -219,9 +223,7 @@ fn recompute_upstream_policy_receipt(upstream: &mut Value) -> Result<(), String>
     for field in ["episode_id", "agent_id", "clock_id"] {
         append_len_prefixed_string(
             &mut material,
-            upstream[field]
-                .as_str()
-                .ok_or(format!("{field} missing"))?,
+            upstream[field].as_str().ok_or(format!("{field} missing"))?,
         );
     }
     for field in ["tick", "sequence"] {
@@ -269,16 +271,15 @@ fn recompute_upstream_policy_receipt(upstream: &mut Value) -> Result<(), String>
 fn sha256_hex(input: &[u8]) -> String {
     const K: [u32; 64] = [
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
-        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74,
-        0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6,
-        0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152,
-        0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351,
-        0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
-        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
-        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
-        0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+        0xc67178f2,
     ];
     let mut data = input.to_vec();
     let bit_len = (data.len() as u64).wrapping_mul(8);
@@ -288,15 +289,24 @@ fn sha256_hex(input: &[u8]) -> String {
     }
     data.extend_from_slice(&bit_len.to_be_bytes());
     let mut hash = [
-        0x6a09e667_u32, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+        0x6a09e667_u32,
+        0xbb67ae85,
+        0x3c6ef372,
+        0xa54ff53a,
+        0x510e527f,
+        0x9b05688c,
+        0x1f83d9ab,
+        0x5be0cd19,
     ];
     for chunk in data.chunks_exact(64) {
         let mut schedule = [0_u32; 64];
         for index in 0..16 {
             let offset = index * 4;
             schedule[index] = u32::from_be_bytes([
-                chunk[offset], chunk[offset + 1], chunk[offset + 2], chunk[offset + 3],
+                chunk[offset],
+                chunk[offset + 1],
+                chunk[offset + 2],
+                chunk[offset + 3],
             ]);
         }
         for index in 16..64 {
@@ -323,8 +333,14 @@ fn sha256_hex(input: &[u8]) -> String {
             let upper_sigma_zero = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
             let majority = (a & b) ^ (a & c) ^ (b & c);
             let temp_two = upper_sigma_zero.wrapping_add(majority);
-            h = g; g = f; f = e; e = d.wrapping_add(temp_one);
-            d = c; c = b; b = a; a = temp_one.wrapping_add(temp_two);
+            h = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temp_one);
+            d = c;
+            c = b;
+            b = a;
+            a = temp_one.wrapping_add(temp_two);
         }
         hash[0] = hash[0].wrapping_add(a);
         hash[1] = hash[1].wrapping_add(b);
@@ -375,7 +391,9 @@ fn prepare_request(
         .get("expected_camera_calibration_sha256")
         .and_then(Value::as_str);
     if current_pin.is_some_and(|existing| existing != calibration_pin) {
-        return Err("provided BridgeConfig calibration pin differs from the clean renderer receipt".into());
+        return Err(
+            "provided BridgeConfig calibration pin differs from the clean renderer receipt".into(),
+        );
     }
     bridge_config.insert(
         "expected_camera_calibration_sha256".to_string(),
@@ -447,7 +465,9 @@ fn prepare_request(
                 .as_u64()
                 .ok_or("first capture timestamp missing")?;
             if previous_capture == 0 {
-                return Err("capture-clock regression fixture requires a positive first timestamp".into());
+                return Err(
+                    "capture-clock regression fixture requires a positive first timestamp".into(),
+                );
             }
             let regressed_capture = previous_capture - 1;
             observations[1]["timestamp_us"] = json!(regressed_capture);
@@ -476,9 +496,7 @@ fn prepare_request(
             let capture = observations[0]["timestamp_us"]
                 .as_u64()
                 .ok_or("first observation lacks timestamp_us")?;
-            let skewed_timestamp = capture
-                .saturating_add(maximum_clock_skew)
-                .saturating_add(1);
+            let skewed_timestamp = capture.saturating_add(maximum_clock_skew).saturating_add(1);
             observations[0]["vehicle_state_timestamp_us"] = json!(skewed_timestamp);
             observations[0]["vehicle_state"]["timestamp"] =
                 json!(skewed_timestamp as f64 / 1_000_000.0);
@@ -490,7 +508,9 @@ fn prepare_request(
             let render_completed = observations[0]["upstream"]["render_completed_timestamp_us"]
                 .as_u64()
                 .ok_or("first receipt lacks render completion timestamp")?;
-            let too_late = capture.saturating_add(maximum_delivery_age).saturating_add(1);
+            let too_late = capture
+                .saturating_add(maximum_delivery_age)
+                .saturating_add(1);
             observations[0]["upstream"]["delivered_timestamp_us"] =
                 json!(too_late.max(render_completed));
             recompute_upstream_policy_receipt(&mut observations[0]["upstream"])?;
@@ -585,7 +605,10 @@ fn expected_frames_processed_before_rejection(case: FaultCase) -> Option<u64> {
 fn parse_frames_processed_before_rejection(stderr: &str) -> Option<u64> {
     let marker = "frames_processed_before_rejection=";
     let suffix = stderr.split(marker).nth(1)?;
-    let digits = suffix.chars().take_while(char::is_ascii_digit).collect::<String>();
+    let digits = suffix
+        .chars()
+        .take_while(char::is_ascii_digit)
+        .collect::<String>();
     if digits.is_empty() {
         None
     } else {
@@ -606,9 +629,8 @@ fn run_case(
     let policy_input_dir = case_root.join("policy-inputs");
     fs::create_dir_all(&input_root)?;
 
-    let (mut request, corrupt_target, _calibration_pin, _, _) =
-        prepare_request(base_request, case)
-            .map_err(|error| format!("cannot prepare {} case: {error}", case.id()))?;
+    let (mut request, corrupt_target, _calibration_pin, _, _) = prepare_request(base_request, case)
+        .map_err(|error| format!("cannot prepare {} case: {error}", case.id()))?;
     copy_episode_frames(source_episode_dir, &input_root, &request)?;
     if let Some(target) = &corrupt_target {
         corrupt_frame(&input_root, target)?;
@@ -633,99 +655,98 @@ fn run_case(
     let policy_artifact_count = count_policy_artifacts(&policy_input_dir)?;
     let expected_error = case.expected_error();
     let expected_frames = expected_frames_processed_before_rejection(case);
-    let frames_processed_before_rejection =
-        parse_frames_processed_before_rejection(&stderr);
+    let frames_processed_before_rejection = parse_frames_processed_before_rejection(&stderr);
     let rejected_observation_did_not_advance_temporal_state =
         expected_frames.is_some() && frames_processed_before_rejection == expected_frames;
 
-    let (accepted, expected_error_observed, no_policy_output_committed) =
-        if case == FaultCase::CleanControl {
-            let output_valid = if child_output.status.success() && receipt_exists {
-                let output: Value = serde_json::from_slice(&fs::read(&output_path)?)?;
-                let receipts = output["receipts"].as_array();
-                let artifacts = output["policy_input_artifacts"].as_array();
-                let receipt_count = receipts.map(Vec::len).unwrap_or(0);
-                let artifact_count = artifacts.map(Vec::len).unwrap_or(0);
-                let mut every_artifact_reconciled = true;
-                if let (Some(receipts), Some(artifacts)) = (receipts, artifacts) {
-                    for (index, (receipt, artifact)) in
-                        receipts.iter().zip(artifacts).enumerate()
+    let (accepted, expected_error_observed, no_policy_output_committed) = if case
+        == FaultCase::CleanControl
+    {
+        let output_valid = if child_output.status.success() && receipt_exists {
+            let output: Value = serde_json::from_slice(&fs::read(&output_path)?)?;
+            let receipts = output["receipts"].as_array();
+            let artifacts = output["policy_input_artifacts"].as_array();
+            let receipt_count = receipts.map(Vec::len).unwrap_or(0);
+            let artifact_count = artifacts.map(Vec::len).unwrap_or(0);
+            let mut every_artifact_reconciled = true;
+            if let (Some(receipts), Some(artifacts)) = (receipts, artifacts) {
+                for (index, (receipt, artifact)) in receipts.iter().zip(artifacts).enumerate() {
+                    let upstream = &request["observations"][index]["upstream"];
+                    if receipt["upstream_observation_id"] != upstream["observation_id"]
+                        || receipt["upstream_receipt_sha256"] != upstream["receipt_sha256"]
+                        || receipt["upstream_frame_sha256"] != upstream["frame_sha256"]
+                        || receipt["capture_sequence"] != request["observations"][index]["sequence"]
+                        || artifact["sequence"] != request["observations"][index]["sequence"]
+                        || artifact["dimension"].as_u64() != Some(16_384)
+                        || artifact["sha256"] != receipt["fused_policy_input_sha256"]
                     {
-                        let upstream = &request["observations"][index]["upstream"];
-                        if receipt["upstream_observation_id"] != upstream["observation_id"]
-                            || receipt["upstream_receipt_sha256"] != upstream["receipt_sha256"]
-                            || receipt["upstream_frame_sha256"] != upstream["frame_sha256"]
-                            || receipt["capture_sequence"] != request["observations"][index]["sequence"]
-                            || artifact["sequence"] != request["observations"][index]["sequence"]
-                            || artifact["dimension"].as_u64() != Some(16_384)
-                            || artifact["sha256"] != receipt["fused_policy_input_sha256"]
-                        {
-                            every_artifact_reconciled = false;
-                            break;
-                        }
-                        if index == 0 {
-                            if !receipt["previous_receipt_sha256"].is_null() {
-                                every_artifact_reconciled = false;
-                                break;
-                            }
-                        } else if receipt["previous_receipt_sha256"]
-                            != receipts[index - 1]["receipt_sha256"]
-                        {
-                            every_artifact_reconciled = false;
-                            break;
-                        }
-                        let relative_name = match artifact["relative_path"].as_str() {
-                            Some(value) => value,
-                            None => {
-                                every_artifact_reconciled = false;
-                                break;
-                            }
-                        };
-                        let relative = match safe_relative_path(relative_name) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                every_artifact_reconciled = false;
-                                break;
-                            }
-                        };
-                        let bytes = match fs::read(policy_input_dir.join(relative)) {
-                            Ok(value) => value,
-                            Err(_) => {
-                                every_artifact_reconciled = false;
-                                break;
-                            }
-                        };
-                        if bytes.len() != 8 + 16_384 * 4
-                            || artifact["byte_length"].as_u64() != Some(bytes.len() as u64)
-                            || artifact["sha256"].as_str() != Some(sha256_hex(&bytes).as_str())
-                        {
-                            every_artifact_reconciled = false;
-                            break;
-                        }
+                        every_artifact_reconciled = false;
+                        break;
                     }
-                } else {
-                    every_artifact_reconciled = false;
+                    if index == 0 {
+                        if !receipt["previous_receipt_sha256"].is_null() {
+                            every_artifact_reconciled = false;
+                            break;
+                        }
+                    } else if receipt["previous_receipt_sha256"]
+                        != receipts[index - 1]["receipt_sha256"]
+                    {
+                        every_artifact_reconciled = false;
+                        break;
+                    }
+                    let relative_name = match artifact["relative_path"].as_str() {
+                        Some(value) => value,
+                        None => {
+                            every_artifact_reconciled = false;
+                            break;
+                        }
+                    };
+                    let relative = match safe_relative_path(relative_name) {
+                        Ok(value) => value,
+                        Err(_) => {
+                            every_artifact_reconciled = false;
+                            break;
+                        }
+                    };
+                    let bytes = match fs::read(policy_input_dir.join(relative)) {
+                        Ok(value) => value,
+                        Err(_) => {
+                            every_artifact_reconciled = false;
+                            break;
+                        }
+                    };
+                    if bytes.len() != 8 + 16_384 * 4
+                        || artifact["byte_length"].as_u64() != Some(bytes.len() as u64)
+                        || artifact["sha256"].as_str() != Some(sha256_hex(&bytes).as_str())
+                    {
+                        every_artifact_reconciled = false;
+                        break;
+                    }
                 }
-                output["expected_observations"].as_u64() == Some(observation_count as u64)
-                    && output["processed_observations"].as_u64() == Some(observation_count as u64)
-                    && output["frames_processed"].as_u64() == Some(observation_count as u64)
-                    && receipt_count == observation_count
-                    && artifact_count == observation_count
-                    && policy_artifact_count == observation_count
-                    && output["vision_learning_frozen"].as_bool() == Some(true)
-                    && output["vision_training_steps_before"] == output["vision_training_steps_after"]
-                    && every_artifact_reconciled
             } else {
-                false
-            };
-            (output_valid, false, false)
+                every_artifact_reconciled = false;
+            }
+            output["expected_observations"].as_u64() == Some(observation_count as u64)
+                && output["processed_observations"].as_u64() == Some(observation_count as u64)
+                && output["frames_processed"].as_u64() == Some(observation_count as u64)
+                && receipt_count == observation_count
+                && artifact_count == observation_count
+                && policy_artifact_count == observation_count
+                && output["vision_learning_frozen"].as_bool() == Some(true)
+                && output["vision_training_steps_before"] == output["vision_training_steps_after"]
+                && every_artifact_reconciled
         } else {
-            let expected_observed = !child_output.status.success()
-                && expected_error.is_some_and(|error| stderr.contains(error));
-            let no_commit =
-                !receipt_exists && policy_artifact_count == 0 && (!policy_dir_exists || policy_artifact_count == 0);
-            (false, expected_observed, no_commit)
+            false
         };
+        (output_valid, false, false)
+    } else {
+        let expected_observed = !child_output.status.success()
+            && expected_error.is_some_and(|error| stderr.contains(error));
+        let no_commit = !receipt_exists
+            && policy_artifact_count == 0
+            && (!policy_dir_exists || policy_artifact_count == 0);
+        (false, expected_observed, no_commit)
+    };
 
     Ok(CaseResult {
         case_id: case.id().to_string(),
@@ -765,20 +786,27 @@ fn validate_source_episode(
         "policy_input_artifacts_valid",
     ] {
         if report[field].as_bool() != Some(true) {
-            return Err(format!(
-                "source #4618 episode report is missing a passing {field} result"
-            )
-            .into());
+            return Err(
+                format!("source #4618 episode report is missing a passing {field} result").into(),
+            );
         }
     }
     if report["status"].as_str() != Some("complete_for_declared_non_learning_fixture") {
-        return Err("source episode report does not declare a complete non-learning fixture".into());
+        return Err(
+            "source episode report does not declare a complete non-learning fixture".into(),
+        );
     }
-    let expected = report["expected_ticks"].as_u64().ok_or("source report lacks expected_ticks")?;
+    let expected = report["expected_ticks"]
+        .as_u64()
+        .ok_or("source report lacks expected_ticks")?;
     let delivered = report["delivered_observations"]
         .as_u64()
         .ok_or("source report lacks delivered_observations")?;
-    if delivered != request["observations"].as_array().map(Vec::len).unwrap_or(0) as u64
+    if delivered
+        != request["observations"]
+            .as_array()
+            .map(Vec::len)
+            .unwrap_or(0) as u64
         || delivered + report["missing_observations"].as_u64().unwrap_or(u64::MAX) != expected
     {
         return Err("source episode report and request observation denominators disagree".into());
@@ -789,7 +817,9 @@ fn validate_source_episode(
         .ok_or("episode request lacks observations[]")?;
     let mut seen = std::collections::BTreeSet::new();
     for observation in observations {
-        let sequence = observation["sequence"].as_u64().ok_or("observation sequence missing")?;
+        let sequence = observation["sequence"]
+            .as_u64()
+            .ok_or("observation sequence missing")?;
         if !seen.insert(sequence) {
             return Err("source episode contains duplicate observation sequences".into());
         }
@@ -805,12 +835,15 @@ fn validate_source_episode(
         if sha256_hex(&bytes) != expected_frame {
             return Err(format!("source frame digest mismatch at sequence {sequence}").into());
         }
-        let receipt_path = episode_dir.join("policy-receipts").join(format!(
-            "policy_receipt_{sequence:04}.json"
-        ));
+        let receipt_path = episode_dir
+            .join("policy-receipts")
+            .join(format!("policy_receipt_{sequence:04}.json"));
         let receipt: Value = serde_json::from_slice(&fs::read(&receipt_path)?)?;
         if receipt != observation["upstream"] {
-            return Err(format!("persisted policy receipt does not match episode request at sequence {sequence}").into());
+            return Err(format!(
+                "persisted policy receipt does not match episode request at sequence {sequence}"
+            )
+            .into());
         }
     }
 
@@ -841,7 +874,9 @@ fn run_campaign(
     if output_root.exists() {
         let mut existing = fs::read_dir(output_root)?;
         if existing.next().is_some() {
-            return Err("output directory must be empty; choose a new directory for each campaign".into());
+            return Err(
+                "output directory must be empty; choose a new directory for each campaign".into(),
+            );
         }
     } else {
         fs::create_dir_all(output_root)?;
@@ -888,7 +923,10 @@ fn run_campaign(
         .iter()
         .filter(|result| result.expected_error.is_some())
         .all(|result| result.rejected_observation_did_not_advance_temporal_state);
-    let fresh_processes = results.iter().filter(|result| result.child_process_spawned).count();
+    let fresh_processes = results
+        .iter()
+        .filter(|result| result.child_process_spawned)
+        .count();
     let all_pass = clean_control_accepted
         && all_negative_controls_pass
         && all_rejections_preflighted
@@ -943,14 +981,13 @@ fn run() -> Result<(), Box<dyn Error>> {
     )?;
     println!(
         "camera boundary fault campaign: {} ({} / {} cases; {} fresh bridge processes)",
-        report.status,
-        report.cases_observed,
-        report.cases_expected,
-        report.fresh_processes_spawned
+        report.status, report.cases_observed, report.cases_expected, report.fresh_processes_spawned
     );
     println!(
         "report: {}",
-        Path::new(&args[2]).join("fault-campaign-report.json").display()
+        Path::new(&args[2])
+            .join("fault-campaign-report.json")
+            .display()
     );
     if report.status != "all_cases_passed" {
         return Err("one or more camera boundary fault-injection controls failed".into());
@@ -1189,10 +1226,10 @@ mod tests {
         let delivered = delayed["observations"][0]["upstream"]["delivered_timestamp_us"]
             .as_u64()
             .unwrap();
-        let render_completed = delayed["observations"][0]["upstream"]
-            ["render_completed_timestamp_us"]
-            .as_u64()
-            .unwrap();
+        let render_completed =
+            delayed["observations"][0]["upstream"]["render_completed_timestamp_us"]
+                .as_u64()
+                .unwrap();
         assert!(delivered - capture > max_age);
         assert!(delivered >= render_completed);
 
@@ -1213,9 +1250,7 @@ mod tests {
         let base = base_request();
         let (skewed, _, _, _, max_skew) =
             prepare_request(&base, FaultCase::SensorClockSkew).unwrap();
-        let camera = skewed["observations"][0]["timestamp_us"]
-            .as_u64()
-            .unwrap();
+        let camera = skewed["observations"][0]["timestamp_us"].as_u64().unwrap();
         let state = skewed["observations"][0]["vehicle_state_timestamp_us"]
             .as_u64()
             .unwrap();
@@ -1229,8 +1264,7 @@ mod tests {
                 < 1e-9
         );
 
-        let (stale, _, _, _, _) =
-            prepare_request(&base, FaultCase::StaleSequenceReplay).unwrap();
+        let (stale, _, _, _, _) = prepare_request(&base, FaultCase::StaleSequenceReplay).unwrap();
         assert_eq!(
             stale["observations"][1]["sequence"],
             stale["observations"][0]["sequence"]
@@ -1272,7 +1306,9 @@ mod tests {
         let base = base_request();
         let (missing_action, _, _, _, _) =
             prepare_request(&base, FaultCase::MissingActionReceipt).unwrap();
-        assert!(missing_action["observations"][0]["upstream"]["applied_action_receipt_id"].is_null());
+        assert!(
+            missing_action["observations"][0]["upstream"]["applied_action_receipt_id"].is_null()
+        );
         assert_ne!(
             missing_action["observations"][0]["upstream"]["receipt_sha256"],
             base["observations"][0]["upstream"]["receipt_sha256"]
@@ -1478,7 +1514,8 @@ mod tests {
         assert_eq!(cases.len(), FaultCase::ALL.len() - 1);
         assert!(cases.iter().all(|case| case.expected_error().is_some()));
         assert_eq!(
-            cases.iter()
+            cases
+                .iter()
                 .filter(|case| case.expected_error() == Some("UpstreamFrameMismatch"))
                 .count(),
             2
