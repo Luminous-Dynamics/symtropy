@@ -104,6 +104,22 @@ impl GrayScottParameters {
     }
 }
 
+/// Explicit parameters for a deterministic noisy rectangular initial perturbation.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct GrayScottSeededPatch {
+    pub x: usize,
+    pub y: usize,
+    pub width: usize,
+    pub height: usize,
+    pub u_center: f64,
+    pub v_center: f64,
+    /// Full peak-to-peak noise amplitude for U.
+    pub u_noise_amplitude: f64,
+    /// Full peak-to-peak noise amplitude for V.
+    pub v_noise_amplitude: f64,
+    pub seed: u64,
+}
+
 /// Structural or numerical error in the reference solver.
 #[derive(Debug, Clone, PartialEq)]
 pub enum GrayScottError {
@@ -362,16 +378,19 @@ impl GrayScottField {
     /// pattern seeding; the seed is an explicit experiment input, not hidden solver state.
     pub fn set_seeded_patch(
         &mut self,
-        x: usize,
-        y: usize,
-        patch_width: usize,
-        patch_height: usize,
-        u_center: f64,
-        v_center: f64,
-        u_noise_amplitude: f64,
-        v_noise_amplitude: f64,
-        seed: u64,
+        patch: GrayScottSeededPatch,
     ) -> Result<(), GrayScottError> {
+        let GrayScottSeededPatch {
+            x,
+            y,
+            width: patch_width,
+            height: patch_height,
+            u_center,
+            v_center,
+            u_noise_amplitude,
+            v_noise_amplitude,
+            seed,
+        } = patch;
         if patch_width == 0
             || patch_height == 0
             || x.checked_add(patch_width)
@@ -742,7 +761,17 @@ mod tests {
         let mut second = GrayScottField::new(80, 80, GrayScottParameters::default()).unwrap();
         for field in [&mut first, &mut second] {
             field
-                .set_seeded_patch(24, 24, 32, 32, 0.5, 0.25, 0.2, 0.2, 42)
+                .set_seeded_patch(GrayScottSeededPatch {
+                    x: 24,
+                    y: 24,
+                    width: 32,
+                    height: 32,
+                    u_center: 0.5,
+                    v_center: 0.25,
+                    u_noise_amplitude: 0.2,
+                    v_noise_amplitude: 0.2,
+                    seed: 42,
+                })
                 .unwrap();
         }
 
@@ -800,7 +829,17 @@ mod tests {
     fn seeded_patch_rejects_noise_ranges_outside_unit_interval() {
         let mut field = GrayScottField::new(16, 16, GrayScottParameters::default()).unwrap();
         assert!(matches!(
-            field.set_seeded_patch(2, 2, 4, 4, 0.5, 0.25, 1.2, 0.2, 1),
+            field.set_seeded_patch(GrayScottSeededPatch {
+                x: 2,
+                y: 2,
+                width: 4,
+                height: 4,
+                u_center: 0.5,
+                v_center: 0.25,
+                u_noise_amplitude: 1.2,
+                v_noise_amplitude: 0.2,
+                seed: 1,
+            }),
             Err(GrayScottError::PatchNoiseOutOfRange { .. })
         ));
     }
