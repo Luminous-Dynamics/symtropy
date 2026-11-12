@@ -1,6 +1,6 @@
 # RECOVERABILITY-ENVELOPE-001
 
-**Status:** protocol and reference evaluator; no driving-policy result  
+**Status:** protocol and reference evaluator with phase-conditioned fault metrics; no driving-policy result  
 **Issue:** https://github.com/Luminous-Dynamics/symtropy/issues/4747  
 **Related renderer:** https://github.com/Luminous-Dynamics/symtropy/pull/4616  
 **Related replay harness:** https://github.com/Luminous-Dynamics/symtropy/pull/4647  
@@ -91,7 +91,22 @@ Every tick has:
 
 The contract fixes maximum detection delay, fallback delay, recovery latency, stable-nominal interval, freshness limits, per-fault deadline-miss budget and fault concurrency. The pairing record binds the clean baseline and faulted candidate checkpoint hashes to the same world seed and simulator/evaluator revisions.
 
-### Stable recovery
+### Critical-phase conditioning
+
+Every trace tick now carries an explicit `maneuver_phase` label from the frozen scenario timeline (for example: approach, merge, yield, emergency braking, intersection traversal, vulnerable-road-user interaction, recovery). The phase label is evaluator metadata; it is not silently added to the policy observation.
+
+A fault may declare a `critical_phase`. The validator requires the fault interval to overlap at least one tick carrying that exact phase. The report then keeps these values separate:
+- whether fault onset occurred inside the declared critical phase;
+- number of fault-exposure ticks overlapping the phase;
+- fallback ticks within the phase attributed to that fault;
+- deadline misses within the phase;
+- constraint-violation ticks within the phase.
+
+This supports a controlled comparison such as the same camera dropout at the same severity/duration during cruise versus during a merge. The phase metrics remain subsets of the overall fault metrics; they are not weights or an overall risk score. The phase labels must be fixed by the scenario/evaluator before test evaluation, not inferred from the outcome.
+
+A fault that starts in approach and persists into merge can therefore have `onset_in_critical_phase=false` and a non-zero `critical_phase_overlap_ticks`. A violation in approach remains an event-level violation but is not counted as a merge-phase violation.
+
+## Stable recovery
 
 The evaluator credits recovery only after `min_stable_nominal_ticks` consecutive ticks that satisfy all of:
 - no scheduled fault remains active anywhere in the episode;
@@ -152,9 +167,10 @@ All thresholds are prospective research goals, not achieved results or certifica
 
 ## Files
 
-- `schemas/episode-v1.schema.json`: versioned typed input contract.
-- `fixtures/compound-merge-recovery-v1.json`: ten-tick correlated camera-drop/inference-delay fixture.
-- `src/lib.rs`: typed validator, recoverability metrics and adversarial tests.
+- `schemas/episode-v1.schema.json`: versioned typed input contract with maneuver-phase labels.
+- `schemas/report-v1.schema.json`: versioned multi-axis report with phase-conditioned fault metrics.
+- `fixtures/compound-merge-recovery-v1.json`: ten-tick correlated camera-drop/inference-delay fixture, with the faults overlapping the merge phase.
+- `src/lib.rs`: typed validator, event/phase-conditioned recoverability metrics and adversarial tests.
 - `src/main.rs`: bounded JSON CLI.
 - `Cargo.lock`: dependency checksums copied from the repository's canonical lockfile.
 
