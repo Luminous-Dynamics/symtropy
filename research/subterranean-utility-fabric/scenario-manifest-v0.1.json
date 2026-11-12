@@ -485,7 +485,7 @@
     {
       "id": "CITY_POWER_CP_TSSTAN_144",
       "title": "City Power Standard for New Service Connections and Metering Labour Contracts CP_TSSTAN_144 Rev 0",
-      "url": "https://www.etenders.gov.za/home/Download/?blobName=5457f91a-bbf2-4d68-b392-c92165f72887.pdf%26downloadedFileName=CP_TSSTAN_144_New+Service+Connections+and+Metering+Labour+Contract_REV+0_Upload.pdf",
+      "url": "https://www.etenders.gov.za/home/Download/?blobName=5457f91a-bbf2-4d68-b392-c92165f72887.pdf&downloadedFileName=CP_TSSTAN_144_New+Service+Connections+and+Metering+Labour+Contract_REV+0_Upload.pdf",
       "source_role": "industry_practice"
     },
     {
@@ -499,6 +499,63 @@
       "title": "SANS 10198 electric power cable standard family; confirm current part editions with SABS",
       "url": "https://store.sabs.co.za/",
       "source_role": "industry_standard"
+    }
+  ],
+  "jurisdictional_profiles": [
+    {
+      "profile_id": "ZA_NATIONAL_COTO_ROAD_WORKS",
+      "authority": "Department of Transport / COTO / SANRAL",
+      "status": "published_draft_standard",
+      "scope": "COTO October 2020 Draft Standard road and bridge works documents; check road-authority and project-contract applicability.",
+      "reference_ids": [
+        "COTO_SA_ROAD_AUTHORITY",
+        "SANRAL_COTO_DOWNLOADS"
+      ]
+    },
+    {
+      "profile_id": "ZA_CITY_OF_TSHWANE_WAYLEAVE",
+      "authority": "City of Tshwane",
+      "status": "current_portal_process_reference",
+      "scope": "Current portal process example covering service inquiry, cross-cut and wayleave stages; not a universal municipal workflow.",
+      "reference_ids": [
+        "TSHWANE_WAYLEAVECENTRAL"
+      ]
+    },
+    {
+      "profile_id": "ZA_CITY_OF_CAPE_TOWN_ROAD_RESERVE",
+      "authority": "City of Cape Town",
+      "status": "municipality_specific_standard",
+      "scope": "Road-reserve wayleave method, dilapidation and reinstatement conditions; do not project these rules to Gauteng.",
+      "reference_ids": [
+        "CAPE_TOWN_RIM_WAYLEAVE"
+      ]
+    },
+    {
+      "profile_id": "ZA_CITY_OF_JOHANNESBURG_WAYLEAVE",
+      "authority": "City of Johannesburg",
+      "status": "draft_reference_only",
+      "scope": "The retrieved 2022 by-law document is explicitly a draft and is not evidence of the live enacted by-law.",
+      "reference_ids": [
+        "JOHANNESBURG_DRAFT_WAYLEAVE"
+      ]
+    },
+    {
+      "profile_id": "ZA_CITY_POWER_CONTRACT_SPEC",
+      "authority": "City Power / eTenders contract document",
+      "status": "contract_spec_revision_to_verify",
+      "scope": "CP_TSSTAN_144 Rev 0; aluminium conductor and concrete theft-protection provisions occur in defined contract contexts only.",
+      "reference_ids": [
+        "CITY_POWER_CP_TSSTAN_144"
+      ]
+    },
+    {
+      "profile_id": "ZA_SANS_10198",
+      "authority": "South African Bureau of Standards",
+      "status": "edition_and_part_scope_to_verify",
+      "scope": "SANS 10198 power-cable standards family; exact current part editions, amendments and utility requirements must be verified directly with SABS.",
+      "reference_ids": [
+        "SANS_10198_DISCOVERY"
+      ]
     }
   ]
 }
