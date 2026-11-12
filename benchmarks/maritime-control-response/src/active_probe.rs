@@ -189,6 +189,7 @@ pub enum ProbeBaseline {
     InformationGainPerCost,
     SeededRandomEligible,
     RiskAdjustedWorstCaseInformationGain,
+    MaximumWorstCaseChernoffInformation,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
@@ -622,6 +623,137 @@ pub fn rank_diagnostic_probes(
     })
 }
 
+/// Discretized pairwise Chernoff information for a finite likelihood table.
+///
+/// For hypothesis pair (i,j), C_ij = -log(min_s sum_o p(o|i)^s p(o|j)^(1-s)).
+/// The reported minimum across pairs is the weakest pairwise separation. A
+/// finite s-grid yields a conservative lower estimate of the continuous
+/// Chernoff information; it is not a finite-sample error guarantee. The
+/// classical error-exponent interpretation additionally assumes repeated,
+/// conditionally independent observations from the same likelihood regime.
+pub fn minimum_pairwise_chernoff_information_nats(
+    prior: &[f64],
+    outcomes: &[ProbeOutcomeLikelihood],
+    grid_intervals: usize,
+) -> Result<f64, ProbeError> {
+    if grid_intervals < 2 {
+        return Err(ProbeError::InvalidChernoffGrid);
+    }
+    if prior.len() < 2
+        || prior
+            .iter()
+            .any(|probability| !probability.is_finite() || *probability < 0.0 || *probability > 1.0)
+        || (prior.iter().sum::<f64>() - 1.0).abs() > PROBABILITY_TOLERANCE
+        || prior.iter().filter(|probability| **probability > 0.0).count() < 2
+        || outcomes.len() < 2
+    {
+        return Err(ProbeError::InvalidChernoffInputs);
+    }
+    let mut outcome_ids = BTreeSet::new();
+    for outcome in outcomes {
+        if outcome.outcome_id.trim().is_empty()
+            || !outcome_ids.insert(outcome.outcome_id.clone())
+            || outcome.likelihood_by_hypothesis.len() != prior.len()
+            || outcome
+                .likelihood_by_hypothesis
+                .iter()
+                .any(|probability| {
+                    !probability.is_finite() || *probability < 0.0 || *probability > 1.0
+                })
+        {
+            return Err(ProbeError::InvalidChernoffInputs);
+        }
+    }
+    for hypothesis_index in 0..prior.len() {
+        let sum = outcomes
+            .iter()
+            .map(|outcome| outcome.likelihood_by_hypothesis[hypothesis_index])
+            .sum::<f64>();
+        if (sum - 1.0).abs() > PROBABILITY_TOLERANCE {
+            return Err(ProbeError::InvalidChernoffInputs);
+        }
+    }
+
+    let supported = prior
+        .iter()
+        .enumerate()
+        .filter_map(|(index, probability)| (*probability > 0.0).then_some(index))
+        .collect::<Vec<_>>();
+    let mut weakest_pairwise = f64::INFINITY;
+    for pair_index in 0..supported.len() {
+        for other_index in (pair_index + 1)..supported.len() {
+            let left = supported[pair_index];
+            let right = supported[other_index];
+            let mut minimum_coefficient = 1.0_f64;
+            for step in 0..=grid_intervals {
+                let s = step as f64 / grid_intervals as f64;
+                let complement = 1.0 - s;
+                let coefficient = outcomes
+                    .iter()
+                    .map(|outcome| {
+                        let p_left = outcome.likelihood_by_hypothesis[left];
+                        let p_right = outcome.likelihood_by_hypothesis[right];
+                        let left_term = if s == 0.0 { 1.0 } else { p_left.powf(s) };
+                        let right_term = if complement == 0.0 {
+                            1.0
+                        } else {
+                            p_right.powf(complement)
+                        };
+                        left_term * right_term
+                    })
+                    .sum::<f64>();
+                if !coefficient.is_finite() || coefficient < 0.0 {
+                    return Err(ProbeError::InvalidChernoffInputs);
+                }
+                minimum_coefficient = minimum_coefficient.min(coefficient);
+            }
+            let distance = if minimum_coefficient <= f64::MIN_POSITIVE {
+                -f64::MIN_POSITIVE.ln()
+            } else {
+                -minimum_coefficient.min(1.0).ln()
+            };
+            weakest_pairwise = weakest_pairwise.min(distance);
+        }
+    }
+    if !weakest_pairwise.is_finite() {
+        return Err(ProbeError::InvalidChernoffInputs);
+    }
+    Ok(weakest_pairwise)
+}
+
+/// Minimum pairwise Chernoff separation across all declared likelihood
+/// uncertainty scenarios. A single point-estimate table is evaluated but is
+/// not multi-scenario qualified.
+pub fn worst_case_pairwise_chernoff_information_nats(
+    candidate: &DiagnosticProbeCandidate,
+    prior: &[f64],
+    grid_intervals: usize,
+) -> Result<f64, ProbeError> {
+    if candidate.uncertainty_scenarios.is_empty() {
+        return minimum_pairwise_chernoff_information_nats(
+            prior,
+            &candidate.outcomes,
+            grid_intervals,
+        );
+    }
+    if !candidate.outcomes.is_empty() {
+        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+    }
+    let mut worst_case = f64::INFINITY;
+    for scenario in &candidate.uncertainty_scenarios {
+        let distance = minimum_pairwise_chernoff_information_nats(
+            prior,
+            &scenario.outcomes,
+            grid_intervals,
+        )?;
+        worst_case = worst_case.min(distance);
+    }
+    if !worst_case.is_finite() {
+        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+    }
+    Ok(worst_case)
+}
+
 /// Select a candidate using a frozen baseline over the exact same hard-eligible
 /// catalogue. This enables matched comparisons with the risk-adjusted selector
 /// without relaxing any authorization, risk or information-gain gate.
@@ -766,6 +898,20 @@ pub fn select_probe_baseline(
             .ranked_recommendations
             .first()
             .map(|recommendation| recommendation.candidate_id.clone()),
+        ProbeBaseline::MaximumWorstCaseChernoffInformation => eligible_candidates
+            .iter()
+            .map(|candidate| {
+                Ok((
+                    candidate.candidate_id.as_str(),
+                    worst_case_pairwise_chernoff_information_nats(candidate, &portfolio.prior, 100)?,
+                ))
+            })
+            .collect::<Result<Vec<_>, ProbeError>>()?
+            .into_iter()
+            .max_by(|left, right| {
+                left.1.total_cmp(&right.1).then_with(|| right.0.cmp(left.0))
+            })
+            .map(|(candidate_id, _)| candidate_id.to_owned()),
     };
     Ok(ProbeBaselineSelection {
         baseline,
@@ -1851,6 +1997,43 @@ mod tests {
     }
 
     #[test]
+    fn chernoff_information_is_zero_for_identical_likelihoods_and_positive_for_separable_modes() {
+        let identical = outcomes(false);
+        let separated = outcomes(true);
+        let prior = vec![0.5, 0.5];
+        let identical_distance =
+            minimum_pairwise_chernoff_information_nats(&prior, &identical, 100).unwrap();
+        let separated_distance =
+            minimum_pairwise_chernoff_information_nats(&prior, &separated, 100).unwrap();
+        assert!(identical_distance.abs() < 1e-12);
+        assert!(separated_distance > identical_distance);
+        assert!(matches!(
+            minimum_pairwise_chernoff_information_nats(&prior, &separated, 1),
+            Err(ProbeError::InvalidChernoffGrid)
+        ));
+    }
+
+    #[test]
+    fn worst_case_chernoff_uses_the_least_separable_calibrated_scenario() {
+        let mut candidate = candidate(
+            "uncertain_chernoff",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        candidate.outcomes.clear();
+        candidate.uncertainty_scenarios = vec![
+            scenario("nominal", 0.5, 0.95),
+            scenario("degraded", 0.5, 0.5),
+        ];
+        candidate.candidate_manifest_sha256 = candidate_manifest_sha256(&candidate).unwrap();
+        let worst =
+            worst_case_pairwise_chernoff_information_nats(&candidate, &[0.5, 0.5], 100)
+                .unwrap();
+        assert!(worst.abs() < 1e-12);
+    }
+
+    #[test]
     fn baselines_compare_the_same_eligible_catalogue_and_are_deterministic() {
         let candidates = vec![
             candidate_with_probability("cheap_low_gain", 0.60, 5.0),
@@ -1917,6 +2100,14 @@ mod tests {
             policy.cost_penalty_scale_seconds,
         )
         .unwrap();
+        let chernoff = select_probe_baseline(
+            &portfolio,
+            &candidates,
+            ProbeBaseline::MaximumWorstCaseChernoffInformation,
+            None,
+            policy.cost_penalty_scale_seconds,
+        )
+        .unwrap();
 
         assert_eq!(no_evidence.selected_candidate_id, None);
         assert_eq!(cheapest.selected_candidate_id.as_deref(), Some("cheap_low_gain"));
@@ -1927,7 +2118,8 @@ mod tests {
             robust.selected_candidate_id,
             Some(portfolio.ranked_recommendations[0].candidate_id.clone())
         );
-        for selection in [&cheapest, &maximum_gain, &per_cost, &random_first, &robust] {
+        assert_eq!(chernoff.selected_candidate_id.as_deref(), Some("expensive_high_gain"));
+        for selection in [&cheapest, &maximum_gain, &per_cost, &random_first, &robust, &chernoff] {
             assert_eq!(selection.eligible_candidate_count, 3);
             assert_eq!(selection.eligible_catalogue_sha256, cheapest.eligible_catalogue_sha256);
         }
