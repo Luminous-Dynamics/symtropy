@@ -396,6 +396,17 @@ pub struct KerrObserverRaySeed {
     pub local_direction: KerrLocalSkyDirection,
 }
 
+/// One canonical separation projected onto a finite source ZAMO's local screen.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrObserverScreenProjection {
+    /// Two screen-plane components in the returned source basis.
+    pub components: [f64; 2],
+    /// Orthonormal local source screen basis in [radial, polar, azimuthal].
+    pub local_screen_basis: [[f64; 3]; 2],
+    /// Raw source-frame direction norm error before basis normalization.
+    pub direction_norm_residual: f64,
+}
+
 /// Finite-observer canonical initial data plus two angular screen derivatives.
 ///
 /// The two tangent directions are orthonormal in the observer's local sky
@@ -562,6 +573,16 @@ pub enum KerrGeodesicError {
     NoRegularIngoingBranch {
         radial_denominator: f64,
     },
+    InvalidProjectionTolerance(f64),
+    ObserverEventMismatch {
+        radius_difference: f64,
+        polar_difference: f64,
+        tolerance: f64,
+    },
+    LocalNullResidual {
+        residual: f64,
+        tolerance: f64,
+    },
 }
 
 impl From<PhysicsDomainError> for KerrGeodesicError {
@@ -637,6 +658,15 @@ impl fmt::Display for KerrGeodesicError {
             Self::NoRegularIngoingBranch { radial_denominator } => write!(
                 f,
                 "Kerr ingoing chart requires a positive regularized radial denominator, got {radial_denominator}"
+            ),
+            Self::InvalidProjectionTolerance(value) => write!(f, "screen projection tolerance must be finite and positive, got {value}"),
+            Self::ObserverEventMismatch { radius_difference, polar_difference, tolerance } => write!(
+                f,
+                "source observer does not match ray event: radius difference {radius_difference}, polar difference {polar_difference}, tolerance {tolerance}"
+            ),
+            Self::LocalNullResidual { residual, tolerance } => write!(
+                f,
+                "local source momentum is not sufficiently null: unit-direction residual {residual} exceeds {tolerance}"
             ),
         }
     }
@@ -2010,13 +2040,6 @@ impl KerrFiniteRadiusObserver {
         self.theta_rad
     }
 
-    /// Convert a local future-directed photon direction into E=1 Carter
-    /// constants and a turning-point-ready Mino initial state.
-    ///
-    /// The local photon energy is set to one. The resulting conserved
-    /// energy at infinity is then used to normalize the constants to E=1.
-    /// Negative-Killing-energy rays inside the ergoregion are rejected by
-    /// this API because KerrNullConstants currently represents E>0 rays.
     /// Construct a canonical Kerr state and two local-sky tangent vectors.
     ///
     /// The screen basis is defined deterministically from the local ZAMO
@@ -2119,6 +2142,127 @@ impl KerrFiniteRadiusObserver {
         })
     }
 
+    /// Project a canonical phase-space variation into this observer's
+    /// two-dimensional local screen.
+    ///
+    /// The supplied canonical state must refer to this observer event (r,theta).
+    /// In the ingoing chart, both the covector and coordinate variation are
+    /// transformed back to Boyer-Lindquist components before projection.
+    /// The result is the observer-rest-space separation with its component
+    /// parallel to the local photon direction removed.
+    pub fn project_canonical_variation_to_screen(
+        self,
+        state: KerrCanonicalState,
+        variation: [f64; 8],
+        coordinate_chart: KerrMinoCoordinateChart,
+        tolerance: f64,
+    ) -> Result<KerrObserverScreenProjection, KerrGeodesicError> {
+        if !tolerance.is_finite() || tolerance <= 0.0 {
+            return Err(KerrGeodesicError::InvalidProjectionTolerance(tolerance));
+        }
+        let radius_difference = (state.coordinates.radius_over_m - self.radius_over_m).abs();
+        let polar_difference = (state.coordinates.theta_rad - self.theta_rad).abs();
+        if radius_difference > tolerance * (1.0 + self.radius_over_m.abs())
+            || polar_difference > tolerance
+        {
+            return Err(KerrGeodesicError::ObserverEventMismatch {
+                radius_difference,
+                polar_difference,
+                tolerance,
+            });
+        }
+        if variation.iter().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("source_screen_variation"));
+        }
+
+        let r = self.radius_over_m;
+        let theta = self.theta_rad;
+        let a = self.hole.spin().get();
+        let sin_theta = theta.sin();
+        let cos_theta = theta.cos();
+        let sin_squared = sin_theta * sin_theta;
+        let sigma = r * r + a * a * cos_theta * cos_theta;
+        let delta = r * r - 2.0 * r + a * a;
+        if !delta.is_finite() || delta <= 0.0 {
+            return Err(KerrGeodesicError::BoyerLindquistTurningSingularity { delta });
+        }
+        let g_t_phi = -2.0 * a * r * sin_squared / sigma;
+        let g_phi_phi = self.tetrad.sqrt_g_phi_phi.powi(2);
+
+        let mut p = state.momenta;
+        let mut dq = [variation[0], variation[1], variation[2], variation[3]];
+        if coordinate_chart == KerrMinoCoordinateChart::IngoingKerr {
+            // Inverse covector transform of p_r^(in) = p_r^(BL) - ...
+            p[1] += (p[0] * (r * r + a * a) + p[3] * a) / delta;
+            // t = v - r_*(r), phi = phi_tilde - int(a/Delta)dr.
+            dq[0] -= (r * r + a * a) / delta * dq[1];
+            dq[3] -= a / delta * dq[1];
+        }
+        if p.iter().any(|value| !value.is_finite()) || dq.iter().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("source_screen_chart_transform"));
+        }
+
+        let energy_local = -(p[0] + self.tetrad.frame_dragging_angular_velocity * p[3])
+            / self.tetrad.lapse;
+        if !energy_local.is_finite() || energy_local <= 0.0 {
+            return Err(KerrGeodesicError::NegativeKillingEnergy(energy_local));
+        }
+        let direction_raw = [
+            (delta / sigma).sqrt() * p[1] / energy_local,
+            p[2] / sigma.sqrt() / energy_local,
+            p[3] / self.tetrad.sqrt_g_phi_phi / energy_local,
+        ];
+        let direction_norm = (direction_raw[0].powi(2)
+            + direction_raw[1].powi(2)
+            + direction_raw[2].powi(2)).sqrt();
+        let direction_norm_residual = (direction_norm - 1.0).abs();
+        if !direction_norm.is_finite() || direction_norm <= 0.0
+            || direction_norm_residual > tolerance
+        {
+            return Err(KerrGeodesicError::LocalNullResidual {
+                residual: direction_norm_residual,
+                tolerance,
+            });
+        }
+        let direction = [
+            direction_raw[0] / direction_norm,
+            direction_raw[1] / direction_norm,
+            direction_raw[2] / direction_norm,
+        ];
+        let basis = local_sky_tangent_basis(KerrLocalSkyDirection {
+            radial: direction[0],
+            polar: direction[1],
+            azimuthal: direction[2],
+        });
+
+        // Convert the coordinate displacement into the source ZAMO's
+        // orthonormal spatial components by contracting with the tetrad.
+        let spatial = [
+            (sigma / delta).sqrt() * dq[1],
+            sigma.sqrt() * dq[2],
+            (g_t_phi * dq[0] + g_phi_phi * dq[3]) / self.tetrad.sqrt_g_phi_phi,
+        ];
+        let components = [
+            basis[0][0] * spatial[0] + basis[0][1] * spatial[1] + basis[0][2] * spatial[2],
+            basis[1][0] * spatial[0] + basis[1][1] * spatial[1] + basis[1][2] * spatial[2],
+        ];
+        if components.iter().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("source_screen_projection"));
+        }
+        Ok(KerrObserverScreenProjection {
+            components,
+            local_screen_basis: basis,
+            direction_norm_residual,
+        })
+    }
+
+    /// Convert a local future-directed photon direction into E=1 Carter
+    /// constants and a turning-point-ready Mino initial state.
+    ///
+    /// The local photon energy is set to one. The resulting conserved
+    /// energy at infinity is then used to normalize the constants to E=1.
+    /// Negative-Killing-energy rays inside the ergoregion are rejected by
+    /// this API because KerrNullConstants currently represents E>0 rays.
     pub fn ray_seed(
         self,
         direction: KerrLocalSkyDirection,
