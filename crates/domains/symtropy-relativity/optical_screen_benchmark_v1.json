@@ -298,7 +298,7 @@
     "https://doi.org/10.1103/tkk2-x9st"
   ],
   "screen_frame_policy": {
-    "status": "qualification_requirement_not_yet_implemented",
+    "status": "same-event SO(2) source-screen re-expression implemented; parallel-transported Sachs frame and across-event atlas remain not implemented",
     "topology": "An orthonormal tangent frame cannot be chosen globally continuously over the full observer sky S^2; use overlapping local charts or a transported screen frame.",
     "current_source_observation": "local_sky_tangent_basis selects between two reference axes at abs(azimuthal_direction)=0.9. The resulting bases are co-oriented, so an ideal chart transition is in SO(2), but the displayed 2x2 components can jump at the seam.",
     "risks": [
@@ -313,6 +313,25 @@
       "assert signed determinant and singular values are invariant under the transition",
       "for comparisons across distinct source events, use a parallel-transported Sachs screen basis rather than dotting basis vectors from unrelated local tetrads",
       "refuse a fold/cusp classification when the screen-frame transition is unresolved"
+    ],
+    "implemented_api": "KerrOpticalScreenMap::reexpress_source_screen(target_basis,tolerance)",
+    "implemented_checks": [
+      "construct the two-dimensional transition from the source and target 3D basis rows",
+      "require R*R^T=I within caller tolerance",
+      "require det(R)=+1 within caller tolerance",
+      "reject reflections and non-orthogonal screen bases",
+      "apply J_target=R*J_source and recompute determinant, singular values and conditioning"
+    ],
+    "authored_tests": [
+      "rotation of a 2x2 map preserves signed determinant, both singular values and condition number",
+      "reflection is rejected",
+      "non-orthogonal frame is rejected"
+    ],
+    "remaining": [
+      "store/validate source event and photon direction identity rather than relying on caller contract",
+      "parallel-transport Sachs screen basis across source events",
+      "continuous atlas transition across the observer sky seam",
+      "fold/cusp classification must remain disabled until frame transport is qualified"
     ]
   }
 }
