@@ -290,3 +290,21 @@ The inspected template sets (N=2^9=512), (r=1), (L=sqrt{N/ho}), (10^4) time ste
 ### Qualification boundary
 
 The 2026 study reports cluster degree, path length, clustering coefficient, area and perimeter scaling. OLI currently implements global/local order, interaction degree/reciprocity, connected components, cluster-size statistics, mean clustering coefficient and mean shortest-path length. It does not yet reproduce the complete cluster-mass scaling analysis or geometric area/perimeter observables. Those are explicit next-step benchmarks, not achieved results.
+
+
+## Multiscale cluster persistence: H0 interaction-radius filtration
+
+The new `VicsekModel::h0_persistence(max_radius)` method treats the interaction radius as a filtration parameter rather than assuming one fixed threshold is the only meaningful cluster definition.
+
+Every particle begins as a singleton at radius zero. An unordered pair becomes an edge when at least one focal endpoint can perceive the other at a minimum-image distance strictly smaller than the tested radius. For directional visual-sector perception, the H0 graph uses the explicitly declared weakly connected projection: one-way visibility can connect components, but it is not treated as reciprocal influence.
+
+The output contains:
+- finite component death/merge radii;
+- deterministic elder-rule representative (smallest particle index survives equal-birth merges);
+- component size immediately before a merge and merged size after it;
+- right-censored components still disconnected at the selected maximum radius;
+- the perception geometry and graph semantics used.
+
+This yields a persistence profile: components that merge only at larger scales are structurally more robust to the selected interaction radius than components that disappear at very small scales. It does not prove agency, intelligence or causality. The current checkpoint implementation is (O(N^2log N)); it is not a per-frame metric for large populations.
+
+Regression tests cover analytic pair-merge radii, strict boundary exclusion, one-way visual projection and invariance under global translation across the periodic box. The tests are committed but Rust validation remains pending.
