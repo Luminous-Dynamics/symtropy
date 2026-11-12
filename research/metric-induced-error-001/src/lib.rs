@@ -98,10 +98,7 @@ pub struct Metric<F, const N: usize> {
 }
 
 impl<F, const N: usize> Metric<F, N> {
-    pub fn new(
-        matrix: Matrix<N>,
-        profile: MetricProfileV1,
-    ) -> Result<Self, MetricErrorV1> {
+    pub fn new(matrix: Matrix<N>, profile: MetricProfileV1) -> Result<Self, MetricErrorV1> {
         validate_profile(profile)?;
         if N == 0 {
             return Err(MetricErrorV1::ZeroDimension);
@@ -170,10 +167,7 @@ impl<F, const N: usize> Metric<F, N> {
     }
 
     /// The Riesz map M: T -> T* maps a tangent vector to its metric covector.
-    pub fn lower(
-        &self,
-        tangent: &Tangent<F, N>,
-    ) -> Result<Covector<F, N>, MetricErrorV1> {
+    pub fn lower(&self, tangent: &Tangent<F, N>) -> Result<Covector<F, N>, MetricErrorV1> {
         let components = apply(&self.matrix, &tangent.components);
         Covector::new(components)
     }
@@ -214,10 +208,7 @@ pub struct CoordinateRebasis<From, To, const N: usize> {
 }
 
 impl<From, To, const N: usize> CoordinateRebasis<From, To, N> {
-    pub fn new(
-        to_from: Matrix<N>,
-        profile: MetricProfileV1,
-    ) -> Result<Self, MetricErrorV1> {
+    pub fn new(to_from: Matrix<N>, profile: MetricProfileV1) -> Result<Self, MetricErrorV1> {
         validate_profile(profile)?;
         if N == 0 {
             return Err(MetricErrorV1::ZeroDimension);
@@ -280,7 +271,11 @@ impl<From, To, const N: usize> CoordinateRebasis<From, To, N> {
 
 /// Coordinate infinity norm; retained as a representation-dependent diagnostic.
 pub fn coordinate_inf_tangent<F, const N: usize>(value: &Tangent<F, N>) -> f64 {
-    value.components.iter().map(|entry| entry.abs()).fold(0.0, f64::max)
+    value
+        .components
+        .iter()
+        .map(|entry| entry.abs())
+        .fold(0.0, f64::max)
 }
 
 pub fn coordinate_inf_covector<F, const N: usize>(value: &Covector<F, N>) -> f64 {
@@ -297,9 +292,7 @@ pub fn riesz_residual<F, const N: usize>(
     force: &Covector<F, N>,
 ) -> Result<Covector<F, N>, MetricErrorV1> {
     let applied = metric.lower(approximate_acceleration)?;
-    let residual = std::array::from_fn(|index| {
-        applied.components[index] - force.components[index]
-    });
+    let residual = std::array::from_fn(|index| applied.components[index] - force.components[index]);
     Covector::new(residual)
 }
 
@@ -330,10 +323,7 @@ fn checked_sqrt(value: f64, tolerance: f64) -> Result<f64, MetricErrorV1> {
 }
 
 fn dot<const N: usize>(left: &[f64; N], right: &[f64; N]) -> f64 {
-    left.iter()
-        .zip(right.iter())
-        .map(|(a, b)| a * b)
-        .sum()
+    left.iter().zip(right.iter()).map(|(a, b)| a * b).sum()
 }
 
 fn apply<const N: usize>(matrix: &Matrix<N>, vector: &[f64; N]) -> [f64; N] {
@@ -436,7 +426,11 @@ fn inverse<const N: usize>(
     });
     for pivot_column in 0..N {
         let pivot_row = (pivot_column..N)
-            .max_by(|a, b| left[*a][pivot_column].abs().total_cmp(&left[*b][pivot_column].abs()))
+            .max_by(|a, b| {
+                left[*a][pivot_column]
+                    .abs()
+                    .total_cmp(&left[*b][pivot_column].abs())
+            })
             .ok_or(MetricErrorV1::ZeroDimension)?;
         let pivot = left[pivot_row][pivot_column].abs();
         if !pivot.is_finite() || pivot <= threshold {
@@ -553,7 +547,9 @@ mod tests {
         let tangent_y = basis.pull_tangent_to_to(&tangent_q).unwrap();
         let tangent_roundtrip = basis.push_tangent_to_from(&tangent_y).unwrap();
         for i in 0..3 {
-            assert!((tangent_roundtrip.components()[i] - tangent_q.components()[i]).abs() < 1.0e-12);
+            assert!(
+                (tangent_roundtrip.components()[i] - tangent_q.components()[i]).abs() < 1.0e-12
+            );
         }
         let force_y = Covector::<DenseGeneralizedFrame, 3>::new([2.0, -1.0, 4.0]).unwrap();
         let force_q = basis.push_covector_to_from(&force_y).unwrap();
@@ -597,13 +593,11 @@ mod tests {
     #[test]
     fn nonsymmetric_and_indefinite_metrics_fail_closed() {
         assert_eq!(
-            Metric::<CartesianFrame, 2>::new([[2.0, 0.1], [0.0, 3.0]], profile())
-                .unwrap_err(),
+            Metric::<CartesianFrame, 2>::new([[2.0, 0.1], [0.0, 3.0]], profile()).unwrap_err(),
             MetricErrorV1::MetricNotSymmetric
         );
         assert_eq!(
-            Metric::<CartesianFrame, 2>::new([[1.0, 2.0], [2.0, 1.0]], profile())
-                .unwrap_err(),
+            Metric::<CartesianFrame, 2>::new([[1.0, 2.0], [2.0, 1.0]], profile()).unwrap_err(),
             MetricErrorV1::MetricNotPositiveDefinite
         );
     }
@@ -622,11 +616,8 @@ mod tests {
 
     #[test]
     fn nonfinite_intermediate_norms_fail_closed() {
-        let metric = Metric::<CartesianFrame, 2>::new(
-            [[1.0e200, 0.0], [0.0, 1.0e200]],
-            profile()
-        )
-        .unwrap();
+        let metric =
+            Metric::<CartesianFrame, 2>::new([[1.0e200, 0.0], [0.0, 1.0e200]], profile()).unwrap();
         let huge = Tangent::<CartesianFrame, 2>::new([1.0e200, 0.0]).unwrap();
         assert_eq!(
             metric.tangent_norm(&huge, profile()),
