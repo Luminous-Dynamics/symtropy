@@ -99,3 +99,26 @@ Use episodes / independent perturbation sequences as statistical units. Correlat
 ## Claim boundary
 
 The schema and fixtures qualify only synthetic contract semantics. They do not qualify clock truth, sensor calibration, actuator dynamics, thermal forecasts, energy-boundary completeness, viability, safe control or whole-robot readiness. Physical claims require calibrated instruments, independent reference channels, held-out sequential trials and exact trace provenance.
+
+
+## Executable Rust reference adapter
+
+A dependency-free Rust package now lives at `adapter/`:
+
+- `adapter/Cargo.toml` — standalone edition-2024 package, isolated from the application crate and with no third-party dependencies.
+- `adapter/src/lib.rs` — typed normalized-trace adapter for causal identities, bounded clocks, AoI, command-to-motion, decision sufficiency, thermal continuity, upstream energy closure, sampling and terminal safe-stop.
+- `adapter/Cargo.lock` — committed lockfile for reproducible `--locked` runs.
+
+Run the reference package with the repository-pinned Rust 1.96 toolchain:
+
+```sh
+cargo fmt --manifest-path research/loco-joint-metrology-001/adapter/Cargo.toml -- --check
+cargo test --locked --manifest-path research/loco-joint-metrology-001/adapter/Cargo.toml
+cargo clippy --locked --manifest-path research/loco-joint-metrology-001/adapter/Cargo.toml --all-targets -- -D warnings
+```
+
+The reference source contains 20 deterministic unit tests covering complete trace closure, independent AoI and actuator response, bounded and unknown clock relations, interval uncertainty, timestamp inversions, missing thermal nodes, thermal resets and predecessor mismatch, decision regret/expiry/prefix mismatch, energy boundary incompleteness and upstream receipt rejection, sampling limits, terminal safe-stop, and causal identity/sequence integrity. These are authored tests; exact-head CI is the execution gate.
+
+The adapter accepts typed, normalized upstream receipts. It does not parse raw DAQ files, establish transducer calibration, estimate motor/thermal state, compute first-law closure, generate causal event IDs, or authorize actuation. An energy PASS requires a complete boundary and an upstream balanced receipt. A retrospective report always has `actuation_authorized = false`. Raw traces and calibration artifacts remain separately stored and digest-bound.
+
+A dedicated `LOCO Joint Trace Adapter (Rust 1.96)` workflow job now runs format, tests and strict Clippy directly against this standalone manifest; the main application workspace does not include it.
