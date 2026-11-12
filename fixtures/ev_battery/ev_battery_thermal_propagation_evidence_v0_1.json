@@ -47,12 +47,21 @@
       "metrology_ref": "MET-COMP"
     },
     {
-      "evidence_id": "E-CRITERIA",
+      "evidence_id": "E-CRITERIA-UNR100",
       "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "evidence_class": "literature",
       "admission": "admitted_for_evaluation",
-      "claim_scope": "synthetic fixture acceptance-criteria reference",
-      "authority_or_lab_ref": "SYNTHETIC-CRITERIA-REFERENCE",
+      "claim_scope": "UN-R100-2026 UN-R100-6.15-Annex-9K-05-series-criteria 05-series",
+      "authority_or_lab_ref": "SYNTHETIC-UN-R100-REFERENCE",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-CRITERIA-UL9540A",
+      "source_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence_class": "literature",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "UL-9540A UL-9540A-6th-edition-acceptance-criteria 6th-edition",
+      "authority_or_lab_ref": "SYNTHETIC-UL-9540A-REFERENCE",
       "metrology_ref": null
     }
   ],
