@@ -361,3 +361,154 @@ fn production_contact_response_matches_independent_oracle_across_frames_and_step
         }
     }
 }
+
+fn qualify_two_dynamic_body_case(frame_generator: Bivector<3>) {
+    let frame = Rotor::from_bivector(&frame_generator);
+    let mass_a = 2.0;
+    let mass_b = 3.0;
+    let inertia_a = mass_a / 6.0;
+    let inertia_b = mass_b / 6.0;
+    let local_normal = SVector::from([0.0, 1.0, 0.0]);
+    let normal = frame.rotate_vector(&local_normal);
+    let com_a = frame.rotate_vector(&SVector::zeros());
+    let com_b = frame.rotate_vector(&SVector::from([0.0, 1.0, 0.0]));
+    let point = frame.rotate_vector(&SVector::from([0.25, 0.5, 0.15]));
+    let offset_a = point - com_a;
+    let offset_b = point - com_b;
+
+    let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+    world.baumgarte = 0.0;
+    world.slop = 0.0;
+
+    let mut body_a = RigidBody::<3>::new(
+        BodyHandle(0),
+        BodyType::Dynamic,
+        Transform {
+            translation: Point(com_a),
+            rotation: frame,
+        },
+        Box::new(HyperBox::<3>::cube(0.5)),
+        mass_a,
+        SVector::from_element(inertia_a),
+    );
+    body_a.linear_velocity = normal * 0.5;
+    body_a.friction = 0.0;
+
+    let mut body_b = RigidBody::<3>::new(
+        BodyHandle(1),
+        BodyType::Dynamic,
+        Transform {
+            translation: Point(com_b),
+            rotation: frame,
+        },
+        Box::new(HyperBox::<3>::cube(0.5)),
+        mass_b,
+        SVector::from_element(inertia_b),
+    );
+    body_b.linear_velocity = normal * -0.5;
+    body_b.friction = 0.0;
+
+    let handle_a = world.add_body(body_a);
+    let handle_b = world.add_body(body_b);
+    let contact = ContactManifold::single(handle_a, handle_b, normal, point, 0.0);
+
+    let before_a = &world.bodies[0];
+    let before_b = &world.bodies[1];
+    let before_linear_momentum =
+        before_a.linear_velocity * mass_a + before_b.linear_velocity * mass_b;
+    let before_point_velocity_a = before_a.linear_velocity
+        + integrator::angular_point_velocity(&before_a.angular_velocity, &offset_a);
+    let before_point_velocity_b = before_b.linear_velocity
+        + integrator::angular_point_velocity(&before_b.angular_velocity, &offset_b);
+    let before_relative_velocity = before_point_velocity_b - before_point_velocity_a;
+    let before_energy = before_a.kinetic_energy() + before_b.kinetic_energy();
+
+    let lever_a_squared =
+        (offset_a.norm_squared() - offset_a.dot(&normal).powi(2)).max(0.0);
+    let lever_b_squared =
+        (offset_b.norm_squared() - offset_b.dot(&normal).powi(2)).max(0.0);
+    let inverse_effective_mass = 1.0 / mass_a
+        + 1.0 / mass_b
+        + lever_a_squared / inertia_a
+        + lever_b_squared / inertia_b;
+    let expected_impulse = -before_relative_velocity.dot(&normal) / inverse_effective_mass;
+
+    let mut callback = NoOpCallback;
+    let solved = world.resolve_contact(contact, 1.0 / 60.0, &mut callback);
+    let after_a = &world.bodies[0];
+    let after_b = &world.bodies[1];
+    let observed_impulse = solved.points[0].lambda;
+    let impulse = normal * observed_impulse;
+    let after_point_velocity_a = after_a.linear_velocity
+        + integrator::angular_point_velocity(&after_a.angular_velocity, &offset_a);
+    let after_point_velocity_b = after_b.linear_velocity
+        + integrator::angular_point_velocity(&after_b.angular_velocity, &offset_b);
+    let after_relative_velocity = after_point_velocity_b - after_point_velocity_a;
+
+    assert!(
+        (observed_impulse - expected_impulse).abs()
+            / expected_impulse.abs().max(f64::MIN_POSITIVE)
+            < 2.0e-12,
+        "two-body impulse disagrees with the summed effective-mass oracle: observed={observed_impulse:e}, expected={expected_impulse:e}"
+    );
+    assert!(
+        after_relative_velocity.dot(&normal).abs()
+            / before_relative_velocity.dot(&normal).abs()
+                .max(f64::MIN_POSITIVE)
+            < 2.0e-12,
+        "two-body contact relative normal speed remains nonzero"
+    );
+
+    let after_linear_momentum =
+        after_a.linear_velocity * mass_a + after_b.linear_velocity * mass_b;
+    let momentum_scale = before_linear_momentum.norm().max(impulse.norm());
+    assert!(
+        (after_linear_momentum - before_linear_momentum).norm()
+            / momentum_scale.max(f64::MIN_POSITIVE)
+            < 2.0e-12,
+        "two-body contact did not conserve total linear momentum"
+    );
+
+    let expected_torque_a = integrator::angular_impulse_from_point(&offset_a, &(-impulse));
+    let expected_torque_b = integrator::angular_impulse_from_point(&offset_b, &impulse);
+    let angular_change_a = after_a.angular_velocity.scale(inertia_a);
+    let angular_change_b = after_b.angular_velocity.scale(inertia_b);
+    assert!(
+        angular_change_a
+            .add(&expected_torque_a.scale(-1.0))
+            .norm()
+            / expected_torque_a.norm().max(f64::MIN_POSITIVE)
+            < 2.0e-12,
+        "body A angular momentum does not match its opposite contact impulse"
+    );
+    assert!(
+        angular_change_b
+            .add(&expected_torque_b.scale(-1.0))
+            .norm()
+            / expected_torque_b.norm().max(f64::MIN_POSITIVE)
+            < 2.0e-12,
+        "body B angular momentum does not match its contact impulse"
+    );
+
+    let impulse_work = impulse.dot(&((before_relative_velocity + after_relative_velocity) * 0.5));
+    let after_energy = after_a.kinetic_energy() + after_b.kinetic_energy();
+    let energy_scale = before_energy.abs().max(after_energy.abs()).max(impulse_work.abs());
+    assert!(
+        (after_energy - before_energy - impulse_work).abs()
+            / energy_scale.max(f64::MIN_POSITIVE)
+            < 2.0e-12,
+        "two-body impulse work and total kinetic-energy change disagree"
+    );
+}
+
+#[test]
+fn production_two_body_contact_response_matches_shared_impulse_oracle_across_frames() {
+    for frame in [
+        generator([0.0, 0.0, 0.0]),
+        generator([0.31, -0.17, 0.23]),
+        generator([-0.41, 0.28, 0.11]),
+    ] {
+        qualify_two_dynamic_body_case(frame);
+    }
+}
+
