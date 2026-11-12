@@ -120,7 +120,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     println!("Admission dispositions:");
     for disposition in &report.dispositions {
-        println!("  {}: {:?}", disposition.candidate_id, disposition.disposition);
+        println!(
+            "  {}: {:?}",
+            disposition.candidate_id, disposition.disposition
+        );
     }
     println!("No factory performance or environmental result is inferred from this fixture.");
     Ok(())
