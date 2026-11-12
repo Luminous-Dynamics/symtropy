@@ -13,7 +13,7 @@ check_blob() {
   local path="$1"
   local expected="$2"
   local actual
-  actual="$(git -C "$reference_root" hash-object "$reference_root/$path")"
+  actual="$(git -C "$reference_root" rev-parse "$expected_commit:$path")"
   if [[ "$actual" != "$expected" ]]; then
     printf 'blob mismatch for %s: expected %s, got %s\n' "$path" "$expected" "$actual" >&2
     exit 1
