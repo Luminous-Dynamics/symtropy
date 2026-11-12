@@ -180,13 +180,8 @@ fn qualify_two_point_manifold(frame_generator: Bivector<3>) {
 
     let fixed_handle = world.add_body(fixed);
     let moving_handle = world.add_body(moving);
-    let mut contact = ContactManifold::single(
-        fixed_handle,
-        moving_handle,
-        normal,
-        com + offsets[0],
-        0.0,
-    );
+    let mut contact =
+        ContactManifold::single(fixed_handle, moving_handle, normal, com + offsets[0], 0.0);
     contact.points.push(crate::contact::ContactPoint {
         position: com + offsets[1],
         depth: 0.0,
@@ -213,14 +208,12 @@ fn qualify_two_point_manifold(frame_generator: Bivector<3>) {
         }
     }
     let rhs = [-free_speed[0], -free_speed[1]];
-    let determinant = effective_mass[0][0] * effective_mass[1][1]
-        - effective_mass[0][1] * effective_mass[1][0];
+    let determinant =
+        effective_mass[0][0] * effective_mass[1][1] - effective_mass[0][1] * effective_mass[1][0];
     assert!(determinant > 0.0, "independent Delassus matrix must be SPD");
     let expected_impulses = [
-        (rhs[0] * effective_mass[1][1] - effective_mass[0][1] * rhs[1])
-            / determinant,
-        (effective_mass[0][0] * rhs[1] - effective_mass[1][0] * rhs[0])
-            / determinant,
+        (rhs[0] * effective_mass[1][1] - effective_mass[0][1] * rhs[1]) / determinant,
+        (effective_mass[0][0] * rhs[1] - effective_mass[1][0] * rhs[0]) / determinant,
     ];
 
     // The production world uses sequential impulses across solver_iterations.
@@ -233,8 +226,7 @@ fn qualify_two_point_manifold(frame_generator: Bivector<3>) {
         contact = world.resolve_contact(contact, 1.0 / 60.0, &mut callback);
         if iteration + 1 == default_iterations {
             let body = &world.bodies[1];
-            default_iteration_impulses =
-                Some([contact.points[0].lambda, contact.points[1].lambda]);
+            default_iteration_impulses = Some([contact.points[0].lambda, contact.points[1].lambda]);
             default_iteration_speeds = Some(offsets.map(|offset| {
                 (body.linear_velocity
                     + integrator::angular_point_velocity(&body.angular_velocity, &offset))
@@ -298,14 +290,10 @@ fn qualify_two_point_manifold(frame_generator: Bivector<3>) {
         "two-point linear momentum transfer is inconsistent"
     );
 
-    let expected_angular_impulse = integrator::angular_impulse_from_point(
-        &offsets[0],
-        &(normal * observed_impulses[0]),
-    )
-    .add(&integrator::angular_impulse_from_point(
-        &offsets[1],
-        &(normal * observed_impulses[1]),
-    ));
+    let expected_angular_impulse =
+        integrator::angular_impulse_from_point(&offsets[0], &(normal * observed_impulses[0])).add(
+            &integrator::angular_impulse_from_point(&offsets[1], &(normal * observed_impulses[1])),
+        );
     let angular_momentum_change = after
         .angular_velocity
         .add(&before_angular_velocity.scale(-1.0))
@@ -326,10 +314,12 @@ fn qualify_two_point_manifold(frame_generator: Bivector<3>) {
         .map(|i| observed_impulses[i] * (free_speed[i] + after_speeds[i]) * 0.5)
         .sum::<f64>();
     let after_energy = after.kinetic_energy();
-    let energy_scale = before_energy.abs().max(after_energy.abs()).max(impulse_work.abs());
+    let energy_scale = before_energy
+        .abs()
+        .max(after_energy.abs())
+        .max(impulse_work.abs());
     assert!(
-        (after_energy - before_energy - impulse_work).abs()
-            / energy_scale.max(f64::MIN_POSITIVE)
+        (after_energy - before_energy - impulse_work).abs() / energy_scale.max(f64::MIN_POSITIVE)
             < 2.0e-12,
         "two-point impulse work does not balance kinetic energy"
     );
@@ -422,14 +412,10 @@ fn qualify_two_dynamic_body_case(frame_generator: Bivector<3>) {
     let before_relative_velocity = before_point_velocity_b - before_point_velocity_a;
     let before_energy = before_a.kinetic_energy() + before_b.kinetic_energy();
 
-    let lever_a_squared =
-        (offset_a.norm_squared() - offset_a.dot(&normal).powi(2)).max(0.0);
-    let lever_b_squared =
-        (offset_b.norm_squared() - offset_b.dot(&normal).powi(2)).max(0.0);
-    let inverse_effective_mass = 1.0 / mass_a
-        + 1.0 / mass_b
-        + lever_a_squared / inertia_a
-        + lever_b_squared / inertia_b;
+    let lever_a_squared = (offset_a.norm_squared() - offset_a.dot(&normal).powi(2)).max(0.0);
+    let lever_b_squared = (offset_b.norm_squared() - offset_b.dot(&normal).powi(2)).max(0.0);
+    let inverse_effective_mass =
+        1.0 / mass_a + 1.0 / mass_b + lever_a_squared / inertia_a + lever_b_squared / inertia_b;
     let expected_impulse = -before_relative_velocity.dot(&normal) / inverse_effective_mass;
 
     let mut callback = NoOpCallback;
@@ -445,21 +431,21 @@ fn qualify_two_dynamic_body_case(frame_generator: Bivector<3>) {
     let after_relative_velocity = after_point_velocity_b - after_point_velocity_a;
 
     assert!(
-        (observed_impulse - expected_impulse).abs()
-            / expected_impulse.abs().max(f64::MIN_POSITIVE)
+        (observed_impulse - expected_impulse).abs() / expected_impulse.abs().max(f64::MIN_POSITIVE)
             < 2.0e-12,
         "two-body impulse disagrees with the summed effective-mass oracle: observed={observed_impulse:e}, expected={expected_impulse:e}"
     );
     assert!(
         after_relative_velocity.dot(&normal).abs()
-            / before_relative_velocity.dot(&normal).abs()
+            / before_relative_velocity
+                .dot(&normal)
+                .abs()
                 .max(f64::MIN_POSITIVE)
             < 2.0e-12,
         "two-body contact relative normal speed remains nonzero"
     );
 
-    let after_linear_momentum =
-        after_a.linear_velocity * mass_a + after_b.linear_velocity * mass_b;
+    let after_linear_momentum = after_a.linear_velocity * mass_a + after_b.linear_velocity * mass_b;
     let momentum_scale = before_linear_momentum.norm().max(impulse.norm());
     assert!(
         (after_linear_momentum - before_linear_momentum).norm()
@@ -473,17 +459,13 @@ fn qualify_two_dynamic_body_case(frame_generator: Bivector<3>) {
     let angular_change_a = after_a.angular_velocity.scale(inertia_a);
     let angular_change_b = after_b.angular_velocity.scale(inertia_b);
     assert!(
-        angular_change_a
-            .add(&expected_torque_a.scale(-1.0))
-            .norm()
+        angular_change_a.add(&expected_torque_a.scale(-1.0)).norm()
             / expected_torque_a.norm().max(f64::MIN_POSITIVE)
             < 2.0e-12,
         "body A angular momentum does not match its opposite contact impulse"
     );
     assert!(
-        angular_change_b
-            .add(&expected_torque_b.scale(-1.0))
-            .norm()
+        angular_change_b.add(&expected_torque_b.scale(-1.0)).norm()
             / expected_torque_b.norm().max(f64::MIN_POSITIVE)
             < 2.0e-12,
         "body B angular momentum does not match its contact impulse"
@@ -491,10 +473,12 @@ fn qualify_two_dynamic_body_case(frame_generator: Bivector<3>) {
 
     let impulse_work = impulse.dot(&((before_relative_velocity + after_relative_velocity) * 0.5));
     let after_energy = after_a.kinetic_energy() + after_b.kinetic_energy();
-    let energy_scale = before_energy.abs().max(after_energy.abs()).max(impulse_work.abs());
+    let energy_scale = before_energy
+        .abs()
+        .max(after_energy.abs())
+        .max(impulse_work.abs());
     assert!(
-        (after_energy - before_energy - impulse_work).abs()
-            / energy_scale.max(f64::MIN_POSITIVE)
+        (after_energy - before_energy - impulse_work).abs() / energy_scale.max(f64::MIN_POSITIVE)
             < 2.0e-12,
         "two-body impulse work and total kinetic-energy change disagree"
     );
