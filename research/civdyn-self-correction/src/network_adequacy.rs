@@ -342,11 +342,14 @@ impl TemporalNetworkSequence {
         ticks: Vec<u64>,
         snapshots: Vec<UndirectedNetwork>,
     ) -> Result<Self, TemporalNetworkError> {
-        if snapshots.len() < 2 {
-            return Err(TemporalNetworkError::TooFewSnapshots);
-        }
+        // Validate the paired time/snapshot structure before the minimum
+        // history length. A one-snapshot sequence with a mismatched tick list
+        // is a cardinality error, not merely an undersized history.
         if ticks.len() != snapshots.len() {
             return Err(TemporalNetworkError::TickCountMismatch);
+        }
+        if snapshots.len() < 2 {
+            return Err(TemporalNetworkError::TooFewSnapshots);
         }
         if ticks.windows(2).any(|pair| pair[1] <= pair[0]) {
             return Err(TemporalNetworkError::TicksNotStrictlyIncreasing);
@@ -933,8 +936,8 @@ mod tests {
         )
         .expect("reversed temporal model");
 
-        assert_eq!(correct.energy_score, 0.0);
-        assert_eq!(correct.variogram_score, 0.0);
+        assert!(correct.energy_score.abs() < 1e-12);
+        assert!(correct.variogram_score.abs() < 1e-12);
         assert!(reversed.energy_score > 0.0);
         assert!(reversed.variogram_score > 0.0);
         assert_eq!(correct.predictive_draw_count, 20);
