@@ -117,6 +117,14 @@ The harness requires maximum_observation_delivery_age_us >= 5,000 in the fixture
 
 The Symthaea bridge CLI stages all HDC vectors and writes neither the receipt file nor policy-input artifacts until the full episode has passed validation. The output receipt path must be unused and the policy-input directory absent or empty before a run. This is output atomicity for validation failures, not a claim of crash-safe multi-file storage transactions.
 
+## Automated cross-repository run
+
+The preferred integration entry point is the GitHub Actions workflow `.github/workflows/fresh-process-driving-observation-e2e.yml`. It checks out the exact Symtropy PR commit and the named Symthaea/#4556/#4666 source branches, builds all three executables, generates the fixture configs, runs the harness, verifies the episode report contract and uploads the full artifact tree.
+
+The workflow resolves the Symthaea workspace lock once, then runs all subsequent Symthaea build commands with `--locked`. The resolved `Cargo.lock` is copied into the uploaded episode provenance directory and its SHA-256 is recorded beside the exact source commits and executable SHA-256 values. This preserves the actual external dependency graph used by that run even while the upstream Symthaea branch is being brought back into sync with its workspace lockfile.
+
+A green compile/test/Clippy workflow is necessary but not sufficient: the separate `fresh-process-driving-observation-e2e` workflow must also complete successfully and pass its 20-tick report assertions before claiming the integration fixture has executed.
+
 ## Run
 
 From the Symtropy repository root, assuming the Symtropy and Symthaea working trees are sibling directories named `symtropy` and `symthaea`:
@@ -163,6 +171,8 @@ cargo fmt --manifest-path research/fresh-process-driving-observation-replay-001/
 cargo test --locked --manifest-path research/fresh-process-driving-observation-replay-001/Cargo.toml
 cargo clippy --locked --manifest-path research/fresh-process-driving-observation-replay-001/Cargo.toml --all-targets --all-features -- -D warnings
 ```
+
+The manual command below remains available for local reproduction. The automated workflow is the recommended path when the three external binaries are not already built.
 
 ## Claim ceiling
 
