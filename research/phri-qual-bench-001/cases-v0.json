@@ -1,0 +1,1041 @@
+{
+  "schema_version": "1.0.0",
+  "program": "PHRI-QUAL-BENCH-001",
+  "status": "scenario_manifest_only_not_executed",
+  "units": {
+    "time": "s",
+    "length": "m",
+    "force": "N",
+    "torque": "N_m",
+    "energy": "J",
+    "power": "W",
+    "stiffness_translation": "N_m",
+    "stiffness_rotation": "N_m_per_rad",
+    "pressure": "Pa"
+  },
+  "required_run_identity": [
+    "source_sha",
+    "plant_model_digest",
+    "geometry_revision_digest",
+    "actuator_revision_digest",
+    "controller_period_s",
+    "integration_method",
+    "sensor_profile_digest",
+    "clock_domain_id",
+    "boot_epoch",
+    "port_id",
+    "spatial_frame_id",
+    "payload_digest",
+    "trajectory_digest",
+    "disturbance_seed",
+    "numeric_precision",
+    "compiler_identity",
+    "solver_configuration_digest",
+    "hardware_identity",
+    "safety_case_revision",
+    "stop_policy_revision",
+    "physical_sensor_serial",
+    "sensor_family",
+    "manufacturing_lot",
+    "sensor_firmware_revision",
+    "calibration_revision",
+    "sensor_temperature_c",
+    "sensor_cycle_count"
+  ],
+  "comparison_regimes": [
+    "matched_common_parameterization",
+    "native_method_expressivity"
+  ],
+  "baseline_arms": [
+    "fixed_full_matrix_impedance",
+    "energy_tank_or_passivity_observer",
+    "dinc_diagonal_vic_qp",
+    "dinc_generalized_eigenbasis_compliance",
+    "muehlbauer_passive_matrix_shared_control",
+    "poignonec_passivity_constrained_nmpc",
+    "luminous_diagonal_vic_reference",
+    "luminous_basis_free_candidate",
+    "ru_et_al_matrix_valued_passivity_indices_lti_scope",
+    "single_rate_synchronous_adaptation",
+    "multi_rate_proposal_expiry_local_safety_architecture",
+    "compositional_interaction_envelope_gate",
+    "weighted_composite_risk_score_negative_control",
+    "independent_checks_without_shared_identity_negative_control"
+  ],
+  "scenarios": [
+    {
+      "id": "matrix-repeated-eigenvalues",
+      "domain": "optimizer",
+      "purpose": "Test matrix-coordinate continuity at repeated generalized eigenvalues.",
+      "seeded_faults": [],
+      "required_assertions": [
+        "symmetric_output",
+        "psd_barrier_rechecked",
+        "passivity_rechecked",
+        "no_basis_identity_dependency"
+      ]
+    },
+    {
+      "id": "matrix-near-crossings",
+      "domain": "optimizer",
+      "purpose": "Sweep eigenvalue gaps through numerical resolution and crossings.",
+      "seeded_faults": [
+        "eigenvalue_gap_sweep"
+      ],
+      "required_assertions": [
+        "finite_output_or_explicit_abstention",
+        "no_false_feasible",
+        "reconstruction_residual_reported"
+      ]
+    },
+    {
+      "id": "matrix-rotating-compliance",
+      "domain": "optimizer",
+      "purpose": "Rotate physical compliance directions smoothly while stiffness remains smooth.",
+      "seeded_faults": [
+        "rotating_eigenspace"
+      ],
+      "required_assertions": [
+        "matrix_tracking_error_reported",
+        "basis_flip_count_reported_for_basis_method",
+        "coordinate_covariance_reported"
+      ]
+    },
+    {
+      "id": "matrix-offdiagonal-updates",
+      "domain": "optimizer",
+      "purpose": "Exercise coupled off-diagonal stiffness-rate decisions.",
+      "seeded_faults": [
+        "off_diagonal_rate"
+      ],
+      "required_assertions": [
+        "full_matrix_constraints_rechecked",
+        "expressivity_regime_declared"
+      ]
+    },
+    {
+      "id": "matrix-inertia-conditioning",
+      "domain": "optimizer",
+      "purpose": "Increase task-inertia condition number and vary Jacobian conditioning.",
+      "seeded_faults": [
+        "condition_number_sweep"
+      ],
+      "required_assertions": [
+        "conditioning_reported",
+        "solver_residual_reported",
+        "explicit_infeasibility_allowed"
+      ]
+    },
+    {
+      "id": "optimizer-degenerate-states",
+      "domain": "optimizer",
+      "purpose": "Exercise zero and near-zero task error, velocity, and damping dissipation.",
+      "seeded_faults": [
+        "zero_velocity",
+        "zero_error",
+        "near_zero_state"
+      ],
+      "required_assertions": [
+        "degenerate_case_classified",
+        "no_nan_inf_acceptance",
+        "no_false_feasible"
+      ]
+    },
+    {
+      "id": "rate-barrier-infeasibility",
+      "domain": "optimizer",
+      "purpose": "Create empty or boundary-only intersections between passivity and rate constraints.",
+      "seeded_faults": [
+        "upper_rate_cap",
+        "lower_rate_barrier"
+      ],
+      "required_assertions": [
+        "infeasible_or_boundary_only_explicit",
+        "no_silent_constraint_relaxation"
+      ]
+    },
+    {
+      "id": "sampled-data-ports",
+      "domain": "execution_energy",
+      "purpose": "Compare continuous prediction with finite-step measured energy across variable sample periods.",
+      "seeded_faults": [
+        "zero_order_hold",
+        "integration_step_sweep",
+        "parameter_step",
+        "actuator_delay"
+      ],
+      "required_assertions": [
+        "every_prefix_residual_reported",
+        "actual_applied_output_used",
+        "uncertainty_bound_method_declared"
+      ]
+    },
+    {
+      "id": "sample-provenance-faults",
+      "domain": "execution_energy",
+      "purpose": "Challenge temporal, identity and measurement validity.",
+      "seeded_faults": [
+        "clock_reset",
+        "clock_skew",
+        "stale_packet",
+        "duplicate_packet",
+        "reordered_packet",
+        "saturation",
+        "profile_mismatch"
+      ],
+      "required_assertions": [
+        "invalid_evidence_rejected",
+        "unknown_not_zero",
+        "observer_state_unchanged_on_rejection"
+      ]
+    },
+    {
+      "id": "nullspace-energy",
+      "domain": "execution_energy",
+      "purpose": "Exercise null-space motion while task-space energy appears satisfied.",
+      "seeded_faults": [
+        "nullspace_motion"
+      ],
+      "required_assertions": [
+        "task_and_nullspace_energy_reported_separately",
+        "no_full_robot_passivity_claim_from_task_only"
+      ]
+    },
+    {
+      "id": "tactile-contact-migration",
+      "domain": "tactile_metrology",
+      "purpose": "Move contact across the tile at constant reference load.",
+      "seeded_faults": [
+        "contact_migration"
+      ],
+      "required_assertions": [
+        "force_bias_reported",
+        "contact_area_method_declared",
+        "cop_error_reported"
+      ]
+    },
+    {
+      "id": "tactile-curvature-and-seams",
+      "domain": "tactile_metrology",
+      "purpose": "Exercise surface curvature, multi-tile registration and seam transitions.",
+      "seeded_faults": [
+        "curvature_sweep",
+        "tile_seam",
+        "registration_offset"
+      ],
+      "required_assertions": [
+        "geometry_revision_bound",
+        "seam_discontinuity_reported",
+        "uncertainty_coverage_reported"
+      ]
+    },
+    {
+      "id": "tactile-shear-slip-drift",
+      "domain": "tactile_metrology",
+      "purpose": "Measure cross-axis effects, slip, creep, hysteresis and thermal drift.",
+      "seeded_faults": [
+        "tangential_load",
+        "slip",
+        "dwell",
+        "temperature_cycle"
+      ],
+      "required_assertions": [
+        "unsupported_shear_not_inferred",
+        "slip_metric_declared",
+        "drift_reported"
+      ]
+    },
+    {
+      "id": "agency-stop-refusal",
+      "domain": "agency",
+      "purpose": "Exercise independent wearer-owned stop and refusal under adaptation.",
+      "seeded_faults": [
+        "stop_during_transition",
+        "conflicting_task_objective"
+      ],
+      "required_assertions": [
+        "stop_latency_reported",
+        "no_action_after_stop_receipt",
+        "no_tactile_consent_inference"
+      ]
+    },
+    {
+      "id": "tactile-cross-sensor-transfer",
+      "domain": "tactile_metrology",
+      "purpose": "Measure within-unit accuracy, zero-shot cross-unit transfer and few-shot adaptation without sensor identity leakage.",
+      "seeded_faults": [
+        "held_out_sensor_serial",
+        "held_out_manufacturing_lot",
+        "calibration_revision_change",
+        "temperature_drift",
+        "sensor_aging"
+      ],
+      "required_assertions": [
+        "sensor_family_strata_separated",
+        "unit_and_lot_grouped_split",
+        "target_calibration_identity_preserved",
+        "uncertainty_and_abstention_reported",
+        "zero_shot_and_few_shot_separated"
+      ]
+    },
+    {
+      "id": "directional-passivity-index-lti",
+      "domain": "mathematical_model_qualification",
+      "purpose": "Reproduce matrix-valued MIMO passivity-index calculations only within declared LTI assumptions and compare with scalar indices.",
+      "seeded_faults": [
+        "directional_passivity_shortage",
+        "cross_channel_coupling",
+        "incomparable_loewner_candidates",
+        "coordinate_transform"
+      ],
+      "required_assertions": [
+        "LTI_scope_declared",
+        "input_output_units_normalized",
+        "matrix_index_covariance_checked",
+        "scalar_and_matrix_indices_reported",
+        "not_claimed_as_nonlinear_robot_passivity"
+      ]
+    },
+    {
+      "id": "multiport-cutset-accounting",
+      "domain": "execution_energy",
+      "purpose": "Validate a frozen control-volume cut set and reconcile paired internal power-conserving interfaces exactly once.",
+      "seeded_faults": [
+        "missing_external_port",
+        "duplicate_internal_edge",
+        "unpaired_internal_endpoint",
+        "clock_misalignment",
+        "partial_interval_overlap",
+        "sign_reversal"
+      ],
+      "required_assertions": [
+        "all_external_paths_declared_or_unknown",
+        "internal_edge_cancels_once",
+        "no_double_count",
+        "worst_prefix_aggregate_residual_reported",
+        "unknown_boundary_blocks_certificate"
+      ]
+    },
+    {
+      "id": "energy-vs-local-contact-burden",
+      "domain": "physical_interaction",
+      "purpose": "Demonstrate that a globally acceptable energy balance cannot hide an excessive local contact-pressure or exposure-time outcome.",
+      "seeded_faults": [
+        "small_total_work_large_local_pressure",
+        "long_duration_low_power_contact",
+        "contact_patch_migration"
+      ],
+      "required_assertions": [
+        "per_patch_peak_pressure_reported",
+        "pressure_time_integral_reported",
+        "exposure_duration_reported",
+        "global_energy_and_local_limits_scored_separately"
+      ]
+    },
+    {
+      "id": "multirate-proposal-expiry",
+      "domain": "timing_and_authority",
+      "purpose": "Exercise slow intent, medium-rate optimizer and fast local loop with proposal expiry, supersession and state binding.",
+      "seeded_faults": [
+        "late_optimizer_result",
+        "superseded_proposal",
+        "expired_proposal",
+        "state_revision_change",
+        "clock_reset",
+        "wearer_stop_while_pending"
+      ],
+      "required_assertions": [
+        "old_proposal_never_overwrites_newer",
+        "expired_proposal_rejected",
+        "old_agency_epoch_rejected",
+        "fast_loop_never_blocks_on_optimizer",
+        "post_stop_no_proposal_applied"
+      ]
+    },
+    {
+      "id": "fast-loop-compute-contention",
+      "domain": "timing_and_authority",
+      "purpose": "Measure fast local control deadline behaviour while optimizer/NMPC runs under contention and thermal throttling.",
+      "seeded_faults": [
+        "cpu_contention",
+        "thermal_throttling",
+        "optimizer_overrun",
+        "queued_results",
+        "sensor_to_receipt_age_mismatch"
+      ],
+      "required_assertions": [
+        "fast_loop_deadline_distribution_reported",
+        "higher_layer_wait_count_zero",
+        "timeout_fallback_declared",
+        "source_age_distinct_from_receipt_age"
+      ]
+    },
+    {
+      "id": "contact-exposure-energy-decoupling",
+      "domain": "physical_interaction",
+      "purpose": "Show that a globally acceptable energy residual does not establish acceptable local pressure, deformation, power or exposure duration.",
+      "seeded_faults": [
+        "small_contact_area_large_peak_pressure",
+        "long_duration_low_power",
+        "equal_energy_different_peak_power",
+        "constrained_recoil",
+        "multi_patch_load_redistribution"
+      ],
+      "required_assertions": [
+        "global_port_energy_reported",
+        "per_patch_peak_pressure_reported",
+        "contact_area_and_geometry_reported",
+        "deformation_or_strain_proxy_reported",
+        "power_time_and_exposure_reported",
+        "local_and_global_envelopes_separate"
+      ]
+    },
+    {
+      "id": "viscoelastic-phantom-response",
+      "domain": "tactile_metrology",
+      "purpose": "Characterize layered phantom hysteresis, creep, relaxation, repeated loading and temperature effects using independent metrology.",
+      "seeded_faults": [
+        "layer_thickness_change",
+        "curvature_change",
+        "material_modulus_change",
+        "temperature_cycle",
+        "cyclic_loading",
+        "geometry_misregistration"
+      ],
+      "required_assertions": [
+        "phantom_material_revision_bound",
+        "independent_load_cell_reference",
+        "independent_deformation_reference",
+        "uncertainty_coverage_reported",
+        "no_human_tissue_threshold_claim"
+      ]
+    },
+    {
+      "id": "envelope-identity-coherence",
+      "domain": "compositional_admission",
+      "purpose": "A candidate is admitted only when energy, contact, wearer, and actuator evidence share the same sequence, clock, boot, state revision, profile, command, and port-graph digests.",
+      "seeded_faults": [
+        "mixed_command_digest",
+        "mixed_state_revision",
+        "mixed_profile_digest",
+        "mixed_port_graph_digest"
+      ],
+      "required_assertions": [
+        "admission_only_with_exact_identity_agreement",
+        "rejection_reason_vector_preserved",
+        "rejected_attempt_does_not_mutate_gate"
+      ]
+    },
+    {
+      "id": "envelope-cross-domain-compensation",
+      "domain": "compositional_admission",
+      "purpose": "Hold energy within bounds while violating one local contact limit, then reverse the conditions; compare conjunction against a weighted-score negative control.",
+      "seeded_faults": [
+        "energy_surplus_contact_pressure_exceeded",
+        "energy_deficit_contact_within_limits",
+        "high_task_score_with_agency_failure"
+      ],
+      "required_assertions": [
+        "no_cross_domain_compensation",
+        "false_admission_count_reported",
+        "weighted_score_failure_demonstrated"
+      ]
+    },
+    {
+      "id": "envelope-no-implicit-consent",
+      "domain": "compositional_admission",
+      "purpose": "Provide strong tactile contact or inferred-intent evidence without a current explicit wearer authorization.",
+      "seeded_faults": [
+        "tactile_confidence_high_authorization_absent",
+        "stale_authorization_epoch",
+        "authorization_digest_missing"
+      ],
+      "required_assertions": [
+        "no_pressure_or_intent_to_consent_inference",
+        "explicit_authority_required",
+        "no_action_admitted"
+      ]
+    },
+    {
+      "id": "envelope-actuator-authority-revoked",
+      "domain": "compositional_admission",
+      "purpose": "Keep all model-side evidence valid while revoking the independent actuator permit or advancing its authority epoch.",
+      "seeded_faults": [
+        "actuator_permit_revoked",
+        "actuator_epoch_advanced",
+        "authority_receipt_missing"
+      ],
+      "required_assertions": [
+        "actuator_authority_required",
+        "old_authority_epoch_rejected",
+        "no_application_permit_returned"
+      ]
+    },
+    {
+      "id": "envelope-clock-and-boot-skew",
+      "domain": "compositional_admission",
+      "purpose": "Inject clock skew, reboot, and timestamp disagreement across otherwise valid domain evidence.",
+      "seeded_faults": [
+        "clock_domain_mismatch",
+        "boot_epoch_mismatch",
+        "future_sample",
+        "stale_sample"
+      ],
+      "required_assertions": [
+        "cross_domain_clock_identity_required",
+        "future_and_stale_evidence_rejected",
+        "unknown_time_not_zero"
+      ]
+    },
+    {
+      "id": "envelope-delayed-optimizer-supersession",
+      "domain": "compositional_admission",
+      "purpose": "Issue a newer adaptation proposal while an older optimizer result is in flight, then deliver the older result last.",
+      "seeded_faults": [
+        "late_optimizer_result",
+        "proposal_sequence_regression",
+        "state_revision_changed"
+      ],
+      "required_assertions": [
+        "only_latest_issued_proposal_admitted",
+        "old_result_never_overwrites_newer",
+        "state_revision_bound"
+      ]
+    },
+    {
+      "id": "envelope-revocation-and-rearm",
+      "domain": "compositional_admission",
+      "purpose": "Revoke wearer authority between admission and application, then test stale receipts and explicit re-arm under a new epoch.",
+      "seeded_faults": [
+        "stop_during_pending_receipt",
+        "old_epoch_replay",
+        "missing_rearm_action",
+        "rearm_digest_mismatch"
+      ],
+      "required_assertions": [
+        "stop_latches_software_gate",
+        "old_receipt_invalidated",
+        "rearm_requires_explicit_user_action",
+        "physical_stop_latency_measured_separately"
+      ]
+    },
+    {
+      "id": "envelope-local-dose-global-energy-decoupling",
+      "domain": "compositional_admission",
+      "purpose": "Construct equal or lower total energy traces with sharply different peak pressure, patch area, deformation rate, power, and dwell time.",
+      "seeded_faults": [
+        "small_patch_peak_pressure",
+        "long_low_power_contact",
+        "multi_patch_load_redistribution",
+        "equal_energy_different_exposure"
+      ],
+      "required_assertions": [
+        "global_energy_and_local_exposure_scored_separately",
+        "per_patch_peak_and_dose_reported",
+        "no_universal_human_threshold_claim"
+      ]
+    },
+    {
+      "id": "envelope-missing-domain-evidence",
+      "domain": "compositional_admission",
+      "purpose": "Remove, truncate, or mark unknown one domain's evidence while leaving the other domains valid.",
+      "seeded_faults": [
+        "missing_energy_receipt",
+        "missing_contact_calibration",
+        "missing_wearer_authority",
+        "missing_actuator_authority",
+        "unknown_port_boundary"
+      ],
+      "required_assertions": [
+        "missing_or_unknown_blocks_admission",
+        "unknown_is_not_zero",
+        "no_partial_bundle_fallback"
+      ]
+    },
+    {
+      "id": "envelope-revalidation-toctou",
+      "domain": "compositional_admission",
+      "purpose": "Admit using valid evidence, then advance time, state, command, proposal, or authority before the application boundary.",
+      "seeded_faults": [
+        "sample_expires_after_admission",
+        "command_substituted_before_apply",
+        "state_revision_changes",
+        "authority_epoch_changes"
+      ],
+      "required_assertions": [
+        "full_bundle_revalidated_before_application",
+        "time_of_check_to_use_rejected",
+        "receipt_not_latest_or_consumed"
+      ]
+    },
+    {
+      "id": "envelope-evidence-digest-substitution",
+      "domain": "compositional_admission",
+      "purpose": "Change one measurement, authorization, calibration, or actuator receipt digest after admission while retaining nominal scalar metrics.",
+      "seeded_faults": [
+        "energy_digest_changed",
+        "contact_digest_changed",
+        "calibration_digest_changed",
+        "authority_digest_changed"
+      ],
+      "required_assertions": [
+        "receipt_digest_binding_enforced",
+        "substituted_evidence_rejected",
+        "rejected_revalidation_does_not_consume_new_state"
+      ]
+    },
+    {
+      "id": "envelope-joint-fault-matrix",
+      "domain": "compositional_admission",
+      "purpose": "Run all single-domain faults, pairwise combinations, and selected higher-order interactions over a frozen deterministic manifest.",
+      "seeded_faults": [
+        "all_single_domain_faults",
+        "pairwise_fault_interactions",
+        "clock_plus_epoch_fault",
+        "contact_plus_authority_fault",
+        "energy_plus_boundary_fault"
+      ],
+      "required_assertions": [
+        "zero_false_admissions_in_declared_finite_matrix",
+        "domain_wise_false_rejection_reported",
+        "seed_and_case_manifest_persisted",
+        "no_scalar_safety_score"
+      ]
+    }
+  ],
+  "result_requirements": [
+    "preserve_raw_trace_or_content_digest",
+    "record_all_failures_and_exclusions",
+    "report_worst_prefix_energy_not_only_final_total",
+    "report_p50_p95_p99_max_when_meaningful",
+    "no_composite_score_that_trades_safety_or_agency_against_task_success",
+    "report_joint_admission_and_each_domain_rejection_vector",
+    "report_false_admission_and_false_rejection_separately",
+    "bind_every_domain_receipt_to_the_same_command_and_state_revision",
+    "record_revalidation_and_revocation_race_outcomes",
+    "report_gate_latency_distribution_on_declared_target_hardware"
+  ],
+  "optimizer_known_answers": [
+    {
+      "id": "qp-coupled-epsilon-stiffness-active",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 1,
+        "epsilon_min": 0,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          1,
+          0,
+          0
+        ],
+        "error_velocity": [
+          1,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": 2,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": 1,
+      "expected": {
+        "epsilon_rate": -0.5,
+        "stiffness_rate": {
+          "xx": 0.5,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 1
+      },
+      "rationale": "One active affine passivity constraint; both rate references project onto the shared boundary. Exact solution for the declared Euclidean/Frobenius weights."
+    },
+    {
+      "id": "qp-stiffness-only-active",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 1,
+        "epsilon_min": 0.5,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          1,
+          0,
+          0
+        ],
+        "error_velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": 2,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": 0.3,
+      "expected": {
+        "epsilon_rate": 0.3,
+        "stiffness_rate": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 1
+      },
+      "rationale": "Zero task velocity makes the inertia-rate contribution inactive; passivity caps the error-direction stiffness rate at zero."
+    },
+    {
+      "id": "qp-epsilon-only-active",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 1,
+        "epsilon_min": 0.5,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          0,
+          0,
+          0
+        ],
+        "error_velocity": [
+          1,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": 0.5,
+      "expected": {
+        "epsilon_rate": 0,
+        "stiffness_rate": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 1
+      },
+      "rationale": "Zero task error makes the stiffness-rate contribution inactive; the rate optimizer projects epsilon_dot to the passivity boundary."
+    },
+    {
+      "id": "qp-zero-state-constraint-inactive",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 1,
+        "epsilon_min": 0.5,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          0,
+          0,
+          0
+        ],
+        "error_velocity": [
+          0,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": -2,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": -0.25,
+      "expected": {
+        "epsilon_rate": -0.25,
+        "stiffness_rate": {
+          "xx": -1,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 0
+      },
+      "rationale": "Passivity is identically inactive at zero error and velocity; only the Loewner lower-rate barrier projects the reference matrix."
+    },
+    {
+      "id": "qp-epsilon-minimum-boundary",
+      "status": "analytic_fixture_not_executed",
+      "weights": {
+        "epsilon": 1,
+        "stiffness_frobenius": 1
+      },
+      "state": {
+        "epsilon": 0.5,
+        "epsilon_min": 0.5,
+        "epsilon_decay_rate": 1,
+        "stiffness_decay_rate": 1,
+        "error": [
+          0,
+          0,
+          0
+        ],
+        "error_velocity": [
+          1,
+          0,
+          0
+        ]
+      },
+      "matrices": {
+        "task_inertia": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness": {
+          "xx": 1,
+          "yy": 1,
+          "zz": 1,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "damping": {
+          "xx": 0,
+          "yy": 0,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "stiffness_rate_reference": {
+          "xx": -0.3,
+          "yy": -0.2,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        }
+      },
+      "epsilon_rate_reference": 0.75,
+      "expected": {
+        "epsilon_rate": 0,
+        "stiffness_rate": {
+          "xx": -0.3,
+          "yy": -0.2,
+          "zz": 0,
+          "xy": 0,
+          "xz": 0,
+          "yz": 0
+        },
+        "passivity_residual_w": 0,
+        "stiffness_barrier_min_eigenvalue": 0.7
+      },
+      "rationale": "At epsilon=epsilon_min and zero damping, the scalar passivity and decay constraints force epsilon_dot=0. Because error is zero, stiffness optimization remains independent; handle directly instead of seeking an infinite dual multiplier."
+    }
+  ],
+  "tactile_transfer_regimes": [
+    "within_physical_unit",
+    "cross_unit_zero_shot",
+    "cross_unit_few_shot",
+    "cross_calibration_revision",
+    "aging_and_temperature_drift",
+    "held_out_manufacturing_lot"
+  ],
+  "compositional_admission_contract": {
+    "status": "protocol_extension_not_executed",
+    "safety_composition": "conjunction_of_non_substitutable_evidence_domains",
+    "required_domains": [
+      "sampled_energy",
+      "local_contact_exposure",
+      "explicit_wearer_authority",
+      "freshness_and_identity",
+      "independent_actuator_authority"
+    ],
+    "shared_identity": [
+      "interaction_sequence",
+      "proposal_sequence",
+      "sample_timestamp",
+      "clock_id",
+      "boot_epoch",
+      "agency_epoch",
+      "state_revision_digest",
+      "profile_digest",
+      "command_digest",
+      "energy_port_graph_digest"
+    ],
+    "admission_metrics": [
+      "false_admission_count",
+      "false_rejection_count",
+      "domain_rejection_vector",
+      "identity_mismatch_count",
+      "receipt_revalidation_failure_count",
+      "post_revocation_application_attempt_count",
+      "revoke_to_admission_block_latency_ns",
+      "p50_gate_latency_ns",
+      "p95_gate_latency_ns",
+      "p99_gate_latency_ns",
+      "maximum_gate_latency_ns"
+    ],
+    "negative_controls": [
+      "weighted_score_can_trade_contact_failure_against_energy_surplus",
+      "independent_checks_can_accept_mixed_command_or_state_identity"
+    ],
+    "generated_fault_campaign": {
+      "seed": 20261112,
+      "target_cases": 30000,
+      "status": "planned_not_executed",
+      "require_zero_false_admissions": true,
+      "report_false_rejection_separately": true
+    },
+    "timing_target": "measure_on_declared_target_hardware; no hard-real-time claim from host unit tests"
+  }
+}

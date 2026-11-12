@@ -1,0 +1,648 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/phri-qual-bench-001/receipt-v0.schema.json",
+  "title": "PHRI qualification run receipt v0",
+  "description": "Machine-readable provenance and outcome record for one PHRI benchmark arm. A receipt binds evidence to exact source, model, instrumentation, configuration, and test conditions. It does not itself certify safety or conformity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "program",
+    "case_id",
+    "comparison_regime",
+    "comparator_arm",
+    "outcome",
+    "evidence_class",
+    "source",
+    "plant",
+    "execution",
+    "instrumentation",
+    "trial",
+    "metrics",
+    "uncertainty",
+    "exclusions",
+    "artifacts",
+    "interaction_ports",
+    "interaction_graph"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "program": {
+      "const": "PHRI-QUAL-BENCH-001"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "comparison_regime": {
+      "enum": [
+        "matched_common_parameterization",
+        "native_method_expressivity"
+      ]
+    },
+    "comparator_arm": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outcome": {
+      "enum": [
+        "completed",
+        "failed",
+        "abstained",
+        "invalid",
+        "unknown",
+        "not_reproduced"
+      ]
+    },
+    "evidence_class": {
+      "enum": [
+        "analytic_fixture",
+        "synthetic_reference",
+        "software_in_the_loop",
+        "instrumented_bench",
+        "hardware_in_the_loop",
+        "human_subject_approved"
+      ]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit_sha",
+        "dirty_tree",
+        "source_manifest_digest"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commit_sha": {
+          "$ref": "#/$defs/sha"
+        },
+        "dirty_tree": {
+          "type": "boolean"
+        },
+        "source_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "binary_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "compiler_identity": {
+          "type": "string"
+        },
+        "build_flags_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "plant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "model_digest",
+        "geometry_revision_digest",
+        "actuator_revision_digest",
+        "configuration_digest"
+      ],
+      "properties": {
+        "model_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "geometry_revision_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "actuator_revision_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "payload_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "model_scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unsupported_semantics": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hardware_identity",
+        "controller_period_s",
+        "integration_method",
+        "numeric_precision",
+        "solver_configuration_digest"
+      ],
+      "properties": {
+        "hardware_identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hardware_firmware_revision": {
+          "type": "string"
+        },
+        "controller_period_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "integration_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "numeric_precision": {
+          "enum": [
+            "f32",
+            "f64",
+            "mixed",
+            "fixed_point",
+            "other"
+          ]
+        },
+        "solver_configuration_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "solver_deadline_s": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "solver_latency_s": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "p50": {
+              "type": "number",
+              "minimum": 0
+            },
+            "p95": {
+              "type": "number",
+              "minimum": 0
+            },
+            "p99": {
+              "type": "number",
+              "minimum": 0
+            },
+            "maximum": {
+              "type": "number",
+              "minimum": 0
+            },
+            "deadline_misses": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "instrumentation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sensor_profile_digest",
+        "calibration_digests",
+        "clock_domain_id",
+        "boot_epoch"
+      ],
+      "properties": {
+        "sensor_profile_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "calibration_digests": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        },
+        "sensor_serials": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "manufacturing_lots": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "clock_domain_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "boot_epoch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reference_instrument_calibration_digests": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/digest"
+          }
+        },
+        "synchronization_uncertainty_s": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "trial": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "trajectory_digest",
+        "initial_state_digest",
+        "disturbance_seed",
+        "random_seed",
+        "sample_count"
+      ],
+      "properties": {
+        "trajectory_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "initial_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "disturbance_seed": {
+          "type": "integer"
+        },
+        "random_seed": {
+          "type": "integer"
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "held_out_split_id": {
+          "type": "string"
+        },
+        "reference_condition_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "units_manifest_digest",
+        "values"
+      ],
+      "properties": {
+        "units_manifest_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "values": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "unit",
+              "sample_count"
+            ],
+            "properties": {
+              "unit": {
+                "type": "string",
+                "minLength": 1
+              },
+              "sample_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "mean": {
+                "type": "number"
+              },
+              "median": {
+                "type": "number"
+              },
+              "p50": {
+                "type": "number"
+              },
+              "p95": {
+                "type": "number"
+              },
+              "p99": {
+                "type": "number"
+              },
+              "maximum": {
+                "type": "number"
+              },
+              "minimum": {
+                "type": "number"
+              },
+              "uncertainty": {
+                "type": "number",
+                "minimum": 0
+              },
+              "coverage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "exceedance_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "failure_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "abstention_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "infeasible_count": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "uncertainty": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method",
+        "components",
+        "coverage_claim"
+      ],
+      "properties": {
+        "method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "coverage_claim": {
+          "type": "string",
+          "minLength": 1
+        },
+        "correlation_model_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "known_unbounded_components": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "reason"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_digest": {
+            "$ref": "#/$defs/digest"
+          }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "digest"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "raw_trace",
+              "calibration",
+              "configuration",
+              "solver_log",
+              "result_plot",
+              "analysis",
+              "report",
+              "other"
+            ]
+          },
+          "digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "uri": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "independent_reviewer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_status": {
+          "enum": [
+            "not_reviewed",
+            "commented",
+            "accepted",
+            "rejected"
+          ]
+        }
+      }
+    },
+    "interaction_ports": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "port_id",
+          "port_class",
+          "spatial_frame_id",
+          "effort_flow_convention",
+          "positive_power_direction",
+          "boundary_role",
+          "measurement_profile_digest",
+          "calibration_digest"
+        ],
+        "properties": {
+          "port_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "port_class": {
+            "enum": [
+              "external_human_contact",
+              "external_object_environment_contact",
+              "actuator_mechanical",
+              "electrical_supply",
+              "electrical_return",
+              "internal_subsystem"
+            ]
+          },
+          "spatial_frame_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effort_flow_convention": {
+            "type": "string",
+            "minLength": 1
+          },
+          "positive_power_direction": {
+            "enum": [
+              "into_control_volume",
+              "out_of_control_volume",
+              "paired_internal_edge"
+            ]
+          },
+          "boundary_role": {
+            "enum": [
+              "external_boundary",
+              "internal_connection"
+            ]
+          },
+          "paired_endpoint_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "measurement_profile_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "calibration_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "measurement_source_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "geometry_revision_digest": {
+            "$ref": "#/$defs/digest"
+          },
+          "uncertainty_method": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "interaction_graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "control_volume_id",
+        "graph_digest",
+        "external_boundary_port_ids",
+        "internal_edges"
+      ],
+      "properties": {
+        "control_volume_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "graph_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "external_boundary_port_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "internal_edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "edge_id",
+              "source_port_id",
+              "target_port_id",
+              "power_pairing_contract"
+            ],
+            "properties": {
+              "edge_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "source_port_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "target_port_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "power_pairing_contract": {
+                "type": "string",
+                "minLength": 1
+              },
+              "maximum_cancellation_residual_j": {
+                "type": "number",
+                "minimum": 0
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
