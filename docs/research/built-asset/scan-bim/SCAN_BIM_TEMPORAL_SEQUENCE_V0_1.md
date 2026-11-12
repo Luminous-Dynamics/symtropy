@@ -55,9 +55,9 @@ This evaluator does not generate or own physical IDs. Candidate track IDs are sc
 
 ## 4. P0 implementation
 
-The Rust crate is `tools/scan-bim-temporal-sequence-benchmark/` (17 unit tests; Rust 1.96 target; pinned 22-package Cargo.lock). Candidate outputs and evaluator truth are separate JSON inputs. The evaluator binds exact input bytes with SHA-256 in its report.
+The Rust crate is `tools/scan-bim-temporal-sequence-benchmark/` (19 unit tests; Rust 1.96 target; pinned 22-package Cargo.lock). Candidate outputs and evaluator truth are separate JSON inputs. The evaluator binds exact input bytes with SHA-256 in its report.
 
-The known-answer suite includes candidate/reference permutation invariance, global ID assignment, identity switches, spurious detections, missed visible observations, occlusion/reappearance, replacement identity, false physical-change attribution, true-change sensitivity, late arrival, future cutoff, clock-domain mismatch, coarse timestamp precision, expired calibration, NDT purpose leakage, and revocation known before versus after the historical cutoff.
+The known-answer suite includes candidate/reference permutation invariance, global ID assignment, identity switches, spurious detections, missed visible observations, occlusion/reappearance, replacement identity, false physical-change attribution, true-change sensitivity, late arrival, future cutoff, clock-domain mismatch, coarse timestamp precision, expired calibration, NDT purpose leakage, and revocation and supersession known before versus after the historical cutoff.
 
 Initial seven sequences:
 1. unchanged component across three acquisitions;
@@ -90,8 +90,8 @@ V0.1 uses a single synthetic integer tick clock, explicitly named `synthetic-glo
 - measurement/event time ≤ decision cutoff;
 - first-received/knowledge time ≤ decision cutoff;
 - evidence validity interval contains the cutoff;
-- a revocation known at/before cutoff excludes the evidence;
-- a revocation learned after cutoff does not rewrite the prior snapshot;
+- a revocation or supersession known at/before cutoff excludes the evidence;
+- a revocation/supersession learned after cutoff does not rewrite the prior snapshot; a supersession reference must point to an existing successor received by the declared supersession-known time;
 - evidence is authorized for the declared decision purpose;
 - NDT/repair outcomes do not leak into medium-loop building updates;
 - timestamp precision is non-zero and no coarser than the declared decision resolution.
