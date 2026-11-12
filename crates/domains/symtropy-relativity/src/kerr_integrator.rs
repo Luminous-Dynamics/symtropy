@@ -1867,6 +1867,87 @@ mod tests {
     }
 
     #[test]
+    fn nonradial_schwarzschild_fixed_and_adaptive_sachs_jacobi_agree() {
+        let black_hole = hole(0.0);
+        let observer = KerrFiniteRadiusObserver::new(
+            black_hole,
+            10.0,
+            core::f64::consts::FRAC_PI_2,
+        )
+        .unwrap();
+        let seed = observer
+            .canonical_seed(KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap())
+            .unwrap();
+        let screen_basis =
+            observer.screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
+        let fixed = integrate_kerr_sachs_jacobi_fixed_step(
+            black_hole,
+            seed.coordinate_chart,
+            seed.state,
+            screen_basis,
+            0.02,
+            64,
+            1e-7,
+        )
+        .unwrap();
+        let adaptive = integrate_kerr_sachs_jacobi_adaptive(
+            black_hole,
+            seed.coordinate_chart,
+            seed.state,
+            screen_basis,
+            0.02,
+            KerrSachsJacobiOptions {
+                relative_tolerance: 1e-9,
+                absolute_tolerance: 1e-12,
+                constraint_tolerance: 1e-7,
+                initial_step: 0.005,
+                minimum_step: 1e-9,
+                maximum_step: 0.01,
+                maximum_steps: 20_000,
+            },
+        )
+        .unwrap();
+        let fixed_last = fixed.samples.last().unwrap();
+        let adaptive_last = adaptive.samples.last().unwrap();
+        let tidal_norm = fixed_last
+            .tidal_matrix
+            .iter()
+            .flatten()
+            .map(|value| value * value)
+            .sum::<f64>()
+            .sqrt();
+        assert!(tidal_norm > 1e-8, "nonradial Schwarzschild tide must be nonzero");
+        assert!(fixed.maximum_tidal_symmetry_residual < 1e-7);
+        assert!(fixed.maximum_vacuum_trace_residual < 1e-7);
+        assert!(adaptive.maximum_tidal_symmetry_residual < 1e-7);
+        assert!(adaptive.maximum_vacuum_trace_residual < 1e-7);
+        for row in 0..2 {
+            for column in 0..2 {
+                close(
+                    adaptive_last.jacobi_matrix[row][column],
+                    fixed_last.jacobi_matrix[row][column],
+                    2e-5,
+                );
+            }
+        }
+        close(adaptive_last.determinant, fixed_last.determinant, 2e-5);
+        close(
+            adaptive_last.singular_values[0],
+            fixed_last.singular_values[0],
+            2e-5,
+        );
+        close(
+            adaptive_last.singular_values[1],
+            fixed_last.singular_values[1],
+            2e-5,
+        );
+        assert!(adaptive.maximum_scaled_ray_error <= 1.0);
+        assert!(adaptive.maximum_scaled_frame_error <= 1.0);
+        assert!(adaptive.maximum_scaled_jacobi_error <= 1.0);
+        assert!(adaptive.maximum_scaled_jacobi_derivative_error <= 1.0);
+    }
+
+    #[test]
     fn adaptive_sachs_jacobi_rejects_invalid_options() {
         let black_hole = hole(0.0);
         let observer =
