@@ -1986,20 +1986,13 @@ mod tests {
         );
     }
 
-
     #[test]
     fn anisotropic_two_point_delassus_matches_tensor_oracle_and_is_frame_covariant() {
-        let second_moment = SMatrix::<f64, 3, 3>::new(
-            1.7, 0.21, -0.13,
-            0.21, 1.1, 0.18,
-            -0.13, 0.18, 0.8,
-        );
+        let second_moment =
+            SMatrix::<f64, 3, 3>::new(1.7, 0.21, -0.13, 0.21, 1.1, 0.18, -0.13, 0.18, 0.8);
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let mass = 2.3;
-        let offsets = [
-            SVector::new(0.6, -0.4, 0.2),
-            SVector::new(-0.3, -0.4, 0.5),
-        ];
+        let offsets = [SVector::new(0.6, -0.4, 0.2), SVector::new(-0.3, -0.4, 0.5)];
         let normal = SVector::new(0.0, 1.0, 0.0);
 
         // Construct the complete two-contact Delassus operator by applying
