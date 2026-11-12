@@ -85,6 +85,8 @@ pub struct FaultEvent {
 #[serde(deny_unknown_fields)]
 pub struct TickTrace {
     pub tick: u64,
+    /// Frozen scenario phase label, e.g. approach, merge, yield, emergency_braking.
+    pub maneuver_phase: String,
     pub camera_age_us: Option<u64>,
     pub vehicle_state_age_us: Option<u64>,
     pub inference_duration_us: u64,
@@ -122,6 +124,11 @@ pub struct FaultResult {
     pub severity_ppm: u32,
     pub correlation_group: Option<String>,
     pub critical_phase: Option<String>,
+    pub onset_in_critical_phase: Option<bool>,
+    pub critical_phase_overlap_ticks: Option<u64>,
+    pub critical_phase_fallback_ticks: Option<u64>,
+    pub critical_phase_deadline_miss_ticks: Option<u64>,
+    pub critical_phase_constraint_violation_ticks: Option<u64>,
     pub detected: bool,
     pub detection_tick: Option<u64>,
     pub detection_delay_ticks: Option<u64>,
@@ -236,6 +243,9 @@ impl RecoveryEpisode {
                     tick.tick
                 ));
             }
+            if tick.maneuver_phase.trim().is_empty() {
+                errors.push(format!("tick {} has an empty maneuver_phase", tick.tick));
+            }
             if tick.control_deadline_us == 0 {
                 errors.push(format!("tick {} has zero control deadline", tick.tick));
             }
@@ -290,6 +300,19 @@ impl RecoveryEpisode {
                     "fault {} severity_ppm must be in 1..=1000000",
                     event.fault_id
                 ));
+            }
+            if let Some(critical_phase) = event.critical_phase.as_deref() {
+                let phase_overlap = self.trace.iter().any(|tick| {
+                    tick.tick >= event.onset_tick
+                        && tick.tick < event.end_tick_exclusive
+                        && tick.maneuver_phase == critical_phase
+                });
+                if !phase_overlap {
+                    errors.push(format!(
+                        "fault {} declares critical_phase {:?} but does not overlap that phase",
+                        event.fault_id, critical_phase
+                    ));
+                }
             }
             if event
                 .correlation_group
@@ -489,6 +512,29 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
         })
         .count() as u64;
 
+    let critical_phase_metrics = event.critical_phase.as_deref().map(|phase| {
+        let phase_ticks = episode.trace.iter().filter(|tick| {
+            tick.tick >= event.onset_tick
+                && tick.tick < event.end_tick_exclusive
+                && tick.maneuver_phase == phase
+        });
+        let ticks = phase_ticks.collect::<Vec<_>>();
+        (
+            ticks.first().is_some_and(|tick| tick.tick == event.onset_tick),
+            ticks.len() as u64,
+            ticks.iter().filter(|tick| {
+                tick.mode == OperatingMode::Fallback
+                    && tick.fallback_reason_fault_ids.iter().any(|id| id == &event.fault_id)
+            }).count() as u64,
+            ticks.iter().filter(|tick| {
+                tick.inference_duration_us > tick.control_deadline_us
+            }).count() as u64,
+            ticks.iter().filter(|tick| {
+                tick.oracle_outcome == OracleOutcome::ConstraintViolation
+            }).count() as u64,
+        )
+    });
+
     let recovery_tick = find_stable_recovery(episode, event);
     let recovery_latency_ticks =
         recovery_tick.map(|tick| tick.saturating_sub(event.end_tick_exclusive));
@@ -544,6 +590,11 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
         severity_ppm: event.severity_ppm,
         correlation_group: event.correlation_group.clone(),
         critical_phase: event.critical_phase.clone(),
+        onset_in_critical_phase: critical_phase_metrics.map(|metrics| metrics.0),
+        critical_phase_overlap_ticks: critical_phase_metrics.map(|metrics| metrics.1),
+        critical_phase_fallback_ticks: critical_phase_metrics.map(|metrics| metrics.2),
+        critical_phase_deadline_miss_ticks: critical_phase_metrics.map(|metrics| metrics.3),
+        critical_phase_constraint_violation_ticks: critical_phase_metrics.map(|metrics| metrics.4),
         detected: detection_tick.is_some(),
         detection_tick,
         detection_delay_ticks,
@@ -665,6 +716,12 @@ mod tests {
             };
             trace.push(TickTrace {
                 tick,
+                maneuver_phase: match tick {
+                    1 => "approach".into(),
+                    2..=5 => "merge".into(),
+                    6 => "exit-merge".into(),
+                    _ => "recovery".into(),
+                },
                 camera_age_us: if tick == 2 || tick == 3 { None } else { Some(1_000) },
                 vehicle_state_age_us: Some(1_000),
                 inference_duration_us: if tick == 3 { 15_000 } else { 4_000 },
@@ -714,6 +771,51 @@ mod tests {
             fault_events: events,
             trace,
         }
+    }
+
+    #[test]
+    fn reports_phase_conditioned_fault_impact_without_weighted_score() {
+        let report = valid_episode().evaluate().unwrap();
+        let camera = report.results.iter().find(|result| result.fault_id == "camera-drop").unwrap();
+        let compute = report.results.iter().find(|result| result.fault_id == "inference-delay").unwrap();
+        assert_eq!(camera.onset_in_critical_phase, Some(true));
+        assert_eq!(camera.critical_phase_overlap_ticks, Some(2));
+        assert_eq!(camera.critical_phase_fallback_ticks, Some(1));
+        assert_eq!(camera.critical_phase_deadline_miss_ticks, Some(0));
+        assert_eq!(compute.critical_phase_overlap_ticks, Some(3));
+        assert_eq!(compute.critical_phase_deadline_miss_ticks, Some(1));
+        assert_eq!(compute.critical_phase_constraint_violation_ticks, Some(0));
+    }
+
+    #[test]
+    fn distinguishes_fault_onset_in_phase_from_later_phase_overlap() {
+        let mut episode = valid_episode();
+        episode.trace[1].maneuver_phase = "approach".into();
+        let report = episode.evaluate().unwrap();
+        let camera = report.results.iter().find(|result| result.fault_id == "camera-drop").unwrap();
+        assert_eq!(camera.onset_in_critical_phase, Some(false));
+        assert_eq!(camera.critical_phase_overlap_ticks, Some(1));
+    }
+
+    #[test]
+    fn rejects_critical_phase_that_does_not_overlap_fault_window() {
+        let mut episode = valid_episode();
+        episode.fault_events[0].critical_phase = Some("emergency_braking".into());
+        let errors = episode.validate().unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("does not overlap that phase")));
+    }
+
+    #[test]
+    fn phase_conditioned_violations_are_separated_from_off_phase_violations() {
+        let mut episode = valid_episode();
+        episode.trace[1].oracle_outcome = OracleOutcome::ConstraintViolation;
+        episode.trace[4].oracle_outcome = OracleOutcome::ConstraintViolation;
+        let report = episode.evaluate().unwrap();
+        let camera = report.results.iter().find(|result| result.fault_id == "camera-drop").unwrap();
+        assert_eq!(camera.constraint_violation_ticks, 1);
+        assert_eq!(camera.critical_phase_constraint_violation_ticks, Some(1));
+        let compute = report.results.iter().find(|result| result.fault_id == "inference-delay").unwrap();
+        assert_eq!(compute.critical_phase_constraint_violation_ticks, Some(1));
     }
 
     #[test]
