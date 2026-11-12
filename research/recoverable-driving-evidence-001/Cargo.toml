@@ -1,0 +1,13 @@
+[package]
+name = "recoverable-driving-evidence"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Bounded branch and campaign evidence protocol conformance auditor"
+
+[workspace]
+
+[dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.150"
