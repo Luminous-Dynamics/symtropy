@@ -456,7 +456,7 @@ fn evaluate_sequence(
     for ((step_id, observation_id), track_id) in &candidate_assignment {
         candidate_detection_count += 1;
         if let Some(reference_observation) =
-            reference_observations.get(&(**step_id, **observation_id))
+            reference_observations.get(&(*step_id, *observation_id))
         {
             if reference_observation.visible {
                 let row = *entity_index
@@ -466,16 +466,13 @@ fn evaluate_sequence(
                     .get(track_id)
                     .ok_or_else(|| "candidate track index missing".to_owned())?;
                 overlap[row][column] += 1;
-                true_positive_observation_keys.insert((**step_id, **observation_id));
+                true_positive_observation_keys.insert((*step_id, *observation_id));
             }
         }
     }
     let id_true_positives = max_identity_assignment(&overlap)?;
-    let id_false_positives = candidate_detection_count.saturating_sub(
-        true_positive_observation_keys.len(),
-    );
-    let id_false_negatives =
-        total_ground_truth_visible.saturating_sub(true_positive_observation_keys.len());
+    let id_false_positives = candidate_detection_count.saturating_sub(id_true_positives);
+    let id_false_negatives = total_ground_truth_visible.saturating_sub(id_true_positives);
     let idf1_denominator =
         2 * id_true_positives + id_false_positives + id_false_negatives;
     let idf1 = if idf1_denominator == 0 {
@@ -533,6 +530,8 @@ fn evaluate_sequence(
         && false_physical_change_events == 0
         && detected_physical_change_events == ground_truth_physical_change_events
         && temporal_evidence_violations == 0
+        && id_false_positives == 0
+        && id_false_negatives == 0
         && identity_switches == 0
         && fragmentations == 0;
 
@@ -923,6 +922,36 @@ mod tests {
         let report =
             evaluate_bytes(&bytes, REFERENCE.as_bytes()).expect("false event is scored");
         assert_eq!(report.false_physical_change_events, 1);
+        assert!(!report.passed);
+    }
+
+    #[test]
+    fn missing_visible_observation_reduces_idf1_and_fails() {
+        let (mut candidate, _) = parsed_fixture();
+        let sequence = candidate["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-UNCHANGED")
+            .unwrap();
+        let step = sequence["steps"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|step| step["step_id"] == "a-03")
+            .unwrap();
+        step["observations"].as_array_mut().unwrap().clear();
+        let bytes = serde_json::to_vec(&candidate).unwrap();
+        let report =
+            evaluate_bytes(&bytes, REFERENCE.as_bytes()).expect("missed observation is scored");
+        let unchanged = report
+            .sequences
+            .iter()
+            .find(|sequence| sequence.sequence_id == "SEQ-UNCHANGED")
+            .unwrap();
+        assert_eq!(unchanged.id_false_negatives, 1);
+        assert!(unchanged.idf1 < 1.0);
+        assert!(!unchanged.passed);
         assert!(!report.passed);
     }
 
