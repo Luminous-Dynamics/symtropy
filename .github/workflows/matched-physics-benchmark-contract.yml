@@ -38,6 +38,7 @@ jobs:
           import copy
           import hashlib
           import json
+          from fractions import Fraction
           from pathlib import Path
           from jsonschema import Draft202012Validator
 
@@ -73,27 +74,39 @@ jobs:
           assert len(expected['cotangent_target']) == n
           assert len(expected['metric_target']) == n and all(len(row) == n for row in expected['metric_target'])
 
-          # Independent exact 2D algebra replay for the frozen synthetic fixture.
-          m = payload['metric_source']
-          s = payload['rebasis_source_from_target']
-          vq = payload['tangent_source']
-          aq = payload['cotangent_source']
+          # Independent exact-rational algebra replay; this oracle does not call
+          # the Rust implementation and has no shared factorization or solver.
+          m = [[Fraction(value) for value in row] for row in payload['metric_source']]
+          s = [[Fraction(value) for value in row] for row in payload['rebasis_source_from_target']]
+          vq = [Fraction(value) for value in payload['tangent_source']]
+          aq = [Fraction(value) for value in payload['cotangent_source']]
           det = s[0][0] * s[1][1] - s[0][1] * s[1][0]
           assert det != 0
           inv = [[s[1][1] / det, -s[0][1] / det], [-s[1][0] / det, s[0][0] / det]]
           vy = [sum(inv[i][j] * vq[j] for j in range(2)) for i in range(2)]
           ay = [sum(s[j][i] * aq[j] for j in range(2)) for i in range(2)]
           mt = [[sum(s[k][i] * m[k][l] * s[l][j] for k in range(2) for l in range(2)) for j in range(2)] for i in range(2)]
-          close = lambda a, b: abs(a - b) <= 1e-12 * max(1.0, abs(a), abs(b))
-          for actual, wanted in zip(vy, expected['tangent_target']): assert close(actual, wanted)
-          for actual, wanted in zip(ay, expected['cotangent_target']): assert close(actual, wanted)
+          to_fraction = lambda value: Fraction(str(value))
+          for actual, wanted in zip(vy, expected['tangent_target']): assert actual == to_fraction(wanted)
+          for actual, wanted in zip(ay, expected['cotangent_target']): assert actual == to_fraction(wanted)
           for i in range(2):
-              for j in range(2): assert close(mt[i][j], expected['metric_target'][i][j])
+              for j in range(2): assert mt[i][j] == to_fraction(expected['metric_target'][i][j])
           pairing_q = sum(aq[i] * vq[i] for i in range(2))
           pairing_y = sum(ay[i] * vy[i] for i in range(2))
-          assert close(pairing_q, expected['canonical_pairing']) and close(pairing_y, pairing_q)
+          assert pairing_q == Fraction(expected['canonical_pairing'])
+          assert pairing_y == pairing_q
           tangent_norm_squared = sum(vq[i] * sum(m[i][j] * vq[j] for j in range(2)) for i in range(2))
-          assert close(tangent_norm_squared, expected['tangent_metric_norm_squared'])
+          assert tangent_norm_squared == Fraction(expected['tangent_metric_norm_squared'])
+          determinant = m[0][0] * m[1][1] - m[0][1] * m[1][0]
+          inverse_metric = [[m[1][1] / determinant, -m[0][1] / determinant],
+                            [-m[1][0] / determinant, m[0][0] / determinant]]
+          dual_norm_squared = sum(aq[i] * sum(inverse_metric[i][j] * aq[j] for j in range(2)) for i in range(2))
+          assert dual_norm_squared == Fraction(
+              expected['cotangent_dual_norm_squared_numerator'],
+              expected['cotangent_dual_norm_squared_denominator']
+          )
+          assert max(abs(value) for value in vq) == expected['component_infinity_norm_source_tangent']
+          assert max(abs(value) for value in vy) == expected['component_infinity_norm_target_tangent']
 
           # Schema must reject a claimed MATCHED result while its semantic mapping is inconclusive.
           forged = copy.deepcopy(result)
