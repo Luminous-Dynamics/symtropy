@@ -279,8 +279,12 @@ fn audit_representation_chain(
                             .to_owned()
                     })?;
                     if downstream_before + BOUND_EPSILON_M < upstream_bound {
-                        if consumer_uncertainty.update_basis == UncertaintyUpdateBasis::EvidenceConditioned
-                            && has_additional_checkpoint(consumer_uncertainty, &transitions[consumer_index].source_artifacts)
+                        if consumer_uncertainty.update_basis
+                            == UncertaintyUpdateBasis::EvidenceConditioned
+                            && has_additional_checkpoint(
+                                consumer_uncertainty,
+                                &transitions[consumer_index].source_artifacts,
+                            )
                         {
                             evidence_conditioned_uncertainty_handoff_count += 1;
                         } else {
@@ -299,8 +303,12 @@ fn audit_representation_chain(
                     unknown_uncertainty_handoff_count += 1;
                 }
                 (UncertaintyStatus::Unknown, UncertaintyStatus::Known) => {
-                    if consumer_uncertainty.update_basis == UncertaintyUpdateBasis::EvidenceConditioned
-                        && has_additional_checkpoint(consumer_uncertainty, &transitions[consumer_index].source_artifacts)
+                    if consumer_uncertainty.update_basis
+                        == UncertaintyUpdateBasis::EvidenceConditioned
+                        && has_additional_checkpoint(
+                            consumer_uncertainty,
+                            &transitions[consumer_index].source_artifacts,
+                        )
                     {
                         evidence_conditioned_uncertainty_handoff_count += 1;
                     } else {
@@ -556,8 +564,14 @@ mod tests {
         value["transitions"].as_array_mut().unwrap().reverse();
         let reversed = audit(&value).expect("reverse transition serialization");
         assert_eq!(original.transitions, reversed.transitions);
-        assert_eq!(original.dependency_edge_count, reversed.dependency_edge_count);
-        assert_eq!(original.root_to_terminal_path_count, reversed.root_to_terminal_path_count);
+        assert_eq!(
+            original.dependency_edge_count,
+            reversed.dependency_edge_count
+        );
+        assert_eq!(
+            original.root_to_terminal_path_count,
+            reversed.root_to_terminal_path_count
+        );
         assert_eq!(original.composition_state, reversed.composition_state);
         assert_ne!(original.input_sha256, reversed.input_sha256);
     }
@@ -615,18 +629,27 @@ mod tests {
     #[test]
     fn detects_transition_cycles() {
         let mut value = valid_receipt();
-        value["transitions"][0]["source_artifacts"].as_array_mut().unwrap().push(json!({
-            "artifact_id": "SELF-LOOP-TRANSFORM",
-            "sha256": "abab".repeat(32),
-            "role": "transform"
-        }));
-        value["transitions"][0]["output_artifacts"].as_array_mut().unwrap().push(json!({
-            "artifact_id": "SELF-LOOP-TRANSFORM",
-            "sha256": "abab".repeat(32),
-            "role": "transform"
-        }));
+        value["transitions"][0]["source_artifacts"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "artifact_id": "SELF-LOOP-TRANSFORM",
+                "sha256": "abab".repeat(32),
+                "role": "transform"
+            }));
+        value["transitions"][0]["output_artifacts"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "artifact_id": "SELF-LOOP-TRANSFORM",
+                "sha256": "abab".repeat(32),
+                "role": "transform"
+            }));
         let report = audit(&value).expect("cycle is reported as invalid composition");
-        assert_eq!(report.topological_blocked_transition_ids, vec!["RAW-TO-SURFACE-001"]);
+        assert_eq!(
+            report.topological_blocked_transition_ids,
+            vec!["RAW-TO-SURFACE-001"]
+        );
         assert_eq!(report.composition_state, "invalid");
     }
 
