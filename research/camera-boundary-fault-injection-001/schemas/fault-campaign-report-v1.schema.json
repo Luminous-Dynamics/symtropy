@@ -10,6 +10,9 @@
     "status",
     "source_episode_id",
     "bridge_binary",
+    "bridge_binary_sha256",
+    "source_episode_request_sha256",
+    "source_episode_report_sha256",
     "camera_calibration_pin_sha256",
     "maximum_observation_delivery_age_us",
     "maximum_sensor_clock_skew_us",
@@ -94,6 +97,18 @@
     },
     "all_rejections_preflighted_before_temporal_advance": {
       "type": "boolean"
+    },
+    "source_episode_report_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "source_episode_request_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "bridge_binary_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
     }
   },
   "$defs": {
@@ -189,6 +204,9 @@
     "Every negative control must match its exact expected BridgeError variant, produce no receipt output file, and leave no policy-input artifact.",
     "A structurally valid unkeyed calibration pin is loaded from the clean renderer receipt into the BridgeConfig before mutations are generated.",
     "This report validates software bridge input rejection only; it is not a trained policy or vehicle safety result.",
-    "For each negative control, frames_processed_before_rejection equals the number of preceding accepted observations; the rejected observation itself must not advance the Vision Manifold."
+    "For each negative control, frames_processed_before_rejection equals the number of preceding accepted observations; the rejected observation itself must not advance the Vision Manifold.",
+    "The source episode must declare passing fresh-process renderer replay, fresh-process Symthaea bridge replay, branch evidence audit and stale-actor negative control results.",
+    "The source episode RGB bytes must match every upstream frame SHA-256, and the persisted policy receipt JSON must exactly equal the receipt embedded in the episode request.",
+    "The report identifies the exact source report, source request and bridge executable bytes by SHA-256."
   ]
 }
