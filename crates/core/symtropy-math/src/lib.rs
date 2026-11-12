@@ -28,11 +28,14 @@ pub mod capsule;
 pub mod compound;
 pub mod convex_hull;
 pub mod halfspace;
+pub mod lie;
 pub mod hyperbox;
 pub mod hyperplane;
 pub mod point;
 pub mod rotor;
 pub mod shape;
+pub mod spatial;
+pub mod so4;
 pub mod sphere;
 pub mod transform;
 
@@ -41,11 +44,24 @@ pub use capsule::Capsule;
 pub use compound::CompoundShape;
 pub use convex_hull::ConvexHull;
 pub use halfspace::HalfSpace;
+pub use lie::{
+    so3_exp_jacobian, so3_exp_jacobian_inverse, so3_interpolate,
+    so3_interpolate_with_config, so3_log, so3_log_with_config, so3_minus,
+    so3_minus_with_config, so3_plus, so3_plus_with_config, So3Jacobian, So3Log,
+    So3LogBranch, So3LogConfig, So3LogError, So3Trivialization,
+};
 pub use hyperbox::HyperBox;
 pub use hyperplane::Hyperplane;
 pub use point::Point;
 pub use rotor::Rotor;
 pub use shape::Shape;
+pub use so4::{
+    so4_interpolate, so4_interpolate_with_config, so4_log, so4_log_with_config,
+    So4Log, So4LogBranch, So4LogConfig, So4LogError,
+};
+pub use spatial::{
+    BodyTwist3, BodyWrench3, SpatialAlgebraError, SpatialTwist3, SpatialWrench3,
+};
 pub use sphere::Sphere;
 pub use transform::Transform;
 
