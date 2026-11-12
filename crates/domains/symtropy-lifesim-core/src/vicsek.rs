@@ -332,6 +332,46 @@ pub struct VicsekMetrics {
     pub largest_cluster_fraction: f64,
 }
 
+/// One connected-component interval in an interaction-radius H0 filtration.
+///
+/// Every particle is born as a singleton component at radius zero. A finite
+/// death_radius records the distance at which this component merges into an older
+/// component; because the interaction disk is strict, the merge is active for radii
+/// strictly greater than that value. None means the component is right-censored at
+/// the requested maximum radius.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct VicsekH0Interval {
+    /// Stable elder-rule representative: the smallest particle index in the component.
+    pub representative_particle: usize,
+    pub birth_radius: f64,
+    pub death_radius: Option<f64>,
+    /// Size of the dying component immediately before the merge, or final size if censored.
+    pub component_size_at_end: usize,
+    /// Size immediately after the merge; None for right-censored components.
+    pub merged_component_size: Option<usize>,
+}
+
+/// H0 connected-component persistence over an interaction-radius filtration.
+///
+/// For metric perception this is a Vietoris–Rips-style filtration over the periodic
+/// minimum-image point cloud. For visual-sector perception it is the filtration of the
+/// weakly connected projection of directed visibility. It is a structural robustness
+/// observable, not an intelligence or causal-influence score.
+#[derive(Debug, Clone, PartialEq)]
+pub struct VicsekH0PersistenceReport {
+    pub particle_count: usize,
+    pub max_radius: f64,
+    pub perception: VicsekPerception,
+    pub graph_semantics: VicsekGraphSemantics,
+    /// Number of distinct unordered particle pairs admitted by at least one visibility direction.
+    pub candidate_edges: usize,
+    pub merge_count: usize,
+    /// Components still disconnected at max_radius; their death radii are right-censored.
+    pub right_censored_component_count: usize,
+    /// One finite interval per merge plus one right-censored interval per final component.
+    pub intervals: Vec<VicsekH0Interval>,
+}
+
 /// Receipt for a direct heading intervention applied at the current model tick.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HeadingIntervention {
@@ -529,6 +569,21 @@ impl VicsekModel {
         focal_heading_rad: f64,
         target_position: (f64, f64),
     ) -> bool {
+        self.perceives_with_radius(
+            focal_position,
+            focal_heading_rad,
+            target_position,
+            self.config.interaction_radius,
+        )
+    }
+
+    fn perceives_with_radius(
+        &self,
+        focal_position: (f64, f64),
+        focal_heading_rad: f64,
+        target_position: (f64, f64),
+        radius: f64,
+    ) -> bool {
         let (dx, dy) = periodic_displacement(
             focal_position.0,
             focal_position.1,
@@ -538,8 +593,7 @@ impl VicsekModel {
         );
         // Match the pinned PRR forward-update reference implementation's open
         // interaction disk: distance squared must be strictly less than r squared.
-        // The self particle is included separately by the caller.
-        if dx.hypot(dy) >= self.config.interaction_radius {
+        if dx.hypot(dy) >= radius {
             return false;
         }
         match self.perception {
@@ -735,6 +789,146 @@ impl VicsekModel {
     /// clustering/path topology metrics are left unset so long trajectories remain tractable.
     pub fn fast_metrics(&self) -> VicsekMetrics {
         self.metrics_impl(false)
+    }
+
+    /// Compute the H0 component-persistence profile as the interaction radius grows.
+    ///
+    /// Each particle begins as a singleton at radius zero. An unordered pair becomes an
+    /// edge when at least one focal endpoint can perceive the other at a distance strictly
+    /// less than the current radius. The weakly connected projection is used for directed
+    /// visual-sector perception. Pair distances are sorted and components merge in
+    /// deterministic elder-rule order (the lower representative index survives).
+    ///
+    /// This is O(N^2 log N) in the current reference implementation and is intended for
+    /// registered snapshots or bounded systems, not every step of a large trajectory.
+    pub fn h0_persistence(
+        &self,
+        max_radius: f64,
+    ) -> Result<VicsekH0PersistenceReport, VicsekError> {
+        if !max_radius.is_finite() || max_radius < 0.0 {
+            return Err(VicsekError::InvalidParameter {
+                name: "h0_max_radius",
+                value: max_radius,
+            });
+        }
+
+        let count = self.particles.len();
+        let mut edges = Vec::<(f64, usize, usize)>::new();
+        for left in 0..count {
+            for right in (left + 1)..count {
+                let a = self.particles[left];
+                let b = self.particles[right];
+                let (dx, dy) = periodic_displacement(
+                    a.x,
+                    a.y,
+                    b.x,
+                    b.y,
+                    self.config.box_size,
+                );
+                let distance = dx.hypot(dy);
+                if distance >= max_radius {
+                    continue;
+                }
+
+                let left_sees_right = self.perceives_with_radius(
+                    (a.x, a.y),
+                    a.heading_rad,
+                    (b.x, b.y),
+                    max_radius,
+                );
+                let right_sees_left = self.perceives_with_radius(
+                    (b.x, b.y),
+                    b.heading_rad,
+                    (a.x, a.y),
+                    max_radius,
+                );
+                if left_sees_right || right_sees_left {
+                    edges.push((distance, left, right));
+                }
+            }
+        }
+
+        // Deterministic tie-breaking preserves exact replay when several edges have the
+        // same distance.
+        edges.sort_by(|left, right| {
+            left.0
+                .total_cmp(&right.0)
+                .then_with(|| left.1.cmp(&right.1))
+                .then_with(|| left.2.cmp(&right.2))
+        });
+
+        let mut parents: Vec<usize> = (0..count).collect();
+        let mut component_sizes = vec![1usize; count];
+        let mut intervals = Vec::with_capacity(count);
+        let mut merge_count = 0usize;
+
+        for (distance, left, right) in &edges {
+            let left_root = find_root(&mut parents, *left);
+            let right_root = find_root(&mut parents, *right);
+            if left_root == right_root {
+                continue;
+            }
+
+            let (survivor, dying) = if left_root < right_root {
+                (left_root, right_root)
+            } else {
+                (right_root, left_root)
+            };
+            let dying_size = component_sizes[dying];
+            let merged_size = component_sizes[survivor] + dying_size;
+            intervals.push(VicsekH0Interval {
+                representative_particle: dying,
+                birth_radius: 0.0,
+                death_radius: Some(*distance),
+                component_size_at_end: dying_size,
+                merged_component_size: Some(merged_size),
+            });
+            parents[dying] = survivor;
+            component_sizes[survivor] = merged_size;
+            component_sizes[dying] = 0;
+            merge_count += 1;
+        }
+
+        let mut right_censored_component_count = 0usize;
+        for index in 0..count {
+            let root = find_root(&mut parents, index);
+            if root == index && component_sizes[root] > 0 {
+                intervals.push(VicsekH0Interval {
+                    representative_particle: root,
+                    birth_radius: 0.0,
+                    death_radius: None,
+                    component_size_at_end: component_sizes[root],
+                    merged_component_size: None,
+                });
+                right_censored_component_count += 1;
+            }
+        }
+        intervals.sort_by(|left, right| {
+            match (left.death_radius, right.death_radius) {
+                (Some(a), Some(b)) => a
+                    .total_cmp(&b)
+                    .then_with(|| left.representative_particle.cmp(&right.representative_particle)),
+                (Some(_), None) => std::cmp::Ordering::Less,
+                (None, Some(_)) => std::cmp::Ordering::Greater,
+                (None, None) => left.representative_particle.cmp(&right.representative_particle),
+            }
+        });
+
+        Ok(VicsekH0PersistenceReport {
+            particle_count: count,
+            max_radius,
+            perception: self.perception,
+            graph_semantics: match self.perception {
+                VicsekPerception::MetricRadius => VicsekGraphSemantics::UndirectedMetric,
+                VicsekPerception::VisualSector { .. } => {
+                    VicsekGraphSemantics::WeaklyConnectedProjectionOfDirectedVisibility
+                }
+            },
+            candidate_edges: edges.len(),
+            merge_count,
+            right_censored_component_count,
+            intervals,
+        })
     }
 
     /// Compute the complete metric set, including graph clustering and shortest paths.
@@ -2465,6 +2659,133 @@ mod tests {
         assert!(metrics.local_polar_order_variance.unwrap() < 1.0e-12);
         assert_eq!(metrics.cluster_count, 2);
         assert_eq!(metrics.largest_cluster_fraction, 0.5);
+    }
+
+    #[test]
+    fn h0_filtration_records_merge_radii_and_right_censored_components() {
+        let model = VicsekModel::new(
+            vec![
+                VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+                VicsekParticle { x: 1.5, y: 1.0, heading_rad: 0.0 },
+                VicsekParticle { x: 5.0, y: 5.0, heading_rad: 1.0 },
+                VicsekParticle { x: 5.4, y: 5.0, heading_rad: 1.0 },
+            ],
+            VicsekConfig {
+                box_size: 20.0,
+                interaction_radius: 1.0,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            81,
+        )
+        .unwrap();
+
+        let report = model.h0_persistence(2.0).unwrap();
+        assert_eq!(report.particle_count, 4);
+        assert_eq!(report.candidate_edges, 2);
+        assert_eq!(report.merge_count, 2);
+        assert_eq!(report.right_censored_component_count, 2);
+        let deaths: Vec<f64> = report
+            .intervals
+            .iter()
+            .filter_map(|interval| interval.death_radius)
+            .collect();
+        assert_eq!(deaths.len(), 2);
+        assert!((deaths[0] - 0.4).abs() < 1.0e-12);
+        assert!((deaths[1] - 0.5).abs() < 1.0e-12);
+        assert!(report.intervals.iter().any(|interval| {
+            interval.death_radius.is_none() && interval.component_size_at_end == 2
+        }));
+    }
+
+    #[test]
+    fn h0_filtration_uses_strict_radius_and_visual_weak_projection() {
+        let pair = vec![
+            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle { x: 2.0, y: 1.0, heading_rad: 0.0 },
+        ];
+        let metric = VicsekModel::new(
+            pair.clone(),
+            VicsekConfig {
+                box_size: 10.0,
+                interaction_radius: 0.5,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            82,
+        )
+        .unwrap();
+        let boundary = metric.h0_persistence(1.0).unwrap();
+        assert_eq!(boundary.candidate_edges, 0);
+        assert_eq!(boundary.right_censored_component_count, 2);
+        let open = metric.h0_persistence(1.0001).unwrap();
+        assert_eq!(open.candidate_edges, 1);
+        assert_eq!(open.merge_count, 1);
+
+        let visual = VicsekModel::new_with_perception(
+            pair,
+            VicsekConfig {
+                box_size: 10.0,
+                interaction_radius: 0.5,
+                speed: 0.0,
+                dt: 1.0,
+                angular_noise_width_rad: 0.0,
+                update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+            },
+            83,
+            VicsekPerception::VisualSector {
+                half_aperture_rad: std::f64::consts::FRAC_PI_4,
+                offset_rad: 0.0,
+            },
+        )
+        .unwrap();
+        let visual_report = visual.h0_persistence(2.0).unwrap();
+        assert_eq!(visual_report.candidate_edges, 1);
+        assert_eq!(
+            visual_report.graph_semantics,
+            VicsekGraphSemantics::WeaklyConnectedProjectionOfDirectedVisibility
+        );
+    }
+
+    #[test]
+    fn h0_filtration_is_invariant_to_periodic_box_translation() {
+        let particles = vec![
+            VicsekParticle { x: 9.8, y: 0.2, heading_rad: 0.0 },
+            VicsekParticle { x: 0.2, y: 0.2, heading_rad: 0.0 },
+            VicsekParticle { x: 4.0, y: 4.0, heading_rad: 1.0 },
+            VicsekParticle { x: 4.4, y: 4.0, heading_rad: 1.0 },
+        ];
+        let config = VicsekConfig {
+            box_size: 10.0,
+            interaction_radius: 1.0,
+            speed: 0.0,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let original = VicsekModel::new(particles.clone(), config, 84).unwrap();
+        let mut translated_particles = particles;
+        for particle in &mut translated_particles {
+            particle.x = (particle.x + 3.7).rem_euclid(config.box_size);
+            particle.y = (particle.y + 6.1).rem_euclid(config.box_size);
+        }
+        let translated = VicsekModel::new(translated_particles, config, 84).unwrap();
+
+        let left = original.h0_persistence(2.0).unwrap();
+        let right = translated.h0_persistence(2.0).unwrap();
+        assert_eq!(left.candidate_edges, right.candidate_edges);
+        assert_eq!(left.merge_count, right.merge_count);
+        assert_eq!(left.right_censored_component_count, right.right_censored_component_count);
+        let left_deaths: Vec<f64> = left.intervals.iter().filter_map(|v| v.death_radius).collect();
+        let right_deaths: Vec<f64> = right.intervals.iter().filter_map(|v| v.death_radius).collect();
+        assert_eq!(left_deaths.len(), right_deaths.len());
+        for (a, b) in left_deaths.iter().zip(right_deaths.iter()) {
+            assert!((a - b).abs() < 1.0e-12);
+        }
     }
 
     #[test]
