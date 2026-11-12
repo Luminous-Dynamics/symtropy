@@ -364,12 +364,12 @@ fn validate_snapshot(snapshot: &OptionSnapshot) -> Result<(), LedgerError> {
         (
             "predecessor_state_digest",
             snapshot.predecessor_state_digest.as_str(),
-        )
+        ),
         ("result_state_digest", snapshot.result_state_digest.as_str()),
         (
             "observation_partition_digest",
             snapshot.observation_partition_digest.as_str(),
-        )
+        ),
     ] {
         if !nonempty(value) {
             return Err(LedgerError::MissingReceiptDigest(name.to_owned()));
@@ -918,11 +918,7 @@ mod tests {
         let report = audit_transition(
             &previous,
             &next,
-            &transition(
-                &previous,
-                &next,
-                vec![add("step-left", &previous, &next)],
-            ),
+            &transition(&previous, &next, vec![add("step-left", &previous, &next)]),
         )
         .unwrap();
         assert_eq!(report.disposition, AuditDisposition::Qualified);
@@ -968,11 +964,7 @@ mod tests {
         let previous = snapshot(1, "s0", "s1", &["retreat"]);
         let next = snapshot(2, "s1", "s2", &["retreat", "step-left"]);
         let mut evidence = add("step-left", &previous, &next);
-        if let OptionChangeEvidence::Added {
-            preconditions,
-            ..
-        } = &mut evidence
-        {
+        if let OptionChangeEvidence::Added { preconditions, .. } = &mut evidence {
             preconditions[0].disposition = EvidenceDisposition::Unknown;
         }
         let report = audit_transition(
@@ -1024,12 +1016,28 @@ mod tests {
         previous_b.action_domain_ids.reverse();
         next_b.action_domain_ids.reverse();
         let changes_a = vec![
-            remove("step-left", LossCause::ThermalDerating, Reversibility::Irreversible),
-            remove("step-right", LossCause::EnergyDepletion, Reversibility::Irreversible),
+            remove(
+                "step-left",
+                LossCause::ThermalDerating,
+                Reversibility::Irreversible,
+            ),
+            remove(
+                "step-right",
+                LossCause::EnergyDepletion,
+                Reversibility::Irreversible,
+            ),
         ];
         let changes_b = vec![
-            remove("step-right", LossCause::EnergyDepletion, Reversibility::Irreversible),
-            remove("step-left", LossCause::ThermalDerating, Reversibility::Irreversible),
+            remove(
+                "step-right",
+                LossCause::EnergyDepletion,
+                Reversibility::Irreversible,
+            ),
+            remove(
+                "step-left",
+                LossCause::ThermalDerating,
+                Reversibility::Irreversible,
+            ),
         ];
         let a = audit_transition(
             &previous_a,
@@ -1085,11 +1093,17 @@ mod tests {
             audit_transition(
                 &previous,
                 &next,
-                &transition(&previous, &next, vec![remove(
-                    "step-left",
-                    LossCause::ThermalDerating,
-                    Reversibility::Conditional { required_preconditions: vec![] },
-                )]),
+                &transition(
+                    &previous,
+                    &next,
+                    vec![remove(
+                        "step-left",
+                        LossCause::ThermalDerating,
+                        Reversibility::Conditional {
+                            required_preconditions: vec![]
+                        },
+                    )]
+                ),
             ),
             Err(LedgerError::InvalidReversibilityDeclaration(_))
         ));
