@@ -218,21 +218,24 @@
           "temperature_c": 85,
           "hard_limit_c": 110,
           "source_class": "synthetic_fixture",
-          "uncertainty_c": 0
+          "uncertainty_c": 0,
+          "evidence_digest": "sha256:fo03_hot_node_hidden_by_mean-motor-a-thermal"
         },
         {
           "node_id": "motor-b",
           "temperature_c": 101,
           "hard_limit_c": 100,
           "source_class": "synthetic_fixture",
-          "uncertainty_c": 0
+          "uncertainty_c": 0,
+          "evidence_digest": "sha256:fo03_hot_node_hidden_by_mean-motor-b-thermal"
         },
         {
           "node_id": "compute",
           "temperature_c": 45,
           "hard_limit_c": 105,
           "source_class": "synthetic_fixture",
-          "uncertainty_c": 0
+          "uncertainty_c": 0,
+          "evidence_digest": "sha256:fo03_hot_node_hidden_by_mean-compute-thermal"
         }
       ],
       "branches": [
