@@ -1,0 +1,36 @@
+name: LOCO Option Loss Ledger Reference
+
+on:
+  push:
+    branches:
+      - research/loco-option-loss-ledger-001
+    paths:
+      - "research/loco-option-loss-ledger-001/**"
+      - ".github/workflows/loco-option-loss-ledger.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "research/loco-option-loss-ledger-001/**"
+      - ".github/workflows/loco-option-loss-ledger.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  rust-reference:
+    name: Rust 1.96 format, tests and strict Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/loco-option-loss-ledger-001/reference/Cargo.toml -- --check
+      - name: Run deterministic tests
+        run: cargo test --locked --manifest-path research/loco-option-loss-ledger-001/reference/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/loco-option-loss-ledger-001/reference/Cargo.toml --all-targets -- -D warnings
