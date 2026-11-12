@@ -1202,26 +1202,28 @@ mod tests {
             "7ff8000000000001".to_string(),
         ));
         let receipt = compile_observation_frame(input).expect("raw NaN remains representable");
-        assert!(receipt.findings.iter().any(|finding| matches!(
-            finding,
-            FrameFinding::NonFiniteObservationValue(_)
-        )));
+        assert!(
+            receipt
+                .findings
+                .iter()
+                .any(|finding| matches!(finding, FrameFinding::NonFiniteObservationValue(_)))
+        );
     }
 
     #[test]
     fn signed_zero_and_nan_payload_bits_remain_identity_distinct() {
         let mut positive_zero = fixture();
-        positive_zero.entities[0].observables[0].value = Some(
-            ObservationValueV1::Binary64Bits("0000000000000000".to_string())
-        );
+        positive_zero.entities[0].observables[0].value = Some(ObservationValueV1::Binary64Bits(
+            "0000000000000000".to_string(),
+        ));
         let mut negative_zero = positive_zero.clone();
-        negative_zero.entities[0].observables[0].value = Some(
-            ObservationValueV1::Binary64Bits("8000000000000000".to_string())
-        );
+        negative_zero.entities[0].observables[0].value = Some(ObservationValueV1::Binary64Bits(
+            "8000000000000000".to_string(),
+        ));
         let mut other_nan = negative_zero.clone();
-        other_nan.entities[0].observables[0].value = Some(
-            ObservationValueV1::Binary64Bits("7ff8000000000002".to_string())
-        );
+        other_nan.entities[0].observables[0].value = Some(ObservationValueV1::Binary64Bits(
+            "7ff8000000000002".to_string(),
+        ));
         let positive = compile_observation_frame(positive_zero).expect("positive zero");
         let negative = compile_observation_frame(negative_zero).expect("negative zero");
         let nan = compile_observation_frame(other_nan).expect("NaN payload");
