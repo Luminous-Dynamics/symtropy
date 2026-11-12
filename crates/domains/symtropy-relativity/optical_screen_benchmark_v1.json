@@ -163,7 +163,7 @@
     {
       "id": "OS-5B",
       "name": "independent Sachs optical-Jacobi equation cross-check",
-      "status": "fixed-step and adaptive step-doubled Sachs-frame/Jacobi source plus radial Schwarzschild regressions authored; Rust exact-head execution and nonradial cross-formulation receipts pending",
+      "status": "fixed-step and adaptive step-doubled Sachs/Jacobi source plus radial and nonradial Schwarzschild regressions authored; exact-head Rust validation pending for latest nonradial regression",
       "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
       "observables": [
         "screen_basis_parallel_transport_residual",
@@ -264,7 +264,9 @@
           "radial Schwarzschild endpoint singular values equal lambda and condition number equals one",
           "zero step count and non-finite tolerance are rejected",
           "adaptive radial Schwarzschild D(lambda)=lambda*I regression checks all four local-error channels and analytic endpoint invariants",
-          "adaptive Sachs/Jacobi options reject inconsistent step bounds"
+          "adaptive Sachs/Jacobi options reject inconsistent step bounds",
+          "nonradial Schwarzschild test requires a nonzero pointwise optical tidal matrix and checks its symmetry/vacuum trace",
+          "fixed-step and adaptive Sachs/Jacobi solutions agree on the same nonradial Schwarzschild ray, screen frame, and affine interval within 2e-5 relative comparison scale"
         ],
         "limitations": [
           "fixed-step only; must compare step counts N, 2N, and 4N",
@@ -312,14 +314,33 @@
           "metric compatibility",
           "last accepted step and next proposed step"
         ],
-        "adaptive_claim_ceiling": "Local step-doubling control for the coupled system. It is not a rigorous global error bound; compare against fixed-step N/2N/4N and canonical-vs-Sachs cross-formulation results."
+        "adaptive_claim_ceiling": "Local step-doubling control for the coupled system. It is not a rigorous global error bound; compare against fixed-step N/2N/4N and canonical-vs-Sachs cross-formulation results.",
+        "nonradial_cross_solver_test": {
+          "spacetime": "Schwarzschild",
+          "observer": "finite-radius ZAMO r/M=10, theta=pi/2",
+          "local_direction": "(-0.8,0.6,0.0) in radial/polar/azimuthal orthonormal components",
+          "affine_interval": 0.02,
+          "fixed_step_count": 64,
+          "adaptive_options": {
+            "relative_tolerance": 1e-9,
+            "absolute_tolerance": 1e-12,
+            "constraint_tolerance": 1e-7,
+            "initial_step": 0.005,
+            "minimum_step": 1e-9,
+            "maximum_step": 0.01,
+            "maximum_steps": 20000
+          },
+          "comparison": "endpoint D entries, signed determinant and both singular values",
+          "proposed_tolerance": 0.00002,
+          "caveat": "This compares two integrators of the same Sachs/Jacobi equations, not yet the Sachs map against the canonical 8x8 variational projection."
+        }
       },
       "remaining": [
-        "execute fixed-step and adaptive radial Schwarzschild known-answer tests at the exact PR head",
-        "compare fixed-step N/2N/4N and adaptive Sachs/Jacobi solutions on identical initial data",
-        "compare curvature-based Sachs Jacobi matrix against canonical 8x8 variation in the same transported screen frame",
-        "add nonradial Schwarzschild and generic Kerr cross-formulation receipts",
-        "validate caustic convergence without determinant-only classification"
+        "execute the radial Schwarzschild fixed/adaptive known-answer tests at the exact latest branch head",
+        "execute the nonradial Schwarzschild fixed/adaptive cross-solver regression and record nonzero optical tide",
+        "run N/2N/4N fixed-step refinement and adaptive-vs-fixed comparisons on same initial data",
+        "compare curvature-based Sachs Jacobi map against canonical 8x8 variation in the identical transported frame",
+        "add generic Kerr nonradial cross-formulation receipts before caustic qualification"
       ],
       "fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json",
       "validation_status": "fixed-step source and radial analytic test authored; prior runner test of the radial Sachs/Jacobi reference passed; rerun required after later test corrections"
