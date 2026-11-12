@@ -1,0 +1,217 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/construction/HIGHRISE_REFERENCE_FLOOR_DISRUPTION_MATRIX_SCHEMA_V0_1.json",
+  "title": "High-rise reference-floor disruption matrix v0.1",
+  "description": "Closed document-shape schema for synthetic disruption/recovery scenarios. Passing it does not establish a safety case or physical qualification.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "parent_issue",
+    "highrise_parent_issue",
+    "owner_contract",
+    "status",
+    "created_date",
+    "synthetic_only",
+    "claim_ceiling",
+    "decision_time_rule",
+    "comparison_tracks",
+    "state_semantics",
+    "non_compensable_invariants",
+    "scenarios"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous.highrise_reference_floor_disruptions.v0.1"
+    },
+    "profile_id": {
+      "const": "HIGHRISE-REFERENCE-FLOOR-DISRUPTION-MATRIX-001"
+    },
+    "parent_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "highrise_parent_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "owner_contract": {
+      "type": "string",
+      "format": "uri"
+    },
+    "status": {
+      "const": "synthetic_scenario_corpus_design_not_executed"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "synthetic_only": {
+      "const": true
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decision_time_rule": {
+      "type": "string",
+      "minLength": 1
+    },
+    "comparison_tracks": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "state_semantics": {
+      "type": "array",
+      "minItems": 2,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "non_compensable_invariants": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "scenarios": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/scenario"
+      }
+    }
+  },
+  "$defs": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_type",
+        "event_time",
+        "detected_at",
+        "known_to_planner_when"
+      ],
+      "properties": {
+        "event_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event_time": {
+          "type": "string",
+          "minLength": 1
+        },
+        "detected_at": {
+          "type": "string",
+          "minLength": 1
+        },
+        "known_to_planner_when": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "category",
+        "event",
+        "affected_task_ids",
+        "invalidation_scope",
+        "required_preconditions",
+        "allowed_responses",
+        "forbidden_inferences",
+        "terminal_dispositions",
+        "acceptance_effect",
+        "metrics"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^HFD[0-9]{2}_[A-Z0-9_]+$"
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        },
+        "event": {
+          "$ref": "#/$defs/event"
+        },
+        "affected_task_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "invalidation_scope": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required_preconditions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allowed_responses": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "forbidden_inferences": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "terminal_dispositions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "acceptance_effect": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metrics": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

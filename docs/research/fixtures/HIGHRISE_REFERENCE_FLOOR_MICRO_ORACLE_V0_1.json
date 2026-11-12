@@ -1,0 +1,1115 @@
+{
+  "schema_version": "luminous.habitat_schedule_micro_oracle.v0.1",
+  "suite_id": "highrise-reference-floor-micro-oracle-001",
+  "status": "synthetic_reference_cases_pending_execution_by_habitat_schedule_oracle",
+  "synthetic_only": true,
+  "claim_ceiling": "synthetic_schedule_semantics_not_construction_estimates_or_safety_authority",
+  "conventions": {
+    "time_origin": 0,
+    "time_unit": "abstract integer time units",
+    "intervals": "half_open_start_inclusive_finish_exclusive",
+    "tasks": "nonpreemptive",
+    "precedence": "finish(before) <= start(after)",
+    "objective": "minimize makespan = maximum task finish",
+    "resources": "renewable capacity; a task's demand must not exceed capacity at any occupied time",
+    "uncertainty": "nominal and upper_duration are disclosed scenarios; robust feasibility checks the upper scenario against the same hard constraints",
+    "gates": "required gates are hard feasibility constraints, not soft penalties",
+    "schedule_is_executed_work": false
+  },
+  "cases": [
+    {
+      "case_id": "HF01_ONE_HOIST_NOMINAL",
+      "purpose": "Reference schedule with one abstract shared vertical-logistics resource; two independent work packages contend for it.",
+      "tasks": [
+        {
+          "id": "CONTROL_LAYOUT",
+          "nominal_duration": 1,
+          "upper_duration": 2,
+          "resource_demands": {
+            "SURVEY_CREW": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "TEMP_WORKS_READY",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "TEMP_WORKS_CREW": 1
+          },
+          "required_gates": [
+            "TEMP_WORKS_ENGINEER_RELEASE"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "REBAR_INSTALL",
+          "nominal_duration": 3,
+          "upper_duration": 4,
+          "resource_demands": {
+            "REBAR_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "MEP_EMBEDS",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "MEP_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "FORMWORK_CLOSE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "FORM_CREW": 1,
+            "TOWER_CRANE": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "PREPOUR_INSPECT",
+          "nominal_duration": 1,
+          "upper_duration": 2,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "CONCRETE_PLACE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "CONCRETE_CREW": 1,
+            "PUMP": 1,
+            "TOWER_CRANE": 1
+          },
+          "required_gates": [
+            "PREPOUR_HOLD_POINT_ACCEPTED",
+            "MIX_DESIGN_ACCEPTED"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "STRENGTH_RELEASE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [
+            "STRENGTH_CRITERIA_PINNED"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "FORMWORK_STRIP",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "FORM_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [
+        {
+          "before": "CONTROL_LAYOUT",
+          "after": "TEMP_WORKS_READY"
+        },
+        {
+          "before": "TEMP_WORKS_READY",
+          "after": "REBAR_INSTALL"
+        },
+        {
+          "before": "TEMP_WORKS_READY",
+          "after": "MEP_EMBEDS"
+        },
+        {
+          "before": "REBAR_INSTALL",
+          "after": "FORMWORK_CLOSE"
+        },
+        {
+          "before": "MEP_EMBEDS",
+          "after": "FORMWORK_CLOSE"
+        },
+        {
+          "before": "FORMWORK_CLOSE",
+          "after": "PREPOUR_INSPECT"
+        },
+        {
+          "before": "PREPOUR_INSPECT",
+          "after": "CONCRETE_PLACE"
+        },
+        {
+          "before": "CONCRETE_PLACE",
+          "after": "STRENGTH_RELEASE"
+        },
+        {
+          "before": "STRENGTH_RELEASE",
+          "after": "FORMWORK_STRIP"
+        }
+      ],
+      "resources": [
+        {
+          "id": "SURVEY_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "TEMP_WORKS_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "REBAR_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "MEP_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "HOIST",
+          "capacity": 1
+        },
+        {
+          "id": "FORM_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "TOWER_CRANE",
+          "capacity": 1
+        },
+        {
+          "id": "INSPECTOR",
+          "capacity": 1
+        },
+        {
+          "id": "CONCRETE_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "PUMP",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [
+        "TEMP_WORKS_ENGINEER_RELEASE",
+        "PREPOUR_HOLD_POINT_ACCEPTED",
+        "MIX_DESIGN_ACCEPTED",
+        "STRENGTH_CRITERIA_PINNED"
+      ],
+      "available_gates": [
+        "TEMP_WORKS_ENGINEER_RELEASE",
+        "PREPOUR_HOLD_POINT_ACCEPTED",
+        "MIX_DESIGN_ACCEPTED",
+        "STRENGTH_CRITERIA_PINNED"
+      ],
+      "hard_deadline": 17,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 17,
+        "upper_scenario_optimal_makespan": 26,
+        "robust_feasible": false,
+        "canonical_witness": [
+          {
+            "task_id": "CONTROL_LAYOUT",
+            "start": 0,
+            "finish": 1
+          },
+          {
+            "task_id": "TEMP_WORKS_READY",
+            "start": 1,
+            "finish": 3
+          },
+          {
+            "task_id": "MEP_EMBEDS",
+            "start": 3,
+            "finish": 5
+          },
+          {
+            "task_id": "REBAR_INSTALL",
+            "start": 5,
+            "finish": 8
+          },
+          {
+            "task_id": "FORMWORK_CLOSE",
+            "start": 8,
+            "finish": 10
+          },
+          {
+            "task_id": "PREPOUR_INSPECT",
+            "start": 10,
+            "finish": 11
+          },
+          {
+            "task_id": "CONCRETE_PLACE",
+            "start": 11,
+            "finish": 13
+          },
+          {
+            "task_id": "STRENGTH_RELEASE",
+            "start": 13,
+            "finish": 15
+          },
+          {
+            "task_id": "FORMWORK_STRIP",
+            "start": 15,
+            "finish": 17
+          }
+        ],
+        "rejection_reason": null
+      }
+    },
+    {
+      "case_id": "HF02_TWO_HOIST_CAPACITY_SENSITIVITY",
+      "purpose": "Pure scheduling sensitivity with two abstract hoist capacity units; demonstrates that shared-resource capacity can permit parallel work. It does not model the cost, physical feasibility, safety or support requirements of a second resource.",
+      "tasks": [
+        {
+          "id": "CONTROL_LAYOUT",
+          "nominal_duration": 1,
+          "upper_duration": 2,
+          "resource_demands": {
+            "SURVEY_CREW": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "TEMP_WORKS_READY",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "TEMP_WORKS_CREW": 1
+          },
+          "required_gates": [
+            "TEMP_WORKS_ENGINEER_RELEASE"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "REBAR_INSTALL",
+          "nominal_duration": 3,
+          "upper_duration": 4,
+          "resource_demands": {
+            "REBAR_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "MEP_EMBEDS",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "MEP_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "FORMWORK_CLOSE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "FORM_CREW": 1,
+            "TOWER_CRANE": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "PREPOUR_INSPECT",
+          "nominal_duration": 1,
+          "upper_duration": 2,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "CONCRETE_PLACE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "CONCRETE_CREW": 1,
+            "PUMP": 1,
+            "TOWER_CRANE": 1
+          },
+          "required_gates": [
+            "PREPOUR_HOLD_POINT_ACCEPTED",
+            "MIX_DESIGN_ACCEPTED"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "STRENGTH_RELEASE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [
+            "STRENGTH_CRITERIA_PINNED"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "FORMWORK_STRIP",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "FORM_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [
+        {
+          "before": "CONTROL_LAYOUT",
+          "after": "TEMP_WORKS_READY"
+        },
+        {
+          "before": "TEMP_WORKS_READY",
+          "after": "REBAR_INSTALL"
+        },
+        {
+          "before": "TEMP_WORKS_READY",
+          "after": "MEP_EMBEDS"
+        },
+        {
+          "before": "REBAR_INSTALL",
+          "after": "FORMWORK_CLOSE"
+        },
+        {
+          "before": "MEP_EMBEDS",
+          "after": "FORMWORK_CLOSE"
+        },
+        {
+          "before": "FORMWORK_CLOSE",
+          "after": "PREPOUR_INSPECT"
+        },
+        {
+          "before": "PREPOUR_INSPECT",
+          "after": "CONCRETE_PLACE"
+        },
+        {
+          "before": "CONCRETE_PLACE",
+          "after": "STRENGTH_RELEASE"
+        },
+        {
+          "before": "STRENGTH_RELEASE",
+          "after": "FORMWORK_STRIP"
+        }
+      ],
+      "resources": [
+        {
+          "id": "SURVEY_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "TEMP_WORKS_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "REBAR_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "MEP_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "HOIST",
+          "capacity": 2
+        },
+        {
+          "id": "FORM_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "TOWER_CRANE",
+          "capacity": 1
+        },
+        {
+          "id": "INSPECTOR",
+          "capacity": 1
+        },
+        {
+          "id": "CONCRETE_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "PUMP",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [
+        "TEMP_WORKS_ENGINEER_RELEASE",
+        "PREPOUR_HOLD_POINT_ACCEPTED",
+        "MIX_DESIGN_ACCEPTED",
+        "STRENGTH_CRITERIA_PINNED"
+      ],
+      "available_gates": [
+        "TEMP_WORKS_ENGINEER_RELEASE",
+        "PREPOUR_HOLD_POINT_ACCEPTED",
+        "MIX_DESIGN_ACCEPTED",
+        "STRENGTH_CRITERIA_PINNED"
+      ],
+      "hard_deadline": 17,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 15,
+        "upper_scenario_optimal_makespan": 23,
+        "robust_feasible": false,
+        "canonical_witness": [
+          {
+            "task_id": "CONTROL_LAYOUT",
+            "start": 0,
+            "finish": 1
+          },
+          {
+            "task_id": "TEMP_WORKS_READY",
+            "start": 1,
+            "finish": 3
+          },
+          {
+            "task_id": "MEP_EMBEDS",
+            "start": 3,
+            "finish": 5
+          },
+          {
+            "task_id": "REBAR_INSTALL",
+            "start": 3,
+            "finish": 6
+          },
+          {
+            "task_id": "FORMWORK_CLOSE",
+            "start": 6,
+            "finish": 8
+          },
+          {
+            "task_id": "PREPOUR_INSPECT",
+            "start": 8,
+            "finish": 9
+          },
+          {
+            "task_id": "CONCRETE_PLACE",
+            "start": 9,
+            "finish": 11
+          },
+          {
+            "task_id": "STRENGTH_RELEASE",
+            "start": 11,
+            "finish": 13
+          },
+          {
+            "task_id": "FORMWORK_STRIP",
+            "start": 13,
+            "finish": 15
+          }
+        ],
+        "rejection_reason": null
+      }
+    },
+    {
+      "case_id": "HF03_MISSING_PREPOUR_HOLD_POINT",
+      "purpose": "Negative control: the concrete-placement task requires a pre-pour acceptance gate; the gate is deliberately unavailable.",
+      "tasks": [
+        {
+          "id": "CONTROL_LAYOUT",
+          "nominal_duration": 1,
+          "upper_duration": 2,
+          "resource_demands": {
+            "SURVEY_CREW": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "TEMP_WORKS_READY",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "TEMP_WORKS_CREW": 1
+          },
+          "required_gates": [
+            "TEMP_WORKS_ENGINEER_RELEASE"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "REBAR_INSTALL",
+          "nominal_duration": 3,
+          "upper_duration": 4,
+          "resource_demands": {
+            "REBAR_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "MEP_EMBEDS",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "MEP_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "FORMWORK_CLOSE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "FORM_CREW": 1,
+            "TOWER_CRANE": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "PREPOUR_INSPECT",
+          "nominal_duration": 1,
+          "upper_duration": 2,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "CONCRETE_PLACE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "CONCRETE_CREW": 1,
+            "PUMP": 1,
+            "TOWER_CRANE": 1
+          },
+          "required_gates": [
+            "PREPOUR_HOLD_POINT_ACCEPTED",
+            "MIX_DESIGN_ACCEPTED"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "STRENGTH_RELEASE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [
+            "STRENGTH_CRITERIA_PINNED"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "FORMWORK_STRIP",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "FORM_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [
+        {
+          "before": "CONTROL_LAYOUT",
+          "after": "TEMP_WORKS_READY"
+        },
+        {
+          "before": "TEMP_WORKS_READY",
+          "after": "REBAR_INSTALL"
+        },
+        {
+          "before": "TEMP_WORKS_READY",
+          "after": "MEP_EMBEDS"
+        },
+        {
+          "before": "REBAR_INSTALL",
+          "after": "FORMWORK_CLOSE"
+        },
+        {
+          "before": "MEP_EMBEDS",
+          "after": "FORMWORK_CLOSE"
+        },
+        {
+          "before": "FORMWORK_CLOSE",
+          "after": "PREPOUR_INSPECT"
+        },
+        {
+          "before": "PREPOUR_INSPECT",
+          "after": "CONCRETE_PLACE"
+        },
+        {
+          "before": "CONCRETE_PLACE",
+          "after": "STRENGTH_RELEASE"
+        },
+        {
+          "before": "STRENGTH_RELEASE",
+          "after": "FORMWORK_STRIP"
+        }
+      ],
+      "resources": [
+        {
+          "id": "SURVEY_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "TEMP_WORKS_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "REBAR_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "MEP_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "HOIST",
+          "capacity": 1
+        },
+        {
+          "id": "FORM_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "TOWER_CRANE",
+          "capacity": 1
+        },
+        {
+          "id": "INSPECTOR",
+          "capacity": 1
+        },
+        {
+          "id": "CONCRETE_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "PUMP",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [
+        "TEMP_WORKS_ENGINEER_RELEASE",
+        "PREPOUR_HOLD_POINT_ACCEPTED",
+        "MIX_DESIGN_ACCEPTED",
+        "STRENGTH_CRITERIA_PINNED"
+      ],
+      "available_gates": [
+        "TEMP_WORKS_ENGINEER_RELEASE",
+        "MIX_DESIGN_ACCEPTED",
+        "STRENGTH_CRITERIA_PINNED"
+      ],
+      "hard_deadline": 17,
+      "expected": {
+        "feasible": false,
+        "nominal_optimal_makespan": null,
+        "upper_scenario_optimal_makespan": null,
+        "robust_feasible": false,
+        "canonical_witness": [],
+        "rejection_reason": "required_gate_unavailable"
+      }
+    },
+    {
+      "case_id": "HF04_REJECT_REWORK_REINSPECT",
+      "purpose": "Inspection finds a defect; downstream concrete work remains blocked until corrective work and reinspection are complete.",
+      "tasks": [
+        {
+          "id": "CONTROL_LAYOUT",
+          "nominal_duration": 1,
+          "upper_duration": 2,
+          "resource_demands": {
+            "SURVEY_CREW": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "TEMP_WORKS_READY",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "TEMP_WORKS_CREW": 1
+          },
+          "required_gates": [
+            "TEMP_WORKS_ENGINEER_RELEASE"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "REBAR_INSTALL",
+          "nominal_duration": 3,
+          "upper_duration": 4,
+          "resource_demands": {
+            "REBAR_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "MEP_EMBEDS",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "MEP_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "FORMWORK_CLOSE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "FORM_CREW": 1,
+            "TOWER_CRANE": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "PREPOUR_INSPECT",
+          "nominal_duration": 1,
+          "upper_duration": 2,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "CONCRETE_PLACE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "CONCRETE_CREW": 1,
+            "PUMP": 1,
+            "TOWER_CRANE": 1
+          },
+          "required_gates": [
+            "PREPOUR_REINSPECTION_ACCEPTED",
+            "MIX_DESIGN_ACCEPTED"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "CORRECTIVE_REWORK",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "REBAR_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "PREPOUR_REINSPECT",
+          "nominal_duration": 1,
+          "upper_duration": 2,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "STRENGTH_RELEASE",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "INSPECTOR": 1
+          },
+          "required_gates": [
+            "STRENGTH_CRITERIA_PINNED"
+          ],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        },
+        {
+          "id": "FORMWORK_STRIP",
+          "nominal_duration": 2,
+          "upper_duration": 3,
+          "resource_demands": {
+            "FORM_CREW": 1,
+            "HOIST": 1
+          },
+          "required_gates": [],
+          "earliest_start": 0,
+          "latest_start": null,
+          "latest_finish": null
+        }
+      ],
+      "precedence": [
+        {
+          "before": "CONTROL_LAYOUT",
+          "after": "TEMP_WORKS_READY"
+        },
+        {
+          "before": "TEMP_WORKS_READY",
+          "after": "REBAR_INSTALL"
+        },
+        {
+          "before": "TEMP_WORKS_READY",
+          "after": "MEP_EMBEDS"
+        },
+        {
+          "before": "REBAR_INSTALL",
+          "after": "FORMWORK_CLOSE"
+        },
+        {
+          "before": "MEP_EMBEDS",
+          "after": "FORMWORK_CLOSE"
+        },
+        {
+          "before": "FORMWORK_CLOSE",
+          "after": "PREPOUR_INSPECT"
+        },
+        {
+          "before": "CONCRETE_PLACE",
+          "after": "STRENGTH_RELEASE"
+        },
+        {
+          "before": "STRENGTH_RELEASE",
+          "after": "FORMWORK_STRIP"
+        },
+        {
+          "before": "PREPOUR_INSPECT",
+          "after": "CORRECTIVE_REWORK"
+        },
+        {
+          "before": "CORRECTIVE_REWORK",
+          "after": "PREPOUR_REINSPECT"
+        },
+        {
+          "before": "PREPOUR_REINSPECT",
+          "after": "CONCRETE_PLACE"
+        }
+      ],
+      "resources": [
+        {
+          "id": "SURVEY_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "TEMP_WORKS_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "REBAR_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "MEP_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "HOIST",
+          "capacity": 1
+        },
+        {
+          "id": "FORM_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "TOWER_CRANE",
+          "capacity": 1
+        },
+        {
+          "id": "INSPECTOR",
+          "capacity": 1
+        },
+        {
+          "id": "CONCRETE_CREW",
+          "capacity": 1
+        },
+        {
+          "id": "PUMP",
+          "capacity": 1
+        }
+      ],
+      "declared_gates": [
+        "TEMP_WORKS_ENGINEER_RELEASE",
+        "PREPOUR_HOLD_POINT_ACCEPTED",
+        "MIX_DESIGN_ACCEPTED",
+        "STRENGTH_CRITERIA_PINNED",
+        "PREPOUR_REINSPECTION_ACCEPTED"
+      ],
+      "available_gates": [
+        "TEMP_WORKS_ENGINEER_RELEASE",
+        "PREPOUR_HOLD_POINT_ACCEPTED",
+        "MIX_DESIGN_ACCEPTED",
+        "STRENGTH_CRITERIA_PINNED",
+        "PREPOUR_REINSPECTION_ACCEPTED"
+      ],
+      "hard_deadline": 20,
+      "expected": {
+        "feasible": true,
+        "nominal_optimal_makespan": 20,
+        "upper_scenario_optimal_makespan": 31,
+        "robust_feasible": false,
+        "canonical_witness": [
+          {
+            "task_id": "CONTROL_LAYOUT",
+            "start": 0,
+            "finish": 1
+          },
+          {
+            "task_id": "TEMP_WORKS_READY",
+            "start": 1,
+            "finish": 3
+          },
+          {
+            "task_id": "MEP_EMBEDS",
+            "start": 3,
+            "finish": 5
+          },
+          {
+            "task_id": "REBAR_INSTALL",
+            "start": 5,
+            "finish": 8
+          },
+          {
+            "task_id": "FORMWORK_CLOSE",
+            "start": 8,
+            "finish": 10
+          },
+          {
+            "task_id": "PREPOUR_INSPECT",
+            "start": 10,
+            "finish": 11
+          },
+          {
+            "task_id": "CORRECTIVE_REWORK",
+            "start": 11,
+            "finish": 13
+          },
+          {
+            "task_id": "PREPOUR_REINSPECT",
+            "start": 13,
+            "finish": 14
+          },
+          {
+            "task_id": "CONCRETE_PLACE",
+            "start": 14,
+            "finish": 16
+          },
+          {
+            "task_id": "STRENGTH_RELEASE",
+            "start": 16,
+            "finish": 18
+          },
+          {
+            "task_id": "FORMWORK_STRIP",
+            "start": 18,
+            "finish": 20
+          }
+        ],
+        "rejection_reason": null
+      }
+    }
+  ]
+}
