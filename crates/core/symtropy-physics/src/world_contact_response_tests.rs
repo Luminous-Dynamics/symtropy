@@ -142,6 +142,177 @@ fn qualify_case(frame_generator: Bivector<3>, dt: f64) {
     );
 }
 
+fn qualify_two_point_manifold(frame_generator: Bivector<3>) {
+    let frame = Rotor::from_bivector(&frame_generator);
+    let mass = 2.0;
+    let inertia = 1.0 / 3.0;
+    let local_normal = SVector::from([0.0, 1.0, 0.0]);
+    let normal = frame.rotate_vector(&local_normal);
+    let com = frame.rotate_vector(&SVector::from([0.0, 0.5, 0.0]));
+    let offsets = [
+        frame.rotate_vector(&SVector::from([0.5, -0.5, 0.0])),
+        frame.rotate_vector(&SVector::from([-0.5, -0.5, 0.0])),
+    ];
+
+    let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+    world.baumgarte = 0.0;
+    world.slop = 0.0;
+
+    let mut fixed = RigidBody::<3>::static_body(
+        BodyHandle(0),
+        Point::origin(),
+        Box::new(HyperBox::<3>::cube(5.0)),
+    );
+    fixed.friction = 0.0;
+    let mut moving = RigidBody::<3>::new(
+        BodyHandle(1),
+        BodyType::Dynamic,
+        Transform {
+            translation: Point(com),
+            rotation: frame,
+        },
+        Box::new(HyperBox::<3>::cube(0.5)),
+        mass,
+        SVector::from_element(inertia),
+    );
+    moving.linear_velocity = -normal;
+    moving.friction = 0.0;
+
+    let fixed_handle = world.add_body(fixed);
+    let moving_handle = world.add_body(moving);
+    let mut contact = ContactManifold::single(
+        fixed_handle,
+        moving_handle,
+        normal,
+        com + offsets[0],
+        0.0,
+    );
+    contact.points.push(crate::contact::ContactPoint {
+        position: com + offsets[1],
+        depth: 0.0,
+        lambda: 0.0,
+        restitution_bias: 0.0,
+    });
+
+    let before_linear_velocity = world.bodies[1].linear_velocity;
+    let before_angular_velocity = world.bodies[1].angular_velocity;
+    let before_energy = world.bodies[1].kinetic_energy();
+    let free_speed = offsets.map(|offset| {
+        (before_linear_velocity
+            + integrator::angular_point_velocity(&before_angular_velocity, &offset))
+        .dot(&normal)
+    });
+
+    // Independently construct the 2x2 Delassus operator:
+    // W_ij = 1/m + (r_i x n)^T I^-1 (r_j x n).
+    let rotational_rows = offsets.map(|offset| offset.cross(&normal));
+    let mut effective_mass = [[0.0; 2]; 2];
+    for i in 0..2 {
+        for j in 0..2 {
+            effective_mass[i][j] =
+                1.0 / mass + rotational_rows[i].dot(&rotational_rows[j]) / inertia;
+        }
+    }
+    let rhs = [-free_speed[0], -free_speed[1]];
+    let determinant = effective_mass[0][0] * effective_mass[1][1]
+        - effective_mass[0][1] * effective_mass[1][0];
+    assert!(determinant > 0.0, "independent Delassus matrix must be SPD");
+    let expected_impulses = [
+        (rhs[0] * effective_mass[1][1] - effective_mass[0][1] * rhs[1])
+            / determinant,
+        (effective_mass[0][0] * rhs[1] - effective_mass[1][0] * rhs[0])
+            / determinant,
+    ];
+
+    // The production world uses sequential impulses across solver_iterations.
+    // Repeat the exact resolver kernel to isolate its manifold convergence.
+    let mut callback = NoOpCallback;
+    for _ in 0..12 {
+        contact = world.resolve_contact(contact, 1.0 / 60.0, &mut callback);
+    }
+
+    let after = &world.bodies[1];
+    let observed_impulses = [contact.points[0].lambda, contact.points[1].lambda];
+    let after_speeds = offsets.map(|offset| {
+        (after.linear_velocity
+            + integrator::angular_point_velocity(&after.angular_velocity, &offset))
+        .dot(&normal)
+    });
+    for i in 0..2 {
+        assert!(
+            (observed_impulses[i] - expected_impulses[i]).abs()
+                / expected_impulses[i].abs().max(f64::MIN_POSITIVE)
+                < 2.0e-12,
+            "contact {i} impulse disagrees with the independent coupled Delassus solution: observed={:e}, expected={:e}",
+            observed_impulses[i],
+            expected_impulses[i]
+        );
+        assert!(
+            after_speeds[i].abs() < 2.0e-12,
+            "contact {i} retains normal velocity {:e}",
+            after_speeds[i]
+        );
+    }
+
+    // The resultant linear and angular impulses must equal the measured
+    // momentum changes, independently of the contact iteration ordering.
+    let resultant_impulse = normal * observed_impulses.iter().sum::<f64>();
+    let linear_momentum_change = (after.linear_velocity - before_linear_velocity) * mass;
+    assert!(
+        (linear_momentum_change - resultant_impulse).norm()
+            / resultant_impulse.norm().max(f64::MIN_POSITIVE)
+            < 2.0e-12,
+        "two-point linear momentum transfer is inconsistent"
+    );
+
+    let expected_angular_impulse = integrator::angular_impulse_from_point(
+        &offsets[0],
+        &(normal * observed_impulses[0]),
+    )
+    .add(&integrator::angular_impulse_from_point(
+        &offsets[1],
+        &(normal * observed_impulses[1]),
+    ));
+    let angular_momentum_change = after
+        .angular_velocity
+        .add(&before_angular_velocity.scale(-1.0))
+        .scale(inertia);
+    let angular_scale = integrator::angular_impulse_from_point(&offsets[0], &normal)
+        .norm()
+        .max(integrator::angular_impulse_from_point(&offsets[1], &normal).norm());
+    assert!(
+        angular_momentum_change
+            .add(&expected_angular_impulse.scale(-1.0))
+            .norm()
+            / angular_scale.max(f64::MIN_POSITIVE)
+            < 2.0e-12,
+        "two-point angular momentum transfer is inconsistent"
+    );
+
+    let impulse_work = (0..2)
+        .map(|i| observed_impulses[i] * (free_speed[i] + after_speeds[i]) * 0.5)
+        .sum::<f64>();
+    let after_energy = after.kinetic_energy();
+    let energy_scale = before_energy.abs().max(after_energy.abs()).max(impulse_work.abs());
+    assert!(
+        (after_energy - before_energy - impulse_work).abs()
+            / energy_scale.max(f64::MIN_POSITIVE)
+            < 2.0e-12,
+        "two-point impulse work does not balance kinetic energy"
+    );
+}
+
+#[test]
+fn production_two_point_contact_converges_to_independent_delassus_oracle() {
+    for frame in [
+        generator([0.0, 0.0, 0.0]),
+        generator([0.31, -0.17, 0.23]),
+        generator([-0.41, 0.28, 0.11]),
+    ] {
+        qualify_two_point_manifold(frame);
+    }
+}
+
 #[test]
 fn production_contact_response_matches_independent_oracle_across_frames_and_steps() {
     let frames = [
