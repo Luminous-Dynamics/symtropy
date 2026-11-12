@@ -2994,7 +2994,11 @@ VicsekParticle {
     fn cluster_geometry_withholds_hull_for_half_box_extent_ambiguity() {
         let model = VicsekModel::new(
             vec![
-                VicsekParticle { x: 1.0, y: 5.0, heading_rad: 0.0 },
+                VicsekParticle {
+                    x: 1.0,
+                    y: 5.0,
+                    heading_rad: 0.0,
+                },
 VicsekParticle {
                     x: 4.0,
                     y: 5.0,
@@ -3134,7 +3138,11 @@ VicsekParticle {
     #[test]
     fn h0_filtration_uses_strict_radius_and_visual_weak_projection() {
         let pair = vec![
-            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
             VicsekParticle {
                 x: 2.0,
                 y: 1.0,
