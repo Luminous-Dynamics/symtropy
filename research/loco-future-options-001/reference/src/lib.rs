@@ -324,7 +324,10 @@ fn validate_recovery(
                     ));
                     continue;
                 }
-                if receipts.insert(receipt.branch_id.clone(), receipt).is_some() {
+                if receipts
+                    .insert(receipt.branch_id.clone(), receipt)
+                    .is_some()
+                {
                     invalid.push(format!(
                         "recovery:duplicate-branch-receipt:{}",
                         receipt.branch_id
@@ -836,7 +839,6 @@ mod tests {
         assert!(report.observation_sets.is_empty());
     }
 
-
     #[test]
     fn missing_per_branch_recovery_receipt_blocks_positive_options() {
         let mut s = scenario(vec![
@@ -856,7 +858,12 @@ mod tests {
         s.recovery.branch_manifest_digest = "other-manifest".to_owned();
         let report = evaluate_future_options(&s).unwrap();
         assert_eq!(report.disposition, ScenarioDisposition::Invalid);
-        assert!(report.invalid_reasons.iter().any(|reason| reason.contains("branch-manifest-digest-mismatch")));
+        assert!(
+            report
+                .invalid_reasons
+                .iter()
+                .any(|reason| reason.contains("branch-manifest-digest-mismatch"))
+        );
         assert_eq!(report.deployable_common_option_count, 0);
     }
 
@@ -871,7 +878,12 @@ mod tests {
         });
         let report = evaluate_future_options(&s).unwrap();
         assert_eq!(report.disposition, ScenarioDisposition::Invalid);
-        assert!(report.invalid_reasons.iter().any(|reason| reason.contains("outside-manifest")));
+        assert!(
+            report
+                .invalid_reasons
+                .iter()
+                .any(|reason| reason.contains("outside-manifest"))
+        );
     }
 
     #[test]
@@ -983,12 +995,15 @@ mod tests {
         let before = evaluate_future_options(&base).unwrap();
         let mut extended = base;
         extended.branches.push(branch("b3", "same", 0, &["left"]));
-        extended.recovery.branch_receipts.push(BranchRecoveryReceipt {
-            branch_id: "b3".to_owned(),
-            reserve_state_digest: "reserve:b3".to_owned(),
-            topology_digest: "topology:b3".to_owned(),
-            terminal_safe_stop_reachable: true,
-        });
+        extended
+            .recovery
+            .branch_receipts
+            .push(BranchRecoveryReceipt {
+                branch_id: "b3".to_owned(),
+                reserve_state_digest: "reserve:b3".to_owned(),
+                topology_digest: "topology:b3".to_owned(),
+                terminal_safe_stop_reachable: true,
+            });
         let after = evaluate_future_options(&extended).unwrap();
         let before_set: BTreeSet<_> = before.observation_sets["same"]
             .common_physical_action_ids
