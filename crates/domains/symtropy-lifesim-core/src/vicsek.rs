@@ -47,6 +47,18 @@ pub enum VicsekUpdateRule {
     NextPositionAlignment,
 }
 
+/// Circular-mean convention used to align headings.
+///
+/// `Atan2` uses the full quadrant of the summed sine/cosine vector and is the default
+/// rotationally equivariant convention. `PrincipalValueArctanRatio` reproduces the
+/// branch-cut-sensitive ratio `atan(sum_sin / sum_cos)` discussed by Takahashi et al. (2026).
+/// These variants must be benchmarked separately and never pooled.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VicsekHeadingMean {
+    QuadrantCorrectAtan2,
+    PrincipalValueArctanRatio,
+}
+
 /// Geometry used by an agent to decide which nearby particles it can perceive.
 ///
 /// MetricRadius is reciprocal. VisualSector is directional: visibility depends on the
@@ -272,6 +284,8 @@ pub struct VicsekMetrics {
     pub tick: u64,
     /// Neighbour-time convention used by the simulation that produced this snapshot.
     pub update_rule: VicsekUpdateRule,
+    /// Heading-mean formula used by this simulation; arctan and atan2 are distinct models.
+    pub heading_mean: VicsekHeadingMean,
     /// Agent perception geometry used to construct neighbour sets.
     pub perception: VicsekPerception,
     /// Graph semantics used for component and topology metrics.
@@ -477,6 +491,7 @@ pub struct PairedInterventionResult {
 pub struct VicsekModel {
     config: VicsekConfig,
     perception: VicsekPerception,
+    heading_mean: VicsekHeadingMean,
     particles: Vec<VicsekParticle>,
     rng: XorShift64,
     tick: u64,
@@ -502,7 +517,30 @@ impl VicsekModel {
         seed: u64,
         perception: VicsekPerception,
     ) -> Result<Self, VicsekError> {
-        Self::from_particles_and_rng(particles, config, XorShift64::new(seed), perception)
+        Self::new_with_options(
+            particles,
+            config,
+            seed,
+            perception,
+            VicsekHeadingMean::QuadrantCorrectAtan2,
+        )
+    }
+
+    /// Construct with explicit perception and heading-mean conventions.
+    pub fn new_with_options(
+        particles: Vec<VicsekParticle>,
+        config: VicsekConfig,
+        seed: u64,
+        perception: VicsekPerception,
+        heading_mean: VicsekHeadingMean,
+    ) -> Result<Self, VicsekError> {
+        Self::from_particles_and_rng(
+            particles,
+            config,
+            XorShift64::new(seed),
+            perception,
+            heading_mean,
+        )
     }
 
     fn from_particles_and_rng(
@@ -510,6 +548,7 @@ impl VicsekModel {
         config: VicsekConfig,
         rng: XorShift64,
         perception: VicsekPerception,
+        heading_mean: VicsekHeadingMean,
     ) -> Result<Self, VicsekError> {
         config.validate()?;
         let perception = perception.normalized()?;
@@ -543,6 +582,7 @@ impl VicsekModel {
         Ok(Self {
             config,
             perception,
+            heading_mean,
             particles,
             rng,
             tick: 0,
@@ -584,7 +624,13 @@ impl VicsekModel {
             })
             .collect();
         // Continue the initialization stream for later angular-noise draws.
-        Self::from_particles_and_rng(particles, config, rng, perception)
+        Self::from_particles_and_rng(
+            particles,
+            config,
+            rng,
+            perception,
+            VicsekHeadingMean::QuadrantCorrectAtan2,
+        )
     }
 
     pub const fn config(&self) -> VicsekConfig {
@@ -593,6 +639,10 @@ impl VicsekModel {
 
     pub const fn perception(&self) -> VicsekPerception {
         self.perception
+    }
+
+    pub const fn heading_mean(&self) -> VicsekHeadingMean {
+        self.heading_mean
     }
 
     pub const fn tick(&self) -> u64 {
@@ -791,7 +841,12 @@ impl VicsekModel {
             let alignment = if sum_cos.abs() <= f64::EPSILON && sum_sin.abs() <= f64::EPSILON {
                 particle.heading_rad
             } else {
-                sum_sin.atan2(sum_cos)
+                match self.heading_mean {
+                    VicsekHeadingMean::QuadrantCorrectAtan2 => sum_sin.atan2(sum_cos),
+                    VicsekHeadingMean::PrincipalValueArctanRatio => {
+                        (sum_sin / sum_cos).atan()
+                    }
+                }
             };
             let noise = self.config.angular_noise_width_rad * (self.rng.next_unit() - 0.5);
             let heading = wrap_angle(alignment + noise);
@@ -1091,6 +1146,7 @@ impl VicsekModel {
         VicsekClusterGeometryReport {
             tick: self.tick,
             update_rule: self.config.update_rule,
+            heading_mean: self.heading_mean,
             perception: self.perception,
             graph_semantics: match self.perception {
                 VicsekPerception::MetricRadius => VicsekGraphSemantics::UndirectedMetric,
