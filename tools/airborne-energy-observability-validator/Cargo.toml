@@ -1,0 +1,13 @@
+[package]
+name = "airborne-energy-observability-validator"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Deterministic battery-electric aircraft mission energy ledger and initial reserve/power-envelope validator"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
