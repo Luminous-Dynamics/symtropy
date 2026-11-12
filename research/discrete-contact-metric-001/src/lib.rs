@@ -104,6 +104,15 @@ impl Matrix {
     }
 }
 
+/// Feasible candidate retained by the deterministic active-set search.
+struct ActiveSetCandidate {
+    next_velocity: Vec<f64>,
+    impulse: Vec<f64>,
+    slack: Vec<f64>,
+    active_contacts: Vec<bool>,
+    metric_residual: f64,
+}
+
 impl std::ops::Index<(usize, usize)> for Matrix {
     type Output = f64;
 
@@ -263,7 +272,7 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         .map(|(target, free)| target - free)
         .collect::<Vec<_>>();
 
-    let mut selected: Option<(Vec<f64>, Vec<f64>, Vec<f64>, Vec<bool>, f64)> = None;
+    let mut selected: Option<ActiveSetCandidate> = None;
     let subset_count = 1_u64 << m;
 
     // Enumeration is deterministic: masks are visited in ascending order.
@@ -356,12 +365,23 @@ pub fn solve_discrete_step(input: &DiscreteStepInput) -> Result<DiscreteStepResu
         // clamped at zero. Do not apply an absolute impulse threshold here:
         // impulse units and magnitude change under a uniform mass rescaling.
         let active = impulse.iter().map(|value| *value > 0.0).collect::<Vec<_>>();
-        selected = Some((next_velocity, impulse, slack, active, residual));
+        selected = Some(ActiveSetCandidate {
+            next_velocity,
+            impulse,
+            slack,
+            active_contacts: active,
+            metric_residual: residual,
+        });
         break;
     }
 
-    let (next_velocity, contact_impulse, contact_slack, active_contacts, metric_residual) =
-        selected.ok_or(StepError::NoComplementarySolution)?;
+    let ActiveSetCandidate {
+        next_velocity,
+        impulse: contact_impulse,
+        slack: contact_slack,
+        active_contacts,
+        metric_residual,
+    } = selected.ok_or(StepError::NoComplementarySolution)?;
 
     let next_position_error = input
         .position_error
@@ -592,10 +612,6 @@ fn multiply(left: &Matrix, right: &Matrix) -> Matrix {
         }
     }
     result
-}
-
-fn dot(left: &[f64], right: &[f64]) -> f64 {
-    left.iter().zip(right).map(|(a, b)| a * b).sum()
 }
 
 /// Return the maximum dimensionless unilateral impulse violation, normalized
