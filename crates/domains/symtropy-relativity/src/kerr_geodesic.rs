@@ -3053,7 +3053,11 @@ mod tests {
         assert!(result.screen_transversality_residual < 1e-9);
         assert!(result.orthonormality_rate_residual < 1e-8);
         assert!(result.transversality_rate_residual < 1e-8);
-        assert!(result.metric_compatibility_residual < 1e-9, "metric compatibility residual={:.16e}", result.metric_compatibility_residual);
+        assert!(
+            result.metric_compatibility_residual < 1e-9,
+            "metric compatibility residual={:.16e}",
+            result.metric_compatibility_residual
+        );
     }
 
     #[test]
