@@ -74,16 +74,40 @@ impl NonreciprocalVicsekConfig {
 #[derive(Debug, Clone, PartialEq)]
 pub enum NonreciprocalVicsekError {
     EmptyParticleSet,
-    InvalidParameter { name: &'static str, value: f64 },
+    InvalidParameter {
+        name: &'static str,
+        value: f64,
+    },
     InvalidConfiguration,
-    InteractionMatrixSize { expected: usize, actual: usize },
-    NoiseProfileSize { expected: usize, actual: usize },
-    InvalidNoiseWidth { particle: usize, value: f64 },
-    NonFiniteInteractionWeight { index: usize, value: f64 },
-    NonFiniteParticlePosition { particle: usize },
-    ParticlePositionOutOfBounds { particle: usize },
-    NonFiniteParticleHeading { particle: usize },
-    ParticleIndexOutOfBounds { particle: usize, particle_count: usize },
+    InteractionMatrixSize {
+        expected: usize,
+        actual: usize,
+    },
+    NoiseProfileSize {
+        expected: usize,
+        actual: usize,
+    },
+    InvalidNoiseWidth {
+        particle: usize,
+        value: f64,
+    },
+    NonFiniteInteractionWeight {
+        index: usize,
+        value: f64,
+    },
+    NonFiniteParticlePosition {
+        particle: usize,
+    },
+    ParticlePositionOutOfBounds {
+        particle: usize,
+    },
+    NonFiniteParticleHeading {
+        particle: usize,
+    },
+    ParticleIndexOutOfBounds {
+        particle: usize,
+        particle_count: usize,
+    },
     TickOverflow,
     InfluenceFrameOverflow,
 }
@@ -121,7 +145,10 @@ impl fmt::Display for NonreciprocalVicsekError {
             Self::NonFiniteParticleHeading { particle } => {
                 write!(f, "particle {particle} has a non-finite heading")
             }
-            Self::ParticleIndexOutOfBounds { particle, particle_count } => write!(
+            Self::ParticleIndexOutOfBounds {
+                particle,
+                particle_count,
+            } => write!(
                 f,
                 "particle index {particle} is outside population size {particle_count}"
             ),
@@ -293,9 +320,7 @@ impl NonreciprocalVicsekModel {
                 });
             }
             if !particle.heading_rad.is_finite() {
-                return Err(NonreciprocalVicsekError::NonFiniteParticleHeading {
-                    particle: index,
-                });
+                return Err(NonreciprocalVicsekError::NonFiniteParticleHeading { particle: index });
             }
             particle.heading_rad = wrap_angle(particle.heading_rad);
         }
@@ -418,9 +443,7 @@ impl NonreciprocalVicsekModel {
     /// For receiver i, source j contributes the weighted, wrapped angular difference
     /// divided by the total visible interaction weight. Noise is sampled independently
     /// by receiver from the explicit seeded stream.
-    pub fn step(
-        &mut self,
-    ) -> Result<NonreciprocalVicsekMetrics, NonreciprocalVicsekError> {
+    pub fn step(&mut self) -> Result<NonreciprocalVicsekMetrics, NonreciprocalVicsekError> {
         let next_tick = self
             .tick
             .checked_add(1)
@@ -491,16 +514,8 @@ impl NonreciprocalVicsekModel {
             let heading = wrap_angle(focal.heading_rad + normalized_sum + noise);
             let distance = self.config.speed * self.config.dt;
             next.push(VicsekParticle {
-                x: add_periodic(
-                    focal.x,
-                    distance * heading.cos(),
-                    self.config.box_size,
-                ),
-                y: add_periodic(
-                    focal.y,
-                    distance * heading.sin(),
-                    self.config.box_size,
-                ),
+                x: add_periodic(focal.x, distance * heading.cos(), self.config.box_size),
+                y: add_periodic(focal.y, distance * heading.sin(), self.config.box_size),
                 heading_rad: heading,
             });
         }
@@ -536,13 +551,7 @@ impl NonreciprocalVicsekModel {
                 }
                 let a = self.particles[receiver];
                 let b = self.particles[source];
-                let (dx, dy) = periodic_displacement(
-                    a.x,
-                    a.y,
-                    b.x,
-                    b.y,
-                    self.config.box_size,
-                );
+                let (dx, dy) = periodic_displacement(a.x, a.y, b.x, b.y, self.config.box_size);
                 if dx.hypot(dy) <= self.config.sensing_radius
                     && self.interaction_weights[receiver * count + source].abs() > 0.0
                 {
@@ -551,8 +560,16 @@ impl NonreciprocalVicsekModel {
                 }
             }
         }
-        let sum_cos = self.particles.iter().map(|p| p.heading_rad.cos()).sum::<f64>();
-        let sum_sin = self.particles.iter().map(|p| p.heading_rad.sin()).sum::<f64>();
+        let sum_cos = self
+            .particles
+            .iter()
+            .map(|p| p.heading_rad.cos())
+            .sum::<f64>();
+        let sum_sin = self
+            .particles
+            .iter()
+            .map(|p| p.heading_rad.sin())
+            .sum::<f64>();
         let mean_degree = degrees.iter().sum::<usize>() as f64 / count as f64;
         let out_degree_variance = degrees
             .iter()
@@ -685,11 +702,7 @@ fn wrap_angle(angle: f64) -> f64 {
 /// Wrap to (-π, π], matching the source paper's angle convention.
 fn wrap_signed_angle(angle: f64) -> f64 {
     let wrapped = (angle + PI).rem_euclid(TAU) - PI;
-    if wrapped <= -PI {
-        PI
-    } else {
-        wrapped
-    }
+    if wrapped <= -PI { PI } else { wrapped }
 }
 
 #[cfg(test)]
@@ -706,7 +719,11 @@ mod tests {
         }
     }
 
-    fn pair(leader_heading: f64, follower_heading: f64, weights: Vec<f64>) -> NonreciprocalVicsekModel {
+    fn pair(
+        leader_heading: f64,
+        follower_heading: f64,
+        weights: Vec<f64>,
+    ) -> NonreciprocalVicsekModel {
         NonreciprocalVicsekModel::new(
             vec![
                 VicsekParticle { x: 1.0, y: 1.0, heading_rad: leader_heading },
@@ -730,11 +747,7 @@ mod tests {
 
     #[test]
     fn nonreciprocal_update_matches_analytic_weighted_angle_equation() {
-        let mut model = pair(
-            0.0,
-            std::f64::consts::FRAC_PI_2,
-            vec![1.0, 1.0, 4.0, 1.0],
-        );
+        let mut model = pair(0.0, std::f64::consts::FRAC_PI_2, vec![1.0, 1.0, 4.0, 1.0]);
         let metrics = model.step().unwrap();
 
         let expected_leader = std::f64::consts::FRAC_PI_4;
@@ -742,8 +755,14 @@ mod tests {
         assert!((model.particles()[0].heading_rad - expected_leader).abs() < 1.0e-12);
         assert!((model.particles()[1].heading_rad - expected_follower).abs() < 1.0e-12);
         assert_eq!(metrics.directed_interaction_edge_count, 2);
-        assert!((model.influence_component(0, 1).unwrap() - std::f64::consts::FRAC_PI_4).abs() < 1.0e-12);
-        assert!((model.influence_component(1, 0).unwrap() + (2.0 * std::f64::consts::PI / 5.0)).abs() < 1.0e-12);
+        assert!(
+            (model.influence_component(0, 1).unwrap() - std::f64::consts::FRAC_PI_4).abs()
+                < 1.0e-12
+        );
+        assert!(
+            (model.influence_component(1, 0).unwrap() + (2.0 * std::f64::consts::PI / 5.0)).abs()
+                < 1.0e-12
+        );
     }
 
     #[test]
@@ -800,17 +819,23 @@ mod tests {
         assert!(metrics.polar_order.is_finite());
         assert!((0.0..=1.0).contains(&metrics.polar_order));
         assert!(model.particles().iter().all(|particle| {
-            particle.heading_rad.is_finite()
-                && (0.0..TAU).contains(&particle.heading_rad)
+            particle.heading_rad.is_finite() && (0.0..TAU).contains(&particle.heading_rad)
         }));
-        assert!(model.last_influence_components().iter().all(|component| component.is_finite()));
+        assert!(
+            model
+                .last_influence_components()
+                .iter()
+                .all(|component| component.is_finite())
+        );
     }
 
     #[test]
     fn seeded_initialization_and_noise_replay_are_exact() {
         let weights = vec![1.0, 1.0, 4.0, 1.0];
-        let mut a = NonreciprocalVicsekModel::random_uniform(2, weights.clone(), pair_config(), 77).unwrap();
-        let mut b = NonreciprocalVicsekModel::random_uniform(2, weights, pair_config(), 77).unwrap();
+        let mut a = NonreciprocalVicsekModel::random_uniform(2, weights.clone(), pair_config(), 77)
+            .unwrap();
+        let mut b =
+            NonreciprocalVicsekModel::random_uniform(2, weights, pair_config(), 77).unwrap();
         let a_metrics = a.run_steps(32).unwrap();
         let b_metrics = b.run_steps(32).unwrap();
         assert_eq!(a, b);
@@ -823,13 +848,18 @@ mod tests {
         let mut treatment = pair(0.0, 0.1, weights);
         let mut sham = treatment.clone();
 
-        treatment.intervene_heading(0, std::f64::consts::FRAC_PI_2).unwrap();
+        treatment
+            .intervene_heading(0, std::f64::consts::FRAC_PI_2)
+            .unwrap();
         for _ in 0..8 {
             treatment.step().unwrap();
             sham.step().unwrap();
         }
 
-        assert_ne!(treatment.particles()[1].heading_rad, sham.particles()[1].heading_rad);
+        assert_ne!(
+            treatment.particles()[1].heading_rad,
+            sham.particles()[1].heading_rad
+        );
         assert_eq!(treatment.tick(), sham.tick());
         assert_eq!(treatment.rng, sham.rng);
     }
@@ -837,8 +867,16 @@ mod tests {
     #[test]
     fn per_particle_noise_profile_is_distinct_from_source_scalar_mode() {
         let particles = vec![
-            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
-            VicsekParticle { x: 2.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle {
+                x: 1.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
+            VicsekParticle {
+                x: 2.0,
+                y: 1.0,
+                heading_rad: 0.0,
+            },
         ];
         let weights = vec![1.0, 1.0, 4.0, 1.0];
         let mut model = NonreciprocalVicsekModel::new_with_noise_profile(
@@ -888,7 +926,11 @@ mod tests {
 
     #[test]
     fn rejects_nonfinite_weights_and_wrong_matrix_size() {
-        let particle = vec![VicsekParticle { x: 0.0, y: 0.0, heading_rad: 0.0 }];
+        let particle = vec![VicsekParticle {
+            x: 0.0,
+            y: 0.0,
+            heading_rad: 0.0,
+        }];
         assert!(matches!(
             NonreciprocalVicsekModel::new(particle.clone(), vec![], pair_config(), 1),
             Err(NonreciprocalVicsekError::InteractionMatrixSize { .. })
