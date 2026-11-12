@@ -11,7 +11,7 @@ use std::fmt;
 
 use crate::{
     ComponentIdentity, ConditionClaim, ConditionDisposition, ConditionEvent, ConditionQuantity,
-    EventTime, EvidenceClass, EvidenceRef, TransitionError, TransitionKind,
+    DamageMechanism, EventTime, EvidenceClass, EvidenceRef, TransitionError, TransitionKind,
 };
 
 const PARIS_CLOSURE_RELATIVE_TOLERANCE: f64 = 64.0 * f64::EPSILON;
@@ -878,7 +878,7 @@ mod tests {
             total_cycles: 1000,
             assessment: MinerModelAssessment::BelowUnity,
         };
-        let mut ledger = ConditionLedger::new(subject(), "test-clock").unwrap();
+        let ledger = ConditionLedger::new(subject(), "test-clock").unwrap();
         let before = ledger.clone();
         assert_eq!(
             receipt.into_condition_event("event-1", 0, time()),
