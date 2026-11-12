@@ -273,7 +273,11 @@ jobs:
             assert contingent_reader.fieldnames is not None and len(contingent_reader.fieldnames) == 36
             contingent_rows = list(contingent_reader)
 
-        summary_rows = [row for row in contingent_rows if row["record_type"] == "summary"]
+        summary_rows = [
+            row for row in contingent_rows
+            if row["record_type"] == "summary"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
         assert len(summary_rows) == 1
         contingent = summary_rows[0]
         assert contingent["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
@@ -289,7 +293,11 @@ jobs:
         assert contingent["maximum_path_latency_ticks"] == "2"
         assert contingent["maximum_path_penalty_service_units"] == "1.400000"
 
-        tree_nodes = [row for row in contingent_rows if row["record_type"] == "node"]
+        tree_nodes = [
+            row for row in contingent_rows
+            if row["record_type"] == "node"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
         assert len(tree_nodes) == 5
         root = next(row for row in tree_nodes if row["node_kind"] == "request_sensor" and row["observation_history"] == "")
         assert root["sensor_id"] == "screen"
@@ -308,7 +316,11 @@ jobs:
         assert missing_request["path_latency_ticks"] == "2"
         assert missing_request["node_maximum_path_penalty_service_units"] == "1.400000"
 
-        leaves = [row for row in contingent_rows if row["record_type"] == "leaf"]
+        leaves = [
+            row for row in contingent_rows
+            if row["record_type"] == "leaf"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
         assert len(leaves) == 3
         by_world = {row["world_id"]: row for row in leaves}
         assert by_world["healthy"]["selected_action_id"] == "defer"
@@ -324,6 +336,7 @@ jobs:
         missing_predictions = [
             row for row in contingent_rows
             if row["record_type"] == "prediction"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
             and row["sensor_id"] == "screen"
             and row["observation_id"] == "missing"
         ]
@@ -397,17 +410,30 @@ jobs:
             any(secret in field for secret in ("world", "missing_cause", "regret", "energy", "penalty", "oracle"))
             for field in tree_reader.fieldnames
         )
-        request_nodes = [row for row in tree_rows if row["node_type"] == "request_sensor"]
+        main_tree = [
+            row for row in tree_rows
+            if row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
+        assert len(main_tree) == 9
+        request_nodes = [row for row in main_tree if row["node_type"] == "request_sensor"]
         assert {(row["observation_history"], row["sensor_id"]) for row in request_nodes} == {
             ("", "screen"), ("missing", "independent_inspection")
         }
-        stops = {(row["observation_history"], row["action_id"]) for row in tree_rows if row["node_type"] == "stop_and_act"}
+        stops = {
+            (row["observation_history"], row["action_id"])
+            for row in main_tree if row["node_type"] == "stop_and_act"
+        }
         assert stops == {
             ("healthy", "defer"),
             ("missing>degraded", "repair"),
             ("missing>healthy", "defer")
         }
-        missing_branches = [row for row in tree_rows if row["node_type"] == "observation_branch" and row["sensor_id"] == "screen" and row["observation_id"] == "missing"]
+        missing_branches = [
+            row for row in main_tree
+            if row["node_type"] == "observation_branch"
+            and row["sensor_id"] == "screen"
+            and row["observation_id"] == "missing"
+        ]
         assert len(missing_branches) == 1
         false_tree = [row for row in tree_rows if row["scenario_id"] == "contingent-false-reassurance-corroboration-v1"]
         assert len(false_tree) == 13
