@@ -267,7 +267,7 @@ pub struct EvaluatorObservationAudit {
     pub renderer_revision: String,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PolicyReceiptOverrides {
     pub capture_timestamp_us: Option<u64>,
     pub render_completed_timestamp_us: Option<u64>,
@@ -2073,6 +2073,7 @@ mod tests {
         let mut world = snapshot();
         world.applied_action = Some(AppliedActionRef {
             receipt_id: "r".into(),
+            receipt_sha256: "a".repeat(64),
             command_id: "c".into(),
             applied_tick: 2,
         });
