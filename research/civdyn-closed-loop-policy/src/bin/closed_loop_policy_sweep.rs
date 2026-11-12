@@ -4,7 +4,7 @@
 use civdyn_closed_loop_policy::{HORIZON, PolicyOutcome, run_reference_portfolio};
 use std::error::Error;
 
-const CSV_COLUMNS: usize = 36;
+const CSV_COLUMNS: usize = 37;
 const SYNTHETIC_SOURCE_ID: &str = "synthetic-civdyn-closed-loop-known-answer-v1";
 
 fn csv_field(value: &str) -> String {
@@ -62,6 +62,7 @@ fn emit_outcome(outcome: &PolicyOutcome) {
     );
 
     emit(&[
+        SYNTHETIC_SOURCE_ID.to_owned(),
         outcome.world_id.to_string(),
         outcome.world_digest.to_string(),
         outcome.policy.id().to_string(),
@@ -103,7 +104,7 @@ fn emit_outcome(outcome: &PolicyOutcome) {
 
 fn main() -> Result<(), Box<dyn Error>> {
     println!(
-        "true_world_id,true_world_digest,policy_id,candidate_model_id,candidate_model_digest,evaluator_oracle_access,horizon,action_trace,cumulative_service_points,oracle_service_points,raw_service_regret,terminal_feasible,minimum_water_service,minimum_energy_service,water_floor_violation_ticks,energy_floor_violation_ticks,worst_water_shortfall,worst_energy_shortfall,ending_water_reserve,ending_energy_reserve,ending_water_debt,ending_energy_debt,ending_maintenance_credits,action_ranking_matches,decision_count,replan_count,abstention_ticks,water_service_mae,energy_service_mae,water_debt_mae,energy_debt_mae,water_reserve_mae,energy_reserve_mae,scenario_manifest_digest,split_manifest_digest,independent_unit_id"
+        "source_id,true_world_id,true_world_digest,policy_id,candidate_model_id,candidate_model_digest,evaluator_oracle_access,horizon,action_trace,cumulative_service_points,oracle_service_points,raw_service_regret,terminal_feasible,minimum_water_service,minimum_energy_service,water_floor_violation_ticks,energy_floor_violation_ticks,worst_water_shortfall,worst_energy_shortfall,ending_water_reserve,ending_energy_reserve,ending_water_debt,ending_energy_debt,ending_maintenance_credits,action_ranking_matches,decision_count,replan_count,abstention_ticks,water_service_mae,energy_service_mae,water_debt_mae,energy_debt_mae,water_reserve_mae,energy_reserve_mae,scenario_manifest_digest,split_manifest_digest,independent_unit_id"
     );
     let outcomes = run_reference_portfolio()?;
     assert_eq!(outcomes.len(), 10);
