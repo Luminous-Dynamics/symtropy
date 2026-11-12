@@ -95,9 +95,8 @@ Known answers:
 - A zero gradient is rejected; it must not be called "fully observable."
 - The score remains 1.0 after an SE(3) coordinate change when the gradient is transformed as a covector.
 
+**Decision-sensitivity is not decision accuracy.** A small weak-subspace projection only says that the supplied first-order gradient is mostly outside the detected weak subspace. It does not bound error from observable-but-noisy directions, sensor calibration, systematic bias, nonlinear curvature, wrong correspondences, surface condition or model discrepancy. A downstream geometry decision still requires a separately propagated uncertainty budget, calibrated measurement evidence, declared output tolerance and applicability envelope. It is unsafe to use a task-specific PASS as a weld acceptance or metrology certificate.
+
 This is a local first-order sensitivity check, not a nonlinear bound on area/volume estimation and not covariance propagation. The downstream geometry model must supply a defensible gradient, units, decision threshold and applicability range. Nonlinear geometry, active constraints, discontinuities and calibration bias need additional bounds. A task-specific PASS only says that this supplied local gradient has sufficiently little component in the detected weak subspace.
 
 The implementation has 26 Rust unit/mutation tests. An independent SciPy replay found the planar in-plane/normal decision fractions at 1.0/0.0 and preserved the in-plane score under frame transformation (1.0 → 1.0). This is a numerical second-implementation check, not a Rust test run.
-
-
-**Decision-sensitivity is not decision accuracy.** A small weak-subspace projection only says that the supplied first-order gradient is mostly outside the detected weak subspace. It does not bound error from observable-but-noisy directions, sensor calibration, systematic bias, nonlinear curvature, wrong correspondences, surface condition or model discrepancy. A downstream geometry decision still requires a separate propagated uncertainty budget, calibrated measurement evidence, declared output tolerance and applicability envelope. It is unsafe to use a task-specific PASS as a weld acceptance or metrology certificate.

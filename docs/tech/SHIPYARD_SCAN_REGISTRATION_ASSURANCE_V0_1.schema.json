@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic point-to-plane registration observability case",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "case_id",
+    "frame_id",
+    "twist_order",
+    "weak_threshold",
+    "correspondences",
+    "reported_residual_rmse",
+    "expected_claim"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-SCAN-REGISTRATION-ASSURANCE-001"
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "frame_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "twist_order": {
+      "const": "omega_x,omega_y,omega_z,v_x,v_y,v_z"
+    },
+    "weak_threshold": {
+      "type": "number",
+      "exclusiveMinimum": 0,
+      "exclusiveMaximum": 1
+    },
+    "correspondences": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/correspondence"
+      }
+    },
+    "reported_residual_rmse": {
+      "type": "number",
+      "minimum": 0
+    },
+    "expected_claim": {
+      "const": "SYNTHETIC_REGISTRATION_OBSERVABILITY_ONLY"
+    },
+    "decision_gradient": {
+      "type": "array",
+      "minItems": 6,
+      "maxItems": 6,
+      "items": {
+        "type": "number"
+      },
+      "description": "Local scalar-decision gradient in the declared [omega; translation] twist coordinates."
+    },
+    "maximum_accepted_weak_sensitivity": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "decision_assessment": {
+      "$ref": "#/$defs/decision_assessment"
+    }
+  },
+  "$defs": {
+    "correspondence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "point",
+        "normal",
+        "weight"
+      ],
+      "properties": {
+        "point": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "normal": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 3,
+          "maxItems": 3
+        },
+        "weight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "decision_assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision_id",
+        "normalized_weak_sensitivity",
+        "maximum_accepted_weak_sensitivity",
+        "class",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "decision_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "normalized_weak_sensitivity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maximum_accepted_weak_sensitivity": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "class": {
+          "enum": [
+            "WithinWeakSensitivityLimit",
+            "ExceedsWeakSensitivityLimit"
+          ]
+        },
+        "claim_ceiling": {
+          "const": "SYNTHETIC_TASK_SPECIFIC_OBSERVABILITY_ONLY"
+        }
+      }
+    }
+  }
+}
