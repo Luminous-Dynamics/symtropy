@@ -17,6 +17,8 @@ pub struct FloorBinding {
     pub site_epoch: String,
     pub design_revision_digest: String,
     pub target_frame_id: String,
+    /// Stable identity of the integer-minute accounting timeline for labour slices.
+    pub labour_time_axis_id: String,
 }
 
 impl FloorBinding {
@@ -24,7 +26,8 @@ impl FloorBinding {
         require_non_empty("floor_id", &self.floor_id)?;
         require_non_empty("site_epoch", &self.site_epoch)?;
         require_non_empty("design_revision_digest", &self.design_revision_digest)?;
-        require_non_empty("target_frame_id", &self.target_frame_id)
+        require_non_empty("target_frame_id", &self.target_frame_id)?;
+        require_non_empty("labour_time_axis_id", &self.labour_time_axis_id)
     }
 
     fn matches_task(&self, binding: &ContextBinding) -> bool {
@@ -118,6 +121,7 @@ pub struct FloorReport {
     pub site_epoch: String,
     pub design_revision_digest: String,
     pub target_frame_id: String,
+    pub labour_time_axis_id: String,
     pub currency_code: String,
     pub required_units: u64,
     pub attempted_units: u64,
@@ -514,6 +518,7 @@ impl FloorLedger {
             site_epoch: self.binding.site_epoch.clone(),
             design_revision_digest: self.binding.design_revision_digest.clone(),
             target_frame_id: self.binding.target_frame_id.clone(),
+            labour_time_axis_id: self.binding.labour_time_axis_id.clone(),
             currency_code: self.currency_code.clone(),
             required_units,
             attempted_units,
@@ -725,6 +730,7 @@ mod tests {
             site_epoch: "site-epoch-1".to_owned(),
             design_revision_digest: "design-digest-1".to_owned(),
             target_frame_id: "project-grid-1".to_owned(),
+            labour_time_axis_id: "project-labour-clock-1".to_owned(),
         }
     }
 
@@ -907,6 +913,45 @@ mod tests {
         assert_eq!(
             ledger.observe_attempt("unit-1", &machine, None),
             Err(LedgerError::TaskContextMismatch)
+        );
+    }
+
+    #[test]
+    fn rework_requires_terminal_prior_attempt_and_explicit_authorization() {
+        let mut ledger = ledger(&["unit-1"]);
+        let rejected = completed_machine("rejected-attempt", false);
+        let accepted = completed_machine("corrective-attempt", true);
+        ledger
+            .observe_attempt("unit-1", &rejected, None)
+            .expect("record first-pass rejection");
+        assert_eq!(
+            ledger.observe_attempt("unit-1", &accepted, None),
+            Err(LedgerError::MissingReworkAuthorization)
+        );
+        assert_eq!(
+            ledger.observe_attempt(
+                "unit-1",
+                &accepted,
+                Some("corrective-work-order-1")
+            ),
+            Ok(ObserveOutcome::Recorded)
+        );
+    }
+
+    #[test]
+    fn a_fresh_stale_snapshot_cannot_regress_an_observed_task() {
+        let mut ledger = ledger(&["unit-1"]);
+        let progressed = executor_completed_machine("task-1");
+        ledger
+            .observe_attempt("unit-1", &progressed, None)
+            .expect("record progressed task");
+        let stale = TaskMachine::new("task-1", context()).expect("fresh machine");
+        assert_eq!(
+            ledger.observe_attempt("unit-1", &stale, None),
+            Err(LedgerError::InvalidStateProgression {
+                from: TaskState::ExecutorCompleted,
+                to: TaskState::Submitted,
+            })
         );
     }
 
