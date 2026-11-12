@@ -465,7 +465,7 @@ mod tests {
         MarineDatasetFile {
             file_id: format!("file-{index:02}"),
             relative_path: format!("data/file-{index:02}.csv"),
-            sha256: digest(char::from(b'a' + (index % 20) as u8)),
+            sha256: digest(char::from(b"0123456789abcdef"[index % 16])),
             row_count: 1000,
             schema,
             header_rows: 3,
@@ -536,7 +536,7 @@ mod tests {
             protocol["schema_version"],
             "symtropy-marine-external-dataset-track-v0.1"
         );
-        assert_eq!(protocol["status"], "metadata_audited_archive_not_audited");
+        assert_eq!(protocol["status"], "archive_downloaded_publisher_md5_verified_payload_audit_pending");
         assert_eq!(protocol["dataset"]["doi"], MARINE_DATASET_DOI);
         assert_eq!(protocol["dataset"]["license"], "CC-BY-4.0");
         assert_eq!(protocol["dataset"]["files"]["csv_count"], 16);
