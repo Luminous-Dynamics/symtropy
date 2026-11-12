@@ -16,6 +16,7 @@ pub mod event_metrics;
 pub mod external_dataset;
 pub mod startup_adaptation;
 pub mod streaming_contract;
+pub mod sequential_evidence;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
