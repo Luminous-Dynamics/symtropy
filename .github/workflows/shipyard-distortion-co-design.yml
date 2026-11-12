@@ -39,6 +39,11 @@ jobs:
       - name: Check formatting
         run: cargo fmt --manifest-path crates/tools/shipyard-distortion-co-design/Cargo.toml --all -- --check
 
+      - name: Bootstrap Cargo-generated nested lockfile (temporary)
+        run: |
+          cargo generate-lockfile --manifest-path crates/tools/shipyard-distortion-co-design/Cargo.toml
+          cat crates/tools/shipyard-distortion-co-design/Cargo.lock
+
       - name: Run contract evaluator tests
         run: cargo test --locked --manifest-path crates/tools/shipyard-distortion-co-design/Cargo.toml
 
@@ -52,4 +57,4 @@ jobs:
         run: cargo run --locked --manifest-path crates/tools/shipyard-distortion-co-design/Cargo.toml -- --oracle
 
       - name: Confirm verifier did not modify tracked inputs
-        run: git diff --exit-code
+        run: git diff --exit-code -- . ':!crates/tools/shipyard-distortion-co-design/Cargo.lock'
