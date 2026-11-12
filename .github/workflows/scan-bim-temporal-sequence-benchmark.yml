@@ -1,0 +1,80 @@
+name: Scan-to-BIM Temporal Sequence Benchmark
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "tools/scan-bim-temporal-sequence-benchmark/**"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_TEMPORAL_SEQUENCE_V0_1.md"
+      - ".github/workflows/scan-bim-temporal-sequence-benchmark.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/scan-bim-temporal-sequence-benchmark/**"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_TEMPORAL_SEQUENCE_V0_1.md"
+      - ".github/workflows/scan-bim-temporal-sequence-benchmark.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scan-bim-temporal-sequence-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sequence-oracle:
+    name: Temporal sequence oracle (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/scan-bim-temporal-sequence-benchmark/Cargo.toml -- --check
+      - name: Test sequence evaluator
+        run: cargo test --locked --manifest-path tools/scan-bim-temporal-sequence-benchmark/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/scan-bim-temporal-sequence-benchmark/Cargo.toml --all-targets -- -D warnings
+      - name: Evaluate frozen sequence corpus
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-temporal-sequence-benchmark/Cargo.toml -- \
+            --candidate tools/scan-bim-temporal-sequence-benchmark/fixtures/candidate-sequences.json \
+            --reference tools/scan-bim-temporal-sequence-benchmark/fixtures/evaluator-reference.json \
+            > /tmp/scan-bim-temporal-sequence-report.json
+          jq -e '
+            .passed == true and
+            .sequence_count == 7 and
+            .building_group_count == 7 and
+            .idf1 == 1.0 and
+            .identity_switches == 0 and
+            .fragmentations == 0 and
+            .event_mismatches == 0 and
+            .false_physical_change_events == 0 and
+            .temporal_evidence_violations == 0 and
+            .detected_physical_change_events == 1
+          ' /tmp/scan-bim-temporal-sequence-report.json
+      - name: Bind exact inputs and report to source
+        run: |
+          sha256sum \
+            tools/scan-bim-temporal-sequence-benchmark/Cargo.toml \
+            tools/scan-bim-temporal-sequence-benchmark/Cargo.lock \
+            tools/scan-bim-temporal-sequence-benchmark/src/main.rs \
+            tools/scan-bim-temporal-sequence-benchmark/fixtures/candidate-sequences.json \
+            tools/scan-bim-temporal-sequence-benchmark/fixtures/evaluator-reference.json \
+            /tmp/scan-bim-temporal-sequence-report.json \
+            > /tmp/scan-bim-temporal-sequence.sha256
+          git rev-parse HEAD > /tmp/scan-bim-temporal-sequence.commit
+      - name: Upload exact-head sequence receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-bim-temporal-sequence-receipt
+          if-no-files-found: error
+          path: |
+            /tmp/scan-bim-temporal-sequence-report.json
+            /tmp/scan-bim-temporal-sequence.sha256
+            /tmp/scan-bim-temporal-sequence.commit
+            tools/scan-bim-temporal-sequence-benchmark/Cargo.lock
