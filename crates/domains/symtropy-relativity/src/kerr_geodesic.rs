@@ -3692,8 +3692,8 @@ mod tests {
             0.0,
         );
         let config = KerrMinoIntegrationConfig::new(
-            1.0e-10,
-            [1.0e-12; 6],
+            1.0e-9,
+            [1.0e-11; 6],
             2.0e-8,
             1.0e-3,
             1.0e-12,
