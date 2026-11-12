@@ -902,7 +902,7 @@ mod tests {
     #[test]
     fn profile_count_arithmetic_overflow_abstains() {
         let mut evidence = base_evidence();
-        evidence.observation.expected_profile_count = 1;
+        evidence.observation.expected_profile_count = u64::MAX;
         evidence.observation.received_profile_count = u64::MAX;
         evidence.observation.dropped_profile_count = 0;
         evidence.observation.declared_profile_coverage_permille = 990;
