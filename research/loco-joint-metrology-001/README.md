@@ -72,6 +72,22 @@ The fixture input now includes a frozen `causal_identity` block with mission, ro
 
 These identifiers are intended to map directly into Symthaea [ROB-CAUSAL-MISSION-REPLAY-001](https://github.com/Luminous-Dynamics/symthaea/tree/research/rob-causal-mission-replay-001). The physical metrology protocol emits observations, decisions, action chunks, assurance records, actuator applications, physical transitions and terminal receipts; it does not invent IDs or rewrite upstream status. The clock relation field selects whether AoI may be computed or must remain Unknown.
 
+## Executable causal replay adapter
+
+The typed adapter now lives alongside the authoritative causal replay types in
+[Symthaea ROB-CAUSAL-MISSION-REPLAY-001](https://github.com/Luminous-Dynamics/symthaea/tree/research/rob-causal-mission-replay-001):
+- [joint metrology adapter source](https://github.com/Luminous-Dynamics/symthaea/blob/research/rob-causal-mission-replay-001/src/joint_metrology_adapter.rs)
+- [causal replay draft PR #11664](https://github.com/Luminous-Dynamics/symthaea/pull/11664)
+
+It consumes the existing `MissionTrace` rather than defining another mission-event schema. The adapter binds instrument receipts to the decision, action-domain, executed-prefix, actuator-application, physical-transition and terminal digests; validates sampling-spec coverage and thermal predecessor/snapshot identity; and composes the existing offline causal replay.
+
+The physical checks keep independent quantities separate:
+- energy closure is computed in integer microjoules as electrical input minus shaft work, heat out and stored-energy change; an incomplete boundary or residual outside the supplied combined uncertainty is not a pass;
+- command-latch-to-motion response is derived from bounded event timestamps, separately from source-to-actuator AoI; overlapping intervals remain Unknown rather than being collapsed to a point estimate;
+- thermal-node completeness, persistent predecessor-state chaining, executed-prefix identity and qualified terminal safe-stop remain independent evidence requirements.
+
+The adapter always returns `actuation_authorized = false`. Its Rust reference code is in the Symthaea draft PR; exact-head CI qualification is tracked there and is not implied by this protocol document.
+
 ## Synthetic known answers
 
 - `fixtures/joint_metrology_v0_1.json`
