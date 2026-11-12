@@ -1274,6 +1274,38 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn oversized_thermal_node_manifest_is_rejected_before_scan() {
+        let mut scenario = scenario(vec![branch("b1", "hot", 1_000_000, &["continue"])]);
+        let nodes = (0..=MAX_OPTION_THERMAL_NODES)
+            .map(|i| ThermalNode {
+                node_id: format!("motor-{i}"),
+                upper_temperature_milli_c: 50_000,
+                hard_limit_milli_c: 100_000,
+                source_class: ThermalSourceClass::SyntheticFixture,
+                evidence_digest: format!("thermal:{i}"),
+            })
+            .collect::<Vec<_>>();
+        scenario.thermal = ThermalEvidence::Valid {
+            branch_manifest_digest: "manifest:branches".to_owned(),
+            model_digest: "thermal-model".to_owned(),
+            node_manifest_digest: "thermal-nodes".to_owned(),
+            expected_predecessor_digest: "thermal-prev".to_owned(),
+            observed_predecessor_digest: "thermal-prev".to_owned(),
+            result_state_digest: "thermal-result".to_owned(),
+            required_node_ids: nodes.iter().map(|node| node.node_id.clone()).collect(),
+            observed_nodes: nodes,
+        };
+        assert!(matches!(
+            evaluate_future_options(&scenario),
+            Err(EvaluationError::InputLimitExceeded {
+                field: "thermal_required_nodes",
+                ..
+            })
+        ));
+    }
+
     #[test]
     fn one_step_evaluator_rejects_oversized_branch_action_thermal_and_recovery_vectors() {
         let mut aliases = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
