@@ -63,6 +63,12 @@ Use NIST's task-driven robotic performance decomposition for perception, mobilit
 - Cambridge Framework: https://www.construction.cam.ac.uk/research-and-innovation/performance-productivity
 - NIST Performance Assessment Framework for Robotic Systems: https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems
 
+## Generic scheduler adapter
+
+The companion [HIGHRISE_REFERENCE_FLOOR_MICRO_ORACLE_V0_1.json](../fixtures/HIGHRISE_REFERENCE_FLOOR_MICRO_ORACLE_V0_1.json) projects the same four cases into the exact generic fixture envelope consumed by the #1902 Habitat Scheduling Micro-Oracle. It changes only suite identity/status/claim ceiling and keeps the task, resource, precedence, gate, duration and expected-result fields in the existing shape.
+
+This adapter is intentionally a duplicate serialization of the cases, not a second scheduler schema or solver. The construction-specific task-to-output contracts and floor-level interpretation remain in the high-rise profile. Once #1902's tool branch is available on the integration branch, run its existing oracle and hybrid planner against this fixture unchanged. Preserve the exact fixture bytes, toolchain and output receipts.
+
 ## Validation boundary
 
 The JSON is intended to be checked by the companion closed JSON Schema and then translated into the exact #1902 generic schedule fixture shape for the existing exhaustive oracle and hybrid planner. A schema pass establishes document shape only. A local witness check establishes only the frozen abstract schedule semantics. Neither establishes field productivity, physical safety, code compliance, lift/temporary-works adequacy or an optimal real-world floor programme.
