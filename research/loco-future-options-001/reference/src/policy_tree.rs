@@ -269,10 +269,10 @@ fn solve_node(
         }
     } else if depth == 0 {
         match &node.terminal_recovery {
-            Some(TerminalRecoveryEvidence::Qualified { state_receipts }) => {
+            Some(TerminalRecoveryEvidence::Qualified { state_receipts: recovery_state_receipts }) => {
                 let mut by_state = BTreeMap::new();
                 let mut duplicate = None;
-                for receipt in state_receipts {
+                for receipt in recovery_state_receipts {
                     if by_state.insert(receipt.state_id.clone(), receipt).is_some() {
                         duplicate = Some(receipt.state_id.clone());
                         break;
@@ -416,7 +416,7 @@ fn solve_node(
                 .get(state_id.as_str())
                 .is_some_and(|e| e.complete && !e.receipt_digest.trim().is_empty())
         });
-        if !evidence_complete || evidence_by_state.len() != state_ids.len() {
+        if !evidence_complete || evidence_by_state.len() != node.state_ids.len() {
             NodeSolution {
                 disposition: PolicyTreeDisposition::Unknown,
                 winning_action_ids: Vec::new(),
