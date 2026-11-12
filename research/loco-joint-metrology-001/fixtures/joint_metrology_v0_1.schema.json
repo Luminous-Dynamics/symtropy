@@ -320,6 +320,7 @@
             "assurance_event_id",
             "assurance_event_sequence",
             "command_id",
+            "command_event_sequence",
             "actuator_application_event_id",
             "actuator_application_event_sequence",
             "physical_transition_id",
@@ -412,6 +413,10 @@
             "actuator_id": {
               "type": "string",
               "minLength": 1
+            },
+            "command_event_sequence": {
+              "type": "integer",
+              "minimum": 1
             }
           }
         },
