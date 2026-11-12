@@ -19,6 +19,8 @@ pub struct BeliefStateReceipt {
     pub physical_state_digest: String,
     pub reserve_state_digest: String,
     pub thermal_state_digest: String,
+    /// Digest of the exact ordered mission-event history represented by this state.
+    pub mission_sequence_digest: String,
     pub receipt_digest: String,
 }
 
@@ -47,6 +49,8 @@ pub struct PolicyTransition {
     pub resulting_reserve_state_digest: String,
     pub predecessor_thermal_state_digest: String,
     pub resulting_thermal_state_digest: String,
+    pub predecessor_mission_sequence_digest: String,
+    pub resulting_mission_sequence_digest: String,
     /// Node for the delivered next observation-equivalence class.
     pub next_belief_node_id: String,
     pub physically_possible: bool,
@@ -195,6 +199,7 @@ fn state_receipts_complete(
                 !receipt.physical_state_digest.trim().is_empty()
                     && !receipt.reserve_state_digest.trim().is_empty()
                     && !receipt.thermal_state_digest.trim().is_empty()
+                    && !receipt.mission_sequence_digest.trim().is_empty()
                     && !receipt.receipt_digest.trim().is_empty()
             })
         })
@@ -498,6 +503,8 @@ fn solve_node(
                             || edge.resulting_reserve_state_digest.trim().is_empty()
                             || edge.predecessor_thermal_state_digest.trim().is_empty()
                             || edge.resulting_thermal_state_digest.trim().is_empty()
+                            || edge.predecessor_mission_sequence_digest.trim().is_empty()
+                            || edge.resulting_mission_sequence_digest.trim().is_empty()
                             || !edge.evidence_complete
                             || edge.receipt_digest.trim().is_empty()
                         {
@@ -513,6 +520,8 @@ fn solve_node(
                                 != parent_state.reserve_state_digest
                             || edge.predecessor_thermal_state_digest
                                 != parent_state.thermal_state_digest
+                            || edge.predecessor_mission_sequence_digest
+                                != parent_state.mission_sequence_digest
                         {
                             action_invalid = true;
                             invalid_reasons.push(format!(
@@ -527,6 +536,7 @@ fn solve_node(
                             edge.to_state_digest.clone(),
                             edge.resulting_reserve_state_digest.clone(),
                             edge.resulting_thermal_state_digest.clone(),
+                            edge.resulting_mission_sequence_digest.clone(),
                         );
                         if let Some(previous) = child_states
                             .insert(edge.to_state_id.clone(), resulting_identity.clone())
@@ -577,13 +587,16 @@ fn solve_node(
                         ));
                         break;
                     }
-                    for (state_id, (physical_digest, reserve_digest, thermal_digest)) in
-                        reached_state_receipts
+                    for (
+                        state_id,
+                        (physical_digest, reserve_digest, thermal_digest, mission_sequence_digest),
+                    ) in reached_state_receipts
                     {
                         let child_receipt = child_state_receipts[state_id];
                         if *physical_digest != child_receipt.physical_state_digest
                             || *reserve_digest != child_receipt.reserve_state_digest
                             || *thermal_digest != child_receipt.thermal_state_digest
+                            || *mission_sequence_digest != child_receipt.mission_sequence_digest
                         {
                             action_invalid = true;
                             invalid_reasons.push(format!(
@@ -794,12 +807,17 @@ mod tests {
         format!("thermal:{state_id}")
     }
 
+    fn mission_sequence_digest(state_id: &str) -> String {
+        format!("mission-history:{state_id}")
+    }
+
     fn state_receipt(state_id: &str) -> BeliefStateReceipt {
         BeliefStateReceipt {
             state_id: state_id.to_owned(),
             physical_state_digest: physical_digest(state_id),
             reserve_state_digest: reserve_digest(state_id),
             thermal_state_digest: thermal_digest(state_id),
+            mission_sequence_digest: mission_sequence_digest(state_id),
             receipt_digest: format!("state-receipt:{state_id}"),
         }
     }
@@ -850,6 +868,8 @@ mod tests {
             resulting_reserve_state_digest: reserve_digest(to),
             predecessor_thermal_state_digest: thermal_digest(from),
             resulting_thermal_state_digest: thermal_digest(to),
+            predecessor_mission_sequence_digest: mission_sequence_digest(from),
+            resulting_mission_sequence_digest: mission_sequence_digest(to),
             next_belief_node_id: next.to_owned(),
             physically_possible: true,
             evidence_complete: true,
@@ -1053,6 +1073,8 @@ mod tests {
             resulting_reserve_state_digest: String::new(),
             predecessor_thermal_state_digest: String::new(),
             resulting_thermal_state_digest: String::new(),
+            predecessor_mission_sequence_digest: String::new(),
+            resulting_mission_sequence_digest: String::new(),
             next_belief_node_id: "not-a-node".to_owned(),
             physically_possible: false,
             evidence_complete: false,
@@ -1063,6 +1085,20 @@ mod tests {
             report.disposition,
             PolicyTreeDisposition::WinningPolicyFound
         );
+    }
+
+
+    #[test]
+    fn transition_cannot_reuse_a_state_receipt_from_a_different_event_order() {
+        let mut tree = root_two_step_tree();
+        tree.nodes[1].state_evidence[0].mission_sequence_digest =
+            "mission-history:slip-then-heat".to_owned();
+        let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
+        assert_eq!(report.disposition, PolicyTreeDisposition::Invalid);
+        assert!(report
+            .invalid_reasons
+            .iter()
+            .any(|reason| reason.contains("successor-state-binding-mismatch")));
     }
 
     #[test]
