@@ -70,7 +70,7 @@
       },
       "expected_metrics": {
         "scaleout_efficiency": 1,
-        "active_cell_cv": 0
+        "active_cell_cv": null
       }
     },
     {
