@@ -1359,9 +1359,9 @@ fn sachs_jacobi_rhs(
     let screen_basis = core::array::from_fn(|screen| {
         core::array::from_fn(|coordinate| values[8 + screen * 4 + coordinate])
     });
-    let jacobi =
+    let jacobi: [[f64; 2]; 2] =
         core::array::from_fn(|row| core::array::from_fn(|column| values[16 + row * 2 + column]));
-    let jacobi_derivative =
+    let jacobi_derivative: [[f64; 2]; 2] =
         core::array::from_fn(|row| core::array::from_fn(|column| values[20 + row * 2 + column]));
 
     let evaluation = match coordinate_chart {
