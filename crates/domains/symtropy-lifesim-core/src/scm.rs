@@ -263,6 +263,15 @@ pub struct ScmStepReport {
     pub interaction_kernel: ScmInteractionKernel,
     pub consensus_window: ScmConsensusWindow,
     pub communication_topology: ScmCommunicationTopology,
+    /// Best objective fitness among the current agents (dimensionless, [0, 1]).
+    pub best_agent_fitness: f64,
+    /// Index of the best-performing current agent; ties are resolved by lowest index.
+    pub best_agent_index: usize,
+    /// Mean objective fitness across current agents.
+    pub mean_agent_fitness: f64,
+    /// Population variance of current-agent objective fitness values.
+    pub agent_fitness_variance: f64,
+    /// Consensus is a separate social-state observable, not task performance.
     pub consensus: f64,
     pub sigma_before_update: f64,
     pub sigma_after_update: f64,
@@ -562,11 +571,40 @@ impl ScmModel {
             .iter()
             .filter(|observation| observation.outside_domain)
             .count();
+        let (best_agent_index, best_agent_fitness) = updated_observations
+            .iter()
+            .enumerate()
+            .max_by(|(left_index, left), (right_index, right)| {
+                left.fitness
+                    .total_cmp(&right.fitness)
+                    // max_by returns the later item on equality; reverse the index
+                    // comparison so ties deterministically resolve to the lowest index.
+                    .then_with(|| right_index.cmp(left_index))
+            })
+            .map(|(index, observation)| (index, observation.fitness))
+            .expect("SCM validates a non-empty agent population");
+        let mean_agent_fitness = updated_observations
+            .iter()
+            .map(|observation| observation.fitness)
+            .sum::<f64>()
+            / updated_observations.len() as f64;
+        let agent_fitness_variance = updated_observations
+            .iter()
+            .map(|observation| {
+                let delta = observation.fitness - mean_agent_fitness;
+                delta * delta
+            })
+            .sum::<f64>()
+            / updated_observations.len() as f64;
         let report = ScmStepReport {
             tick: next_tick,
             interaction_kernel: self.config.kernel,
             consensus_window: self.config.consensus_window,
             communication_topology: self.config.communication_topology,
+            best_agent_fitness,
+            best_agent_index,
+            mean_agent_fitness,
+            agent_fitness_variance,
             consensus: updated_consensus,
             sigma_before_update,
             sigma_after_update: next_sigma,
@@ -1162,6 +1200,67 @@ mod tests {
             assert_eq!(left.mean_communicating_neighbors, 2.0);
             assert_eq!(right.mean_communicating_neighbors, 2.0);
         }
+    }
+
+    #[test]
+    fn task_fitness_metrics_are_reported_separately_from_consensus() {
+        let positions = vec![
+            ScmAgent { position: vec![0.1, 0.1] },
+            ScmAgent { position: vec![0.9, 0.1] },
+            ScmAgent { position: vec![0.1, 0.9] },
+            ScmAgent { position: vec![0.9, 0.9] },
+        ];
+        let landscape = QuadraticLandscape {
+            center: vec![0.55, 0.55],
+            scale: 0.5,
+        };
+        let mut model = ScmModel::new(
+            positions,
+            ScmConfig {
+                sigma_initial: 0.0,
+                sigma_limit: 0.0,
+                omega: 0.0,
+                tau_steps: 4,
+                ..ScmConfig::default()
+            },
+            77,
+        )
+        .unwrap();
+
+        let report = model.step(&landscape).unwrap();
+        let observations: Vec<f64> = model
+            .agents()
+            .iter()
+            .map(|agent| landscape.fitness_and_gradient(&agent.position).unwrap().0)
+            .collect();
+        let expected_best_index = observations
+            .iter()
+            .enumerate()
+            .max_by(|(li, left), (ri, right)| {
+                left.total_cmp(right).then_with(|| ri.cmp(li))
+            })
+            .map(|(index, _)| index)
+            .unwrap();
+        let expected_best = observations[expected_best_index];
+        let expected_mean = observations.iter().sum::<f64>() / observations.len() as f64;
+        let expected_variance = observations
+            .iter()
+            .map(|fitness| {
+                let delta = *fitness - expected_mean;
+                delta * delta
+            })
+            .sum::<f64>()
+            / observations.len() as f64;
+
+        assert_eq!(report.best_agent_index, expected_best_index);
+        assert!((report.best_agent_fitness - expected_best).abs() < 1.0e-12);
+        assert!((report.mean_agent_fitness - expected_mean).abs() < 1.0e-12);
+        assert!((report.agent_fitness_variance - expected_variance).abs() < 1.0e-12);
+        assert!((0.0..=1.0).contains(&report.best_agent_fitness));
+        assert!((0.0..=1.0).contains(&report.mean_agent_fitness));
+        assert!(report.agent_fitness_variance.is_finite());
+        // A high consensus is not used as a substitute for measured task fitness.
+        assert!(report.consensus.is_finite());
     }
 
     #[test]
