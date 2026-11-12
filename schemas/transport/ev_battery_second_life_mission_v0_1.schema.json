@@ -1,0 +1,455 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/ev_battery_second_life_mission_v0_1.schema.json",
+  "title": "EV battery second-life mission qualification manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "missions",
+    "cells",
+    "packs",
+    "routing_decisions",
+    "evidence_registry",
+    "decision_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "missions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "mission_id",
+          "application",
+          "duty_cycle_ref",
+          "system_boundary",
+          "ambient_min_c",
+          "ambient_max_c",
+          "required_energy_kwh",
+          "required_peak_power_kw",
+          "required_calendar_years",
+          "reserve_kwh"
+        ],
+        "properties": {
+          "mission_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "application": {
+            "enum": [
+              "pv_self_consumption",
+              "microgrid_storage",
+              "industrial_peak_reduction",
+              "telecom_backup",
+              "clinic_essential_load",
+              "third_life_ups",
+              "other"
+            ]
+          },
+          "duty_cycle_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "system_boundary": {
+            "enum": [
+              "pack",
+              "installed_system"
+            ]
+          },
+          "ambient_min_c": {
+            "type": "number"
+          },
+          "ambient_max_c": {
+            "type": "number"
+          },
+          "required_energy_kwh": {
+            "type": "number",
+            "minimum": 0
+          },
+          "required_peak_power_kw": {
+            "type": "number",
+            "minimum": 0
+          },
+          "required_calendar_years": {
+            "type": "number",
+            "minimum": 0
+          },
+          "reserve_kwh": {
+            "type": "number",
+            "minimum": 0
+          }
+        }
+      }
+    },
+    "cells": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cell_id",
+          "pack_id",
+          "configuration_ref",
+          "chemistry",
+          "capacity_soh_pct",
+          "dcir_mohm",
+          "evidence_id"
+        ],
+        "properties": {
+          "cell_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pack_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "configuration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "chemistry": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capacity_soh_pct": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 150
+          },
+          "dcir_mohm": {
+            "type": "number",
+            "minimum": 0
+          },
+          "cell_dispersion_pct": {
+            "type": "number",
+            "minimum": 0
+          },
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "packs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "pack_id",
+          "vehicle_id",
+          "original_configuration_ref",
+          "current_configuration_ref",
+          "chemistry",
+          "cell_ids",
+          "history_completeness",
+          "incident_history",
+          "bms_strategy",
+          "bms_compatibility_disposition",
+          "bms_evidence_id",
+          "capability_envelope_ref",
+          "capability_evidence_id",
+          "hard_gates"
+        ],
+        "properties": {
+          "pack_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "vehicle_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "original_configuration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "current_configuration_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "chemistry": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cell_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "history_completeness": {
+            "enum": [
+              "complete",
+              "partial",
+              "unknown"
+            ]
+          },
+          "incident_history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "event_type",
+                "state",
+                "evidence_id"
+              ],
+              "properties": {
+                "event_type": {
+                  "enum": [
+                    "thermal_event",
+                    "overcharge",
+                    "deep_discharge",
+                    "crash_or_mechanical_abuse",
+                    "water_ingress",
+                    "isolation_fault",
+                    "service_or_repair",
+                    "other"
+                  ]
+                },
+                "state": {
+                  "enum": [
+                    "event_recorded",
+                    "verified_absent",
+                    "unknown",
+                    "not_applicable"
+                  ]
+                },
+                "evidence_id": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "bms_strategy": {
+            "enum": [
+              "reuse_unchanged",
+              "authorized_firmware_update",
+              "gateway_interface",
+              "replace_bms"
+            ]
+          },
+          "bms_compatibility_disposition": {
+            "enum": [
+              "pass",
+              "fail",
+              "unknown"
+            ]
+          },
+          "bms_evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capability_envelope_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "capability_evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "hard_gates": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "gate_id",
+                "disposition",
+                "evidence_id",
+                "requires_physical_evidence"
+              ],
+              "properties": {
+                "gate_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "disposition": {
+                  "enum": [
+                    "pass",
+                    "fail",
+                    "unknown"
+                  ]
+                },
+                "evidence_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "requires_physical_evidence": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "routing_decisions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decision_id",
+          "pack_id",
+          "target_mission_id",
+          "route",
+          "rationale_evidence_id"
+        ],
+        "properties": {
+          "decision_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pack_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_mission_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "route": {
+            "enum": [
+              "continue_first_life",
+              "repair_and_reassess",
+              "eligible_second_life_mission",
+              "eligible_third_life_backup",
+              "recycle_or_recover",
+              "abstain_insufficient_evidence"
+            ]
+          },
+          "rationale_evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mission_feasibility": {
+            "enum": [
+              "feasible",
+              "infeasible",
+              "unknown"
+            ]
+          },
+          "lower_bound_usable_energy_kwh": {
+            "type": "number",
+            "minimum": 0
+          },
+          "lower_bound_peak_power_kw": {
+            "type": "number",
+            "minimum": 0
+          },
+          "lower_bound_reserve_kwh": {
+            "type": "number",
+            "minimum": 0
+          },
+          "worst_case_thermal_margin_c": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "evidence_registry": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "evidence_class",
+          "source_digest",
+          "claim_scope",
+          "validity_domain",
+          "rights_state"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_class": {
+            "enum": [
+              "synthetic_fixture",
+              "assumption",
+              "vendor_claim",
+              "literature_reported",
+              "surrogate",
+              "calculation",
+              "physical_measurement",
+              "independent_lab"
+            ]
+          },
+          "source_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "claim_scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "validity_domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rights_state": {
+            "enum": [
+              "candidate_unreviewed",
+              "research_use_admitted",
+              "evaluation_only",
+              "commercial_use_blocked",
+              "redistribution_blocked",
+              "rejected"
+            ]
+          }
+        }
+      }
+    },
+    "decision_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unknown_hard_gate_blocks_eligibility",
+        "hard_gates_not_compensable",
+        "read_only"
+      ],
+      "properties": {
+        "unknown_hard_gate_blocks_eligibility": {
+          "const": true
+        },
+        "hard_gates_not_compensable": {
+          "const": true
+        },
+        "read_only": {
+          "const": true
+        },
+        "minimum_independent_physical_specimens_per_pack": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
