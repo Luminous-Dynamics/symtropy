@@ -86,6 +86,68 @@ cargo run --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --b
 cargo run --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep -- --candidate-policy-map
 ```
 
+## Contingent sensing trees (prior-free robust policy planning)
+
+The crate also contains an exact bounded policy-tree evaluator in `src/contingent.rs`. This is a different uncertainty contract from the Bayesian adaptive passive-measurement planner in [#4027 / PR #4031](https://github.com/Luminous-Dynamics/symtropy/pull/4031):
+
+| Property | CIVDYN contingent tree | #4027 sequential diagnosis |
+|---|---|---|
+| Uncertainty | Finite set of possible worlds, no weights | Explicit prior and likelihoods |
+| Objective | Minimax service regret subject to hard floors | Expected utility net of measurement cost |
+| Observation branches | Public-token partitions over compatible worlds | Bayesian posterior branches |
+| Sensing costs | Per-world energy + delay losses, charged per path | Declared experiment costs in utility units |
+| Stopping | STOP competes with every sensor at every node | STOP competes with expected continuation value |
+| Candidate information | Observation history, sensor IDs, actions only | Public experiment/outcome policy tree |
+| Exactness | Bounded deterministic enumeration | Bounded exact Bayesian finite-horizon recursion |
+
+The deterministic three-world challenge has a cheap first-stage screen. It returns `healthy` in one world and `missing` in two worlds: degraded service with a common-cause power failure and healthy service with a telemetry-network fault. Both fault causes yield the same public `missing` token. The candidate cannot tell those two causes apart.
+
+The selected policy tree is:
+
+1. Request `screen`.
+2. If the observation is `healthy`, STOP and `defer`.
+3. If the observation is `missing`, request `independent_inspection`.
+4. If the follow-up is `degraded`, STOP and `repair`; if it is `healthy`, STOP and `defer`.
+
+The independent inspection is charged only on the `missing` branch. Known-answer values:
+
+| Quantity | Result |
+|---|---:|
+| No-sensing minimax regret | 15 service units |
+| Contingent-tree worst leaf regret | 1.4 service units |
+| Worst-case regret reduction | 13.6 service units |
+| Maximum path energy | 0.35 kWh |
+| Maximum path latency | 2 ticks |
+| Maximum path acquisition penalty | 1.4 service units |
+| Selected tree depth | 2 sensors |
+
+A one-step greedy screen is not recommended: its worst regret is 15.5, worse than STOP at 15. An uninformative follow-up is not chosen; an over-budget follow-up is skipped; stopping wins a regret tie to avoid paying for unnecessary sensing. The search has a hard 10,000-node cap (depth at most 3, sensor catalogue at most 8) and fails closed rather than switching to a heuristic.
+
+### Candidate and evaluator exports
+
+The evaluator CLI writes separate records for policy nodes, branch predictions, and terminal-world regrets/costs. The candidate-only mode `--candidate-policy-tree` writes only six public fields:
+
+`scenario_id, observation_history, node_type, sensor_id, observation_id, action_id`
+
+It contains no world ID, true service outcome, hidden missingness cause, clairvoyant value, energy receipt, or regret. The candidate projection is a distinct type in Rust; hidden causes and per-world receipts remain evaluator-only.
+
+### Research boundary
+
+This prior-free tree complements, but does not replace:
+- #4027, the Bayesian finite-horizon measurement/STOP planner;
+- #3018, joint stochastic physical-state and sensor-state experimental design;
+- #4620, one-step prior-free experiment discrimination;
+- the active-sensing v0.1 one-shot and fixed two-stage references.
+
+The claim is not that minimax is universally better than Bayesian decision-making. These methods answer different questions. The benchmark makes the trade-off explicit: worst-case safety and service regret without a model prior versus expected utility when an approved prior/likelihood model exists. The three-world fixture is synthetic only and establishes no external or field effectiveness.
+
+Run the contingent tree:
+
+```bash
+cargo run --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep
+cargo run --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep -- --candidate-policy-tree
+```
+
 ## Claim ceiling
 
 This is a synthetic known-truth protocol reference. It does not implement a general POMDP solver, establish real sensor performance, identify real causal mechanisms, validate field data or claim SOTA superiority.
