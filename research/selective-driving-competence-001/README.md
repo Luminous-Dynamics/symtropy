@@ -47,7 +47,7 @@ Each decision record has:
 - actual abstention state and, when abstained, a decision deadline and observed fallback outcome/duration;
 - measured latency, energy and memory where available.
 
-The input requires `bootstrap_replicates` in [100, 10000] and a fixed `bootstrap_seed`. Bootstrap resamples whole episodes with replacement; it does not treat adjacent decisions from the same episode as independent.
+The input requires `bootstrap_replicates` in [100, 10000] and a fixed `bootstrap_seed`. Bootstrap resamples whole episodes with replacement; it does not treat adjacent decisions from the same episode as independent. If fewer than two episodes are present, all bootstrap intervals are unavailable. If any replicate has zero accepted decisions, the accepted-failure-rate interval is unavailable and `accepted_risk_valid_replicates` shows how many replicates had a defined value.
 
 The evaluator rejects:
 - missing or censored outcomes (no zero imputation or silent exclusion);
@@ -62,14 +62,15 @@ The policy-input availability check is a declared-record integrity test. It does
 ## Metrics
 
 1. **Risk-coverage curve:** sort by predicted failure probability ascending. Every equal-score group enters together; ties are never split by decision ID.
-2. **AURC:** right-continuous step integral over the coverage increments, computed separately for binary observed failure rate and mean observed loss.
-3. **Fixed operating points:** observed failure rate at predeclared target coverage, and maximum coverage under a predeclared observed-failure-rate limit. Tied scores may overshoot the target coverage; the report shows achieved coverage.
-4. **Calibration:** Brier score, log loss, fixed-width-bin ECE and maximum bin gap.
-5. **Worst-family exposure:** per-family accepted coverage and accepted failure/loss metrics; an overall average cannot hide a weak family.
-6. **Actual abstention:** actual autonomy coverage, accepted failure/loss, fallback success/failure, late abstentions, fallback duration and human interventions.
-5. **Resources:** average measured latency/energy/memory and the number of observations available for each. Missing measurements remain null, never zero.
+2. **AURC:** right-continuous step integral over coverage increments, computed separately for binary observed failure rate and mean observed loss.
+3. **Fixed operating points:** observed failure rate at predeclared target coverage, and maximum coverage under a predeclared observed-failure-rate limit. Tied scores may overshoot the target; achieved coverage is explicit.
+4. **Calibration:** Brier score, log loss, fixed-width-bin ECE and maximum bin gap. Bins are lower-inclusive / upper-exclusive, except the final bin includes probability 1.0.
+5. **Episode-cluster uncertainty:** deterministic SplitMix64 percentile bootstrap over whole episode clusters, with 95% intervals for AURC and actual autonomy coverage. An accepted-failure-rate interval is reported only when every replicate contains an accepted decision. With fewer than two episode clusters, intervals are unavailable.
+6. **Worst-family exposure:** per-family accepted coverage and accepted failure/loss metrics; an overall average cannot hide a weak family.
+7. **Actual abstention:** actual autonomy coverage, accepted failure/loss, fallback success/failure, late abstentions, fallback duration and human interventions.
+8. **Resources:** average measured latency/energy/memory and the number of observations available for each. Missing measurements remain null, never zero.
 
-AURC is a ranking metric, not a deployment-risk guarantee. ECE depends on binning. A favourable point estimate without episode-level uncertainty intervals is not evidence of statistical superiority. This tool does not implement bootstrap confidence intervals; the analysis protocol requires episode-level resampling before research claims.
+AURC is a ranking metric, not a deployment-risk guarantee. ECE depends on binning. The bootstrap is a percentile interval over the declared episode sample, not a distribution-free guarantee and not a replacement for out-of-domain validation. Episode clusters, rather than individual decisions, are resampled to preserve within-episode dependence.
 
 ## Build and run
 
