@@ -8,14 +8,22 @@
 //! map on a circle. It is a test reference, not a production multibody solver.
 
 use metric_induced_error_envelope_reference::{
-    CartesianQ, ConstraintMultiplierV1, ConstraintResidualV1, ConstraintSpace, CoordinateFrame,
-    Cotangent, DelassusMetricV1, DenseY, Metric, MetricErrorV1, MetricProfileV1, Rebasis, Tangent,
-    pairing,
+    ConstraintMultiplierV1, ConstraintResidualV1, ConstraintSpace, CoordinateFrame, Cotangent,
+    DelassusMetricV1, Metric, MetricErrorV1, MetricProfileV1, Tangent, pairing,
 };
 
 pub type Matrix2 = [[f64; 2]; 2];
 pub type Vector2<F> = Tangent<F, 2>;
 pub type Covector2<F> = Cotangent<F, 2>;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CircleStepProfileV1 {
+    pub mass: f64,
+    pub spring: f64,
+    pub timestep: f64,
+    pub radius: f64,
+    pub metric_profile: MetricProfileV1,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct StepOutcome<F: CoordinateFrame> {
@@ -164,12 +172,15 @@ pub fn projected_circle_step<F: CoordinateFrame>(
     position: &Tangent<F, 2>,
     velocity: &Tangent<F, 2>,
     external_force: &Cotangent<F, 2>,
-    mass: f64,
-    spring: f64,
-    timestep: f64,
-    radius: f64,
-    profile: MetricProfileV1,
+    profile: CircleStepProfileV1,
 ) -> Result<StepOutcome<F>, MetricErrorV1> {
+    let CircleStepProfileV1 {
+        mass,
+        spring,
+        timestep,
+        radius,
+        metric_profile,
+    } = profile;
     if !mass.is_finite()
         || mass <= 0.0
         || !spring.is_finite()
@@ -237,7 +248,7 @@ pub fn projected_circle_step<F: CoordinateFrame>(
     let delassus = DelassusMetricV1::<F, ConstraintSpace, 2, 1>::from_mass_jacobian(
         mass_metric,
         [jacobian_components],
-        profile,
+        metric_profile,
     )?;
     let multiplier = ConstraintMultiplierV1::<ConstraintSpace, 1>::new([velocity_multiplier])?;
     let residual = ConstraintResidualV1::<ConstraintSpace, 1>::new([2.0 * numerator / mass])?;
@@ -284,6 +295,7 @@ pub fn projected_circle_step<F: CoordinateFrame>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use metric_induced_error_envelope_reference::{CartesianQ, DenseY, Rebasis};
 
     const PROFILE: MetricProfileV1 = MetricProfileV1 {
         relative_pivot_tolerance: 64.0 * f64::EPSILON,
@@ -293,6 +305,13 @@ mod tests {
     const SPRING: f64 = 0.7;
     const TIMESTEP: f64 = 0.05;
     const RADIUS: f64 = 1.2;
+    const STEP_PROFILE: CircleStepProfileV1 = CircleStepProfileV1 {
+        mass: MASS,
+        spring: SPRING,
+        timestep: TIMESTEP,
+        radius: RADIUS,
+        metric_profile: PROFILE,
+    };
 
     fn cartesian_mass() -> Metric<CartesianQ, 2> {
         Metric::admit([[MASS, 0.0], [0.0, MASS]], PROFILE).unwrap()
@@ -346,11 +365,7 @@ mod tests {
             position,
             velocity,
             force,
-            MASS,
-            SPRING,
-            TIMESTEP,
-            RADIUS,
-            PROFILE,
+            STEP_PROFILE,
         )
         .unwrap();
         let action_position = transform_tangent(action, position).unwrap();
@@ -361,11 +376,7 @@ mod tests {
             &action_position,
             &action_velocity,
             &action_force,
-            MASS,
-            SPRING,
-            TIMESTEP,
-            RADIUS,
-            PROFILE,
+            STEP_PROFILE,
         )
         .unwrap();
 
@@ -443,11 +454,7 @@ mod tests {
             &position_q,
             &velocity_q,
             &force_q,
-            MASS,
-            SPRING,
-            TIMESTEP,
-            RADIUS,
-            PROFILE,
+            STEP_PROFILE,
         )
         .unwrap();
         let step_y = projected_circle_step(
@@ -455,11 +462,7 @@ mod tests {
             &position_y,
             &velocity_y,
             &force_y,
-            MASS,
-            SPRING,
-            TIMESTEP,
-            RADIUS,
-            PROFILE,
+            STEP_PROFILE,
         )
         .unwrap();
 
@@ -489,9 +492,9 @@ mod tests {
         for action_q in [rotation(0.61), reflection()] {
             let action_y = conjugate_action(&rebasis_matrix, &action_q).unwrap();
             let isometry = multiply(&multiply(&transpose(&action_y), mass_y.matrix()), &action_y);
-            for row in 0..2 {
-                for column in 0..2 {
-                    close(isometry[row][column], mass_y.matrix()[row][column], 5.0e-12);
+            for (actual_row, expected_row) in isometry.iter().zip(mass_y.matrix().iter()) {
+                for (actual, expected) in actual_row.iter().zip(expected_row.iter()) {
+                    close(*actual, *expected, 5.0e-12);
                 }
             }
             assert_step_action(&mass_y, &action_y, &position_y, &velocity_y, &force_y);
