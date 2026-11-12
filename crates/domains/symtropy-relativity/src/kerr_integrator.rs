@@ -21,8 +21,7 @@ use super::{
     kerr_geodesic::{
         KerrCanonicalEvaluation, KerrCanonicalHamiltonian, KerrCanonicalLinearization,
         KerrCanonicalState, KerrFiniteRadiusObserver, KerrGeodesicError, KerrMinoCoordinateChart,
-        KerrNullConstants, KerrObserverCanonicalSeed,
-        KerrObserverScreenProjection,
+        KerrNullConstants, KerrObserverCanonicalSeed, KerrObserverScreenProjection,
     },
 };
 
@@ -1156,7 +1155,9 @@ mod tests {
     use super::*;
     use crate::{
         DimensionlessSpin, MassKg,
-        kerr_geodesic::{KerrLocalSkyDirection, KerrMinoDirection, KerrMinoState, KerrNullConstants},
+        kerr_geodesic::{
+            KerrLocalSkyDirection, KerrMinoDirection, KerrMinoState, KerrNullConstants,
+        },
     };
 
     fn hole(spin: f64) -> KerrBlackHole {
