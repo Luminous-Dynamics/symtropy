@@ -137,21 +137,19 @@
       "additionalProperties": false,
       "required": [
         "horizon_months",
-        "required_usable_energy_kwh",
         "required_peak_power_kw",
         "temperature_min_c",
         "temperature_max_c",
         "minimum_availability_percent",
-        "reserve_percent"
+        "reserve_percent",
+        "required_usable_energy_at_commissioning_kwh",
+        "required_usable_energy_at_horizon_kwh",
+        "required_lifetime_delivered_energy_mwh"
       ],
       "properties": {
         "horizon_months": {
           "type": "integer",
           "minimum": 1
-        },
-        "required_usable_energy_kwh": {
-          "type": "number",
-          "exclusiveMinimum": 0
         },
         "required_peak_power_kw": {
           "type": "number",
@@ -174,6 +172,18 @@
           "type": "number",
           "minimum": 0,
           "maximum": 100
+        },
+        "required_usable_energy_at_commissioning_kwh": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "required_usable_energy_at_horizon_kwh": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "required_lifetime_delivered_energy_mwh": {
+          "type": "number",
+          "exclusiveMinimum": 0
         }
       }
     },
@@ -181,19 +191,17 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
-        "lower_bound_usable_energy_kwh",
         "lower_bound_peak_power_kw",
         "supported_temperature_min_c",
         "supported_temperature_max_c",
         "lower_bound_availability_percent",
         "uncertainty_profile_ref",
-        "evidence_id"
+        "evidence_id",
+        "lower_bound_usable_energy_at_commissioning_kwh",
+        "lower_bound_usable_energy_at_horizon_kwh",
+        "lower_bound_lifetime_delivered_energy_mwh"
       ],
       "properties": {
-        "lower_bound_usable_energy_kwh": {
-          "type": "number",
-          "minimum": 0
-        },
         "lower_bound_peak_power_kw": {
           "type": "number",
           "minimum": 0
@@ -218,6 +226,18 @@
         "evidence_id": {
           "type": "string",
           "minLength": 1
+        },
+        "lower_bound_usable_energy_at_commissioning_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "lower_bound_usable_energy_at_horizon_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "lower_bound_lifetime_delivered_energy_mwh": {
+          "type": "number",
+          "minimum": 0
         }
       }
     },
