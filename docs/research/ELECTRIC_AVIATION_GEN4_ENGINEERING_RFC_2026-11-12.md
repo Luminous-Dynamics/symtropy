@@ -179,15 +179,15 @@ The battery and motor targets above must not be treated as a single system-level
 
 **Battery energy.** NASA's aerospace battery workshop material lists indicative specific-energy requirements of 300 Wh/kg for a four-passenger, 50-mile urban eVTOL and 400 Wh/kg for a 10+ passenger regional eVTOL. These are planning reference points, not proof that a production pack at those values is available. A 2025 review reports up to 330 Wh/kg for commercial lithium-ion cells and around 400 Wh/kg for experimental solid-state systems; cell-level figures cannot be substituted for installed pack performance.
 
-**Electric machines.** NASA describes its 1.4 MW High-Efficiency Megawatt Motor as a development programme with targets of 16 kW/kg and 99% efficiency. The target is a useful comparison point, but must not be described as an achieved commercial motor result.
+**Electric machines.** NASA describes its 1.4 MW High-Efficiency Megawatt Motor (HEMM) as a development programme targeting 16 kW/kg and 99% efficiency. NASA's technical material identifies the 16 kW/kg figure against electromagnetic/active-component mass, not a complete installed motor-plus-cryocooler, inverter, cabling, containment, and aircraft cooling package. Compare at matched mass and thermal boundaries; do not promote a machine-level target into an installed-propulsion-system claim.
 
 **Hybrid aircraft.** NASA's STARC-ABL concept describes a 2–3 MW electrical system and projected 7–12% fuel-burn reduction. NASA/GE's 2026 flight demonstration of a megawatt-class hybrid-electric system shows why hybrid-electric regional architectures deserve serious comparison against battery-only concepts.
 
-**Certification.** The U.S. GAO reported in May 2026 that the FAA had not issued a type certificate for a manned electric aircraft as of March 2026 and was evaluating designs case by case. Subsequent market-survey special airworthiness permissions for BETA and Archer enable limited demonstration activity; they are not equivalent to full type certification. EASA's 5 November 2026 publication of MOC-5 SC-VTOL Issue 2 is a current regulatory reference for VTOL-capable aircraft.
+**Certification.** The GAO's May 2026 report records FAA case-by-case evaluation and limited charging infrastructure as of its March 2026 fact base. For a fresher programme snapshot, Joby's 4 November 2026 Q3 disclosure says it completed a wide range of FAA “for-credit” tests in the fifth and final type-certification stage; that is not an announcement of a type certificate. Archer's 9 November 2026 disclosure reports a Market Survey Special Airworthiness Certificate for Midnight, and BETA's 3 November disclosure reports an A250 market-survey special airworthiness certificate ahead of type certification. Those permissions support defined demonstrations; they are not full type certificates or production approvals. EASA published MOC-5 SC-VTOL Issue 2 on 5 November 2026. The FAA's AC 21.17-4 provides powered-lift type-certification guidance and designated airworthiness criteria.
 
-**Operations and infrastructure.** BETA's Q3 2026 disclosures report more than 250,000 nautical miles across its fleet and 168 charging sites. This makes infrastructure interoperability, uptime, and real-world operational data competitive dimensions—not secondary afterthoughts.
+**Operations and infrastructure.** BETA's 3 November 2026 Q3 release reports more than 250,000 nautical miles across its CTOL and VTOL fleet, 168 charging sites, and market-survey authorization for the A250 ahead of type certification. This is unusually useful operational evidence, but fleet flight hours/miles and charger counts are not substitutes for mission-matched energy, reliability, thermal, or safety metrics. It demonstrates why infrastructure interoperability, uptime, and real-world operations are competitive dimensions—not secondary afterthoughts.
 
-**Programme maturity.** Joby's 4 November 2026 report showed its own Stage 4 testing and analysis at 83% and FAA progress at 78%, with Stage 5 show-and-verify at 25% and 14% respectively, as of 30 October. Archer reported Midnight in its implementation phase on 9 November. These are company-reported programme metrics, not independently comparable percentages across manufacturers.
+**Programme maturity.** Joby's 4 November 2026 report says its fifth and final certification stage included a wide range of “for-credit” FAA testing, while 17 aircraft were in production. Archer's 9 November release reports a market-survey special airworthiness certificate and the start of turboshaft testing for its separate hybrid VTOL programme. BETA's 3 November release reports A250 market-survey authorization and continued progress toward commercial certification. These are company-reported milestones from different aircraft categories and certification paths; they are not interchangeable readiness percentages.
 
 ### How Luminous should compete
 
@@ -216,17 +216,20 @@ No vehicle layout is selected until these mission cards are complete.
 
 ### P1 — build the mission-energy reference model
 
-Start with an independently testable, deterministic Rust model:
-- SI units at interfaces; explicit conversions at import/export boundaries;
-- validated standard-atmosphere and density calculations;
-- segment-based mission profile;
-- lift/drag and propulsor maps as versioned input data, not invented constants;
-- battery SOC, voltage/power limits, internal losses, temperature, ageing, and reserve;
-- motor/inverter efficiency maps and cooling parasitics;
-- explicit uncertainty propagation and mass closure;
-- JSON/CSV outputs with input digest, model version, and reproducible run manifest.
+The first executable increment now exists on the Generation 4 branch as `tools/airborne-energy-observability-validator/src/mission_energy.rs`, exported as a separate `mission_energy` module. It is part of the root Cargo workspace and is covered by the repository's existing package-specific CI step.
 
-First model the energy ledger and mass budget. Do not begin with an AI controller or a high-fidelity 3D visualization.
+The v0.1 ledger:
+- requires planned-mission segments and a separate, explicit reserve scenario;
+- converts declared propulsor-shaft power to pack DC-bus power using separate inverter and motor efficiencies;
+- adds auxiliaries at the DC-bus measurement boundary;
+- accounts for one bounded peak interval per segment without double-counting it on top of average power;
+- checks continuous power, peak power, peak duration, and post-reserve usable-energy margin;
+- reports end-of-mission SOC, energy margin, Wh/passenger-km, and Wh/tonne-km where inputs permit;
+- rejects empty reserve assumptions, invalid efficiencies, non-finite values, and zero-energy mission profiles.
+
+Eight focused Rust tests cover those behaviours. They are source-level tests, not a reported compile or CI pass. This first calculator does **not** predict lift/drag, propeller demand, battery voltage/current, non-linear SOC, thermal propagation, ageing, hybrid-generator dispatch, or uncertainty. Its required shaft-power profile must come from a separately justified model or measured data. The NASA four-passenger/50-mile reference mission card remains explicitly not-defined for flight segments and reserve; it must not be treated as a runnable aircraft design.
+
+Next steps: add a strict JSON mission-card adapter, versioned efficiency and battery-map inputs, and independent known-answer test vectors. Then extend the ledger with thermal/voltage limits and hybrid energy-source accounting. Do not put an optimizer or AI controller in front of an unqualified energy model.
 
 ### P2 — build the design-space explorer
 
@@ -300,6 +303,9 @@ Wireless charging, supercapacitors, solar generation, and vertiport microgrids s
 10. BETA Technologies, [Q3 2026 SEC filing](https://www.sec.gov/Archives/edgar/data/1784570/000162828026069120/q32026earningsrelease.htm), fleet and charging infrastructure metrics.
 11. FAA, [Special Airworthiness Market Survey Certificate for BETA A250](https://www.faa.gov/newsroom/trumps-transportation-secretary-sean-p-duffy-announces-first-ever-special-airworthiness), 21 October 2026.
 12. Symtropy and Symthaea source links listed in Section 1.
+13. BETA Technologies, [Q3 2026 results](https://investors.beta.team/news-events/press-releases/detail/123/beta-technologies-inc-announces-third-quarter-2026-results), 3 November 2026: 250,000+ nautical miles, 168 charging sites, and A250 market-survey authorization ahead of type certification.
+14. NASA, [HEMM](https://www.nasa.gov/eap-technology/electric-machines/hemm/) and [HEMM 2024 technical presentation](https://ntrs.nasa.gov/api/citations/20240008673/downloads/EATS%202024%20presention%20STI%20Final.pdf): 16 kW/kg active-component target and machine efficiency targets.
+15. FAA, [AC 21.17-4 — Type Certification: Powered-lift](https://www.faa.gov/regulations_policies/advisory_circulars/index.cfm/go/document.information/documentID/1044836), issued 18 July 2025.
 
 ---
 
