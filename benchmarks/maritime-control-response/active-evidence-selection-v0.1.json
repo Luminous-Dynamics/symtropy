@@ -25,9 +25,9 @@
       "objective": "After evidence is acquired by an authorized external system, update the hypothesis posterior. This is a read-only calculation and never acquires evidence or executes another action.",
       "candidate_binding": "The update verifies the exact candidate ID and candidate manifest digest from the frozen selection catalogue; a candidate changed after selection is rejected.",
       "receipt_binding": "The observation receipt SHA-256 and outcome ID are mandatory. The digest links the external receipt but does not authenticate its signer, sensor, timestamp or authority.",
-      "posterior": "Compute p(h|o) proportional to p(h) times sum_s w_s p(o|h,s), where the scenario weights and likelihood tables are frozen. Point-estimate candidates use their single table.",
+      "posterior": "For a single frozen point-likelihood table, compute p(h|o) proportional to p(h) times p(o|h). Multi-scenario sequential updates are blocked until a joint hypothesis × persistent-scenario posterior ledger is available; do not repeatedly marginalize fixed scenario weights as if uncertainty scenarios were independently redrawn for each observation.",
       "realized_information": "Report prior entropy, posterior entropy, realized entropy reduction H(prior)-H(posterior), and KL(posterior || prior). Realized entropy reduction may be negative for an individual surprising outcome even though expected information gain is non-negative and KL is non-negative.",
-      "scenario_uncertainty": "Report per-scenario posterior entropy range and the number of likelihood scenarios in which the outcome is possible/impossible."
+      "scenario_uncertainty": "Multi-scenario likelihoods support robust ranking and per-scenario posterior sensitivity reports. They do not authorize a sequential posterior update under fixed marginal scenario weights; the joint persistent scenario state is missing."
     },
     "likelihood_calibration_review": {
       "requirement": "Every candidate must carry an independent calibration-review receipt digest and a review state. Candidates not independently reviewed remain in the assessment ledger but are ineligible.",
@@ -255,21 +255,5 @@
     "calibration_review": "The source selector checks review receipt digest shape and a caller-supplied independent-review flag. It does not authenticate the reviewer or prove calibration validity; upstream signed verification remains mandatory.",
     "chernoff_status": "This implementation computes a finite-grid separation estimate from caller-supplied likelihoods. It does not validate conditional independence, calibrate likelihoods or guarantee finite-sample fault-isolation error.",
     "scenario_sequential_updates": "Multi-scenario candidate ranking is implemented; sequential Bayesian posterior updates are blocked until the joint hypothesis-scenario posterior is represented and replayed."
-  },
-  "sequential_updates": {
-    "status": "single_point_model_updates_supported_multiscenario_updates_blocked",
-    "point_likelihood_model": "Sequential Bayesian updates are supported when the candidate uses one frozen point-likelihood table; every accepted external observation is receipt-bound and applied once to the current hypothesis posterior.",
-    "persistent_scenario_model": "Multi-scenario likelihood tables model persistent epistemic uncertainty in calibration/model behavior. Sequentially averaging their likelihoods with fixed weights after every observation would act as if the scenario were freshly redrawn for each sample and can misstate posterior certainty.",
-    "current_rule": "Multi-scenario candidates may be ranked using expected and worst-case information gain, but realize_probe_observation rejects them until a joint posterior over hypothesis × persistent scenario is carried forward in the observation ledger.",
-    "required_future_joint_ledger": [
-      "stable hypothesis-space digest",
-      "persistent scenario-set digest and scenario IDs",
-      "joint posterior probability for each hypothesis × scenario pair",
-      "one observation receipt and prior-ledger digest per update",
-      "posterior replay with likelihood scenario conditioning",
-      "marginal hypothesis posterior and scenario posterior weights"
-    ],
-    "no_silent_fallback": true,
-    "claim_ceiling": "Worst-case multi-scenario ranking is supported; multi-scenario sequential posterior updates are explicitly not supported."
   }
 }
