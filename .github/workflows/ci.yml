@@ -217,7 +217,7 @@ jobs:
 
         with Path("/tmp/civdyn-sequential-sensing.csv").open(newline="", encoding="utf-8") as handle:
             seq_reader = csv.DictReader(handle)
-            assert seq_reader.fieldnames is not None and len(seq_reader.fieldnames) == 24
+            assert seq_reader.fieldnames is not None and len(seq_reader.fieldnames) == 25
             seq_rows = list(seq_reader)
 
         seq_summary = [row for row in seq_rows if row["record_type"] == "plan_summary"]
@@ -247,6 +247,7 @@ jobs:
         assert {row["selected_policy_id"] for row in seq_partitions} == {"repair_a", "repair_b"}
         seq_worlds = [row for row in seq_rows if row["record_type"] == "world_regret"]
         assert len(seq_worlds) == 2
+        assert {row["partition_worst_regret"] for row in seq_partitions} == {"1.200000"}
         assert {row["world_regret"] for row in seq_worlds} == {"1.200000"}
         assert {row["world_penalty"] for row in seq_worlds} == {"1.200000"}
 
