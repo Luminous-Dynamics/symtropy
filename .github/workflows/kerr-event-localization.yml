@@ -14,6 +14,8 @@ on:
       - research/black-hole-physics-program-current
     paths:
       - crates/domains/symtropy-relativity/**
+      - Cargo.toml
+      - Cargo.lock
       - .github/workflows/kerr-event-localization.yml
 
 permissions:
