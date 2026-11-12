@@ -238,7 +238,21 @@ These are better than aggregate SOTA labels: they are exact test cells where a n
 
 The preregistered targets are: at least **+2.00 absolute official-score points over 88.01%** on a matched protocol, while keeping FAR at or below 7.86%; p95 event confirmation latency at or below 0.50 seconds at the same false-alarm budget; and zero startup-fault episodes absorbed into the healthy baseline. These are ambitions, not measured results. All 12 per-condition cells must be reported so that an aggregate score cannot conceal failures like the published `f_pim -10%` and `f_pic +8%` cases.
 
-## Paradigm shift: a frozen live baseline with a quarantined shadow candidate
+## ## Published DX2026 boundary red-team suite
+
+The publication's overall 88.01% score hides condition-specific failures. The new [dx2026-boundary-falsification-v0.1.json](dx2026-boundary-falsification-v0.1.json) turns the three most informative published cells into source-bound *synthetic envelope counterexamples*:
+
+| Published cell | Reported result | Required Symtropy disposition to test |
+|---|---:|---|
+| FTP75 Standard, `f_pim -10%` | TDR 21.12%, score 45.64% | Overlapping normal/fault envelopes must return `ambiguous_hypothesis_set` and retain the true fault; no forced singleton |
+| FTP75 Highway, `f_pim -10%` | TDR 98.79%, score 97.05% | A separate highway-regime catalogue may return a singleton, but that confidence must not transfer to FTP75 Standard |
+| WLTP, `f_pic +8%` | TDR 100%, FIA 0%, score 44.87% | Detection may fire, but when no known envelope matches, isolation must return `unknown_or_out_of_support` rather than inventing a known cause |
+
+The tests in `src/behavioral_sets.rs` exercise these three dispositions with synthetic response envelopes. They validate the *decision semantics* only; no published sample waveform or model has been reproduced. The official metrics and reported cell values are copied into the boundary fixture from Table 7, and the fixture remains explicitly `protocol_only_not_executed` until a matched raw-data experiment is run.
+
+This makes the benchmark more discriminating than a simple average score: the method must know when to preserve ambiguity, when a different operating regime genuinely separates hypotheses, and when anomaly detection must be separated from fault isolation.
+
+Paradigm shift: a frozen live baseline with a quarantined shadow candidate
 
 The 90-second adaptation warm-up exposes a structural conflict: a system needs to adapt to changing conditions, but it must not learn a fault as normal. The new [startup-adaptation-guard-v0.1.json](startup-adaptation-guard-v0.1.json) and Rust module `src/startup_adaptation.rs` enforce a two-track architecture:
 
@@ -248,7 +262,7 @@ The 90-second adaptation warm-up exposes a structural conflict: a system needs t
 4. **Independent review:** after the predeclared sample count, the candidate may produce a review package bound to the old baseline, model and receipt chain. At least two distinct issuers from independently verified dependency domains must attest to the exact candidate digest. The digest and caller-supplied review flags still require upstream signature, authority, competence, expiry and revocation verification.
 5. **Separate activation authority:** this module has no baseline-commit or activation function. Replacing the live reference requires a separate owner decision, rollback evidence and full prior-regime regression tests.
 
-The default stress protocol uses 1,800 samples (90 seconds at 20 Hz) but unlike a blind warm-up, the old detector remains live for the entire period. This is a shadow evidence-acquisition window, not a diagnosis blackout. The current code and synthetic tests are authored but have not been compiled or physically validated.
+The default stress protocol uses 1,800 samples (90 seconds at 20 Hz) but unlike a blind warm-up, the old detector remains live for the entire period. This is a shadow evidence-acquisition window, not a diagnosis blackout. The v2 shadow receipt digest now covers baseline/model/regime identity, sample and input receipt, residual, regime/signal/command/timing decisions, dependency-health state and digest, all known/unknown/ambiguous alarms, and the previous receipt link. `validate_shadow_receipt_chain` replays the complete content and ordering; field changes are reported as digest failures before semantic admission checks. The digest still does not authenticate upstream issuers or prove physical health. The current code and synthetic tests are authored but have not been compiled or physically validated.
 ## Report beyond the leaderboard
 
 Every run should be serialized against [`benchmark-run-manifest.schema.json`](benchmark-run-manifest.schema.json). It binds dataset bytes and recording membership, split membership, comparator configuration, model artifact, evaluator revision, dependency lock, protocol/seed manifest, metric outputs and the independent-unit uncertainty method. A score without these bindings is not a qualified result.
