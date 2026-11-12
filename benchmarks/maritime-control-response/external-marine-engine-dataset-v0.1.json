@@ -1,6 +1,6 @@
 {
   "schema_version": "symtropy-marine-external-dataset-track-v0.1",
-  "status": "archive_downloaded_publisher_md5_verified_payload_audit_pending",
+  "status": "archive_payload_audited_no_model_evaluation",
   "dataset": {
     "name": "Marine Engine Fault",
     "canonical_record": "https://zenodo.org/records/19857425",
@@ -22,7 +22,7 @@
       "encoding": "UTF-8",
       "archive_csv_entry_count": 18,
       "metadata_csv_artifact_count": 2,
-      "csv_count_semantics": "16 recording data CSVs (one baseline plus fifteen scenario files) plus two metadata CSV exports (dataset_index and variable_dictionary), pending exact member-name confirmation by the Rust archive audit."
+      "csv_count_semantics": "Confirmed by the successful exact-head Rust archive audit: 16 recording data CSVs (one baseline plus fifteen fault-scenario files) plus two separate metadata CSV exports (dataset_index and variable_dictionary). The archive contains 18 CSV entries total."
     },
     "labels": {
       "state_column": "Anomaly State",
@@ -55,11 +55,43 @@
         "name": "Marine_Engine_Fault_Data_v1.zip",
         "publisher_reported_size_bytes": 26538633,
         "publisher_reported_md5": "f4d246c1bb46e05b26e56221acc2606c",
-        "sha256": null,
-        "download_status": "downloaded_publisher_size_and_md5_verified_payload_audit_pending",
+        "sha256": "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b",
+        "download_status": "downloaded_publisher_size_md5_verified_and_raw_csv_payload_audited",
         "md5_independently_verified": true,
         "sha256_computed_in_github_runner": true,
-        "sha256_receipt_status": "awaiting successful machine-readable CSV audit receipt"
+        "sha256_receipt_status": "verified by successful Rust raw CSV audit receipt; artifact run 43311807638",
+        "audit_receipt": {
+          "workflow_run_id": 43312150806,
+          "workflow_run_number": 131,
+          "head_sha": "076350d5eea003ecb38a8eb5bb782787d608d2bc",
+          "job_id": 131510695601,
+          "artifact_id": 13987275055,
+          "artifact_name": "marine-engine-fault-audit-43311807638",
+          "artifact_run_id": 43311807638,
+          "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43311807638/artifacts/13987275055",
+          "csv_file_count": 16,
+          "baseline_file_count": 1,
+          "scenario_file_count": 15,
+          "time_mapping": {
+            "baseline": {
+              "column": "Time",
+              "zero_based_index": 0,
+              "unit": "sec"
+            },
+            "scenario": {
+              "column": "Time_rel",
+              "zero_based_index": 1,
+              "unit": "sec"
+            }
+          },
+          "all_csv_time_columns_strictly_increasing": true,
+          "metadata_artifact_hashes_present": [
+            "dataset_index",
+            "variable_dictionary",
+            "normalization_script"
+          ],
+          "model_evaluation_status": "not_executed"
+        }
       }
     },
     "aalto_catalogue": {
@@ -137,9 +169,9 @@
   "evaluation_tracks": [
     {
       "id": "archive_and_signal_semantics_audit",
-      "status": "downloaded_publisher_md5_verified_payload_audit_pending",
-      "required": "GitHub runner retrieved ZIP, matched publisher-reported size and MD5, and computed SHA-256. Audit exact archive member inventory, separate metadata CSV exports from recording CSV payloads, verify per-file SHA-256, inspect index/dictionary/normalization script, validate three-row headers, units and per-file presence, and preserve empty values.",
-      "qualification": "No model run before archive and variable-dictionary digest are pinned."
+      "status": "completed_archive_and_csv_payload_audit",
+      "required": "Completed by exact-head GitHub Actions run 43311807638: publisher size and MD5 verified, archive SHA-256 recorded, 16 recording CSVs separated from two metadata CSV exports, all CSVs parsed under role-specific 70/73-column schemas, time fields verified in seconds and strictly increasing, and index/dictionary/normalization-script hashes present in the machine-readable receipt.",
+      "qualification": "Archive and CSV payload semantics are audited. Model evaluation, label-to-physical-cause validity, physical run identities, held-out splits, and external validation remain not executed."
     },
     {
       "id": "within_dataset_held_out_load",
@@ -259,5 +291,38 @@
     "causal_limit": "A scenario label is not by itself proof that the intervention reproduces the full causal physics, degradation progression or failure envelope of an in-service fault.",
     "audit_requirement": "Review the archive README, intervention procedures, channel dictionary and manuscript before interpreting a scenario label as a physical root cause or using it to claim field representativeness.",
     "secondary_review_note": "A secondary review of the data descriptor flags potential proxy interventions and qualitative technical validation. Treat this as an audit lead, not an authoritative correction to the dataset creators' metadata."
+  },
+  "claimCeiling": "The 26,538,633-byte publisher ZIP matched reported MD5 f4d246c1bb46e05b26e56221acc2606c and SHA-256 3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b. A successful Rust audit validated 16 recording CSVs (one baseline, fifteen scenarios), the 70/73-column role-specific header layouts, second-based monotonic Time/Time_rel columns, anomaly label shape, file-level missingness and non-null metadata artifact hashes. The machine-readable report is retained as GitHub Actions artifact 13987275055 (run 43311807638). No diagnostic model was trained or scored; no physical root-cause, cross-engine or fleet validation is claimed.",
+  "archive_audit_receipt": {
+    "workflow_run_id": 43312150806,
+    "workflow_run_number": 131,
+    "head_sha": "076350d5eea003ecb38a8eb5bb782787d608d2bc",
+    "job_id": 131510695601,
+    "artifact_id": 13987275055,
+    "artifact_name": "marine-engine-fault-audit-43311807638",
+    "artifact_run_id": 43311807638,
+    "artifact_url": "https://github.com/Luminous-Dynamics/symtropy/actions/runs/43311807638/artifacts/13987275055",
+    "csv_file_count": 16,
+    "baseline_file_count": 1,
+    "scenario_file_count": 15,
+    "time_mapping": {
+      "baseline": {
+        "column": "Time",
+        "zero_based_index": 0,
+        "unit": "sec"
+      },
+      "scenario": {
+        "column": "Time_rel",
+        "zero_based_index": 1,
+        "unit": "sec"
+      }
+    },
+    "all_csv_time_columns_strictly_increasing": true,
+    "metadata_artifact_hashes_present": [
+      "dataset_index",
+      "variable_dictionary",
+      "normalization_script"
+    ],
+    "model_evaluation_status": "not_executed"
   }
 }
