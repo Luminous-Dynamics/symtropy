@@ -275,10 +275,7 @@ impl CompositionManifest {
         validate_energy(&self.energy)?;
         validate_entropy(&self.event, &self.entropy)?;
 
-        let mut evidence = vec![
-            self.material.artifact.clone(),
-            self.energy.artifact.clone(),
-        ];
+        let mut evidence = vec![self.material.artifact.clone(), self.energy.artifact.clone()];
         if let Some(entropy_artifact) = &self.entropy.artifact {
             evidence.push(entropy_artifact.clone());
         }
@@ -376,15 +373,21 @@ fn validate_material(
     receipt: &MaterialReceipt,
 ) -> Result<(), CompositionError> {
     validate_evidence(&receipt.artifact, "material")?;
-    match (event.material_requirement, receipt.disposition, receipt.residual_mass_mg) {
+    match (
+        event.material_requirement,
+        receipt.disposition,
+        receipt.residual_mass_mg,
+    ) {
         (MaterialRequirement::NotApplicable, MaterialDisposition::NotApplicable, None) => Ok(()),
-        (MaterialRequirement::NotApplicable, _, _) => {
-            Err(CompositionError::MaterialStatusMismatch)
-        }
+        (MaterialRequirement::NotApplicable, _, _) => Err(CompositionError::MaterialStatusMismatch),
         (_, MaterialDisposition::Balanced, Some(0)) => Ok(()),
         (_, MaterialDisposition::Imbalanced, Some(value)) if value != 0 => Ok(()),
         (_, MaterialDisposition::Incomplete, None) => Ok(()),
-        (_, MaterialDisposition::NotApplicable, None) if event.material_requirement == MaterialRequirement::Optional => Ok(()),
+        (_, MaterialDisposition::NotApplicable, None)
+            if event.material_requirement == MaterialRequirement::Optional =>
+        {
+            Ok(())
+        }
         _ => Err(CompositionError::MaterialResidualMismatch),
     }
 }
@@ -566,10 +569,7 @@ fn validate_exergy(
     Ok(())
 }
 
-fn validate_evidence(
-    evidence: &EvidenceRef,
-    role: &'static str,
-) -> Result<(), CompositionError> {
+fn validate_evidence(evidence: &EvidenceRef, role: &'static str) -> Result<(), CompositionError> {
     if evidence.evidence_id.trim().is_empty() {
         return Err(CompositionError::EmptyIdentity(role));
     }
@@ -729,7 +729,10 @@ mod tests {
     #[test]
     fn all_matching_owner_receipts_qualify_for_the_declared_profile() {
         let report = manifest().qualify().unwrap();
-        assert_eq!(report.overall, OverallDisposition::QualifiedForDeclaredProfile);
+        assert_eq!(
+            report.overall,
+            OverallDisposition::QualifiedForDeclaredProfile
+        );
         assert_eq!(report.material, MaterialDisposition::Balanced);
         assert_eq!(report.energy, EnergyBalanceStatus::Balanced);
         assert_eq!(report.entropy, EntropyDisposition::Satisfied);
@@ -750,14 +753,20 @@ mod tests {
     fn wrong_energy_boundary_is_rejected() {
         let mut m = manifest();
         m.energy.boundary_id = "other-cell".into();
-        assert_eq!(m.qualify(), Err(CompositionError::BoundaryMismatch("energy")));
+        assert_eq!(
+            m.qualify(),
+            Err(CompositionError::BoundaryMismatch("energy"))
+        );
     }
 
     #[test]
     fn wrong_entropy_interval_is_rejected() {
         let mut m = manifest();
         m.entropy.interval_id = "other-interval".into();
-        assert_eq!(m.qualify(), Err(CompositionError::IntervalMismatch("entropy")));
+        assert_eq!(
+            m.qualify(),
+            Err(CompositionError::IntervalMismatch("entropy"))
+        );
     }
 
     #[test]
