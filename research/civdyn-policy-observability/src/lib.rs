@@ -232,10 +232,10 @@ fn validate_observations(
             _ => return Err(EvaluationError::InvalidObservationState),
         }
 
-        if let Some(propensity) = record.observation_propensity_bps {
-            if propensity == 0 || propensity > 10_000 {
-                return Err(EvaluationError::InvalidPropensity);
-            }
+        if let Some(propensity) = record.observation_propensity_bps
+            && (propensity == 0 || propensity > 10_000)
+        {
+            return Err(EvaluationError::InvalidPropensity);
         }
     }
 
@@ -382,10 +382,10 @@ pub fn evaluate_policy(
         if !support.contains(record.latent_outcome) {
             return Err(EvaluationError::OutcomeOutsideSupport);
         }
-        if let Some(observed) = record.observation.observed_outcome {
-            if observed != record.latent_outcome {
-                return Err(EvaluationError::ObservedOutcomeMismatch);
-            }
+        if let Some(observed) = record.observation.observed_outcome
+            && observed != record.latent_outcome
+        {
+            return Err(EvaluationError::ObservedOutcomeMismatch);
         }
     }
 
