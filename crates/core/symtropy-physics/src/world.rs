@@ -2728,22 +2728,16 @@ mod net_id_assignment_tests {
     #[test]
     fn deterministic_batch_duplicate_is_atomic() {
         let mut world = PhysicsWorld::<2>::new(SVector::zeros());
-        let first = RigidBody::dynamic_sphere(
-            BodyHandle(usize::MAX),
-            Point::new([0.0, 0.0]),
-            1.0,
-            1.0,
-        );
-        let second = RigidBody::dynamic_sphere(
-            BodyHandle(usize::MAX),
-            Point::new([3.0, 0.0]),
-            1.0,
-            1.0,
-        );
+        let first =
+            RigidBody::dynamic_sphere(BodyHandle(usize::MAX), Point::new([0.0, 0.0]), 1.0, 1.0);
+        let second =
+            RigidBody::dynamic_sphere(BodyHandle(usize::MAX), Point::new([3.0, 0.0]), 1.0, 1.0);
 
-        assert!(world
-            .add_bodies_deterministic(vec![(NetId(31), first), (NetId(31), second)])
-            .is_err());
+        assert!(
+            world
+                .add_bodies_deterministic(vec![(NetId(31), first), (NetId(31), second)])
+                .is_err()
+        );
         assert!(world.bodies.is_empty());
         assert!(world.net_id_map.is_empty());
         assert_eq!(world.next_handle, 0);
