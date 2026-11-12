@@ -129,7 +129,9 @@ pub struct GateAssessment {
 #[derive(Clone, Debug, PartialEq)]
 pub struct MissionRequirement {
     pub horizon_months: u16,
-    pub required_usable_energy_kwh: f64,
+    pub required_usable_energy_at_commissioning_kwh: f64,
+    pub required_usable_energy_at_horizon_kwh: f64,
+    pub required_lifetime_delivered_energy_mwh: f64,
     pub required_peak_power_kw: f64,
     pub temperature_min_c: f64,
     pub temperature_max_c: f64,
@@ -139,7 +141,9 @@ pub struct MissionRequirement {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct CapabilityEnvelope {
-    pub lower_bound_usable_energy_kwh: f64,
+    pub lower_bound_usable_energy_at_commissioning_kwh: f64,
+    pub lower_bound_usable_energy_at_horizon_kwh: f64,
+    pub lower_bound_lifetime_delivered_energy_mwh: f64,
     pub lower_bound_peak_power_kw: f64,
     pub supported_temperature_min_c: f64,
     pub supported_temperature_max_c: f64,
@@ -204,7 +208,9 @@ pub struct CaseReport {
     pub blockers: Vec<String>,
     pub gates_passed: usize,
     pub gates_total: usize,
-    pub mission_energy_margin_milli_kwh: i64,
+    pub commissioning_energy_margin_milli_kwh: i64,
+    pub horizon_energy_margin_milli_kwh: i64,
+    pub lifetime_delivered_energy_margin_milli_mwh: i64,
     pub mission_power_margin_milli_kw: i64,
     pub claim_ceiling: String,
 }
@@ -357,7 +363,18 @@ fn validate_mission(m: &MissionRequirement) -> Result<(), AuditError> {
     if m.horizon_months == 0 {
         return Err(AuditError("mission horizon must be nonzero".into()));
     }
-    finite_positive(m.required_usable_energy_kwh, "mission usable energy")?;
+    finite_positive(
+        m.required_usable_energy_at_commissioning_kwh,
+        "mission commissioning usable energy",
+    )?;
+    finite_positive(
+        m.required_usable_energy_at_horizon_kwh,
+        "mission end-of-horizon usable energy",
+    )?;
+    finite_positive(
+        m.required_lifetime_delivered_energy_mwh,
+        "mission lifetime delivered energy",
+    )?;
     finite_positive(m.required_peak_power_kw, "mission peak power")?;
     finite_nonnegative(m.temperature_min_c + 273.15, "mission minimum absolute temperature")?;
     finite_nonnegative(m.temperature_max_c + 273.15, "mission maximum absolute temperature")?;
@@ -370,7 +387,18 @@ fn validate_mission(m: &MissionRequirement) -> Result<(), AuditError> {
 }
 
 fn validate_capability(c: &CapabilityEnvelope) -> Result<(), AuditError> {
-    finite_nonnegative(c.lower_bound_usable_energy_kwh, "lower-bound usable energy")?;
+    finite_nonnegative(
+        c.lower_bound_usable_energy_at_commissioning_kwh,
+        "lower-bound commissioning usable energy",
+    )?;
+    finite_nonnegative(
+        c.lower_bound_usable_energy_at_horizon_kwh,
+        "lower-bound end-of-horizon usable energy",
+    )?;
+    finite_nonnegative(
+        c.lower_bound_lifetime_delivered_energy_mwh,
+        "lower-bound lifetime delivered energy",
+    )?;
     finite_nonnegative(c.lower_bound_peak_power_kw, "lower-bound peak power")?;
     finite_nonnegative(
         c.supported_temperature_min_c + 273.15,
@@ -562,10 +590,23 @@ fn evaluate_case(
         blockers.push(format!("BMS compatibility is {:?}", case.bms.compatibility));
     }
 
-    let energy_required = case.mission.required_usable_energy_kwh
-        * (1.0 + case.mission.reserve_percent / 100.0);
-    if case.capability.lower_bound_usable_energy_kwh < energy_required {
-        blockers.push("lower-bound usable energy does not cover mission plus reserve".into());
+    let reserve_factor = 1.0 + case.mission.reserve_percent / 100.0;
+    let commissioning_energy_required =
+        case.mission.required_usable_energy_at_commissioning_kwh * reserve_factor;
+    let horizon_energy_required =
+        case.mission.required_usable_energy_at_horizon_kwh * reserve_factor;
+    if case.capability.lower_bound_usable_energy_at_commissioning_kwh
+        < commissioning_energy_required
+    {
+        blockers.push("lower-bound commissioning energy does not cover mission plus reserve".into());
+    }
+    if case.capability.lower_bound_usable_energy_at_horizon_kwh < horizon_energy_required {
+        blockers.push("lower-bound end-of-horizon energy does not cover mission plus reserve".into());
+    }
+    if case.capability.lower_bound_lifetime_delivered_energy_mwh
+        < case.mission.required_lifetime_delivered_energy_mwh
+    {
+        blockers.push("lower-bound lifetime delivered energy is below mission requirement".into());
     }
     if case.capability.lower_bound_peak_power_kw < case.mission.required_peak_power_kw {
         blockers.push("lower-bound peak power is below mission requirement".into());
@@ -599,8 +640,16 @@ fn evaluate_case(
         blockers,
         gates_passed,
         gates_total: HardGate::ALL.len(),
-        mission_energy_margin_milli_kwh: milli(
-            case.capability.lower_bound_usable_energy_kwh - energy_required,
+        commissioning_energy_margin_milli_kwh: milli(
+            case.capability.lower_bound_usable_energy_at_commissioning_kwh
+                - commissioning_energy_required,
+        ),
+        horizon_energy_margin_milli_kwh: milli(
+            case.capability.lower_bound_usable_energy_at_horizon_kwh - horizon_energy_required,
+        ),
+        lifetime_delivered_energy_margin_milli_mwh: milli(
+            case.capability.lower_bound_lifetime_delivered_energy_mwh
+                - case.mission.required_lifetime_delivered_energy_mwh,
         ),
         mission_power_margin_milli_kw: milli(
             case.capability.lower_bound_peak_power_kw - case.mission.required_peak_power_kw,
@@ -699,7 +748,9 @@ mod tests {
             requested_use,
             mission: MissionRequirement {
                 horizon_months: 120,
-                required_usable_energy_kwh: 80.0,
+                required_usable_energy_at_commissioning_kwh: 80.0,
+                required_usable_energy_at_horizon_kwh: 64.0,
+                required_lifetime_delivered_energy_mwh: 450.0,
                 required_peak_power_kw: 40.0,
                 temperature_min_c: -10.0,
                 temperature_max_c: 40.0,
@@ -707,7 +758,9 @@ mod tests {
                 reserve_percent: 10.0,
             },
             capability: CapabilityEnvelope {
-                lower_bound_usable_energy_kwh: 100.0,
+                lower_bound_usable_energy_at_commissioning_kwh: 100.0,
+                lower_bound_usable_energy_at_horizon_kwh: 90.0,
+                lower_bound_lifetime_delivered_energy_mwh: 500.0,
                 lower_bound_peak_power_kw: 50.0,
                 supported_temperature_min_c: -20.0,
                 supported_temperature_max_c: 45.0,
@@ -754,8 +807,8 @@ mod tests {
             ev.push(evidence(&format!("AUTH-THERMAL-{id}"), 'c'));
         }
         ev.push(evidence("E-UQ-PROFILE", 'd'));
-        let mut second = case("SECOND-LIFE", RequestedUse::SecondLifeStationary);
-        let mut third = case("THIRD-LIFE", RequestedUse::ThirdLifeBackup);
+        let second = case("SECOND-LIFE", RequestedUse::SecondLifeStationary);
+        let third = case("THIRD-LIFE", RequestedUse::ThirdLifeBackup);
         let mut unknown = case("UNKNOWN-HISTORY", RequestedUse::SecondLifeStationary);
         unknown.history_coverage = HistoryCoverage::Partial;
         unknown.incident_history = IncidentHistory::Unknown;
@@ -832,10 +885,41 @@ mod tests {
     #[test]
     fn mission_energy_plus_reserve_must_be_met() {
         let mut m = fixture();
-        m.cases[0].capability.lower_bound_usable_energy_kwh = 88.0;
+        m.cases[0].capability.lower_bound_usable_energy_at_commissioning_kwh = 87.9;
         let r = audit_manifest(&m).expect("valid measured declaration");
         assert!(r.cases.iter().find(|c| c.case_id == "SECOND-LIFE").unwrap().blockers
             .iter().any(|b| b.contains("energy")));
+    }
+
+    #[test]
+    fn end_of_horizon_energy_and_lifetime_service_are_independent_gates() {
+        let mut m = fixture();
+        m.cases[0].capability.lower_bound_usable_energy_at_horizon_kwh = 70.0;
+        let report = audit_manifest(&m).expect("bounded low-horizon capacity is a blocker");
+        assert!(
+            report
+                .cases
+                .iter()
+                .find(|c| c.case_id == "SECOND-LIFE")
+                .unwrap()
+                .blockers
+                .iter()
+                .any(|b| b.contains("end-of-horizon"))
+        );
+
+        let mut m = fixture();
+        m.cases[0].capability.lower_bound_lifetime_delivered_energy_mwh = 400.0;
+        let report = audit_manifest(&m).expect("bounded low lifetime throughput is a blocker");
+        assert!(
+            report
+                .cases
+                .iter()
+                .find(|c| c.case_id == "SECOND-LIFE")
+                .unwrap()
+                .blockers
+                .iter()
+                .any(|b| b.contains("lifetime delivered energy"))
+        );
     }
 
     #[test]
@@ -865,7 +949,7 @@ mod tests {
         m.cases[0].incident_history = IncidentHistory::AdverseEventsPresentAndAdjudicated;
         m.cases[0].incident_adjudication_ref = Some("E-GATE-2".into());
         let r = audit_manifest(&m).expect("exact adjudication evidence is bound");
-        assert_eq!(r.synthetic_fixture_count, 2);
+        assert_eq!(r.synthetic_fixture_count, 3);
     }
 
     #[test]
