@@ -104,3 +104,50 @@ Do not combine headline values from different papers into one leaderboard. Match
 The JSON corpus can establish finite semantic expectations only. Schema validity does not establish algorithm correctness; a passing finite evaluator does not establish successor completeness, sensor truth, continuous-time safety, sim-to-real fidelity, arbitrary-fault tolerance or physical qualification. All such claims require independent upstream evidence and held-out physical experiments.
 
 No actuation authority is created by this protocol.
+
+## Executable finite reference — 12 November 2026
+
+A standalone, dependency-free Rust 1.96 package now lives at `reference/`:
+
+- `reference/Cargo.toml` and `Cargo.lock` isolate the finite evaluator from the application workspace.
+- `reference/src/lib.rs` implements deterministic canonical-action mapping, observation-class grouping, per-branch admitted-action consumption, common-set intersection, clairvoyant branch counts, and reason-coded Qualified / Unknown / Invalid outcomes.
+- The evaluator consumes upstream evidence; it does not generate physical branches, infer thermal state, solve viability, or create route topology.
+
+The evaluator refuses positive option counts when the branch manifest, continuation domain, per-branch viability receipt, observation freshness, thermal predecessor chain, or recovery receipt is incomplete. Physically possible branches remain in the calculation even at zero probability mass. User-facing labels collapse by canonical physical action identity. Thermal nodes are checked individually using conservative upper-temperature bounds; no mean-temperature waiver exists. A qualified recovery receipt must establish a reachable terminal safe-stop.
+
+**Sixteen authored Rust tests** cover:
+- clairvoyance trap versus observation-constrained intersection;
+- valid observation separation;
+- zero-probability physical branches;
+- duplicate action labels / canonical action alias collapse;
+- incomplete branch and viability manifests;
+- Unknown observation freshness and thermal predecessor mismatch;
+- per-node thermal hard-limit enforcement;
+- terminal safe-stop reachability;
+- branch permutation invariance;
+- monotonicity when adding physically possible branches;
+- independent brute-force oracle agreement;
+- malformed or unmapped action labels.
+
+The companion synthetic corpus and schema were expanded with complete continuation-domain, per-branch viability, observation and recovery receipts. The exact-head workflow now runs formatting, tests and strict Clippy on the pinned Rust 1.96 toolchain. These tests are authored but should not be reported as passing until that workflow completes on the exact head.
+
+### New benchmark target: recoverable continuation, not clairvoyant option count
+
+For each observation class, report:
+1. canonical common-action set and finite-domain cardinality;
+2. branch-by-branch clairvoyant availability as a separate upper bound;
+3. clairvoyance gap (only when all required evidence is Qualified);
+4. branch/domain/observation/thermal/recovery Unknown and Invalid denominators;
+5. thermal node and reserve/topology provenance separately.
+
+Prospective finite-reference goals:
+- 100% exact agreement with an independent brute-force oracle;
+- zero count inflation from aliases or display-label duplication;
+- adding a physically possible branch never increases a common continuation set;
+- no zero-probability physical branch is silently dropped;
+- zero positive option claims from incomplete/Unknown evidence;
+- no thermal mean can mask a per-node hard-limit breach;
+- no qualified recoverability claim without a terminal safe-stop/recovery receipt.
+
+This is a finite action-domain benchmark, not a continuous viability proof or a controller. The Rust output always has `actuation_authorized = false`.
+
