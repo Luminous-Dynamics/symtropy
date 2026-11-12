@@ -2714,6 +2714,24 @@ mod net_id_assignment_tests {
     }
 
     #[test]
+    fn deterministic_batch_rejects_id_already_present_in_body_fields() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let existing = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        world.body_mut(existing).expect("existing body").net_id = Some(NetId(21));
+        let candidate = RigidBody::dynamic_sphere(
+            BodyHandle(usize::MAX),
+            Point::new([3.0, 0.0]),
+            1.0,
+            1.0,
+        );
+
+        assert!(world
+            .add_bodies_deterministic(vec![(NetId(21), candidate)])
+            .is_err());
+        assert_eq!(world.bodies.len(), 1);
+    }
+
+    #[test]
     fn legacy_net_id_setter_fails_closed_on_duplicate() {
         let (mut world, first, second) = world_with_two_bodies();
         world.try_set_net_id(first, NetId(11)).expect("first assignment");
