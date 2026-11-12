@@ -969,26 +969,26 @@ mod tests {
             live_execution_authorized: false,
         };
         let make_candidate = |id: &str, deposition, time, material, energy, risk| PassCandidate {
-                candidate_id: id.to_owned(),
-                workpiece_id: "WID-SYNTH-01".to_owned(),
-                joint_revision: "JOINT-R1".to_owned(),
-                layer_id: "LAYER-03".to_owned(),
-                predecessor_pass_id: "PASS-02".to_owned(),
-                source_scan_id: "SCAN-AFTER-PASS-02".to_owned(),
-                source_scan_sha256: [0x11; 32],
-                source_registration_receipt_sha256: [0x22; 32],
-                procedure_id: "SYNTHETIC-PROC-01".to_owned(),
-                procedure_revision: "R1".to_owned(),
-                deposition_area_units: deposition,
-                duration_units: time,
-                material_units: material,
-                energy_units: energy,
-                robustness_risk_units: risk,
-                within_declared_procedure_envelope: true,
-                resource_feasible: true,
-                path_reachable: true,
-                collision_free: true,
-            };
+            candidate_id: id.to_owned(),
+            workpiece_id: "WID-SYNTH-01".to_owned(),
+            joint_revision: "JOINT-R1".to_owned(),
+            layer_id: "LAYER-03".to_owned(),
+            predecessor_pass_id: "PASS-02".to_owned(),
+            source_scan_id: "SCAN-AFTER-PASS-02".to_owned(),
+            source_scan_sha256: [0x11; 32],
+            source_registration_receipt_sha256: [0x22; 32],
+            procedure_id: "SYNTHETIC-PROC-01".to_owned(),
+            procedure_revision: "R1".to_owned(),
+            deposition_area_units: deposition,
+            duration_units: time,
+            material_units: material,
+            energy_units: energy,
+            robustness_risk_units: risk,
+            within_declared_procedure_envelope: true,
+            resource_feasible: true,
+            path_reachable: true,
+            collision_free: true,
+        };
         let candidates = vec![
             make_candidate("FILL-UNDER", 82, 12, 82, 70, 1),
             make_candidate("FILL-MID", 100, 15, 100, 80, 2),
@@ -1834,10 +1834,14 @@ mod tests {
     fn candidate_bound_to_another_scan_is_excluded() {
         let mut input = base_input();
         input.candidates[0].source_scan_id = "STALE-SCAN".to_owned();
-        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
-            recommend_next_pass(&input) else {
-                panic!("remaining candidates should be feasible");
-            };
+        let Decision::ParetoRecommendations {
+            excluded,
+            feasible_candidate_count,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("remaining candidates should be feasible");
+        };
         assert_eq!(feasible_candidate_count, 2);
         assert_eq!(excluded[0].reason, CandidateExclusion::WrongSourceScan);
     }
@@ -1846,10 +1850,14 @@ mod tests {
     fn procedure_revision_mismatch_is_excluded() {
         let mut input = base_input();
         input.candidates[0].procedure_revision = "R0".to_owned();
-        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
-            recommend_next_pass(&input) else {
-                panic!("remaining candidates should be feasible");
-            };
+        let Decision::ParetoRecommendations {
+            excluded,
+            feasible_candidate_count,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("remaining candidates should be feasible");
+        };
         assert_eq!(feasible_candidate_count, 2);
         assert_eq!(
             excluded[0].reason,
