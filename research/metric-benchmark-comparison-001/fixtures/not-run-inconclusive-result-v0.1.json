@@ -69,7 +69,8 @@
       "momentum_l2_error": null,
       "constraint_residual": null,
       "energy_work_defect_j": null,
-      "discrete_step_equivariance_defect": null
+      "discrete_step_equivariance_defect": null,
+      "lifted_acceleration_relative_error": null
     },
     "decision_quality": {
       "negative_controls_run": null,
