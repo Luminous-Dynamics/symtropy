@@ -153,7 +153,9 @@ jobs:
             .schema_version == "symtropy-behavioral-set-diagnosis-v0.1" and
             .status == "protocol_only_not_executed" and
             (.hard_gates | length >= 10) and
-            (.global_unique_physical_cause_claim_allowed == false) and
+            (.paradigm.unique_claim | contains("not proof of a globally unique physical cause")) and
+            (.output_statuses | index("ambiguous_hypothesis_set") != null) and
+            (.output_statuses | index("unknown_or_out_of_support") != null) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
           ' benchmarks/maritime-control-response/behavioral-set-diagnosis-v0.1.json >/dev/null
 
