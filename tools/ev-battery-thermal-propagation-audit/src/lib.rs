@@ -171,6 +171,8 @@ pub struct TestRecord {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EquivalenceAssessment {
     pub domain: EquivalenceDomain,
+    pub source_fingerprint: String,
+    pub target_fingerprint: String,
     pub status: EquivalenceStatus,
     pub evidence_id: Option<String>,
     pub rationale: String,
@@ -415,6 +417,8 @@ fn validate_test(
 
 fn validate_equivalence(
     comparisons: &[EquivalenceAssessment],
+    source: &ArticleDescriptor,
+    target: &ArticleDescriptor,
     registry: &BTreeMap<&str, &EvidenceRecord>,
     claim_id: &str,
 ) -> Result<BTreeMap<EquivalenceDomain, &EquivalenceAssessment>, AuditError> {
@@ -429,6 +433,24 @@ fn validate_equivalence(
         if map.insert(comparison.domain, comparison).is_some() {
             return Err(AuditError(format!(
                 "claim {claim_id} repeats equivalence domain {:?}",
+                comparison.domain
+            )));
+        }
+        validate_digest(&comparison.source_fingerprint, "equivalence source fingerprint")?;
+        validate_digest(&comparison.target_fingerprint, "equivalence target fingerprint")?;
+        if comparison.source_fingerprint != source.fingerprints.get(comparison.domain)
+            || comparison.target_fingerprint != target.fingerprints.get(comparison.domain)
+        {
+            return Err(AuditError(format!(
+                "claim {claim_id} equivalence {:?} fingerprints do not bind the exact source and target articles",
+                comparison.domain
+            )));
+        }
+        if comparison.status == EquivalenceStatus::Different
+            && comparison.source_fingerprint == comparison.target_fingerprint
+        {
+            return Err(AuditError(format!(
+                "claim {claim_id} marks {:?} DIFFERENT despite identical fingerprints",
                 comparison.domain
             )));
         }
@@ -544,7 +566,6 @@ pub fn audit_manifest(manifest: &Manifest) -> Result<AuditReport, AuditError> {
     for claim in &manifest.claims {
         require_nonempty(&claim.claim_id, "claim ID")?;
         validate_article(&claim.target_article)?;
-        let comparisons = validate_equivalence(&claim.equivalence, &registry, &claim.claim_id)?;
         let test = tests_by_id
             .get(claim.source_test_id.as_str())
             .copied()
@@ -554,6 +575,13 @@ pub fn audit_manifest(manifest: &Manifest) -> Result<AuditReport, AuditError> {
                     claim.claim_id, claim.source_test_id
                 ))
             })?;
+        let comparisons = validate_equivalence(
+            &claim.equivalence,
+            &test.article,
+            &claim.target_article,
+            &registry,
+            &claim.claim_id,
+        )?;
         let source_evidence = admitted_evidence(
             &registry,
             &test.evidence_id,
@@ -693,16 +721,65 @@ mod tests {
         }
     }
 
-    fn same_comparisons() -> Vec<EquivalenceAssessment> {
+    fn comparisons(
+        source: &ArticleDescriptor,
+        target: &ArticleDescriptor,
+        special: Option<(EquivalenceDomain, EquivalenceStatus)>,
+    ) -> Vec<EquivalenceAssessment> {
         EquivalenceDomain::ALL
             .into_iter()
-            .map(|domain| EquivalenceAssessment {
-                domain,
-                status: EquivalenceStatus::SameWithEvidence,
-                evidence_id: Some("E-COMPARISON".into()),
-                rationale: "same revision and domain fingerprint; comparison evidence attached".into(),
+            .map(|domain| {
+                let status = special
+                    .filter(|(special_domain, _)| *special_domain == domain)
+                    .map(|(_, status)| status)
+                    .unwrap_or(EquivalenceStatus::SameWithEvidence);
+                EquivalenceAssessment {
+                    domain,
+                    source_fingerprint: source.fingerprints.get(domain).into(),
+                    target_fingerprint: target.fingerprints.get(domain).into(),
+                    status,
+                    evidence_id: if status == EquivalenceStatus::SameWithEvidence {
+                        Some("E-COMPARISON".into())
+                    } else {
+                        None
+                    },
+                    rationale: match status {
+                        EquivalenceStatus::SameWithEvidence => {
+                            "synthetic known-answer comparison receipt bound to exact fingerprints".into()
+                        }
+                        EquivalenceStatus::Different => {
+                            "synthetic negative control: source and target fingerprints differ".into()
+                        }
+                        EquivalenceStatus::Unknown => {
+                            "synthetic negative control: equivalence not established".into()
+                        }
+                        EquivalenceStatus::NotApplicableWithRationale => {
+                            "domain does not apply to this declared configuration".into()
+                        }
+                    },
+                }
             })
             .collect()
+    }
+
+    fn cell_article_for_test() -> ArticleDescriptor {
+        article(
+            "EV-CELL-A",
+            "r1",
+            ApplicationDomain::EvTraction,
+            TestLevel::Cell,
+            ['1', '2', '3', '4', '5', '6'],
+        )
+    }
+
+    fn bess_article_for_test() -> ArticleDescriptor {
+        article(
+            "BESS-A",
+            "r1",
+            ApplicationDomain::StationaryStorage,
+            TestLevel::StationaryInstallation,
+            ['7', '8', '9', 'a', 'b', 'c'],
+        )
     }
 
     fn physical_test(
@@ -794,21 +871,21 @@ mod tests {
             risk_test,
         ];
 
-        let same = same_comparisons();
-        let mut different_topology = same.clone();
-        different_topology
-            .iter_mut()
-            .find(|item| item.domain == EquivalenceDomain::Topology)
-            .expect("topology exists")
-            .status = EquivalenceStatus::Different;
-        let mut unknown_exposure = same.clone();
-        unknown_exposure
-            .iter_mut()
-            .find(|item| item.domain == EquivalenceDomain::Exposure)
-            .expect("exposure exists")
-            .status = EquivalenceStatus::Unknown;
-
-        let ev_target = ev_article;
+        let ev_target = ev_article.clone();
+        let cell_vehicle_target = article(
+            "EV-REESS-VEHICLE",
+            "r1",
+            ApplicationDomain::EvTraction,
+            TestLevel::Vehicle,
+            ['1', '2', '3', '4', '5', '6'],
+        );
+        let bess_ev_target = article(
+            "EV-REESS-B",
+            "r1",
+            ApplicationDomain::EvTraction,
+            TestLevel::ReessPack,
+            ['7', '8', '9', 'a', 'b', 'c'],
+        );
         let mut changed_target = article(
             "EV-REESS-A",
             "r2",
@@ -817,6 +894,15 @@ mod tests {
             ['1', '2', '3', '4', '5', '6'],
         );
         changed_target.product_revision = "r2".into();
+        changed_target.fingerprints.topology = digest('z');
+        let mut unknown_target = article(
+            "EV-REESS-C",
+            "r1",
+            ApplicationDomain::EvTraction,
+            TestLevel::ReessPack,
+            ['1', '2', '3', '4', '5', '6'],
+        );
+        unknown_target.fingerprints.exposure = digest('y');
 
         Manifest {
             campaign_id: "TRP-EVIDENCE-CAMPAIGN-001".into(),
@@ -832,56 +918,46 @@ mod tests {
                 Claim {
                     claim_id: "CLAIM-EXACT-REESS".into(),
                     source_test_id: "EV-REESS-001".into(),
-                    target_article: ev_target,
-                    equivalence: same.clone(),
+                    target_article: ev_target.clone(),
+                    equivalence: comparisons(&ev_article, &ev_target, None),
                 },
                 Claim {
                     claim_id: "CLAIM-CELL-TO-VEHICLE".into(),
                     source_test_id: "EV-CELL-001".into(),
-                    target_article: article(
-                        "EV-REESS-VEHICLE",
-                        "r1",
-                        ApplicationDomain::EvTraction,
-                        TestLevel::Vehicle,
-                        ['1', '2', '3', '4', '5', '6'],
-                    ),
-                    equivalence: same.clone(),
+                    target_article: cell_vehicle_target.clone(),
+                    equivalence: comparisons(&cell_article_for_test(), &cell_vehicle_target, None),
                 },
                 Claim {
                     claim_id: "CLAIM-BESS-TO-EV".into(),
                     source_test_id: "BESS-INSTALL-001".into(),
-                    target_article: article(
-                        "EV-REESS-B",
-                        "r1",
-                        ApplicationDomain::EvTraction,
-                        TestLevel::ReessPack,
-                        ['7', '8', '9', 'a', 'b', 'c'],
-                    ),
-                    equivalence: same.clone(),
+                    target_article: bess_ev_target.clone(),
+                    equivalence: comparisons(&bess_article_for_test(), &bess_ev_target, None),
                 },
                 Claim {
                     claim_id: "CLAIM-CHANGED-TOPOLOGY".into(),
                     source_test_id: "EV-REESS-001".into(),
-                    target_article: changed_target,
-                    equivalence: different_topology,
+                    target_article: changed_target.clone(),
+                    equivalence: comparisons(
+                        &ev_article,
+                        &changed_target,
+                        Some((EquivalenceDomain::Topology, EquivalenceStatus::Different)),
+                    ),
                 },
                 Claim {
                     claim_id: "CLAIM-UNKNOWN-EXPOSURE".into(),
                     source_test_id: "EV-REESS-001".into(),
-                    target_article: article(
-                        "EV-REESS-C",
-                        "r1",
-                        ApplicationDomain::EvTraction,
-                        TestLevel::ReessPack,
-                        ['1', '2', '3', '4', '5', '6'],
+                    target_article: unknown_target.clone(),
+                    equivalence: comparisons(
+                        &ev_article,
+                        &unknown_target,
+                        Some((EquivalenceDomain::Exposure, EquivalenceStatus::Unknown)),
                     ),
-                    equivalence: unknown_exposure,
                 },
                 Claim {
                     claim_id: "CLAIM-RISK-ANALYSIS".into(),
                     source_test_id: "RISK-001".into(),
-                    target_article: risk_article,
-                    equivalence: same,
+                    target_article: risk_article.clone(),
+                    equivalence: comparisons(&risk_article, &risk_article, None),
                 },
             ],
         }
@@ -999,6 +1075,13 @@ mod tests {
         assert!(audit_manifest(&value).is_err());
         let mut value = fixture();
         value.claims[0].equivalence[1].domain = value.claims[0].equivalence[0].domain;
+        assert!(audit_manifest(&value).is_err());
+    }
+
+    #[test]
+    fn equivalence_receipt_is_bound_to_exact_source_and_target_fingerprints() {
+        let mut value = fixture();
+        value.claims[0].target_article.fingerprints.enclosure = digest('q');
         assert!(audit_manifest(&value).is_err());
     }
 
