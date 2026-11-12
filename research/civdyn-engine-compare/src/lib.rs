@@ -479,22 +479,7 @@ pub fn run_reference(scenario: &Scenario) -> Result<RunResult, WorkloadError> {
         trajectory.push(count_cells(tick + 1, &current)?);
     }
     let elapsed = start.elapsed();
-    let trajectory_bytes = trajectory
-        .iter()
-        .flat_map(|metric| {
-            [
-                metric.tick as u64,
-                metric.empty as u64,
-                metric.tree as u64,
-                metric.burning as u64,
-                metric.ash as u64,
-                metric.total as u64,
-            ]
-            .into_iter()
-            .flat_map(u64::to_le_bytes)
-        })
-        .collect::<Vec<_>>();
-    let trajectory_fingerprint_fnv64 = fnv1a64(&trajectory_bytes);
+    let trajectory_fingerprint_fnv64 = trajectory_fingerprint(&trajectory);
 
     Ok(RunResult {
         spec: scenario.spec.clone(),
@@ -596,6 +581,25 @@ pub fn decode_tape_bundle(bytes: &[u8]) -> Result<Vec<Scenario>, WorkloadError> 
     Ok(scenarios)
 }
 
+fn trajectory_fingerprint(trajectory: &[StepMetrics]) -> u64 {
+    let bytes = trajectory
+        .iter()
+        .flat_map(|metric| {
+            [
+                metric.tick as u64,
+                metric.empty as u64,
+                metric.tree as u64,
+                metric.burning as u64,
+                metric.ash as u64,
+                metric.total as u64,
+            ]
+            .into_iter()
+            .flat_map(u64::to_le_bytes)
+        })
+        .collect::<Vec<_>>();
+    fnv1a64(&bytes)
+}
+
 pub fn fnv1a64(bytes: &[u8]) -> u64 {
     bytes.iter().fold(0xcbf29ce484222325_u64, |hash, byte| {
         (hash ^ u64::from(*byte)).wrapping_mul(0x100000001b3)
@@ -621,9 +625,174 @@ pub fn default_scenarios() -> Result<Vec<Scenario>, WorkloadError> {
     Ok(scenarios)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AdapterConformanceReceipt {
+    pub adapter_id: String,
+    pub workload_id: String,
+    pub width: usize,
+    pub height: usize,
+    pub seed: u64,
+    pub ticks: usize,
+    pub matched_rows: usize,
+    /// Quick deterministic fingerprint only; not cryptographic provenance.
+    pub trajectory_fingerprint_fnv64: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AdapterConformanceError {
+    EmptyAdapterId,
+    InvalidScenario(WorkloadError),
+    RowCountMismatch { expected: usize, actual: usize },
+    InvalidObservedRow { row_index: usize, error: WorkloadError },
+    DivergentRow {
+        row_index: usize,
+        expected: StepMetrics,
+        observed: StepMetrics,
+    },
+}
+
+impl fmt::Display for AdapterConformanceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::EmptyAdapterId => write!(f, "adapter ID must not be empty"),
+            Self::InvalidScenario(error) => write!(f, "invalid reference scenario: {error}"),
+            Self::RowCountMismatch { expected, actual } => {
+                write!(f, "adapter returned {actual} trajectory rows; expected {expected}")
+            }
+            Self::InvalidObservedRow { row_index, error } => {
+                write!(f, "adapter trajectory row {row_index} is invalid: {error}")
+            }
+            Self::DivergentRow { row_index, expected, observed } => write!(
+                f,
+                "adapter trajectory diverges at row {row_index}: expected {expected:?}, observed {observed:?}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for AdapterConformanceError {}
+
+/// Qualify a framework adapter's deterministic trajectory against the frozen
+/// event-tape reference. A runtime result is eligible for ranking only after
+/// this exact per-tick check succeeds for every declared seed and size.
+pub fn verify_adapter_trajectory(
+    scenario: &Scenario,
+    adapter_id: &str,
+    observed: &[StepMetrics],
+) -> Result<AdapterConformanceReceipt, AdapterConformanceError> {
+    if adapter_id.trim().is_empty() {
+        return Err(AdapterConformanceError::EmptyAdapterId);
+    }
+    scenario
+        .validate()
+        .map_err(AdapterConformanceError::InvalidScenario)?;
+
+    let expected = run_reference(scenario)
+        .map_err(AdapterConformanceError::InvalidScenario)?;
+    if observed.len() != expected.trajectory.len() {
+        return Err(AdapterConformanceError::RowCountMismatch {
+            expected: expected.trajectory.len(),
+            actual: observed.len(),
+        });
+    }
+
+    for (row_index, (expected_row, observed_row)) in
+        expected.trajectory.iter().zip(observed).enumerate()
+    {
+        observed_row
+            .validate()
+            .map_err(|error| AdapterConformanceError::InvalidObservedRow {
+                row_index,
+                error,
+            })?;
+        if expected_row != observed_row {
+            return Err(AdapterConformanceError::DivergentRow {
+                row_index,
+                expected: *expected_row,
+                observed: *observed_row,
+            });
+        }
+    }
+
+    Ok(AdapterConformanceReceipt {
+        adapter_id: adapter_id.to_owned(),
+        workload_id: scenario.spec.workload_id.clone(),
+        width: scenario.spec.width,
+        height: scenario.spec.height,
+        seed: scenario.spec.seed,
+        ticks: scenario.spec.ticks,
+        matched_rows: observed.len(),
+        trajectory_fingerprint_fnv64: trajectory_fingerprint(observed),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn adapter_conformance_accepts_exact_reference_trajectory() {
+        let scenario = generate_scenario(16, 12, 9, 8).unwrap();
+        let reference = run_reference(&scenario).unwrap();
+        let receipt = verify_adapter_trajectory(&scenario, "mesa-adapter-v0", &reference.trajectory)
+            .expect("exact trajectory must qualify");
+        assert_eq!(receipt.adapter_id, "mesa-adapter-v0");
+        assert_eq!(receipt.matched_rows, 10);
+        assert_eq!(receipt.trajectory_fingerprint_fnv64, reference.trajectory_fingerprint_fnv64);
+    }
+
+    #[test]
+    fn adapter_conformance_reports_first_divergent_tick() {
+        let scenario = generate_scenario(8, 8, 3, 17).unwrap();
+        let mut observed = run_reference(&scenario).unwrap().trajectory;
+        observed[2].tick += 1;
+        let error = verify_adapter_trajectory(&scenario, "netlogo-adapter-v0", &observed)
+            .expect_err("changed state must be rejected");
+        assert!(matches!(
+            error,
+            AdapterConformanceError::DivergentRow { row_index: 2, .. }
+        ));
+    }
+
+    #[test]
+    fn adapter_conformance_rejects_missing_or_extra_trajectory_rows() {
+        let scenario = generate_scenario(8, 8, 3, 18).unwrap();
+        let reference = run_reference(&scenario).unwrap();
+        let missing = &reference.trajectory[..reference.trajectory.len() - 1];
+        assert!(matches!(
+            verify_adapter_trajectory(&scenario, "agents-jl-adapter-v0", missing),
+            Err(AdapterConformanceError::RowCountMismatch { expected: 4, actual: 3 })
+        ));
+        let mut extra = reference.trajectory.clone();
+        extra.push(*extra.last().unwrap());
+        assert!(matches!(
+            verify_adapter_trajectory(&scenario, "mesa-adapter-v0", &extra),
+            Err(AdapterConformanceError::RowCountMismatch { expected: 4, actual: 5 })
+        ));
+    }
+
+    #[test]
+    fn adapter_conformance_rejects_invalid_state_count_before_comparison() {
+        let scenario = generate_scenario(8, 8, 2, 19).unwrap();
+        let mut observed = run_reference(&scenario).unwrap().trajectory;
+        observed[1].empty += 1;
+        let error = verify_adapter_trajectory(&scenario, "gama-adapter-v0", &observed)
+            .expect_err("invalid counts must fail");
+        assert!(matches!(
+            error,
+            AdapterConformanceError::InvalidObservedRow { row_index: 1, .. }
+        ));
+    }
+
+    #[test]
+    fn adapter_conformance_rejects_empty_adapter_identity() {
+        let scenario = generate_scenario(8, 8, 2, 20).unwrap();
+        let observed = run_reference(&scenario).unwrap().trajectory;
+        assert_eq!(
+            verify_adapter_trajectory(&scenario, " ", &observed),
+            Err(AdapterConformanceError::EmptyAdapterId)
+        );
+    }
 
     #[test]
     fn fixed_seed_scenarios_have_identical_inputs() {

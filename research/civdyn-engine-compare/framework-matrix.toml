@@ -1,0 +1,55 @@
+# CIVDYN-ENGINE-COMPARE framework target matrix
+# Snapshot: 2026-11-12. A version target is not evidence of a completed adapter.
+
+protocol = "CIVDYN-ENGINE-ADAPTER-001"
+snapshot_date = "2026-11-12"
+reference_workload = "CIVDYN-ENGINE-FOREST-FIRE-TRACE-001"
+equivalence_gate = "exact-per-tick-state-counts-all-seeds-and-sizes"
+leaderboard_rule = "Only equivalence-qualified adapters enter runtime tables."
+
+[[framework]]
+id = "anylogic"
+version = "8.9.10"
+track = "commercial-stable"
+adapter_status = "not-ported"
+release_url = "https://www.anylogic.com/downloads/"
+licensing_note = "Vendor binaries are not redistributed; adapter must run in a separately licensed environment."
+
+[[framework]]
+id = "mesa"
+version = "3.5.1"
+track = "stable"
+adapter_status = "not-ported"
+release_url = "https://github.com/mesa/mesa/releases"
+excluded_prereleases = ["4.0.0a0"]
+
+[[framework]]
+id = "agents-jl"
+version = "7.1.0"
+track = "stable"
+adapter_status = "not-ported"
+release_url = "https://github.com/JuliaDynamics/Agents.jl/releases"
+
+[[framework]]
+id = "netlogo"
+version = "7.0.4"
+track = "stable"
+adapter_status = "not-ported"
+release_url = "https://www.netlogo.org/announcements/"
+excluded_prereleases = ["7.1.0-alpha1"]
+
+[[framework]]
+id = "gama"
+version = "2026.11.0"
+track = "alpha"
+adapter_status = "not-ported"
+release_url = "https://github.com/gama-platform/gama/releases"
+leaderboard_eligible = false
+
+[[framework]]
+id = "mason"
+version = "22.0"
+track = "compatibility-target-version-requires-refresh"
+version_status = "22.0 is the existing CIVDYN issue baseline; re-confirm latest maintained version before adapter setup"
+adapter_status = "not-ported"
+release_url = "https://cs.gmu.edu/~eclab/projects/mason/"

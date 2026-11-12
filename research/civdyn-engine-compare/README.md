@@ -28,6 +28,41 @@ This protocol is deliberately trace-driven. It gives every implementation the sa
 - Initial, event tape and trajectory fingerprints for equivalence.
 - Raw input tapes so external adapters can reproduce without sharing a PRNG implementation.
 
+## Adapter conformance gate
+
+The Rust library exposes `verify_adapter_trajectory(scenario, adapter_id, observed_rows)`. An external engine adapter supplies its per-tick `StepMetrics` after consuming the exact portable tape. The verifier:
+- validates the frozen scenario and every observed state-count invariant;
+- rejects missing or extra ticks;
+- compares all six per-tick fields exactly and reports the first divergent row;
+- returns an adapter conformance receipt only after every row matches.
+
+The receipt includes adapter ID, workload, grid dimensions, seed, tick count, matched row count and a quick FNV-1a fingerprint. FNV is only a compact deterministic fingerprint, not cryptographic provenance. The immutable input bundle and raw adapter outputs still require external SHA-256 digests and source/build receipts.
+
+Five negative/positive controls cover exact agreement, first-tick divergence, missing/extra rows, invalid cell counts and empty adapter identity. Runtime comparison must run this gate over **all 20 seeds and both grid sizes** before the adapter enters a performance table. A model with different scheduling semantics is NotEquivalent, not “slower”.
+
+## Framework version matrix (snapshot 12 November 2026)
+
+These versions define the intended first adapter matrix; they are not a statement that any adapter has already been implemented or benchmarked. Stable and pre-release versions are kept distinct in `framework-matrix.toml`.
+
+| Framework | Pinned target | Track | Adapter status |
+|---|---:|---|---|
+| AnyLogic | 8.9.10 | Commercial/stable release | Not ported |
+| Mesa | 3.5.1 | Stable | Not ported |
+| Agents.jl | 7.1.0 | Stable | Not ported |
+| NetLogo | 7.0.4 | Stable | Not ported |
+| GAMA | 2026.11.0 | Alpha/pre-release; excluded from stable leaderboard | Not ported |
+| MASON | 22.0 | Stable release line | Not ported |
+
+Do not silently substitute Mesa 4.0.0a0, NetLogo 7.1.0-alpha1 or other prereleases for the stable track. AnyLogic binary use is subject to its commercial licence; do not commit or redistribute vendor binaries. Adapter source, scripts, runtime metadata and result receipts are sufficient.
+
+Version references:
+- AnyLogic: https://www.anylogic.com/downloads/
+- Mesa: https://github.com/mesa/mesa/releases
+- Agents.jl: https://github.com/JuliaDynamics/Agents.jl/releases
+- NetLogo: https://www.netlogo.org/announcements/
+- GAMA: https://github.com/gama-platform/gama/releases
+- MASON: https://cs.gmu.edu/~eclab/projects/mason/
+
 ## Current claim ceiling
 
 This v0.1 PR is a Rust reference and portable input contract only. It does not contain Agents.jl, Mesa, NetLogo, MASON or Ark.jl ports, and it makes no cross-framework speed claim. Runtime numbers from this one engine are diagnostic only.
