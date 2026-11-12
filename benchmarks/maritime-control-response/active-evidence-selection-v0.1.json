@@ -1,5 +1,5 @@
 {
-  "schema_version": "liu-ice-active-evidence-selection-v0.4",
+  "schema_version": "liu-ice-active-evidence-selection-v0.5",
   "status": "protocol_only_not_executed",
   "purpose": "Rank additional passive observations and explicitly authorized operator inspections by expected reduction in diagnostic hypothesis uncertainty, subject to declared cost, delay, risk and authority gates. This module is a read-only selector.",
   "method": {
@@ -182,7 +182,10 @@
     "Chernoff candidate comparisons use the same frozen hypothesis IDs, positive-prior support, outcome space and eligible catalogue",
     "all likelihood uncertainty scenarios have unique IDs, normalized positive weights, identical outcome spaces and content-addressed calibration",
     "the worst-case Chernoff distance retains the weakest positive-prior hypothesis pair and the least-separable scenario",
-    "the s-grid is frozen before confirmatory evaluation and the result is not treated as a finite-sample error bound"
+    "the s-grid is frozen before confirmatory evaluation and the result is not treated as a finite-sample error bound",
+    "multi-scenario likelihood uncertainty is treated as persistent epistemic model uncertainty, not a new independent scenario draw for every observation",
+    "multi-scenario candidates may be ranked, but sequential posterior update fails closed until a joint hypothesis-by-scenario posterior ledger is implemented and replayed",
+    "point-likelihood sequential update status is disclosed separately from multi-scenario robust ranking status"
   ],
   "research_targets_not_achieved": [
     {
@@ -234,6 +237,11 @@
       "id": "chernoff_separation_value",
       "target": "Compare worst-case pairwise Chernoff selection against robust EIG, cheapest-only and seeded-random on identical authorized candidate sets; show lower realized diagnosis error or cost-to-identification on independent repeated-evidence episodes.",
       "status": "aspirational"
+    },
+    {
+      "id": "joint_hypothesis_scenario_posterior",
+      "target": "Implement and independently replay sequential Bayesian updates over the joint hypothesis × persistent-calibration-scenario posterior, with correct posterior scenario weights and no repeated-observation overconfidence.",
+      "status": "aspirational"
     }
   ],
   "evidence_boundaries": {
@@ -245,6 +253,23 @@
     "risk_status": "risk_score_ppm is a caller-supplied policy score bound to a digest reference; its underlying assessment is not authenticated or independently verified by this selector.",
     "realized_update_status": "The Rust updater calculates a posterior from caller-supplied likelihoods and an external receipt digest; it does not collect or authenticate observations, and no physical observation has been evaluated.",
     "calibration_review": "The source selector checks review receipt digest shape and a caller-supplied independent-review flag. It does not authenticate the reviewer or prove calibration validity; upstream signed verification remains mandatory.",
-    "chernoff_status": "This implementation computes a finite-grid separation estimate from caller-supplied likelihoods. It does not validate conditional independence, calibrate likelihoods or guarantee finite-sample fault-isolation error."
+    "chernoff_status": "This implementation computes a finite-grid separation estimate from caller-supplied likelihoods. It does not validate conditional independence, calibrate likelihoods or guarantee finite-sample fault-isolation error.",
+    "scenario_sequential_updates": "Multi-scenario candidate ranking is implemented; sequential Bayesian posterior updates are blocked until the joint hypothesis-scenario posterior is represented and replayed."
+  },
+  "sequential_updates": {
+    "status": "single_point_model_updates_supported_multiscenario_updates_blocked",
+    "point_likelihood_model": "Sequential Bayesian updates are supported when the candidate uses one frozen point-likelihood table; every accepted external observation is receipt-bound and applied once to the current hypothesis posterior.",
+    "persistent_scenario_model": "Multi-scenario likelihood tables model persistent epistemic uncertainty in calibration/model behavior. Sequentially averaging their likelihoods with fixed weights after every observation would act as if the scenario were freshly redrawn for each sample and can misstate posterior certainty.",
+    "current_rule": "Multi-scenario candidates may be ranked using expected and worst-case information gain, but realize_probe_observation rejects them until a joint posterior over hypothesis × persistent scenario is carried forward in the observation ledger.",
+    "required_future_joint_ledger": [
+      "stable hypothesis-space digest",
+      "persistent scenario-set digest and scenario IDs",
+      "joint posterior probability for each hypothesis × scenario pair",
+      "one observation receipt and prior-ledger digest per update",
+      "posterior replay with likelihood scenario conditioning",
+      "marginal hypothesis posterior and scenario posterior weights"
+    ],
+    "no_silent_fallback": true,
+    "claim_ceiling": "Worst-case multi-scenario ranking is supported; multi-scenario sequential posterior updates are explicitly not supported."
   }
 }
