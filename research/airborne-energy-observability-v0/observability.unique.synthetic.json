@@ -1,0 +1,31 @@
+{
+  "schema_version": "airborne-energy-observability-v0",
+  "case_id": "synthetic-unique-map-v0",
+  "record_state": "FIXTURE",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "field": {
+    "modality": "RF_MICROWAVE",
+    "field_id": "synthetic-rf-field-001",
+    "field_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "field_revision": "synthetic-r1"
+  },
+  "receiver": {
+    "receiver_id": "synthetic-receiver-001",
+    "receiver_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "sensor_kind": "SEGMENTED_RF_POWER",
+    "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "observation_contract": {
+    "minimum_translation_separation_mm": 500,
+    "minimum_attitude_separation_mdeg": 5000,
+    "measurement_noise_tolerance": [1, 1]
+  },
+  "pose_samples": [
+    {"pose_id":"pose-left","position_mm":[0,0,1000],"attitude_mdeg":[0,0,0],"observation_signature":[10,10],"support_state":"IN_DOMAIN"},
+    {"pose_id":"pose-right","position_mm":[2000,0,1000],"attitude_mdeg":[0,0,0],"observation_signature":[20,20],"support_state":"IN_DOMAIN"},
+    {"pose_id":"pose-up","position_mm":[0,2000,1000],"attitude_mdeg":[0,0,0],"observation_signature":[30,30],"support_state":"IN_DOMAIN"},
+    {"pose_id":"pose-out","position_mm":[5000,0,1000],"attitude_mdeg":[0,0,0],"observation_signature":[10,10],"support_state":"OUT_OF_DOMAIN"}
+  ],
+  "expected_disposition": "UNIQUE_WITHIN_DECLARED_SAMPLE_SET",
+  "claim_ceiling": "Synthetic finite-sample observability only; no continuous-field, power-transfer, aircraft-safety, or flight claim."
+}
