@@ -2687,13 +2687,22 @@ mod tests {
                 .unwrap()
                 .contains("external mandatory checks")
         );
-        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 28);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 50);
         assert!(
             protocol["method"]["observation_update"]["posterior"]
                 .as_str()
                 .unwrap()
-                .contains("sum_s w_s")
+                .contains("blocked until a joint hypothesis")
         );
+        assert_eq!(
+            protocol["sequential_updates"]["status"],
+            "single_point_model_updates_supported_multiscenario_updates_blocked"
+        );
+        assert_eq!(protocol["sequential_updates"]["no_silent_fallback"], true);
+        assert!(protocol["sequential_updates"]["required_future_joint_ledger"]
+            .as_array()
+            .unwrap()
+            .len() >= 5);
         assert!(
             protocol["method"]["observation_update"]["realized_information"]
                 .as_str()
@@ -2744,7 +2753,7 @@ mod tests {
                 .iter()
                 .any(|item| item["id"] == "maximum_worst_case_pairwise_chernoff_information")
         );
-        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 40);
+        assert!(protocol["hard_gates"].as_array().unwrap().len() >= 50);
         assert!(
             protocol["comparators"]
                 .as_array()
