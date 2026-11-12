@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/decision-time-action-assurance-request-v1.schema.json",
+  "title": "Decision-time action assurance request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision_time_us",
+    "bundle",
+    "proposal",
+    "policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "decision_time_us": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "bundle": {
+      "$ref": "#/$defs/evidence_bundle"
+    },
+    "proposal": {
+      "$ref": "#/$defs/action_proposal"
+    },
+    "policy": {
+      "$ref": "#/$defs/gate_policy"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "modality": {
+      "enum": [
+        "camera_front",
+        "camera_rear",
+        "camera_left",
+        "camera_right",
+        "vehicle_state",
+        "localization",
+        "lidar",
+        "radar",
+        "map"
+      ]
+    },
+    "action_class": {
+      "enum": [
+        "routine",
+        "lane_change",
+        "merge",
+        "overtake",
+        "intersection_crossing",
+        "vulnerable_road_user_interaction",
+        "emergency_response",
+        "minimal_risk_fallback"
+      ]
+    },
+    "observation_sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modality",
+        "sensor_id",
+        "sequence",
+        "capture_timestamp_us",
+        "ready_timestamp_us",
+        "delivered_timestamp_us",
+        "clock_id",
+        "payload_sha256",
+        "calibration_sha256",
+        "health",
+        "disposition"
+      ],
+      "properties": {
+        "modality": {
+          "$ref": "#/$defs/modality"
+        },
+        "sensor_id": {
+          "$ref": "#/$defs/id"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "capture_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ready_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "delivered_timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_id": {
+          "$ref": "#/$defs/id"
+        },
+        "payload_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "calibration_sha256": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sha256"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "health": {
+          "enum": [
+            "healthy",
+            "degraded",
+            "invalid"
+          ]
+        },
+        "disposition": {
+          "enum": [
+            "fresh",
+            "delayed"
+          ]
+        }
+      }
+    },
+    "missing_event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modality",
+        "sensor_id",
+        "sequence",
+        "timestamp_us",
+        "clock_id",
+        "reason"
+      ],
+      "properties": {
+        "modality": {
+          "$ref": "#/$defs/modality"
+        },
+        "sensor_id": {
+          "$ref": "#/$defs/id"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "timestamp_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clock_id": {
+          "$ref": "#/$defs/id"
+        },
+        "reason": {
+          "enum": [
+            "camera_drop",
+            "sensor_timeout",
+            "transport_loss",
+            "partial_observation",
+            "clock_fault",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "evidence_bundle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "episode_id",
+        "agent_id",
+        "clock_id",
+        "samples",
+        "missing_events"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/id"
+        },
+        "episode_id": {
+          "$ref": "#/$defs/id"
+        },
+        "agent_id": {
+          "$ref": "#/$defs/id"
+        },
+        "clock_id": {
+          "$ref": "#/$defs/id"
+        },
+        "samples": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/observation_sample"
+          }
+        },
+        "missing_events": {
+          "type": "array",
+          "maxItems": 100000,
+          "items": {
+            "$ref": "#/$defs/missing_event"
+          }
+        }
+      }
+    },
+    "action_proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "episode_id",
+        "agent_id",
+        "clock_id",
+        "proposal_id",
+        "action_class",
+        "action_sha256",
+        "source_evidence_bundle_sha256",
+        "issued_at_us",
+        "expires_at_us"
+      ],
+      "properties": {
+        "run_id": {
+          "$ref": "#/$defs/id"
+        },
+        "episode_id": {
+          "$ref": "#/$defs/id"
+        },
+        "agent_id": {
+          "$ref": "#/$defs/id"
+        },
+        "clock_id": {
+          "$ref": "#/$defs/id"
+        },
+        "proposal_id": {
+          "$ref": "#/$defs/id"
+        },
+        "action_class": {
+          "$ref": "#/$defs/action_class"
+        },
+        "action_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_evidence_bundle_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "issued_at_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expires_at_us": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "modality_requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modality",
+        "sensor_id",
+        "minimum_samples",
+        "max_capture_age_us",
+        "max_processing_delay_us",
+        "max_delivery_delay_us",
+        "max_inter_sample_gap_us",
+        "require_healthy",
+        "allow_delayed"
+      ],
+      "properties": {
+        "modality": {
+          "$ref": "#/$defs/modality"
+        },
+        "sensor_id": {
+          "$ref": "#/$defs/id"
+        },
+        "minimum_samples": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_capture_age_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_processing_delay_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_delivery_delay_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_inter_sample_gap_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "require_healthy": {
+          "type": "boolean"
+        },
+        "allow_delayed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evidence_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile_id",
+        "allowed_action_classes",
+        "requirements",
+        "max_inter_sensor_skew_us",
+        "max_proposal_age_us",
+        "max_authorization_lifetime_us"
+      ],
+      "properties": {
+        "profile_id": {
+          "$ref": "#/$defs/id"
+        },
+        "allowed_action_classes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/action_class"
+          }
+        },
+        "requirements": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": false,
+          "items": {
+            "$ref": "#/$defs/modality_requirement"
+          }
+        },
+        "max_inter_sensor_skew_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_proposal_age_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_authorization_lifetime_us": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "gate_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "policy_id",
+        "nominal",
+        "restricted",
+        "fallback"
+      ],
+      "properties": {
+        "policy_id": {
+          "$ref": "#/$defs/id"
+        },
+        "nominal": {
+          "$ref": "#/$defs/evidence_profile"
+        },
+        "restricted": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/evidence_profile"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fallback": {
+          "enum": [
+            "hold_for_reassessment",
+            "request_independent_fallback",
+            "escalate_to_human_operator"
+          ]
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "Samples are committed in canonical modality/sensor/sequence order for the bundle digest; the evaluator canonicalizes array ordering before hashing.",
+    "Timestamps are expressed in one declared monotonic episode clock. The evaluator rejects a sample or missing event with another clock identity.",
+    "The action proposal source_evidence_bundle_sha256 must equal the canonical evidence bundle digest.",
+    "Nominal and restricted profiles are supplied/versioned by the caller; no universal sensor threshold is embedded in the library.",
+    "The authorization expiry is the minimum of proposal expiry, policy lifetime and each required sensor's evidence freshness deadline.",
+    "At execution, any changed proposal, policy or evidence bundle invalidates the authorization and requires reassessment.",
+    "SHA-256 fields are unkeyed integrity commitments, not source authentication or signatures; semantic evidence validity remains an upstream obligation."
+  ]
+}
