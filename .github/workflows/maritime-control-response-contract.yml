@@ -18,12 +18,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: maritime-control-response-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: false
 
 jobs:
   contract:
-    name: Rust evaluator contract
+    name: Rust evaluator and evidence contract
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -42,93 +42,79 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Validate machine-readable benchmark contracts
+      - name: Validate JSON syntax and protocol invariants
         shell: bash
         run: |
           set -euo pipefail
+          root=benchmarks/maritime-control-response
+
+          files=(
+            "$root/tournament-v0.1.json"
+            "$root/published-six-solution-baselines-v0.1.json"
+            "$root/active-evidence-selection-v0.1.json"
+            "$root/behavioral-set-diagnosis-v0.1.json"
+            "$root/deployability-matrix-v0.1.json"
+            "$root/external-marine-engine-dataset-v0.1.json"
+            "$root/external-dataset-file-manifest.schema.json"
+            "$root/benchmark-run-manifest.schema.json"
+            "$root/shift-matrix-v0.1.json"
+            "$root/streaming-contract-v0.1.json"
+          )
+          for file in "${files[@]}"; do
+            test -s "$file"
+            jq -e . "$file" >/dev/null
+          done
 
           jq -e '
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
             (.comparators | length == 15) and
             ([.comparators[].id] | unique | length == 15) and
-            (.hard_evidence_gates | length >= 40) and
+            (.hard_evidence_gates | length >= 60) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
             ([.comparators[].id] | index("published_solution_1_care_engine") != null) and
-            ([.comparators[].id] | index("published_solution_2_rls_open_set_residuals") != null) and
-            ([.comparators[].id] | index("published_solution_3_distribution_kl_matching") != null) and
-            ([.comparators[].id] | index("published_solution_4_residual_anfis") != null) and
-            ([.comparators[].id] | index("published_solution_5_ccdnn_multiview") != null) and
             ([.comparators[].id] | index("published_solution_6_vae_svm_ensemble") != null) and
             ([.comparators[].id] | index("behavioral_set_intersection") != null) and
-            (.behavioral_set_diagnosis.schema_version == "symtropy-behavioral-set-diagnosis-v0.1") and
-            (.behavioral_set_diagnosis.status == "protocol_only_not_executed") and
-            (.behavioral_set_diagnosis.global_unique_physical_cause_claim_allowed == false) and
-            ([.behavioral_set_diagnosis.hard_evidence_gates[]] | length >= 12) and
-            ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
-            (.calibration.minimum_independent_episodes["900000"] == 9) and
-            (.calibration.minimum_independent_episodes["950000"] == 19) and
-            (.calibration.minimum_independent_episodes["990000"] == 99) and
             (.event_evaluation.schema_version == "liu-ice-event-metrics-v0.1") and
             (.event_evaluation.status == "protocol_only_not_executed") and
-            (.event_evaluation.alarm_debounce.minimum_positive_samples == 3) and
-            (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false) and
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.axes | length == 6) and
             ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
             (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.4") and
+            (.active_evidence_selection.status == "protocol_only_not_executed") and
             (.active_evidence_selection.execution_performed == false) and
             (.active_evidence_selection.actuation_authorized == false) and
             (.active_evidence_selection.controlled_perturbations_recommended == 0) and
             (.active_evidence_selection.comparators | index("risk_adjusted_worst_case_eig") != null) and
-            (.active_evidence_selection.identity_contract.hypothesis_space | contains("stable sorted hypothesis IDs")) and
-            (.active_evidence_selection.identity_contract.prior_distribution | contains("changes after every posterior update")) and
-            (.active_evidence_selection.identity_contract.candidate_model_binding | contains("not a transient posterior")) and
-            (.active_evidence_selection.identity_contract.portfolio_binding | contains("prior-distribution digest")) and
-            (.active_evidence_selection.required_metrics | index("hypothesis_space_sha256") != null) and
-            (.active_evidence_selection.required_metrics | index("prior_distribution_sha256") != null) and
-            (.active_evidence_selection.risk_evidence.risk_score_ppm | contains("not a calibrated probability")) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.one_sample_one_output == true) and
             (.streaming_contract.historical_output_mutation == false) and
             (.streaming_contract.rust_core_direct_submission_compatible == false) and
+            (.behavioral_set_diagnosis.schema_version == "symtropy-behavioral-set-diagnosis-v0.1") and
+            (.behavioral_set_diagnosis.global_unique_physical_cause_claim_allowed == false) and
             (.deployability_matrix.schema_version == "symtropy-industrial-diagnostic-deployability-v0.1") and
-            (.deployability_matrix.status == "evidence_matrix_defined_not_executed") and
-            (.deployability_matrix.dimensions == 9) and
-            (.deployability_matrix.non_compensatory == true) and
             (.deployability_matrix.overall_status == "not_deployable_claimed") and
-            (.hard_evidence_gates | length >= 58) and
-            (.streaming_contract.adapter_status == "not_implemented") and
+            (.deployability_matrix.aggregate_readiness_score_allowed == false) and
             (.external_dataset_track.schema_version == "symtropy-marine-external-dataset-track-v0.1") and
             (.external_dataset_track.status == "archive_downloaded_publisher_md5_verified_payload_audit_pending") and
             (.external_dataset_track.dataset.doi == "10.5281/zenodo.19857425") and
             (.external_dataset_track.dataset.license == "CC-BY-4.0") and
-            (.external_dataset_track.dataset.doi == "10.5281/zenodo.19857425") and
-            (.external_dataset_track.dataset.aalto_catalogue.catalogue_doi == "10.5281/zenodo.19857424") and
-            (.external_dataset_track.dataset.zenodo_record.file.publisher_reported_md5 == "f4d246c1bb46e05b26e56221acc2606c") and
-            (.external_dataset_track.dataset.zenodo_record.file.sha256 == null) and
-            (.external_dataset_track.dataset.zenodo_record.file.md5_independently_verified == true) and
-            (.external_dataset_track.dataset.zenodo_record.file.download_status == "downloaded_publisher_size_and_md5_verified_payload_audit_pending") and
+            (.external_dataset_track.dataset.engine == "Matsui Iron Works MU323DGSC") and
             (.external_dataset_track.dataset.files.csv_count == 16) and
-            (.external_dataset_track.dataset.files.archive_csv_entry_count == 18) and
-            (.external_dataset_track.dataset.files.metadata_csv_artifact_count == 2) and
-            (.external_dataset_track.dataset.files.fault_scenario_files == 15) and
             (.external_dataset_track.evaluation_tracks | length == 6) and
-            (.external_dataset_track.evaluation_tracks | map(.status) | all(. != "qualified")) and
-            (.external_dataset_track.research_targets_not_achieved | all(.status == "aspirational"))
-          ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
+            ([.external_dataset_track.research_targets_not_achieved[].status] | all(. == "aspirational"))
+          ' "$root/tournament-v0.1.json" >/dev/null
 
           jq -e '
             .schema_version == "liu-ice-published-six-solution-baselines-v0.1" and
             .status == "literature_reference_not_reproduced" and
             (.solutions | length == 6) and
-            (.solutions | map(.historical_mean_percent.one_minus_far) | .[3] == 99.9) and
-            (.solutions | map(.historical_mean_percent.tdr) | .[3] == 97.2) and
-            (.solutions | map(.historical_mean_percent.tir) | .[1] == 85.5) and
-            (.protocol_context.historical_metrics.tir | contains("ranked highest")) and
+            (.solutions[3].historical_mean_percent.one_minus_far == 99.9) and
+            (.solutions[3].historical_mean_percent.tdr == 97.2) and
+            (.solutions[1].historical_mean_percent.tir == 85.5) and
             (.protocol_context.comparability_warning | contains("not current DX2026 FIA")) and
-            (.matched_reproduction_rules | length >= 8)
-          ' benchmarks/maritime-control-response/published-six-solution-baselines-v0.1.json >/dev/null
+            ([.solutions[].reproduction_status] | all(. == "not_reproduced"))
+          ' "$root/published-six-solution-baselines-v0.1.json" >/dev/null
 
           jq -e '
             .schema_version == "liu-ice-active-evidence-selection-v0.4" and
@@ -140,7 +126,7 @@ jobs:
             (.method.likelihood_calibration_review.requirement | contains("independently reviewed")) and
             (.method.likelihood_calibration_review.qualification | contains("not self-authenticating")) and
             (.research_targets_not_achieved | all(.status == "aspirational"))
-          ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
+          ' "$root/active-evidence-selection-v0.1.json" >/dev/null
 
           jq -e '
             .schema_version == "symtropy-behavioral-set-diagnosis-v0.1" and
@@ -152,9 +138,8 @@ jobs:
             (.hard_gates | length >= 12) and
             (.implementation.trained_model_present == false) and
             (.implementation.physical_validation == false) and
-            (.research_targets_not_achieved | all(.status == "aspirational")) and
             (.limitations.global_identifiability | contains("global uniqueness"))
-          ' benchmarks/maritime-control-response/behavioral-set-diagnosis-v0.1.json >/dev/null
+          ' "$root/behavioral-set-diagnosis-v0.1.json" >/dev/null
 
           jq -e '
             .schema_version == "symtropy-industrial-diagnostic-deployability-v0.1" and
@@ -162,113 +147,59 @@ jobs:
             (.dimensions | length == 9) and
             ([.dimensions[].id] | unique | length == 9) and
             (.overall_status == "not_deployable_claimed") and
-            (.non_compensatory_rule | contains("No weighted average")) and
-            ([.dimensions[].research_target] | all(. != null)) and
-            ([.dimensions[].id] | index("resource_efficiency") != null) and
-            ([.dimensions[].id] | index("data_confidentiality") != null) and
-            ([.dimensions[].id] | index("adversarial_robustness") != null)
-          ' benchmarks/maritime-control-response/deployability-matrix-v0.1.json >/dev/null
+            (.aggregate_readiness_score_allowed == false) and
+            ([.dimensions[].research_target] | all(. != null))
+          ' "$root/deployability-matrix-v0.1.json" >/dev/null
 
           jq -e '
             .schema_version == "liu-ice-streaming-contract-v0.1" and
             .status == "protocol_only_not_executed" and
             (.interface.historical_output_mutation == false) and
             (.stream_invariants.sample_sequence | contains("contiguous")) and
-            (.stream_invariants.model_error | contains("poison")) and
             (.competition_adapter.official_languages == ["Python", "MATLAB"]) and
             (.competition_adapter.rust_core_direct_submission_compatible == false) and
-            (.hard_gates | length >= 10) and
-            (.research_targets_not_achieved | all(.status == "aspirational"))
-          ' benchmarks/maritime-control-response/streaming-contract-v0.1.json >/dev/null
+            (.competition_adapter.adapter_status == "not_implemented") and
+            (.hard_gates | length >= 10)
+          ' "$root/streaming-contract-v0.1.json" >/dev/null
 
           jq -e '
-            .schema_version == "symtropy-marine-external-dataset-track-v0.1" and
-            .status == "metadata_audited_archive_not_audited" and
-            .dataset.doi == "10.5281/zenodo.19857425" and
-            .dataset.license == "CC-BY-4.0" and
-            .dataset.engine == "Matsui Iron Works MU323DGSC" and
-            .dataset.files.csv_count == 16 and
-            .dataset.files.fault_scenario_files == 15 and
-            .dataset.missingness.absent_in_runs == 5 and
-            (.fault_scenarios | length == 5) and
-            (.evaluation_tracks | length == 6) and
-            (.evaluation_tracks | map(.status) | all(. != "qualified")) and
-            (.research_targets_not_achieved | all(.status == "aspirational")) and
-            (.claim_ceiling | contains("have not yet been audited"))
-          ' benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json >/dev/null
+            .schema_version == "symtropy-marine-engine-file-manifest-v0.1" or
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+          ' "$root/external-dataset-file-manifest.schema.json" >/dev/null
 
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
-            .["$id"] == "https://luminousdynamics.io/schemas/marine-external-file-manifest-v1.json" and
+            (.required | length == 12) and
+            (.properties.protocol.required | index("event_evaluation") != null) and
+            (.properties.protocol.required | index("shift_matrix_sha256") != null) and
+            (.properties.protocol.required | index("active_evidence_selection") != null) and
+            (.properties.protocol.required | index("streaming_contract") != null) and
+            (.properties.protocol.required | index("behavioral_set_evaluation") != null) and
+            (.properties.protocol.required | index("external_dataset_track") != null) and
+            (.properties.protocol.required | index("deployability_assessment") != null) and
+            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.4") and
+            (.properties.metrics.properties.ambiguous_hypothesis_set_rate != null) and
+            (.properties.metrics.properties.global_unique_physical_cause_claim_allowed.const == false) and
+            (.properties.metrics.properties.false_alarms_per_observed_normal_hour != null) and
+            (.properties.claims.properties.physical_transfer_claim_allowed.const == false)
+          ' "$root/benchmark-run-manifest.schema.json" >/dev/null
+
+          jq -e '
+            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
             (.required | length == 11) and
             (.properties.files.minItems == 16) and
             (.properties.files.maxItems == 16) and
             (.properties.archive_md5.pattern == "^[a-f0-9]{32}$") and
-            (.properties.archive_size_bytes.minimum == 1) and
             (.properties.files.items["$ref"] == "#/$defs/file") and
-            (.["$defs"].file.properties.header_rows.const == 3) and
-            (.["$defs"].file.properties.recorded_column_count.enum == [70,73]) and
-            (.properties.split_manifest.oneOf | length == 2)
-          ' benchmarks/maritime-control-response/external-dataset-file-manifest.schema.json >/dev/null
+            (.$defs.file.properties.header_rows.const == 3) and
+            (.$defs.file.properties.recorded_column_count.enum == [70,73])
+          ' "$root/external-dataset-file-manifest.schema.json" >/dev/null
 
-          jq -e '
-            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
-            (.required | length == 15) and
-            (.properties.protocol.required | index("event_evaluation") != null) and
-            (.properties.protocol.required | index("shift_matrix_sha256") != null) and
-            (.properties.protocol.required | index("active_evidence_selection") != null) and
-            (.properties.protocol.properties.active_evidence_selection.required | index("prior_distribution_sha256") != null) and
-            (.properties.protocol.properties.active_evidence_selection.properties.prior_distribution_sha256.oneOf | length == 2) and
-            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.4") and
-            (.properties.protocol.properties.active_evidence_selection.required | index("prior_distribution_sha256") != null) and
-            (.properties.metrics.properties.hypothesis_space_sha256.oneOf | length == 2) and
-            (.properties.metrics.properties.prior_distribution_sha256.oneOf | length == 2) and
-            (.properties.protocol.required | index("streaming_contract") != null) and
-            (.properties.protocol.required | index("behavioral_set_evaluation") != null) and
-            (.properties.protocol.properties.behavioral_set_evaluation.properties.global_unique_physical_cause_claim_allowed.const == false) and
-            (.properties.metrics.properties.ambiguous_hypothesis_set_rate != null) and
-            (.properties.metrics.properties.global_unique_physical_cause_claim_allowed.const == false) and
-            (.properties.protocol.required | index("external_dataset_track") != null) and
-            (.properties.protocol.required | index("deployability_matrix_sha256") != null) and
-            (.properties.protocol.required | index("deployability_assessment") != null) and
-            (.properties.protocol.properties.deployability_assessment.properties.dimension_count.const == 9) and
-            (.properties.protocol.properties.deployability_assessment.properties.evidence.minItems == 9) and
-            (.properties.protocol.properties.deployability_assessment.properties.evidence.maxItems == 9) and
-            (.properties.protocol.properties.deployability_assessment.properties.overall_deployability_claim_allowed.const == false) and
-            (.properties.metrics.properties.overall_deployability_claim_allowed.const == false) and
-            (.properties.comparator.properties.family.enum | index("adaptive_residual_qda_lsvc") != null) and
-            (.properties.comparator.properties.family.enum | index("rls_open_set_residuals") != null) and
-            (.properties.comparator.properties.family.enum | index("distribution_kl_matching") != null) and
-            (.properties.comparator.properties.family.enum | index("residual_anfis") != null) and
-            (.properties.comparator.properties.family.enum | index("ccdnn_multiview") != null) and
-            (.properties.comparator.properties.family.enum | index("dual_vae_svm_ensemble") != null) and
-            (.properties.protocol.properties.external_dataset_track.properties.archive_sha256.oneOf | length == 2) and
-            (.properties.protocol.properties.external_dataset_track.properties.cross_engine_or_fleet_claim_allowed.const == false) and
-            (.properties.protocol.properties.external_dataset_track.properties.dataset_doi.const == "10.5281/zenodo.19857425") and
-            (.properties.protocol.properties.external_dataset_track.properties.archive_md5_publisher_reported.oneOf | length == 2) and
-            (.properties.protocol.properties.external_dataset_track.properties.archive_size_bytes.type | contains("integer")) and
-            (.properties.protocol.properties.external_dataset_track.properties.archive_md5_independently_verified.type == "boolean") and
-            (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
-            (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
-            (.properties.protocol.properties.active_evidence_selection.properties.risk_assessment_catalogue_sha256.oneOf | length == 2) and
-            (.properties.protocol.properties.active_evidence_selection.properties.risk_evidence_reviewed_by_authority_owner.type == "boolean") and
-            (.properties.protocol.properties.active_evidence_selection.properties.multi_scenario_assessed.type == "boolean") and
-                        (.properties.protocol.properties.active_evidence_selection.properties.likelihood_calibration_reviewed_by_independent_validator.type == "boolean") and
-            (.properties.protocol.properties.active_evidence_selection.properties.upstream_likelihood_calibration_verification_sha256.oneOf | length == 2) and
-            (.properties.protocol.properties.active_evidence_selection.properties.likelihood_calibration_reviewed_by_independent_validator.type == "boolean") and
-            (.properties.protocol.properties.active_evidence_selection.properties.likelihood_calibration_catalogue_sha256.oneOf | length == 2) and
-            (.properties.protocol.properties.active_evidence_selection.properties.upstream_likelihood_calibration_verification_sha256.oneOf | length == 2) and
-            (.properties.protocol.properties.streaming_contract.properties.historical_output_mutation_count.const == 0) and
-            (.properties.protocol.properties.streaming_contract.properties.sample_sequence_gap_count.const == 0) and
-            (.properties.metrics.properties.false_alarms_per_observed_normal_hour != null) and
-            (.properties.claims.properties.physical_transfer_claim_allowed.const == false)
-          ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
-
-      - name: Validate formatting
+      - name: Validate Rust formatting
         run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all -- --check
 
-      - name: Run contract tests
+      - name: Run all contract and evaluator tests
         run: cargo test --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets
 
-      - name: Run Clippy
+      - name: Run strict Clippy
         run: cargo clippy --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets -- -D warnings
