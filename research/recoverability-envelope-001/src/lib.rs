@@ -93,6 +93,10 @@ pub struct TickTrace {
     pub control_deadline_us: u64,
     pub detected_fault_ids: Vec<String>,
     pub fallback_reason_fault_ids: Vec<String>,
+    /// Faults causally assigned responsibility for a control-deadline miss at this tick.
+    pub deadline_miss_fault_ids: Vec<String>,
+    /// Faults causally assigned responsibility for an oracle constraint violation at this tick.
+    pub constraint_violation_fault_ids: Vec<String>,
     pub mode: OperatingMode,
     pub oracle_outcome: OracleOutcome,
 }
@@ -396,6 +400,70 @@ impl RecoveryEpisode {
                     }
                 }
             }
+            for fault_id in &tick.deadline_miss_fault_ids {
+                match self
+                    .fault_events
+                    .iter()
+                    .find(|event| event.fault_id == *fault_id)
+                {
+                    None => errors.push(format!(
+                        "tick {} attributes a deadline miss to unknown fault ID {:?}",
+                        tick.tick, fault_id
+                    )),
+                    Some(event) => {
+                        if tick.tick < event.onset_tick || tick.tick >= event.end_tick_exclusive {
+                            errors.push(format!(
+                                "deadline-miss attribution for fault {} is outside its fault window at tick {}",
+                                fault_id, tick.tick
+                            ));
+                        }
+                        if tick.inference_duration_us <= tick.control_deadline_us {
+                            errors.push(format!(
+                                "tick {} attributes a deadline miss to fault {} without a measured deadline miss",
+                                tick.tick, fault_id
+                            ));
+                        }
+                    }
+                }
+            }
+            if duplicate(&tick.deadline_miss_fault_ids) {
+                errors.push(format!(
+                    "tick {} contains duplicate deadline-miss fault attribution",
+                    tick.tick
+                ));
+            }
+            for fault_id in &tick.constraint_violation_fault_ids {
+                match self
+                    .fault_events
+                    .iter()
+                    .find(|event| event.fault_id == *fault_id)
+                {
+                    None => errors.push(format!(
+                        "tick {} attributes a constraint violation to unknown fault ID {:?}",
+                        tick.tick, fault_id
+                    )),
+                    Some(event) => {
+                        if tick.tick < event.onset_tick || tick.tick >= event.end_tick_exclusive {
+                            errors.push(format!(
+                                "constraint-violation attribution for fault {} is outside its fault window at tick {}",
+                                fault_id, tick.tick
+                            ));
+                        }
+                        if tick.oracle_outcome != OracleOutcome::ConstraintViolation {
+                            errors.push(format!(
+                                "tick {} attributes a constraint violation to fault {} without a constraint-violation oracle outcome",
+                                tick.tick, fault_id
+                            ));
+                        }
+                    }
+                }
+            }
+            if duplicate(&tick.constraint_violation_fault_ids) {
+                errors.push(format!(
+                    "tick {} contains duplicate constraint-violation fault attribution",
+                    tick.tick
+                ));
+            }
         }
 
         if self.expected_ticks > 0 && self.expected_ticks <= MAX_TICKS {
@@ -517,18 +585,18 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
         .trace
         .iter()
         .find(|tick| {
-            tick.tick >= event.onset_tick
-                && tick.tick < event.end_tick_exclusive
-                && tick.oracle_outcome == OracleOutcome::ConstraintViolation
+            tick.constraint_violation_fault_ids
+                .iter()
+                .any(|id| id == &event.fault_id)
         })
         .map(|tick| tick.tick);
     let constraint_violation_ticks = episode
         .trace
         .iter()
         .filter(|tick| {
-            tick.tick >= event.onset_tick
-                && tick.tick < event.end_tick_exclusive
-                && tick.oracle_outcome == OracleOutcome::ConstraintViolation
+            tick.constraint_violation_fault_ids
+                .iter()
+                .any(|id| id == &event.fault_id)
         })
         .count() as u64;
 
@@ -545,9 +613,9 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
         .trace
         .iter()
         .filter(|tick| {
-            tick.tick >= event.onset_tick
-                && tick.tick < event.end_tick_exclusive
-                && tick.inference_duration_us > tick.control_deadline_us
+            tick.deadline_miss_fault_ids
+                .iter()
+                .any(|id| id == &event.fault_id)
         })
         .count() as u64;
 
@@ -575,11 +643,19 @@ fn evaluate_fault(episode: &RecoveryEpisode, event: &FaultEvent) -> FaultResult 
                 .count() as u64,
             ticks
                 .iter()
-                .filter(|tick| tick.inference_duration_us > tick.control_deadline_us)
+                .filter(|tick| {
+                    tick.deadline_miss_fault_ids
+                        .iter()
+                        .any(|id| id == &event.fault_id)
+                })
                 .count() as u64,
             ticks
                 .iter()
-                .filter(|tick| tick.oracle_outcome == OracleOutcome::ConstraintViolation)
+                .filter(|tick| {
+                    tick.constraint_violation_fault_ids
+                        .iter()
+                        .any(|id| id == &event.fault_id)
+                })
                 .count() as u64,
         )
     });
@@ -789,6 +865,12 @@ mod tests {
                     4..=5 => vec!["inference-delay".into()],
                     _ => vec![],
                 },
+                deadline_miss_fault_ids: if tick == 3 {
+                    vec!["inference-delay".into()]
+                } else {
+                    vec![]
+                },
+                constraint_violation_fault_ids: vec![],
                 mode,
                 oracle_outcome: if active {
                     OracleOutcome::DegradedWithinEnvelope
@@ -883,7 +965,9 @@ mod tests {
         let mut episode = valid_episode();
         episode.trace[1].maneuver_phase = "approach".into();
         episode.trace[1].oracle_outcome = OracleOutcome::ConstraintViolation;
+        episode.trace[1].constraint_violation_fault_ids = vec!["camera-drop".into()];
         episode.trace[4].oracle_outcome = OracleOutcome::ConstraintViolation;
+        episode.trace[4].constraint_violation_fault_ids = vec!["inference-delay".into()];
         let report = episode.evaluate().unwrap();
         let camera = report
             .results
@@ -899,6 +983,35 @@ mod tests {
             .find(|result| result.fault_id == "inference-delay")
             .unwrap();
         assert_eq!(compute.critical_phase_constraint_violation_ticks, Some(1));
+    }
+
+    #[test]
+    fn overlapping_fault_windows_do_not_cross_attribute_deadline_misses() {
+        let report = valid_episode().evaluate().unwrap();
+        let camera = report
+            .results
+            .iter()
+            .find(|result| result.fault_id == "camera-drop")
+            .unwrap();
+        let compute = report
+            .results
+            .iter()
+            .find(|result| result.fault_id == "inference-delay")
+            .unwrap();
+        assert_eq!(camera.deadline_miss_ticks_during_fault, 0);
+        assert_eq!(camera.critical_phase_deadline_miss_ticks, Some(0));
+        assert_eq!(compute.deadline_miss_ticks_during_fault, 1);
+        assert_eq!(compute.critical_phase_deadline_miss_ticks, Some(1));
+    }
+
+    #[test]
+    fn event_attributions_must_reference_scheduled_faults_and_matching_evidence() {
+        let mut episode = valid_episode();
+        episode.trace[2].deadline_miss_fault_ids.push("camera-drop".into());
+        episode.trace[2].constraint_violation_fault_ids.push("not-scheduled".into());
+        let errors = episode.validate().unwrap_err();
+        assert!(errors.iter().any(|error| error.contains("deadline miss to fault camera-drop")));
+        assert!(errors.iter().any(|error| error.contains("unknown fault ID")));
     }
 
     #[test]
@@ -1096,6 +1209,7 @@ mod tests {
     fn records_constraint_violations_without_hiding_them_in_one_score() {
         let mut episode = valid_episode();
         episode.trace[2].oracle_outcome = OracleOutcome::ConstraintViolation;
+        episode.trace[2].constraint_violation_fault_ids = vec!["camera-drop".into()];
         let report = episode.evaluate().unwrap();
         assert!(report.total_constraint_violation_ticks >= 1);
         assert_eq!(report.results[0].constraint_violation_ticks, 1);
