@@ -61,7 +61,11 @@
         "observation_class",
         "successor_state_digest",
         "continuation_actions",
-        "hard_constraint_status"
+        "hard_constraint_status",
+        "observation_receipt",
+        "observation_valid",
+        "viability_complete",
+        "viability_receipt_digest"
       ],
       "properties": {
         "branch_id": {
@@ -99,6 +103,12 @@
         "hard_constraint_status": {
           "type": "string",
           "minLength": 1
+        },
+        "viability_complete": {
+          "type": "boolean"
+        },
+        "viability_receipt_digest": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
@@ -116,7 +126,9 @@
         "branch_manifest",
         "thermal_chain",
         "branches",
-        "expected"
+        "expected",
+        "continuation_domain",
+        "recovery_evidence"
       ],
       "properties": {
         "case_id": {
@@ -289,6 +301,58 @@
                 "type": "integer",
                 "minimum": 0
               }
+            }
+          }
+        },
+        "continuation_domain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "complete",
+            "digest",
+            "actions"
+          ],
+          "properties": {
+            "complete": {
+              "type": "boolean"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "actions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/action"
+              }
+            }
+          }
+        },
+        "recovery_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "reserve_state_digest",
+            "topology_digest",
+            "terminal_safe_stop_reachable"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "qualified",
+                "unknown",
+                "invalid"
+              ]
+            },
+            "reserve_state_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "topology_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "terminal_safe_stop_reachable": {
+              "type": "boolean"
             }
           }
         }
