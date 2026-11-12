@@ -259,7 +259,7 @@ impl FloorLedger {
         if !self.binding.matches_task(&task.binding) {
             return Err(LedgerError::TaskContextMismatch);
         }
-        if matches!(task.state, TaskState::IndependentlyAccepted | TaskState::IndependentlyRejected)
+        if matches!(&task.state, TaskState::IndependentlyAccepted | TaskState::IndependentlyRejected)
             && (task.output_evidence_ref.as_deref().is_none_or(str::is_empty)
                 || task
                     .acceptance_receipt_ref
@@ -425,7 +425,7 @@ impl FloorLedger {
                     attempted_units = checked_add(attempted_units, 1)?;
                     let first = &history[0];
                     if matches!(
-                        first.state,
+                        &first.state,
                         TaskState::IndependentlyAccepted | TaskState::IndependentlyRejected
                     ) {
                         first_pass_inspected = checked_add(first_pass_inspected, 1)?;
@@ -626,8 +626,6 @@ fn valid_progression(previous: &TaskState, next: &TaskState) -> bool {
             next,
             TaskState::Queued
                 | TaskState::Started
-                | TaskState::Paused
-                | TaskState::Blocked
                 | TaskState::Failed
                 | TaskState::Cancelled
                 | TaskState::RevokedOrStale
@@ -750,13 +748,14 @@ mod tests {
         sequence: u64,
         transition: TransitionKind,
     ) -> Result<ApplyOutcome, construction_robot_interop_core::ApplyError> {
+        let task_id = machine.task().id.clone();
         machine.apply(EventEnvelope {
             message_id: format!("{actor}-message-{sequence}"),
             payload_digest: format!("{actor}-payload-{sequence}"),
             actor_id: actor.to_owned(),
             actor_session_id: "session-1".to_owned(),
             task_sequence: sequence,
-            task_id: machine.task().id.clone(),
+            task_id,
             binding: context(),
             transition,
         })
