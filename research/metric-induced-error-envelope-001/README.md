@@ -42,11 +42,15 @@ The dependency-free Rust test suite covers dense non-orthogonal rebasing invaria
 
 ## Constraint-space extension: Delassus metric
 
-The crate now includes a separate typed constraint-space layer. Given an SPD mass metric M and full-row-rank constraint Jacobian J, it builds the Delassus operator
+The crate now includes a separate typed constraint-space layer. Given an SPD mass metric M = L L^T and full-row-rank constraint Jacobian J, it whitens each constraint row:
 
-W = J M^-1 J^T
+Y = J L^-T
 
-by applying the mass Riesz inverse to each constraint row. It does not form M^-1 explicitly.
+and builds the Delassus operator as the row Gram matrix:
+
+W = Y Y^T = J M^-1 J^T.
+
+The implementation uses triangular solves only and does not form M^-1. It retains Y as an explicit witness, reconstructs W from Y Y^T, and independently compares that result with the direct Riesz-solve formulation in the test suite. The exact diagonal of W is therefore available as the row-wise squared norm of Y.
 
 For constraint multiplier lambda and constraint residual r, the layer uses the induced dual pair:
 
@@ -59,6 +63,8 @@ The mechanical identities exercised by the tests are:
 - the minimum-kinetic-norm correction satisfying J delta_v = r has norm ||r||_(W^-1).
 
 Under q = S y, the correct Jacobian law is J_y = J_q S and the Delassus operator is invariant: J_y M_y^-1 J_y^T = J_q M_q^-1 J_q^T. Redundant constraint rows are rejected because they make W singular; v0 does not silently regularize them.
+
+This is deliberately compared with the same underlying whitened-Jacobian structure exposed by MuJoCo 3.9.0 as efc_Y = J M^-1/2, plus its diagexact constraint-space inertia diagonal. A Cholesky whitening factor is not necessarily the symmetric principal square root M^-1/2, but it produces the same Gram matrix W. The reference's contribution is frame/type separation, independent reconstruction, coordinate-invariance checks, admission receipts and explicit fail-closed behavior—not a claim to have invented Delassus whitening. See the [MuJoCo 3.9.0 changelog](https://mujoco.readthedocs.io/en/3.9.0/changelog.html) and [computation documentation](https://mujoco.readthedocs.io/en/latest/computation/).
 
 A deterministic seven-point example is available at:
 
