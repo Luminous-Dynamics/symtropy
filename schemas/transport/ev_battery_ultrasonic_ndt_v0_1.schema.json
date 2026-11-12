@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/ev_battery_ultrasonic_ndt_v0_1.schema.json",
+  "title": "EV battery ultrasonic electrode NDT benchmark manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "manifest_id",
+    "dataset",
+    "observations",
+    "split",
+    "predictions"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "manifest_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dataset_id",
+        "version",
+        "source_uri",
+        "license",
+        "raw_sha256",
+        "rights_receipt_ref",
+        "attribution"
+      ],
+      "properties": {
+        "dataset_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_uri": {
+          "type": "string",
+          "format": "uri"
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "raw_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "rights_receipt_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "attribution": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "observation_id",
+          "specimen_id",
+          "pair_group_id",
+          "material_family",
+          "process_domain",
+          "state",
+          "partition",
+          "feature_digest",
+          "feature_available_at_ns",
+          "prediction_at_ns",
+          "thickness_um",
+          "thickness_metrology_ref",
+          "target_boundary"
+        ],
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "specimen_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "pair_group_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "material_family": {
+            "type": "string",
+            "minLength": 1
+          },
+          "process_domain": {
+            "type": "string",
+            "minLength": 1
+          },
+          "state": {
+            "enum": [
+              "before_calendering",
+              "after_calendering",
+              "other"
+            ]
+          },
+          "partition": {
+            "enum": [
+              "train",
+              "validation",
+              "test"
+            ]
+          },
+          "feature_digest": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "feature_available_at_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "prediction_at_ns": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "thickness_um": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "thickness_metrology_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "target_boundary": {
+            "const": "electrode_thickness"
+          }
+        }
+      }
+    },
+    "split": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "split_id",
+        "kind",
+        "train_observation_ids",
+        "validation_observation_ids",
+        "test_observation_ids",
+        "train_specimen_ids",
+        "validation_specimen_ids",
+        "test_specimen_ids"
+      ],
+      "properties": {
+        "split_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "published_reproduction",
+            "leave_one_specimen_out",
+            "paired_specimen_holdout",
+            "leave_one_material_family_out",
+            "leave_one_process_domain_out",
+            "instrument_holdout"
+          ]
+        },
+        "train_observation_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "validation_observation_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "test_observation_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "train_specimen_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "validation_specimen_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "test_specimen_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "predictions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "observation_id",
+          "specimen_id",
+          "predicted_thickness_um",
+          "lower_thickness_um",
+          "upper_thickness_um",
+          "model_evidence_ref"
+        ],
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "specimen_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "predicted_thickness_um": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "lower_thickness_um": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "upper_thickness_um": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "model_evidence_ref": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}
