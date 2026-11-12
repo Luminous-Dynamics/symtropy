@@ -380,7 +380,8 @@
         "correspondences",
         "relation_audit",
         "claims",
-        "uncertainty"
+        "uncertainty",
+        "parent_transition_ids"
       ],
       "properties": {
         "transition_id": {
