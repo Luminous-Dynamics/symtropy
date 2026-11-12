@@ -132,20 +132,6 @@ pub struct NonreciprocalHeadingIntervention {
     pub imposed_heading_rad: f64,
 }
 
-/// Model-defined contribution of one source particle to one receiver update.
-///
-/// This is a known term in the declared structural update equation. It is not a
-/// generic causal estimator and is not interchangeable with transfer entropy.
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct PairwiseInfluenceComponent {
-    pub receiver: usize,
-    pub source: usize,
-    pub adjacency: bool,
-    pub interaction_weight: f64,
-    pub wrapped_heading_difference_rad: f64,
-    pub normalized_contribution_rad: f64,
-}
-
 /// Time-averaged source-defined influence summaries for one directed pair.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PairwiseInfluenceSummary {
@@ -398,7 +384,7 @@ impl NonreciprocalVicsekModel {
 
         for receiver in 0..count {
             let focal = previous[receiver];
-            let mut denominator = 0.0;
+            let mut maximum_weight: f64 = 0.0;
             let mut neighbor_weights = vec![0.0; count];
             let mut differences = vec![0.0; count];
 
@@ -419,17 +405,23 @@ impl NonreciprocalVicsekModel {
                 };
                 neighbor_weights[source] = weight;
                 differences[source] = wrap_signed_angle(neighbor.heading_rad - focal.heading_rad);
-                if weight > 0.0 {
-                    denominator += weight;
-                }
+                maximum_weight = maximum_weight.max(weight);
             }
 
+            let scaled_denominator = if maximum_weight > 0.0 {
+                neighbor_weights
+                    .iter()
+                    .map(|weight| weight / maximum_weight)
+                    .sum::<f64>()
+            } else {
+                0.0
+            };
             let mut normalized_sum = 0.0;
-            if denominator > 0.0 {
+            if scaled_denominator > 0.0 {
                 for source in 0..count {
-                    let weight = neighbor_weights[source];
-                    let contribution = if weight > 0.0 {
-                        weight * differences[source] / denominator
+                    let scaled_weight = neighbor_weights[source] / maximum_weight;
+                    let contribution = if scaled_weight > 0.0 {
+                        scaled_weight * differences[source] / scaled_denominator
                     } else {
                         0.0
                     };
@@ -713,6 +705,24 @@ mod tests {
         assert_eq!(metrics.directed_interaction_edge_count, 0);
         assert_eq!(model.particles()[0].heading_rad, before[0].heading_rad);
         assert_eq!(model.particles()[1].heading_rad, before[1].heading_rad);
+    }
+
+    #[test]
+    fn huge_finite_interaction_weights_remain_numerically_bounded() {
+        let huge = f64::MAX * 0.25;
+        let mut model = pair(
+            0.0,
+            std::f64::consts::FRAC_PI_2,
+            vec![huge, huge, huge, huge],
+        );
+        let metrics = model.step().unwrap();
+        assert!(metrics.polar_order.is_finite());
+        assert!((0.0..=1.0).contains(&metrics.polar_order));
+        assert!(model.particles().iter().all(|particle| {
+            particle.heading_rad.is_finite()
+                && (0.0..TAU).contains(&particle.heading_rad)
+        }));
+        assert!(model.last_influence_components().iter().all(|component| component.is_finite()));
     }
 
     #[test]
