@@ -3132,7 +3132,7 @@
           "survey_product_status": "qualified",
           "change_estimate": {
             "status": "unresolved",
-            "receipt_sha256": null,
+            "receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
             "scope": {
               "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
               "asset_id": "BLDG-SYNTH-01",
@@ -3861,7 +3861,7 @@
           },
           "independent_checkpoint": {
             "status": "unresolved",
-            "receipt_sha256": null,
+            "receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444",
             "scope": {
               "survey_product_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
               "asset_id": "BLDG-SYNTH-01",
