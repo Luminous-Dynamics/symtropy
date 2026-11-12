@@ -2220,13 +2220,13 @@ mod tests {
         assert!(protocol["method"]["identity_contract"]["hypothesis_space_digest"]
             .as_str()
             .unwrap()
-            .contains("excludes probabilities"));
+            .contains("sorted unique hypothesis IDs only"));
         assert!(protocol["method"]["identity_contract"]["prior_distribution_digest"]
             .as_str()
             .unwrap()
             .contains("changes whenever evidence changes the posterior"));
         assert_eq!(protocol["comparators"].as_array().unwrap().len(), 6);
-        assert_eq!(protocol["candidate_classes"]["controlled_perturbation"]["eligible"], false);
+        assert_eq!(protocol["candidate_classes"]["controlled_perturbation"]["eligible_when"], false);
         assert_eq!(protocol["evidence_boundaries"]["authority_status"]
             .as_str()
             .unwrap()
