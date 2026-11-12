@@ -259,7 +259,10 @@ pub fn audit_representation_continuity(
     for (field, value) in [
         ("receipt_id", receipt.receipt_id.as_str()),
         ("replay.run_id", receipt.replay.run_id.as_str()),
-        ("scene.building_group_id", receipt.scene.building_group_id.as_str()),
+        (
+            "scene.building_group_id",
+            receipt.scene.building_group_id.as_str(),
+        ),
         ("scene.scene_id", receipt.scene.scene_id.as_str()),
         (
             "scene.source_model_revision",
@@ -278,7 +281,9 @@ pub fn audit_representation_continuity(
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
-        return Err("replay.candidate_source_commit must be a 40-character lowercase SHA".to_owned());
+        return Err(
+            "replay.candidate_source_commit must be a 40-character lowercase SHA".to_owned(),
+        );
     }
     if receipt.transitions.is_empty() {
         return Err("continuity receipt must contain at least one transition".to_owned());
@@ -713,7 +718,10 @@ fn validate_relation_audit(
                 ));
             }
         }
-        *counts.by_disposition.entry(relation.disposition).or_insert(0) += 1;
+        *counts
+            .by_disposition
+            .entry(relation.disposition)
+            .or_insert(0) += 1;
     }
 
     Ok(counts)
@@ -730,10 +738,7 @@ fn validate_sha256(field: &str, value: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_artifact_set(
-    label: &str,
-    artifacts: &[ArtifactReference],
-) -> Result<(), String> {
+fn validate_artifact_set(label: &str, artifacts: &[ArtifactReference]) -> Result<(), String> {
     let mut ids = BTreeSet::new();
     for artifact in artifacts {
         if artifact.artifact_id.trim().is_empty() || !ids.insert(artifact.artifact_id.as_str()) {
@@ -831,7 +836,10 @@ fn validate_claim(
                 ));
             }
             if claim.value_sha256.is_none() {
-                return Err(format!("measured claim {} requires value_sha256", claim.claim_id));
+                return Err(format!(
+                    "measured claim {} requires value_sha256",
+                    claim.claim_id
+                ));
             }
             if claim.unknown_reason.is_some() {
                 return Err(format!(
@@ -853,7 +861,10 @@ fn validate_claim(
         }
         ClaimOrigin::Assumed => {
             if claim.assumptions.is_empty()
-                || claim.assumptions.iter().any(|value| value.trim().is_empty())
+                || claim
+                    .assumptions
+                    .iter()
+                    .any(|value| value.trim().is_empty())
                 || claim.value_sha256.is_none()
             {
                 return Err(format!(
@@ -878,7 +889,10 @@ fn validate_claim(
     }
     if let Some(method) = &claim.derivation_method {
         if method.trim().is_empty() {
-            return Err(format!("claim {} derivation_method must not be empty", claim.claim_id));
+            return Err(format!(
+                "claim {} derivation_method must not be empty",
+                claim.claim_id
+            ));
         }
     }
     Ok(())
@@ -991,9 +1005,9 @@ fn validate_uncertainty_state(label: &str, state: &UncertaintyBound) -> Result<(
                     "uncertainty.{label} known state must use conservative_absolute_bound_m"
                 ));
             }
-            let bound = state
-                .absolute_bound_m
-                .ok_or_else(|| format!("uncertainty.{label} known state requires absolute_bound_m"))?;
+            let bound = state.absolute_bound_m.ok_or_else(|| {
+                format!("uncertainty.{label} known state requires absolute_bound_m")
+            })?;
             if !bound.is_finite() || bound < 0.0 {
                 return Err(format!(
                     "uncertainty.{label}.absolute_bound_m must be finite and non-negative"
@@ -1201,8 +1215,7 @@ mod tests {
     #[test]
     fn rejects_claim_not_bound_to_a_transition_output_artifact() {
         let mut value = valid_receipt();
-        value["transitions"][0]["claims"][0]["target_artifact_id"] =
-            json!("UNLISTED-OUTPUT");
+        value["transitions"][0]["claims"][0]["target_artifact_id"] = json!("UNLISTED-OUTPUT");
         let error = audit(&value).expect_err("claim must bind the exact output artifact");
         assert!(error.contains("target artifact is absent"));
     }
@@ -1253,8 +1266,8 @@ mod tests {
         assert_eq!(report.transition_count, 2);
 
         value["transitions"][1]["source_artifacts"][0]["sha256"] = json!("9".repeat(64));
-        let error = audit(&value)
-            .expect_err("the same artifact ID cannot silently point at new bytes");
+        let error =
+            audit(&value).expect_err("the same artifact ID cannot silently point at new bytes");
         assert!(error.contains("does not match its prior output binding"));
     }
 
@@ -1274,8 +1287,7 @@ mod tests {
     #[test]
     fn reports_lost_relation_as_degraded_not_preserved() {
         let mut value = valid_receipt();
-        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
-            json!("lost");
+        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] = json!("lost");
         value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] = json!([]);
         value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
             json!("opening relation was dropped during mesh export");
@@ -1303,8 +1315,7 @@ mod tests {
         let mut value = valid_receipt();
         value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
             json!("unsupported");
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] =
-            json!([]);
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] = json!([]);
         value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
             json!("target representation cannot encode host-opening relations");
         let report = audit(&value).expect("unsupported relation is not silently passed");
@@ -1325,8 +1336,8 @@ mod tests {
     #[test]
     fn rejects_relation_endpoint_that_does_not_follow_entity_correspondence() {
         let mut value = valid_receipt();
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
-            ["object_entity_id"] = json!("WALL-SURFACE-001");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["object_entity_id"] =
+            json!("WALL-SURFACE-001");
         let error = audit(&value).expect_err("relation endpoints must follow the entity map");
         assert!(error.contains("does not follow the declared source-entity correspondence"));
     }
@@ -1334,8 +1345,8 @@ mod tests {
     #[test]
     fn rejects_preserved_relation_with_changed_canonical_kind() {
         let mut value = valid_receipt();
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
-            ["relation_kind"] = json!("adjacent_to");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["relation_kind"] =
+            json!("adjacent_to");
         let error = audit(&value).expect_err("preserved relation cannot change semantic kind");
         assert!(error.contains("changes canonical relation kind"));
     }
@@ -1384,7 +1395,8 @@ mod tests {
             .as_object_mut()
             .expect("transition object")
             .remove("relation_audit");
-        let error = audit(&value).expect_err("missing relation inventory is not an empty inventory");
+        let error =
+            audit(&value).expect_err("missing relation inventory is not an empty inventory");
         assert!(error.contains("relation_audit"));
     }
 
@@ -1392,10 +1404,10 @@ mod tests {
     fn undirected_relation_allows_reversed_target_endpoints() {
         let mut value = valid_receipt();
         value["transitions"][0]["relation_audit"]["relations"][0]["directed"] = json!(false);
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
-            ["subject_entity_id"] = json!("OPENING-SURFACE-001");
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
-            ["object_entity_id"] = json!("WALL-SURFACE-001");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["subject_entity_id"] =
+            json!("OPENING-SURFACE-001");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["object_entity_id"] =
+            json!("WALL-SURFACE-001");
         let report = audit(&value).expect("undirected target endpoint order can reverse");
         assert_eq!(report.preserved_relation_count, 1);
         assert_eq!(report.continuity_state, "continuity_preserved");
