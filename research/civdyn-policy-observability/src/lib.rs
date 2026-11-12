@@ -906,7 +906,7 @@ mod tests {
 
     #[test]
     fn evaluator_rejects_observed_value_that_disagrees_with_latent_truth() {
-        let mut row =         let mut row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Complete));
+        let mut row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Complete));
         row.observation.observed_outcome = Some(11);
         assert_eq!(
             evaluate_policy(&[row], SUPPORT),
@@ -916,7 +916,7 @@ mod tests {
 
     #[test]
     fn propensity_bounds_must_have_positive_support() {
-        let row =         let row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Mar));
+        let row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Mar));
         let mut observations = row.observation;
         observations.observation_propensity_bps = Some(10_001);
         assert_eq!(
