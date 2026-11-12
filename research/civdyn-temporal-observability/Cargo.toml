@@ -1,0 +1,15 @@
+[workspace]
+
+[package]
+name = "civdyn-temporal-observability"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Decision-time versus retrospective evidence qualification for closed-loop policy evaluation"
+
+[[bin]]
+name = "temporal-observability-sweep"
+path = "src/main.rs"
+
+[dependencies]
