@@ -630,7 +630,7 @@ mod tests {
         second_input.expected_predecessor_pass_id = "PASS-03".to_owned();
         second_input.decision_at_tick = 110;
 
-        let next_actions = [("FILL-45", 45), ("FILL-55", 55), ("FILL-70", 70)];
+        let next_actions = [("FILL-60", 60), ("FILL-70", 70), ("FILL-85", 85)];
         for (candidate, (candidate_id, deposition)) in
             second_input.candidates.iter_mut().zip(next_actions)
         {
@@ -658,7 +658,7 @@ mod tests {
                     .cmp(&right.objectives.robust_geometry_error_units)
             })
             .expect("second geometry baseline");
-        assert_eq!(second_geometry_best.candidate_id, "FILL-55");
+        assert_eq!(second_geometry_best.candidate_id, "FILL-60");
         assert_ne!(
             first_geometry_best.candidate_id,
             second_geometry_best.candidate_id
