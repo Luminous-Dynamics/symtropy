@@ -46,7 +46,7 @@ pub struct RegistrationReceipt {
     pub source_scan_sha256: [u8; 32],
     pub reference_profile_sha256: [u8; 32],
     pub transform_revision: String,
-    pub registration_error_bound_units: u64,
+    pub registration_vertical_error_bound_units: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -97,7 +97,7 @@ pub struct ComparisonResult {
     /// Keeping twice-area integral avoids introducing floating-point rounding
     /// into the exact trapezoidal accumulation.
     pub absolute_deviation_area_upper_bound_twice_units: u128,
-    pub registration_error_bound_units: u64,
+    pub registration_vertical_error_bound_units: u64,
     pub interpolation_assumption: &'static str,
     pub claim_ceiling: &'static str,
 }
@@ -248,13 +248,13 @@ pub fn compare_profiles(input: &ComparisonInput) -> Result<ComparisonResult, Rej
             reference_left.height_units,
             measured_left.height_units,
             measured_left.vertical_uncertainty_bound_units,
-            input.registration.registration_error_bound_units,
+            input.registration.registration_vertical_error_bound_units,
         )?;
         let right_error = point_error_upper_bound(
             reference_right.height_units,
             measured_right.height_units,
             measured_right.vertical_uncertainty_bound_units,
-            input.registration.registration_error_bound_units,
+            input.registration.registration_vertical_error_bound_units,
         )?;
 
         let endpoint_sum = u128::from(left_error)
@@ -297,7 +297,7 @@ pub fn compare_profiles(input: &ComparisonInput) -> Result<ComparisonResult, Rej
         coverage_permille,
         valid_interval_count: interval_count,
         absolute_deviation_area_upper_bound_twice_units: area_twice,
-        registration_error_bound_units: input.registration.registration_error_bound_units,
+        registration_vertical_error_bound_units: input.registration.registration_vertical_error_bound_units,
         interpolation_assumption: "piecewise_linear_between_valid_adjacent_samples_only",
         claim_ceiling: "REGISTERED_2D_CROSS_SECTION_PROFILE_DEVIATION_ONLY",
     })
@@ -346,7 +346,7 @@ mod tests {
             source_scan_sha256: [0x22; 32],
             reference_profile_sha256: [0x11; 32],
             transform_revision: "SYNTH-REG-R1".to_owned(),
-            registration_error_bound_units: 1,
+            registration_vertical_error_bound_units: 1,
         };
         ComparisonInput {
             reference, measured, registration,
@@ -376,7 +376,7 @@ mod tests {
                 .expect("matching reference station").height_units;
             point.vertical_uncertainty_bound_units = 0;
         }
-        input.registration.registration_error_bound_units = 0;
+        input.registration.registration_vertical_error_bound_units = 0;
         let result = compare_profiles(&input).expect("identical profiles");
         assert_eq!(result.absolute_deviation_area_upper_bound_twice_units, 0);
     }
@@ -385,7 +385,7 @@ mod tests {
     fn measurement_and_registration_uncertainty_are_composed() {
         let result = compare_profiles(&profile_input()).expect("valid profile pair");
         assert_eq!(result.absolute_deviation_area_upper_bound_twice_units, 2_800);
-        assert_eq!(result.registration_error_bound_units, 1);
+        assert_eq!(result.registration_vertical_error_bound_units, 1);
     }
 
     #[test]
