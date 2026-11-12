@@ -1007,11 +1007,17 @@ mod tests {
     #[test]
     fn event_attributions_must_reference_scheduled_faults_and_matching_evidence() {
         let mut episode = valid_episode();
-        episode.trace[2].deadline_miss_fault_ids.push("camera-drop".into());
-        episode.trace[2].constraint_violation_fault_ids.push("not-scheduled".into());
+        episode.trace[2]
+            .deadline_miss_fault_ids
+            .push("not-scheduled".into());
+        episode.trace[2]
+            .constraint_violation_fault_ids
+            .push("camera-drop".into());
         let errors = episode.validate().unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("deadline miss to fault camera-drop")));
         assert!(errors.iter().any(|error| error.contains("unknown fault ID")));
+        assert!(errors.iter().any(|error| {
+            error.contains("without a constraint-violation oracle outcome")
+        }));
     }
 
     #[test]
@@ -1058,13 +1064,19 @@ mod tests {
         );
         assert_eq!(schema["title"], "Recoverability envelope episode v1");
         assert_eq!(report_schema["title"], "Recoverability envelope report v1");
-        assert!(
-            schema["$defs"]["tick_trace"]["required"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|field| field == "maneuver_phase")
-        );
+        for field in [
+            "maneuver_phase",
+            "deadline_miss_fault_ids",
+            "constraint_violation_fault_ids",
+        ] {
+            assert!(
+                schema["$defs"]["tick_trace"]["required"]
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|item| item == field)
+            );
+        }
         for field in [
             "onset_in_critical_phase",
             "critical_phase_overlap_ticks",
