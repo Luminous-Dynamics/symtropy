@@ -4,10 +4,8 @@ use std::env;
 use std::fs;
 use std::process::ExitCode;
 
-const DEFAULT_CORPUS: &str =
-    "benchmarks/shipyard/twin-commissioning/corpus-v0.1.json";
-const DEFAULT_SCHEMA: &str =
-    "docs/tech/SHIPYARD_TWIN_COMMISSIONING_V0_1.schema.json";
+const DEFAULT_CORPUS: &str = "benchmarks/shipyard/twin-commissioning/corpus-v0.1.json";
+const DEFAULT_SCHEMA: &str = "docs/tech/SHIPYARD_TWIN_COMMISSIONING_V0_1.schema.json";
 const BENCHMARK_ID: &str = "SHIPYARD-TWIN-COMMISSIONING-001";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,14 +38,12 @@ fn u64_at(value: &Value, key: &str) -> Option<u64> {
 }
 
 fn digest_valid(value: Option<&Value>) -> bool {
-    value
-        .and_then(Value::as_str)
-        .is_some_and(|digest| {
-            digest.len() == 64
-                && digest
-                    .bytes()
-                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
-        })
+    value.and_then(Value::as_str).is_some_and(|digest| {
+        digest.len() == 64
+            && digest
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+    })
 }
 
 fn nonempty(value: Option<&str>) -> bool {
@@ -75,7 +71,9 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
         .ok_or("interfaces must be an array")?;
 
     if components.len() < 2 || interfaces.is_empty() {
-        return Err(format!("{case_id}: at least two components and one interface are required"));
+        return Err(format!(
+            "{case_id}: at least two components and one interface are required"
+        ));
     }
 
     let mut component_ids = HashSet::new();
@@ -95,7 +93,9 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
             || !nonempty(str_at(component, "digital_thread_revision"))
             || !digest_valid(component.get("source_identity_sha256"))
         {
-            return Err(format!("{case_id}: component {id} has incomplete source/thread identity"));
+            return Err(format!(
+                "{case_id}: component {id} has incomplete source/thread identity"
+            ));
         }
         if let Some(schema) = str_at(component, "schema_id") {
             schemas.insert(schema.to_owned());
@@ -120,7 +120,9 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
         let to = str_at(interface, "to_component")
             .ok_or_else(|| format!("{case_id}: {id} has no to_component"))?;
         if !component_ids.contains(from) || !component_ids.contains(to) || from == to {
-            return Err(format!("{case_id}: {id} references missing or identical components"));
+            return Err(format!(
+                "{case_id}: {id} references missing or identical components"
+            ));
         }
         let required = bool_at(interface, "required")
             .ok_or_else(|| format!("{case_id}: {id}.required must be boolean"))?;
@@ -154,31 +156,30 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
         if !digest_valid(interface.get("source_sha256"))
             || !digest_valid(interface.get("mapping_sha256"))
             || !nonempty(str_at(interface, "source_revision"))
-            || !["source_verified", "peer_verified"].contains(
-                &str_at(interface, "authority_mode").unwrap_or(""),
-            )
+            || !["source_verified", "peer_verified"]
+                .contains(&str_at(interface, "authority_mode").unwrap_or(""))
         {
             local_failures.push("PROVENANCE");
         }
 
-        if u64_at(interface, "update_interval_ms").is_none_or(|value| {
-            value > u64_at(interface, "max_update_interval_ms").unwrap_or(0)
-        }) {
+        if u64_at(interface, "update_interval_ms")
+            .is_none_or(|value| value > u64_at(interface, "max_update_interval_ms").unwrap_or(0))
+        {
             local_failures.push("UPDATE_FREQUENCY");
         }
-        if u64_at(interface, "jitter_p95_ms").is_none_or(|value| {
-            value > u64_at(interface, "max_jitter_p95_ms").unwrap_or(0)
-        }) {
+        if u64_at(interface, "jitter_p95_ms")
+            .is_none_or(|value| value > u64_at(interface, "max_jitter_p95_ms").unwrap_or(0))
+        {
             local_failures.push("UPDATE_JITTER");
         }
-        if u64_at(interface, "latency_p95_ms").is_none_or(|value| {
-            value > u64_at(interface, "max_latency_p95_ms").unwrap_or(0)
-        }) {
+        if u64_at(interface, "latency_p95_ms")
+            .is_none_or(|value| value > u64_at(interface, "max_latency_p95_ms").unwrap_or(0))
+        {
             local_failures.push("LATENCY_P95");
         }
-        if u64_at(interface, "data_age_ms").is_none_or(|value| {
-            value > u64_at(interface, "max_data_age_ms").unwrap_or(0)
-        }) {
+        if u64_at(interface, "data_age_ms")
+            .is_none_or(|value| value > u64_at(interface, "max_data_age_ms").unwrap_or(0))
+        {
             local_failures.push("SOURCE_STALE");
         }
         if u64_at(interface, "semantic_fidelity_permille").is_none_or(|value| {
@@ -237,9 +238,9 @@ fn evaluate_case(case: &Value) -> Result<CaseResult, String> {
         }
         "federated" => {
             if mapping_modes.iter().any(|mode| mode != "federated")
-                || components.iter().any(|component| {
-                    str_at(component, "authority_mode") != Some("peer_verified")
-                })
+                || components
+                    .iter()
+                    .any(|component| str_at(component, "authority_mode") != Some("peer_verified"))
             {
                 failures.insert("COMPOSITION_MODE".to_owned());
                 required_failures += 1;
@@ -305,7 +306,10 @@ fn validate_corpus(schema_text: &str, corpus_text: &str) -> Result<Summary, Vec<
         return Err(vec!["cases must be an array".to_owned()]);
     };
     if cases.len() != 12 {
-        errors.push(format!("expected 12 commissioning cases, found {}", cases.len()));
+        errors.push(format!(
+            "expected 12 commissioning cases, found {}",
+            cases.len()
+        ));
     }
 
     let mut case_ids = HashSet::new();
@@ -361,12 +365,13 @@ fn validate_corpus(schema_text: &str, corpus_text: &str) -> Result<Summary, Vec<
             })
             .unwrap_or_default();
         expected_failures.sort();
-        if expected_failures.iter().any(|value| !allowed_failures.contains(&value.as_str())) {
+        if expected_failures
+            .iter()
+            .any(|value| !allowed_failures.contains(&value.as_str()))
+        {
             errors.push(format!("{case_id}: unknown expected failure code"));
         }
-        if result.readiness.as_str() == expected_readiness
-            && result.failures == expected_failures
-        {
+        if result.readiness.as_str() == expected_readiness && result.failures == expected_failures {
             agreements += 1;
         } else {
             errors.push(format!(
@@ -431,7 +436,10 @@ fn main() -> ExitCode {
             ExitCode::SUCCESS
         }
         Err(errors) => {
-            eprintln!("FAIL: {} commissioning contract discrepancy/ies", errors.len());
+            eprintln!(
+                "FAIL: {} commissioning contract discrepancy/ies",
+                errors.len()
+            );
             for error in errors {
                 eprintln!("- {error}");
             }
@@ -444,12 +452,10 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    const SCHEMA_TEXT: &str = include_str!(
-        "../../../../docs/tech/SHIPYARD_TWIN_COMMISSIONING_V0_1.schema.json"
-    );
-    const CORPUS_TEXT: &str = include_str!(
-        "../../../../benchmarks/shipyard/twin-commissioning/corpus-v0.1.json"
-    );
+    const SCHEMA_TEXT: &str =
+        include_str!("../../../../docs/tech/SHIPYARD_TWIN_COMMISSIONING_V0_1.schema.json");
+    const CORPUS_TEXT: &str =
+        include_str!("../../../../benchmarks/shipyard/twin-commissioning/corpus-v0.1.json");
 
     fn corpus_value() -> Value {
         serde_json::from_str(CORPUS_TEXT).expect("corpus parses")
@@ -620,8 +626,7 @@ mod tests {
     fn duplicate_event_identity_is_rejected() {
         let mut corpus = corpus_value();
         let case = case_named(&mut corpus, "DTC-001");
-        case["interfaces"][1]["source_event_id"] =
-            case["interfaces"][0]["source_event_id"].clone();
+        case["interfaces"][1]["source_event_id"] = case["interfaces"][0]["source_event_id"].clone();
         assert!(evaluate_case(case).is_err());
     }
 
