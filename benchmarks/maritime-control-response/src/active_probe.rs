@@ -2239,7 +2239,7 @@ mod tests {
         assert!(protocol["method"]["observation_update"]["realized_information"]
             .as_str()
             .unwrap()
-            .contains("can be negative"));
+            .contains("may be negative"));
         assert!(protocol["method"]["observation_update"]["receipt_binding"]
             .as_str()
             .unwrap()
