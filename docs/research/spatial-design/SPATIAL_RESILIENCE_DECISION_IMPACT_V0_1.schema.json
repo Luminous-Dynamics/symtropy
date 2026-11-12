@@ -1,0 +1,544 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/spatial-design/SPATIAL_RESILIENCE_DECISION_IMPACT_V0_1.schema.json",
+  "title": "Spatial Resilience Decision Impact Benchmark v0.1",
+  "description": "Synthetic finite-state measurement/action partition evaluation. No probability or expected-VoI claims are represented.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "benchmark_id",
+    "version",
+    "status",
+    "claim_ceiling",
+    "units",
+    "required_case_count",
+    "ranking_policy",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "benchmark_id": {
+      "const": "SPATIAL-RESILIENCE-DECISION-IMPACT"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_finite_state_decision_impact_not_probabilistic_voi"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "measurement_cost",
+        "measurement_duration"
+      ],
+      "properties": {
+        "measurement_cost": {
+          "const": "synthetic cost units"
+        },
+        "measurement_duration": {
+          "const": "synthetic duration ticks"
+        }
+      }
+    },
+    "required_case_count": {
+      "const": 8
+    },
+    "ranking_policy": {
+      "const": [
+        "resolves_critical_unknowns_desc",
+        "hard_feasibility_change_desc",
+        "pareto_change_desc",
+        "worst_case_remaining_states_asc",
+        "measurement_cost_asc",
+        "duration_asc",
+        "action_id_asc"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "state_revision",
+          "state_ids",
+          "current_possible_state_ids",
+          "unresolved_critical_unknown_ids",
+          "candidates",
+          "actions",
+          "expected_baseline",
+          "expected_actions",
+          "expected_recommended_action_order"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SPR-V-[0-9]{3}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 12
+          },
+          "state_revision": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+          },
+          "state_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+            }
+          },
+          "current_possible_state_ids": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+            }
+          },
+          "unresolved_critical_unknown_ids": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+            }
+          },
+          "candidates": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "candidate_id",
+                "state_results"
+              ],
+              "properties": {
+                "candidate_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "state_results": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "state_id",
+                      "feasible",
+                      "objectives"
+                    ],
+                    "properties": {
+                      "state_id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                      },
+                      "feasible": {
+                        "type": "boolean"
+                      },
+                      "objectives": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "service_hours",
+                          "energy_units",
+                          "repair_ticks",
+                          "cost_units"
+                        ],
+                        "properties": {
+                          "service_hours": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "energy_units": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "repair_ticks": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          },
+                          "cost_units": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 1000000
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "actions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action_id",
+                "action_type",
+                "evidence_state",
+                "source_revision",
+                "estimated_cost_units",
+                "estimated_duration_ticks",
+                "resolves_unknown_ids",
+                "outcomes",
+                "cost_basis_id",
+                "duration_basis_id"
+              ],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "action_type": {
+                  "type": "string",
+                  "enum": [
+                    "survey",
+                    "measurement",
+                    "inspection",
+                    "solver_experiment",
+                    "model_discrimination"
+                  ]
+                },
+                "evidence_state": {
+                  "type": "string",
+                  "enum": [
+                    "valid",
+                    "stale",
+                    "missing",
+                    "out_of_scope",
+                    "contradictory"
+                  ]
+                },
+                "source_revision": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "estimated_cost_units": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "estimated_duration_ticks": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "resolves_unknown_ids": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 100,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                  }
+                },
+                "outcomes": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 100,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "outcome_id",
+                      "compatible_state_ids"
+                    ],
+                    "properties": {
+                      "outcome_id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                      },
+                      "compatible_state_ids": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                        }
+                      }
+                    }
+                  }
+                },
+                "cost_basis_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "duration_basis_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                }
+              }
+            }
+          },
+          "expected_baseline": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "remaining_critical_unknown_ids",
+              "robust_feasible_candidate_ids",
+              "pareto_candidate_ids"
+            ],
+            "properties": {
+              "remaining_critical_unknown_ids": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 100,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                }
+              },
+              "robust_feasible_candidate_ids": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 100,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                }
+              },
+              "pareto_candidate_ids": {
+                "type": "array",
+                "minItems": 0,
+                "maxItems": 100,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                }
+              }
+            }
+          },
+          "expected_actions": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action_id",
+                "status",
+                "decision_relevant",
+                "changes_hard_feasible_set",
+                "changes_pareto_set",
+                "worst_case_remaining_state_count",
+                "newly_robust_feasible_candidate_ids",
+                "outcomes",
+                "estimated_cost_units",
+                "estimated_duration_ticks",
+                "cost_basis_id",
+                "duration_basis_id",
+                "action_type",
+                "evidence_state",
+                "source_revision",
+                "changes_critical_unknown_set"
+              ],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "evaluated",
+                    "reject_action"
+                  ]
+                },
+                "decision_relevant": {
+                  "type": "boolean"
+                },
+                "changes_hard_feasible_set": {
+                  "type": "boolean"
+                },
+                "changes_pareto_set": {
+                  "type": "boolean"
+                },
+                "worst_case_remaining_state_count": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "newly_robust_feasible_candidate_ids": {
+                  "type": "array",
+                  "minItems": 0,
+                  "maxItems": 100,
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                  }
+                },
+                "outcomes": {
+                  "type": "array",
+                  "maxItems": 100,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "outcome_id",
+                      "remaining_critical_unknown_ids",
+                      "robust_feasible_candidate_ids",
+                      "pareto_candidate_ids",
+                      "compatible_state_count",
+                      "compatible_state_ids"
+                    ],
+                    "properties": {
+                      "outcome_id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                      },
+                      "remaining_critical_unknown_ids": {
+                        "type": "array",
+                        "minItems": 0,
+                        "maxItems": 100,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                        }
+                      },
+                      "robust_feasible_candidate_ids": {
+                        "type": "array",
+                        "minItems": 0,
+                        "maxItems": 100,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                        }
+                      },
+                      "pareto_candidate_ids": {
+                        "type": "array",
+                        "minItems": 0,
+                        "maxItems": 100,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                        }
+                      },
+                      "compatible_state_count": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      },
+                      "compatible_state_ids": {
+                        "type": "array",
+                        "minItems": 1,
+                        "maxItems": 100,
+                        "uniqueItems": true,
+                        "items": {
+                          "type": "string",
+                          "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                        }
+                      }
+                    }
+                  }
+                },
+                "estimated_cost_units": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "estimated_duration_ticks": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "cost_basis_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "duration_basis_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "action_type": {
+                  "type": "string",
+                  "enum": [
+                    "survey",
+                    "measurement",
+                    "inspection",
+                    "solver_experiment",
+                    "model_discrimination"
+                  ]
+                },
+                "evidence_state": {
+                  "type": "string",
+                  "enum": [
+                    "valid",
+                    "stale",
+                    "missing",
+                    "out_of_scope",
+                    "contradictory"
+                  ]
+                },
+                "source_revision": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "changes_critical_unknown_set": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "expected_recommended_action_order": {
+            "type": "array",
+            "minItems": 0,
+            "maxItems": 100,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,245 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/spatial-design/SPATIAL_RESILIENCE_PAIRED_OUTCOMES_V0_1.schema.json",
+  "title": "Spatial Resilience Paired Outcome Corpus v0.1",
+  "description": "Synthetic known-answer tests of paired comparison, non-compensatory feasibility, uncertainty admission and Pareto logic.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "benchmark_id",
+    "version",
+    "status",
+    "claim_ceiling",
+    "units",
+    "required_comparison_count",
+    "comparisons"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "benchmark_id": {
+      "const": "SPATIAL-RESILIENCE-PAIRED-OUTCOMES"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_known_answer_outcomes_not_physical_predictions"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 60
+    },
+    "units": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "service_time",
+        "energy",
+        "repair",
+        "cost",
+        "uncertainty"
+      ],
+      "properties": {
+        "service_time": {
+          "const": "synthetic service-hours"
+        },
+        "energy": {
+          "const": "synthetic energy-units"
+        },
+        "repair": {
+          "const": "synthetic repair-ticks"
+        },
+        "cost": {
+          "const": "synthetic cost-units"
+        },
+        "uncertainty": {
+          "const": "synthetic uncertainty-width-units"
+        }
+      }
+    },
+    "required_comparison_count": {
+      "const": 5
+    },
+    "comparisons": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "trace_id",
+          "trace_revision",
+          "requirements",
+          "uncertainty_limit",
+          "expected_status",
+          "candidates"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SPR-P-[0-9]{3}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 12
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^trace-[a-z0-9-]+-v[0-9]+$"
+          },
+          "trace_revision": {
+            "type": "string",
+            "pattern": "^trace-revision-[0-9]{3}$"
+          },
+          "requirements": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "requirement_id",
+                "minimum_service_hours"
+              ],
+              "properties": {
+                "requirement_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"
+                },
+                "minimum_service_hours": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                }
+              }
+            }
+          },
+          "uncertainty_limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000000
+          },
+          "expected_status": {
+            "type": "string",
+            "enum": [
+              "evaluated",
+              "reject_comparison"
+            ]
+          },
+          "candidates": {
+            "type": "array",
+            "minItems": 2,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "candidate_id",
+                "trace_id",
+                "trace_revision",
+                "evidence_state",
+                "hard_constraints_pass",
+                "uncertainty_width",
+                "services",
+                "energy_units",
+                "repair_ticks",
+                "cost_units",
+                "expected_disposition"
+              ],
+              "properties": {
+                "candidate_id": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+                },
+                "trace_id": {
+                  "type": "string",
+                  "pattern": "^trace-[a-z0-9-]+-v[0-9]+$"
+                },
+                "trace_revision": {
+                  "type": "string",
+                  "pattern": "^trace-revision-[0-9]{3}$"
+                },
+                "evidence_state": {
+                  "type": "string",
+                  "enum": [
+                    "synthetic_fixture",
+                    "missing",
+                    "stale",
+                    "out_of_domain",
+                    "contradictory"
+                  ]
+                },
+                "hard_constraints_pass": {
+                  "type": "boolean"
+                },
+                "uncertainty_width": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "services": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 16,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "requirement_id",
+                      "available_hours"
+                    ],
+                    "properties": {
+                      "requirement_id": {
+                        "type": "string",
+                        "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"
+                      },
+                      "available_hours": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 1000000
+                      }
+                    }
+                  }
+                },
+                "energy_units": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "repair_ticks": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "cost_units": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000
+                },
+                "expected_disposition": {
+                  "type": "string",
+                  "enum": [
+                    "front",
+                    "dominated",
+                    "excluded_service_floor",
+                    "excluded_hard_constraint",
+                    "excluded_uncertainty",
+                    "blocked_evidence",
+                    "rejected_pair_integrity"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

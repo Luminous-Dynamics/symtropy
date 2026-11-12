@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/spatial-design/SPATIAL_RESILIENCE_TRAJECTORY_FIXTURES_V0_1.schema.json",
+  "title": "Spatial Resilience Trajectory Benchmark v0.1 fixture manifest",
+  "description": "Contract-behavior fixtures only; not a building-physics or safety model.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "benchmark_id",
+    "version",
+    "status",
+    "claim_ceiling",
+    "required_case_count",
+    "registered_invariant_ids",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "benchmark_id": {
+      "const": "SPATIAL-RESILIENCE-TRAJECTORY"
+    },
+    "version": {
+      "const": "0.1.0"
+    },
+    "status": {
+      "const": "synthetic_contract_fixtures_not_physical_model"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 30
+    },
+    "required_case_count": {
+      "const": 15
+    },
+    "registered_invariant_ids": {
+      "type": "array",
+      "minItems": 16,
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "paired_trace_identical",
+          "hard_floor_before_pareto",
+          "unknown_not_pass",
+          "scope_revisions_bind_evidence",
+          "explicit_units_required",
+          "stable_recovery_window_required",
+          "missing_part_blocks_recovery",
+          "no_future_information",
+          "no_scalar_compensation",
+          "uncertainty_tolerance_enforced",
+          "resident_priority_preserved",
+          "service_access_is_constraint",
+          "duplicate_delivery_idempotent",
+          "unrelated_change_preserves_current_result",
+          "dissent_not_collapsed",
+          "solver_claim_ceiling_preserved"
+        ]
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 15,
+      "maxItems": 15,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "title",
+          "dimension",
+          "candidate_ids",
+          "trace_id",
+          "setup",
+          "expected_disposition",
+          "required_invariants",
+          "negative_control"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SPR-T-[0-9]{3}$"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 8
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "paired_rank_reversal",
+              "missing_solver",
+              "stale_weather",
+              "unit_mismatch",
+              "recurring_fault",
+              "repair_delay",
+              "trace_mismatch",
+              "future_information",
+              "hard_floor_compensation",
+              "uncertainty_tolerance",
+              "resident_task_change",
+              "repair_access",
+              "duplicate_event",
+              "scoped_invalidation",
+              "resident_dissent"
+            ]
+          },
+          "candidate_ids": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]{1,63}$"
+            }
+          },
+          "trace_id": {
+            "type": "string",
+            "pattern": "^trace-[a-z0-9-]+-v[0-9]+$"
+          },
+          "setup": {
+            "type": "string",
+            "minLength": 40
+          },
+          "expected_disposition": {
+            "type": "string",
+            "enum": [
+              "accept_with_scope",
+              "exclude_candidate",
+              "blocked_unknown",
+              "invalidate_result",
+              "reject_input",
+              "reject_claim",
+              "replay_identically",
+              "preserve_dissent",
+              "reopen_decision"
+            ]
+          },
+          "required_invariants": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "paired_trace_identical",
+                "hard_floor_before_pareto",
+                "unknown_not_pass",
+                "scope_revisions_bind_evidence",
+                "explicit_units_required",
+                "stable_recovery_window_required",
+                "missing_part_blocks_recovery",
+                "no_future_information",
+                "no_scalar_compensation",
+                "uncertainty_tolerance_enforced",
+                "resident_priority_preserved",
+                "service_access_is_constraint",
+                "duplicate_delivery_idempotent",
+                "unrelated_change_preserves_current_result",
+                "dissent_not_collapsed",
+                "solver_claim_ceiling_preserved"
+              ]
+            }
+          },
+          "negative_control": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "mutation",
+              "expected_disposition"
+            ],
+            "properties": {
+              "mutation": {
+                "type": "string",
+                "minLength": 20
+              },
+              "expected_disposition": {
+                "type": "string",
+                "enum": [
+                  "accept_with_scope",
+                  "exclude_candidate",
+                  "blocked_unknown",
+                  "invalidate_result",
+                  "reject_input",
+                  "reject_claim",
+                  "replay_identically",
+                  "preserve_dissent",
+                  "reopen_decision"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
