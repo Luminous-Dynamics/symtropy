@@ -549,6 +549,47 @@
         "NASA HTML Table 4-11 header is [mN], while the PDF text layer header is [µN]; exact-model manufacturer product page specifies µN.",
         "Manufacturer-published total impulse only; per-shot impulse distribution not supplied.",
         "Manufacturer product index and detailed product pages show inconsistent list prices and lead times; exclude unquoted web price from lifecycle ranking."
+      ],
+      "parallel_module_count": 1,
+      "manufacturer_reported_rep_rate": [
+        {
+          "rate_Hz": [
+            1,
+            4
+          ],
+          "at_power_W": 2.5
+        },
+        {
+          "rate_Hz": [
+            1,
+            8
+          ],
+          "at_power_W": 5
+        }
+      ],
+      "rep_rate_source_flag": "PQ rates align with published 2.5W/5W options",
+      "derived_average_total_impulse_per_reported_shot": {
+        "value": 3.2500000000000004,
+        "unit": "uN_s_per_shot",
+        "basis": "manufacturer total impulse divided by manufacturer-reported 40,000-shot lifetime",
+        "not_impulse_bit": true,
+        "not_measured_distribution": true
+      },
+      "price_snapshot": {
+        "product_index_USD": 3500,
+        "detail_page_USD": 2500,
+        "observed_on": "2026-11-12",
+        "source_disagreement": true,
+        "exclude_from_cost_ranking": true
+      },
+      "manufacturer_source_quality_flags": [
+        "Manufacturer product pages report Bismuth propellant, 87 s Isp, 40,000 shots, model-specific total impulse and thrust/power points.",
+        "The main manufacturer product index reports end-of-life thrust below 1 µN; its EOL test definition/conditions are not supplied.",
+        "NASA HTML Table 4-11 header is [mN], while the PDF text layer header is [µN]; exact-model manufacturer product page specifies µN.",
+        "Manufacturer-published total impulse only; per-shot impulse distribution not supplied.",
+        "Manufacturer product index and detailed product pages show inconsistent list prices and lead times; exclude unquoted web price from lifecycle ranking.",
+        "Manufacturer detail page's rep-rate bullets for DUO/QUAD repeat 2.5W/5W values although the stated power options are 5/10W and 10/20W respectively; preserve but do not map to configuration without clarification.",
+        "Derived aggregate impulse per reported shot is total impulse / stated 40,000 shots; it is not a measured impulse-bit distribution."
       ]
     },
     {
@@ -639,6 +680,47 @@
         "NASA HTML Table 4-11 header is [mN], while the PDF text layer header is [µN]; exact-model manufacturer product page specifies µN.",
         "Two parallel AIS-VAT1-PQ modules; manufacturer-published total impulse only.",
         "Manufacturer product index and detailed product pages show inconsistent list prices and lead times; exclude unquoted web price from lifecycle ranking."
+      ],
+      "parallel_module_count": 2,
+      "manufacturer_reported_rep_rate": [
+        {
+          "rate_Hz": [
+            1,
+            4
+          ],
+          "at_power_W": 2.5
+        },
+        {
+          "rate_Hz": [
+            1,
+            8
+          ],
+          "at_power_W": 5
+        }
+      ],
+      "rep_rate_source_flag": "Detail page repeats PQ's 2.5W/5W rate labels despite DUO/QUAD stated 5/10W or 10/20W power options; do not assume the rate points apply to the larger cluster.",
+      "derived_average_total_impulse_per_reported_shot": {
+        "value": 6.500000000000001,
+        "unit": "uN_s_per_shot",
+        "basis": "manufacturer total impulse divided by manufacturer-reported 40,000-shot lifetime",
+        "not_impulse_bit": true,
+        "not_measured_distribution": true
+      },
+      "price_snapshot": {
+        "product_index_USD": 5500,
+        "detail_page_USD": 4800,
+        "observed_on": "2026-11-12",
+        "source_disagreement": true,
+        "exclude_from_cost_ranking": true
+      },
+      "manufacturer_source_quality_flags": [
+        "Manufacturer product pages report Bismuth propellant, 87 s Isp, 40,000 shots, model-specific total impulse and thrust/power points.",
+        "The main manufacturer product index reports end-of-life thrust below 1 µN; its EOL test definition/conditions are not supplied.",
+        "NASA HTML Table 4-11 header is [mN], while the PDF text layer header is [µN]; exact-model manufacturer product page specifies µN.",
+        "Two parallel AIS-VAT1-PQ modules; manufacturer-published total impulse only.",
+        "Manufacturer product index and detailed product pages show inconsistent list prices and lead times; exclude unquoted web price from lifecycle ranking.",
+        "Manufacturer detail page's rep-rate bullets for DUO/QUAD repeat 2.5W/5W values although the stated power options are 5/10W and 10/20W respectively; preserve but do not map to configuration without clarification.",
+        "Derived aggregate impulse per reported shot is total impulse / stated 40,000 shots; it is not a measured impulse-bit distribution."
       ]
     },
     {
@@ -729,6 +811,47 @@
         "NASA HTML Table 4-11 header is [mN], while the PDF text layer header is [µN]; exact-model manufacturer product page specifies µN.",
         "Four parallel AIS-VAT1-PQ modules; manufacturer-published total impulse only.",
         "Manufacturer product index and detailed product pages show inconsistent list prices and lead times; exclude unquoted web price from lifecycle ranking."
+      ],
+      "parallel_module_count": 4,
+      "manufacturer_reported_rep_rate": [
+        {
+          "rate_Hz": [
+            1,
+            4
+          ],
+          "at_power_W": 2.5
+        },
+        {
+          "rate_Hz": [
+            1,
+            8
+          ],
+          "at_power_W": 5
+        }
+      ],
+      "rep_rate_source_flag": "Detail page repeats PQ's 2.5W/5W rate labels despite DUO/QUAD stated 5/10W or 10/20W power options; do not assume the rate points apply to the larger cluster.",
+      "derived_average_total_impulse_per_reported_shot": {
+        "value": 13.000000000000002,
+        "unit": "uN_s_per_shot",
+        "basis": "manufacturer total impulse divided by manufacturer-reported 40,000-shot lifetime",
+        "not_impulse_bit": true,
+        "not_measured_distribution": true
+      },
+      "price_snapshot": {
+        "product_index_USD": 8000,
+        "detail_page_USD": 6500,
+        "observed_on": "2026-11-12",
+        "source_disagreement": true,
+        "exclude_from_cost_ranking": true
+      },
+      "manufacturer_source_quality_flags": [
+        "Manufacturer product pages report Bismuth propellant, 87 s Isp, 40,000 shots, model-specific total impulse and thrust/power points.",
+        "The main manufacturer product index reports end-of-life thrust below 1 µN; its EOL test definition/conditions are not supplied.",
+        "NASA HTML Table 4-11 header is [mN], while the PDF text layer header is [µN]; exact-model manufacturer product page specifies µN.",
+        "Four parallel AIS-VAT1-PQ modules; manufacturer-published total impulse only.",
+        "Manufacturer product index and detailed product pages show inconsistent list prices and lead times; exclude unquoted web price from lifecycle ranking.",
+        "Manufacturer detail page's rep-rate bullets for DUO/QUAD repeat 2.5W/5W values although the stated power options are 5/10W and 10/20W respectively; preserve but do not map to configuration without clarification.",
+        "Derived aggregate impulse per reported shot is total impulse / stated 40,000 shots; it is not a measured impulse-bit distribution."
       ]
     }
   ],
@@ -742,7 +865,37 @@
     "No device ranking is valid until installed mass, DC-bus power, mission service, lifetime and uncertainty boundaries are matched.",
     "NASA Table 4-11 HTML has a [mN] thrust column header for AIS VAT rows while the official PDF text layer has [µN]; manufacturer exact-model pages specify µN values at defined power points. Use manufacturer-reported µN values for source attribution, preserve the NASA HTML unit transcription discrepancy.",
     "AIS manufacturer pages report 40,000 shots, 87 s Isp and 0.13/0.26/0.52 N·s total impulse; main product index additionally reports EOL thrust below 1 µN but does not define EOL test condition. Lifetime, thrust drift, per-shot distribution and failure denominator require independent per-unit validation.",
-    "AIS manufacturer product index and detailed product pages disagree on current list prices and lead times; exclude web prices from lifecycle ranking until a dated formal quote and supply configuration are frozen."
+    "AIS manufacturer product index and detailed product pages disagree on current list prices and lead times; exclude web prices from lifecycle ranking until a dated formal quote and supply configuration are frozen.",
+    "AIS DUO/QUAD detailed pages list rep-rate power labels that do not match their advertised power options; retain the raw source values and require manufacturer clarification before rate-based duty-cycle or mission estimates.",
+    "AIS PQ/DUO/QUAD source arithmetic implies 3.25 µN·s average total impulse per reported shot per PQ module; this quotient is not a direct impulse-bit measurement or variance."
   ],
-  "record_count": 15
+  "record_count": 15,
+  "derived_reference_checks": [
+    {
+      "check_id": "AIS-VAT1-AVERAGE-IMPULSE-PER-REPORTED-SHOT-2026",
+      "evidence_class": "DERIVED_ARITHMETIC_FROM_MANUFACTURER_CATALOGUE_VALUES",
+      "inputs": {
+        "reported_shot_lifetime": 40000,
+        "manufacturer_total_impulse_Ns": {
+          "PQ": 0.13,
+          "DUO": 0.26,
+          "QUAD": 0.52
+        }
+      },
+      "derivation": {
+        "aggregate_average_impulse_per_shot_uNs": {
+          "PQ": 3.25,
+          "DUO": 6.5,
+          "QUAD": 13
+        },
+        "per_parallel_PQ_module_uNs": {
+          "PQ": 3.25,
+          "DUO": 3.25,
+          "QUAD": 3.25
+        }
+      },
+      "interpretation": "Arithmetic quotient of source-reported total impulse and shot lifetime. It is not a directly measured impulse-bit value or its variance; raw per-shot distributions, failed shots, erosion, plume and end-of-life conditions remain unknown.",
+      "luminous_measurement": false
+    }
+  ]
 }
