@@ -159,7 +159,7 @@
     {
       "id": "OS-5B",
       "name": "independent Sachs optical-Jacobi equation cross-check",
-      "status": "local optical tidal evaluation source authored; Rust execution pending",
+      "status": "pointwise Sachs optical-tidal source authored; curvature-based Rust tests pending execution",
       "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
       "observables": [
         "screen_basis_parallel_transport_residual",
@@ -171,7 +171,9 @@
         "local_Riemann_optical_tidal_matrix",
         "screen_null_orthonormality_and_transversality_residuals",
         "vacuum_optical_tidal_trace",
-        "optical_tidal_matrix_symmetry"
+        "optical_tidal_matrix_symmetry",
+        "screen_null_orthonormality_transversality",
+        "optical_tidal_symmetry"
       ],
       "target": {
         "screen_basis_parallel_transport_residual": 1e-10,
@@ -193,24 +195,24 @@
       "implementation": {
         "api": "KerrCanonicalHamiltonian::optical_tidal_matrix(state, chart, screen_basis, tolerance)",
         "observer_screen_helper": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates(local_basis, chart)",
-        "curvature_path": "DifferentiatedMetric4 -> dimensionless chart scaling -> MetricDerivatives4/MetricSecondDerivatives4 -> RiemannTensor4 -> fully covariant Riemann -> T_AB",
+        "formulation": "Second-order differentiated Kerr metric -> dimensionless coordinate scaling -> MetricDerivatives4 and MetricSecondDerivatives4 -> RiemannTensor4 -> fully covariant Riemann contraction with null tangent and Sachs screen",
         "diagnostics": [
-          "null tangent constraint residual",
+          "null constraint residual",
           "screen orthonormality residual",
           "screen transversality residual",
-          "optical tidal matrix symmetry residual",
+          "optical tidal symmetry residual",
           "vacuum trace residual"
         ],
         "tests_authored": [
-          "radial Schwarzschild principal null ray has zero optical tidal matrix",
-          "nonradial Schwarzschild optical tide is nonzero, symmetric and trace-free",
-          "non-transverse screen frame is rejected with a typed error"
+          "radial Schwarzschild principal-null direction has zero optical tidal matrix",
+          "nonradial Schwarzschild optical tide is nonzero, symmetric, and trace-free",
+          "non-transverse Sachs screen is rejected with a typed error"
         ],
-        "limitations": [
-          "pointwise optical tidal matrix only; no Sachs screen parallel-transport ODE",
-          "no integrated 2x2 optical Jacobi matrix from the curvature route",
-          "no independent OS-5B numerical agreement receipt against the canonical 8x8 variation yet",
-          "the caller must supply a screen frame tied to the same event and null direction"
+        "remaining": [
+          "transport the Sachs basis continuously along the geodesic",
+          "integrate D'' = -T D with vertex conditions D(0)=0 and D'(0)=I",
+          "compare the resulting 2x2 Jacobi matrix against the canonical 8x8 variational flow",
+          "benchmark convergence through a caustic without determinant-only classification"
         ]
       }
     },
@@ -427,7 +429,7 @@
     "https://www.nature.com/articles/s41550-026-02874-x"
   ],
   "screen_frame_policy": {
-    "status": "same-event SO(2) re-expression implemented; pointwise Sachs optical tidal matrix implemented at source level; transported Sachs screen remains not implemented",
+    "status": "same-event SO(2) screen re-expression and pointwise Sachs optical tidal evaluation implemented at source level; parallel-transported Sachs screen not yet implemented",
     "topology": "An orthonormal tangent frame cannot be chosen globally continuously over the full observer sky S^2; use overlapping local charts or a transported screen frame.",
     "current_source_observation": "local_sky_tangent_basis selects between two reference axes at abs(azimuthal_direction)=0.9. The resulting bases are co-oriented, so an ideal chart transition is in SO(2), but the displayed 2x2 components can jump at the seam.",
     "risks": [
@@ -463,7 +465,8 @@
       "fold/cusp classification remains blocked until transported-frame and independent Sachs-Jacobi checks pass"
     ],
     "sachs_pointwise_api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
-    "sachs_transport_status": "not implemented"
+    "sachs_transport_status": "not implemented",
+    "sachs_frame_conversion_api": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates"
   },
   "caustic_qualification_policy": {
     "status": "future_gate_not_implemented",
