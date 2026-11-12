@@ -76,7 +76,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1"
         },
         {
           "interface_id": "DTC-001-process-cell",
@@ -104,7 +105,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1"
         }
       ],
       "expected_readiness": "READY",
@@ -183,7 +185,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         },
         {
           "interface_id": "DTC-002-process-cell",
@@ -211,7 +214,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         }
       ],
       "expected_readiness": "READY",
@@ -290,7 +294,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         },
         {
           "interface_id": "DTC-003-process-cell",
@@ -318,7 +323,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         }
       ],
       "expected_readiness": "READY",
@@ -397,7 +403,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1"
         },
         {
           "interface_id": "DTC-004-process-cell",
@@ -425,7 +432,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         }
       ],
       "expected_readiness": "READY",
@@ -504,7 +512,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1"
         },
         {
           "interface_id": "DTC-005-process-cell",
@@ -532,7 +541,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1"
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -613,7 +623,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         },
         {
           "interface_id": "DTC-006-process-cell",
@@ -641,7 +652,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -722,7 +734,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         },
         {
           "interface_id": "DTC-007-process-cell",
@@ -750,7 +763,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -831,7 +845,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1"
         },
         {
           "interface_id": "DTC-008-process-cell",
@@ -859,7 +874,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -940,7 +956,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1"
         },
         {
           "interface_id": "DTC-009-process-cell",
@@ -968,7 +985,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1"
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -1049,7 +1067,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         },
         {
           "interface_id": "DTC-010-process-cell",
@@ -1077,7 +1096,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -1158,7 +1178,8 @@
           "clock_offset_abs_us": 500,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         },
         {
           "interface_id": "DTC-011-process-cell",
@@ -1186,7 +1207,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         }
       ],
       "expected_readiness": "NOT_READY",
@@ -1267,7 +1289,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 180,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": "shipyard.manufacturing.common.v1"
         },
         {
           "interface_id": "DTC-012-process-cell",
@@ -1295,7 +1318,8 @@
           "clock_offset_abs_us": 3,
           "maximum_clock_offset_us": 20,
           "uncertainty_permille": 20,
-          "maximum_uncertainty_permille": 100
+          "maximum_uncertainty_permille": 100,
+          "composition_schema_id": null
         }
       ],
       "expected_readiness": "NOT_READY",
