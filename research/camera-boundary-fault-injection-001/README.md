@@ -1,6 +1,6 @@
 # CAMERA-BOUNDARY-FAULT-INJECTION-001
 
-**Status:** nine-case real-bridge boundary fault harness authored; exact-head Rust validation pending  
+**Status:** 14-case real-bridge boundary fault harness authored, including temporal-state non-advance evidence; exact-head Rust validation pending  
 **Issue:** https://github.com/Luminous-Dynamics/symtropy/issues/4794  
 **Source episode owner:** #4618 — fresh-process renderer-to-Symthaea replay  
 **Bridge owner:** https://github.com/Luminous-Dynamics/symthaea/pull/11480  
@@ -56,7 +56,7 @@ The base request's camera/vehicle timestamps, renderer receipt, action reference
 | delivery-age-exceeded | Exceed maximum observation age while retaining valid ordering and recomputing the receipt | `UpstreamDeliveryAgeExceeded` |
 | missing-action-receipt | Remove the required applied-action receipt/command/tick references | `UpstreamActionReferenceInvalid` |
 
-The harness reads the clean renderer calibration digest and pins it into `BridgeConfig.expected_camera_calibration_sha256` before any fault mutation. The receipt adapter reproduces the renderer's unkeyed SHA-256 commitment for deliberate metadata changes. This establishes internal consistency only; it does not authenticate the renderer. The exact sequence replay and capture-clock regression remain separate cases: the former tests the persistent sequence guard, the latter tests monotonic capture time. Stale-frame reuse and pixel corruption both produce a frame-digest mismatch but alter different parts of the request.
+The harness reads the clean renderer calibration digest and pins it into `BridgeConfig.expected_camera_calibration_sha256` before any fault mutation. The receipt adapter reproduces the renderer's unkeyed SHA-256 commitment for deliberate metadata changes. This establishes internal consistency only; it does not authenticate the renderer. The exact sequence replay and capture-clock regression remain separate cases: the former tests the persistent sequence guard, the latter tests monotonic capture time. Stale-frame reuse and pixel corruption both produce a frame-digest mismatch but alter different parts of the request. The bridge CLI now includes `frames_processed_before_rejection=N` in its error diagnostic. The harness expects 0 for first-observation faults and 1 for second-observation stale/reuse/regression controls, proving that the rejected observation itself did not advance the temporal model while preserving expected prior processing.
 
 
 ## Run
@@ -81,7 +81,7 @@ cargo run --release --locked \
   ./out/camera-boundary-fault-campaign
 ```
 
-The campaign output directory must be new or empty. Each case writes its own copied `input/` request/frame workspace, receipt path and policy-input path. The harness launches the bridge exactly once per case; there are nine fresh child processes in the declared campaign.
+The campaign output directory must be new or empty. Each case writes its own copied `input/` request/frame workspace, receipt path and policy-input path. The harness launches the bridge exactly once per case; there are 14 fresh child processes in the declared campaign.
 
 ## Acceptance
 
@@ -91,13 +91,14 @@ The report is `all_cases_passed` only when:
 - every negative control exits non-zero and stderr contains its exact expected BridgeError variant;
 - every negative control has no receipts-output file;
 - every negative control has no policy-input artifacts (the directory may be absent or empty);
-- exactly nine independent bridge processes were spawned.
+- every negative control reports `frames_processed_before_rejection` equal to the expected count (0 for first-observation faults; 1 for the cases whose second observation triggers the rejection), demonstrating that the rejected observation itself did not advance temporal state;
+- exactly 14 independent bridge processes were spawned; every rejected observation reports the bridge frame count immediately before rejection, which must equal the number of preceding valid observations in that case.
 
 The report schema is `schemas/fault-campaign-report-v1.schema.json`.
 
 ## Tests and validation
 
-Seven authored Rust tests cover:
+Seventeen authored Rust tests cover:
 - calibration pinning from the clean renderer receipt;
 - valid-but-different calibration mutation;
 - delayed delivery versus invalid clock ordering;
@@ -118,4 +119,4 @@ The Rust toolchain is not installed in the authoring environment, so no local co
 
 ## Claim ceiling
 
-A successful campaign establishes that the exact built Symthaea bridge binary rejects these eight malformed/stale/corrupt/pin/clock/action-reference conditions before emitting policy representations, while accepting the clean control. It does not show that a trained driving policy detects a fault, selects a safe degraded policy, executes a safe stop, or recovers. Those require a separate controller and supervisor, closed-loop simulator experiments, physical fault fidelity, and later independent HIL/closed-course governance.
+A successful campaign establishes that the exact built Symthaea bridge binary rejects these 13 malformed/stale/corrupt/pin/clock/action-reference conditions before emitting policy representations, while accepting the clean control. The `frames_processed_before_rejection` diagnostic additionally checks that the rejected observation did not advance the Vision Manifold; earlier valid observations in replay/regression cases may have advanced it. It does not show that a trained driving policy detects a fault, selects a safe degraded policy, executes a safe stop, or recovers. Those require a separate controller and supervisor, closed-loop simulator experiments, physical fault fidelity, and later independent HIL/closed-course governance.
