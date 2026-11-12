@@ -76,6 +76,8 @@ pub struct CausalIdentity {
     pub command_event_sequence: u64,
     pub actuator_application_event_id: String,
     pub actuator_application_event_sequence: u64,
+    pub actuator_application_receipt_digest: String,
+    pub source_sensor_calibration_digest: String,
     pub physical_transition_id: String,
     pub physical_transition_event_sequence: u64,
     pub terminal_event_id: String,
@@ -106,6 +108,10 @@ pub struct ConfigurationEvidence {
 /// Upstream decision-sufficiency result bound to the actuator application.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DecisionEvidence {
+    pub decision_id: String,
+    pub model_digest: String,
+    pub action_domain_digest: String,
+    pub calibration_receipt_digest: String,
     pub regret_upper_units: u64,
     pub epsilon_task_loss_units: u64,
     pub valid_through_tick: u64,
@@ -115,6 +121,8 @@ pub struct DecisionEvidence {
 /// Per-node transition evidence from the upstream qualified thermal model.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ThermalEvidence {
+    pub physical_transition_id: String,
+    pub sensor_calibration_digest: String,
     pub required_node_ids: Vec<String>,
     pub observed_node_ids: Vec<String>,
     pub expected_predecessor_digest: String,
@@ -214,6 +222,7 @@ pub enum RejectReason {
         epsilon_task_loss_units: u64,
     },
     ExecutedPrefixMismatch,
+    ReceiptBindingMismatch(&'static str),
     SamplingRateBelowSpecification {
         measured_rate_hz: u64,
         required_rate_hz: u64,
@@ -310,6 +319,7 @@ pub enum TraceValidationError {
         expected: u64,
         observed: u64,
     },
+    ReceiptBindingMismatch(&'static str),
 }
 
 impl std::fmt::Display for TraceValidationError {
@@ -347,6 +357,14 @@ fn validate_identity(
         (
             "actuator_application_event_id",
             &identity.actuator_application_event_id,
+        ),
+        (
+            "actuator_application_receipt_digest",
+            &identity.actuator_application_receipt_digest,
+        ),
+        (
+            "source_sensor_calibration_digest",
+            &identity.source_sensor_calibration_digest,
         ),
         ("physical_transition_id", &identity.physical_transition_id),
         ("terminal_event_id", &identity.terminal_event_id),
@@ -398,6 +416,18 @@ fn validate_identity(
             &configuration.executed_prefix_observed_digest,
         ),
     ])?;
+    if identity.actuator_application_receipt_digest
+        != configuration.actuator_application_receipt_digest
+    {
+        return Err(TraceValidationError::ReceiptBindingMismatch(
+            "actuator-application-receipt",
+        ));
+    }
+    if identity.source_sensor_calibration_digest != configuration.sensor_calibration_digest {
+        return Err(TraceValidationError::ReceiptBindingMismatch(
+            "source-sensor-calibration",
+        ));
+    }
 
     let events = [
         (
@@ -567,8 +597,19 @@ fn decision_status(trace: &JointTrace) -> Evidence<DecisionDisposition> {
         .decision_calibration_receipt_digest
         .trim()
         .is_empty()
+        || trace.decision.calibration_receipt_digest.trim().is_empty()
     {
         return Evidence::Unknown(UnknownReason::DecisionCalibrationUnavailable);
+    }
+    if trace.decision.decision_id != trace.identity.decision_id
+        || trace.decision.model_digest != trace.configuration.model_digest
+        || trace.decision.action_domain_digest != trace.configuration.action_domain_digest
+        || trace.decision.calibration_receipt_digest
+            != trace.configuration.decision_calibration_receipt_digest
+    {
+        return Evidence::Rejected(RejectReason::ReceiptBindingMismatch(
+            "decision-calibration-or-scope",
+        ));
     }
     if trace.configuration.executed_prefix_expected_digest
         != trace.configuration.executed_prefix_observed_digest
@@ -600,11 +641,21 @@ fn thermal_status(trace: &JointTrace) -> Evidence<ThermalDisposition> {
     if thermal.expected_predecessor_digest.trim().is_empty()
         || thermal.observed_predecessor_digest.trim().is_empty()
         || thermal.result_digest.trim().is_empty()
+        || thermal.physical_transition_id.trim().is_empty()
+        || thermal.sensor_calibration_digest.trim().is_empty()
     {
         return Evidence::Unknown(UnknownReason::ThermalNodeCoverageIncomplete);
     }
     if thermal.expected_predecessor_digest != thermal.observed_predecessor_digest {
         return Evidence::Rejected(RejectReason::ThermalPredecessorMismatch);
+    }
+    if thermal.physical_transition_id != trace.identity.physical_transition_id
+        || thermal.sensor_calibration_digest
+            != trace.configuration.thermal_sensor_calibration_digest
+    {
+        return Evidence::Rejected(RejectReason::ReceiptBindingMismatch(
+            "thermal-transition-or-calibration",
+        ));
     }
     if thermal.required_node_ids.is_empty() {
         return Evidence::Unknown(UnknownReason::ThermalNodeCoverageIncomplete);
@@ -639,6 +690,13 @@ fn energy_status(trace: &JointTrace) -> Evidence<EnergyDisposition> {
     if energy.boundary_manifest_digest.trim().is_empty() {
         return Evidence::Unknown(UnknownReason::EnergyReceiptUnavailable);
     }
+    if energy.boundary_manifest_digest
+        != trace.configuration.energy_boundary_manifest_digest
+    {
+        return Evidence::Rejected(RejectReason::ReceiptBindingMismatch(
+            "energy-boundary-manifest",
+        ));
+    }
     match &energy.closure {
         UpstreamEnergyClosure::Balanced { receipt_digest } => {
             if receipt_digest.trim().is_empty() {
@@ -668,6 +726,11 @@ fn sampling_status(trace: &JointTrace) -> Evidence<SamplingDisposition> {
     }
     if sampling.required_rate_hz == 0 || sampling.measured_rate_hz == 0 {
         return Evidence::Unknown(UnknownReason::SamplingSpecificationUnavailable);
+    }
+    if sampling.specification_digest != trace.configuration.sampling_spec_digest {
+        return Evidence::Rejected(RejectReason::ReceiptBindingMismatch(
+            "sampling-specification",
+        ));
     }
     if sampling.measured_rate_hz < sampling.required_rate_hz {
         return Evidence::Rejected(RejectReason::SamplingRateBelowSpecification {
@@ -794,6 +857,8 @@ mod tests {
                 command_event_sequence: 5,
                 actuator_application_event_id: "application-01".into(),
                 actuator_application_event_sequence: 6,
+                actuator_application_receipt_digest: "application-receipt".into(),
+                source_sensor_calibration_digest: "sensor-cal".into(),
                 physical_transition_id: "physical-01".into(),
                 physical_transition_event_sequence: 7,
                 terminal_event_id: "terminal-01".into(),
@@ -837,12 +902,18 @@ mod tests {
                 upper_ns: 125_000_000,
             },
             decision: DecisionEvidence {
+                decision_id: "decision-01".into(),
+                model_digest: "model".into(),
+                action_domain_digest: "action-domain".into(),
+                calibration_receipt_digest: "decision-calibration".into(),
                 regret_upper_units: 1,
                 epsilon_task_loss_units: 2,
                 valid_through_tick: 10,
                 actuator_application_tick: 3,
             },
             thermal: ThermalEvidence {
+                physical_transition_id: "physical-01".into(),
+                sensor_calibration_digest: "thermal-cal".into(),
                 required_node_ids: vec!["winding".into(), "housing".into(), "drive".into()],
                 observed_node_ids: vec!["winding".into(), "housing".into(), "drive".into()],
                 expected_predecessor_digest: "thermal-0".into(),
@@ -1179,6 +1250,91 @@ mod tests {
         assert!(matches!(
             adapt_joint_trace(&trace),
             Err(TraceValidationError::InvalidTimestampInterval { .. })
+        ));
+    }
+
+
+    #[test]
+    fn insufficient_decision_cannot_close_the_mission() {
+        let mut trace = reference_trace();
+        trace.decision.regret_upper_units = 3;
+        let report = adapt_joint_trace(&trace).unwrap();
+        assert_eq!(
+            report.decision,
+            Evidence::Qualified(DecisionDisposition::Insufficient {
+                regret_upper_units: 3,
+                epsilon_task_loss_units: 2,
+            })
+        );
+        assert_ne!(report.mission_closure, MissionClosure::Closed);
+    }
+
+    #[test]
+    fn decision_receipt_must_bind_to_the_exact_decision_model_and_action_domain() {
+        let mut trace = reference_trace();
+        trace.decision.action_domain_digest = "different-action-domain".into();
+        assert_eq!(
+            adapt_joint_trace(&trace).unwrap().decision,
+            Evidence::Rejected(RejectReason::ReceiptBindingMismatch(
+                "decision-calibration-or-scope",
+            ))
+        );
+    }
+
+    #[test]
+    fn thermal_receipt_must_bind_to_configuration_and_physical_transition() {
+        let mut trace = reference_trace();
+        trace.thermal.sensor_calibration_digest = "other-thermal-calibration".into();
+        assert_eq!(
+            adapt_joint_trace(&trace).unwrap().thermal,
+            Evidence::Rejected(RejectReason::ReceiptBindingMismatch(
+                "thermal-transition-or-calibration",
+            ))
+        );
+    }
+
+    #[test]
+    fn energy_receipt_must_bind_to_the_declared_boundary_manifest() {
+        let mut trace = reference_trace();
+        trace.energy.boundary_manifest_digest = "other-energy-boundary".into();
+        assert_eq!(
+            adapt_joint_trace(&trace).unwrap().energy,
+            Evidence::Rejected(RejectReason::ReceiptBindingMismatch(
+                "energy-boundary-manifest",
+            ))
+        );
+    }
+
+    #[test]
+    fn sampling_receipt_must_bind_to_the_declared_specification() {
+        let mut trace = reference_trace();
+        trace.sampling.specification_digest = "other-sampling-spec".into();
+        assert_eq!(
+            adapt_joint_trace(&trace).unwrap().sampling,
+            Evidence::Rejected(RejectReason::ReceiptBindingMismatch(
+                "sampling-specification",
+            ))
+        );
+    }
+
+    #[test]
+    fn actuator_receipt_and_source_sensor_calibration_must_match_configuration() {
+        let mut trace = reference_trace();
+        trace.identity.actuator_application_receipt_digest = "wrong-receipt".into();
+        assert!(matches!(
+            adapt_joint_trace(&trace),
+            Err(TraceValidationError::ReceiptBindingMismatch(
+                "actuator-application-receipt"
+            ))
+        ));
+
+        let mut sensor = reference_trace();
+        sensor.identity.source_sensor_calibration_digest = "wrong-calibration".into();
+        assert!(matches!(
+            adapt_joint_trace(&sensor),
+            Err(TraceValidationError::ReceiptBindingMismatch(
+                "source-sensor-calibration"
+            ))
         ));
     }
 
