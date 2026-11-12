@@ -1171,7 +1171,7 @@ impl<const D: usize> PhysicsWorld<D> {
                 let v_t = v_rel - v_n;
                 let v_t_mag = v_t.norm();
 
-                if v_t_mag > 1e-10 {
+                if v_t_mag.is_finite() && v_t_mag > 0.0 {
                     let tangent = v_t / v_t_mag;
                     let mut mu = (self.bodies[a].friction * self.bodies[b].friction).sqrt();
 
@@ -1185,7 +1185,10 @@ impl<const D: usize> PhysicsWorld<D> {
                     let t_dot_rb = r_b.dot(&tangent);
                     let ang_term_a_t = inv_i_avg_a * (r_a.norm_squared() - t_dot_ra * t_dot_ra);
                     let ang_term_b_t = inv_i_avg_b * (r_b.norm_squared() - t_dot_rb * t_dot_rb);
-                    let denom_t = (total_inv_mass + ang_term_a_t + ang_term_b_t).max(1e-15);
+                    let denom_t = total_inv_mass + ang_term_a_t + ang_term_b_t;
+                    if !denom_t.is_finite() || denom_t <= 0.0 {
+                        continue;
+                    }
 
                     let j_t_desired = -v_t_mag / denom_t;
                     let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
@@ -2560,4 +2563,102 @@ mod transformed_halfspace_tests {
 
         assert!(world.static_tree_dirty);
     }
+    #[test]
+    fn tangential_contact_response_preserves_finite_large_mass_effective_inverse_mass() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.baumgarte = 0.0;
+        world.slop = 0.0;
+
+        let mut fixed = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::<3>::unit()),
+        );
+        fixed.friction = 1.0;
+
+        let mut moving = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::new([0.0, 2.0, 0.0]),
+            1.0,
+            1.0e16,
+        );
+        moving.linear_velocity = SVector::from([-1.0, -1.0, 0.0]);
+        moving.friction = 1.0;
+
+        let fixed_handle = world.add_body(fixed);
+        let moving_handle = world.add_body(moving);
+        let contact = ContactManifold::<3>::single(
+            fixed_handle,
+            moving_handle,
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            0.0,
+        );
+
+        let inverse_mass = 1.0e-16;
+        let inverse_inertia_mean = 2.5e-16;
+        let expected_tangent_impulse = 1.0 / (inverse_mass + inverse_inertia_mean);
+        let expected_delta_vx = expected_tangent_impulse * inverse_mass;
+
+        let mut callback = NoOpCallback;
+        let resolved = world.resolve_contact(contact, 1.0 / 60.0, &mut callback);
+
+        assert!((resolved.points[0].lambda / 1.0e16 - 1.0).abs() < 1.0e-12);
+        assert!(
+            (world.bodies[1].linear_velocity[0] - (-1.0 + expected_delta_vx)).abs()
+                < 2.0e-12,
+            "tangential response used a dimensionful inverse-mass floor: vx={:e}, expected={:e}",
+            world.bodies[1].linear_velocity[0],
+            -1.0 + expected_delta_vx
+        );
+    }
+
+    #[test]
+    fn tangential_contact_response_does_not_discard_sub_deadband_speed() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.baumgarte = 0.0;
+        world.slop = 0.0;
+
+        let mut fixed = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::<3>::unit()),
+        );
+        fixed.friction = 1.0;
+
+        let mut moving = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::new([0.0, 2.0, 0.0]),
+            1.0,
+            1.0,
+        );
+        let initial_tangent_speed = 1.0e-12;
+        moving.linear_velocity = SVector::from([-initial_tangent_speed, -1.0, 0.0]);
+        moving.friction = 1.0;
+
+        let fixed_handle = world.add_body(fixed);
+        let moving_handle = world.add_body(moving);
+        let contact = ContactManifold::<3>::single(
+            fixed_handle,
+            moving_handle,
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            0.0,
+        );
+
+        // For this sphere and unit lever arm, inverse tangential effective mass
+        // is 1/m + 1/I = 1 + 2.5. The friction cap is much larger than this
+        // deliberately tiny tangent impulse.
+        let expected_delta_vx = initial_tangent_speed / 3.5;
+
+        let mut callback = NoOpCallback;
+        let _ = world.resolve_contact(contact, 1.0 / 60.0, &mut callback);
+
+        let observed_delta = world.bodies[1].linear_velocity[0] + initial_tangent_speed;
+        assert!(
+            (observed_delta / expected_delta_vx - 1.0).abs() < 1.0e-10,
+            "finite tangential speed below the former 1e-10 m/s deadband was discarded: observed={observed_delta:e}, expected={expected_delta_vx:e}"
+        );
+    }
+
 }
