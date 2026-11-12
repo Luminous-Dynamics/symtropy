@@ -7,6 +7,7 @@ on:
     paths:
       - crates/domains/symtropy-relativity/src/kerr_geodesic.rs
       - crates/domains/symtropy-relativity/src/kerr_integrator.rs
+      - crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json
       - crates/domains/symtropy-relativity/Cargo.toml
       - Cargo.toml
       - Cargo.lock
