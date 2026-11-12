@@ -37,21 +37,27 @@ The base request's camera/vehicle timestamps, renderer receipt, action reference
 
 ## Fault campaign
 
-<badge>9 cases</badge> <badge color="success">1 clean positive control</badge> <badge color="danger">8 negative controls</badge>
+<badge>14 cases</badge> <badge color="success">1 clean positive control</badge> <badge color="danger">13 negative controls</badge>
 
 | Case | Injected boundary mutation | Expected bridge result |
 |---|---|---|
 | clean-control | Unchanged renderer request, with expected calibration pinned | Accept; emit one receipt and HDC artifact per frame |
-| pixel-corruption | Flip one pixel byte, keep the original renderer receipt | `UpstreamFrameMismatch` |
-| calibration-shift | Change calibration digest to a different valid SHA-256 while retaining the clean calibration pin in BridgeConfig | `UpstreamCalibrationMismatch` |
+| stale-frame-reuse | Use the earlier RGB path under the later observation's receipt | `UpstreamFrameMismatch` |
+| pixel-corruption | Flip one copied pixel byte, keep the original renderer receipt | `UpstreamFrameMismatch` |
+| calibration-shift | Change calibration digest to a different valid SHA-256 and recompute the unkeyed receipt; keep the clean calibration pin in BridgeConfig | `UpstreamCalibrationMismatch` |
+| capture-timestamp-mismatch | Change outer capture time without changing the upstream capture time | `UpstreamTimestampMismatch` |
+| zero-sequence | Set both outer and upstream sequence to zero | `UpstreamSequenceMismatch` |
+| receipt-commitment-tamper | Replace the receipt commitment with another valid-length SHA-256 | `UpstreamReceiptCommitmentMismatch` |
 | stale-sequence-replay | Replay the entire previous accepted observation—same RGB frame, upstream receipt, action, sequence and timestamps—at the next position | `SequenceRegression` |
-| clock-order-violation | Delivery timestamp precedes render completion | `UpstreamClockOrderInvalid` |
-| sensor-clock-skew | Vehicle-state timestamp exceeds configured skew | `SensorClockSkewExceeded` |
-| delivery-age-exceeded | Delivered timestamp exceeds the configured maximum observation age | `UpstreamDeliveryAgeExceeded` |
-| camera-identity-mismatch | Replace the pinned camera ID | `UpstreamIdentityMismatch` |
+| capture-clock-regression | Move the later capture timestamp behind the previous capture timestamp and recompute the receipt | `TimestampRegression` |
+| camera-identity-mismatch | Change the camera ID and recompute the receipt commitment | `UpstreamIdentityMismatch` |
+| clock-order-violation | Make delivery precede render completion and recompute the receipt commitment | `UpstreamClockOrderInvalid` |
+| sensor-clock-skew | Move vehicle-state time one microsecond beyond configured skew | `SensorClockSkewExceeded` |
+| delivery-age-exceeded | Exceed maximum observation age while retaining valid ordering and recomputing the receipt | `UpstreamDeliveryAgeExceeded` |
 | missing-action-receipt | Remove the required applied-action receipt/command/tick references | `UpstreamActionReferenceInvalid` |
 
-The harness reads the clean renderer calibration digest and pins it into `BridgeConfig.expected_camera_calibration_sha256` before any fault mutation. This makes the calibration shift a real pin mismatch rather than a malformed digest. The stale replay case is stronger than a metadata mismatch: it duplicates the last accepted frame/receipt/sequence/action/time as the next observation, so the bridge reaches its persistent `SequenceRegression` guard. The pixel case changes the copied RGB bytes but preserves the source receipt and frame digest. All other source request fields remain unchanged except those required by the named mutation.
+The harness reads the clean renderer calibration digest and pins it into `BridgeConfig.expected_camera_calibration_sha256` before any fault mutation. The receipt adapter reproduces the renderer's unkeyed SHA-256 commitment for deliberate metadata changes. This establishes internal consistency only; it does not authenticate the renderer. The exact sequence replay and capture-clock regression remain separate cases: the former tests the persistent sequence guard, the latter tests monotonic capture time. Stale-frame reuse and pixel corruption both produce a frame-digest mismatch but alter different parts of the request.
+
 
 ## Run
 
