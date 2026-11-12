@@ -111,17 +111,47 @@
   ],
   "comparator_register": [
     {
-      "id": "bench2drive_v004_lead",
-      "class": "closed_loop_benchmark_result",
-      "name": "Bench2Drive v0.0.4 LEAD",
+      "id": "bench2drive_v003_bridgedrive_lead",
+      "class": "self_reported_closed_loop_benchmark_leaderboard",
+      "name": "Bench2Drive v0.0.3 leaderboard — BridgeDrive (LEAD)",
       "metric_values": {
-        "driving_score": 95.59,
-        "success_rate_percent": 87.28,
-        "efficiency": 201.55,
-        "comfort": 20.56
+        "driving_score": 96.34,
+        "success_rate_percent": 89.25
       },
-      "protocol": "v0.0.4 tagged repository table",
-      "source": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md",
+      "capabilities": [
+        "listed in non-privileged section of the public leaderboard",
+        "uses LEAD expert/data pipeline; not a matched architecture-only comparison"
+      ],
+      "protocol": "Bench2Drive leaderboard README states results are self-reported from v0.0.3. It explicitly notes that methods vary in data acquisition, pretraining, training/inference compute, model size and IL/RL setup. Use only as a current public comparator snapshot, not an independently verified head-to-head result.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v003_tfv6",
+      "class": "self_reported_closed_loop_benchmark_leaderboard",
+      "name": "Bench2Drive v0.0.3 leaderboard — TFv6",
+      "metric_values": {
+        "driving_score": 95.28,
+        "success_rate_percent": 86.81
+      },
+      "protocol": "Same self-reported Bench2Drive v0.0.3 leaderboard snapshot. Preserve native DS and SR.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
+      "independent_symtropy_reproduction": false
+    },
+    {
+      "id": "bench2drive_v003_pdm_lite_privileged",
+      "class": "privileged_closed_loop_comparator",
+      "name": "Bench2Drive v0.0.3 leaderboard — PDM-Lite (privileged section)",
+      "metric_values": {
+        "driving_score": 97.02,
+        "success_rate_percent": 92.27
+      },
+      "capabilities": [
+        "listed below the leaderboard divider as a privileged method using ground-truth perception input",
+        "not a matched vision-only comparator"
+      ],
+      "protocol": "Same self-reported Bench2Drive v0.0.3 leaderboard snapshot. Must remain in a separate privileged comparator class; do not use as the fair vision-only SOTA target.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard",
       "independent_symtropy_reproduction": false
     },
     {
