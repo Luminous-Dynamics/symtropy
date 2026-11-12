@@ -677,6 +677,20 @@ mod tests {
     }
 
     #[test]
+    fn transition_evidence_must_bind_exact_state_digests() {
+        let previous = snapshot(1, "s0", "s1", &["retreat"]);
+        let next = snapshot(2, "s1", "s2", &["retreat"]);
+        let mut evidence = transition(&previous, &next, vec![]);
+        evidence.result_state_digest = "forked-state".into();
+        assert_eq!(
+            audit_transition(&previous, &next, &evidence),
+            Err(LedgerError::TransitionReceiptBindingMismatch(
+                "transition_state".into()
+            ))
+        );
+    }
+
+    #[test]
     fn qualified_loss_is_recorded_with_cause_and_reversibility() {
         let previous = snapshot(1, "s0", "s1", &["retreat", "step-left"]);
         let next = snapshot(2, "s1", "s2", &["retreat"]);
