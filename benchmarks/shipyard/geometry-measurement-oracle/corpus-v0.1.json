@@ -57,7 +57,8 @@
       "maximum_point_gap_um": 1200,
       "minimum_coverage_permille": 1000,
       "maximum_point_uncertainty_um": 5,
-      "maximum_registration_residual_um": 10
+      "maximum_registration_residual_um": 10,
+      "coverage_gap_threshold_um": 1000
     }
   },
   "cases": [
@@ -168,6 +169,18 @@
       "mutation": "invalid_domain",
       "expected_disposition": "BLOCK_INVALID_DOMAIN",
       "expected_reason": "INVALID_DOMAIN"
+    },
+    {
+      "case_id": "GEO-015",
+      "mutation": "coverage_below_minimum",
+      "expected_disposition": "BLOCK_COVERAGE_TOO_LOW",
+      "expected_reason": "COVERAGE_TOO_LOW"
+    },
+    {
+      "case_id": "GEO-016",
+      "mutation": "point_outside_domain",
+      "expected_disposition": "BLOCK_POINT_OUTSIDE_DOMAIN",
+      "expected_reason": "POINT_OUTSIDE_DOMAIN"
     }
   ],
   "claim_ceiling": "SYNTHETIC_2D_PROFILE_COMPARISON_ONLY"
