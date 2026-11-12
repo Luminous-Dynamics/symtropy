@@ -84,6 +84,9 @@ jobs:
             (.active_evidence_selection.identity_contract.hypothesis_space | contains("stable sorted hypothesis IDs")) and
             (.active_evidence_selection.identity_contract.prior_distribution | contains("changes after every posterior update")) and
             (.active_evidence_selection.identity_contract.candidate_model_binding | contains("not a transient posterior"))
+            (.active_evidence_selection.identity_contract.portfolio_binding | contains("prior-distribution digest")) and
+            (.active_evidence_selection.required_metrics | index("hypothesis_space_sha256") != null) and
+            (.active_evidence_selection.required_metrics | index("prior_distribution_sha256") != null)
             (.active_evidence_selection.risk_evidence.risk_score_ppm | contains("not a calibrated probability")) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.one_sample_one_output == true) and
@@ -214,6 +217,9 @@ jobs:
             (.properties.protocol.properties.active_evidence_selection.required | index("prior_distribution_sha256") != null) and
             (.properties.protocol.properties.active_evidence_selection.properties.prior_distribution_sha256.oneOf | length == 2) and
             (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.4") and
+            (.properties.protocol.properties.active_evidence_selection.required | index("prior_distribution_sha256") != null) and
+            (.properties.metrics.properties.hypothesis_space_sha256.oneOf | length == 2) and
+            (.properties.metrics.properties.prior_distribution_sha256.oneOf | length == 2) and
             (.properties.protocol.required | index("streaming_contract") != null) and
             (.properties.protocol.required | index("behavioral_set_evaluation") != null) and
             (.properties.protocol.properties.behavioral_set_evaluation.properties.global_unique_physical_cause_claim_allowed.const == false) and
