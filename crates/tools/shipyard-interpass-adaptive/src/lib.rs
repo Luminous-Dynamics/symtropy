@@ -255,9 +255,7 @@ fn validate_observation(input: &PlannerInput) -> Result<(), AbstainReason> {
     {
         return Err(AbstainReason::ScanOcclusionAboveMaximum);
     }
-    if state.quality.registration_error_units
-        > state.quality.maximum_registration_error_units
-    {
+    if state.quality.registration_error_units > state.quality.maximum_registration_error_units {
         return Err(AbstainReason::ScanRegistrationErrorTooLarge);
     }
     if input.procedure.procedure_id.trim().is_empty()
@@ -303,10 +301,7 @@ fn objectives_for(
     })
 }
 
-fn exclusion_for(
-    input: &PlannerInput,
-    candidate: &PassCandidate,
-) -> Option<CandidateExclusion> {
+fn exclusion_for(input: &PlannerInput, candidate: &PassCandidate) -> Option<CandidateExclusion> {
     let state = &input.observed_state;
     if is_empty(&candidate.candidate_id)
         || candidate.workpiece_id != state.workpiece_id
@@ -318,8 +313,7 @@ fn exclusion_for(
     }
     if candidate.source_scan_id != state.scan_id
         || candidate.source_scan_sha256 != state.scan_sha256
-        || candidate.source_registration_receipt_sha256
-            != state.registration_receipt_sha256
+        || candidate.source_registration_receipt_sha256 != state.registration_receipt_sha256
     {
         return Some(CandidateExclusion::WrongSourceScan);
     }
@@ -420,10 +414,7 @@ pub fn recommend_next_pass(input: &PlannerInput) -> Decision {
                 objectives,
             }),
             Err(reason) => {
-                return Decision::Abstain {
-                    reason,
-                    excluded,
-                };
+                return Decision::Abstain { reason, excluded };
             }
         }
     }
@@ -682,28 +673,30 @@ fn append_canonical_event(output: &mut Vec<u8>, event: &TemporalEvidenceEvent) {
     output.extend_from_slice(&event.transform_receipt_sha256);
     append_canonical_string(output, event.supersedes_event_id.as_deref().unwrap_or(""));
     append_canonical_string(output, event.revokes_event_id.as_deref().unwrap_or(""));
-    output.extend_from_slice(&event.model_training_cutoff_tick.unwrap_or(u64::MAX).to_le_bytes());
+    output.extend_from_slice(
+        &event
+            .model_training_cutoff_tick
+            .unwrap_or(u64::MAX)
+            .to_le_bytes(),
+    );
 }
 
 fn sha256(input: &[u8]) -> [u8; 32] {
     const INITIAL: [u32; 8] = [
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
+        0x5be0cd19,
     ];
     const K: [u32; 64] = [
-        0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,
-        0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,
-        0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,
-        0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,
-        0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,
-        0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,
-        0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,
-        0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
-        0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,
-        0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,
-        0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,
-        0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,
-        0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2,
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe,
+        0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f,
+        0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7,
+        0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc,
+        0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116,
+        0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7,
+        0xc67178f2,
     ];
 
     let mut message = input.to_vec();
@@ -720,7 +713,10 @@ fn sha256(input: &[u8]) -> [u8; 32] {
         for (index, word) in words.iter_mut().take(16).enumerate() {
             let offset = index * 4;
             *word = u32::from_be_bytes([
-                chunk[offset], chunk[offset + 1], chunk[offset + 2], chunk[offset + 3],
+                chunk[offset],
+                chunk[offset + 1],
+                chunk[offset + 2],
+                chunk[offset + 3],
             ]);
         }
         for index in 16..64 {
@@ -803,13 +799,22 @@ pub fn build_point_in_time_snapshot(
             return Err(TemporalSnapshotError::EmptyEventIdentity);
         }
         if event.first_received_tick < event.measurement_tick {
-            return Err(TemporalSnapshotError::ReceiptBeforeMeasurement(event.event_id.clone()));
+            return Err(TemporalSnapshotError::ReceiptBeforeMeasurement(
+                event.event_id.clone(),
+            ));
         }
-        if event.valid_until_tick.is_some_and(|until| until < event.valid_from_tick) {
-            return Err(TemporalSnapshotError::InvalidValidityInterval(event.event_id.clone()));
+        if event
+            .valid_until_tick
+            .is_some_and(|until| until < event.valid_from_tick)
+        {
+            return Err(TemporalSnapshotError::InvalidValidityInterval(
+                event.event_id.clone(),
+            ));
         }
         if by_id.insert(event.event_id.as_str(), event).is_some() {
-            return Err(TemporalSnapshotError::DuplicateEventId(event.event_id.clone()));
+            return Err(TemporalSnapshotError::DuplicateEventId(
+                event.event_id.clone(),
+            ));
         }
     }
 
@@ -963,8 +968,7 @@ mod tests {
             maximum_deposition_area_units: 140,
             live_execution_authorized: false,
         };
-        let make_candidate = |id: &str, deposition, time, material, energy, risk| {
-            PassCandidate {
+        let make_candidate = |id: &str, deposition, time, material, energy, risk| PassCandidate {
                 candidate_id: id.to_owned(),
                 workpiece_id: "WID-SYNTH-01".to_owned(),
                 joint_revision: "JOINT-R1".to_owned(),
@@ -984,8 +988,7 @@ mod tests {
                 resource_feasible: true,
                 path_reachable: true,
                 collision_free: true,
-            }
-        };
+            };
         let candidates = vec![
             make_candidate("FILL-UNDER", 82, 12, 82, 70, 1),
             make_candidate("FILL-MID", 100, 15, 100, 80, 2),
@@ -1007,8 +1010,6 @@ mod tests {
             candidates,
         }
     }
-
-
 
     fn temporal_test_event(
         event_id: &str,
@@ -1058,8 +1059,12 @@ mod tests {
 
     #[test]
     fn clock_domain_mismatch_is_excluded() {
-        let mut event =
-            temporal_test_event("EV-WRONG-CLOCK", TemporalEvidenceKind::ProcessObservation, 80, 81);
+        let mut event = temporal_test_event(
+            "EV-WRONG-CLOCK",
+            TemporalEvidenceKind::ProcessObservation,
+            80,
+            81,
+        );
         event.clock_id = "UNMAPPED-DEVICE-CLOCK".to_owned();
         let snapshot = build_point_in_time_snapshot(
             &[event],
@@ -1106,8 +1111,12 @@ mod tests {
 
     #[test]
     fn purpose_authorization_is_enforced() {
-        let mut event =
-            temporal_test_event("EV-NO-PERMISSION", TemporalEvidenceKind::ProcessObservation, 80, 81);
+        let mut event = temporal_test_event(
+            "EV-NO-PERMISSION",
+            TemporalEvidenceKind::ProcessObservation,
+            80,
+            81,
+        );
         event.purpose_authorized[0] = false;
         let snapshot = build_point_in_time_snapshot(
             &[event],
@@ -1154,8 +1163,12 @@ mod tests {
 
     #[test]
     fn predecessor_pass_mismatch_is_excluded() {
-        let mut event =
-            temporal_test_event("EV-OTHER-PASS", TemporalEvidenceKind::ProcessObservation, 80, 81);
+        let mut event = temporal_test_event(
+            "EV-OTHER-PASS",
+            TemporalEvidenceKind::ProcessObservation,
+            80,
+            81,
+        );
         event.pass_id = Some("PASS-01".to_owned());
         let snapshot = build_point_in_time_snapshot(
             &[event],
@@ -1170,8 +1183,12 @@ mod tests {
 
     #[test]
     fn missing_registration_receipt_digest_is_excluded() {
-        let mut event =
-            temporal_test_event("EV-NO-TRANSFORM", TemporalEvidenceKind::GeometryScan, 80, 81);
+        let mut event = temporal_test_event(
+            "EV-NO-TRANSFORM",
+            TemporalEvidenceKind::GeometryScan,
+            80,
+            81,
+        );
         event.transform_receipt_sha256 = [0; 32];
         let snapshot = build_point_in_time_snapshot(
             &[event],
@@ -1198,8 +1215,18 @@ mod tests {
             &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
         )
         .expect("revoked replacement no longer supersedes the prior scan");
-        assert!(snapshot.included.iter().any(|event| event.event_id == "SCAN-OLD"));
-        assert!(!snapshot.included.iter().any(|event| event.event_id == "SCAN-NEW"));
+        assert!(
+            snapshot
+                .included
+                .iter()
+                .any(|event| event.event_id == "SCAN-OLD")
+        );
+        assert!(
+            !snapshot
+                .included
+                .iter()
+                .any(|event| event.event_id == "SCAN-NEW")
+        );
         assert!(snapshot.excluded.iter().any(|event| {
             event.event_id == "SCAN-NEW" && event.reason == TemporalExclusionReason::Revoked
         }));
@@ -1210,10 +1237,9 @@ mod tests {
         assert_eq!(
             sha256(b"abc"),
             [
-                0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea,
-                0x41, 0x41, 0x40, 0xde, 0x5d, 0xae, 0x22, 0x23,
-                0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c,
-                0xb4, 0x10, 0xff, 0x61, 0xf2, 0x00, 0x15, 0xad,
+                0xba, 0x78, 0x16, 0xbf, 0x8f, 0x01, 0xcf, 0xea, 0x41, 0x41, 0x40, 0xde, 0x5d, 0xae,
+                0x22, 0x23, 0xb0, 0x03, 0x61, 0xa3, 0x96, 0x17, 0x7a, 0x9c, 0xb4, 0x10, 0xff, 0x61,
+                0xf2, 0x00, 0x15, 0xad,
             ]
         );
     }
@@ -1257,12 +1283,8 @@ mod tests {
 
     #[test]
     fn future_measurement_is_excluded_even_when_received() {
-        let event = temporal_test_event(
-            "EV-FUTURE-01",
-            TemporalEvidenceKind::GeometryScan,
-            101,
-            102,
-        );
+        let event =
+            temporal_test_event("EV-FUTURE-01", TemporalEvidenceKind::GeometryScan, 101, 102);
         let snapshot = build_point_in_time_snapshot(
             &[event],
             &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
@@ -1276,12 +1298,7 @@ mod tests {
 
     #[test]
     fn ndt_label_is_not_a_medium_loop_feature() {
-        let mut event = temporal_test_event(
-            "EV-NDT-01",
-            TemporalEvidenceKind::NdtOutcome,
-            90,
-            91,
-        );
+        let mut event = temporal_test_event("EV-NDT-01", TemporalEvidenceKind::NdtOutcome, 90, 91);
         event.role = TemporalEvidenceRole::OutcomeLabel;
         let snapshot = build_point_in_time_snapshot(
             &[event],
@@ -1297,12 +1314,8 @@ mod tests {
 
     #[test]
     fn later_ndt_outcome_is_available_to_later_quality_requalification() {
-        let mut event = temporal_test_event(
-            "EV-NDT-02",
-            TemporalEvidenceKind::NdtOutcome,
-            101,
-            102,
-        );
+        let mut event =
+            temporal_test_event("EV-NDT-02", TemporalEvidenceKind::NdtOutcome, 101, 102);
         event.role = TemporalEvidenceRole::OutcomeLabel;
         let snapshot = build_point_in_time_snapshot(
             &[event],
@@ -1323,7 +1336,11 @@ mod tests {
         )
         .expect("valid supersession");
         assert_eq!(
-            snapshot.included.iter().map(|e| e.event_id.as_str()).collect::<Vec<_>>(),
+            snapshot
+                .included
+                .iter()
+                .map(|e| e.event_id.as_str())
+                .collect::<Vec<_>>(),
             vec!["SCAN-NEW"]
         );
         assert_eq!(
@@ -1342,10 +1359,14 @@ mod tests {
             &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
         )
         .expect("late supersession does not alter prior view");
-        assert!(snapshot.included.iter().any(|event| event.event_id == "SCAN-OLD"));
+        assert!(
+            snapshot
+                .included
+                .iter()
+                .any(|event| event.event_id == "SCAN-OLD")
+        );
         assert!(snapshot.excluded.iter().any(|event| {
-            event.event_id == "SCAN-NEW"
-                && event.reason == TemporalExclusionReason::LateArrival
+            event.event_id == "SCAN-NEW" && event.reason == TemporalExclusionReason::LateArrival
         }));
     }
 
@@ -1360,7 +1381,12 @@ mod tests {
             &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
         )
         .expect("valid revocation");
-        assert!(!snapshot.included.iter().any(|event| event.event_id == "CAL-OLD"));
+        assert!(
+            !snapshot
+                .included
+                .iter()
+                .any(|event| event.event_id == "CAL-OLD")
+        );
         assert!(snapshot.excluded.iter().any(|event| {
             event.event_id == "CAL-OLD" && event.reason == TemporalExclusionReason::Revoked
         }));
@@ -1377,7 +1403,12 @@ mod tests {
             &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
         )
         .expect("late revocation does not rewrite history");
-        assert!(snapshot.included.iter().any(|event| event.event_id == "CAL-OLD"));
+        assert!(
+            snapshot
+                .included
+                .iter()
+                .any(|event| event.event_id == "CAL-OLD")
+        );
     }
 
     #[test]
@@ -1394,20 +1425,27 @@ mod tests {
 
     #[test]
     fn receipt_before_measurement_rejects_the_ledger() {
-        let event = temporal_test_event("EV-CLOCK", TemporalEvidenceKind::ProcessObservation, 90, 80);
+        let event =
+            temporal_test_event("EV-CLOCK", TemporalEvidenceKind::ProcessObservation, 90, 80);
         assert_eq!(
             build_point_in_time_snapshot(
                 &[event],
                 &temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100),
             ),
-            Err(TemporalSnapshotError::ReceiptBeforeMeasurement("EV-CLOCK".to_owned()))
+            Err(TemporalSnapshotError::ReceiptBeforeMeasurement(
+                "EV-CLOCK".to_owned()
+            ))
         );
     }
 
     #[test]
     fn missing_source_digest_is_excluded() {
-        let mut event =
-            temporal_test_event("EV-NO-SOURCE-HASH", TemporalEvidenceKind::GeometryScan, 80, 81);
+        let mut event = temporal_test_event(
+            "EV-NO-SOURCE-HASH",
+            TemporalEvidenceKind::GeometryScan,
+            80,
+            81,
+        );
         event.source_sha256 = [0; 32];
         let snapshot = build_point_in_time_snapshot(
             &[event],
@@ -1422,8 +1460,12 @@ mod tests {
 
     #[test]
     fn timestamp_precision_too_coarse_is_excluded() {
-        let mut event =
-            temporal_test_event("EV-COARSE", TemporalEvidenceKind::ProcessObservation, 80, 81);
+        let mut event = temporal_test_event(
+            "EV-COARSE",
+            TemporalEvidenceKind::ProcessObservation,
+            80,
+            81,
+        );
         event.timestamp_precision_ticks = 10;
         let snapshot = build_point_in_time_snapshot(
             &[event],
@@ -1443,8 +1485,8 @@ mod tests {
         let decision = temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100);
         let a = build_point_in_time_snapshot(&[first.clone(), second.clone()], &decision)
             .expect("first snapshot");
-        let b = build_point_in_time_snapshot(&[second, first], &decision)
-            .expect("permuted snapshot");
+        let b =
+            build_point_in_time_snapshot(&[second, first], &decision).expect("permuted snapshot");
         assert_eq!(a.snapshot_sha256, b.snapshot_sha256);
         assert_eq!(a.included, b.included);
     }
@@ -1452,7 +1494,8 @@ mod tests {
     #[test]
     fn late_event_does_not_change_historical_snapshot_digest() {
         let event = temporal_test_event("EV-BASE", TemporalEvidenceKind::GeometryScan, 80, 81);
-        let late = temporal_test_event("EV-LATE", TemporalEvidenceKind::ProcessObservation, 90, 101);
+        let late =
+            temporal_test_event("EV-LATE", TemporalEvidenceKind::ProcessObservation, 90, 101);
         let decision = temporal_test_decision(TemporalDecisionPurpose::MediumNextPass, 100);
         let a = build_point_in_time_snapshot(std::slice::from_ref(&event), &decision)
             .expect("base snapshot");
@@ -1518,17 +1561,30 @@ mod tests {
             live_execution_authorized,
             claim_ceiling,
             ..
-        } = result else {
+        } = result
+        else {
             panic!("valid synthetic observation should produce a recommendation frontier");
         };
         assert_eq!(feasible_candidate_count, 3);
         assert_eq!(
-            recommendations.iter().map(|item| item.candidate_id.as_str()).collect::<Vec<_>>(),
+            recommendations
+                .iter()
+                .map(|item| item.candidate_id.as_str())
+                .collect::<Vec<_>>(),
             vec!["FILL-MID", "FILL-OVER", "FILL-UNDER"]
         );
-        assert_eq!(recommendations[0].objectives.robust_geometry_error_units, 10);
-        assert_eq!(recommendations[1].objectives.robust_geometry_error_units, 40);
-        assert_eq!(recommendations[2].objectives.robust_geometry_error_units, 28);
+        assert_eq!(
+            recommendations[0].objectives.robust_geometry_error_units,
+            10
+        );
+        assert_eq!(
+            recommendations[1].objectives.robust_geometry_error_units,
+            40
+        );
+        assert_eq!(
+            recommendations[2].objectives.robust_geometry_error_units,
+            28
+        );
         assert!(!automatic_selection);
         assert!(!live_execution_authorized);
         assert_eq!(claim_ceiling, "SYNTHETIC_INTERPASS_PLAN_CONTRACT_ONLY");
@@ -1536,10 +1592,12 @@ mod tests {
 
     #[test]
     fn geometry_only_and_time_only_baselines_choose_different_passes() {
-        let Decision::ParetoRecommendations { recommendations, .. } =
-            recommend_next_pass(&base_input()) else {
-                panic!("valid synthetic observation should produce recommendations");
-            };
+        let Decision::ParetoRecommendations {
+            recommendations, ..
+        } = recommend_next_pass(&base_input())
+        else {
+            panic!("valid synthetic observation should produce recommendations");
+        };
         let geometry_only = recommendations
             .iter()
             .min_by(|left, right| {
@@ -1566,7 +1624,11 @@ mod tests {
     #[test]
     fn receding_horizon_replans_from_the_new_after_pass_scan() {
         let first = recommend_next_pass(&base_input());
-        let Decision::ParetoRecommendations { recommendations: first_frontier, .. } = first else {
+        let Decision::ParetoRecommendations {
+            recommendations: first_frontier,
+            ..
+        } = first
+        else {
             panic!("first observation should produce recommendations");
         };
         let first_geometry_best = first_frontier
@@ -1590,11 +1652,7 @@ mod tests {
         second_input.expected_predecessor_pass_id = "PASS-03".to_owned();
         second_input.decision_at_tick = 110;
 
-        let next_actions = [
-            ("FILL-45", 45),
-            ("FILL-55", 55),
-            ("FILL-70", 70),
-        ];
+        let next_actions = [("FILL-45", 45), ("FILL-55", 55), ("FILL-70", 70)];
         for (candidate, (candidate_id, deposition)) in
             second_input.candidates.iter_mut().zip(next_actions)
         {
@@ -1607,7 +1665,11 @@ mod tests {
         }
 
         let second = recommend_next_pass(&second_input);
-        let Decision::ParetoRecommendations { recommendations: second_frontier, .. } = second else {
+        let Decision::ParetoRecommendations {
+            recommendations: second_frontier,
+            ..
+        } = second
+        else {
             panic!("new observation should produce a new recommendation frontier");
         };
         let second_geometry_best = second_frontier
@@ -1619,7 +1681,10 @@ mod tests {
             })
             .expect("second geometry baseline");
         assert_eq!(second_geometry_best.candidate_id, "FILL-55");
-        assert_ne!(first_geometry_best.candidate_id, second_geometry_best.candidate_id);
+        assert_ne!(
+            first_geometry_best.candidate_id,
+            second_geometry_best.candidate_id
+        );
     }
 
     #[test]
@@ -1628,7 +1693,10 @@ mod tests {
         input.observed_state.after_pass_id = "PASS-01".to_owned();
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::StalePredecessorState, .. }
+            Decision::Abstain {
+                reason: AbstainReason::StalePredecessorState,
+                ..
+            }
         ));
     }
 
@@ -1638,7 +1706,10 @@ mod tests {
         input.observed_state.quality.registered = false;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanNotRegistered, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanNotRegistered,
+                ..
+            }
         ));
     }
 
@@ -1648,7 +1719,10 @@ mod tests {
         input.observed_state.quality.coverage_permille = 900;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanCoverageBelowMinimum, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanCoverageBelowMinimum,
+                ..
+            }
         ));
     }
 
@@ -1658,7 +1732,10 @@ mod tests {
         input.observed_state.quality.occlusion_permille = 80;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanOcclusionAboveMaximum, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanOcclusionAboveMaximum,
+                ..
+            }
         ));
     }
 
@@ -1668,7 +1745,10 @@ mod tests {
         input.observed_state.quality.registration_error_units = 3;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanRegistrationErrorTooLarge, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanRegistrationErrorTooLarge,
+                ..
+            }
         ));
     }
 
@@ -1678,7 +1758,10 @@ mod tests {
         input.observed_state.observed_at_tick = 101;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ObservationFromFuture, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ObservationFromFuture,
+                ..
+            }
         ));
     }
 
@@ -1688,7 +1771,10 @@ mod tests {
         input.observed_state.observed_at_tick = 50;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ObservationTooOld, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ObservationTooOld,
+                ..
+            }
         ));
     }
 
@@ -1698,7 +1784,10 @@ mod tests {
         input.future_information_used = true;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::FutureInformationLeakage, .. }
+            Decision::Abstain {
+                reason: AbstainReason::FutureInformationLeakage,
+                ..
+            }
         ));
     }
 
@@ -1708,7 +1797,10 @@ mod tests {
         input.model_domain_supported = false;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ModelOutsideDeclaredDomain, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ModelOutsideDeclaredDomain,
+                ..
+            }
         ));
     }
 
@@ -1718,7 +1810,10 @@ mod tests {
         input.observed_state.evidence_class = EvidenceClass::MeasuredGeometry;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::PhysicalOrSimulationEvidenceNotAdmitted, .. }
+            Decision::Abstain {
+                reason: AbstainReason::PhysicalOrSimulationEvidenceNotAdmitted,
+                ..
+            }
         ));
     }
 
@@ -1728,7 +1823,10 @@ mod tests {
         input.live_execution_requested = true;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::LiveExecutionForbidden, .. }
+            Decision::Abstain {
+                reason: AbstainReason::LiveExecutionForbidden,
+                ..
+            }
         ));
     }
 
@@ -1753,7 +1851,10 @@ mod tests {
                 panic!("remaining candidates should be feasible");
             };
         assert_eq!(feasible_candidate_count, 2);
-        assert_eq!(excluded[0].reason, CandidateExclusion::WrongProcedureRevision);
+        assert_eq!(
+            excluded[0].reason,
+            CandidateExclusion::WrongProcedureRevision
+        );
     }
 
     #[test]
@@ -1795,10 +1896,14 @@ mod tests {
     fn candidate_with_wrong_registration_receipt_is_excluded() {
         let mut input = base_input();
         input.candidates[0].source_registration_receipt_sha256 = [0x44; 32];
-        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
-            recommend_next_pass(&input) else {
-                panic!("remaining candidates should remain feasible");
-            };
+        let Decision::ParetoRecommendations {
+            excluded,
+            feasible_candidate_count,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("remaining candidates should remain feasible");
+        };
         assert_eq!(feasible_candidate_count, 2);
         assert_eq!(excluded[0].reason, CandidateExclusion::WrongSourceScan);
     }
@@ -1861,12 +1966,16 @@ mod tests {
     fn robust_geometry_error_accounts_for_measurement_uncertainty() {
         let mut input = base_input();
         input.observed_state.uncertainty_bound_units = 25;
-        let Decision::ParetoRecommendations { recommendations, .. } =
-            recommend_next_pass(&input)
+        let Decision::ParetoRecommendations {
+            recommendations, ..
+        } = recommend_next_pass(&input)
         else {
             panic!("valid synthetic input should be admitted");
         };
-        let middle = recommendations.iter().find(|r| r.candidate_id == "FILL-MID").unwrap();
+        let middle = recommendations
+            .iter()
+            .find(|r| r.candidate_id == "FILL-MID")
+            .unwrap();
         assert_eq!(middle.objectives.robust_geometry_error_units, 25);
     }
 
