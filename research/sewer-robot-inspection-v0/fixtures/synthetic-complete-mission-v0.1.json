@@ -1,0 +1,85 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "sewer-robot.synthetic.complete-observation-001",
+  "evidence_class": "synthetic_only",
+  "evaluation_scope": "mission_evidence_completeness_only_no_asset_condition_claim",
+  "asset": {
+    "asset_id": "SYN-PIPE-002",
+    "network_type": "sanitary_sewer",
+    "diameter_mm": 800,
+    "pipe_length_m": 6,
+    "chainage_origin": "upstream_manhole"
+  },
+  "robot": {
+    "platform_id": "SYN-CRAWLER-02",
+    "platform_family": "crawler",
+    "firmware_revision": "synthetic-r0",
+    "sensor_modalities": [
+      "cctv",
+      "rgbd",
+      "imu",
+      "wheel_odometry",
+      "tether_encoder"
+    ]
+  },
+  "mission": {
+    "planned_length_m": 6,
+    "reached_length_m": 6,
+    "usable_length_m": 6,
+    "mission_status": "complete",
+    "retrieval_status": "retrieved",
+    "clock_sync_status": "qualified",
+    "localization_status": "qualified",
+    "localization_p95_error_m": 0.03,
+    "safe_stop_available": true
+  },
+  "observation_intervals": [
+    {
+      "interval_id": "i0",
+      "start_chainage_m": 0,
+      "end_chainage_m": 2,
+      "observation_state": "observed",
+      "surface_coverage_percent": 97,
+      "localization_p95_error_m": 0.03,
+      "reason_code": "NONE",
+      "source_refs": [
+        "synthetic://obs/positive-i0"
+      ]
+    },
+    {
+      "interval_id": "i1",
+      "start_chainage_m": 2,
+      "end_chainage_m": 4,
+      "observation_state": "observed",
+      "surface_coverage_percent": 96,
+      "localization_p95_error_m": 0.03,
+      "reason_code": "NONE",
+      "source_refs": [
+        "synthetic://obs/positive-i1"
+      ]
+    },
+    {
+      "interval_id": "i2",
+      "start_chainage_m": 4,
+      "end_chainage_m": 6,
+      "observation_state": "observed",
+      "surface_coverage_percent": 95,
+      "localization_p95_error_m": 0.03,
+      "reason_code": "NONE",
+      "source_refs": [
+        "synthetic://obs/positive-i2"
+      ]
+    }
+  ],
+  "expected_disposition": "Accepted",
+  "expected_reason_codes": [],
+  "defect_absence_claim_allowed": false,
+  "notes": [
+    "Synthetic positive control for mission-evidence completeness only.",
+    "Accepted means the planned observation envelope is complete under this synthetic contract; it does not mean the pipe is defect-free, safe, serviceable or compliant."
+  ],
+  "acceptance_profile": {
+    "minimum_surface_coverage_percent": 90,
+    "maximum_localization_p95_error_m": 0.1
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "schema_version": "0.1.0",
+  "case_id": "sewer-robot.synthetic.localization-gap-001",
+  "evidence_class": "synthetic_only",
+  "evaluation_scope": "mission_evidence_completeness_only_no_asset_condition_claim",
+  "asset": {
+    "asset_id": "SYN-PIPE-001",
+    "network_type": "sanitary_sewer",
+    "diameter_mm": 800,
+    "pipe_length_m": 6,
+    "chainage_origin": "upstream_manhole"
+  },
+  "robot": {
+    "platform_id": "SYN-CRAWLER-01",
+    "platform_family": "crawler",
+    "firmware_revision": "synthetic-r0",
+    "sensor_modalities": [
+      "cctv",
+      "rgbd",
+      "imu",
+      "wheel_odometry",
+      "tether_encoder"
+    ]
+  },
+  "mission": {
+    "planned_length_m": 6,
+    "reached_length_m": 5.2,
+    "usable_length_m": 2,
+    "mission_status": "partial",
+    "retrieval_status": "retrieved",
+    "clock_sync_status": "qualified",
+    "localization_status": "degraded",
+    "localization_p95_error_m": 0.45,
+    "safe_stop_available": true
+  },
+  "observation_intervals": [
+    {
+      "interval_id": "i0",
+      "start_chainage_m": 0,
+      "end_chainage_m": 2,
+      "observation_state": "observed",
+      "surface_coverage_percent": 96,
+      "localization_p95_error_m": 0.03,
+      "reason_code": "NONE",
+      "source_refs": [
+        "synthetic://obs/i0"
+      ]
+    },
+    {
+      "interval_id": "i1",
+      "start_chainage_m": 2,
+      "end_chainage_m": 3.6,
+      "observation_state": "missing",
+      "surface_coverage_percent": null,
+      "localization_p95_error_m": null,
+      "reason_code": "SENSOR_DROPOUT",
+      "source_refs": []
+    },
+    {
+      "interval_id": "i2",
+      "start_chainage_m": 3.6,
+      "end_chainage_m": 5.2,
+      "observation_state": "degraded",
+      "surface_coverage_percent": 61,
+      "localization_p95_error_m": 0.45,
+      "reason_code": "LOCALIZATION_UNCERTAIN",
+      "source_refs": [
+        "synthetic://obs/i2"
+      ]
+    },
+    {
+      "interval_id": "i3",
+      "start_chainage_m": 5.2,
+      "end_chainage_m": 6,
+      "observation_state": "not_reached",
+      "surface_coverage_percent": null,
+      "localization_p95_error_m": null,
+      "reason_code": "NOT_REACHED",
+      "source_refs": []
+    }
+  ],
+  "expected_disposition": "Indeterminate",
+  "expected_reason_codes": [
+    "OBSERVATION_GAP",
+    "LOCALIZATION_UNCERTAIN",
+    "MISSION_NOT_COMPLETE",
+    "SURFACE_COVERAGE_INCOMPLETE"
+  ],
+  "defect_absence_claim_allowed": false,
+  "notes": [
+    "Synthetic negative control only. No real robot, sensor, image, pipe asset or defect annotation is represented.",
+    "A retrieved robot does not make the missing interval inspected.",
+    "The mission does not support a defect-free conclusion for the missing or degraded intervals."
+  ],
+  "acceptance_profile": {
+    "minimum_surface_coverage_percent": 90,
+    "maximum_localization_p95_error_m": 0.1
+  }
+}

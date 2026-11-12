@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.io/schemas/sewer-robot-mission-case-0.1.0.json",
+  "title": "Sewer robot mission evidence completeness case",
+  "description": "Runtime-neutral benchmark case for mission completeness and observation quality. Defect classification, structural grade and physical pipe condition are explicitly outside this T0 schema.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "case_id",
+    "evidence_class",
+    "evaluation_scope",
+    "asset",
+    "robot",
+    "mission",
+    "acceptance_profile",
+    "observation_intervals",
+    "expected_disposition",
+    "expected_reason_codes",
+    "defect_absence_claim_allowed"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "case_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "evaluation_scope": {
+      "const": "mission_evidence_completeness_only_no_asset_condition_claim"
+    },
+    "asset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "asset_id",
+        "network_type",
+        "diameter_mm",
+        "pipe_length_m",
+        "chainage_origin"
+      ],
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "network_type": {
+          "enum": [
+            "sanitary_sewer",
+            "storm_drain",
+            "water_conveyance"
+          ]
+        },
+        "diameter_mm": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "pipe_length_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "chainage_origin": {
+          "enum": [
+            "upstream_manhole",
+            "downstream_manhole",
+            "surveyed_datum",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "robot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform_id",
+        "platform_family",
+        "firmware_revision",
+        "sensor_modalities"
+      ],
+      "properties": {
+        "platform_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "platform_family": {
+          "enum": [
+            "crawler",
+            "push_camera",
+            "floating_robot",
+            "other"
+          ]
+        },
+        "firmware_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "sensor_modalities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "cctv",
+              "rgbd",
+              "stereo",
+              "laser_profile",
+              "sonar",
+              "imu",
+              "wheel_odometry",
+              "tether_encoder",
+              "gas_sensor",
+              "flow_sensor"
+            ]
+          }
+        }
+      }
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "planned_length_m",
+        "reached_length_m",
+        "usable_length_m",
+        "mission_status",
+        "retrieval_status",
+        "clock_sync_status",
+        "localization_status",
+        "localization_p95_error_m",
+        "safe_stop_available"
+      ],
+      "properties": {
+        "planned_length_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "reached_length_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "usable_length_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "mission_status": {
+          "enum": [
+            "complete",
+            "partial",
+            "failed",
+            "aborted"
+          ]
+        },
+        "retrieval_status": {
+          "enum": [
+            "retrieved",
+            "recovered_after_intervention",
+            "not_retrieved",
+            "unknown"
+          ]
+        },
+        "clock_sync_status": {
+          "enum": [
+            "qualified",
+            "degraded",
+            "failed",
+            "unknown"
+          ]
+        },
+        "localization_status": {
+          "enum": [
+            "qualified",
+            "degraded",
+            "failed",
+            "unknown"
+          ]
+        },
+        "localization_p95_error_m": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "safe_stop_available": {
+          "type": "boolean"
+        }
+      }
+    },
+    "observation_intervals": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "interval_id",
+          "start_chainage_m",
+          "end_chainage_m",
+          "observation_state",
+          "surface_coverage_percent",
+          "localization_p95_error_m",
+          "reason_code",
+          "source_refs"
+        ],
+        "properties": {
+          "interval_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "start_chainage_m": {
+            "type": "number",
+            "minimum": 0
+          },
+          "end_chainage_m": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "observation_state": {
+            "enum": [
+              "observed",
+              "degraded",
+              "unobservable",
+              "missing",
+              "not_reached"
+            ]
+          },
+          "surface_coverage_percent": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 100
+          },
+          "localization_p95_error_m": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "reason_code": {
+            "enum": [
+              "NONE",
+              "SENSOR_DROPOUT",
+              "LOCALIZATION_UNCERTAIN",
+              "LOW_VISIBILITY",
+              "OBSTRUCTION",
+              "NOT_REACHED",
+              "CLOCK_SYNC_FAILED",
+              "OTHER"
+            ]
+          },
+          "source_refs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 256
+            }
+          }
+        }
+      }
+    },
+    "expected_disposition": {
+      "enum": [
+        "Accepted",
+        "Rejected",
+        "Indeterminate",
+        "Unsupported"
+      ]
+    },
+    "expected_reason_codes": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "OBSERVATION_GAP",
+          "LOCALIZATION_UNCERTAIN",
+          "CLOCK_SYNC_UNQUALIFIED",
+          "MISSION_NOT_COMPLETE",
+          "NOT_RETRIEVED",
+          "SURFACE_COVERAGE_INCOMPLETE",
+          "SAFE_STOP_UNAVAILABLE",
+          "UNSUPPORTED_ASSET_OR_PLATFORM"
+        ]
+      }
+    },
+    "defect_absence_claim_allowed": {
+      "const": false
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 512
+      }
+    },
+    "acceptance_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_surface_coverage_percent",
+        "maximum_localization_p95_error_m"
+      ],
+      "properties": {
+        "minimum_surface_coverage_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "maximum_localization_p95_error_m": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    }
+  }
+}
