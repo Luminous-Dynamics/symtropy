@@ -223,7 +223,7 @@ Every case needs a named expected disposition and an independent oracle. Include
 - **Symtropy:** physical process/hydraulic modelling only where equations and solver are validated; reuse existing water ledger and qualified hydrology solver.
 - **Sol-Atlas:** terrain/catchment, GIS and asset spatial evidence, geometry, exposure, source vintage and uncertainty.
 - **Symthaea:** read-only anomaly triage, uncertainty-aware design exploration and candidate explanations; no independent water-safety certification.
-- **Mycelix:** provenance, lab results, approvals, maintenance and contested records; essential access must never depend on reputation, credits or contribution.
+- **Mycelix:** provenance, lab results, approvals, maintenance and contested records; essential access must never depend on reputation, credits or contribution. Treat existing water-purity fields such as potability scores and WHO/EPA pass flags as submitter assertions unless independently supported by raw measurements, sample custody, method/calibration evidence and qualified laboratory results; a stored boolean is not a certification.
 - **Robotics:** inspection/sampling/maintenance assistance within verified envelopes, physical isolation and human override.
 - **Luminous platform:** requirements, BOM, revision, suppliers/materials, verification, commissioning, operations and repair lifecycle.
 
