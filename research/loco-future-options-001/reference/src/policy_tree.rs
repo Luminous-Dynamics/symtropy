@@ -13,6 +13,13 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::EvidenceManifest;
 
+/// Hard ceilings for the finite policy-tree evaluator. Inputs beyond these
+/// limits are rejected; they are never truncated or partially evaluated.
+pub const MAX_POLICY_TREE_NODES: usize = 256;
+pub const MAX_POLICY_TREE_ACTIONS: usize = 256;
+pub const MAX_POLICY_TREE_STATES_PER_NODE: usize = 1_024;
+pub const MAX_POLICY_TREE_TRANSITIONS: usize = 32_768;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BeliefStateReceipt {
     pub state_id: String,
@@ -132,6 +139,11 @@ pub enum PolicyTreeError {
     MissingRootNode(String),
     InvalidHorizon(usize),
     CyclicPolicyGraph(String),
+    InputLimitExceeded {
+        field: &'static str,
+        limit: usize,
+        observed: usize,
+    },
 }
 
 impl std::fmt::Display for PolicyTreeError {
@@ -463,6 +475,24 @@ fn solve_node(
                 candidate_actions.retain(|action| admitted.contains(action));
             }
 
+            // Index physically possible transitions once. Without this index,
+            // the inner action/state loop rescans the entire edge list and
+            // scales as O(actions × states × edges).
+            let mut edges_by_state_action: BTreeMap<
+                (String, String),
+                Vec<&PolicyTransition>,
+            > = BTreeMap::new();
+            for edge in node
+                .transitions
+                .iter()
+                .filter(|edge| edge.physically_possible)
+            {
+                edges_by_state_action
+                    .entry((edge.from_state_id.clone(), edge.action_id.clone()))
+                    .or_default()
+                    .push(edge);
+            }
+
             let mut winning_actions = Vec::new();
             let mut chosen_witness = BTreeMap::new();
             let mut any_unknown = false;
@@ -480,15 +510,10 @@ fn solve_node(
                 let mut action_no_policy = false;
 
                 for state_id in &node.state_ids {
-                    let state_edges: Vec<&PolicyTransition> = node
-                        .transitions
-                        .iter()
-                        .filter(|edge| {
-                            edge.from_state_id == *state_id
-                                && edge.action_id == action_id
-                                && edge.physically_possible
-                        })
-                        .collect();
+                    let state_edges = edges_by_state_action
+                        .get(&(state_id.clone(), action_id.clone()))
+                        .cloned()
+                        .unwrap_or_default();
                     if state_edges.is_empty() {
                         action_unknown = true;
                         unknown_reasons.push(format!(
@@ -717,6 +742,20 @@ pub fn evaluate_bounded_policy_tree(
     if !(1..=3).contains(&horizon) {
         return Err(PolicyTreeError::InvalidHorizon(horizon));
     }
+    if tree.nodes.len() > MAX_POLICY_TREE_NODES {
+        return Err(PolicyTreeError::InputLimitExceeded {
+            field: "belief_nodes",
+            limit: MAX_POLICY_TREE_NODES,
+            observed: tree.nodes.len(),
+        });
+    }
+    if tree.action_ids.len() > MAX_POLICY_TREE_ACTIONS {
+        return Err(PolicyTreeError::InputLimitExceeded {
+            field: "action_ids",
+            limit: MAX_POLICY_TREE_ACTIONS,
+            observed: tree.action_ids.len(),
+        });
+    }
     require_nonempty(&[
         ("root_node_id", &tree.root_node_id),
         ("action_domain.digest", &tree.action_domain.digest),
@@ -747,7 +786,23 @@ pub fn evaluate_bounded_policy_tree(
     }
 
     let mut nodes = BTreeMap::new();
+    let mut total_transitions = 0_usize;
     for node in &tree.nodes {
+        if node.state_ids.len() > MAX_POLICY_TREE_STATES_PER_NODE {
+            return Err(PolicyTreeError::InputLimitExceeded {
+                field: "states_per_belief_node",
+                limit: MAX_POLICY_TREE_STATES_PER_NODE,
+                observed: node.state_ids.len(),
+            });
+        }
+        total_transitions = total_transitions.saturating_add(node.transitions.len());
+        if total_transitions > MAX_POLICY_TREE_TRANSITIONS {
+            return Err(PolicyTreeError::InputLimitExceeded {
+                field: "transitions",
+                limit: MAX_POLICY_TREE_TRANSITIONS,
+                observed: total_transitions,
+            });
+        }
         require_nonempty(&[("belief_node.node_id", &node.node_id)])?;
         if nodes.insert(node.node_id.clone(), node).is_some() {
             return Err(PolicyTreeError::DuplicateNodeId(node.node_id.clone()));
@@ -1235,6 +1290,46 @@ mod tests {
                 .iter()
                 .any(|reason| reason.contains("missing-child-node"))
         );
+    }
+
+
+    #[test]
+    fn policy_tree_input_limits_reject_without_truncating_evidence() {
+        let mut actions = root_two_step_tree();
+        actions.action_ids = (0..=MAX_POLICY_TREE_ACTIONS)
+            .map(|index| format!("action-{index}"))
+            .collect();
+        assert!(matches!(
+            evaluate_bounded_policy_tree(&actions, 2),
+            Err(PolicyTreeError::InputLimitExceeded {
+                field: "action_ids",
+                ..
+            })
+        ));
+
+        let mut states = root_two_step_tree();
+        states.nodes[0].state_ids = (0..=MAX_POLICY_TREE_STATES_PER_NODE)
+            .map(|index| format!("state-{index}"))
+            .collect();
+        assert!(matches!(
+            evaluate_bounded_policy_tree(&states, 2),
+            Err(PolicyTreeError::InputLimitExceeded {
+                field: "states_per_belief_node",
+                ..
+            })
+        ));
+
+        let mut transitions = root_two_step_tree();
+        let edge = transitions.nodes[0].transitions[0].clone();
+        transitions.nodes[0].transitions =
+            vec![edge; MAX_POLICY_TREE_TRANSITIONS + 1];
+        assert!(matches!(
+            evaluate_bounded_policy_tree(&transitions, 2),
+            Err(PolicyTreeError::InputLimitExceeded {
+                field: "transitions",
+                ..
+            })
+        ));
     }
 
     #[test]
