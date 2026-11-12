@@ -847,7 +847,12 @@ mod tests {
         items.retain(|item| item.sensor.sensor_id != "independent_inspection");
         let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &items).unwrap();
         assert!(!report.recommended);
-        assert!(report.candidate_policy_tree.is_none());
+        assert_eq!(
+            report.candidate_policy_tree,
+            Some(CandidatePolicyNode::StopAndAct {
+                action_id: "repair".to_owned()
+            })
+        );
         assert_eq!(report.worst_case_post_sensing_regret, Some(15.0));
     }
 
@@ -858,6 +863,27 @@ mod tests {
         let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &items).unwrap();
         assert!(!report.recommended);
         assert!(!report.evaluator_node_receipts.iter().any(|receipt| receipt.sensor_id.as_deref() == Some("over_budget_followup")));
+    }
+
+    #[test]
+    fn mutually_exclusive_branch_costs_are_not_summed_across_the_whole_tree() {
+        let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
+        let healthy_leaf = report.evaluator_leaf_receipts
+            .iter()
+            .find(|receipt| receipt.world_id == "healthy")
+            .unwrap();
+        let degraded_leaf = report.evaluator_leaf_receipts
+            .iter()
+            .find(|receipt| receipt.world_id == "degraded")
+            .unwrap();
+        assert_eq!(healthy_leaf.path_energy_kwh, 0.2);
+        assert_eq!(healthy_leaf.path_latency_ticks, 1);
+        assert_eq!(healthy_leaf.sensing_penalty_service_units, 0.6);
+        assert_eq!(degraded_leaf.path_energy_kwh, 0.35);
+        assert_eq!(degraded_leaf.path_latency_ticks, 2);
+        assert_eq!(degraded_leaf.sensing_penalty_service_units, 1.4);
+        assert_eq!(report.maximum_path_energy_kwh, 0.35);
+        assert_eq!(report.maximum_path_latency_ticks, 2);
     }
 
     #[test]
