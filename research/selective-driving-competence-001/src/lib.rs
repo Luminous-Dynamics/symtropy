@@ -903,6 +903,20 @@ mod tests {
     }
 
     #[test]
+    fn published_demo_evaluates_with_complete_fallback_record() {
+        let value = EvaluationInput::from_json(include_str!(
+            "../examples/selective-driving-demo-v0_1.json"
+        ))
+        .unwrap();
+        let report = value.evaluate().unwrap();
+        assert_eq!(report.observed_decision_count, 6);
+        assert_eq!(report.expected_episode_count, 3);
+        assert_eq!(report.fallback.abstained_decisions, 1);
+        assert_eq!(report.fallback.fallback_successes, 1);
+        assert_eq!(report.fallback.late_abstentions, 0);
+    }
+
+    #[test]
     fn protocol_documents_are_parseable_and_mark_targets_not_measured() {
         let manifest: serde_json::Value =
             serde_json::from_str(include_str!("../manifest-v0_1.json")).unwrap();
