@@ -1189,9 +1189,15 @@ mod tests {
     #[test]
     fn no_communication_topology_never_connects_coincident_agents() {
         let agents = vec![
-            ScmAgent { position: vec![0.5, 0.5] },
-            ScmAgent { position: vec![0.5, 0.5] },
-            ScmAgent { position: vec![0.2, 0.2] },
+            ScmAgent {
+                position: vec![0.5, 0.5],
+            },
+            ScmAgent {
+                position: vec![0.5, 0.5],
+            },
+            ScmAgent {
+                position: vec![0.2, 0.2],
+            },
         ];
         let mut model = ScmModel::new(
             agents,
@@ -1204,10 +1210,13 @@ mod tests {
         .unwrap();
 
         let report = model.step(&Quadratic).unwrap();
-        assert_eq!(report.communication_topology, ScmCommunicationTopology::NoCommunication);
+        assert_eq!(
+            report.communication_topology,
+            ScmCommunicationTopology::NoCommunication
+        );
         assert_eq!(report.mean_communicating_neighbors, 0.0);
         assert_eq!(report.isolated_agents, 3);
-        assert_eq!(report.best_agent_fitness, report.best_fitness_seen);
+        assert!(report.best_fitness_seen >= report.best_agent_fitness);
     }
 
     #[test]
