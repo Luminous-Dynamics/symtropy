@@ -560,6 +560,11 @@ pub fn validate_shadow_receipt_chain(
         if receipt.previous_receipt_sha256.as_deref() != previous_receipt {
             return Err(BaselineAdaptationError::ReceiptChainBroken);
         }
+        // Integrity check precedes semantic admission checks: a changed decision
+        // field is reported as tampering, not merely as a bad original observation.
+        if shadow_observation_receipt_sha256(receipt)? != receipt.receipt_sha256 {
+            return Err(BaselineAdaptationError::ReceiptDigestMismatch);
+        }
         if !receipt.regime_supported_by_frozen_reference
             || !receipt.all_required_signals_current
             || !receipt.command_history_available
@@ -570,9 +575,6 @@ pub fn validate_shadow_receipt_chain(
             || receipt.ambiguous_hypothesis_set_present
         {
             return Err(BaselineAdaptationError::ReceiptChainBroken);
-        }
-        if shadow_observation_receipt_sha256(receipt)? != receipt.receipt_sha256 {
-            return Err(BaselineAdaptationError::ReceiptDigestMismatch);
         }
         previous_index = Some(receipt.sample_index);
         previous_time = Some(receipt.time_seconds);
