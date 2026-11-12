@@ -414,20 +414,34 @@ fn solver_solution(
     }
 }
 
-fn run_metrics(
-    backend: &str,
+struct RunInput<'a> {
+    backend: &'a str,
     family: usize,
     profile: MetricProfileV1,
-    metric_q: &Metric<CartesianQ, N>,
-    rebasis: &Rebasis<CartesianQ, DenseY, N>,
-    metric_y: &Metric<DenseY, N>,
-    force_q: &Cotangent<CartesianQ, N>,
-    force_y: &Cotangent<DenseY, N>,
-    factor_y: &Lu6,
-    acceleration_q: &Tangent<CartesianQ, N>,
-    acceleration_y: &Tangent<DenseY, N>,
-) -> Result<RunMetrics, Box<dyn Error>> {
-    let (basis_condition_2, _) = condition_metadata(family);
+    metric_q: &'a Metric<CartesianQ, N>,
+    rebasis: &'a Rebasis<CartesianQ, DenseY, N>,
+    metric_y: &'a Metric<DenseY, N>,
+    force_q: &'a Cotangent<CartesianQ, N>,
+    force_y: &'a Cotangent<DenseY, N>,
+    factor_y: &'a Lu6,
+    acceleration_q: &'a Tangent<CartesianQ, N>,
+    acceleration_y: &'a Tangent<DenseY, N>,
+}
+
+fn run_metrics(input: RunInput<'_>) -> Result<RunMetrics, Box<dyn Error>> {
+    let RunInput {
+        backend,
+        family,
+        profile,
+        metric_q,
+        rebasis,
+        metric_y,
+        force_q,
+        force_y,
+        factor_y,
+        acceleration_q,
+        acceleration_y,
+    } = input;
     let initial_velocity_q =
         Tangent::<CartesianQ, N>::new([0.4711764705882353, -0.2476470588235294,
             -0.14705882352941174, -0.04882352941176471, 0.07235294117647058,
@@ -551,10 +565,6 @@ fn run_metrics(
                 .expect("finite cotangent norm")
             + pairing(force_y, &initial_velocity_y).abs()
     });
-
-    // Keep the exact source fixture's declared coordinate condition tier
-    // visible; the mass-induced Riesz condition is separately one by design.
-    black_box(basis_condition_2);
 
     Ok(RunMetrics {
         tangent_drift,
@@ -696,19 +706,19 @@ fn run_one_family(
     };
     let acceleration_y = solver_solution(backend, &metric_y, &lu_y, &force_y)?;
 
-    let metrics = run_metrics(
+    let metrics = run_metrics(RunInput {
         backend,
         family,
         profile,
         metric_q,
-        &rebasis,
-        &metric_y,
+        rebasis: &rebasis,
+        metric_y: &metric_y,
         force_q,
-        &force_y,
-        &lu_y,
-        &acceleration_q,
-        &acceleration_y,
-    )?;
+        force_y: &force_y,
+        factor_y: &lu_y,
+        acceleration_q: &acceleration_q,
+        acceleration_y: &acceleration_y,
+    })?;
 
     let run_id = std::env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned());
     let source_sha = source_commit();
