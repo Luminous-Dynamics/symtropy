@@ -25,6 +25,16 @@ pub type Matrix<const N: usize> = [[f64; N]; N];
 
 pub trait CoordinateFrame: Copy + 'static {}
 
+/// Type-level identity for the multiplier/residual coordinates of a constraint system.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ConstraintSpace;
+impl CoordinateFrame for ConstraintSpace {}
+
+pub use constraint_metric::{
+    ConstraintMultiplierV1, ConstraintResidualV1, DelassusMetricV1,
+    rebase_constraint_jacobian,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CartesianQ;
 impl CoordinateFrame for CartesianQ {}
