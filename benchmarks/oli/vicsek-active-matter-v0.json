@@ -541,7 +541,23 @@
     "directed_interaction_edge_count": "Count of focal-agent directed visibility relations over unordered pairs.",
     "reciprocal_interaction_pair_count": "Count of unordered pairs where both directed visibility relations exist.",
     "interaction_reciprocity_fraction": "For directed visual visibility, fraction of directed visibility edges having a reciprocal counterpart; undefined when no directed edges exist.",
-    "graph_semantics": "Every metric row tags whether topology is an undirected metric graph or the weakly connected projection of directed visual visibility."
+    "graph_semantics": "Every metric row tags whether topology is an undirected metric graph or the weakly connected projection of directed visual visibility.",
+    "h0_component_persistence": {
+      "method": "deterministic H0 filtration over the weakly connected projection of visible interaction pairs",
+      "particle_birth_radius": 0,
+      "edge_activation": "strictly when periodic minimum-image distance < tested radius",
+      "interval_semantics": "finite death_radius is the merge distance; component is connected for radii strictly greater than death_radius; null death_radius is right-censored at max_radius",
+      "elder_rule": "lowest particle-index representative survives equal-birth merges",
+      "recorded_fields": [
+        "representative_particle",
+        "birth_radius",
+        "death_radius",
+        "component_size_at_end",
+        "merged_component_size"
+      ],
+      "complexity": "O(N^2 log N) pair enumeration and edge sort in the current checkpoint reference implementation",
+      "claim_scope": "structural robustness across interaction scales only; not cognition, intelligence or causal influence"
+    }
   },
   "benchmark_tasks": [
     "Collective order versus independent-particle baseline",
@@ -574,7 +590,26 @@
     "Compare directed out-neighbour local order with weakly connected cluster topology without conflating them",
     "Interventional influence propagation under visual-sector perception against common-random-number sham trajectories",
     "Asymmetric visual intervention direction: a particle that is not visible to a focal agent must not causally change that focal agent, while an actually visible particle may change its heading under intervention",
-    "Distinguish locally ordered clusters from globally aligned motion by comparing global and local polar-order distributions"
+    "Distinguish locally ordered clusters from globally aligned motion by comparing global and local polar-order distributions",
+    {
+      "id": "INTERACTION_RADIUS_H0_FILTRATION",
+      "purpose": "Determine whether connected groups are robust across scales or artifacts of one selected interaction radius",
+      "cases": [
+        "two isolated close pairs with analytically known merge radii",
+        "strict-radius exact-boundary exclusion",
+        "one-way visual visibility included only through the weakly connected projection",
+        "periodic seam-crossing pair",
+        "global translation across the periodic box"
+      ],
+      "metrics": [
+        "finite_component_death_radii",
+        "right_censored_component_count",
+        "component_size_at_merge",
+        "merge_count"
+      ],
+      "anti_leakage": "Treat each trajectory/seed as one independent system; filtration scales from one snapshot are not independent samples.",
+      "status": "IMPLEMENTED_SOURCE_TESTS_ADDED_RUST_VALIDATION_PENDING"
+    }
   ],
   "anti_leakage": [
     "Split by seed, parameter regime, particle count, and simulation trajectory; do not treat time frames from one run as independent systems.",
@@ -644,7 +679,18 @@
     "indexed_trajectory_must_match_bruteforce_metric_and_visual_updates": true,
     "indexed_metric_degree_reciprocity_and_local_order_must_match_bruteforce": true,
     "performance_claim_requires_matched_wall_clock_benchmark": false,
-    "spatial_index_fallback_regimes_required": true
+    "spatial_index_fallback_regimes_required": true,
+    "h0_filtration": {
+      "source_semantics": "strict open-radius graph; update rule and perception retained in report",
+      "test_requirements": [
+        "analytic merge-distance control",
+        "right-censoring at max radius",
+        "one-way visual weak projection",
+        "strict exact-boundary exclusion",
+        "periodic translation invariance"
+      ],
+      "status": "TESTS_ADDED_NOT_EXECUTED"
+    }
   },
   "phase_diagram_manifest": "benchmarks/oli/vicsek-phase-diagram-v0.json",
   "spatial_index_scaling_manifest": "benchmarks/oli/vicsek-spatial-index-scaling-v0.json",
