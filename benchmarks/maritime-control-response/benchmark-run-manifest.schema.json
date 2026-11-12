@@ -407,11 +407,12 @@
             "multi_scenario_assessed",
             "likelihood_calibration_catalogue_sha256",
             "likelihood_calibration_reviewed_by_independent_validator",
-            "upstream_likelihood_calibration_verification_sha256"
+            "upstream_likelihood_calibration_verification_sha256",
+            "prior_distribution_sha256"
           ],
           "properties": {
             "schema_version": {
-              "const": "liu-ice-active-evidence-selection-v0.3"
+              "const": "liu-ice-active-evidence-selection-v0.4"
             },
             "status": {
               "enum": [
@@ -711,6 +712,17 @@
               "type": "boolean"
             },
             "upstream_likelihood_calibration_verification_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "prior_distribution_sha256": {
               "oneOf": [
                 {
                   "type": "string",
@@ -2218,6 +2230,9 @@
                     "type": "string"
                   },
                   "upstream_authority_verification_sha256": {
+                    "type": "string"
+                  },
+                  "prior_distribution_sha256": {
                     "type": "string"
                   }
                 }
