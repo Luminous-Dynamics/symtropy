@@ -427,10 +427,7 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
     ///
     /// This whitening primitive is also used to construct Y = J L^-T
     /// and the Delassus metric W = Y Y^T without forming M^-1.
-    pub fn whiten_cotangent(
-        &self,
-        covector: &Cotangent<F, N>,
-    ) -> Result<Vector<N>, MetricErrorV1> {
+    pub fn whiten_cotangent(&self, covector: &Cotangent<F, N>) -> Result<Vector<N>, MetricErrorV1> {
         let mut whitened = [0.0; N];
         for row in 0..N {
             let mut value = covector.components[row];
