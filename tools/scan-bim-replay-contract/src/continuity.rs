@@ -103,6 +103,10 @@ pub struct RepresentationContinuityReceipt {
 #[serde(deny_unknown_fields)]
 pub struct RepresentationTransition {
     pub transition_id: String,
+    /// v0.1 supports a strict ordered linear chain: empty for the root and
+    /// exactly the immediately preceding transition ID for every later hop.
+    #[serde(default)]
+    pub parent_transition_ids: Vec<String>,
     pub from_representation: RepresentationKind,
     pub to_representation: RepresentationKind,
     pub source_artifacts: Vec<ArtifactReference>,
@@ -222,6 +226,8 @@ pub struct RepresentationContinuityReport {
     pub schema_version: String,
     pub receipt_id: String,
     pub scene_id: String,
+    pub root_transition_id: String,
+    pub terminal_transition_id: String,
     pub transition_count: usize,
     pub claim_count: usize,
     pub measured_claim_count: usize,
@@ -238,6 +244,128 @@ pub struct RepresentationContinuityReport {
     pub unresolved_relation_count: usize,
     pub incomplete_relation_inventory_count: usize,
     pub continuity_state: String,
+}
+
+fn same_uncertainty_bound(left: &UncertaintyBound, right: &UncertaintyBound) -> bool {
+    left.status == right.status
+        && left.metric_id == right.metric_id
+        && left.absolute_bound_m == right.absolute_bound_m
+}
+
+/// P0 v0.1 treats a receipt as one ordered linear chain. Branches/merges need
+/// an explicit DAG profile and are not inferred from filenames or list order.
+fn validate_transition_chain(transitions: &[RepresentationTransition]) -> Result<(), String> {
+    let Some(root) = transitions.first() else {
+        return Err("continuity receipt must contain at least one transition".to_owned());
+    };
+    if !root.parent_transition_ids.is_empty() {
+        return Err("root transition must not declare parent_transition_ids".to_owned());
+    }
+
+    for (index, transition) in transitions.iter().enumerate().skip(1) {
+        let previous = &transitions[index - 1];
+        if transition.parent_transition_ids.as_slice()
+            != [previous.transition_id.as_str()]
+        {
+            return Err(format!(
+                "transition {} must name exactly the immediately preceding transition {} as its parent",
+                transition.transition_id, previous.transition_id
+            ));
+        }
+        if transition.from_representation != previous.to_representation {
+            return Err(format!(
+                "transition {} from_representation does not match parent {} output representation",
+                transition.transition_id, previous.transition_id
+            ));
+        }
+
+        let consumes_parent_output = transition.source_artifacts.iter().any(|source| {
+            previous.output_artifacts.iter().any(|output| {
+                source.artifact_id == output.artifact_id
+                    && source.sha256 == output.sha256
+                    && source.role == output.role
+            })
+        });
+        if !consumes_parent_output {
+            return Err(format!(
+                "transition {} is disconnected: it must consume an exact output artifact from parent {}",
+                transition.transition_id, previous.transition_id
+            ));
+        }
+
+        for source in &transition.source_artifacts {
+            for ancestor in &transitions[..index - 1] {
+                if ancestor
+                    .output_artifacts
+                    .iter()
+                    .any(|output| output.artifact_id == source.artifact_id)
+                {
+                    return Err(format!(
+                        "transition {} skips an intermediate parent by reusing ancestor artifact {}",
+                        transition.transition_id, source.artifact_id
+                    ));
+                }
+            }
+        }
+
+        let parent_target_entities: BTreeSet<&str> = previous
+            .correspondences
+            .iter()
+            .flat_map(|event| event.target_entity_ids.iter().map(String::as_str))
+            .collect();
+        let current_source_entities: BTreeSet<&str> = transition
+            .correspondences
+            .iter()
+            .flat_map(|event| event.source_entity_ids.iter().map(String::as_str))
+            .collect();
+        if let Some(missing) = parent_target_entities
+            .difference(&current_source_entities)
+            .next()
+        {
+            return Err(format!(
+                "transition {} source correspondence inventory silently drops parent entity {}",
+                transition.transition_id, missing
+            ));
+        }
+
+        let parent_target_relations: BTreeSet<&str> = previous
+            .relation_audit
+            .relations
+            .iter()
+            .flat_map(|relation| {
+                relation
+                    .target_relations
+                    .iter()
+                    .map(|target| target.relation_id.as_str())
+            })
+            .collect();
+        let current_source_relations: BTreeSet<&str> = transition
+            .relation_audit
+            .relations
+            .iter()
+            .map(|relation| relation.source_relation_id.as_str())
+            .collect();
+        if let Some(missing) = parent_target_relations
+            .difference(&current_source_relations)
+            .next()
+        {
+            return Err(format!(
+                "transition {} source relation inventory silently drops parent relation {}",
+                transition.transition_id, missing
+            ));
+        }
+
+        if !same_uncertainty_bound(
+            &previous.uncertainty.after,
+            &transition.uncertainty.before,
+        ) {
+            return Err(format!(
+                "transition {} uncertainty.before does not carry forward parent {} uncertainty.after",
+                transition.transition_id, previous.transition_id
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Parse and audit the exact receipt bytes. This checks declared receipt
@@ -283,6 +411,7 @@ pub fn audit_representation_continuity(
     if receipt.transitions.is_empty() {
         return Err("continuity receipt must contain at least one transition".to_owned());
     }
+    validate_transition_chain(&receipt.transitions)?;
 
     let mut transition_ids = BTreeSet::new();
     let mut produced_artifacts = BTreeMap::<&str, (&str, EvidenceRole)>::new();
@@ -498,6 +627,18 @@ pub fn audit_representation_continuity(
         schema_version: "0.1".to_owned(),
         receipt_id: receipt.receipt_id,
         scene_id: receipt.scene.scene_id,
+        root_transition_id: receipt
+            .transitions
+            .first()
+            .expect("non-empty transitions were validated")
+            .transition_id
+            .clone(),
+        terminal_transition_id: receipt
+            .transitions
+            .last()
+            .expect("non-empty transitions were validated")
+            .transition_id
+            .clone(),
         transition_count,
         claim_count,
         measured_claim_count: totals.get(&ClaimOrigin::Measured).copied().unwrap_or(0),
