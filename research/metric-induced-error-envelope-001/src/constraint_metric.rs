@@ -14,8 +14,8 @@
 use core::marker::PhantomData;
 
 use crate::{
-    CoordinateFrame, Cotangent, Metric, MetricAdmissionReceiptV1, MetricErrorV1,
-    MetricProfileV1, Rebasis, Tangent, pairing,
+    CoordinateFrame, Cotangent, Metric, MetricAdmissionReceiptV1, MetricErrorV1, MetricProfileV1,
+    Rebasis, Tangent, pairing,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -32,7 +32,10 @@ impl<Space: CoordinateFrame, const K: usize> ConstraintMultiplierV1<Space, K> {
         if components.iter().any(|value| !value.is_finite()) {
             return Err(MetricErrorV1::NonFiniteVector);
         }
-        Ok(Self { components, _space: PhantomData })
+        Ok(Self {
+            components,
+            _space: PhantomData,
+        })
     }
 
     pub fn components(&self) -> &[f64; K] {
@@ -156,7 +159,8 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
                 }
             }
         }
-        self.mass.raise(&Cotangent::<Frame, N>::new(generalized_force)?)
+        self.mass
+            .raise(&Cotangent::<Frame, N>::new(generalized_force)?)
     }
 
     /// Compute J delta_v in the retained physical constraint map.
@@ -186,8 +190,7 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
     ) -> Result<Tangent<Frame, N>, MetricErrorV1> {
         let residual_as_covector = Cotangent::<Space, K>::new(residual.components)?;
         let multiplier = self.metric.raise(&residual_as_covector)?;
-        let multiplier =
-            ConstraintMultiplierV1::<Space, K>::new(*multiplier.components())?;
+        let multiplier = ConstraintMultiplierV1::<Space, K>::new(*multiplier.components())?;
         self.induced_velocity_correction(&multiplier)
     }
 }
@@ -267,20 +270,18 @@ mod tests {
         let jacobian_q = jacobian_q();
         let jacobian_y = rebase_constraint_jacobian(&jacobian_q, &rebasis).unwrap();
 
-        let delassus_q =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_q,
-                jacobian_q,
-                profile(),
-            )
-            .unwrap();
-        let delassus_y =
-            DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_y,
-                jacobian_y,
-                profile(),
-            )
-            .unwrap();
+        let delassus_q = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_q,
+            jacobian_q,
+            profile(),
+        )
+        .unwrap();
+        let delassus_y = DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_y,
+            jacobian_y,
+            profile(),
+        )
+        .unwrap();
 
         for row in 0..2 {
             for column in 0..2 {
@@ -296,13 +297,12 @@ mod tests {
     #[test]
     fn multiplier_norm_equals_kinetic_norm_of_induced_velocity_correction() {
         let mass = mass_q();
-        let delassus =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass,
-                jacobian_q(),
-                profile(),
-            )
-            .unwrap();
+        let delassus = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass,
+            jacobian_q(),
+            profile(),
+        )
+        .unwrap();
         let multiplier = ConstraintMultiplierV1::new([0.75, -1.25]).unwrap();
         let correction = delassus.induced_velocity_correction(&multiplier).unwrap();
 
@@ -315,13 +315,12 @@ mod tests {
 
     #[test]
     fn residual_norm_equals_minimum_kinetic_correction_and_reconstructs_residual() {
-        let delassus =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_q(),
-                jacobian_q(),
-                profile(),
-            )
-            .unwrap();
+        let delassus = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_q(),
+            jacobian_q(),
+            profile(),
+        )
+        .unwrap();
         let residual = ConstraintResidualV1::new([0.25, -0.4]).unwrap();
         let correction = delassus.minimum_kinetic_correction(&residual).unwrap();
         let reconstructed = delassus.apply_jacobian(&correction).unwrap();
@@ -393,20 +392,18 @@ mod tests {
             }
         }
 
-        let correct_w =
-            DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_y,
-                correct,
-                profile(),
-            )
-            .unwrap();
-        let wrong_w =
-            DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_y,
-                wrong,
-                profile(),
-            )
-            .unwrap();
+        let correct_w = DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_y,
+            correct,
+            profile(),
+        )
+        .unwrap();
+        let wrong_w = DelassusMetricV1::<DenseY, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_y,
+            wrong,
+            profile(),
+        )
+        .unwrap();
 
         let maximum_difference = (0..2)
             .flat_map(|row| (0..2).map(move |column| (row, column)))
@@ -421,12 +418,11 @@ mod tests {
     fn redundant_constraint_rows_are_rejected_as_singular_delassus_metric() {
         let mass = mass_q();
         let redundant = [[1.0, 2.0, 3.0], [2.0, 4.0, 6.0]];
-        let result =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass,
-                redundant,
-                profile(),
-            );
+        let result = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass,
+            redundant,
+            profile(),
+        );
         assert!(matches!(
             result,
             Err(MetricErrorV1::NotPositiveDefinite { .. })
@@ -435,12 +431,11 @@ mod tests {
 
     #[test]
     fn nonfinite_constraint_jacobian_is_rejected() {
-        let result =
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
-                &mass_q(),
-                [[1.0, f64::NAN, 0.0], [0.0, 1.0, 0.0]],
-                profile(),
-            );
+        let result = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass_q(),
+            [[1.0, f64::NAN, 0.0], [0.0, 1.0, 0.0]],
+            profile(),
+        );
         assert_eq!(result, Err(MetricErrorV1::NonFiniteVector));
     }
 }
