@@ -1170,13 +1170,14 @@ mod tests {
         parent_case["profile"]["installation_profile_ref"] = installation;
 
         let operating_domain_ref = case["parent_context"]["operating_domain_ref"].clone();
+        let asset_configuration_ref =
+            case["parent_context"]["asset_configuration_ref"].clone();
         for channel in case["channels"].as_array_mut().unwrap() {
             let domain = &mut channel["domain"];
             rename_key(domain, "material_cohort_ref", "asset_family_ref");
             rename_key(domain, "path_configuration_ref", "operating_domain_ref");
             rename_key(domain, "geometry_profile_ref", "installation_profile_ref");
-            domain["asset_configuration_ref"] =
-                case["parent_context"]["asset_configuration_ref"].clone();
+            domain["asset_configuration_ref"] = asset_configuration_ref.clone();
             domain["operating_domain_ref"] = operating_domain_ref.clone();
         }
         case["layout_profile"]["state_taxonomy_ref"] = serde_json::json!("taxonomy:marine-diesel-faults-v0.1");
