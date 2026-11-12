@@ -1,0 +1,108 @@
+{
+  "schema_version": "0.1.0",
+  "programme": "Luminous Water Service Engineering",
+  "status": "research_manifest_only",
+  "evidence_class": "design_contract_and_proposed_synthetic_corpus",
+  "evidence_ceiling": "no_physical_qualification_no_health_or_regulatory_claim_no_sota_superiority",
+  "issue_refs": {
+    "potable_water_train": "https://github.com/Luminous-Dynamics/symtropy/issues/4958",
+    "pump_system_service": "https://github.com/Luminous-Dynamics/symtropy/issues/4959",
+    "sanitation_wastewater": "https://github.com/Luminous-Dynamics/symtropy/issues/4902",
+    "water_process_closure": "https://github.com/Luminous-Dynamics/symtropy/issues/2152",
+    "water_purity_assessment": "https://github.com/Luminous-Dynamics/mycelix/issues/6100",
+    "water_energy_pat": "https://github.com/Luminous-Dynamics/symtropy/issues/4397"
+  },
+  "evidence_tiers": {
+    "T0": "synthetic_schema_and_arithmetic_only",
+    "T1": "controlled_clean_water_or_component_bench",
+    "T2": "qualified_independent_lab_or_endurance_testing",
+    "T3": "approved_supervised_site_pilot",
+    "T4": "replicated_independent_sites_and_lifecycle_evidence"
+  },
+  "noncompensable_invariants": [
+    "missing_critical_evidence_never_means_safe_or_feasible",
+    "observation_is_not_assessment_or_certification_or_authorization",
+    "drinking_water_wastewater_stormwater_floodwater_and_process_water_remain_typed_separately",
+    "service_and_safety_floors_cannot_be_traded_for_energy_cost_or_recovery",
+    "synthetic_and_model_outputs_never_promote_to_physical_or_laboratory_evidence"
+  ],
+  "potable_treatment": {
+    "service_unit": "litres delivered at declared point of use that satisfy exact versioned intended-use profile",
+    "scales": [
+      "household_point_of_use",
+      "community_small_supply",
+      "municipal_utility"
+    ],
+    "proposed_case_ids": [
+      "PW-T0-001-complete-water-boundary",
+      "PW-T0-002-missing-required-analyte",
+      "PW-T0-003-treatment-bypass",
+      "PW-T0-004-end-of-life-breakthrough",
+      "PW-T0-005-source-water-out-of-envelope",
+      "PW-T0-006-stale-method-or-calibration",
+      "PW-T0-007-storage-recontamination",
+      "PW-T0-008-reject-backwash-residual-omission"
+    ],
+    "comparison_dimensions": [
+      "pathogen_specific_log_reduction",
+      "analyte_specific_influent_effluent_and_load",
+      "point_of_use_quality",
+      "profile_conforming_service_volume",
+      "breakthrough_and_consumable_capacity",
+      "hydraulic_pressure_loss_and_flow",
+      "water_recovery_reject_backwash_and_residuals",
+      "energy_and_chemical_intensity",
+      "availability_maintenance_and_repair",
+      "lifecycle_cost_and_equity"
+    ],
+    "hard_gates": [
+      "zero_false_safe_in_frozen_critical_corpus",
+      "all_quality_claims_bind_methods_profiles_uncertainty_and_revision",
+      "unknown_stale_or_out_of_envelope_critical_evidence_is_indeterminate_or_unsupported",
+      "no_generic_sensor_proxy_or_ai_score_mints_potability"
+    ]
+  },
+  "pump_system": {
+    "service_unit": "flow_and_pressure_delivered_at_declared_endpoint_over_a_duty_trace",
+    "duty_profiles": [
+      "household_building_booster",
+      "community_borehole_transfer_and_storage",
+      "municipal_distribution_booster",
+      "wastewater_lift_and_solids_handling",
+      "stormwater_flood_drainage",
+      "remote_solar_direct_interrupted_power"
+    ],
+    "proposed_case_ids": [
+      "PS-T0-001-single-pump-known-answer",
+      "PS-T0-002-system-curve-intersection",
+      "PS-T0-003-parallel-pump-flow-sharing",
+      "PS-T0-004-wet-side-service-floor-violation",
+      "PS-T0-005-commanded_on_but_zero_flow",
+      "PS-T0-006-missing_or_stale_pressure",
+      "PS-T0-007-storage_reserve_and_outage",
+      "PS-T0-008-out_of_domain_pump_curve"
+    ],
+    "comparison_dimensions": [
+      "wire_to_water_efficiency",
+      "kwh_per_m3_at_matched_head_and_service",
+      "duty_point_and_preferred_operating_region_exposure",
+      "critical_node_pressure_and_delivered_flow",
+      "npsh_margin_and_declared_transient_limits",
+      "vibration_temperature_wear_clogging_and_leakage",
+      "energy_water_and_operating_cost",
+      "downtime_mtbf_mttr_and_maintenance",
+      "recovery_after_power_and_equipment_fault",
+      "lifecycle_cost_repairability_and_equity"
+    ],
+    "hard_gates": [
+      "no_kwh_per_m3_without_flow_head_meter_boundary_and_delivery_point",
+      "no_feasible_schedule_when_critical_state_unknown",
+      "minimum_service_and_equipment_limits_are_noncompensable",
+      "steady_state_model_never_certifies_water_hammer_or_transients"
+    ]
+  },
+  "proposed_improvement_targets_not_achieved": {
+    "potable_treatment": ">=20% lifecycle-cost reduction per 1000 L profile-conforming water in at least one matched context without quality or service regression",
+    "pump_system": "investigate >=10% time-integrated wire-to-water energy reduction and >=20% lifecycle-cost reduction in at least one matched duty context without service or reliability regression"
+  }
+}
