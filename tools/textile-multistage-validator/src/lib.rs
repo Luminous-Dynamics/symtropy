@@ -177,12 +177,11 @@ fn setup_available(
     }
 
     windows.iter().any(|window| {
-        if !window.is_valid() {
-            return false;
+        window.is_valid() && {
+            let start = window.start_tick.max(earliest_start);
+            let end = window.end_tick.min(latest_finish);
+            start.checked_add(duration).is_some_and(|finish| finish <= end)
         }
-        let start = window.start_tick.max(earliest_start);
-        let end = window.end_tick.min(latest_finish);
-        start.checked_add(duration).is_some_and(|finish| finish <= end)
     })
 }
 
