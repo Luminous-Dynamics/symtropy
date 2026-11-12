@@ -18,7 +18,7 @@ The candidate chooses between two physical policies, `defer` and `repair`, with 
 | degraded | 0 (infeasible) | 80 | repair |
 | healthy_sensor_fault | 100 | 85 | defer |
 
-Without sensing, the only physical policy feasible in every world is `repair`. Its minimax regret is 15 service units.
+Without sensing, the only physical policy feasible in every world is `repair`. Its minimax regret is 15 service units. The evaluator also includes a separate two-world control where no single blind action is feasible in every world, but a discriminating sensor makes one robust action feasible in each outcome partition. In that case, the report marks `resolves_no_sensing_infeasibility` rather than inventing a finite regret reduction against a nonexistent baseline policy.
 
 Four sensing actions are evaluated:
 
@@ -39,6 +39,7 @@ The reported regret is measured against the best feasible physical policy in eac
 - Latency loss is model-specific and multiplies declared acquisition ticks.
 - A physical policy that falls below the hard service floor after sensing is infeasible.
 - If any observation partition has no common feasible action, the sensing action receives no finite worst-case regret and cannot be recommended.
+- If no action is feasible before sensing, an affordable sensor may still be recommended when every post-sensing outcome partition has a common feasible action. This is reported as a feasibility lift, not as a fabricated finite regret reduction.
 - Missing/duplicate model predictions, digest mismatches, malformed missingness states, invalid costs and duplicate sensor IDs fail closed.
 - Recommendations require affordable sensing and a positive worst-case regret reduction; ties resolve by lower maximum penalty, lower energy cost, then stable sensor ID.
 
