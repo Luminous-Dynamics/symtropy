@@ -84,6 +84,7 @@ pub struct Metrics {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BlockReason {
     InvalidDomain,
+    InvalidQualityLimits,
     EmptyIdentity,
     InvalidDigest,
     ScanDigestMismatch,
@@ -106,6 +107,7 @@ impl BlockReason {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::InvalidDomain => "INVALID_DOMAIN",
+            Self::InvalidQualityLimits => "INVALID_QUALITY_LIMITS",
             Self::EmptyIdentity => "EMPTY_IDENTITY",
             Self::InvalidDigest => "INVALID_DIGEST",
             Self::ScanDigestMismatch => "SCAN_DIGEST_MISMATCH",
@@ -301,6 +303,15 @@ pub fn assess(baseline: &Baseline) -> Assessment {
 fn assess_inner(baseline: &Baseline) -> Result<Metrics, BlockReason> {
     if baseline.domain.x_min_um >= baseline.domain.x_max_um {
         return Err(BlockReason::InvalidDomain);
+    }
+    if baseline.limits.maximum_point_gap_um == 0
+        || baseline.limits.coverage_gap_threshold_um == 0
+        || baseline.limits.coverage_gap_threshold_um > baseline.limits.maximum_point_gap_um
+        || baseline.limits.minimum_coverage_permille == 0
+        || baseline.limits.minimum_coverage_permille > 1_000
+        || baseline.limits.maximum_point_uncertainty_um == 0
+    {
+        return Err(BlockReason::InvalidQualityLimits);
     }
     if baseline.profile_id.trim().is_empty()
         || baseline.scan_id.trim().is_empty()
@@ -502,7 +513,7 @@ fn apply_mutation(
         "coverage_below_minimum" => {
             let point = input.observed_points.get_mut(1)
                 .ok_or_else(|| "coverage fixture has no middle point".to_owned())?;
-            point.x_um = input.domain.x_min_um.saturating_add(1_100);
+            point.x_um = input.domain.x_min_um.saturating_add(1_150);
         }
         "point_outside_domain" => {
             let point = input.observed_points.get_mut(1)
