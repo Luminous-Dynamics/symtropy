@@ -421,13 +421,17 @@ fn validate_bridge_configuration(
     let max_bytes = bridge_config["max_frame_bytes"].as_u64().unwrap_or(0);
     let initial_dt = bridge_config["initial_dt_us"].as_u64().unwrap_or(0);
     let max_gap = bridge_config["maximum_frame_gap_us"].as_u64().unwrap_or(0);
+    let max_delivery_age = bridge_config["maximum_observation_delivery_age_us"]
+        .as_u64()
+        .unwrap_or(0);
     if max_width < u64::from(WIDTH)
         || max_height < u64::from(HEIGHT)
         || max_bytes < u64::from(WIDTH) * u64::from(HEIGHT) * CHANNELS as u64
         || initial_dt != TICK_PERIOD_US
         || max_gap < TICK_PERIOD_US * 2
+        || max_delivery_age < MAX_DELIVERY_AGE_US
     {
-        return Err("bridge_config frame/time bounds do not cover this 640x360, one-dropped-frame fixture".into());
+        return Err("bridge_config frame/time bounds do not cover this 640x360 fixture, missing tick and delivery-age budget".into());
     }
     if vision_config["hdc_dim"].as_u64() != Some(16_384)
         || vision_config["enable_depth"].as_bool() != Some(false)
@@ -667,6 +671,78 @@ fn count_regular_files(path: &Path) -> Result<usize, Box<dyn Error>> {
     Ok(count)
 }
 
+fn append_len_prefixed_string(material: &mut Vec<u8>, value: &str) {
+    material.extend_from_slice(&(value.len() as u64).to_le_bytes());
+    material.extend_from_slice(value.as_bytes());
+}
+
+/// Reproduce the Symthaea bridge's unkeyed policy-receipt commitment after
+/// controlled receipt-field mutation. This is consistency recomputation,
+/// not signing or authentication.
+fn recompute_upstream_policy_receipt(upstream: &mut Value) -> Result<(), Box<dyn Error>> {
+    let mut material = Vec::new();
+    let schema_version = upstream["schema_version"]
+        .as_u64()
+        .ok_or("upstream schema_version missing")?;
+    material.extend_from_slice(&(schema_version as u32).to_le_bytes());
+    append_len_prefixed_string(
+        &mut material,
+        upstream["observation_id"].as_str().ok_or("observation_id missing")?,
+    );
+    if upstream["pixel_format"].as_str() != Some("rgb8_srgb") {
+        return Err("only the RGB8 sRGB pixel-format enum is supported by this fixture".into());
+    }
+    material.push(0_u8);
+
+    for field in ["episode_id", "agent_id", "clock_id"] {
+        append_len_prefixed_string(
+            &mut material,
+            upstream[field].as_str().ok_or(format!("{field} missing"))?,
+        );
+    }
+    for field in ["tick", "sequence"] {
+        material.extend_from_slice(
+            &upstream[field]
+                .as_u64()
+                .ok_or(format!("{field} missing"))?
+                .to_le_bytes(),
+        );
+    }
+    for field in [
+        "applied_action_receipt_id",
+        "applied_action_receipt_sha256",
+        "applied_action_command_id",
+        "camera_id",
+        "camera_calibration_sha256",
+        "renderer_revision",
+        "frame_sha256",
+    ] {
+        append_len_prefixed_string(&mut material, upstream[field].as_str().unwrap_or(""));
+    }
+    let action_tick = upstream["applied_action_tick"].as_u64();
+    material.push(u8::from(action_tick.is_some()));
+    material.extend_from_slice(&action_tick.unwrap_or(0).to_le_bytes());
+
+    for field in [
+        "capture_timestamp_us",
+        "render_completed_timestamp_us",
+        "delivered_timestamp_us",
+        "frame_width",
+        "frame_height",
+        "channels",
+        "frame_byte_len",
+    ] {
+        material.extend_from_slice(
+            &upstream[field]
+                .as_u64()
+                .ok_or(format!("{field} missing"))?
+                .to_le_bytes(),
+        );
+    }
+    upstream["receipt_sha256"] = json!(sha256_hex(&material));
+    Ok(())
+}
+
 fn run_bridge_negative_controls(
     episode_dir: &Path,
     bridge_binary: &Path,
@@ -714,8 +790,13 @@ fn run_bridge_negative_controls(
     let mut calibration_mismatch = base_request.clone();
     calibration_mismatch["observations"][0]["upstream"]["camera_calibration_sha256"] =
         json!("f".repeat(64));
+    calibration_mismatch["observations"][0]["upstream"]["camera_calibration_sha256"] =
+        json!("f".repeat(64));
+    recompute_upstream_policy_receipt(
+        &mut calibration_mismatch["observations"][0]["upstream"],
+    )?;
     controls.push((
-        "camera-calibration-mismatch".to_string(),
+        "camera-calibration-mismatch-with-valid-receipt".to_string(),
         "UpstreamCalibrationMismatch".to_string(),
         calibration_mismatch,
     ));
@@ -805,6 +886,84 @@ fn run_bridge_negative_controls(
         "capture-clock-regression".to_string(),
         "TimestampRegression".to_string(),
         clock_regression,
+    ));
+
+
+    let mut wrong_camera_identity = base_request.clone();
+    wrong_camera_identity["observations"][0]["upstream"]["camera_id"] = json!("rear-camera");
+    recompute_upstream_policy_receipt(
+        &mut wrong_camera_identity["observations"][0]["upstream"],
+    )?;
+    controls.push((
+        "camera-identity-mismatch-with-valid-receipt".to_string(),
+        "UpstreamIdentityMismatch".to_string(),
+        wrong_camera_identity,
+    ));
+
+    // The receipt is recomputed after making render completion occur after
+    // delivery. The bridge must reject the impossible clock order itself.
+    let mut clock_order_violation = base_request.clone();
+    let upstream = &mut clock_order_violation["observations"][0]["upstream"];
+    let render_completed = upstream["render_completed_timestamp_us"]
+        .as_u64()
+        .ok_or("render completion timestamp missing")?;
+    upstream["delivered_timestamp_us"] = json!(render_completed - 1);
+    recompute_upstream_policy_receipt(upstream)?;
+    controls.push((
+        "delivery-before-render-complete".to_string(),
+        "UpstreamClockOrderInvalid".to_string(),
+        clock_order_violation,
+    ));
+
+    // Camera and vehicle clocks disagree by more than the BridgeConfig skew
+    // budget while the camera's own upstream receipt remains valid.
+    let mut sensor_clock_skew = base_request.clone();
+    let capture = sensor_clock_skew["observations"][0]["timestamp_us"]
+        .as_u64()
+        .ok_or("capture timestamp missing")?;
+    sensor_clock_skew["observations"][0]["vehicle_state_timestamp_us"] =
+        json!(capture + 10_000);
+    sensor_clock_skew["observations"][0]["vehicle_state"]["timestamp"] =
+        json!((capture + 10_000) as f64 / 1_000_000.0);
+    controls.push((
+        "camera-vehicle-clock-skew".to_string(),
+        "SensorClockSkewExceeded".to_string(),
+        sensor_clock_skew,
+    ));
+
+    // A structurally and cryptographically consistent frame delivered beyond
+    // the configured 5ms capture-to-delivery age must not reach the manifold.
+    let delayed_snapshot = snapshot(3, false);
+    let delayed_capture = world_timestamp(3);
+    let over_age_clocks = RenderClocks {
+        capture_timestamp_us: delayed_capture,
+        render_completed_timestamp_us: delayed_capture + 800,
+        delivered_timestamp_us: delayed_capture + MAX_DELIVERY_AGE_US + 1,
+    };
+    let over_age_render =
+        SoftwareCameraRenderer::render(&delayed_snapshot, 3, over_age_clocks)?;
+    fs::write(
+        negative_root.join("over-age-delayed.rgb"),
+        &over_age_render.pixels_rgb,
+    )?;
+    let mut over_age_observation = base_request["observations"][2].clone();
+    over_age_observation["sequence"] = json!(3);
+    over_age_observation["timestamp_us"] = json!(delayed_capture);
+    over_age_observation["vehicle_state_timestamp_us"] = json!(delayed_capture);
+    over_age_observation["vehicle_state"]["timestamp"] =
+        json!(delayed_capture as f64 / 1_000_000.0);
+    over_age_observation["pixels_file"] =
+        json!("bridge-negative-controls/over-age-delayed.rgb");
+    over_age_observation["upstream"] = serde_json::to_value(over_age_render.policy_receipt)?;
+    let mut over_age_delay = base_request.clone();
+    over_age_delay["observations"] = json!([
+        base_request["observations"][1].clone(),
+        over_age_observation
+    ]);
+    controls.push((
+        "delayed-frame-over-age-budget".to_string(),
+        "UpstreamDeliveryAgeExceeded".to_string(),
+        over_age_delay,
     ));
 
     let mut records = Vec::with_capacity(controls.len());
