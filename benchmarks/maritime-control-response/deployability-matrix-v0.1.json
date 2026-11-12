@@ -10,7 +10,7 @@
     "criteria_count": 9,
     "survey_finding": "Detection accuracy was consistently reported; evidence for the other deployability criteria was often limited or absent."
   },
-  "non_compensatory_rule": "No weighted average can turn a missing safety, security, timing, assurance, resource or privacy dimension into a pass. A dimension is qualified only on its own predeclared evidence and independent review.",
+  "non_compensatory_rule": "No weighted average can turn a missing safety, security, timing, assurance, resource or privacy dimension into a pass. A dimension is qualified only on its own predeclared evidence and independent review. Aggregate readiness scores are prohibited.",
   "dimensions": [
     {
       "id": "detection_accuracy",
@@ -247,5 +247,6 @@
     }
   ],
   "overall_status": "not_deployable_claimed",
-  "prohibited_inference": "A source module, synthetic contract test, green CI job or literature score does not establish physical-engine, vessel, fleet, safety or OEM certification."
+  "prohibited_inference": "A source module, synthetic contract test, green CI job or literature score does not establish physical-engine, vessel, fleet, safety or OEM certification.",
+  "aggregate_readiness_score_allowed": false
 }
