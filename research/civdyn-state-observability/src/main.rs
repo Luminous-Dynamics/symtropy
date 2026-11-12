@@ -471,7 +471,6 @@ fn run_policy_summary(input: &str) -> Result<String, String> {
                     output.push('\n');
                     continue;
                 }
-                }
 
                 let mut returns: Vec<f64> = finished.iter().map(|run| run.mean.expect("finished row has mean")).collect();
                 let median_return = median(&mut returns);
