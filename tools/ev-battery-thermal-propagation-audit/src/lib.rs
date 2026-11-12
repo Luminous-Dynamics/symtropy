@@ -336,9 +336,15 @@ fn evidence_registry(
             "authority/laboratory reference",
         )?;
         for (value, label) in [
-            (record.reference_id.as_deref(), "typed evidence reference ID"),
+            (
+                record.reference_id.as_deref(),
+                "typed evidence reference ID",
+            ),
             (record.standard_id.as_deref(), "typed evidence standard ID"),
-            (record.standard_revision.as_deref(), "typed evidence standard revision"),
+            (
+                record.standard_revision.as_deref(),
+                "typed evidence standard revision",
+            ),
         ] {
             if let Some(value) = value {
                 require_nonempty(value, label)?;
