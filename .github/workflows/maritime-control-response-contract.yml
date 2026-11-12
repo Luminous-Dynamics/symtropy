@@ -211,7 +211,8 @@ jobs:
 
           jq -e '
             .schema_version == "symtropy-marine-file-manifest-v1" and
-            .dataset_doi == "10.5281/zenodo.19857425" and
+            .properties.dataset_doi.const == "10.5281/zenodo.19857425" and
+            .properties.dataset_license.const == "CC-BY-4.0" and
             (.properties.files.minItems == 16) and
             (.properties.files.maxItems == 16) and
             (.properties.files.items["$ref"] == "#/$defs/file") and
