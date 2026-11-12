@@ -1,0 +1,17 @@
+[package]
+name = "shipyard-geometry-measurement-oracle"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Independent synthetic geometry measurement qualification oracle"
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
