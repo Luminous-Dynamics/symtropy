@@ -1,5 +1,5 @@
 {
-  "schema_version": "oli-collective-information-boundary-v0.1",
+  "schema_version": "oli-collective-information-boundary-v0.2",
   "case_id": "OLI-COLONY-FOOD-DISCOVERY-INFORMATION-BOUNDARY-001",
   "status": "INFORMATION_MODES_IMPLEMENTED_FIXTURE_SPECIFIED_RUST_VALIDATION_PENDING",
   "evidence_class": "SYNTHETIC_SIMULATION",
@@ -24,7 +24,7 @@
     {
       "id": "STIGMERGIC_FIELD_ONLY",
       "implementation": "ColonyInformationMode::StigmergicFieldOnly",
-      "semantics": "Agents score candidate neighbour cells using food/home pheromone values at those cells and locally sampled danger. Food sources emit a food field; returning agents deposit food trails; outbound agents deposit home trails. Food is acquired only through direct cell contact. No path search over hidden food coordinates or global shortest-path hint to the nest is used in agent movement.",
+      "semantics": "Agents score candidate neighbour cells using food/home pheromone values at those cells and locally sampled danger. Food sources emit a food field; returning agents deposit food trails; outbound agents deposit home trails. Food is acquired only through direct cell contact. No path search over hidden food coordinates or global shortest-path hint to the nest is used in agent movement. Source/nest pheromone emission is now independently switchable; disabling it allows agent-generated trail memory to be tested without ongoing source broadcasting.",
       "information_access": "Local neighbouring field cells, obstacle/danger sensing, and direct contact. The global world/telemetry still records state but is not consulted by food/home movement scoring.",
       "interpretation": "Decentralized stigmergic/environmental-memory comparison."
     },
@@ -192,6 +192,38 @@
       ],
       "minimum_paired_runs_per_mode_per_scenario": 30,
       "report": "Per-scenario paired differences, bootstrap confidence intervals over independent seed IDs, and pooled results only after showing heterogeneity by map orientation and obstacle regime."
+    },
+    "environmental_memory_transfer": {
+      "api": "ColonyWorld::copy_social_memory_from",
+      "copied_channels": [
+        "FoodPheromone",
+        "HomePheromone"
+      ],
+      "excluded_channels": [
+        "DangerPheromone",
+        "Obstacle",
+        "Nutrient",
+        "Toxin",
+        "Moisture",
+        "Heat",
+        "Light",
+        "Oxygen",
+        "Disease",
+        "SignalNoise"
+      ],
+      "agent_state_copied": false,
+      "food_inventory_copied": false,
+      "source_emission_toggle": "set_source_emission_enabled(false)",
+      "clearing": "clear_social_memory",
+      "tasks": [
+        "donor cohort constructs a field trace, is removed, and a replacement cohort receives only the social field channels",
+        "preserved trace compared with erased trace",
+        "preserved trace compared with randomized trace preserving marginal values",
+        "preserved trace compared with an identical externally authored field (common-input control)",
+        "recipient performance measured with ongoing source/nest pheromone broadcast disabled"
+      ],
+      "interpretation": "A replacement cohort responding to transferred fields demonstrates environmental information persistence and field-mediated behavior. It does not by itself prove cognition, collective intelligence, agent-generated memory, or a causal historical link. The externally authored identical-field control isolates current field state from its provenance.",
+      "statistical_unit": "A paired donor/recipient world run under one independent seed and one scenario configuration."
     }
   },
   "required_metrics": [
@@ -216,7 +248,13 @@
     "Seed ensembles must use non-zero preregistered seeds; seed 0 is compatibility mode and is not counted as an independent random trial.",
     "All information modes receive paired identical seed IDs and identical map configurations; report paired differences, not unpaired pooled means.",
     "Map rotations/reflections and obstacle layouts are separate scenario families. Do not treat 30 seeds on one layout as evidence of transfer to unseen layouts.",
-    "Ants and time frames within one world are nested observations; the independent statistical unit is the seeded world run."
+    "Ants and time frames within one world are nested observations; the independent statistical unit is the seeded world run.",
+    "Environmental-memory transfer must use a new recipient world with fresh agents; copying the donor agents is not a memory-transfer test.",
+    "The recipient phase must disable exogenous food-source/nest pheromone emission so ongoing broadcasting is not mistaken for stored environmental memory.",
+    "Only FoodPheromone and HomePheromone are transferred; danger/obstacle/resource fields and food inventory remain matched but are not silently copied.",
+    "Preserved, erased, randomized and externally authored identical-field conditions must be compared using paired recipient seeds.",
+    "An identical externally authored field that produces the same response is a common-input control: it shows field-mediated behavior, not proof of who created the trace.",
+    "A transfer result is an environmental-memory effect; collective intelligence requires a separate task-competence advantage over matched individual and fixed-rule baselines."
   ],
   "ablations": [
     "food pheromone source reinforcement disabled",
@@ -234,6 +272,7 @@
     "data_digest_sha256": null,
     "output_digest_status": "PENDING_EXACT_HEAD_EXECUTION",
     "claim_status": "IMPLEMENTATION_AND_STRUCTURAL_TESTS_ONLY_UNTIL_CI",
-    "seeded_ensemble_status": "IMPLEMENTED_SEED_API; ENSEMBLE_NOT_RUN"
+    "seeded_ensemble_status": "IMPLEMENTED_SEED_API; ENSEMBLE_NOT_RUN",
+    "environmental_memory_transfer_status": "API_AND_STRUCTURAL_CONTROLS_IMPLEMENTED; TASK_ENSEMBLE_NOT_RUN"
   }
 }
