@@ -1,0 +1,66 @@
+{
+  "schema_version": "mission-card/v1",
+  "mission_id": "urban-evtol-four-passenger-50-mile-reference",
+  "revision": 1,
+  "title": "NASA indicative four-passenger, 50-mile urban eVTOL energy-reference case",
+  "status": "planning_reference",
+  "aircraft_class": "battery_electric_evtol",
+  "architectures_to_compare": [
+    "lift_plus_cruise",
+    "tilt_prop",
+    "tilt_wing"
+  ],
+  "mission": {
+    "passengers": 4,
+    "crew": null,
+    "reference_range": {
+      "value": 50,
+      "unit": "statute_mile",
+      "interpretation": "NASA planning reference; whether this is route distance, mission distance, or a reserve-inclusive range must be resolved before sizing."
+    },
+    "payload_mass_kg": null
+  },
+  "flight_profile": {
+    "profile_status": "not_defined",
+    "segments": []
+  },
+  "environment": {
+    "temperature_c": null,
+    "wind_speed_m_s": null,
+    "wind_direction_deg": null,
+    "density_altitude_m": null,
+    "weather_basis": "not_defined"
+  },
+  "reserve_policy": {
+    "status": "not_defined",
+    "authority_or_operating_reference": null,
+    "diversion_definition": null
+  },
+  "system_boundaries": {
+    "energy_metering_boundary": "not_defined",
+    "battery_specific_energy_boundary": "not_defined",
+    "mass_boundary": "not_defined",
+    "thermal_boundary": "not_defined"
+  },
+  "open_questions": [
+    "Confirm whether four passengers are additional to the flight crew.",
+    "Define passenger and baggage payload mass and the corresponding centre-of-gravity envelope.",
+    "Resolve whether the 50-mile reference means route distance, radius, or reserve-inclusive mission range.",
+    "Choose the operating jurisdiction and an appropriate reserve, diversion, and landing policy.",
+    "Define route geometry, vertiport elevation, obstacle environment, and alternate landing sites.",
+    "Define temperature, wind, precipitation, density-altitude, and dispatch-weather design cases.",
+    "Set the energy-metering boundary and document all electrical auxiliaries and conversion losses.",
+    "Define turnaround, charging dwell, acoustic measurement geometry, and mission success criteria."
+  ],
+  "provenance": {
+    "source_name": "NASA Aerospace Battery Workshop — Next-Generation Solid-State Batteries for Aerospace Applications",
+    "source_url": "https://www.nasa.gov/wp-content/uploads/2024/01/next-generation-solid-state-batteries-for-aerospace-applications.pdf",
+    "source_type": "government_research",
+    "accessed_date": "2026-11-12",
+    "source_claim": "NASA workshop material lists an indicative 300 Wh/kg specific-energy requirement alongside a four-passenger, 50-mile urban eVTOL planning case. The mission card records the reference case only; it does not establish a qualified design requirement or certified aircraft performance."
+  },
+  "maturity": {
+    "evidence_class": "planning_reference",
+    "performance_claims_authorized": false
+  }
+}
