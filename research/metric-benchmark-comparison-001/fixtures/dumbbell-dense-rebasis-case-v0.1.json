@@ -1,0 +1,99 @@
+{
+  "schema_version": "luminous.metric_physics_benchmark_case.v0.1",
+  "benchmark_id": "metric-physics-matched-comparison-v0.1",
+  "case_id": "DUMBBELL-DENSE-REBASIS-001",
+  "source_case": {
+    "repository": "Luminous-Dynamics/symtropy",
+    "commit_sha": "b9fcf688b502d602eac91297880bf3a3e484545f",
+    "path": "research/generalized-coordinate-covariance-001/fixtures/covariance_case_v0.1.json",
+    "git_blob_sha": "9c4b5eb25680f126fbcdb7307ec15a87fff8f284",
+    "schema_path": "research/generalized-coordinate-covariance-001/fixtures/covariance_case_v0.1.schema.json",
+    "schema_git_blob_sha": "33de0297be846f0e6b9d2e3b019d1f3d3e979297"
+  },
+  "physical_model": {
+    "kind": "two_point_mass_fixed_link",
+    "spatial_dimension": 3,
+    "generalized_velocity_dof": 6,
+    "masses_kg": [
+      1.3,
+      2.1
+    ],
+    "link_length_m": 1.2,
+    "constraint_kind": "holonomic_fixed_distance",
+    "massless_link": true
+  },
+  "step_contract": {
+    "method": "semi_explicit_midpoint_constrained_step",
+    "time_step_seconds": 0.02,
+    "force_covector_semantics": "generalized_force_covector_in_canonical_coordinates",
+    "force_newton": [
+      0.18,
+      -0.07,
+      0.11,
+      0,
+      0,
+      0
+    ],
+    "constraint_reaction_required": true,
+    "newton_max_iterations": 32,
+    "normalized_constraint_tolerance": 1e-12
+  },
+  "coordinate_families": [
+    {
+      "family": 0,
+      "exact_determinant": 1,
+      "basis_condition_2": 387.32736441766446,
+      "transformed_mass_condition_2": 206371.94480768955
+    },
+    {
+      "family": 2,
+      "exact_determinant": 1,
+      "basis_condition_2": 210.94105538055962,
+      "transformed_mass_condition_2": 60244.438948182105
+    }
+  ],
+  "comparator_contract": {
+    "required_backends": [
+      "symtropy_reference_lu",
+      "symtropy_reference_cholesky",
+      "drake",
+      "mujoco",
+      "pinocchio",
+      "independent_high_precision"
+    ],
+    "matching_fields": [
+      "physical_model",
+      "generalized_coordinate_order",
+      "velocity_convention",
+      "force_covector_convention",
+      "constraint_equations",
+      "initial_state",
+      "time_step",
+      "integration_method",
+      "units",
+      "solver_tolerances"
+    ],
+    "strict_matching": true,
+    "nonmatching_result_policy": "NOT_COMPARABLE"
+  },
+  "required_metric_groups": [
+    "semantic_mapping",
+    "coordinate_invariance",
+    "numerical_quality",
+    "physical_fidelity",
+    "decision_quality",
+    "systems_cost"
+  ],
+  "acceptance_policy": {
+    "require_independent_high_precision_reference": true,
+    "zero_false_accept_target": true,
+    "abstain_on_unverified_mapping": true,
+    "no_sota_claim_without_matched_case": true
+  },
+  "claim_boundary": [
+    "This manifest pins the existing frozen one-step dumbbell source case; it does not re-execute the underlying solver.",
+    "Drake, MuJoCo and Pinocchio adapters must declare and verify all matching fields before timing or accuracy comparisons are eligible.",
+    "A NOT_COMPARABLE result is not a solver failure; it means semantic equivalence was not established.",
+    "The current scope is one one-link two-point-mass model, one constrained step and two dense unimodular rebases."
+  ]
+}
