@@ -354,7 +354,19 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
             } else {
                 &["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"]
             };
-            let mismatch = keys.iter().any(|key| text(domain, key) != text(&case["parent_context"], key));
+            // The legacy excavation profile uses different field names for
+            // the same transport identity: channel.path_configuration_ref maps
+            // to parent_context.transport_configuration_ref. Preserve that
+            // compatibility without comparing unrelated field names.
+            let mismatch = if generic_domain {
+                keys.iter()
+                    .any(|key| text(domain, key) != text(&case["parent_context"], key))
+            } else {
+                text(domain, "material_cohort_ref")
+                    != text(&case["parent_context"], "material_cohort_ref")
+                    || text(domain, "path_configuration_ref")
+                        != text(&case["parent_context"], "transport_configuration_ref")
+            };
             if mismatch {
                 push(&mut errors, "CHANNEL_PARENT_DOMAIN_MISMATCH", &format!("{path}.domain"), "channel asset/domain identity must match the exact parent configuration and operating domain");
             }
