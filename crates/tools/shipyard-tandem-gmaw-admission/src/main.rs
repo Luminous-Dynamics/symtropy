@@ -27,7 +27,10 @@ fn bool_at(value: &Value, key: &str) -> Option<bool> {
 }
 
 fn ids_equal(actual: &[String], expected: &[&str]) -> bool {
-    actual.iter().map(String::as_str).eq(expected.iter().copied())
+    actual
+        .iter()
+        .map(String::as_str)
+        .eq(expected.iter().copied())
 }
 
 fn string_array(value: &Value, key: &str) -> Option<Vec<String>> {
@@ -78,9 +81,7 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         errors.push("source record must preserve the open badge as metadata".to_owned());
     }
     if !source.get("license_field").is_some_and(Value::is_null) {
-        errors.push(
-            "license field must remain null until explicit terms are recorded".to_owned(),
-        );
+        errors.push("license field must remain null until explicit terms are recorded".to_owned());
     }
     if bool_at(source, "raw_files_downloaded") != Some(false)
         || bool_at(source, "raw_files_vendored") != Some(false)
@@ -123,8 +124,7 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         || bool_at(design, "tandem_only_analysis_excludes_root_layer") != Some(true)
     {
         errors.push(
-            "five-workpiece / six-layer / WID-grouped study design boundary violated"
-                .to_owned(),
+            "five-workpiece / six-layer / WID-grouped study design boundary violated".to_owned(),
         );
     }
 
@@ -152,17 +152,21 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
             != Some(1)
         || bool_at(matched_pair, "supports_causal_generalization") != Some(false)
     {
-        errors.push("matched WID631/WID632 contrast cannot be promoted to causal replication".to_owned());
+        errors.push(
+            "matched WID631/WID632 contrast cannot be promoted to causal replication".to_owned(),
+        );
     }
     let Some(materials) = design.get("materials_detail") else {
         errors.push("materials_detail is required".to_owned());
         return Err(errors);
     };
     if str_at(materials, "position") != Some("1G_flat")
-        || str_at(materials, "shielding_gas")
-            != Some("82% Ar / 18% CO2 (ISO 14175 M21-ArC-18)")
+        || str_at(materials, "shielding_gas") != Some("82% Ar / 18% CO2 (ISO 14175 M21-ArC-18)")
         || materials.get("wire_diameter_mm").and_then(Value::as_f64) != Some(1.2)
-        || materials.get("nominal_gas_flow_l_per_min").and_then(Value::as_u64) != Some(20)
+        || materials
+            .get("nominal_gas_flow_l_per_min")
+            .and_then(Value::as_u64)
+            != Some(20)
     {
         errors.push("material/process context differs from the published experiment".to_owned());
     }
@@ -181,7 +185,9 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         let wid = match str_at(workpiece, "workpiece_id") {
             Some(value) => value.to_owned(),
             None => {
-                errors.push(format!("workpieces[{w_index}].workpiece_id must be a string"));
+                errors.push(format!(
+                    "workpieces[{w_index}].workpiece_id must be a string"
+                ));
                 continue;
             }
         };
@@ -197,7 +203,9 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
             _ => None,
         };
         if expected_mode.is_none() || str_at(workpiece, "tandem_mode") != expected_mode {
-            errors.push(format!("{wid}: unexpected or missing tandem mode assignment"));
+            errors.push(format!(
+                "{wid}: unexpected or missing tandem mode assignment"
+            ));
         }
 
         let Some(layers) = workpiece.get("layers").and_then(Value::as_array) else {
@@ -205,14 +213,21 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
             continue;
         };
         if layers.len() != 6 {
-            errors.push(format!("{wid}: expected six layers, found {}", layers.len()));
+            errors.push(format!(
+                "{wid}: expected six layers, found {}",
+                layers.len()
+            ));
         }
         layer_total += layers.len();
 
         for (layer_index, layer) in layers.iter().enumerate() {
             let expected_order = (layer_index + 1) as u64;
             let expected_id = format!("L{expected_order}");
-            let expected_class = if layer_index == 0 { "single_wire_root" } else { "tandem" };
+            let expected_class = if layer_index == 0 {
+                "single_wire_root"
+            } else {
+                "tandem"
+            };
             if str_at(layer, "layer_id") != Some(expected_id.as_str())
                 || layer.get("layer_order").and_then(Value::as_u64) != Some(expected_order)
                 || str_at(layer, "layer_class") != Some(expected_class)
@@ -263,8 +278,7 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
             };
             let unavailable_t85 = matches!(
                 (wid.as_str(), expected_order),
-                ("WID630", 6) | ("WID631", 5) | ("WID631", 6)
-                    | ("WID632", 2) | ("WID632", 6)
+                ("WID630", 6) | ("WID631", 5) | ("WID631", 6) | ("WID632", 2) | ("WID632", 6)
             );
             let expected_t85_availability = if unavailable_t85 {
                 "NOT_AVAILABLE"
@@ -275,7 +289,8 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
                 || !t85.get("raw_value").is_some_and(Value::is_null)
                 || str_at(t85, "source_declared_unit") != Some("s")
                 || str_at(t85, "semantic_definition_status") != Some("PAPER_DEFINED_T8_5")
-                || str_at(t85, "physical_definition") != Some("elapsed cooling time from 800 C to 500 C")
+                || str_at(t85, "physical_definition")
+                    != Some("elapsed cooling time from 800 C to 500 C")
                 || str_at(t85, "source_declared_availability") != Some(expected_t85_availability)
                 || str_at(t85, "semantic_source_doi") != Some("10.1016/j.dib.2026.113329")
             {
@@ -289,7 +304,9 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         errors.push("WID inventory differs from the five pinned source identifiers".to_owned());
     }
     if layer_total != 30 {
-        errors.push(format!("expected 30 metadata layer slots, found {layer_total}"));
+        errors.push(format!(
+            "expected 30 metadata layer slots, found {layer_total}"
+        ));
     }
 
     let Some(article) = manifest.get("published_article") else {
@@ -315,7 +332,10 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
             "common_master_clock_declared_for_recorded_time_series_and_video_triggers",
         ) != Some(true)
         || bool_at(clock, "distributed_clocks_enabled") != Some(true)
-        || clock.get("reported_analog_signal_drift_upper_bound_us").and_then(Value::as_f64) != Some(10.0)
+        || clock
+            .get("reported_analog_signal_drift_upper_bound_us")
+            .and_then(Value::as_f64)
+            != Some(10.0)
         || clock
             .get("file_minimum_sample_intervals_ms")
             .and_then(|v| v.get("robot_file"))
@@ -348,13 +368,31 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         errors.push("surface_scan_contract is required".to_owned());
         return Err(errors);
     };
-    if scan_contract.get("files_per_workpiece").and_then(Value::as_u64) != Some(7)
+    if scan_contract
+        .get("files_per_workpiece")
+        .and_then(Value::as_u64)
+        != Some(7)
         || scan_contract.get("total_files").and_then(Value::as_u64) != Some(35)
-        || scan_contract.get("layer_transitions_per_workpiece").and_then(Value::as_u64) != Some(6)
-        || scan_contract.get("total_layer_transitions").and_then(Value::as_u64) != Some(30)
-        || scan_contract.get("total_laser_line_profiles").and_then(Value::as_u64) != Some(47_188)
-        || scan_contract.get("points_per_profile").and_then(Value::as_u64) != Some(2_048)
-        || scan_contract.get("profile_trigger_hz").and_then(Value::as_u64) != Some(50)
+        || scan_contract
+            .get("layer_transitions_per_workpiece")
+            .and_then(Value::as_u64)
+            != Some(6)
+        || scan_contract
+            .get("total_layer_transitions")
+            .and_then(Value::as_u64)
+            != Some(30)
+        || scan_contract
+            .get("total_laser_line_profiles")
+            .and_then(Value::as_u64)
+            != Some(47_188)
+        || scan_contract
+            .get("points_per_profile")
+            .and_then(Value::as_u64)
+            != Some(2_048)
+        || scan_contract
+            .get("profile_trigger_hz")
+            .and_then(Value::as_u64)
+            != Some(50)
         || str_at(scan_contract, "coordinates_frame") != Some("welding_reference_frame")
         || bool_at(scan_contract, "profile_position_recorded_with_robot_position") != Some(true)
     {
@@ -364,12 +402,18 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         );
     }
 
-    let Some(scan_transitions) = manifest.get("scan_state_transitions").and_then(Value::as_array) else {
+    let Some(scan_transitions) = manifest
+        .get("scan_state_transitions")
+        .and_then(Value::as_array)
+    else {
         errors.push("scan_state_transitions must be an array".to_owned());
         return Err(errors);
     };
     if scan_transitions.len() != 30 {
-        errors.push(format!("expected 30 scan transitions, found {}", scan_transitions.len()));
+        errors.push(format!(
+            "expected 30 scan transitions, found {}",
+            scan_transitions.len()
+        ));
     }
     let mut scan_artifacts = HashSet::new();
     let wid_numbers = ["615", "617", "630", "631", "632"];
@@ -381,9 +425,15 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
                 let expected_layer = format!("L{layer}");
                 let expected_before = format!("WID{number}_L{layer}_T1_scan_pre.nc");
                 let (expected_after, expected_storage) = if layer < 6 {
-                    (format!("WID{number}_L{}_T1_scan_pre.nc", layer + 1), "next_layer_scan_pre")
+                    (
+                        format!("WID{number}_L{}_T1_scan_pre.nc", layer + 1),
+                        "next_layer_scan_pre",
+                    )
                 } else {
-                    (format!("WID{number}_L6_T1_scan_post.nc"), "same_layer_scan_post")
+                    (
+                        format!("WID{number}_L6_T1_scan_post.nc"),
+                        "same_layer_scan_post",
+                    )
                 };
                 if str_at(transition, "workpiece_id") != Some(expected_wid.as_str())
                     || str_at(transition, "layer_id") != Some(expected_layer.as_str())
@@ -402,14 +452,20 @@ fn validate_manifest(schema_text: &str, manifest_text: &str) -> Result<Summary, 
         }
     }
     if scan_artifacts.len() != 35 {
-        errors.push(format!("expected 35 unique scan artifacts, found {}", scan_artifacts.len()));
+        errors.push(format!(
+            "expected 35 unique scan artifacts, found {}",
+            scan_artifacts.len()
+        ));
     }
 
     let Some(controls) = manifest.get("controls").and_then(Value::as_array) else {
         return Err(vec!["controls must be an array".to_owned()]);
     };
     if controls.len() != 40 {
-        errors.push(format!("expected 40 metadata controls, found {}", controls.len()));
+        errors.push(format!(
+            "expected 40 metadata controls, found {}",
+            controls.len()
+        ));
     }
     let allowed_dispositions = [
         "METADATA_ONLY_ADMISSION_VALID",
@@ -552,9 +608,8 @@ fn main() -> ExitCode {
 mod tests {
     use super::*;
 
-    const SCHEMA_TEXT: &str = include_str!(
-        "../../../../docs/tech/SHIPYARD_TANDEM_GMAW_DATA_ADMISSION_V0_1.schema.json"
-    );
+    const SCHEMA_TEXT: &str =
+        include_str!("../../../../docs/tech/SHIPYARD_TANDEM_GMAW_DATA_ADMISSION_V0_1.schema.json");
     const MANIFEST_TEXT: &str =
         include_str!("../../../../benchmarks/shipyard/tandem-gmaw/data-admission-v0.1.json");
 
@@ -612,8 +667,7 @@ mod tests {
     #[test]
     fn final_scan_is_not_falsely_promoted_to_every_layer() {
         let mut manifest = manifest_value();
-        manifest["workpieces"][0]["layers"][1]["expected_artifact_roles"] =
-            Value::Array(vec![
+        manifest["workpieces"][0]["layers"][1]["expected_artifact_roles"] = Value::Array(vec![
                 Value::String("robot_motion".to_owned()),
                 Value::String("process_voltage_current".to_owned()),
                 Value::String("power_source_leading".to_owned()),
@@ -708,8 +762,7 @@ mod tests {
     #[test]
     fn duplicate_wid_is_rejected() {
         let mut manifest = manifest_value();
-        manifest["workpieces"][1]["workpiece_id"] =
-            Value::String("WID615".to_owned());
+        manifest["workpieces"][1]["workpiece_id"] = Value::String("WID615".to_owned());
         let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
         assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
     }
@@ -717,8 +770,7 @@ mod tests {
     #[test]
     fn mode_group_cannot_be_silently_reassigned() {
         let mut manifest = manifest_value();
-        manifest["workpieces"][2]["tandem_mode"] =
-            Value::String("PMC+PMC".to_owned());
+        manifest["workpieces"][2]["tandem_mode"] = Value::String("PMC+PMC".to_owned());
         let serialized = serde_json::to_string(&manifest).expect("serialize mutation");
         assert!(validate_manifest(SCHEMA_TEXT, &serialized).is_err());
     }
