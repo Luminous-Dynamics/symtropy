@@ -36,7 +36,7 @@ jobs:
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path research/degradation-recovery-envelope-001/Cargo.toml --all-targets --all-features -- -D warnings
 
-      - name: Audit positive paired fixture
+      - name: Audit positive paired fixture (normal mode resumes after tick-8 quorum)
         run: |
           cargo run --locked --manifest-path research/degradation-recovery-envelope-001/Cargo.toml -- \
             research/degradation-recovery-envelope-001/fixtures/camera-drop-paired-v1.json \
