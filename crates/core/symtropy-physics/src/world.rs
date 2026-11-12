@@ -362,13 +362,27 @@ impl<const D: usize> PhysicsWorld<D> {
 
         // Preflight the entire batch before mutating the world. A duplicate
         // near the end of the input must not leave earlier bodies inserted.
-        let mut seen_ids: BTreeSet<NetId> = self.net_id_map.keys().copied().collect();
-        seen_ids.extend(self.bodies.iter().filter_map(|body| body.net_id));
+        let mut seen_ids: BTreeSet<NetId> = self
+            .bodies
+            .iter()
+            .filter_map(|body| body.net_id)
+            .collect();
+        if seen_ids.len() != self.bodies.iter().filter(|body| body.net_id.is_some()).count() {
+            return Err("duplicate NetId already present in body fields".to_string());
+        }
         for (net_id, _) in &bodies {
             if !seen_ids.insert(*net_id) {
                 return Err(format!("duplicate NetId({})", net_id.0));
             }
         }
+
+        // Reconcile the lookup map from the validated body-field set before
+        // adding the new batch. Stale keys from direct field mutation vanish.
+        self.net_id_map = self
+            .bodies
+            .iter()
+            .filter_map(|body| body.net_id.map(|net_id| (net_id, body.handle)))
+            .collect();
 
         let mut handles = Vec::with_capacity(bodies.len());
         for (net_id, mut body) in bodies {
@@ -411,16 +425,23 @@ impl<const D: usize> PhysicsWorld<D> {
             return Err(NetIdAssignmentError::MissingBody(handle));
         };
 
-        let mapped_owner = self.net_id_map.get(&net_id).copied();
-        let body_owner = self
-            .bodies
-            .iter()
-            .find(|body| body.net_id == Some(net_id))
-            .map(|body| body.handle);
-        if let Some(existing_handle) = mapped_owner
-            .into_iter()
-            .chain(body_owner)
-            .find(|existing_handle| *existing_handle != handle)
+        // Treat body fields as the source of truth because RigidBody::net_id
+        // remains public for source compatibility. This also repairs a stale
+        // lookup map left by direct field mutation.
+        let mut canonical_index = BTreeMap::new();
+        for existing in &self.bodies {
+            if let Some(existing_id) = existing.net_id
+                && let Some(existing_handle) = canonical_index.insert(existing_id, existing.handle)
+            {
+                return Err(NetIdAssignmentError::DuplicateNetId {
+                    net_id: existing_id,
+                    existing_handle,
+                });
+            }
+        }
+
+        if let Some(existing_handle) = canonical_index.get(&net_id).copied()
+            && existing_handle != handle
         {
             return Err(NetIdAssignmentError::DuplicateNetId {
                 net_id,
@@ -428,18 +449,12 @@ impl<const D: usize> PhysicsWorld<D> {
             });
         }
 
-        if let Some(old) = old_id
-            && old != net_id
-            && self.net_id_map.get(&old) == Some(&handle)
-        {
-            self.net_id_map.remove(&old);
-        }
-
         let body = self
             .body_mut(handle)
             .ok_or(NetIdAssignmentError::MissingBody(handle))?;
         body.net_id = Some(net_id);
-        self.net_id_map.insert(net_id, handle);
+        canonical_index.insert(net_id, handle);
+        self.net_id_map = canonical_index;
         Ok(old_id)
     }
 
@@ -2753,6 +2768,54 @@ mod net_id_assignment_tests {
                 .is_err()
         );
         assert_eq!(world.bodies.len(), 1);
+    }
+
+    #[test]
+    fn safe_setter_repairs_stale_lookup_after_direct_field_change() {
+        let (mut world, first, second) = world_with_two_bodies();
+        world.set_net_id(first, NetId(5));
+        world.body_mut(first).expect("first").net_id = Some(NetId(6));
+
+        assert_eq!(world.try_set_net_id(second, NetId(5)), Ok(None));
+        assert_eq!(world.handle_for_net_id(NetId(5)), Some(second));
+        assert_eq!(world.handle_for_net_id(NetId(6)), Some(first));
+        assert_eq!(world.net_id_for_handle(first), Some(NetId(6)));
+        assert_eq!(world.net_id_for_handle(second), Some(NetId(5)));
+    }
+
+    #[test]
+    fn safe_setter_rejects_unrelated_duplicate_body_fields_without_mutation() {
+        let (mut world, first, second) = world_with_two_bodies();
+        world.body_mut(first).expect("first").net_id = Some(NetId(4));
+        world.body_mut(second).expect("second").net_id = Some(NetId(4));
+        assert_eq!(
+            world.try_set_net_id(second, NetId(9)),
+            Err(NetIdAssignmentError::DuplicateNetId {
+                net_id: NetId(4),
+                existing_handle: first,
+            })
+        );
+        assert_eq!(world.net_id_for_handle(second), Some(NetId(4)));
+        assert_eq!(world.handle_for_net_id(NetId(9)), None);
+    }
+
+    #[test]
+    fn deterministic_batch_repairs_stale_lookup_before_insertion() {
+        let (mut world, first, _) = world_with_two_bodies();
+        world.set_net_id(first, NetId(5));
+        world.body_mut(first).expect("first").net_id = Some(NetId(6));
+
+        let candidate = RigidBody::dynamic_sphere(
+            BodyHandle(usize::MAX),
+            Point::new([6.0, 0.0]),
+            1.0,
+            1.0,
+        );
+        let handles = world
+            .add_bodies_deterministic(vec![(NetId(5), candidate)])
+            .expect("stale ID released after body-field reconciliation");
+        assert_eq!(world.handle_for_net_id(NetId(5)), handles.first().copied());
+        assert_eq!(world.handle_for_net_id(NetId(6)), Some(first));
     }
 
     #[test]
