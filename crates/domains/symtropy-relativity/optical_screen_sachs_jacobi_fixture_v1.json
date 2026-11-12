@@ -1,7 +1,7 @@
 {
   "schema": "luminous.symtropy.kerr.optical_screen_sachs_jacobi.v1",
   "status": "source_authored_rust_execution_pending",
-  "claim_ceiling": "Independent fixed-step Sachs/Jacobi optical-geodesic formulation. This fixture does not qualify a caustic location, fold/cusp classification, finite-frequency wave-optics observable, or global error bound.",
+  "claim_ceiling": "Independent fixed-step and adaptive step-doubled Sachs/Jacobi optical-geodesic formulations. No caustic, fold/cusp or wave-optics claim until exact Schwarzschild, cross-step refinement and canonical-vs-Sachs agreement pass.",
   "conventions": {
     "chart_state_order": "(t_bar or v_bar, r_bar, theta, phi, p_t, p_r, p_theta, p_phi)",
     "tangent": "k^mu = dx^mu/dlambda from the canonical Kerr Hamiltonian",
@@ -34,6 +34,23 @@
       "screen transversality-rate residual",
       "metric compatibility",
       "signed determinant, singular values and condition number"
+    ],
+    "adaptive_api": "integrate_kerr_sachs_jacobi_adaptive",
+    "adaptive_integrator": "step-doubled classical RK4; full step compared with two half steps, with the two-half-step state accepted",
+    "adaptive_error_estimate": "(two_half_steps - full_step)/15",
+    "adaptive_error_channels": [
+      "canonical_ray_8_components",
+      "screen_frame_8_components",
+      "jacobi_matrix_4_components",
+      "jacobi_derivative_4_components"
+    ],
+    "adaptive_diagnostics": [
+      "accepted/rejected steps",
+      "maximum scaled local error per channel",
+      "null and screen constraints",
+      "tidal symmetry and vacuum trace",
+      "transport-rate and metric-compatibility residuals",
+      "last accepted and next proposed step"
     ]
   },
   "analytic_reference": {
@@ -98,7 +115,8 @@
       "optical_tidal_symmetry_residual": 1e-8,
       "vacuum_trace_residual": 1e-8
     },
-    "status": "proposed targets; no refinement receipt"
+    "status": "proposed targets; no refinement receipt",
+    "adaptive_comparison": "On identical initial data, compare adaptive output with the highest-resolution fixed-step result. The adaptive step-doubling estimate is a local controller, not a rigorous global bound."
   },
   "negative_controls": [
     "freshly reseed a local screen basis independently at every step instead of integrating parallel transport",
