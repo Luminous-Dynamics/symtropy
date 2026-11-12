@@ -717,7 +717,7 @@
       "archive_csv_entry_count": 18,
       "metadata_csv_artifact_count": 2,
       "audit_status": "completed_by_exact_head_rust_csv_auditor",
-      "claim_ceiling": "Archive size and publisher MD5 matched by a GitHub runner; CSV payload audit not yet complete.",
+      "claim_ceiling": "The Rust audit receipt verifies archive bytes and 16 recording CSVs (one baseline plus fifteen scenarios) with role-specific time columns and metadata hashes. It does not validate physical root causes or model accuracy.",
       "recording_files": 16,
       "baseline_files": 1,
       "scenario_files": 15,
