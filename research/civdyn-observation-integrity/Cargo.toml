@@ -1,0 +1,15 @@
+[workspace]
+
+[package]
+name = "civdyn-observation-integrity"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Finite known-truth evidence-admission and observation-integrity triage benchmark"
+
+[[bin]]
+name = "observation-integrity-sweep"
+path = "src/bin/observation_integrity_sweep.rs"
+
+[dependencies]
