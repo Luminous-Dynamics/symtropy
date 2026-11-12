@@ -814,12 +814,12 @@ mod tests {
         let metric_q = base_metric();
         let change = dense_change();
         let metric_y = change.pull_metric_to_to(&metric_q).unwrap();
-        let operator_q = BilinearMapV1::<3, Cartesian>::new([
+        let operator_q = LinearMapV1::<3, Cartesian, Cartesian>::new([
             [4.0, 1.0, 0.5],
             [0.25, 2.0, 0.0],
             [0.0, 0.75, 3.0],
         ]);
-        let operator_y = change.pull_bilinear_map_to_to(&operator_q);
+        let operator_y = change.pull_linear_map_to_to(&operator_q);
         let exact_q = TangentVectorV1::<3, Cartesian>::new([0.5, -1.0, 2.0]);
         let exact_y = change.pull_tangent_to_to(&exact_q);
         let rhs_q = operator_q.apply(&exact_q);
