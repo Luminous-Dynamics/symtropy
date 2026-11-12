@@ -423,9 +423,14 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<HealthReport, Box<dyn Error>> {
         .map(|target| target.standard_deviation_ratio_testing_over_baseline)
         .collect();
     let changed = p_value < input.alpha;
+    let dominant_ratio = ratios
+        .iter()
+        .copied()
+        .max_by(|left, right| left.ln().abs().total_cmp(&right.ln().abs()))
+        .unwrap_or(1.0);
     let precision_direction = if !changed {
         "no_significant_change".to_owned()
-    } else if ratios.iter().any(|ratio| *ratio > 1.0) {
+    } else if dominant_ratio > 1.0 {
         "degraded".to_owned()
     } else {
         "improved".to_owned()
