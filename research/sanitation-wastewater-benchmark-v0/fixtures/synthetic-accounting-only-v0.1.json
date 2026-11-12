@@ -12,11 +12,11 @@
   },
   "water_balance": {
     "unit": "L/day",
-    "influent_l_day": 1000.0,
-    "effluent_l_day": 850.0,
-    "sludge_water_l_day": 100.0,
-    "evaporation_l_day": 50.0,
-    "expected_closure_l_day": 0.0,
+    "influent_l_day": 1000,
+    "effluent_l_day": 850,
+    "sludge_water_l_day": 100,
+    "evaporation_l_day": 50,
+    "expected_closure_l_day": 0,
     "closure_tolerance_l_day": 0.01
   },
   "conserved_constituent_balances": [
@@ -26,9 +26,9 @@
       "influent_kg_day": 0.25,
       "effluent_kg_day": 0.0085,
       "sludge_kg_day": 0.2415,
-      "other_outputs_kg_day": 0.0,
-      "expected_closure_kg_day": 0.0,
-      "closure_tolerance_kg_day": 0.000000001
+      "other_outputs_kg_day": 0,
+      "expected_closure_kg_day": 0,
+      "closure_tolerance_kg_day": 1e-9
     },
     {
       "constituent": "total_nitrogen",
@@ -37,7 +37,8 @@
       "effluent_kg_day": 0.0085,
       "sludge_kg_day": 0.005,
       "other_outputs_kg_day": 0.0265,
-      "expected_closure_kg_day": 0.0
+      "expected_closure_kg_day": 0,
+      "closure_tolerance_kg_day": 1e-9
     },
     {
       "constituent": "total_phosphorus",
@@ -45,28 +46,29 @@
       "influent_kg_day": 0.007,
       "effluent_kg_day": 0.00085,
       "sludge_kg_day": 0.00615,
-      "other_outputs_kg_day": 0.0,
-      "expected_closure_kg_day": 0.0
+      "other_outputs_kg_day": 0,
+      "expected_closure_kg_day": 0,
+      "closure_tolerance_kg_day": 1e-9
     }
   ],
   "nonconservative_performance_metrics": [
     {
       "parameter": "BOD5",
       "unit": "mg/L",
-      "influent_mg_l": 200.0,
-      "effluent_mg_l": 20.0,
-      "influent_flow_l_day": 1000.0,
-      "effluent_flow_l_day": 850.0,
+      "influent_mg_l": 200,
+      "effluent_mg_l": 20,
+      "influent_flow_l_day": 1000,
+      "effluent_flow_l_day": 850,
       "expected_load_removal_percent": 91.5,
       "interpretation": "calculated_metric_not_a_conserved_species_or_compliance_result"
     },
     {
       "parameter": "COD",
       "unit": "mg/L",
-      "influent_mg_l": 400.0,
-      "effluent_mg_l": 50.0,
-      "influent_flow_l_day": 1000.0,
-      "effluent_flow_l_day": 850.0,
+      "influent_mg_l": 400,
+      "effluent_mg_l": 50,
+      "influent_flow_l_day": 1000,
+      "effluent_flow_l_day": 850,
       "expected_load_removal_percent": 89.375,
       "interpretation": "calculated_metric_not_a_conserved_species_or_compliance_result"
     }
@@ -74,18 +76,18 @@
   "energy": {
     "unit": "kWh/day",
     "gross_import_kwh_day": 0.12,
-    "recovered_kwh_day": 0.0,
+    "recovered_kwh_day": 0,
     "net_import_kwh_day": 0.12,
     "meter_boundary": "hypothetical process package only; upstream pumping, buildings and downstream distribution excluded",
     "status": "synthetic_arithmetic_only_not_an_energy_performance_claim"
   },
   "effluent_disposition": {
     "unit": "L/day",
-    "effluent_produced_l_day": 850.0,
-    "allocated_for_reuse_l_day": 800.0,
-    "discharged_l_day": 50.0,
-    "reuse_delivered_l_day": 700.0,
-    "reuse_storage_change_l_day": 100.0
+    "effluent_produced_l_day": 850,
+    "allocated_for_reuse_l_day": 800,
+    "discharged_l_day": 50,
+    "reuse_delivered_l_day": 700,
+    "reuse_storage_change_l_day": 100
   },
   "expected_disposition": "Accepted",
   "expected_reason_codes": [],
