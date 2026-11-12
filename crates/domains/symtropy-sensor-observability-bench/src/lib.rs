@@ -1175,6 +1175,8 @@ mod tests {
         let operating_domain_ref = case["parent_context"]["operating_domain_ref"].clone();
         let asset_configuration_ref =
             case["parent_context"]["asset_configuration_ref"].clone();
+        let installation_profile_ref =
+            case["parent_context"]["installation_profile_ref"].clone();
         for channel in case["channels"].as_array_mut().unwrap() {
             let domain = &mut channel["domain"];
             rename_key(domain, "material_cohort_ref", "asset_family_ref");
@@ -1182,6 +1184,7 @@ mod tests {
             rename_key(domain, "geometry_profile_ref", "installation_profile_ref");
             domain["asset_configuration_ref"] = asset_configuration_ref.clone();
             domain["operating_domain_ref"] = operating_domain_ref.clone();
+            domain["installation_profile_ref"] = installation_profile_ref.clone();
         }
         // Response evidence must use the same asset/domain vocabulary as its
         // channel declaration; transforming only one side correctly fails.
@@ -1192,6 +1195,7 @@ mod tests {
             rename_key(domain, "geometry_profile_ref", "installation_profile_ref");
             domain["asset_configuration_ref"] = asset_configuration_ref.clone();
             domain["operating_domain_ref"] = operating_domain_ref.clone();
+            domain["installation_profile_ref"] = installation_profile_ref.clone();
         }
         case["layout_profile"]["state_taxonomy_ref"] = serde_json::json!("taxonomy:marine-diesel-faults-v0.1");
         replace_string(&mut case, "DEVELOPING_BLOCKAGE", "ENGINE_FUEL_INJECTION_FAULT");
