@@ -287,6 +287,8 @@ fn leaf_fields(
     fields[0] = "leaf".to_owned();
     fields[17] = receipt.observation_history.join(">");
     fields[22] = receipt.selected_action_id.clone();
+    fields[24] = format!("{:.6}", receipt.path_energy_kwh);
+    fields[25] = receipt.path_latency_ticks.to_string();
     fields[27] = receipt.world_id.clone();
     fields[31] = format!("{:.6}", receipt.gross_policy_service_units);
     fields[32] = format!("{:.6}", receipt.oracle_service_units);
