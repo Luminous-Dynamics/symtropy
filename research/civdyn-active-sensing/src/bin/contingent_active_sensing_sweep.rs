@@ -320,7 +320,7 @@ fn emit_candidate_tree(scenario_id: &str, node: &CandidatePolicyNode, history: &
                 let mut next_history = history.to_vec();
                 next_history.push(branch.observation_id.clone());
                 println!(
-                    "{},{},observation_branch,{},{}," ,
+                    "{},{},observation_branch,{},{},",
                     csv_field(scenario_id),
                     csv_field(&next_history.join(">")),
                     csv_field(sensor_id),
