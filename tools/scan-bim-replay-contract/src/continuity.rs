@@ -105,7 +105,6 @@ pub struct RepresentationTransition {
     pub transition_id: String,
     /// v0.1 supports a strict ordered linear chain: empty for the root and
     /// exactly the immediately preceding transition ID for every later hop.
-    #[serde(default)]
     pub parent_transition_ids: Vec<String>,
     pub from_representation: RepresentationKind,
     pub to_representation: RepresentationKind,
@@ -291,21 +290,6 @@ fn validate_transition_chain(transitions: &[RepresentationTransition]) -> Result
                 "transition {} is disconnected: it must consume an exact output artifact from parent {}",
                 transition.transition_id, previous.transition_id
             ));
-        }
-
-        for source in &transition.source_artifacts {
-            for ancestor in &transitions[..index - 1] {
-                if ancestor
-                    .output_artifacts
-                    .iter()
-                    .any(|output| output.artifact_id == source.artifact_id)
-                {
-                    return Err(format!(
-                        "transition {} skips an intermediate parent by reusing ancestor artifact {}",
-                        transition.transition_id, source.artifact_id
-                    ));
-                }
-            }
         }
 
         let parent_target_entities: BTreeSet<&str> = previous
@@ -1426,21 +1410,17 @@ mod tests {
     }
 
     #[test]
-    fn rejects_ancestor_artifact_reuse_that_skips_an_intermediate_hop() {
+    fn retains_ancestor_measurement_provenance_when_immediate_parent_is_consumed() {
         let mut value = valid_multi_hop_receipt();
-        let mut third = value["transitions"][1].clone();
-        third["transition_id"] = json!("GRAPH-TO-PARAMETRIC-001");
-        third["parent_transition_ids"] = json!(["SURFACE-TO-GRAPH-001"]);
-        third["from_representation"] = json!("spatial_graph");
-        third["to_representation"] = json!("parametric_model");
-        third["source_artifacts"].as_array_mut().unwrap().push(json!({
-            "artifact_id": "MESH-001",
-            "sha256": "c".repeat(64),
-            "role": "geometry_output"
+        value["transitions"][1]["source_artifacts"].as_array_mut().unwrap().push(json!({
+            "artifact_id": "SCAN-001",
+            "sha256": "a".repeat(64),
+            "role": "raw_measurement"
         }));
-        value["transitions"].as_array_mut().unwrap().push(third);
-        let error = audit(&value).expect_err("a later hop cannot skip its immediate parent");
-        assert!(error.contains("skips an intermediate parent"));
+        let report = audit(&value)
+            .expect("a downstream transform may retain original evidence provenance");
+        assert_eq!(report.transition_count, 2);
+        assert_eq!(report.continuity_state, "continuity_preserved");
     }
 
     #[test]
