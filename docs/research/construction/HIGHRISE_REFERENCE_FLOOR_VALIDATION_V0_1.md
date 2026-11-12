@@ -7,7 +7,9 @@
 - Fixture: `docs/research/construction/HIGHRISE_REFERENCE_FLOOR_SCHEDULE_V0_1.json`
 - Fixture Git blob SHA-1: `25862337341f4c5ceb216e24bc49f6926082c1c6`
 - Schema: `docs/research/construction/HIGHRISE_REFERENCE_FLOOR_SCHEDULE_SCHEMA_V0_1.json`
-- Schema Git blob SHA-1: `48ca954575ab43d7d99bccba7d44e50ddb40b4f8`
+- Schema Git blob SHA-1: `48ca954575ab43d7d99bccba7d44e50ddb40b4f8` (exact schema bytes fetched after the schema correction)
+- Generic #1902 adapter fixture: `docs/research/fixtures/HIGHRISE_REFERENCE_FLOOR_MICRO_ORACLE_V0_1.json`
+- Adapter Git blob SHA-1: `9db3b46b8eb81d302f44b9bac9a515d4206dae23`
 - Branch: `research/highrise-reference-floor-v0.1`
 - Date: 2026-11-12
 
@@ -39,16 +41,18 @@ The blocked case was rejected because a required pre-pour hold-point gate was un
 - Four case outcomes against local expected-value recomputation: **4/4 MATCH**
 - Canonical witness task-duration, precedence and resource-capacity checks: **PASS**
 - Upper-duration deadline/robustness checks: **PASS**
+- Generic #1902 case-field envelope and header checks: **PASS**
+- Adapter's four case objects preserved byte-semantically after JSON parse/stringification: **PASS**
 - Required-gate negative control: **PASS**
 
 ## What this does not establish
 
 1. The local structural walk is not a complete implementation of JSON Schema Draft 2020-12. It covers the keywords used by this profile, but is not a substitute for an independent standard validator.
-2. The cases have not yet been translated into the exact generic micro-oracle fixture and executed through the separate Rust #1902 oracle/planner toolchain.
+2. The cases have now been projected into the exact generic micro-oracle fixture envelope and the four case objects were checked for exact semantic preservation. They have **not** yet been executed through the separate Rust #1902 oracle/planner toolchain.
 3. No exact-head Rust compilation, unit tests, strict Clippy, Nix evaluation or hosted CI result is claimed.
 4. The schedule values are abstract ticks and synthetic capacities, not field hours, floor-cycle estimates, crew rates, equipment specifications or procurement recommendations.
 5. No physical work, robot dispatch, lifting, structural assessment, safety qualification, code approval or independent physical acceptance occurred.
 
 ## Next integration gate
 
-Translate these four schedule cases into the exact #1902 generic micro-oracle input envelope, preserve the construction-specific functional-output mapping as a separate adapter, and run the existing exact oracle and hybrid planner without copying their solver or validator. Extend with #1843 disturbance/recovery cases only after the nominal adapter matches the reference outcomes.
+Run the exact generic adapter fixture through the existing #1902 exact oracle and hybrid planner without copying their solver or validator, preserve the construction-specific functional-output mapping as a separate adapter, and capture exact-head receipts. Extend with #1843 disturbance/recovery cases only after the nominal adapter matches the reference outcomes.
