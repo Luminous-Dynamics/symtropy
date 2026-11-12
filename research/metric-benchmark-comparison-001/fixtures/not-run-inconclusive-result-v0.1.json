@@ -29,7 +29,8 @@
     "solver_tolerances": "not verified",
     "notes": [
       "Synthetic schema fixture only; no Drake execution or timing is claimed."
-    ]
+    ],
+    "comparison_scope": "mass_metric_riesz_solve_kernel_only"
   },
   "execution": {
     "status": "NOT_RUN",
