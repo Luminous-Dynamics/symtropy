@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/ev_battery_scale_transfer_v0_1.schema.json",
+  "title": "EV battery scale-transfer evidence manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["manifest_id", "stages", "bridges", "comparisons", "evidence"],
+  "properties": {
+    "manifest_id": { "type": "string", "minLength": 1 },
+    "stages": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["stage_id", "stage_kind", "design_id", "design_revision", "artifact_config_ref", "parent_stage_ids", "scale_value", "scale_unit", "stage_digest", "evidence_id"],
+        "properties": {
+          "stage_id": { "type": "string", "minLength": 1 },
+          "stage_kind": { "enum": ["material", "electrode", "coin_cell", "small_pouch", "large_format_cell", "module", "pack"] },
+          "design_id": { "type": "string", "minLength": 1 },
+          "design_revision": { "type": "string", "minLength": 1 },
+          "artifact_config_ref": { "type": "string", "minLength": 1 },
+          "parent_stage_ids": { "type": "array", "uniqueItems": true, "items": { "type": "string", "minLength": 1 } },
+          "scale_value": { "type": "number", "exclusiveMinimum": 0 },
+          "scale_unit": { "type": "string", "minLength": 1 },
+          "stage_digest": { "$ref": "#/$defs/digest" },
+          "evidence_id": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "bridges": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["bridge_id", "source_stage_id", "target_stage_id", "mapping_profile_ref", "variables", "evidence_id"],
+        "properties": {
+          "bridge_id": { "type": "string", "minLength": 1 },
+          "source_stage_id": { "type": "string", "minLength": 1 },
+          "target_stage_id": { "type": "string", "minLength": 1 },
+          "mapping_profile_ref": { "type": "string", "minLength": 1 },
+          "variables": {
+            "type": "array", "minItems": 1,
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["variable_id", "mapping_kind", "rationale", "evidence_id"],
+              "properties": {
+                "variable_id": { "type": "string", "minLength": 1 },
+                "mapping_kind": { "enum": ["invariant", "rescaled", "reoptimized", "unknown"] },
+                "rationale": { "type": "string", "minLength": 1 },
+                "evidence_id": { "type": "string", "minLength": 1 }
+              }
+            }
+          },
+          "evidence_id": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "comparisons": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["comparison_id", "bridge_id", "quantity_id", "unit", "boundary", "predicted_value", "prediction_lower_bound", "prediction_upper_bound", "observed_value", "prediction_evidence_id", "observation_evidence_id", "disposition", "comparison_digest"],
+        "properties": {
+          "comparison_id": { "type": "string", "minLength": 1 },
+          "bridge_id": { "type": "string", "minLength": 1 },
+          "quantity_id": { "type": "string", "minLength": 1 },
+          "unit": { "type": "string", "minLength": 1 },
+          "boundary": { "type": "string", "minLength": 1 },
+          "predicted_value": { "type": "number" },
+          "prediction_lower_bound": { "type": "number" },
+          "prediction_upper_bound": { "type": "number" },
+          "observed_value": { "type": ["number", "null"] },
+          "prediction_evidence_id": { "type": "string", "minLength": 1 },
+          "observation_evidence_id": { "type": ["string", "null"] },
+          "disposition": { "enum": ["predicted_only", "physical_measurement", "independent_laboratory", "unknown"] },
+          "comparison_digest": { "$ref": "#/$defs/digest" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["evidence_id", "source_digest", "evidence_class", "admission", "claim_scope", "validity_domain", "metrology_ref"],
+        "properties": {
+          "evidence_id": { "type": "string", "minLength": 1 },
+          "source_digest": { "$ref": "#/$defs/digest" },
+          "evidence_class": { "enum": ["synthetic_fixture", "assumption", "vendor_claim", "literature_reported", "simulation", "surrogate", "calculation", "physical_measurement", "independent_laboratory"] },
+          "admission": { "enum": ["candidate", "admitted_for_research", "admitted_for_evaluation", "blocked", "unknown"] },
+          "claim_scope": { "type": "string", "minLength": 1 },
+          "validity_domain": { "type": "string", "minLength": 1 },
+          "metrology_ref": { "type": ["string", "null"] }
+        }
+      }
+    }
+  },
+  "$defs": { "digest": { "type": "string", "pattern": "^[0-9a-f]{64}$" } }
+}
