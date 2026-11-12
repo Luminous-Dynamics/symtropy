@@ -96,13 +96,15 @@
             "branch_id": "b1",
             "reserve_state_digest": "sha256:fo01_clairvoyance_trap-b1-reserve",
             "topology_digest": "sha256:fo01_clairvoyance_trap-b1-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo01-s1"
           },
           {
             "branch_id": "b2",
             "reserve_state_digest": "sha256:fo01_clairvoyance_trap-b2-reserve",
             "topology_digest": "sha256:fo01_clairvoyance_trap-b2-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo01-s2"
           }
         ]
       }
@@ -206,13 +208,15 @@
             "branch_id": "b1",
             "reserve_state_digest": "sha256:fo02_valid_observation_splits_states-b1-reserve",
             "topology_digest": "sha256:fo02_valid_observation_splits_states-b1-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo02-s1"
           },
           {
             "branch_id": "b2",
             "reserve_state_digest": "sha256:fo02_valid_observation_splits_states-b2-reserve",
             "topology_digest": "sha256:fo02_valid_observation_splits_states-b2-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo02-s2"
           }
         ]
       }
@@ -234,7 +238,8 @@
         "model_digest": "sha256:thermal-model",
         "node_manifest_digest": "sha256:thermal-nodes",
         "predecessor_state_digest": "sha256:thermal-predecessor",
-        "result_state_digest": "sha256:thermal-result"
+        "result_state_digest": "sha256:thermal-result",
+        "branch_manifest_digest": "sha256:fo03-branches"
       },
       "thermal_nodes": [
         {
@@ -313,7 +318,8 @@
             "branch_id": "b1",
             "reserve_state_digest": "sha256:fo03_hot_node_hidden_by_mean-b1-reserve",
             "topology_digest": "sha256:fo03_hot_node_hidden_by_mean-b1-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo03-s1"
           }
         ]
       }
@@ -400,13 +406,15 @@
             "branch_id": "b1",
             "reserve_state_digest": "sha256:fo04_zero_mass_physical_branch-b1-reserve",
             "topology_digest": "sha256:fo04_zero_mass_physical_branch-b1-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo04-s1"
           },
           {
             "branch_id": "b2",
             "reserve_state_digest": "sha256:fo04_zero_mass_physical_branch-b2-reserve",
             "topology_digest": "sha256:fo04_zero_mass_physical_branch-b2-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo04-s2"
           }
         ]
       }
@@ -469,7 +477,8 @@
             "branch_id": "b1",
             "reserve_state_digest": "sha256:fo05_incomplete_branch_manifest-b1-reserve",
             "topology_digest": "sha256:fo05_incomplete_branch_manifest-b1-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo05-s1"
           }
         ]
       }
@@ -546,7 +555,8 @@
             "branch_id": "b1",
             "reserve_state_digest": "sha256:fo06_action_alias_collapse-b1-reserve",
             "topology_digest": "sha256:fo06_action_alias_collapse-b1-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo06-s1"
           }
         ]
       }
@@ -614,7 +624,8 @@
             "branch_id": "b1",
             "reserve_state_digest": "sha256:fo07_thermal_predecessor_mismatch-b1-reserve",
             "topology_digest": "sha256:fo07_thermal_predecessor_mismatch-b1-topology",
-            "terminal_safe_stop_reachable": true
+            "terminal_safe_stop_reachable": true,
+            "successor_state_digest": "sha256:fo07-s1"
           }
         ]
       }
