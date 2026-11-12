@@ -247,7 +247,7 @@ The bridge verifies:
 
 The bridge creates a **probe prefix**, not a complete mission policy. Its observation nodes deliberately have incomplete downstream transition manifests until #4293 (or the relevant transition owner) supplies the subsequent physical branches and #4549/#4555/#4511 supply terminal recovery evidence. The bounded policy evaluator therefore returns Unknown rather than claiming a multi-step win from one-step VOI data alone.
 
-Twelve new bridge tests cover indistinguishable outcomes and action-set intersection, zero-mass physical support, gate short-circuit, continuation-set mismatch, Unknown fallback, mass accounting, stale/invalid observation handling, branch/outcome support, belief-state identity and the incomplete-downstream claim boundary. The main reference package now contains **64 authored Rust tests**. The separate Rust JSON fixture-runner package has one corpus conformance test; its exact-head workflow additionally executes the seven committed JSON cases through the Rust evaluator.
+Twelve new bridge tests cover indistinguishable outcomes and action-set intersection, zero-mass physical support, gate short-circuit, continuation-set mismatch, Unknown fallback, mass accounting, stale/invalid observation handling, branch/outcome support, belief-state identity and the incomplete-downstream claim boundary. The main reference package now contains **67 authored Rust tests**. The separate Rust JSON fixture-runner package has one corpus conformance test; its exact-head workflow additionally executes the seven committed JSON cases through the Rust evaluator.
 
 
 A subsequent fail-closed review tightened the VOI bridge: incomplete action or branch/outcome manifests now stop prefix construction; missing initial observation/state receipts are rejected; unknown/invalid observation classes and incomplete successor-state receipts expose **empty** deployable action sets rather than positive diagnostic counts. The current VOI regression corpus includes these cases. The policy-tree suite also asserts the AND condition: one safe successor does not compensate for another physically possible successor with no terminal recovery route.
@@ -256,7 +256,7 @@ The one-step evaluator's recovery receipt is now **branch-bound**. It must name 
 
 Every `BeliefStateReceipt` now also carries a mission-sequence digest. Each `PolicyTransition` binds its predecessor and resulting sequence digests alongside physical, reserve and thermal state. A state receipt from a different event order therefore cannot be reused even if the visible observation labels are identical. The policy-tree negative control changes the child history from one event order to another without changing the incoming transition receipt and expects Invalid. This is identity/path qualification; it does not infer the physical effect of event order—the upstream state-transition authority supplies those receipts.
 
-The bounded policy evaluator now hard-limits 256 belief nodes, 256 actions, 1,024 hidden states and each state/action receipt vector per node, and 32,768 transition records. It indexes physically possible transitions once per belief node instead of rescanning the entire edge manifest for every action/state candidate. Exceeding a limit yields a typed error; no records are truncated. A mission-history digest is required on every state and transition, with negative controls for missing history and cross-order receipt reuse.
+The bounded policy evaluator now hard-limits 256 belief nodes, 256 actions, 1,024 hidden states and each state/action receipt vector per node, and 32,768 transition records. The one-step evaluator separately caps successor branches at 4,096, action aliases and admitted labels at 1,024, thermal nodes at 256, and recovery receipts at 4,096. It indexes physically possible transitions once per belief node instead of rescanning the entire edge manifest for every action/state candidate. Exceeding a limit yields a typed error; no records are truncated. A mission-history digest is required on every state and transition, with negative controls for missing history and cross-order receipt reuse.
 
 ### Exact successor-state binding for thermal and recovery receipts
 
@@ -265,3 +265,34 @@ The one-step thermal value is explicitly a **conservative upper envelope over th
 Each branch-specific recovery receipt now also carries the exact successor physical-state digest, in addition to its branch ID, reserve-state digest, topology digest and terminal safe-stop result. A mismatch is Invalid; missing receipt coverage is Unknown. The Rust fixture runner parses both identities and runs the corpus through the actual evaluator.
 
 The seven-case corpus/schema were fetched back and semantically checked: **7/7** have thermal-manifest binding, exact branch-to-successor recovery identity, and one recovery receipt for every physically possible branch (including zero probability). This is still a model-side preflight, not JSON Schema validator execution or a physical result.
+
+## Benchmark credibility gate — 12 November 2026
+
+A raw success percentage is not enough to establish general robot capability. A 2026 audit of LIBERO, CALVIN, SimplerEnv, RoboCasa and RoboTwin identifies shortcut solvability, weak statistical significance, creeping overfitting and data-source dependence as failure modes; it reports a 0.09B probe without a language encoder at or near reported SOTA on LIBERO. Treat this as a warning about benchmark validity, not a reason to discard every benchmark.
+
+The external VLA Evaluation Harness beta aggregates 15+ simulation benchmarks and thousands of results. Use multi-benchmark harnesses as a coverage aid, but preserve original per-task protocols and hardware strata.
+
+**No Luminous SOTA claim should be accepted unless all of these pass:**
+1. **Matched protocol:** same embodiment, morphology, actuator/firmware, sensor inputs, payload, task definition, environment revision, trial budget, hardware and inference budget.
+2. **Sealed holdout:** split by scenario family and disturbance-generation family, not merely random episode seed. Include held-out terrain, payload, ambient temperature, morphology/robot and event sequences where relevant.
+3. **Randomization audit:** vary object placement, initial states, lighting/terrain, contact/friction, actor/obstacle behavior and task ordering; report which variables are policy-visible.
+4. **Shortcut controls:** action-only or small-model probes, always-stop/no-op, fixed gait, scripted baseline, training-data retrieval and language-removal controls. A simple probe approaching the headline score invalidates the claim that the benchmark measures broad language-conditioned competence.
+5. **Statistical evidence:** independent seeds and episodes, confidence intervals, paired comparisons where appropriate, preregistered margins and family-wise correction for multiple comparisons. Report every trial, failure, censoring event and excluded run.
+6. **Tail and worst-family reporting:** per-task, per-family and worst-stratum outcomes; do not hide one weak class behind a global average.
+7. **Causal counterfactual integrity:** when changing the robot action, regenerate causal descendants and other-agent responses; do not replay stale downstream actions as though they were independent of the intervention.
+8. **Hardware transfer:** separate simulation from physical trials; report the exact hardware, clock, sensor, actuator and energy boundaries. Simulation-only improvements stay labelled simulation-only.
+
+The Luminous contribution is not to declare that a new scalar score beats the LIBERO leaderboard. It is to add an evidence-qualified recoverability layer to an evaluation ecosystem whose conventional manipulation scores are nearing saturation and whose validity requires stronger controls. The primary claims remain finite option-set correctness, bounded policy-witness correctness and replayable physical lineage—not general-purpose robot intelligence.
+
+### Current comparison strata and targets
+
+| Stratum | External reference | Luminous comparison / target |
+|---|---|---|
+| Thermal quadruped locomotion | A1 3 kg payload thermal-aware policy reports >27 min vs ~7 min baseline; separate residual policy reports >13 min vs ~5 min under its own protocol | Reproduce each paper separately; then test ordered multi-fault sequences without resetting thermal/SOC/actuator reserve; require non-inferior tracking and no per-node thermal-limit violations |
+| VLA manipulation success | LIBERO test leaderboards list ~99% mean success (protocols differ); Streaming-WAM reports 98.35% and 41 ms chunk preparation on its four-H100 setup | Do not claim victory from another benchmark. Use LIBERO-Pro, RoboTwin, RoboCasa and real-world tasks with matched models/hardware; target task success plus deadline, causal chunk-prefix alignment and recoverability |
+| Fleet RFM serving | ROSA reports up to 12.06× factory productivity using shared GPU pools and SLO-aware scheduling | Compare safe-mission throughput, per-robot service floors, deadline misses and p99 end-to-end latencies at matched fleet sizes and GPU budgets—not just request throughput |
+| Robot benchmark validity | 2026 audit identifies shortcut, significance, overfit and data-source issues in common manipulation benchmarks | Publish shortcut probes, randomization controls, held-out-family splits and confidence intervals alongside every aggregate score |
+| Recoverability under partial observability | Conventional action success/fall rate rarely captures whether the robot had one action valid across all indistinguishable possible states | Report common continuation sets, clairvoyant upper bound, bounded winning-policy rate by horizon, per-hidden-state terminal recovery coverage and all Unknown/Invalid denominators |
+
+Prospective superiority target: on a matched platform and frozen workload, improve at least one preregistered dimension (mission success, safe-mission throughput, thermal endurance, energy per useful work, or recovery probability) with statistical support **without regressions** in any hard safety, tracking, terminal safe-stop, fairness or evidence-completeness gate. If trade-offs remain, publish a Pareto frontier rather than a weighted score.
+
