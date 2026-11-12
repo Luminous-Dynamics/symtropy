@@ -1055,6 +1055,62 @@ mod tests {
     }
 
     #[test]
+    fn spurious_candidate_detection_counts_as_identity_false_positive() {
+        let (mut candidate, _) = parsed_fixture();
+        let sequence = candidate["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-UNCHANGED")
+            .unwrap();
+        let step = sequence["steps"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|step| step["step_id"] == "a-02")
+            .unwrap();
+        step["observations"].as_array_mut().unwrap().push(json!({
+            "observation_id":"invented-observation",
+            "candidate_track_id":"invented-track"
+        }));
+        let bytes = serde_json::to_vec(&candidate).unwrap();
+        let report =
+            evaluate_bytes(&bytes, REFERENCE.as_bytes()).expect("spurious detection is scored");
+        let unchanged = report
+            .sequences
+            .iter()
+            .find(|sequence| sequence.sequence_id == "SEQ-UNCHANGED")
+            .unwrap();
+        assert_eq!(unchanged.id_false_positives, 1);
+        assert!(unchanged.idf1 < 1.0);
+        assert!(!unchanged.passed);
+    }
+
+    #[test]
+    fn expired_calibration_is_not_eligible_at_decision_cutoff() {
+        let (candidate, mut reference) = parsed_fixture();
+        let sequence = reference["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-UNCHANGED")
+            .unwrap();
+        let calibration = sequence["evidence_events"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|event| event["event_id"] == "ev-cal")
+            .unwrap();
+        calibration["valid_until_tick"] = json!(10);
+        let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
+        let reference_bytes = serde_json::to_vec(&reference).unwrap();
+        let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
+            .expect("expired calibration is reported");
+        assert_eq!(report.temporal_evidence_violations, 3);
+        assert!(!report.passed);
+    }
+
+    #[test]
     fn nuisance_attributed_as_physical_change_is_a_false_event() {
         let (mut candidate, _) = parsed_fixture();
         let sequence = candidate["sequences"]
