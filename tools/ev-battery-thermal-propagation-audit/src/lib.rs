@@ -298,7 +298,10 @@ fn validate_article(article: &ArticleDescriptor) -> Result<(), AuditError> {
         ));
     }
     for domain in EquivalenceDomain::ALL {
-        validate_digest(article.fingerprints.get(domain), "article domain fingerprint")?;
+        validate_digest(
+            article.fingerprints.get(domain),
+            "article domain fingerprint",
+        )?;
     }
     Ok(())
 }
@@ -318,7 +321,10 @@ fn evidence_registry<'e>(
     for record in records {
         validate_digest(&record.source_digest, "evidence source digest")?;
         require_nonempty(&record.claim_scope, "evidence claim scope")?;
-        require_nonempty(&record.authority_or_lab_ref, "authority/laboratory reference")?;
+        require_nonempty(
+            &record.authority_or_lab_ref,
+            "authority/laboratory reference",
+        )?;
         if record.evidence_class.is_physical()
             && record.metrology_ref.as_deref().is_none_or(str::is_empty)
         {
@@ -359,31 +365,32 @@ fn validate_test<'e>(
     require_nonempty(&test.standard_revision, "standard revision")?;
     require_nonempty(&test.protocol_revision, "protocol revision")?;
     validate_article(&test.article)?;
-    let evidence = admitted_evidence(registry, &test.evidence_id, &format!("test {}", test.test_id))?;
+    let evidence = admitted_evidence(
+        registry,
+        &test.evidence_id,
+        &format!("test {}", test.test_id),
+    )?;
 
     if matches!(
         test.result,
         TestResult::Pass | TestResult::Fail | TestResult::NoPropagationWithinWindow
     ) {
-        let criteria_id = test
-            .acceptance_criteria_id
-            .as_deref()
-            .ok_or_else(|| {
-                AuditError(format!(
-                    "test {} requires a separate acceptance-criteria identity",
-                    test.test_id
-                ))
-            })?;
+        let criteria_id = test.acceptance_criteria_id.as_deref().ok_or_else(|| {
+            AuditError(format!(
+                "test {} requires a separate acceptance-criteria identity",
+                test.test_id
+            ))
+        })?;
         require_nonempty(criteria_id, "acceptance-criteria ID")?;
-        let criteria_evidence_id = test
-            .acceptance_criteria_evidence_id
-            .as_deref()
-            .ok_or_else(|| {
-                AuditError(format!(
-                    "test {} requires evidence for its acceptance criteria",
-                    test.test_id
-                ))
-            })?;
+        let criteria_evidence_id =
+            test.acceptance_criteria_evidence_id
+                .as_deref()
+                .ok_or_else(|| {
+                    AuditError(format!(
+                        "test {} requires evidence for its acceptance criteria",
+                        test.test_id
+                    ))
+                })?;
         let criteria_evidence = admitted_evidence(
             registry,
             criteria_evidence_id,
@@ -510,8 +517,14 @@ fn validate_equivalence<'c, 'e>(
                 comparison.domain
             )));
         }
-        validate_digest(&comparison.source_fingerprint, "equivalence source fingerprint")?;
-        validate_digest(&comparison.target_fingerprint, "equivalence target fingerprint")?;
+        validate_digest(
+            &comparison.source_fingerprint,
+            "equivalence source fingerprint",
+        )?;
+        validate_digest(
+            &comparison.target_fingerprint,
+            "equivalence target fingerprint",
+        )?;
         if comparison.source_fingerprint != source.fingerprints.get(comparison.domain)
             || comparison.target_fingerprint != target.fingerprints.get(comparison.domain)
         {
@@ -578,8 +591,7 @@ fn validate_equivalence<'c, 'e>(
 
 fn domain_blocker(comparison: &EquivalenceAssessment) -> Option<String> {
     match comparison.status {
-        EquivalenceStatus::SameWithEvidence
-        | EquivalenceStatus::NotApplicableWithRationale => None,
+        EquivalenceStatus::SameWithEvidence | EquivalenceStatus::NotApplicableWithRationale => None,
         EquivalenceStatus::Different => Some(format!(
             "{:?} differs; prior evidence cannot be inherited automatically",
             comparison.domain
@@ -686,7 +698,9 @@ pub fn audit_manifest(manifest: &Manifest) -> Result<AuditReport, AuditError> {
             blockers.push("source evidence class cannot support a safety evidence review".into());
         }
         match test.result {
-            TestResult::Pass | TestResult::NoPropagationWithinWindow | TestResult::RiskAnalysisSubmitted => {}
+            TestResult::Pass
+            | TestResult::NoPropagationWithinWindow
+            | TestResult::RiskAnalysisSubmitted => {}
             TestResult::Fail => blockers.push("source test reports FAIL".into()),
             TestResult::TriggerNotAchieved => {
                 blockers.push("source trigger was not achieved".into())
@@ -827,10 +841,12 @@ mod tests {
                     },
                     rationale: match status {
                         EquivalenceStatus::SameWithEvidence => {
-                            "synthetic known-answer comparison receipt bound to exact fingerprints".into()
+                            "synthetic known-answer comparison receipt bound to exact fingerprints"
+                                .into()
                         }
                         EquivalenceStatus::Different => {
-                            "synthetic negative control: source and target fingerprints differ".into()
+                            "synthetic negative control: source and target fingerprints differ"
+                                .into()
                         }
                         EquivalenceStatus::Unknown => {
                             "synthetic negative control: equivalence not established".into()
@@ -1013,17 +1029,28 @@ mod tests {
         Manifest {
             campaign_id: "TRP-EVIDENCE-CAMPAIGN-001".into(),
             evidence: vec![
-                evidence("E-REESS", 'd', EvidenceClass::IndependentLaboratoryTest, Some("MET-REESS")),
+                evidence(
+                    "E-REESS",
+                    'd',
+                    EvidenceClass::IndependentLaboratoryTest,
+                    Some("MET-REESS"),
+                ),
                 evidence("E-CELL", 'e', EvidenceClass::PhysicalTest, Some("MET-CELL")),
                 evidence("E-BESS", 'f', EvidenceClass::PhysicalTest, Some("MET-BESS")),
                 evidence("E-RISK", 'a', EvidenceClass::RiskAnalysis, None),
-                evidence("E-COMPARISON", 'b', EvidenceClass::IndependentLaboratoryTest, Some("MET-COMP")),
+                evidence(
+                    "E-COMPARISON",
+                    'b',
+                    EvidenceClass::IndependentLaboratoryTest,
+                    Some("MET-COMP"),
+                ),
                 EvidenceRecord {
                     evidence_id: "E-CRITERIA-UNR100".into(),
                     source_digest: digest('c'),
                     evidence_class: EvidenceClass::Literature,
                     admission: Admission::AdmittedForEvaluation,
-                    claim_scope: "UN-R100-2026 UN-R100-6.15-Annex-9K-05-series-criteria 05-series".into(),
+                    claim_scope: "UN-R100-2026 UN-R100-6.15-Annex-9K-05-series-criteria 05-series"
+                        .into(),
                     authority_or_lab_ref: "SYNTHETIC-UN-R100-REFERENCE".into(),
                     metrology_ref: None,
                 },
@@ -1032,7 +1059,8 @@ mod tests {
                     source_digest: digest('d'),
                     evidence_class: EvidenceClass::Literature,
                     admission: Admission::AdmittedForEvaluation,
-                    claim_scope: "UL-9540A UL-9540A-6th-edition-acceptance-criteria 6th-edition".into(),
+                    claim_scope: "UL-9540A UL-9540A-6th-edition-acceptance-criteria 6th-edition"
+                        .into(),
                     authority_or_lab_ref: "SYNTHETIC-UL-9540A-REFERENCE".into(),
                     metrology_ref: None,
                 },
@@ -1108,8 +1136,16 @@ mod tests {
             .iter()
             .find(|claim| claim.claim_id == "CLAIM-CELL-TO-VEHICLE")
             .expect("claim exists");
-        assert_eq!(claim.disposition, ClaimDisposition::BlockedRequiresQualifiedReview);
-        assert!(claim.blockers.iter().any(|item| item.contains("test level")));
+        assert_eq!(
+            claim.disposition,
+            ClaimDisposition::BlockedRequiresQualifiedReview
+        );
+        assert!(
+            claim
+                .blockers
+                .iter()
+                .any(|item| item.contains("test level"))
+        );
     }
 
     #[test]
@@ -1120,8 +1156,16 @@ mod tests {
             .iter()
             .find(|claim| claim.claim_id == "CLAIM-BESS-TO-EV")
             .expect("claim exists");
-        assert_eq!(claim.disposition, ClaimDisposition::BlockedRequiresQualifiedReview);
-        assert!(claim.blockers.iter().any(|item| item.contains("application-domain")));
+        assert_eq!(
+            claim.disposition,
+            ClaimDisposition::BlockedRequiresQualifiedReview
+        );
+        assert!(
+            claim
+                .blockers
+                .iter()
+                .any(|item| item.contains("application-domain"))
+        );
     }
 
     #[test]
@@ -1132,8 +1176,16 @@ mod tests {
             .iter()
             .find(|claim| claim.claim_id == "CLAIM-CHANGED-TOPOLOGY")
             .expect("claim exists");
-        assert_eq!(claim.disposition, ClaimDisposition::BlockedRequiresQualifiedReview);
-        assert!(claim.blockers.iter().any(|item| item.contains("Topology differs")));
+        assert_eq!(
+            claim.disposition,
+            ClaimDisposition::BlockedRequiresQualifiedReview
+        );
+        assert!(
+            claim
+                .blockers
+                .iter()
+                .any(|item| item.contains("Topology differs"))
+        );
     }
 
     #[test]
@@ -1144,8 +1196,16 @@ mod tests {
             .iter()
             .find(|claim| claim.claim_id == "CLAIM-UNKNOWN-EXPOSURE")
             .expect("claim exists");
-        assert_eq!(claim.disposition, ClaimDisposition::BlockedRequiresQualifiedReview);
-        assert!(claim.blockers.iter().any(|item| item.contains("Exposure equivalence is unknown")));
+        assert_eq!(
+            claim.disposition,
+            ClaimDisposition::BlockedRequiresQualifiedReview
+        );
+        assert!(
+            claim
+                .blockers
+                .iter()
+                .any(|item| item.contains("Exposure equivalence is unknown"))
+        );
     }
 
     #[test]
@@ -1162,8 +1222,17 @@ mod tests {
         value.tests[1].trigger_achieved = false;
         let report = audit_manifest(&value).expect("trigger failure is a valid recorded outcome");
         assert_eq!(report.trigger_not_achieved_count, 1);
-        let claim = report.claims.iter().find(|c| c.claim_id == "CLAIM-CELL-TO-VEHICLE").unwrap();
-        assert!(claim.blockers.iter().any(|item| item.contains("trigger was not achieved")));
+        let claim = report
+            .claims
+            .iter()
+            .find(|c| c.claim_id == "CLAIM-CELL-TO-VEHICLE")
+            .unwrap();
+        assert!(
+            claim
+                .blockers
+                .iter()
+                .any(|item| item.contains("trigger was not achieved"))
+        );
     }
 
     #[test]
@@ -1227,8 +1296,7 @@ mod tests {
     #[test]
     fn acceptance_criteria_must_match_exact_standard_and_revision() {
         let mut value = fixture();
-        value.tests[0].acceptance_criteria_evidence_id =
-            Some("E-CRITERIA-UL9540A".into());
+        value.tests[0].acceptance_criteria_evidence_id = Some("E-CRITERIA-UL9540A".into());
         assert!(audit_manifest(&value).is_err());
     }
 
