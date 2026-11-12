@@ -14,7 +14,7 @@ Determine whether an exact EV battery cell configuration and manufacturing recip
 - Symthaea MAT-PSPP #6224 owns process → realized structure → property → performance lineage.
 - Symthaea MAT-UQ #6225 owns cross-fidelity uncertainty and calibration.
 - Symtropy EV battery adapter #4791 / PR #4792 binds those upstream references to EV cell/pack/mission outcomes.
-- Mycelix manufacturing owns cross-organization lot/batch/line/resource events and work-order routing.
+- Symthaea EV-FIELD-EVIDENCE PR #11421 owns the reusable battery dataset permission/evidence registry; consume its per-operation rights semantics rather than creating a second rights engine.
 
 This benchmark owns only the battery-specific application question and its cell-level lot/line acceptance protocol. It creates no duplicate process ontology, tolerance engine, genealogy store, materials ontology, metrology authority, process optimizer or factory controller.
 
@@ -88,7 +88,7 @@ The following sources offer a concrete retrospective benchmark ladder. Their lic
 3. **Graphite formulation:** verify the actual file inventory, exact process factors and sample identities before admitting it into a common benchmark.
 4. **Formation:** reproduce the 186-cell/62-protocol study as a distinct non-commercial track; use group-aware splits by protocol and cell, and keep its NC licence out of commercial model training or deployment until separately authorized.
 
-The CC BY and CC0 entries are candidates for admission with their stated attribution/rights, source hashes and exact dataset versions. The CC BY-NC formation data must be separately tagged COMMERCIAL_USE_BLOCKED unless new permission is obtained. No raw dataset has been copied into this repository by this PR.
+The CC BY and CC0 entries are candidates for admission with their stated attribution/rights, source hashes and exact dataset versions. The CC BY-NC formation data must be separately tagged COMMERCIAL_USE_BLOCKED unless new permission is obtained. Use the existing Symthaea EV-FIELD-EVIDENCE PR #11421 permission registry for each intended operation (local processing, model training, derived-data publication, model-weight release, commercial use and redistribution); a dataset's general licence label must not be treated as blanket permission for every operation. No raw dataset has been copied into this repository by this PR.
 
 Do not merge these four datasets into one pooled score: electrode ultrasonic regression, pilot-plant NMC process/property data, graphite process/formulation records, and formation-to-cycle-life are different tasks, physical units and evidence boundaries. They can contribute to a multi-fidelity evidence graph, not a fake common leaderboard.
 
