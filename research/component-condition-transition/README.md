@@ -15,6 +15,7 @@ Dependency-free Rust 1.96 reference for one narrow lifecycle-assurance problem:
 - Declared model profile for model estimates; uncertainty remains optional and unknown when not supplied.
 - Single-clock event/recorded time roles; cross-clock events require an upstream transform and are rejected here.
 - Atomic rejection of duplicate events, duplicate claims, stale revisions, wrong subjects, bad digests, invalid units, time regressions and invalid replacement lineage.
+- Repair/reinforcement and replacement require at least one measured postcondition/initial-state claim; model estimates may accompany but cannot substitute for measured event evidence.
 - Repair appends postcondition claims; it does not erase earlier damage/usage history.
 - Replacement creates a new component-instance/configuration generation while preserving predecessor history.
 
