@@ -541,7 +541,7 @@ pub fn shadow_observation_receipt_sha256(
         ambiguous_hypothesis_set_present: receipt.ambiguous_hypothesis_set_present,
         previous_receipt_sha256: &receipt.previous_receipt_sha256,
     };
-    sha256_serializable(b"symtropy-baseline-shadow-observation-v3\\0", &payload)
+    sha256_serializable(b"symtropy-baseline-shadow-observation-v3\0", &payload)
 }
 
 /// Replay the complete shadow receipt chain and reject any content or order change.
