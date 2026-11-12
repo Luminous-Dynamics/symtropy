@@ -11,6 +11,15 @@ pub enum EvidenceClass {
     IndependentLaboratory,
 }
 
+impl EvidenceClass {
+    fn is_physical(&self) -> bool {
+        matches!(
+            self,
+            Self::PhysicalMeasurement | Self::IndependentLaboratory
+        )
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MaterialLineageRef {
     pub sample_lineage_id: String,
