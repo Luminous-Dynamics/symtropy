@@ -21,7 +21,10 @@
               "observation_id": "obs-a1",
               "candidate_track_id": "track-wall"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         },
         {
           "step_id": "a-02",
@@ -40,7 +43,10 @@
               "observation_id": "obs-a2",
               "candidate_track_id": "track-wall"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         },
         {
           "step_id": "a-03",
@@ -59,7 +65,10 @@
               "observation_id": "obs-a3",
               "candidate_track_id": "track-wall"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         }
       ]
     },
@@ -83,7 +92,10 @@
               "observation_id": "obs-b1",
               "candidate_track_id": "track-door"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         },
         {
           "step_id": "b-02",
@@ -97,7 +109,10 @@
             "ev-reg",
             "ev-scan"
           ],
-          "observations": []
+          "observations": [],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         },
         {
           "step_id": "b-03",
@@ -116,7 +131,10 @@
               "observation_id": "obs-b3",
               "candidate_track_id": "track-door"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         }
       ]
     },
@@ -140,7 +158,10 @@
               "observation_id": "obs-c1",
               "candidate_track_id": "track-window"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         },
         {
           "step_id": "c-02",
@@ -159,7 +180,10 @@
               "observation_id": "obs-c2",
               "candidate_track_id": "track-window"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         }
       ]
     },
@@ -183,7 +207,10 @@
               "observation_id": "obs-d1",
               "candidate_track_id": "track-column"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         },
         {
           "step_id": "d-02",
@@ -202,7 +229,10 @@
               "observation_id": "obs-d2",
               "candidate_track_id": "track-column"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         }
       ]
     },
@@ -226,7 +256,10 @@
               "observation_id": "obs-e1",
               "candidate_track_id": "track-wall"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         },
         {
           "step_id": "e-02",
@@ -238,14 +271,18 @@
           "decision_evidence_event_ids": [
             "ev-cal",
             "ev-reg",
-            "ev-scan"
+            "ev-scan",
+            "ev-change"
           ],
           "observations": [
             {
               "observation_id": "obs-e2",
               "candidate_track_id": "track-wall"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         }
       ]
     },
@@ -269,7 +306,10 @@
               "observation_id": "obs-f1",
               "candidate_track_id": "track-wall"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         },
         {
           "step_id": "f-02",
@@ -288,7 +328,10 @@
               "observation_id": "obs-f2",
               "candidate_track_id": "track-wall"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         }
       ]
     },
@@ -312,7 +355,10 @@
               "observation_id": "obs-g1",
               "candidate_track_id": "track-panel-old"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         },
         {
           "step_id": "g-02",
@@ -331,7 +377,10 @@
               "observation_id": "obs-g2",
               "candidate_track_id": "track-panel-new"
             }
-          ]
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
         }
       ]
     }
