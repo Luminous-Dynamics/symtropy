@@ -66,7 +66,7 @@ Under the same initial positions, seeds and objective-evaluation budget:
 - SCM complete graph (published topology baseline);
 - SCM ring;
 - SCM metric-radius local graph;
-- SCM metric-radius zero (no inter-agent communication; independent agents under the SCM local update);
+- SCM explicit NoCommunication topology (empty adjacency under all states; independent local updates);
 - independent parallel gradient descent (separate adapter);
 - random search with the same number of objective evaluations;
 - centralized gradient reference at the same evaluation budget;
@@ -120,3 +120,8 @@ The benchmark deliberately does not presume communication helps. Depending on la
 ## Current implementation status
 
 The independent SCM reference now reports current population task fitness and best-seen fitness separately from consensus. A Rust unit test compares complete-graph, ring and no-communication topologies under the same initialization and exact objective-evaluation count. These are code-level controls only; no performance sweep or superiority result has been run yet.
+
+
+### Independent-control topology hardening
+
+The code now has an explicit `ScmCommunicationTopology::NoCommunication` variant. It always produces empty adjacency, including when two agents occupy exactly the same coordinates. The benchmark must not substitute `MetricRadius { radius: 0.0 }` for this control: a zero-distance pair can satisfy a zero-radius metric rule and accidentally create an edge. The explicit no-communication variant is the canonical independent-agent arm.
