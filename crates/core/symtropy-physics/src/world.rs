@@ -358,15 +358,23 @@ impl<const D: usize> PhysicsWorld<D> {
         mut bodies: Vec<(NetId, RigidBody<D>)>,
     ) -> Result<Vec<BodyHandle>, String> {
         bodies.sort_by_key(|(id, _)| *id);
-        let mut handles = Vec::with_capacity(bodies.len());
-        for (net_id, mut body) in bodies {
-            let duplicate_in_bodies = self
-                .bodies
-                .iter()
-                .any(|existing| existing.net_id == Some(net_id));
-            if self.net_id_map.contains_key(&net_id) || duplicate_in_bodies {
+
+        // Preflight the entire batch before mutating the world. A duplicate
+        // near the end of the input must not leave earlier bodies inserted.
+        let mut requested_ids = BTreeSet::new();
+        for (net_id, _) in &bodies {
+            let already_in_world = self.net_id_map.contains_key(net_id)
+                || self
+                    .bodies
+                    .iter()
+                    .any(|existing| existing.net_id == Some(*net_id));
+            if already_in_world || !requested_ids.insert(*net_id) {
                 return Err(format!("duplicate NetId({})", net_id.0));
             }
+        }
+
+        let mut handles = Vec::with_capacity(bodies.len());
+        for (net_id, mut body) in bodies {
             let handle = self.allocate_handle();
             body.handle = handle;
             body.net_id = Some(net_id);
@@ -2714,6 +2722,30 @@ mod net_id_assignment_tests {
                 existing_handle: first,
             })
         );
+    }
+
+    #[test]
+    fn deterministic_batch_duplicate_is_atomic() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let first = RigidBody::dynamic_sphere(
+            BodyHandle(usize::MAX),
+            Point::new([0.0, 0.0]),
+            1.0,
+            1.0,
+        );
+        let second = RigidBody::dynamic_sphere(
+            BodyHandle(usize::MAX),
+            Point::new([3.0, 0.0]),
+            1.0,
+            1.0,
+        );
+
+        assert!(world
+            .add_bodies_deterministic(vec![(NetId(31), first), (NetId(31), second)])
+            .is_err());
+        assert!(world.bodies.is_empty());
+        assert!(world.net_id_map.is_empty());
+        assert_eq!(world.next_handle, 0);
     }
 
     #[test]
