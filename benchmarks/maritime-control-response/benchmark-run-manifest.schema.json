@@ -410,11 +410,13 @@
             "likelihood_calibration_reviewed_by_independent_validator",
             "upstream_likelihood_calibration_verification_sha256",
             "prior_distribution_sha256",
-            "selected_baseline"
+            "selected_baseline",
+            "sequential_update_status",
+            "joint_scenario_posterior_ledger_sha256"
           ],
           "properties": {
             "schema_version": {
-              "const": "liu-ice-active-evidence-selection-v0.4"
+              "const": "liu-ice-active-evidence-selection-v0.5"
             },
             "status": {
               "enum": [
@@ -745,6 +747,25 @@
                 "risk_adjusted_worst_case_information_gain",
                 "maximum_worst_case_chernoff_information",
                 null
+              ]
+            },
+            "sequential_update_status": {
+              "enum": [
+                "not_executed",
+                "single_point_model_only",
+                "multi_scenario_blocked_joint_posterior_missing",
+                "joint_hypothesis_scenario_ledger_qualified"
+              ]
+            },
+            "joint_scenario_posterior_ledger_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
               ]
             }
           }
@@ -2250,6 +2271,9 @@
                   },
                   "upstream_likelihood_calibration_verification_sha256": {
                     "type": "null"
+                  },
+                  "sequential_update_status": {
+                    "const": "not_executed"
                   }
                 }
               },
@@ -2510,6 +2534,12 @@
                   },
                   "prior_distribution_sha256": {
                     "type": "string"
+                  },
+                  "sequential_update_status": {
+                    "enum": [
+                      "single_point_model_only",
+                      "joint_hypothesis_scenario_ledger_qualified"
+                    ]
                   }
                 }
               },
