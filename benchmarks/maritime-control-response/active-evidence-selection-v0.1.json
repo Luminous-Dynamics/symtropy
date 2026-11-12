@@ -1,5 +1,5 @@
 {
-  "schema_version": "liu-ice-active-evidence-selection-v0.5",
+  "schema_version": "liu-ice-active-evidence-selection-v0.6",
   "status": "protocol_only_not_executed",
   "purpose": "Rank additional passive observations and explicitly authorized operator inspections by expected reduction in diagnostic hypothesis uncertainty, subject to declared cost, delay, risk and authority gates. This module is a read-only selector.",
   "method": {
@@ -25,9 +25,9 @@
       "objective": "After evidence is acquired by an authorized external system, update the hypothesis posterior. This is a read-only calculation and never acquires evidence or executes another action.",
       "candidate_binding": "The update verifies the exact candidate ID and candidate manifest digest from the frozen selection catalogue; a candidate changed after selection is rejected.",
       "receipt_binding": "The observation receipt SHA-256 and outcome ID are mandatory. The digest links the external receipt but does not authenticate its signer, sensor, timestamp or authority.",
-      "posterior": "For a single frozen point-likelihood table, compute p(h|o) proportional to p(h) times p(o|h). Multi-scenario sequential updates are blocked until a joint hypothesis × persistent-scenario posterior ledger is available; do not repeatedly marginalize fixed scenario weights as if uncertainty scenarios were independently redrawn for each observation.",
+      "posterior": "For one point-likelihood table, realize_probe_observation computes p(h|o). For persistent multi-scenario likelihoods, use src/joint_scenario_posterior.rs to update p(h,s|o) and derive p(h) and p(s) marginals. The older point-model updater continues to reject multi-scenario candidates; there is no silent marginalization fallback.",
       "realized_information": "Report prior entropy, posterior entropy, realized entropy reduction H(prior)-H(posterior), and KL(posterior || prior). Realized entropy reduction may be negative for an individual surprising outcome even though expected information gain is non-negative and KL is non-negative.",
-      "scenario_uncertainty": "Multi-scenario likelihoods support robust ranking and per-scenario posterior sensitivity reports. They do not authorize a sequential posterior update under fixed marginal scenario weights; the joint persistent scenario state is missing."
+      "scenario_uncertainty": "The joint ledger maintains one posterior over persistent scenario identity across repeated observations. It does not reapply the original scenario weights as a fresh draw at each sample."
     },
     "likelihood_calibration_review": {
       "requirement": "Every candidate must carry an independent calibration-review receipt digest and a review state. Candidates not independently reviewed remain in the assessment ledger but are ineligible.",
@@ -50,19 +50,33 @@
       "assumptions": "The asymptotic error-exponent interpretation assumes repeated conditionally independent observations from a stationary likelihood regime. It is not a finite-sample error guarantee or one-shot confidence score."
     },
     "sequential_update_policy": {
-      "status": "single_point_model_updates_supported_multiscenario_updates_blocked",
-      "point_likelihood_model": "Sequential updates are supported for one frozen point-likelihood table; the observation receipt is applied once to the current posterior ledger.",
-      "persistent_scenario_model": "Scenario IDs represent persistent epistemic calibration/model uncertainty. Fixed scenario weights cannot be re-used as a fresh draw on every sequential sample.",
-      "current_rule": "Robust multi-scenario candidates may be ranked but sequential posterior update fails closed until the observation ledger carries a joint hypothesis × persistent-scenario posterior.",
-      "required_future_joint_ledger": [
-        "hypothesis-space digest",
-        "scenario-set digest and scenario IDs",
-        "joint posterior over hypothesis × scenario",
-        "receipt and prior-ledger digest per update",
-        "replayable marginal hypothesis posterior and scenario weights"
-      ],
+      "status": "joint_hypothesis_scenario_ledger_supported",
+      "point_likelihood_model": "The existing point-likelihood updater remains available for a single frozen point table and binds the current posterior ledger.",
+      "persistent_scenario_model": "The new joint_scenario_posterior module initializes p(H,S)=p(H)*p(S), then updates p(H,S) with scenario-specific p(o|H,S). It carries posterior p(S) forward across observations rather than reusing initial scenario weights.",
+      "scope": "One ledger is bound to one immutable selected candidate likelihood model, hypothesis-space digest, scenario IDs/weights, calibration review receipt and outcome catalogue. Switching candidate, channel, likelihood model, calibration or scenario set requires a new selection and ledger.",
+      "ledger": "The append-only ledger binds candidate manifest, stable hypothesis-space digest, scenario-set digest, ordered joint posterior cells, ordered observation receipts, parent ledger digest, observation count and its own digest.",
+      "rule": "Multi-scenario sequential update is supported only through the joint posterior ledger. The point-only updater remains fail-closed for multi-scenario candidates.",
+      "factorized_prior_assumption": "v0.1 genesis prior assumes p(H,S)=p(H)*p(S). A dependent joint prior requires a separately reviewed extension.",
       "no_silent_fallback": true,
-      "claim_ceiling": "No multi-scenario sequential inference claim until the joint posterior ledger is implemented and replay-tested."
+      "claim_ceiling": "Source-authored joint posterior mechanics and synthetic mathematical fixtures only; no field observation, real-likelihood calibration or physical diagnostic claim."
+    },
+    "joint_scenario_ledger": {
+      "path": "joint-scenario-posterior-v0.1.json",
+      "schema_version": "symtropy-joint-hypothesis-scenario-posterior-v0.1",
+      "rust_module": "src/joint_scenario_posterior.rs",
+      "status": "source_authored_ci_pending",
+      "genesis": "p(H,S)=p(H)*p(S)",
+      "update": "p_t(H,S|o) proportional to p_(t-1)(H,S)*p(o|H,S)",
+      "posterior_outputs": [
+        "joint_posterior",
+        "hypothesis_marginal",
+        "scenario_marginal",
+        "log_evidence_increment",
+        "joint_entropy",
+        "realized_joint_entropy_reduction",
+        "realized_joint_kl_divergence"
+      ],
+      "claim_ceiling": "One fixed candidate/scenario catalogue only; does not authenticate sensor receipts or validate likelihood scenario coverage."
     }
   },
   "candidate_classes": {
@@ -200,7 +214,13 @@
     "the s-grid is frozen before confirmatory evaluation and the result is not treated as a finite-sample error bound",
     "multi-scenario likelihood uncertainty is treated as persistent epistemic model uncertainty, not a new independent scenario draw for every observation",
     "multi-scenario candidates may be ranked, but sequential posterior update fails closed until a joint hypothesis-by-scenario posterior ledger is implemented and replayed",
-    "point-likelihood sequential update status is disclosed separately from multi-scenario robust ranking status"
+    "point-likelihood sequential update status is disclosed separately from multi-scenario robust ranking status",
+    "persistent multi-scenario sequential updates use a joint p(hypothesis,scenario) posterior; fixed scenario weights are not re-drawn for every observation",
+    "joint ledger genesis records the explicit factorized p(H)*p(S) prior assumption",
+    "posterior scenario probabilities are updated after each observation and carried into the next ledger state",
+    "one joint posterior ledger is bound to one immutable selected candidate, hypothesis space, scenario set and calibration manifest",
+    "every sequential observation appends a unique receipt digest and parent-ledger digest in order",
+    "candidate, channel, likelihood model, calibration or scenario-set changes require a new selection decision and ledger"
   ],
   "research_targets_not_achieved": [
     {
@@ -257,6 +277,16 @@
       "id": "joint_hypothesis_scenario_posterior",
       "target": "Implement and independently replay sequential Bayesian updates over the joint hypothesis × persistent-calibration-scenario posterior, with correct posterior scenario weights and no repeated-observation overconfidence.",
       "status": "aspirational"
+    },
+    {
+      "id": "joint_persistent_scenario_posterior",
+      "target": "Replay the same p(H,S) posterior from every ordered observation receipt and show scenario posterior weights evolve rather than resetting to their initial calibration weights.",
+      "status": "aspirational"
+    },
+    {
+      "id": "joint_posterior_vs_remarginalized_baseline",
+      "target": "On repeated evidence under a synthetic persistent calibration scenario, the joint posterior must outperform the intentionally incorrect per-observation re-marginalization comparator on posterior calibration and evidence replay.",
+      "status": "aspirational"
     }
   ],
   "evidence_boundaries": {
@@ -269,6 +299,7 @@
     "realized_update_status": "The Rust updater calculates a posterior from caller-supplied likelihoods and an external receipt digest; it does not collect or authenticate observations, and no physical observation has been evaluated.",
     "calibration_review": "The source selector checks review receipt digest shape and a caller-supplied independent-review flag. It does not authenticate the reviewer or prove calibration validity; upstream signed verification remains mandatory.",
     "chernoff_status": "This implementation computes a finite-grid separation estimate from caller-supplied likelihoods. It does not validate conditional independence, calibrate likelihoods or guarantee finite-sample fault-isolation error.",
-    "scenario_sequential_updates": "Multi-scenario candidate ranking is implemented; sequential Bayesian posterior updates are blocked until the joint hypothesis-scenario posterior is represented and replayed."
+    "scenario_sequential_updates": "Multi-scenario candidate ranking is implemented; sequential Bayesian posterior updates are blocked until the joint hypothesis-scenario posterior is represented and replayed.",
+    "joint_scenario_posterior": "A Rust source module now implements a candidate-bound joint hypothesis × persistent-scenario posterior ledger with append-only receipt chaining. It is source-authored and not yet exact-head compile/test verified; scenario calibration and receipt authentication remain upstream."
   }
 }
