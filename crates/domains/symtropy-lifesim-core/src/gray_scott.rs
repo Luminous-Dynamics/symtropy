@@ -107,9 +107,18 @@ impl GrayScottParameters {
 /// Structural or numerical error in the reference solver.
 #[derive(Debug, Clone, PartialEq)]
 pub enum GrayScottError {
-    GridTooSmall { width: usize, height: usize },
-    GridSizeOverflow { width: usize, height: usize },
-    InvalidParameter { name: &'static str, value: f64 },
+    GridTooSmall {
+        width: usize,
+        height: usize,
+    },
+    GridSizeOverflow {
+        width: usize,
+        height: usize,
+    },
+    InvalidParameter {
+        name: &'static str,
+        value: f64,
+    },
     DiffusionStepTooLarge {
         dt: f64,
         max_diffusion: f64,
@@ -123,7 +132,10 @@ pub enum GrayScottError {
         grid_width: usize,
         grid_height: usize,
     },
-    PatchValueOutOfRange { name: &'static str, value: f64 },
+    PatchValueOutOfRange {
+        name: &'static str,
+        value: f64,
+    },
     PatchNoiseOutOfRange {
         name: &'static str,
         center: f64,
@@ -136,10 +148,9 @@ pub enum GrayScottError {
 impl fmt::Display for GrayScottError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::GridTooSmall { width, height } => write!(
-                f,
-                "Gray–Scott grid must be at least 3x3, got {width}x{height}"
-            ),
+            Self::GridTooSmall { width, height } => {
+                write!(f, "Gray–Scott grid must be at least 3x3, got {width}x{height}")
+            }
             Self::GridSizeOverflow { width, height } => {
                 write!(f, "Gray–Scott grid size overflows usize: {width}x{height}")
             }
@@ -176,9 +187,10 @@ impl fmt::Display for GrayScottError {
                 f,
                 "patch noise for {name} is out of range: center={center}, amplitude={amplitude}; center ± amplitude/2 must remain in [0, 1]"
             ),
-            Self::InvalidObservationThreshold(value) => {
-                write!(f, "observation threshold must be finite and in [0, 1], got {value}")
-            }
+            Self::InvalidObservationThreshold(value) => write!(
+                f,
+                "observation threshold must be finite and in [0, 1], got {value}"
+            ),
             Self::TickOverflow => write!(f, "Gray–Scott tick counter overflow"),
         }
     }
@@ -359,8 +371,12 @@ impl GrayScottField {
     ) -> Result<(), GrayScottError> {
         if patch_width == 0
             || patch_height == 0
-            || x.checked_add(patch_width).is_none_or(|end| end > self.width)
-            || y.checked_add(patch_height).is_none_or(|end| end > self.height)
+            || x
+                .checked_add(patch_width)
+                .is_none_or(|end| end > self.width)
+            || y
+                .checked_add(patch_height)
+                .is_none_or(|end| end > self.height)
         {
             return Err(GrayScottError::PatchOutOfBounds {
                 x,
