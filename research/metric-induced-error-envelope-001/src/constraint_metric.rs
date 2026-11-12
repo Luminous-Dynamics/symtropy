@@ -366,6 +366,20 @@ mod tests {
         );
     }
 
+    fn congruence_2(
+        transform: &[[f64; 2]; 2],
+        metric: &[[f64; 2]; 2],
+        row: usize,
+        column: usize,
+    ) -> f64 {
+        transform[row][0]
+            * (metric[0][0] * transform[column][0]
+                + metric[0][1] * transform[column][1])
+            + transform[row][1]
+                * (metric[1][0] * transform[column][0]
+                    + metric[1][1] * transform[column][1])
+    }
+
     #[test]
     fn delassus_operator_is_invariant_under_dense_generalized_coordinate_rebasing() {
         let mass_q = mass_q();
@@ -568,23 +582,13 @@ mod tests {
             .unwrap();
         let residual_new = equation_rebasis.residual_to_new(&residual_old).unwrap();
 
-        for row in 0..2 {
-            for column in 0..2 {
-                let mut congruence = 0.0;
-                for left in 0..2 {
-                    for right in 0..2 {
-                        congruence += equation_rebasis.matrix()[row][left]
-                            * delassus_old.matrix()[left][right]
-                            * equation_rebasis.matrix()[column][right];
-                    }
-                }
-                close(
-                    delassus_new.matrix()[row][column],
-                    congruence,
-                    2.0e-12,
-                );
-            }
-        }
+        let transform = equation_rebasis.matrix();
+        let old_metric = delassus_old.matrix();
+        let new_metric = delassus_new.matrix();
+        close(new_metric[0][0], congruence_2(transform, old_metric, 0, 0), 2.0e-12);
+        close(new_metric[0][1], congruence_2(transform, old_metric, 0, 1), 2.0e-12);
+        close(new_metric[1][0], congruence_2(transform, old_metric, 1, 0), 2.0e-12);
+        close(new_metric[1][1], congruence_2(transform, old_metric, 1, 1), 2.0e-12);
 
         close(
             delassus_old.multiplier_norm(&multiplier_old).unwrap(),
@@ -719,16 +723,19 @@ mod tests {
             .unwrap();
         let residual_correct = rebasis.residual_to_new(&residual_old).unwrap();
 
-        let multiplier_wrong = ConstraintMultiplierV1::<ConstraintSpaceNew, 2>::new([
-            rebasis.matrix()[0][0] * multiplier_old.components()[0]
-                + rebasis.matrix()[0][1] * multiplier_old.components()[1],
-            rebasis.matrix()[1][0] * multiplier_old.components()[0]
-                + rebasis.matrix()[1][1] * multiplier_old.components()[1],
-        ])
-        .unwrap();
+        // Incorrectly treating the multiplier as a tangent applies T, not T^-T.
+        let lambda = multiplier_old.components();
+        let multiplier_wrong =
+            ConstraintMultiplierV1::<ConstraintSpaceNew, 2>::new([
+                lambda[0] + 2.0 * lambda[1],
+                lambda[1],
+            ])
+            .unwrap();
+        // Incorrectly treating the residual as a covector applies T^-T, not T.
+        let residual = residual_old.components();
         let residual_wrong = ConstraintResidualV1::<ConstraintSpaceNew, 2>::new([
-            residual_correct.components()[0] + 0.5,
-            residual_correct.components()[1],
+            residual[0],
+            -2.0 * residual[0] + residual[1],
         ])
         .unwrap();
 
