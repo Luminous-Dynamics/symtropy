@@ -824,7 +824,7 @@ mod tests {
                 upper_ns: 110_000_000,
             },
             motion_onset: TimestampInterval {
-                clock_id: "joint-clock",
+                clock_id: "joint-clock".into(),
                 boot_epoch: 7,
                 lower_ns: 125_000_000,
                 upper_ns: 125_000_000,
