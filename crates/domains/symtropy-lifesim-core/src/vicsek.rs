@@ -13,10 +13,12 @@
 //! agency, intelligence, or consciousness verdict.
 //!
 //! All particles are updated synchronously from the previous state. The implementation
-//! is deliberately CPU-first, dependency-light, and deterministic for a fixed platform,
-//! seed, initial state, configuration, and step count. It is an O(N^2) reference solver,
-//! not a high-performance spatial-index implementation or an empirical animal-flocking
-//! model.
+//! is CPU-first and deterministic for a fixed platform, seed, initial state, configuration,
+//! and step count. Trajectory updates use a deterministic periodic cell index for local
+//! candidate pruning, with an exact all-pairs fallback for degenerate or dense cases.
+//! Expected scaling is near-linear at bounded density; worst-case trajectory cost remains
+//! O(N^2). Full graph clustering and shortest-path metrics are checkpoint-only operations.
+//! This is not an empirical animal-flocking model.
 
 use std::collections::{HashMap, VecDeque};
 use std::error::Error;
