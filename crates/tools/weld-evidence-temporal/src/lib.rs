@@ -143,6 +143,15 @@ pub enum LifecycleKind {
     Revoke,
 }
 
+impl LifecycleKind {
+    fn code(self) -> u8 {
+        match self {
+            Self::Supersede => 1,
+            Self::Revoke => 2,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct LifecycleEvent {
     pub event_id: String,
@@ -550,7 +559,6 @@ fn canonical_transcript(snapshot: &Snapshot) -> Vec<u8> {
         out.push(item.reason.code());
     }
 
-    out.extend_from_slice(&(snapshot.pending_lifecycle_event_ids.len() as u64).to_be_bytes());
     out.extend_from_slice(&(snapshot.pending_lifecycle_events.len() as u64).to_be_bytes());
     for lifecycle in &snapshot.pending_lifecycle_events {
         put_lifecycle(&mut out, lifecycle);
