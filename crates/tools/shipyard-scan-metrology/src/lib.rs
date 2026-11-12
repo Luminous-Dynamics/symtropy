@@ -160,7 +160,10 @@ impl RigidTransform2 {
     }
 
     pub fn is_proper_rigid(&self, tolerance: f64) -> bool {
-        if !self.matrix.iter().all(|value| value.is_finite()) || !tolerance.is_finite() || tolerance <= 0.0 {
+        if !self.matrix.iter().all(|value| value.is_finite())
+            || !tolerance.is_finite()
+            || tolerance <= 0.0
+        {
             return false;
         }
         let m = self.matrix;
@@ -186,7 +189,10 @@ pub fn fit_rigid_transform_2d(
         return Err(FitError::TooFewCorrespondences);
     }
     if correspondences.iter().any(|pair| {
-        pair.source.iter().chain(pair.target.iter()).any(|v| !v.is_finite())
+        pair.source
+            .iter()
+            .chain(pair.target.iter())
+            .any(|value| !value.is_finite())
     }) {
         return Err(FitError::NonFinitePoint);
     }
@@ -764,7 +770,10 @@ mod tests {
     #[test]
     fn receipt_rejects_inconsistent_residual_summary() {
         assert_receipt_error(
-            |r| r.residual_rms_microunits = 250,
+            |r| {
+                r.residual_rms_microunits = 90;
+                r.residual_max_microunits = 80;
+            },
             ReceiptError::ResidualMetricsInconsistent,
         );
     }
