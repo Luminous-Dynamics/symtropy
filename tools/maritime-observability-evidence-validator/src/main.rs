@@ -170,7 +170,7 @@ fn validate(report:&Value)->Result<Value,Vec<Value>>{
             if !sensor_ids.contains(&sensor){push(&mut errors,"UNKNOWN_REMOVED_SENSOR",&path,&format!("unknown sensor {sensor}"));}
         }
         for dep in string_set(scenario,"removed_dependency_groups",&path,&mut errors){
-            if !sensors.values().any(|s|s["dependency_groups"].as_array().is_some_and(|a|a.iter().any(|x|x.as_str()==Some(&dep)))){push(&mut errors,"UNKNOWN_REMOVED_DEPENDENCY",&path,&format!("unknown dependency {dep}"));}
+            if !sensors.values().any(|s|s["dependency_groups"].as_array().is_some_and(|a|a.iter().any(|x|x.as_str()==Some(dep.as_str())))){push(&mut errors,"UNKNOWN_REMOVED_DEPENDENCY",&path,&format!("unknown dependency {dep}"));}
         }
     }
     let metrics=report["metrics"].as_array().cloned().unwrap_or_default();let mut metric_ids=BTreeSet::new();
