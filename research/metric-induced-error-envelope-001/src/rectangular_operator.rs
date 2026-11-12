@@ -163,16 +163,16 @@ fn whiten_tangent_to_tangent<
     // C = L_Y^T A L_X^-T.
     let right = right_whiten_domain(operator, &domain.cholesky)?;
     let mut result = [[0.0; N]; K];
-    for row in 0..K {
-        for column in 0..N {
+    for (row, result_row) in result.iter_mut().enumerate() {
+        for (column, result_value) in result_row.iter_mut().enumerate() {
             let mut value = 0.0;
-            for inner in row..K {
-                value += codomain.cholesky[inner][row] * right[inner][column];
+            for (inner, right_row) in right.iter().enumerate().skip(row) {
+                value += codomain.cholesky[inner][row] * right_row[column];
             }
             if !value.is_finite() {
                 return Err(OperatorConditionErrorV1::NonFiniteIntermediate);
             }
-            result[row][column] = value;
+            *result_value = value;
         }
     }
     Ok(result)
@@ -194,8 +194,8 @@ fn whiten_tangent_to_cotangent<
     for column in 0..N {
         for row in 0..K {
             let mut value = right[row][column];
-            for inner in 0..row {
-                value -= codomain.cholesky[row][inner] * result[inner][column];
+            for (inner, result_row) in result.iter().enumerate().take(row) {
+                value -= codomain.cholesky[row][inner] * result_row[column];
             }
             result[row][column] = value / codomain.cholesky[row][row];
             if !result[row][column].is_finite() {
@@ -373,9 +373,9 @@ fn assess_whitened<const K: usize, const N: usize>(
     let codomain_nullity = K.saturating_sub(numerical_rank);
     let smallest_nonzero = singular_values
         .iter()
+        .rev()
         .copied()
-        .filter(|value| *value > rank_threshold)
-        .last();
+        .find(|value| *value > rank_threshold);
 
     let nonzero_spectrum_condition_estimate = match (smallest_nonzero, largest) {
         (Some(minimum), maximum) if maximum > 0.0 => {
