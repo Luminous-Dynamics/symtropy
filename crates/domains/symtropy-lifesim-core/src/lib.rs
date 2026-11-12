@@ -10,6 +10,7 @@ use arrow_array::{Float32Array, UInt32Array};
 use std::fmt;
 use std::ops::Range;
 
+pub mod motion_salience;
 pub mod nonreciprocal_vicsek;
 pub mod scm;
 pub mod vicsek;
