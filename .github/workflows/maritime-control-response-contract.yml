@@ -112,7 +112,10 @@ jobs:
             (.external_dataset_track.engine_transfer | contains("one MU323DGSC test-bench identity")) and
             (.external_dataset_track.dataset_file_inventory.publisher_reported_recording_data_csv_count == 16) and
             (.external_dataset_track.evaluation_tracks | length == 6) and
-            ([.external_dataset_track.research_targets_not_achieved[].status] | all(. == "aspirational"))
+            (.external_dataset_track.execution_status == "archive_downloaded_publisher_md5_verified_payload_audit_pending") and
+            (.external_dataset_track.dataset_file_inventory.archive_csv_entry_count == 18) and
+            (.external_dataset_track.dataset_file_inventory.metadata_csv_artifact_count == 2) and
+            (.external_dataset_track.dataset_file_inventory.audit_status == "metadata_csv_classification_pending_exact_file_name_receipt")
           ' "$root/tournament-v0.1.json" >/dev/null
 
           jq -e '
