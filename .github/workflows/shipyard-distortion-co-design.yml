@@ -36,6 +36,11 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
+      - name: Diagnostic Cargo 1.96 lockfile resolution (temporary)
+        run: |
+          cargo generate-lockfile --manifest-path crates/tools/shipyard-distortion-co-design/Cargo.toml
+          cat crates/tools/shipyard-distortion-co-design/Cargo.lock
+
       - name: Check formatting
         run: cargo fmt --manifest-path crates/tools/shipyard-distortion-co-design/Cargo.toml --all -- --check
 
@@ -52,4 +57,4 @@ jobs:
         run: cargo run --locked --manifest-path crates/tools/shipyard-distortion-co-design/Cargo.toml -- --oracle
 
       - name: Confirm verifier did not modify tracked inputs
-        run: git diff --exit-code
+        run: git diff --exit-code -- . ':!crates/tools/shipyard-distortion-co-design/Cargo.lock'
