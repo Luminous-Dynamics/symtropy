@@ -76,7 +76,9 @@ impl MissionSegment {
                 let reason = match name {
                     "duration_s" => "duration must be finite and non-negative",
                     "distance_m" => "distance must be finite and non-negative",
-                    "average_shaft_power_w" => "average shaft power must be finite and non-negative",
+                    "average_shaft_power_w" => {
+                        "average shaft power must be finite and non-negative"
+                    },
                     "peak_shaft_power_w" => "peak shaft power must be finite and non-negative",
                     "peak_duration_s" => "peak duration must be finite and non-negative",
                     "auxiliary_dc_power_w" => "auxiliary DC power must be finite and non-negative",
@@ -179,7 +181,10 @@ impl BatteryEnvelope {
         {
             return Err(ModelError::InvalidBattery("rated DC energy must be finite and positive"));
         }
-        if !self.state_of_health.is_finite() || self.state_of_health <= 0.0 || self.state_of_health > 1.0 {
+        if !self.state_of_health.is_finite()
+            || self.state_of_health <= 0.0
+            || self.state_of_health > 1.0
+        {
             return Err(ModelError::InvalidBattery("state of health must be in (0, 1]"));
         }
         if !self.initial_state_of_charge.is_finite()
@@ -193,7 +198,9 @@ impl BatteryEnvelope {
             ));
         }
         if !self.max_continuous_dc_power_w.is_finite() || self.max_continuous_dc_power_w <= 0.0 {
-            return Err(ModelError::InvalidBattery("maximum continuous DC power must be finite and positive"));
+            return Err(ModelError::InvalidBattery(
+                "maximum continuous DC power must be finite and positive",
+            ));
         }
         if !self.max_peak_dc_power_w.is_finite()
             || self.max_peak_dc_power_w < self.max_continuous_dc_power_w
@@ -326,7 +333,10 @@ pub fn evaluate_mission(
         let average_bus_power_w = segment.average_bus_power_w();
         let peak_bus_power_w = segment.peak_bus_power_w();
         let bus_energy_wh = segment.bus_energy_wh();
-        if !average_bus_power_w.is_finite() || !peak_bus_power_w.is_finite() || !bus_energy_wh.is_finite() {
+        if !average_bus_power_w.is_finite()
+            || !peak_bus_power_w.is_finite()
+            || !bus_energy_wh.is_finite()
+        {
             return Err(ModelError::InvalidSegment {
                 segment_id: segment.id.clone(),
                 reason: "calculated bus power and energy must remain finite",
@@ -368,8 +378,13 @@ pub fn evaluate_mission(
                 reserve_energy_wh += bus_energy_wh;
             }
         }
-        if !planned_energy_wh.is_finite() || !reserve_energy_wh.is_finite() || !planned_distance_m.is_finite() {
-            return Err(ModelError::InvalidMission("accumulated mission energy and distance must remain finite"));
+        if !planned_energy_wh.is_finite()
+            || !reserve_energy_wh.is_finite()
+            || !planned_distance_m.is_finite()
+        {
+            return Err(ModelError::InvalidMission(
+                "accumulated mission energy and distance must remain finite",
+            ));
         }
         segment_results.push(SegmentEnergy {
             segment_id: segment.id.clone(),
@@ -540,7 +555,10 @@ mod tests {
         undersized.rated_dc_energy_wh_at_reference = 100_000.0;
         let ledger = evaluate_mission(&mission(), &undersized).unwrap();
         assert!(!ledger.passes_initial_screen());
-        assert!(ledger.violations.iter().any(|item| matches!(item, Violation::ReserveEnergyShortfall { .. })));
+        assert!(ledger
+            .violations
+            .iter()
+            .any(|item| matches!(item, Violation::ReserveEnergyShortfall { .. })));
         assert!(ledger.energy_margin_wh < 0.0);
     }
 
@@ -558,9 +576,18 @@ mod tests {
         case.segments[0].peak_shaft_power_w = 180_000.0;
         case.segments[0].peak_duration_s = 45.0;
         let ledger = evaluate_mission(&case, &battery()).unwrap();
-        assert!(ledger.violations.iter().any(|item| matches!(item, Violation::ContinuousPowerExceeded { .. })));
-        assert!(ledger.violations.iter().any(|item| matches!(item, Violation::PeakPowerExceeded { .. })));
-        assert!(ledger.violations.iter().any(|item| matches!(item, Violation::PeakDurationExceeded { .. })));
+        assert!(ledger
+            .violations
+            .iter()
+            .any(|item| matches!(item, Violation::ContinuousPowerExceeded { .. })));
+        assert!(ledger
+            .violations
+            .iter()
+            .any(|item| matches!(item, Violation::PeakPowerExceeded { .. })));
+        assert!(ledger
+            .violations
+            .iter()
+            .any(|item| matches!(item, Violation::PeakDurationExceeded { .. })));
     }
 
     #[test]
@@ -577,7 +604,10 @@ mod tests {
     fn non_finite_power_is_rejected() {
         let mut case = mission();
         case.segments[0].average_shaft_power_w = f64::NAN;
-        assert!(matches!(evaluate_mission(&case, &battery()), Err(ModelError::InvalidSegment { .. })));
+        assert!(matches!(
+            evaluate_mission(&case, &battery()),
+            Err(ModelError::InvalidSegment { .. })
+        ));
     }
 
     #[test]
