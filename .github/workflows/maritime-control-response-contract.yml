@@ -82,7 +82,7 @@ jobs:
             (.event_evaluation.status == "protocol_only_not_executed") and
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.axes | length == 6) and
-            ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
+            (.shift_matrix.axes | index("C_PLUS_F_SHIFT") != null) and
             (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.4") and
             (.active_evidence_selection.status == "protocol_only_not_executed") and
             (.active_evidence_selection.execution_performed == false) and
