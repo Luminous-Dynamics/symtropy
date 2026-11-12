@@ -797,6 +797,56 @@ mod tests {
     }
 
     #[test]
+    fn clock_transform_master_time_overflow_is_rejected() {
+        let (_, _, mut transform, _) = base_input();
+        transform.reference_master_ns = i64::MAX;
+        assert_eq!(
+            transform.map_source_time(1, 0),
+            Err(AlignmentFailure::ArithmeticOverflow)
+        );
+    }
+
+    #[test]
+    fn source_and_transform_uncertainty_addition_overflow_is_rejected() {
+        let (_, _, mut transform, _) = base_input();
+        transform.transform_uncertainty_ns = u64::MAX;
+        assert_eq!(
+            transform.map_source_time(0, 1),
+            Err(AlignmentFailure::ArithmeticOverflow)
+        );
+    }
+
+    #[test]
+    fn cadence_plus_jitter_overflow_is_rejected() {
+        assert_eq!(
+            minimum_expected_sample_count(100, u64::MAX, 1),
+            Err(AlignmentFailure::ArithmeticOverflow)
+        );
+    }
+
+    #[test]
+    fn invalid_samples_never_contribute_to_an_alignment_receipt() {
+        let (event, channel, transform, mut stream) = base_input();
+        for sample in &mut stream.samples {
+            sample.quality.valid = false;
+        }
+        assert_eq!(
+            align_stream(&event, &channel, &transform, &stream),
+            Err(AlignmentFailure::NoEligibleSamples)
+        );
+    }
+
+    #[test]
+    fn clock_transform_integer_rounding_is_deterministic_for_negative_offsets() {
+        let (_, _, mut transform, _) = base_input();
+        transform.reference_source_ns = 1;
+        transform.reference_master_ns = 0;
+        transform.drift_ppb = 1;
+        let mapped = transform.map_source_time(0, 0).unwrap();
+        assert_eq!(mapped.master_time_ns, -1);
+    }
+
+    #[test]
     fn cadence_jitter_is_included_in_conservative_expected_count() {
         assert_eq!(
             minimum_expected_sample_count(100_000_000, 10_000_000, 1_000_000).unwrap(),
