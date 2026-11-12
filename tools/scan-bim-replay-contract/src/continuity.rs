@@ -1217,7 +1217,9 @@ mod tests {
         let mut value = valid_receipt();
         value["transitions"][0]["claims"][0]["target_artifact_id"] = json!("UNLISTED-OUTPUT");
         let error = audit(&value).expect_err("claim must bind the exact output artifact");
-        assert!(error.contains("target artifact must be a declared geometry/representation output"));
+        assert!(
+            error.contains("target artifact must be a declared geometry/representation output")
+        );
     }
 
     #[test]
