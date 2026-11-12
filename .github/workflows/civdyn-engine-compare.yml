@@ -1,0 +1,110 @@
+name: CivDyn engine comparison reference
+
+on:
+  pull_request:
+    paths:
+      - "research/civdyn-engine-compare/**"
+      - ".github/workflows/civdyn-engine-compare.yml"
+  push:
+    paths:
+      - "research/civdyn-engine-compare/**"
+      - ".github/workflows/civdyn-engine-compare.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Format, lint, check, test and execute trace-driven forest-fire reference
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/civdyn-engine-compare/Cargo.toml --all -- --check
+
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path research/civdyn-engine-compare/Cargo.toml --all-targets -- -D warnings
+
+      - name: Locked check
+        run: cargo check --locked --manifest-path research/civdyn-engine-compare/Cargo.toml --all-targets
+
+      - name: Locked tests
+        run: cargo test --locked --manifest-path research/civdyn-engine-compare/Cargo.toml --all-targets
+
+      - name: Execute reference portfolio
+        run: cargo run --locked --manifest-path research/civdyn-engine-compare/Cargo.toml --bin forest-fire-reference -- target/civdyn-engine-evidence
+
+      - name: Verify workload count, equivalence and state invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import csv
+          import struct
+          from pathlib import Path
+
+          root = Path("target/civdyn-engine-evidence")
+          with (root / "forest-fire-summary.csv").open(newline="", encoding="utf-8") as handle:
+              summaries = list(csv.DictReader(handle))
+          with (root / "forest-fire-trajectories.csv").open(newline="", encoding="utf-8") as handle:
+              trajectories = list(csv.DictReader(handle))
+          tape = (root / "forest-fire-event-tapes.bin").read_bytes()
+
+          assert len(summaries) == 40
+          assert len(trajectories) == 40 * 41
+          assert tape[:8] == b"CIVDYNFF"
+          version, = struct.unpack_from("<H", tape, 8)
+          record_count, = struct.unpack_from("<I", tape, 10)
+          assert version == 1 and record_count == 40
+
+          keys = set()
+          for row in summaries:
+              key = (row["width"], row["height"], row["seed"])
+              assert key not in keys
+              keys.add(key)
+              assert row["ticks"] == "40"
+              assert int(row["tape_words"]) == int(row["width"]) * int(row["height"]) * 40
+
+          assert len([s for s in summaries if s["width"] == "32"]) == 20
+          assert len([s for s in summaries if s["width"] == "64"]) == 20
+
+          grouped = {}
+          for row in trajectories:
+              key = (row["width"], row["height"], row["seed"])
+              grouped.setdefault(key, []).append(row)
+              total = sum(int(row[field]) for field in ("empty", "tree", "burning", "ash"))
+              assert total == int(row["total"])
+              assert total == int(row["width"]) * int(row["height"])
+          assert len(grouped) == 40
+          for rows in grouped.values():
+              rows.sort(key=lambda row: int(row["tick"]))
+              assert [int(row["tick"]) for row in rows] == list(range(41))
+              assert len({row["trajectory_fnv64"] for row in rows}) == 1
+
+          print("CIVDYN-ENGINE-FOREST-FIRE-TRACE-001: 40 runs, 20 seeds × 2 sizes, 1,640 state rows, portable tape header and cell-count invariants verified.")
+          PY
+
+          {
+            echo "## CIVDYN-ENGINE-COMPARE-001 execution"
+            echo "- Source commit: $(git rev-parse HEAD)"
+            echo "- Summary SHA-256: $(sha256sum target/civdyn-engine-evidence/forest-fire-summary.csv | cut -d' ' -f1)"
+            echo "- Trajectory SHA-256: $(sha256sum target/civdyn-engine-evidence/forest-fire-trajectories.csv | cut -d' ' -f1)"
+            echo "- Event-tape SHA-256: $(sha256sum target/civdyn-engine-evidence/forest-fire-event-tapes.bin | cut -d' ' -f1)"
+            echo "- Claim ceiling: Rust reference workload; no cross-framework ranking"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload reference evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: civdyn-engine-compare-reference
+          path: target/civdyn-engine-evidence/
+          if-no-files-found: error
+          retention-days: 30

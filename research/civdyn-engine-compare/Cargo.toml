@@ -1,0 +1,18 @@
+[workspace]
+
+[package]
+name = "civdyn-engine-compare"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Correctness-gated, trace-driven ABM engine comparison reference workloads"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "forest-fire-reference"
+path = "src/bin/forest_fire_reference.rs"
+
+[dependencies]
