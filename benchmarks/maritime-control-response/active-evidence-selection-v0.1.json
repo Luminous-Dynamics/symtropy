@@ -111,7 +111,9 @@
     "multi_scenario_assessed",
     "likelihood_calibration_reviewed_by_independent_validator",
     "likelihood_calibration_catalogue_sha256",
-    "likelihood_review_rejection_count"
+    "likelihood_review_rejection_count",
+    "prior_distribution_sha256",
+    "hypothesis_space_sha256"
   ],
   "hard_gates": [
     "hypothesis IDs, prior and label-space digest are fixed for the selection decision",
@@ -153,7 +155,11 @@
     "a candidate without the independent calibration-review state is not eligible even if its likelihood table is normalized",
     "candidate manifests and the calibration catalogue bind reviewer receipt digest, review state, calibration/model digests and hypothesis/likelihood scenario sets",
     "multi-scenario assessment is reported separately from independent calibration review; scenario count alone never qualifies epistemic robustness",
-    "upstream trust verifies reviewer identity, independence, competence, report contents, signature, scope and revocation; caller-supplied flags/digests are not authentication"
+    "upstream trust verifies reviewer identity, independence, competence, report contents, signature, scope and revocation; caller-supplied flags/digests are not authentication",
+    "hypothesis-space digest covers sorted hypothesis IDs only and is invariant to changes in prior probabilities",
+    "each selection portfolio binds the exact current prior-distribution digest separately from the stable hypothesis-space digest",
+    "sequential posterior updates may reuse a candidate likelihood model only when its stable hypothesis-space digest matches",
+    "each externally acquired observation receipt can be applied once to a continuous posterior ledger; duplicate receipts are rejected"
   ],
   "research_targets_not_achieved": [
     {
