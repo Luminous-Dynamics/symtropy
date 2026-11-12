@@ -243,6 +243,8 @@ pub struct ProbeObservationUpdate {
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ProbePortfolio {
     pub hypothesis_manifest_sha256: String,
+    /// Exact current posterior/prior distribution, distinct from the stable label-space digest.
+    pub prior_distribution_sha256: String,
     pub policy_sha256: String,
     pub candidate_catalogue_sha256: String,
     pub risk_assessment_catalogue_sha256: String,
@@ -323,13 +325,32 @@ impl fmt::Display for ProbeError {
 
 impl std::error::Error for ProbeError {}
 
-/// Compute the canonical digest of a prior and hypothesis label space.
+/// Compute the immutable digest of the hypothesis label space.
+///
+/// The digest deliberately excludes prior probabilities so one calibrated
+/// candidate likelihood model remains valid as observations update beliefs.
 pub fn hypothesis_manifest_sha256(
     hypotheses: &[HypothesisPrior],
 ) -> Result<String, ProbeError> {
     let canonical = canonical_hypotheses(hypotheses)?;
+    let hypothesis_ids = canonical
+        .iter()
+        .map(|hypothesis| hypothesis.hypothesis_id.as_str())
+        .collect::<Vec<_>>();
     sha256_serializable(
-        b"symtropy-diagnostic-hypothesis-manifest-v1\0",
+        b"symtropy-diagnostic-hypothesis-space-v1\0",
+        &hypothesis_ids,
+    )
+}
+
+/// Compute the digest of one exact belief distribution over the stable
+/// hypothesis space. This changes after each sequential observation.
+pub fn hypothesis_prior_sha256(
+    hypotheses: &[HypothesisPrior],
+) -> Result<String, ProbeError> {
+    let canonical = canonical_hypotheses(hypotheses)?;
+    sha256_serializable(
+        b"symtropy-diagnostic-prior-distribution-v1\0",
         &canonical,
     )
 }
@@ -381,10 +402,8 @@ pub fn rank_diagnostic_probes(
         .iter()
         .map(|item| item.prior_probability)
         .collect::<Vec<_>>();
-    let hypothesis_digest = sha256_serializable(
-        b"symtropy-diagnostic-hypothesis-manifest-v1\0",
-        &canonical_hypotheses,
-    )?;
+    let hypothesis_digest = hypothesis_manifest_sha256(&canonical_hypotheses)?;
+    let prior_distribution_digest = hypothesis_prior_sha256(&canonical_hypotheses)?;
     let policy_digest =
         sha256_serializable(b"symtropy-diagnostic-probe-policy-v1\0", policy)?;
     let prior_entropy = entropy(&prior);
@@ -588,6 +607,7 @@ pub fn rank_diagnostic_probes(
 
     Ok(ProbePortfolio {
         hypothesis_manifest_sha256: hypothesis_digest,
+        prior_distribution_sha256: prior_distribution_digest,
         policy_sha256: policy_digest,
         candidate_catalogue_sha256,
         risk_assessment_catalogue_sha256,
@@ -889,10 +909,7 @@ pub fn realize_probe_observation(
         .iter()
         .map(|item| item.prior_probability)
         .collect::<Vec<_>>();
-    let hypothesis_digest = sha256_serializable(
-        b"symtropy-diagnostic-hypothesis-manifest-v1\0",
-        &canonical_hypotheses,
-    )?;
+    let hypothesis_digest = hypothesis_manifest_sha256(&canonical_hypotheses)?;
     if candidate.hypothesis_manifest_sha256 != hypothesis_digest {
         return Err(ProbeError::HypothesisManifestMismatch(
             candidate.candidate_id.clone(),
@@ -2036,6 +2053,103 @@ mod tests {
             ),
             Err(ProbeError::ObservedOutcomeImpossible("impossible_signature".into()))
         );
+    }
+
+    #[test]
+    fn hypothesis_space_digest_is_stable_while_prior_distribution_changes() {
+        let initial = hypotheses();
+        let updated = vec![
+            HypothesisPrior {
+                hypothesis_id: "bearing_degradation".into(),
+                prior_probability: 0.95,
+            },
+            HypothesisPrior {
+                hypothesis_id: "fuel_delivery_fault".into(),
+                prior_probability: 0.05,
+            },
+        ];
+        assert_eq!(
+            hypothesis_manifest_sha256(&initial).unwrap(),
+            hypothesis_manifest_sha256(&updated).unwrap()
+        );
+        assert_ne!(
+            hypothesis_prior_sha256(&initial).unwrap(),
+            hypothesis_prior_sha256(&updated).unwrap()
+        );
+    }
+
+    #[test]
+    fn sequential_observations_reuse_stable_candidate_likelihood_model() {
+        let item = candidate(
+            "pressure_observation",
+            ProbeClass::PassiveMeasurement,
+            ProbeAuthorization::ApprovedReadOnly,
+            true,
+        );
+        let candidates = vec![item.clone()];
+        let initial = hypotheses();
+        let (policy, first_portfolio, first_selection) =
+            selected_probe_context(&initial, &candidates);
+        let first = realize_probe_observation(
+            &initial,
+            &candidates,
+            &policy,
+            &first_portfolio,
+            &first_selection,
+            &item,
+            &item.candidate_manifest_sha256,
+            "bearing_signature",
+            &digest('e'),
+        )
+        .unwrap();
+
+        let updated_prior = first
+            .posterior
+            .iter()
+            .map(|entry| HypothesisPrior {
+                hypothesis_id: entry.hypothesis_id.clone(),
+                prior_probability: entry.probability,
+            })
+            .collect::<Vec<_>>();
+        assert_eq!(
+            hypothesis_manifest_sha256(&initial).unwrap(),
+            hypothesis_manifest_sha256(&updated_prior).unwrap()
+        );
+        assert_ne!(
+            hypothesis_prior_sha256(&initial).unwrap(),
+            hypothesis_prior_sha256(&updated_prior).unwrap()
+        );
+
+        let (second_policy, second_portfolio, second_selection) =
+            selected_probe_context(&updated_prior, &candidates);
+        assert_eq!(
+            second_portfolio.hypothesis_manifest_sha256,
+            first_portfolio.hypothesis_manifest_sha256
+        );
+        assert_eq!(
+            second_portfolio.prior_distribution_sha256,
+            hypothesis_prior_sha256(&updated_prior).unwrap()
+        );
+        let second = realize_probe_observation(
+            &updated_prior,
+            &candidates,
+            &second_policy,
+            &second_portfolio,
+            &second_selection,
+            &item,
+            &item.candidate_manifest_sha256,
+            "fuel_signature",
+            &digest('f'),
+        )
+        .unwrap();
+
+        assert_eq!(
+            second.previous_posterior_manifest_sha256,
+            first.posterior_manifest_sha256
+        );
+        assert_eq!(second.observation_ledger.applied_observation_receipt_sha256.len(), 2);
+        assert!(second.realized_entropy_reduction_nats < 0.0);
+        assert!(second.realized_kl_divergence_nats > 0.0);
     }
 
     #[test]
