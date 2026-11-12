@@ -36,11 +36,11 @@
   },
   "official_results": {
     "overall": {
-      "true_detection_rate_percent": 92.26,
       "one_minus_false_alarm_rate_percent": 92.14,
       "false_alarm_rate_percent": 7.86,
       "fault_isolation_accuracy_percent": 79.62,
-      "official_score_percent": 88.01
+      "official_score_percent": 88.01,
+      "tdr_percent": 92.26
     },
     "per_condition": [
       {
