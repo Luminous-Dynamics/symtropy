@@ -279,9 +279,7 @@ pub fn calibrate_findley_from_fully_reversed_limits(
     {
         return Err(HcfError::InvalidCalibrationLoadMode);
     }
-    if axial.material_grade_id.trim().is_empty()
-        || torsional.material_grade_id.trim().is_empty()
-    {
+    if axial.material_grade_id.trim().is_empty() || torsional.material_grade_id.trim().is_empty() {
         return Err(HcfError::EmptyIdentity("material_grade_id"));
     }
     if axial.material_grade_id != torsional.material_grade_id {
@@ -786,15 +784,17 @@ mod tests {
             "torsional-fatigue-limit",
             'b',
         );
-        let calibration =
-            calibrate_findley_from_fully_reversed_limits(&axial, &torsional).unwrap();
+        let calibration = calibrate_findley_from_fully_reversed_limits(&axial, &torsional).unwrap();
 
         assert!((calibration.normal_stress_sensitivity - 0.1443375673).abs() < 1.0e-9);
         assert!((calibration.critical_parameter_limit_mpa - 202.0725942).abs() < 1.0e-6);
         assert_eq!(calibration.target_cycles, 1_000_000);
         assert_eq!(calibration.material_grade_id, "42CrMo4+QT");
         assert_eq!(calibration.axial_source.evidence_id, "axial-fatigue-limit");
-        assert_eq!(calibration.torsional_source.evidence_id, "torsional-fatigue-limit");
+        assert_eq!(
+            calibration.torsional_source.evidence_id,
+            "torsional-fatigue-limit"
+        );
     }
 
     #[test]
