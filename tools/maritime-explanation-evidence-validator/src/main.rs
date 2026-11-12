@@ -132,7 +132,13 @@ fn case_result(
             let (installed,quality)=overrides.iter().find(|ov|ov["signal_id"].as_str()==Some(sid))
                 .map(|ov|(ov["installed"].as_bool().unwrap_or(false),ov["quality_state"].as_str().unwrap_or("UNKNOWN")))
                 .unwrap_or((s["installed"].as_bool().unwrap_or(false),s["quality_state"].as_str().unwrap_or("UNKNOWN")));
-            if !installed||quality!="CURRENT"||s["calibration_state"]=="EXPIRED"||s["calibration_state"]=="UNKNOWN"{
+            // A model output is available as a model artifact even though it
+            // is not a physically installed sensor. Permit attribution to it;
+            // later claim checks prohibit promoting it to measured mechanism
+            // evidence. All physical sensor signals still require installation.
+            let model_output = s["evidence_class"] == "SIMULATED"
+                && s["source_kind"] == "MODEL_OUTPUT";
+            if (!installed && !model_output)||quality!="CURRENT"||s["calibration_state"]=="EXPIRED"||s["calibration_state"]=="UNKNOWN"{
                 return Ok((id,json!({"disposition":"INVALID_UNAVAILABLE_EVIDENCE","reason_codes":["CITED_SIGNAL_NOT_INSTALLED_CURRENT_AND_QUALIFIED"],"accepted_feature_ids":[],"claim_results":[]}),top));
             }
         }
