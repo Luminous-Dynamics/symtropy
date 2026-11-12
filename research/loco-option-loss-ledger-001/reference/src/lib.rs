@@ -504,7 +504,9 @@ pub fn audit_transition(
     let expected: BTreeSet<_> = removed.union(&added).cloned().collect();
     for action_id in change_map.keys() {
         if !expected.contains(action_id) {
-            return Err(LedgerError::DuplicateOrUnexpectedChangeEvidence(action_id.clone()));
+            return Err(LedgerError::DuplicateOrUnexpectedChangeEvidence(
+                action_id.clone(),
+            ));
         }
     }
 
@@ -916,7 +918,11 @@ mod tests {
         let report = audit_transition(
             &previous,
             &next,
-            &transition(&previous, &next, vec![add("step-left", &previous, &next)]),
+            &transition(
+                &previous,
+                &next,
+                vec![add("step-left", &previous, &next)],
+            ),
         )
         .unwrap();
         assert_eq!(report.disposition, AuditDisposition::Qualified);
@@ -951,7 +957,8 @@ mod tests {
     fn missing_restoration_receipt_is_unknown() {
         let previous = snapshot(1, "s0", "s1", &["retreat"]);
         let next = snapshot(2, "s1", "s2", &["retreat", "step-left"]);
-        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![])).unwrap();
+        let report =
+            audit_transition(&previous, &next, &transition(&previous, &next, vec![])).unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
         assert!(report.result_option_ids.is_empty());
     }
@@ -961,10 +968,19 @@ mod tests {
         let previous = snapshot(1, "s0", "s1", &["retreat"]);
         let next = snapshot(2, "s1", "s2", &["retreat", "step-left"]);
         let mut evidence = add("step-left", &previous, &next);
-        if let OptionChangeEvidence::Added { preconditions, .. } = &mut evidence {
+        if let OptionChangeEvidence::Added {
+            preconditions,
+            ..
+        } = &mut evidence
+        {
             preconditions[0].disposition = EvidenceDisposition::Unknown;
         }
-        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![evidence])).unwrap();
+        let report = audit_transition(
+            &previous,
+            &next,
+            &transition(&previous, &next, vec![evidence]),
+        )
+        .unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
         assert!(report.result_option_ids.is_empty());
     }
@@ -974,7 +990,8 @@ mod tests {
         let previous = snapshot(1, "s0", "s1", &["retreat"]);
         let mut next = snapshot(2, "s1", "s2", &["retreat"]);
         next.observation_partition_digest = "observation-b".into();
-        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![])).unwrap();
+        let report =
+            audit_transition(&previous, &next, &transition(&previous, &next, vec![])).unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
     }
 
@@ -1051,7 +1068,12 @@ mod tests {
         if let OptionChangeEvidence::Removed { reversibility, .. } = &mut change {
             *reversibility = Reversibility::Irreversible;
         }
-        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![change])).unwrap();
+        let report = audit_transition(
+            &previous,
+            &next,
+            &transition(&previous, &next, vec![change]),
+        )
+        .unwrap();
         assert_eq!(report.losses[0].reversibility, Reversibility::Irreversible);
     }
 
@@ -1081,7 +1103,12 @@ mod tests {
         if let OptionChangeEvidence::Added { preconditions, .. } = &mut evidence {
             preconditions[0].disposition = EvidenceDisposition::Rejected;
         }
-        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![evidence])).unwrap();
+        let report = audit_transition(
+            &previous,
+            &next,
+            &transition(&previous, &next, vec![evidence]),
+        )
+        .unwrap();
         assert_eq!(report.disposition, AuditDisposition::Rejected);
         assert!(report.result_option_ids.is_empty());
     }
