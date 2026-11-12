@@ -737,9 +737,17 @@ mod tests {
             protocol["protocol_constraints"]["unknown_outcome_poisons_session"],
             true
         );
-        assert_eq!(
-            protocol["protocol_constraints"]["changing_channel_within_session_allowed"],
-            false
+        assert!(
+            protocol["validity_conditions"]["channel"]
+                .as_str()
+                .unwrap()
+                .contains("One frozen channel")
+        );
+        assert!(
+            protocol["validity_conditions"]["channel"]
+                .as_str()
+                .unwrap()
+                .contains("not supported")
         );
         assert_eq!(protocol["familywise_control"]["method"], "bonferroni");
         assert_eq!(
