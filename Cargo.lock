@@ -3,13 +3,6 @@
 version = 4
 
 [[package]]
-name = "airborne-energy-observability-validator"
-version = "0.1.0"
-dependencies = [
- "serde_json",
-]
-
-[[package]]
 name = "accesskit"
 version = "0.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -211,6 +204,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ddd31a130427c27518df266943a5308ed92d4b226cc639f5a8f1002816174301"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "airborne-energy-observability-validator"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
 ]
 
 [[package]]
