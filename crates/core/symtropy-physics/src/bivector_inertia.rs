@@ -1985,4 +1985,110 @@ mod tests {
             RotationalInertiaError::NotSymmetric
         );
     }
+
+
+    #[test]
+    fn anisotropic_two_point_delassus_matches_tensor_oracle_and_is_frame_covariant() {
+        let second_moment = SMatrix::<f64, 3, 3>::new(
+            1.7, 0.21, -0.13,
+            0.21, 1.1, 0.18,
+            -0.13, 0.18, 0.8,
+        );
+        let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
+        let mass = 2.3;
+        let offsets = [
+            SVector::new(0.6, -0.4, 0.2),
+            SVector::new(-0.3, -0.4, 0.5),
+        ];
+        let normal = SVector::new(0.0, 1.0, 0.0);
+
+        // Construct the complete two-contact Delassus operator by applying
+        // each unit contact impulse through the same checked bivector inertia
+        // used by the single-contact reference.
+        let operator_metric = |operator: &BivectorInertia<3>,
+                               offsets: &[SVector<f64, 3>; 2],
+                               normal: &SVector<f64, 3>| {
+            let mut matrix = SMatrix::<f64, 2, 2>::zeros();
+            for column in 0..2 {
+                let angular_impulse = Bivector::from_wedge(&offsets[column], normal);
+                let angular_response = operator
+                    .angular_velocity_from_momentum(&angular_impulse, 1.0e-12)
+                    .unwrap();
+                for row in 0..2 {
+                    let point_velocity_change = *normal / mass
+                        - angular_response.apply_to_vector(&offsets[row]);
+                    matrix[(row, column)] = normal.dot(&point_velocity_change);
+                }
+            }
+            matrix
+        };
+
+        // Independent conventional-vector oracle:
+        // I = tr(S) 1 - S, tau_j = r_j x n, delta-v_i = n/m + omega_j x r_i.
+        let tensor = SMatrix::<f64, 3, 3>::identity() * second_moment.trace() - second_moment;
+        let tensor_factor = tensor.cholesky().expect("physical inertia tensor is SPD");
+        let mut tensor_metric = SMatrix::<f64, 2, 2>::zeros();
+        for column in 0..2 {
+            let torque = offsets[column].cross(&normal);
+            let omega = tensor_factor.solve(&torque);
+            for row in 0..2 {
+                let point_velocity_change = normal / mass + omega.cross(&offsets[row]);
+                tensor_metric[(row, column)] = normal.dot(&point_velocity_change);
+            }
+        }
+
+        let observed = operator_metric(&inertia, &offsets, &normal);
+        let scale = observed.norm().max(f64::MIN_POSITIVE);
+        assert!(
+            (observed - tensor_metric).norm() / scale < 2.0e-11,
+            "bivector and independent 3D tensor Delassus matrices disagree:              operator={observed:?}, tensor={tensor_metric:?}"
+        );
+        assert!(
+            (observed - observed.transpose()).norm() / scale < 2.0e-12,
+            "two-contact Delassus operator is not symmetric: {observed:?}"
+        );
+        assert!(
+            observed.cholesky().is_some(),
+            "validated anisotropic inertia must induce an SPD two-contact metric"
+        );
+        assert!(
+            (observed[(0, 1)] - 1.0 / mass).abs() > 1.0e-3,
+            "fixture must exercise a nonzero coupled rotational off-diagonal"
+        );
+
+        // A positive active-set solution is known exactly by construction.
+        // This checks the small coupled KKT solve rather than validating two
+        // unrelated scalar effective masses.
+        let expected_impulses = SVector::new(0.7, 1.3);
+        let free_normal_speeds = -(observed * expected_impulses);
+        let recovered_impulses = observed
+            .lu()
+            .solve(&(-free_normal_speeds))
+            .expect("SPD Delassus matrix has a unique active-set solution");
+        let attained_speeds = free_normal_speeds + observed * recovered_impulses;
+        assert!(
+            (recovered_impulses - expected_impulses).norm() < 2.0e-11,
+            "coupled active-set impulse did not recover the independent solution"
+        );
+        assert!(recovered_impulses.iter().all(|value| *value > 0.0));
+        assert!(attained_speeds.norm() < 2.0e-11);
+
+        // Rotating the body, both contact offsets, and the normal together
+        // must not change the contact-space matrix.
+        let mut frame_generator = Bivector::<3>::zero();
+        frame_generator.set(0, 1, 0.37);
+        frame_generator.set(0, 2, -0.24);
+        frame_generator.set(1, 2, 0.19);
+        let body_to_world = Rotor::from_bivector(&frame_generator);
+        let world_inertia = inertia.rotated_by(&body_to_world).unwrap();
+        let world_offsets = offsets.map(|offset| body_to_world.rotate_vector(&offset));
+        let world_normal = body_to_world.rotate_vector(&normal);
+        let world_observed = operator_metric(&world_inertia, &world_offsets, &world_normal);
+        let world_scale = world_observed.norm().max(f64::MIN_POSITIVE);
+        assert!(
+            (world_observed - observed).norm() / world_scale < 2.0e-11,
+            "two-contact Delassus matrix changed under global frame rotation"
+        );
+    }
+
 }
