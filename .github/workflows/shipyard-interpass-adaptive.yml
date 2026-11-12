@@ -1,0 +1,42 @@
+name: Shipyard Inter-Pass Adaptive Planner
+
+on:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/tools/shipyard-interpass-adaptive/**"
+      - "docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1*"
+      - ".github/workflows/shipyard-interpass-adaptive.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shipyard-interpass-adaptive-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify synthetic evidence-gated inter-pass recommendations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pinned Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path crates/tools/shipyard-interpass-adaptive/Cargo.toml --all -- --check
+
+      - name: Run offline planner contract tests
+        run: cargo test --locked --manifest-path crates/tools/shipyard-interpass-adaptive/Cargo.toml
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --locked --manifest-path crates/tools/shipyard-interpass-adaptive/Cargo.toml --all-targets -- -D warnings
+
+      - name: Confirm verifier did not modify tracked inputs
+        run: git diff --exit-code
