@@ -1,0 +1,41 @@
+name: Textile Multi-Stage Validator
+
+on:
+  pull_request:
+    paths:
+      - "tools/textile-multistage-validator/**"
+      - ".github/workflows/textile-multistage-validator.yml"
+  push:
+    branches: [main]
+    paths:
+      - "tools/textile-multistage-validator/**"
+      - ".github/workflows/textile-multistage-validator.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Independent schedule feasibility
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact subject
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@1.96.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Test known-answer and negative-control cases
+        run: cargo test --manifest-path tools/textile-multistage-validator/Cargo.toml
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/textile-multistage-validator/Cargo.toml --all -- --check
+
+      - name: Run Clippy with warnings denied
+        run: cargo clippy --manifest-path tools/textile-multistage-validator/Cargo.toml --all-targets -- -D warnings
+
+      - name: Run known-answer executable
+        run: cargo run --manifest-path tools/textile-multistage-validator/Cargo.toml
