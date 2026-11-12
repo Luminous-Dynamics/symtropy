@@ -42,7 +42,7 @@ Nominal performance, model prediction, simulation, physical observation, first-p
 3. Bind each quality metric to a unit, cell/system boundary and an explicit lower/upper specification limit.
 4. Use only evaluation-admitted physical measurement / independent-laboratory evidence for physical first-pass-yield claims.
 5. Keep synthetic/simulation/surrogate/vendor/literature evidence in separate evidence tiers.
-6. Out-of-window runs are separately counted and are not used as in-window yield samples.
+6. Out-of-window runs are separately counted; they remain in the strict first-pass-yield denominator and cannot count as process-conforming passes. A separate process-window adherence rate and conditional complete-measurement conformance rate expose the reason for non-conformance.
 7. Missing, incomplete or invalid inspections are not passes; they are counted separately.
 8. Report first-pass conformance independently by lot and line. A large number of cells from one lot does not create many independent manufacturing replications.
 9. Do not report Cp/Cpk/Pp/Ppk unless process stability, measurement-system suitability, distributional assumptions, subgrouping and specification limits are defensible.
@@ -60,7 +60,7 @@ Compare frozen recipe/SPC, DOE/response-surface, physical/statistical, tree/boos
 
 ## Metrics
 
-- first-pass yield with exact in-window denominator and evidence tier;
+- strict process-conforming first-pass yield: passes within the declared process window divided by all declared runs (incomplete and out-of-window runs cannot count as passes);
 - per-lot and per-line conforming/nonconforming/incomplete counts;
 - between-lot and between-line variation and worst-group performance;
 - out-of-window process-run frequency;
