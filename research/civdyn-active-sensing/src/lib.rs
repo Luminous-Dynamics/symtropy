@@ -7,9 +7,9 @@
 //! Candidate control is conditioned only on the categorical observation ID.
 //! Missingness causes and model identities remain evaluator-side evidence.
 
-pub mod sequential;
-
 #![forbid(unsafe_code)]
+
+pub mod sequential;
 
 use std::collections::{BTreeMap, BTreeSet};
 
