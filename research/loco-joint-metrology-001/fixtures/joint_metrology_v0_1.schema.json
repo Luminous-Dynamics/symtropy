@@ -323,6 +323,8 @@
             "command_event_sequence",
             "actuator_application_event_id",
             "actuator_application_event_sequence",
+            "source_sensor_calibration_digest",
+            "actuator_application_receipt_digest",
             "physical_transition_id",
             "physical_transition_event_sequence",
             "terminal_event_id",
@@ -417,6 +419,14 @@
             "command_event_sequence": {
               "type": "integer",
               "minimum": 1
+            },
+            "actuator_application_receipt_digest": {
+              "type": "string",
+              "minLength": 1
+            },
+            "source_sensor_calibration_digest": {
+              "type": "string",
+              "minLength": 1
             }
           }
         },
