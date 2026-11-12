@@ -110,8 +110,12 @@ pub enum ThermalEvidence {
         required_node_ids: Vec<String>,
         observed_nodes: Vec<ThermalNode>,
     },
-    Unknown { reason: String },
-    Invalid { reason: String },
+    Unknown {
+        reason: String,
+    },
+    Invalid {
+        reason: String,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -209,7 +213,9 @@ fn require_nonempty(fields: &[(&'static str, &str)]) -> Result<(), EvaluationErr
     Ok(())
 }
 
-fn validate_thermal(thermal: &ThermalEvidence) -> Result<(Vec<String>, Vec<String>), EvaluationError> {
+fn validate_thermal(
+    thermal: &ThermalEvidence,
+) -> Result<(Vec<String>, Vec<String>), EvaluationError> {
     let mut unknown = Vec::new();
     let mut invalid = Vec::new();
     match thermal {
@@ -227,9 +233,18 @@ fn validate_thermal(thermal: &ThermalEvidence) -> Result<(Vec<String>, Vec<Strin
         } => {
             for (field, value) in [
                 ("thermal.model_digest", model_digest.as_str()),
-                ("thermal.node_manifest_digest", node_manifest_digest.as_str()),
-                ("thermal.expected_predecessor_digest", expected_predecessor_digest.as_str()),
-                ("thermal.observed_predecessor_digest", observed_predecessor_digest.as_str()),
+                (
+                    "thermal.node_manifest_digest",
+                    node_manifest_digest.as_str(),
+                ),
+                (
+                    "thermal.expected_predecessor_digest",
+                    expected_predecessor_digest.as_str(),
+                ),
+                (
+                    "thermal.observed_predecessor_digest",
+                    observed_predecessor_digest.as_str(),
+                ),
                 ("thermal.result_state_digest", result_state_digest.as_str()),
             ] {
                 if value.trim().is_empty() {
@@ -333,8 +348,7 @@ pub fn evaluate_future_options(
         ),
     ])?;
 
-    let (label_to_physical, _physical_domain) =
-        canonical_domain(&scenario.continuation_domain)?;
+    let (label_to_physical, _physical_domain) = canonical_domain(&scenario.continuation_domain)?;
     let mut branch_ids = BTreeSet::new();
     let mut possible: Vec<&SuccessorBranch> = Vec::new();
     let mut unknown_reasons = Vec::new();
@@ -396,16 +410,10 @@ pub fn evaluate_future_options(
                     .push(branch.branch_id.clone());
             }
             ObservationEvidence::Unknown { reason } => {
-                unknown_reasons.push(format!(
-                    "observation:{}:{reason}",
-                    branch.branch_id
-                ));
+                unknown_reasons.push(format!("observation:{}:{reason}", branch.branch_id));
             }
             ObservationEvidence::Invalid { reason } => {
-                invalid_reasons.push(format!(
-                    "observation:{}:{reason}",
-                    branch.branch_id
-                ));
+                invalid_reasons.push(format!("observation:{}:{reason}", branch.branch_id));
             }
         }
 
@@ -618,7 +626,9 @@ mod tests {
         let mut result: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
         for b in s.branches.iter().filter(|b| b.physically_possible) {
             let obs = match &b.observation {
-                ObservationEvidence::FreshQualified { equivalence_class, .. } => equivalence_class,
+                ObservationEvidence::FreshQualified {
+                    equivalence_class, ..
+                } => equivalence_class,
                 _ => continue,
             };
             let aliases: BTreeMap<&str, &str> = s
@@ -650,7 +660,10 @@ mod tests {
         ]);
         let report = evaluate_future_options(&s).unwrap();
         assert_eq!(report.disposition, ScenarioDisposition::Qualified);
-        assert_eq!(report.observation_sets["ambiguous"].common_physical_action_ids, Vec::<String>::new());
+        assert_eq!(
+            report.observation_sets["ambiguous"].common_physical_action_ids,
+            Vec::<String>::new()
+        );
         assert_eq!(report.clairvoyant_branch_option_count, 2);
         assert_eq!(report.deployable_common_option_count, 0);
         assert_eq!(report.clairvoyance_gap, Some(2));
@@ -706,7 +719,12 @@ mod tests {
             },
         ]);
         let report = evaluate_future_options(&s).unwrap();
-        assert_eq!(report.observation_sets["o1"].common_physical_action_ids.len(), 1);
+        assert_eq!(
+            report.observation_sets["o1"]
+                .common_physical_action_ids
+                .len(),
+            1
+        );
         assert_eq!(
             report.observation_sets["o1"].common_physical_action_ids,
             vec!["physical:step-A".to_owned()]
@@ -752,7 +770,11 @@ mod tests {
             expected_predecessor_digest: "thermal-prev".to_owned(),
             observed_predecessor_digest: "thermal-prev".to_owned(),
             result_state_digest: "thermal-next".to_owned(),
-            required_node_ids: vec!["motor-a".to_owned(), "motor-b".to_owned(), "compute".to_owned()],
+            required_node_ids: vec![
+                "motor-a".to_owned(),
+                "motor-b".to_owned(),
+                "compute".to_owned(),
+            ],
             observed_nodes: vec![
                 ThermalNode {
                     node_id: "motor-a".to_owned(),
@@ -813,7 +835,12 @@ mod tests {
         s.recovery.terminal_safe_stop_reachable = false;
         let report = evaluate_future_options(&s).unwrap();
         assert_eq!(report.disposition, ScenarioDisposition::Invalid);
-        assert!(report.invalid_reasons.iter().any(|v| v.contains("safe-stop")));
+        assert!(
+            report
+                .invalid_reasons
+                .iter()
+                .any(|v| v.contains("safe-stop"))
+        );
     }
 
     #[test]
@@ -824,9 +851,13 @@ mod tests {
             branch("b3", "other", 0, &["continue"]),
         ];
         let forward = evaluate_future_options(&scenario(branches.clone())).unwrap();
-        let reverse = evaluate_future_options(&scenario(branches.into_iter().rev().collect())).unwrap();
+        let reverse =
+            evaluate_future_options(&scenario(branches.into_iter().rev().collect())).unwrap();
         assert_eq!(forward.observation_sets, reverse.observation_sets);
-        assert_eq!(forward.clairvoyant_branch_actions, reverse.clairvoyant_branch_actions);
+        assert_eq!(
+            forward.clairvoyant_branch_actions,
+            reverse.clairvoyant_branch_actions
+        );
         assert_eq!(forward.clairvoyance_gap, reverse.clairvoyance_gap);
     }
 
@@ -841,9 +872,15 @@ mod tests {
         extended.branches.push(branch("b3", "same", 0, &["left"]));
         let after = evaluate_future_options(&extended).unwrap();
         let before_set: BTreeSet<_> = before.observation_sets["same"]
-            .common_physical_action_ids.iter().cloned().collect();
+            .common_physical_action_ids
+            .iter()
+            .cloned()
+            .collect();
         let after_set: BTreeSet<_> = after.observation_sets["same"]
-            .common_physical_action_ids.iter().cloned().collect();
+            .common_physical_action_ids
+            .iter()
+            .cloned()
+            .collect();
         assert!(after_set.is_subset(&before_set));
     }
 
@@ -854,9 +891,16 @@ mod tests {
             label: "continue-alias".to_owned(),
             physical_action_id: "physical:continue".to_owned(),
         });
-        s.branches[0].admitted_action_labels.push("continue-alias".to_owned());
+        s.branches[0]
+            .admitted_action_labels
+            .push("continue-alias".to_owned());
         let report = evaluate_future_options(&s).unwrap();
-        assert_eq!(report.observation_sets["o1"].common_physical_action_ids.len(), 1);
+        assert_eq!(
+            report.observation_sets["o1"]
+                .common_physical_action_ids
+                .len(),
+            1
+        );
     }
 
     #[test]
@@ -884,7 +928,6 @@ mod tests {
             );
         }
     }
-
 
     #[test]
     fn invalid_observation_receipt_cannot_leave_a_clairvoyant_claim() {
