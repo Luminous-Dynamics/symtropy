@@ -1,0 +1,394 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/research/loco-future-options-001/fixtures/known_answers_v0_1.schema.json",
+  "title": "LOCO-FUTURE-OPTIONS-001 known-answer corpus v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "protocol_id",
+    "status",
+    "cases"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "protocol_id": {
+      "const": "LOCO-FUTURE-OPTIONS-001"
+    },
+    "status": {
+      "const": "synthetic_known_answers_only"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "label",
+        "physical_action_id"
+      ],
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physical_action_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branch_id",
+        "physically_possible",
+        "probability_mass",
+        "observation_class",
+        "successor_state_digest",
+        "continuation_actions",
+        "hard_constraint_status",
+        "observation_receipt",
+        "observation_valid",
+        "viability_complete",
+        "viability_receipt_digest"
+      ],
+      "properties": {
+        "branch_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "physically_possible": {
+          "type": "boolean"
+        },
+        "probability_mass": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "observation_class": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_receipt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_valid": {
+          "type": "boolean"
+        },
+        "successor_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "continuation_actions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/action"
+          }
+        },
+        "hard_constraint_status": {
+          "type": "string",
+          "minLength": 1
+        },
+        "viability_complete": {
+          "type": "boolean"
+        },
+        "viability_receipt_digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "description",
+        "candidate_action_id",
+        "initial_state_digest",
+        "transition_model_digest",
+        "action_domain_digest",
+        "continuation_domain_digest",
+        "branch_manifest",
+        "thermal_chain",
+        "branches",
+        "expected",
+        "continuation_domain",
+        "recovery_evidence"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "pattern": "^FO[0-9]{2}_[A-Z0-9_]+$"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_action_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_state_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "transition_model_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "action_domain_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "continuation_domain_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "branch_manifest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "complete",
+            "digest"
+          ],
+          "properties": {
+            "complete": {
+              "type": "boolean"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "thermal_chain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "branch_manifest_digest"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "not_applicable",
+                "valid",
+                "mismatched_predecessor"
+              ]
+            },
+            "model_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "node_manifest_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "predecessor_state_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "result_state_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "expected_predecessor_state_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "observed_predecessor_state_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "branch_manifest_digest": {
+              "$ref": "#/$defs/digest"
+            }
+          }
+        },
+        "thermal_nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "node_id",
+              "temperature_c",
+              "hard_limit_c",
+              "source_class",
+              "uncertainty_c",
+              "evidence_digest"
+            ],
+            "properties": {
+              "node_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "temperature_c": {
+                "type": "number"
+              },
+              "hard_limit_c": {
+                "type": "number"
+              },
+              "source_class": {
+                "enum": [
+                  "measured",
+                  "estimated",
+                  "environmental_boundary",
+                  "synthetic_fixture"
+                ]
+              },
+              "uncertainty_c": {
+                "type": "number",
+                "minimum": 0
+              },
+              "evidence_digest": {
+                "$ref": "#/$defs/digest"
+              }
+            }
+          }
+        },
+        "branches": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/branch"
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "disposition"
+          ],
+          "properties": {
+            "disposition": {
+              "enum": [
+                "Qualified",
+                "Invalid",
+                "Unknown"
+              ]
+            },
+            "mean_temperature_c": {
+              "type": "number"
+            },
+            "violating_nodes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "common_continuations_by_observation": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "clairvoyant_branch_continuations": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "clairvoyant_only_action_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "deployable_common_action_count_by_observation": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            }
+          }
+        },
+        "continuation_domain": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "complete",
+            "digest",
+            "actions"
+          ],
+          "properties": {
+            "complete": {
+              "type": "boolean"
+            },
+            "digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "actions": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "$ref": "#/$defs/action"
+              }
+            }
+          }
+        },
+        "recovery_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "branch_manifest_digest",
+            "branch_receipts"
+          ],
+          "properties": {
+            "status": {
+              "enum": [
+                "qualified",
+                "unknown",
+                "invalid"
+              ]
+            },
+            "branch_manifest_digest": {
+              "$ref": "#/$defs/digest"
+            },
+            "branch_receipts": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "branch_id",
+                  "successor_state_digest",
+                  "reserve_state_digest",
+                  "topology_digest",
+                  "terminal_safe_stop_reachable"
+                ],
+                "properties": {
+                  "branch_id": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "reserve_state_digest": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "topology_digest": {
+                    "$ref": "#/$defs/digest"
+                  },
+                  "terminal_safe_stop_reachable": {
+                    "type": "boolean"
+                  },
+                  "successor_state_digest": {
+                    "$ref": "#/$defs/digest"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+[package]
+name = "loco-future-options-reference"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+
+# This deterministic finite reference is isolated from the application workspace.
+# It consumes upstream viability/observation/recovery receipts; it does not create them.
+[workspace]
