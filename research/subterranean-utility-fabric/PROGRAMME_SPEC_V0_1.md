@@ -359,3 +359,22 @@ The success criterion is not a spectacular robot demonstration. It is a corridor
 ## Cable-duct robotics is a separate benchmark
 
 Sewer-crawler performance is not automatically transferable to utility cable ducts. The programme now defines a dedicated, non-energized duct inspection and draw-tool qualification in [Symtropy #4913](https://github.com/Luminous-Dynamics/symtropy/issues/4913) and [CABLE_DUCT_ROBOT_BENCHMARK_V0_1.md](CABLE_DUCT_ROBOT_BENCHMARK_V0_1.md). It separates inspection, draw-rope insertion / retrieval and inert dummy-cable pull-through; qualifies exact duct profiles, bend and coupling geometry, tether hazards, localization, observation coverage, force limits, damage and safe recovery. No live cable is used.
+
+## 15. Power-robot standards and the actual robotics baseline
+
+The programme should map terminology and performance categories to the IEC 63439 power-robot family rather than inventing a parallel classification. IEC 63439-1-1:2025 defines electric-power-robot terminology. IEC TR 63439-1-2:2026 is a state-of-the-art and standardization roadmap that covers application classification, mobility, sensing, navigation, communications, testing, performance benchmarks and reliability / environmental stress evaluation.
+
+A land cable-tunnel inspection robot general-requirements work item (IEC 63439-3-31) is in development. It is not a published standard, and its tunnel-inspection scope must not be assumed to qualify small microduct crawlers, draw-rope tools or cable-blowing systems. The programme should track its published revisions and distinguish cable tunnels / walkable galleries from small cable ducts.
+
+Sources:
+- IEC 63439-1-1:2025: https://webstore.iec.ch/en/publication/72749
+- IEC TR 63439-1-2:2026: https://webstore.iec.ch/en/publication/109098
+- IEC 63439-3-31 work item status: https://standardsdevelopment.bsigroup.com/projects/9025-12660 and https://genorma.com/en/standards/iec-63439-3-31-ed1
+
+The current product / research landscape is heterogeneous:
+- commercial sewer crawlers demonstrate autonomous travel / return and standardized sewer reporting on particular pipe sizes; they are not cable-duct robots;
+- cable-trench inspection research already combines LiDAR / IMU navigation, thermal / visual sensing and environmental measurements, but its test environment is a trench / tunnel, not necessarily a small duct;
+- fibre microduct deployment already uses commercial air-assisted cable blowing / jetting equipment, with cable- and machine-specific force, pressure, airflow and slip-test limits;
+- the 2026 sewer-robotics review identifies multi-sensor fusion, signal-denied localization, real-time processing, interoperability and communications as active research bottlenecks.
+
+The defensible Luminous advantage is not claiming to invent crawlers, cable jetting, thermal cameras or utility tunnels. It is to qualify a joined-up, interoperable lifecycle: route evidence -> method / tool eligibility -> inspection and uncertainty -> maintenance / retrieval -> accepted as-built -> transparent whole-life and theft / outage outcome. The same exact configuration and task must be compared against the best conventional or commercial method.
