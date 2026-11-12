@@ -690,9 +690,7 @@ fn energy_status(trace: &JointTrace) -> Evidence<EnergyDisposition> {
     if energy.boundary_manifest_digest.trim().is_empty() {
         return Evidence::Unknown(UnknownReason::EnergyReceiptUnavailable);
     }
-    if energy.boundary_manifest_digest
-        != trace.configuration.energy_boundary_manifest_digest
-    {
+    if energy.boundary_manifest_digest != trace.configuration.energy_boundary_manifest_digest {
         return Evidence::Rejected(RejectReason::ReceiptBindingMismatch(
             "energy-boundary-manifest",
         ));
@@ -1252,7 +1250,6 @@ mod tests {
             Err(TraceValidationError::InvalidTimestampInterval { .. })
         ));
     }
-
 
     #[test]
     fn insufficient_decision_cannot_close_the_mission() {
