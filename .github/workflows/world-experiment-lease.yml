@@ -1,0 +1,68 @@
+name: World Experiment Fidelity Lease
+
+on:
+  push:
+    branches: ["research/world-experiment-lease-v0"]
+    paths:
+      - "research/world-experiment-lease/**"
+      - ".github/workflows/world-experiment-lease.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "research/world-experiment-lease/**"
+      - ".github/workflows/world-experiment-lease.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: world-experiment-lease-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lease:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component clippy --component rustfmt
+          rustc +1.96.0 --version
+          cargo +1.96.0 --version
+
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/world-experiment-lease/Cargo.toml -- --check
+
+      - name: Run lease tests
+        run: cargo +1.96.0 test --locked --manifest-path research/world-experiment-lease/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo +1.96.0 clippy --locked --manifest-path research/world-experiment-lease/Cargo.toml --all-targets -- -D warnings
+
+      - name: Generate deterministic known-answer receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          package="research/world-experiment-lease"
+          mkdir -p "$package/target/receipts"
+          cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- \
+            "$package/fixtures/machine-test-01.json" \
+            > "$package/target/receipts/first.json"
+          cargo +1.96.0 run --quiet --locked --manifest-path "$package/Cargo.toml" -- \
+            "$package/fixtures/machine-test-01.json" \
+            > "$package/target/receipts/second.json"
+          cmp "$package/target/receipts/first.json" "$package/target/receipts/second.json"
+          grep -q '"claim_ceiling":' "$package/target/receipts/first.json"
+          sha256sum "$package/target/receipts/first.json" | tee "$package/target/receipts/receipt.sha256"
+
+      - name: Preserve known-answer receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: world-experiment-lease-receipt-${{ github.sha }}
+          path: research/world-experiment-lease/target/receipts/
+          if-no-files-found: warn
+          retention-days: 30
