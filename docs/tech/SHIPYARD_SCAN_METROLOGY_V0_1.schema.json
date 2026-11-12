@@ -1,0 +1,347 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Synthetic inter-pass scan metrology receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "benchmark_id",
+    "evidence_class",
+    "receipt",
+    "expected_context",
+    "policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "benchmark_id": {
+      "const": "SHIPYARD-SCAN-METROLOGY-001"
+    },
+    "evidence_class": {
+      "const": "synthetic_only"
+    },
+    "receipt": {
+      "$ref": "#/$defs/receipt"
+    },
+    "expected_context": {
+      "$ref": "#/$defs/context"
+    },
+    "policy": {
+      "$ref": "#/$defs/policy"
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "receipt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "predecessor_pass_id",
+        "scan_id",
+        "source_scan_sha256",
+        "registration_receipt_sha256",
+        "source_frame_id",
+        "target_frame_id",
+        "calibration_id",
+        "calibration_revision",
+        "algorithm_id",
+        "algorithm_revision",
+        "capture_tick",
+        "expected_profile_count",
+        "acquired_profile_count",
+        "matched_profile_count",
+        "rejected_profile_count",
+        "occluded_profile_count",
+        "coverage_permille",
+        "occlusion_permille",
+        "residual_rms_microunits",
+        "residual_p95_microunits",
+        "residual_max_microunits",
+        "uncertainty_95_microunits",
+        "confidence_permille",
+        "transform"
+      ],
+      "properties": {
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predecessor_pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_scan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "registration_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "calibration_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capture_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "expected_profile_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "acquired_profile_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "matched_profile_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rejected_profile_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "occluded_profile_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "occlusion_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "residual_rms_microunits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "residual_p95_microunits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "residual_max_microunits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "uncertainty_95_microunits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "confidence_permille": {
+          "type": "integer",
+          "minimum": 950,
+          "maximum": 1000
+        },
+        "transform": {
+          "$ref": "#/$defs/transform"
+        }
+      }
+    },
+    "transform": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "matrix_row_major",
+        "direction"
+      ],
+      "properties": {
+        "matrix_row_major": {
+          "type": "array",
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "minItems": 9,
+          "maxItems": 9
+        },
+        "direction": {
+          "const": "source_frame_to_target_frame"
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workpiece_id",
+        "joint_revision",
+        "layer_id",
+        "predecessor_pass_id",
+        "scan_id",
+        "source_scan_sha256",
+        "registration_receipt_sha256",
+        "source_frame_id",
+        "target_frame_id",
+        "decision_tick",
+        "maximum_age_ticks"
+      ],
+      "properties": {
+        "workpiece_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "joint_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "layer_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predecessor_pass_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scan_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_scan_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "registration_receipt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "source_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_frame_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decision_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_age_ticks": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minimum_matched_profiles",
+        "minimum_coverage_permille",
+        "maximum_occlusion_permille",
+        "maximum_residual_rms_microunits",
+        "maximum_residual_p95_microunits",
+        "maximum_residual_microunits",
+        "maximum_uncertainty_microunits",
+        "minimum_confidence_permille",
+        "transform_tolerance_ppb"
+      ],
+      "properties": {
+        "minimum_matched_profiles": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_coverage_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "maximum_occlusion_permille": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000
+        },
+        "maximum_residual_rms_microunits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_residual_p95_microunits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_residual_microunits": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maximum_uncertainty_microunits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minimum_confidence_permille": {
+          "type": "integer",
+          "minimum": 950,
+          "maximum": 1000
+        },
+        "transform_tolerance_ppb": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    }
+  }
+}
