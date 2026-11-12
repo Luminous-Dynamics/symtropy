@@ -90,6 +90,7 @@ pub struct WorldOracle {
 pub struct NoSensingAssessment {
     pub selected_policy_id: Option<String>,
     pub worst_case_regret: Option<f64>,
+    pub common_feasible_policy_count: usize,
     pub worlds: Vec<WorldOracle>,
 }
 
@@ -157,6 +158,7 @@ pub struct SensorAssessment {
     pub maximum_total_penalty_service_units: f64,
     pub worst_case_post_sensing_regret: Option<f64>,
     pub worst_case_regret_reduction: Option<f64>,
+    pub resolves_no_sensing_infeasibility: bool,
     pub partitions: Vec<ObservationPartition>,
 }
 
@@ -292,6 +294,7 @@ fn baseline_no_sensing(
     NoSensingAssessment {
         selected_policy_id: candidates.first().map(|entry| entry.0.clone()),
         worst_case_regret: candidates.first().map(|entry| entry.1),
+        common_feasible_policy_count: candidates.len(),
         worlds: oracle.to_vec(),
     }
 }
@@ -488,6 +491,8 @@ pub fn assess_active_sensing(
         } else {
             SensorStatus::Evaluated
         };
+        let resolves_no_sensing_infeasibility =
+            baseline.common_feasible_policy_count == 0 && status == SensorStatus::Evaluated;
 
         assessments.push(SensorAssessment {
             sensor_id: sensor.sensor_id.clone(),
@@ -502,6 +507,7 @@ pub fn assess_active_sensing(
             maximum_total_penalty_service_units,
             worst_case_post_sensing_regret,
             worst_case_regret_reduction,
+            resolves_no_sensing_infeasibility,
             partitions,
         });
     }
@@ -511,8 +517,9 @@ pub fn assess_active_sensing(
         .filter(|item| {
             item.status == SensorStatus::Evaluated
                 && item.affordable
-                && item.worst_case_regret_reduction
-                    .is_some_and(|reduction| reduction > config.tie_tolerance)
+                && (item.resolves_no_sensing_infeasibility
+                    || item.worst_case_regret_reduction
+                        .is_some_and(|reduction| reduction > config.tie_tolerance))
         })
         .collect();
 
@@ -749,6 +756,68 @@ mod tests {
             .filter_map(|receipt| receipt.missing_cause.as_ref().map(MissingCause::id))
             .collect();
         assert_eq!(causes.len(), 2);
+    }
+
+    #[test]
+    fn sensing_can_restore_feasibility_when_no_blind_action_is_common() {
+        let mut first = world("world_a", 90.0, 50.0);
+        first.policies[0].policy_id = "repair_a".to_owned();
+        first.policies[1].policy_id = "repair_b".to_owned();
+        let mut second = world("world_b", 50.0, 90.0);
+        second.policies[0].policy_id = "repair_a".to_owned();
+        second.policies[1].policy_id = "repair_b".to_owned();
+        let worlds = vec![first, second];
+
+        let sensor = sensor(
+            "discriminating_sensor",
+            0.0,
+            0.0,
+            0,
+            vec![
+                ("world_a", "a", None, 0.0),
+                ("world_b", "b", None, 0.0),
+            ],
+        );
+
+        let report = assess_active_sensing(&config(), &worlds, &[sensor]).unwrap();
+        assert_eq!(report.baseline.common_feasible_policy_count, 0);
+        assert!(report.baseline.selected_policy_id.is_none());
+        assert!(report.baseline.worst_case_regret.is_none());
+
+        let item = report.sensors.iter()
+            .find(|item| item.sensor_id == "discriminating_sensor").unwrap();
+        assert_eq!(item.status, SensorStatus::Evaluated);
+        assert!(item.resolves_no_sensing_infeasibility);
+        assert_eq!(item.worst_case_post_sensing_regret, Some(0.0));
+        assert!(item.worst_case_regret_reduction.is_none());
+        assert_eq!(report.recommended_sensor_id.as_deref(), Some("discriminating_sensor"));
+    }
+
+    #[test]
+    fn uninformative_sensor_cannot_resolve_no_sensing_infeasibility() {
+        let mut first = world("world_a", 90.0, 50.0);
+        first.policies[0].policy_id = "repair_a".to_owned();
+        first.policies[1].policy_id = "repair_b".to_owned();
+        let mut second = world("world_b", 50.0, 90.0);
+        second.policies[0].policy_id = "repair_a".to_owned();
+        second.policies[1].policy_id = "repair_b".to_owned();
+        let worlds = vec![first, second];
+
+        let sensor = sensor(
+            "blind_sensor",
+            0.0,
+            0.0,
+            0,
+            vec![
+                ("world_a", "unknown", None, 0.0),
+                ("world_b", "unknown", None, 0.0),
+            ],
+        );
+        let report = assess_active_sensing(&config(), &worlds, &[sensor]).unwrap();
+        let item = &report.sensors[0];
+        assert_eq!(item.status, SensorStatus::NoFeasiblePolicy);
+        assert!(!item.resolves_no_sensing_infeasibility);
+        assert!(report.recommended_sensor_id.is_none());
     }
 
     #[test]
