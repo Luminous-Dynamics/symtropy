@@ -12,7 +12,7 @@ dependencies = [
 [[package]]
 name = "action-conditioned-offscreen-camera"
 version = "0.1.0"
-source = "git+https://github.com/Luminous-Dynamics/symtropy?rev=e0463d8d4119f36e0700dd4a3bbf94f90c5b4809#e0463d8d4119f36e0700dd4a3bbf94f90c5b4809"
+source = "git+https://github.com/Luminous-Dynamics/symtropy?rev=8f9320647b40e9649209afa89ce373d475d3f305#8f9320647b40e9649209afa89ce373d475d3f305"
 dependencies = [
  "serde",
 ]
