@@ -1,6 +1,6 @@
 {
   "schema": "luminous.symtropy.kerr.optical_screen_sachs_jacobi.v1",
-  "status": "source_authored_rust_execution_pending",
+  "status": "fixed-step and adaptive Sachs/Jacobi solvers passed radial and nonradial Schwarzschild regressions in exact-head Rust 1.96 run",
   "claim_ceiling": "Independent fixed-step and adaptive step-doubled Sachs/Jacobi optical-geodesic formulations. No caustic, fold/cusp or wave-optics claim until exact Schwarzschild, cross-step refinement and canonical-vs-Sachs agreement pass.",
   "conventions": {
     "chart_state_order": "(t_bar or v_bar, r_bar, theta, phi, p_t, p_r, p_theta, p_phi)",
@@ -90,7 +90,13 @@
       "pointwise_tidal_component_absolute_error": 2e-7,
       "endpoint_null_frame_residual": 1e-7
     },
-    "execution": "not executed"
+    "execution": {
+      "source_head": "1346e1e641772576e7163c9ab68aebfe8b09d180",
+      "workflow": "Kerr event localization audit",
+      "run_id": 43309182953,
+      "result": "143 passed; 0 failed",
+      "scope": "Includes the radial fixed/adaptive vertex known answer and nonradial fixed/adaptive Sachs solver comparison. This does not include canonical 8x8 versus Sachs-Jacobi comparison."
+    }
   },
   "refinement_protocol": {
     "required_step_counts": [
@@ -149,5 +155,33 @@
     "endpoint_condition_number",
     "runtime",
     "peak_memory"
+  ],
+  "nonradial_cross_solver_reference": {
+    "spacetime": "Schwarzschild",
+    "observer": "finite-radius ZAMO r/M=10, theta=pi/2",
+    "local_direction": "(-0.8,0.6,0.0)",
+    "affine_interval": 0.02,
+    "fixed_step_count": 64,
+    "adaptive_tolerance": {
+      "relative": 1e-9,
+      "absolute": 1e-12,
+      "constraint": 1e-7
+    },
+    "observables": [
+      "nonzero optical-tidal norm",
+      "tidal symmetry",
+      "vacuum trace",
+      "endpoint Jacobi entries",
+      "signed determinant",
+      "both singular values"
+    ],
+    "comparison_tolerance": 0.00002,
+    "execution": "passed in 143-test Rust 1.96 exact-head run"
+  },
+  "remaining_unqualified": [
+    "canonical 8x8 fundamental-matrix versus Sachs-Jacobi agreement in identical transported source frame",
+    "generic Kerr nonradial cross-formulation",
+    "fixed-step N/2N/4N convergence receipts on nonradial cases",
+    "caustic/fold/cusp root localization and finite-frequency wave-optics qualification"
   ]
 }
