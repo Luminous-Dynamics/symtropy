@@ -20,8 +20,8 @@ use super::{
     KerrBlackHole,
     kerr_geodesic::{
         KerrCanonicalEvaluation, KerrCanonicalHamiltonian, KerrCanonicalLinearization,
-        KerrCanonicalState, KerrFiniteRadiusObserver, KerrGeodesicError, KerrLocalSkyDirection,
-        KerrMinoCoordinateChart, KerrNullConstants, KerrObserverCanonicalSeed,
+        KerrCanonicalState, KerrFiniteRadiusObserver, KerrGeodesicError, KerrMinoCoordinateChart,
+        KerrNullConstants, KerrObserverCanonicalSeed,
         KerrObserverScreenProjection,
     },
 };
@@ -672,7 +672,7 @@ impl KerrNullTrajectoryIntegrator {
         }
         Ok(KerrObserverTangentBundleResult {
             black_hole: self.hole,
-            coordinate_chart: self.chart,
+            coordinate_chart: expected_chart,
             local_screen_basis: seed.local_screen_basis,
             samples,
             accepted_steps: transported.accepted_steps,
@@ -1156,7 +1156,7 @@ mod tests {
     use super::*;
     use crate::{
         DimensionlessSpin, MassKg,
-        kerr_geodesic::{KerrMinoDirection, KerrMinoState, KerrNullConstants},
+        kerr_geodesic::{KerrLocalSkyDirection, KerrMinoDirection, KerrMinoState, KerrNullConstants},
     };
 
     fn hole(spin: f64) -> KerrBlackHole {
@@ -1164,6 +1164,13 @@ mod tests {
             MassKg::new(1.988_47e30).unwrap(),
             DimensionlessSpin::new(spin).unwrap(),
         )
+    }
+
+    fn close(actual: f64, expected: f64, relative_tolerance: f64) {
+        assert!(
+            (actual - expected).abs() <= relative_tolerance * (1.0 + expected.abs()),
+            "actual={actual:.12e}, expected={expected:.12e}, relative_tolerance={relative_tolerance:.3e}"
+        );
     }
 
     fn options() -> KerrIntegratorOptions {
