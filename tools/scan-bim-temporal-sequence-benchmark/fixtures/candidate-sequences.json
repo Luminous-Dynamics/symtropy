@@ -1,0 +1,388 @@
+{
+  "schema_version": "0.1",
+  "sequences": [
+    {
+      "sequence_id": "SEQ-UNCHANGED",
+      "steps": [
+        {
+          "step_id": "a-01",
+          "measurement_tick": 10,
+          "decision_cutoff_tick": 11,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-a1",
+              "candidate_track_id": "track-wall"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        },
+        {
+          "step_id": "a-02",
+          "measurement_tick": 20,
+          "decision_cutoff_tick": 21,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-a2",
+              "candidate_track_id": "track-wall"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        },
+        {
+          "step_id": "a-03",
+          "measurement_tick": 30,
+          "decision_cutoff_tick": 31,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-a3",
+              "candidate_track_id": "track-wall"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-OCCLUSION",
+      "steps": [
+        {
+          "step_id": "b-01",
+          "measurement_tick": 10,
+          "decision_cutoff_tick": 11,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-b1",
+              "candidate_track_id": "track-door"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        },
+        {
+          "step_id": "b-02",
+          "measurement_tick": 20,
+          "decision_cutoff_tick": 21,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "occlusion",
+          "disposition": "partial_with_unknown",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        },
+        {
+          "step_id": "b-03",
+          "measurement_tick": 30,
+          "decision_cutoff_tick": 31,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-b3",
+              "candidate_track_id": "track-door"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-VIEWPOINT",
+      "steps": [
+        {
+          "step_id": "c-01",
+          "measurement_tick": 10,
+          "decision_cutoff_tick": 11,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-c1",
+              "candidate_track_id": "track-window"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        },
+        {
+          "step_id": "c-02",
+          "measurement_tick": 20,
+          "decision_cutoff_tick": 21,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "viewpoint_only",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-c2",
+              "candidate_track_id": "track-window"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-REGISTRATION-DRIFT",
+      "steps": [
+        {
+          "step_id": "d-01",
+          "measurement_tick": 10,
+          "decision_cutoff_tick": 11,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-d1",
+              "candidate_track_id": "track-column"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        },
+        {
+          "step_id": "d-02",
+          "measurement_tick": 20,
+          "decision_cutoff_tick": 21,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "registration_drift",
+          "disposition": "request_additional_observation",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-d2",
+              "candidate_track_id": "track-column"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-PHYSICAL-CHANGE",
+      "steps": [
+        {
+          "step_id": "e-01",
+          "measurement_tick": 10,
+          "decision_cutoff_tick": 11,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-e1",
+              "candidate_track_id": "track-wall"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        },
+        {
+          "step_id": "e-02",
+          "measurement_tick": 20,
+          "decision_cutoff_tick": 21,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "physical_change",
+          "disposition": "admit_candidate_delta",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan",
+            "ev-change"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-e2",
+              "candidate_track_id": "track-wall"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-LATE-ARRIVAL",
+      "steps": [
+        {
+          "step_id": "f-01",
+          "measurement_tick": 10,
+          "decision_cutoff_tick": 11,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-f1",
+              "candidate_track_id": "track-wall"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        },
+        {
+          "step_id": "f-02",
+          "measurement_tick": 20,
+          "decision_cutoff_tick": 20,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-f2",
+              "candidate_track_id": "track-wall"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-REPLACEMENT",
+      "steps": [
+        {
+          "step_id": "g-01",
+          "measurement_tick": 10,
+          "decision_cutoff_tick": 11,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "unchanged",
+          "disposition": "no_change_supported",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-g1",
+              "candidate_track_id": "track-panel-old"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        },
+        {
+          "step_id": "g-02",
+          "measurement_tick": 20,
+          "decision_cutoff_tick": 21,
+          "decision_purpose": "medium_building_update",
+          "reported_event": "replacement",
+          "disposition": "replacement_candidate",
+          "decision_evidence_event_ids": [
+            "ev-cal",
+            "ev-reg",
+            "ev-scan"
+          ],
+          "observations": [
+            {
+              "observation_id": "obs-g2",
+              "candidate_track_id": "track-panel-new"
+            }
+          ],
+          "measurement_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_id": "synthetic-global-tick-v0",
+          "decision_clock_precision_ticks": 1
+        }
+      ]
+    }
+  ]
+}
