@@ -166,22 +166,17 @@
       "adaptive noise state",
       "function evaluations",
       "trajectory and search cost"
-    ]
+    ],
+    "social_interaction_kernel": "sin((pi/2) * position_difference), shared by the published discrete equation and pinned MATLAB tstep.m."
   },
   "equation_consistency_audit": {
-    "paper_html_equation_2": "sin((2/pi) * (x_k - x_h))",
+    "paper_discrete_equation": "sin((pi/2) * (x_k - x_h))",
     "inspected_matlab_tstep": "sin((pi/2) * (x_i - x_j))",
     "source_file": "SCM/tstep.m",
     "source_blob_sha": "d7970b76fc23e5f562df0acbfabdc46424643053",
-    "status": "UNRESOLVED",
-    "significance": "These are different interaction kernels and change the numerical dynamics. A source-faithful result must not select a variant silently.",
-    "required_resolution": [
-      "Inspect the authoritative PDF-rendered Equation (2).",
-      "Inspect the supplementary-information pseudocode and derivation.",
-      "Confirm which kernel was used to produce Supplementary Datasets 1–3.",
-      "Request author clarification if publication equation and release source remain inconsistent.",
-      "Until then, keep PaperEquation and RepositoryCode kernels separately tagged in an independent Rust reference."
-    ],
+    "status": "RECONCILED_PUBLISHED_AND_PINNED_SOURCE_AGREE",
+    "disposition": "The published discrete update and pinned MATLAB implementation use the same pi/2 sine argument. The earlier apparent 2/pi variant was a misreading, not a source discrepancy.",
+    "implementation": "The Rust reference has one ScmInteractionKernel::PublishedEquationAndMatlabSource variant. No unsupported 2/pi alternative remains.",
     "consensus_window_discrepancy": {
       "paper_definition": "Two equal half-windows [t-tau,t-tau/2] and [t-tau/2,t], disjoint in the continuous-time statement.",
       "inspected_matlab_indices": "I1 = CT(n-ceil(nn/2)+1:n); I2 = CT(n-nn:n-ceil(nn/2)); first eligible update is n=nn+1.",
@@ -315,7 +310,8 @@
     "rust_independent_implementation_test_count": 13,
     "partial_observation_attempt_accounting_added": true,
     "extreme_finite_barrier_gradient_added": true,
-    "rust_independent_implementation_validation": "NOT_RUN"
+    "rust_independent_implementation_validation": "NOT_RUN",
+    "social_kernel_source_audit": "RESOLVED_PUBLISHED_AND_PINNED_MATLAB_SOURCE_AGREE"
   },
   "oli_improvement_targets": {
     "static_equal_success_cost": "At equal success probability and the same safety envelope, reduce total sensor/function evaluations or energy-distance cost by >=20% on at least two source-reproduced benchmark strata.",
