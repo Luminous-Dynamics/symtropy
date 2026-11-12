@@ -328,3 +328,17 @@ mod tests {
         assert!(audit_value(&value.to_string()).is_err());
     }
 }
+
+
+    #[test]
+    fn cli_keeps_incomplete_and_censored_run_dispositions_visible() {
+        let mut value: serde_json::Value =
+            serde_json::from_str(include_str!("../fixtures/camera-drop-paired-v1.json"))
+                .unwrap();
+        value["clean_control"]["disposition"] = json!("incomplete");
+        value["faulted_run"]["disposition"] = json!("censored");
+        let report = audit_value(&value.to_string()).unwrap();
+        assert_eq!(report.clean_control_disposition, degradation_recovery_envelope::RunDisposition::Incomplete);
+        assert_eq!(report.faulted_run_disposition, degradation_recovery_envelope::RunDisposition::Censored);
+        assert_eq!(report.disposition, "rejected");
+    }
