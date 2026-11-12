@@ -734,7 +734,7 @@ mod tests {
 
     #[test]
     fn all_missing_is_full_support_not_zero_reward() {
-        let rows = vec![
+        let rows = [
             record((
                 "p",
                 "u1",
