@@ -17,10 +17,10 @@
 
 use core::marker::PhantomData;
 
-use super::{CoordinateFrame, Matrix, Metric, MetricErrorV1};
 use super::operator::{
     OperatorConditionErrorV1, OperatorConditionProfileV1, OperatorConditionStatusV1,
 };
+use super::{CoordinateFrame, Matrix, Metric, MetricErrorV1};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RectangularOperatorStatusV1 {
