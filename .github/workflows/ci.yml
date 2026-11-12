@@ -84,5 +84,432 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Qualify CIVDYN Active Sensing Reference
+      if: runner.os == 'Linux'
+      run: |
+        set -euo pipefail
+        cargo fmt --manifest-path research/civdyn-active-sensing/Cargo.toml --all -- --check
+        cargo clippy --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --all-targets -- -D warnings
+        cargo check --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --all-targets
+        cargo test --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --all-targets
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep > /tmp/civdyn-active-sensing.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep > /tmp/civdyn-active-sensing-replay.csv
+        cmp /tmp/civdyn-active-sensing.csv /tmp/civdyn-active-sensing-replay.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep -- --candidate-policy-map > /tmp/civdyn-active-sensing-candidate.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep -- --candidate-policy-map > /tmp/civdyn-active-sensing-candidate-replay.csv
+        cmp /tmp/civdyn-active-sensing-candidate.csv /tmp/civdyn-active-sensing-candidate-replay.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin sequential_active_sensing_sweep > /tmp/civdyn-sequential-sensing.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin sequential_active_sensing_sweep > /tmp/civdyn-sequential-sensing-replay.csv
+        cmp /tmp/civdyn-sequential-sensing.csv /tmp/civdyn-sequential-sensing-replay.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin sequential_active_sensing_sweep -- --candidate-policy-map > /tmp/civdyn-sequential-sensing-candidate.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin sequential_active_sensing_sweep -- --candidate-policy-map > /tmp/civdyn-sequential-sensing-candidate-replay.csv
+        cmp /tmp/civdyn-sequential-sensing-candidate.csv /tmp/civdyn-sequential-sensing-candidate-replay.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep > /tmp/civdyn-contingent-sensing.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep > /tmp/civdyn-contingent-sensing-replay.csv
+        cmp /tmp/civdyn-contingent-sensing.csv /tmp/civdyn-contingent-sensing-replay.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep -- --candidate-policy-tree > /tmp/civdyn-contingent-candidate.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep -- --candidate-policy-tree > /tmp/civdyn-contingent-candidate-replay.csv
+        cmp /tmp/civdyn-contingent-candidate.csv /tmp/civdyn-contingent-candidate-replay.csv
+        python3 - <<'PY'
+        import csv
+        from pathlib import Path
+
+        with Path("/tmp/civdyn-active-sensing.csv").open(newline="", encoding="utf-8") as handle:
+            reader = csv.DictReader(handle)
+            assert reader.fieldnames is not None and len(reader.fieldnames) == 27
+            rows = list(reader)
+
+        summary = {
+            row["sensor_id"]: row for row in rows
+            if row["record_type"] == "sensor_summary"
+            and row["scenario_id"] == "three-world-sensor-dual-control-v1"
+        }
+        lift = {
+            row["sensor_id"]: row for row in rows
+            if row["record_type"] == "sensor_summary"
+            and row["scenario_id"] == "two-world-feasibility-lift-v1"
+        }
+        assert set(summary) == {
+            "remote_telemetry",
+            "independent_field_inspection",
+            "uninformative_status_check",
+            "over_budget_lab_test",
+        }
+        assert set(lift) == {
+            "decision_separating_inspection",
+            "uninformative_feasibility_check",
+        }
+
+        assert {float(row["baseline_worst_regret"]) for row in summary.values()} == {15.0}
+        assert {row["baseline_policy_id"] for row in summary.values()} == {"repair"}
+
+        field = summary["independent_field_inspection"]
+        assert field["status"] == "evaluated"
+        assert field["energy_cost_service_units"] == "1.000000"
+        assert field["maximum_latency_service_loss"] == "3.000000"
+        assert field["maximum_total_penalty_service_units"] == "4.000000"
+        assert field["worst_case_post_sensing_regret"] == "4.000000"
+        assert field["regret_reduction"] == "11.000000"
+        assert field["recommended"] == "true"
+        assert field["resolves_no_sensing_infeasibility"] == "false"
+
+        remote = summary["remote_telemetry"]
+        assert remote["worst_case_post_sensing_regret"] == "20.000000"
+        assert remote["regret_reduction"] == "-5.000000"
+        assert remote["recommended"] == "false"
+        missing = [
+            row for row in rows
+            if row["record_type"] == "observation_partition"
+            and row["scenario_id"] == "three-world-sensor-dual-control-v1"
+            and row["sensor_id"] == "remote_telemetry"
+            and row["observation_id"] == "missing"
+        ]
+        assert len(missing) == 1
+        assert missing[0]["partition_world_count"] == "2"
+        assert set(missing[0]["world_ids"].split(";")) == {
+            "degraded", "healthy_sensor_fault"
+        }
+
+        unknown = summary["uninformative_status_check"]
+        assert unknown["worst_case_post_sensing_regret"] == "15.000000"
+        assert unknown["regret_reduction"] == "0.000000"
+        assert unknown["recommended"] == "false"
+
+        expensive = summary["over_budget_lab_test"]
+        assert expensive["status"] == "over_budget"
+        assert expensive["affordable"] == "false"
+        assert expensive["recommended"] == "false"
+
+        audit = [
+            row for row in rows
+            if row["record_type"] == "evaluator_prediction_audit"
+            and row["scenario_id"] == "three-world-sensor-dual-control-v1"
+            and row["sensor_id"] == "remote_telemetry"
+            and row["observation_id"] == "missing"
+        ]
+        assert len(audit) == 2
+        assert {row["evaluator_missing_cause"] for row in audit} == {
+            "common_cause_power_loss", "telemetry_network_fault"
+        }
+        assert all(row["prediction_receipt_digest"] for row in audit)
+
+        lift_inspection = lift["decision_separating_inspection"]
+        assert lift_inspection["status"] == "evaluated"
+        assert lift_inspection["baseline_policy_id"] == ""
+        assert lift_inspection["baseline_worst_regret"] == ""
+        assert lift_inspection["worst_case_post_sensing_regret"] == "0.500000"
+        assert lift_inspection["regret_reduction"] == ""
+        assert lift_inspection["resolves_no_sensing_infeasibility"] == "true"
+        assert lift_inspection["recommended"] == "true"
+
+        blind = lift["uninformative_feasibility_check"]
+        assert blind["status"] == "no_feasible_policy"
+        assert blind["resolves_no_sensing_infeasibility"] == "false"
+        assert blind["recommended"] == "false"
+
+        with Path("/tmp/civdyn-active-sensing-candidate.csv").open(newline="", encoding="utf-8") as handle:
+            candidate_reader = csv.DictReader(handle)
+            assert candidate_reader.fieldnames == ["scenario_id", "sensor_id", "observation_id", "action_id"]
+            candidate_rows = list(candidate_reader)
+
+        print("CANDIDATE_POLICY_MAP_ROWS", len(candidate_rows), candidate_rows)
+        assert all(set(row) == {"scenario_id", "sensor_id", "observation_id", "action_id"} for row in candidate_rows)
+        assert not any("world" in key or "missing_cause" in key or "regret" in key for key in candidate_reader.fieldnames)
+        candidate_keys = [(row["scenario_id"], row["observation_id"]) for row in candidate_rows]
+        assert len(candidate_keys) == len(set(candidate_keys))
+        candidate_map = {(row["scenario_id"], row["observation_id"]): (row["sensor_id"], row["action_id"]) for row in candidate_rows}
+        required_candidate_keys = {
+            ("three-world-sensor-dual-control-v1", "healthy"),
+            ("three-world-sensor-dual-control-v1", "degraded"),
+            ("two-world-feasibility-lift-v1", "world_a_detected"),
+            ("two-world-feasibility-lift-v1", "world_b_detected"),
+        }
+        assert required_candidate_keys.issubset(candidate_map)
+        assert candidate_map[("three-world-sensor-dual-control-v1", "healthy")] == ("independent_field_inspection", "defer")
+        assert candidate_map[("three-world-sensor-dual-control-v1", "degraded")] == ("independent_field_inspection", "repair")
+        assert candidate_map[("two-world-feasibility-lift-v1", "world_a_detected")] == ("decision_separating_inspection", "repair_a")
+        assert candidate_map[("two-world-feasibility-lift-v1", "world_b_detected")] == ("decision_separating_inspection", "repair_b")
+
+        with Path("/tmp/civdyn-sequential-sensing.csv").open(newline="", encoding="utf-8") as handle:
+            seq_reader = csv.DictReader(handle)
+            assert seq_reader.fieldnames is not None and len(seq_reader.fieldnames) == 25
+            seq_rows = list(seq_reader)
+
+        seq_summary = [row for row in seq_rows if row["record_type"] == "plan_summary"]
+        assert len(seq_summary) == 1
+        seq = seq_summary[0]
+        assert seq["scenario_id"] == "nonmyopic-two-stage-sensing-v1"
+        assert seq["plan_id"] == "setup-then-inspect"
+        assert seq["status"] == "evaluated"
+        assert seq["recommended"] == "true"
+        assert seq["myopic_stage_one_status"] == "no_feasible_policy"
+        assert seq["myopic_stage_one_regret"] == ""
+        assert seq["baseline_common_feasible_policy_count"] == "0"
+        assert seq["total_energy_kwh"] == "0.250000"
+        assert seq["total_energy_cost_service_units"] == "0.500000"
+        assert seq["total_latency_ticks"] == "2"
+        assert seq["maximum_latency_service_loss"] == "0.700000"
+        assert seq["maximum_total_penalty_service_units"] == "1.200000"
+        assert seq["worst_case_post_sensing_regret"] == "1.200000"
+        assert seq["regret_reduction"] == ""
+        assert seq["resolves_no_sensing_infeasibility"] == "true"
+
+        seq_partitions = [row for row in seq_rows if row["record_type"] == "observation_partition"]
+        assert len(seq_partitions) == 2
+        assert {row["observation_history"] for row in seq_partitions} == {
+            "ready>trace_alpha", "ready>trace_beta"
+        }
+        assert {row["selected_policy_id"] for row in seq_partitions} == {"repair_a", "repair_b"}
+        seq_worlds = [row for row in seq_rows if row["record_type"] == "world_regret"]
+        assert len(seq_worlds) == 2
+        assert {row["partition_worst_regret"] for row in seq_partitions} == {"1.200000"}
+        assert {row["world_regret"] for row in seq_worlds} == {"1.200000"}
+        assert {row["world_penalty"] for row in seq_worlds} == {"1.200000"}
+
+        with Path("/tmp/civdyn-sequential-sensing-candidate.csv").open(newline="", encoding="utf-8") as handle:
+            seq_candidate_reader = csv.DictReader(handle)
+            assert seq_candidate_reader.fieldnames == ["scenario_id", "plan_id", "observation_history", "action_id"]
+            seq_candidate_rows = list(seq_candidate_reader)
+        assert len(seq_candidate_rows) == 2
+        assert {row["observation_history"]: row["action_id"] for row in seq_candidate_rows} == {
+            "ready>trace_alpha": "repair_a",
+            "ready>trace_beta": "repair_b",
+        }
+        assert not any("world" in key or "regret" in key or "penalty" in key for key in seq_candidate_reader.fieldnames)
+
+        with Path("/tmp/civdyn-contingent-sensing.csv").open(newline="", encoding="utf-8") as handle:
+            contingent_reader = csv.DictReader(handle)
+            assert contingent_reader.fieldnames is not None and len(contingent_reader.fieldnames) == 36
+            contingent_rows = list(contingent_reader)
+
+        summary_rows = [
+            row for row in contingent_rows
+            if row["record_type"] == "summary"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
+        assert len(summary_rows) == 1
+        contingent = summary_rows[0]
+        assert contingent["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        assert contingent["status"] == "evaluated"
+        assert contingent["recommended"] == "true"
+        assert contingent["baseline_common_feasible_policy_count"] == "1"
+        assert contingent["baseline_policy_id"] == "repair"
+        assert contingent["baseline_worst_regret"] == "15.000000"
+        assert contingent["worst_case_post_sensing_regret"] == "1.400000"
+        assert contingent["regret_reduction"] == "13.600000"
+        assert contingent["selected_tree_depth"] == "2"
+        assert contingent["maximum_path_energy_kwh"] == "0.350000"
+        assert contingent["maximum_path_latency_ticks"] == "2"
+        assert contingent["maximum_path_penalty_service_units"] == "1.400000"
+
+        tree_nodes = [
+            row for row in contingent_rows
+            if row["record_type"] == "node"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
+        assert len(tree_nodes) == 5
+        root = next(row for row in tree_nodes if row["node_kind"] == "request_sensor" and row["observation_history"] == "")
+        assert root["sensor_id"] == "screen"
+        assert root["active_world_count"] == "3"
+        assert set(root["active_world_ids"].split(";")) == {"healthy", "degraded", "healthy_sensor_fault"}
+
+        healthy_stop = next(row for row in tree_nodes if row["node_kind"] == "stop_and_act" and row["observation_history"] == "healthy")
+        assert healthy_stop["action_id"] == "defer"
+        assert healthy_stop["path_energy_kwh"] == "0.200000"
+        assert healthy_stop["path_latency_ticks"] == "1"
+        assert healthy_stop["node_maximum_path_penalty_service_units"] == "0.600000"
+
+        missing_request = next(row for row in tree_nodes if row["node_kind"] == "request_sensor" and row["observation_history"] == "missing")
+        assert missing_request["sensor_id"] == "independent_inspection"
+        assert missing_request["path_energy_kwh"] == "0.350000"
+        assert missing_request["path_latency_ticks"] == "2"
+        assert missing_request["node_maximum_path_penalty_service_units"] == "1.400000"
+
+        leaves = [
+            row for row in contingent_rows
+            if row["record_type"] == "leaf"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
+        assert len(leaves) == 3
+        by_world = {row["world_id"]: row for row in leaves}
+        assert by_world["healthy"]["action_id"] == "defer"
+        assert by_world["healthy"]["sensing_penalty_service_units"] == "0.600000"
+        assert by_world["healthy"]["path_energy_kwh"] == "0.200000"
+        assert by_world["degraded"]["action_id"] == "repair"
+        assert by_world["degraded"]["sensing_penalty_service_units"] == "1.400000"
+        assert by_world["degraded"]["path_energy_kwh"] == "0.350000"
+        assert by_world["healthy_sensor_fault"]["action_id"] == "defer"
+        assert by_world["healthy_sensor_fault"]["sensing_penalty_service_units"] == "0.900000"
+        assert by_world["healthy_sensor_fault"]["path_energy_kwh"] == "0.350000"
+
+        fixed_summary_rows = [
+            row for row in contingent_rows
+            if row["record_type"] == "fixed_sequence_summary"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
+        assert len(fixed_summary_rows) == 1
+        fixed_summary = fixed_summary_rows[0]
+        assert fixed_summary["status"] == "reference_baseline"
+        assert fixed_summary["worst_case_post_sensing_regret"] == "1.400000"
+        assert fixed_summary["regret_reduction"] == "13.600000"
+        assert fixed_summary["maximum_path_energy_kwh"] == "0.350000"
+        assert fixed_summary["maximum_path_latency_ticks"] == "2"
+        assert fixed_summary["maximum_path_penalty_service_units"] == "1.400000"
+
+        fixed_paths = [
+            row for row in contingent_rows
+            if row["record_type"] == "fixed_sequence_path"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
+        assert len(fixed_paths) == 3
+        fixed_by_world = {row["world_id"]: row for row in fixed_paths}
+        assert set(fixed_by_world) == {"healthy", "degraded", "healthy_sensor_fault"}
+        assert fixed_by_world["healthy"]["sensing_penalty_service_units"] == "1.100000"
+        assert fixed_by_world["healthy"]["regret_service_units"] == "1.100000"
+        assert fixed_by_world["degraded"]["sensing_penalty_service_units"] == "1.400000"
+        assert fixed_by_world["degraded"]["regret_service_units"] == "1.400000"
+        assert fixed_by_world["healthy_sensor_fault"]["sensing_penalty_service_units"] == "0.900000"
+        assert fixed_by_world["healthy_sensor_fault"]["regret_service_units"] == "0.900000"
+
+        # Paired per-world comparison: the contingent tree stops after the
+        # clear healthy screen; it does not increase worst-case regret.
+        contingent_by_world = by_world
+        assert float(by_world["healthy"]["sensing_penalty_service_units"]) == 0.600000
+        assert float(fixed_by_world["healthy"]["sensing_penalty_service_units"]) == 1.100000
+        assert float(by_world["healthy"]["regret_service_units"]) == 0.600000
+        assert float(fixed_by_world["healthy"]["regret_service_units"]) == 1.100000
+        assert by_world["degraded"]["regret_service_units"] == fixed_by_world["degraded"]["regret_service_units"]
+        assert by_world["healthy_sensor_fault"]["regret_service_units"] == fixed_by_world["healthy_sensor_fault"]["regret_service_units"]
+        assert max(float(row["regret_service_units"]) for row in by_world.values()) == max(
+            float(row["regret_service_units"]) for row in fixed_by_world.values()
+        ) == 1.400000
+
+        missing_predictions = [
+            row for row in contingent_rows
+            if row["record_type"] == "prediction"
+            and row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+            and row["sensor_id"] == "screen"
+            and row["observation_id"] == "missing"
+        ]
+        assert len(missing_predictions) == 2
+        assert {row["world_id"] for row in missing_predictions} == {"degraded", "healthy_sensor_fault"}
+        assert {row["evaluator_missing_cause"] for row in missing_predictions} == {
+            "common_cause_power_loss", "telemetry_network_fault"
+        }
+
+        false_rows = [
+            row for row in contingent_rows
+            if row["scenario_id"] == "contingent-false-reassurance-corroboration-v1"
+        ]
+        false_summary = [row for row in false_rows if row["record_type"] == "summary"]
+        assert len(false_summary) == 1
+        false_case = false_summary[0]
+        assert false_case["recommended"] == "true"
+        assert false_case["baseline_worst_regret"] == "15.000000"
+        assert false_case["worst_case_post_sensing_regret"] == "0.600000"
+        assert false_case["regret_reduction"] == "14.400000"
+        assert false_case["maximum_path_energy_kwh"] == "0.200000"
+        assert false_case["maximum_path_latency_ticks"] == "2"
+        assert false_case["maximum_path_penalty_service_units"] == "0.600000"
+
+        false_nodes = [row for row in false_rows if row["record_type"] == "node"]
+        assert len(false_nodes) == 7
+        false_root = next(row for row in false_nodes if row["node_kind"] == "request_sensor" and row["observation_history"] == "")
+        assert false_root["sensor_id"] == "screen"
+        assert false_root["active_world_count"] == "4"
+        followups = {
+            row["observation_history"]: row["sensor_id"]
+            for row in false_nodes if row["node_kind"] == "request_sensor" and row["observation_history"]
+        }
+        assert followups == {
+            "healthy": "stuck_high_confirmation",
+            "missing": "independent_missing_branch_inspection",
+        }
+        false_predictions = [
+            row for row in false_rows
+            if row["record_type"] == "prediction"
+            and row["sensor_id"] == "screen"
+        ]
+        assert len(false_predictions) == 4
+        assert {row["world_id"]: row["observation_id"] for row in false_predictions} == {
+            "healthy": "healthy",
+            "degraded": "missing",
+            "healthy_sensor_fault": "missing",
+            "degraded_stuck_high": "healthy",
+        }
+        false_leaves = [row for row in false_rows if row["record_type"] == "leaf"]
+        assert len(false_leaves) == 4
+        assert {row["world_id"]: row["action_id"] for row in false_leaves} == {
+            "healthy": "defer",
+            "degraded": "repair",
+            "healthy_sensor_fault": "defer",
+            "degraded_stuck_high": "repair",
+        }
+        assert {row["sensing_penalty_service_units"] for row in false_leaves} == {"0.600000"}
+
+        with Path("/tmp/civdyn-contingent-candidate.csv").open(newline="", encoding="utf-8") as handle:
+            tree_reader = csv.DictReader(handle)
+            assert tree_reader.fieldnames == [
+                "scenario_id", "observation_history", "node_type",
+                "sensor_id", "observation_id", "action_id"
+            ]
+            tree_rows = list(tree_reader)
+
+        assert len(tree_rows) == 22
+        assert all(set(row) == set(tree_reader.fieldnames) for row in tree_rows)
+        assert not any(
+            any(secret in field for secret in ("world", "missing_cause", "regret", "energy", "penalty", "oracle"))
+            for field in tree_reader.fieldnames
+        )
+        main_tree = [
+            row for row in tree_rows
+            if row["scenario_id"] == "contingent-three-world-screen-and-inspect-v1"
+        ]
+        assert len(main_tree) == 9
+        request_nodes = [row for row in main_tree if row["node_type"] == "request_sensor"]
+        assert {(row["observation_history"], row["sensor_id"]) for row in request_nodes} == {
+            ("", "screen"), ("missing", "independent_inspection")
+        }
+        stops = {
+            (row["observation_history"], row["action_id"])
+            for row in main_tree if row["node_type"] == "stop_and_act"
+        }
+        assert stops == {
+            ("healthy", "defer"),
+            ("missing>degraded", "repair"),
+            ("missing>healthy", "defer")
+        }
+        missing_branches = [
+            row for row in main_tree
+            if row["node_type"] == "observation_branch"
+            and row["sensor_id"] == "screen"
+            and row["observation_id"] == "missing"
+        ]
+        assert len(missing_branches) == 1
+        false_tree = [row for row in tree_rows if row["scenario_id"] == "contingent-false-reassurance-corroboration-v1"]
+        assert len(false_tree) == 13
+        false_requests = {
+            row["observation_history"]: row["sensor_id"]
+            for row in false_tree if row["node_type"] == "request_sensor"
+        }
+        assert false_requests == {
+            "": "screen",
+            "healthy": "stuck_high_confirmation",
+            "missing": "independent_missing_branch_inspection",
+        }
+        false_stops = {
+            (row["observation_history"], row["action_id"])
+            for row in false_tree if row["node_type"] == "stop_and_act"
+        }
+        assert false_stops == {
+            ("healthy>verified_healthy", "defer"),
+            ("healthy>verified_degraded", "repair"),
+            ("missing>verified_healthy", "defer"),
+            ("missing>verified_degraded", "repair"),
+        }
+
+        print("CIVDYN active-sensing contract passed: energy/latency costs, common-cause missingness, feasibility lift, budget gate and byte-identical replay.")
+        PY
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets

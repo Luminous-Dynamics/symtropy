@@ -1,0 +1,19 @@
+[workspace]
+
+[package]
+name = "civdyn-active-sensing"
+version = "0.1.0"
+edition = "2024"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Finite-model active sensing benchmark with energy, latency and policy-dependent observation failures"
+
+[[bin]]
+name = "active-sensing-sweep"
+path = "src/bin/active_sensing_sweep.rs"
+
+[dependencies]
+
+[[bin]]
+name = "contingent-active-sensing-sweep"
+path = "src/bin/contingent_active_sensing_sweep.rs"
