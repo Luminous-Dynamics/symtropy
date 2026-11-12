@@ -1,0 +1,310 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "LOCO-MISSION-FAULT-SEQUENCES-001 known-answer corpus",
+  "type": "object",
+  "required": [
+    "protocol",
+    "version",
+    "evidence_tier",
+    "notes",
+    "cases"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "protocol": {
+      "const": "LOCO-MISSION-FAULT-SEQUENCES-001"
+    },
+    "version": {
+      "const": "0.1"
+    },
+    "evidence_tier": {
+      "const": "synthetic_known_answer"
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "str": {
+      "type": "string",
+      "minLength": 1
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "soc_mwh",
+        "thermal_headroom_mj",
+        "actuator_authority_ppm",
+        "recovery_energy_mwh",
+        "topology_independent_routes",
+        "recovery_energy_mwh",
+        "terminal_safe_stop_required_energy_mwh",
+        "thermal_model_digest",
+        "thermal_receipt_ref",
+        "thermal_valid_through_tick",
+        "thermal_nodes",
+        "thermal_state_digest"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "soc_mwh": {
+          "type": "integer"
+        },
+        "thermal_headroom_mj": {
+          "type": "integer"
+        },
+        "actuator_authority_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "recovery_energy_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "topology_independent_routes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "terminal_safe_stop_required_energy_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "thermal_model_digest": {
+          "$ref": "#/$defs/str"
+        },
+        "thermal_receipt_ref": {
+          "$ref": "#/$defs/str"
+        },
+        "thermal_valid_through_tick": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "thermal_nodes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/thermalNode"
+          }
+        },
+        "thermal_state_digest": {
+          "$ref": "#/$defs/str"
+        }
+      }
+    },
+    "event": {
+      "type": "object",
+      "required": [
+        "event_id",
+        "energy_cost_mwh",
+        "thermal_cost_mj",
+        "authority_loss_ppm",
+        "qualified",
+        "minimum_authority_required_ppm",
+        "recovery_budget_cost_mwh",
+        "thermal_update_receipt",
+        "thermal_node_updates"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/str"
+        },
+        "energy_cost_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "thermal_cost_mj": {
+          "type": "integer"
+        },
+        "authority_loss_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "qualified": {
+          "type": "boolean"
+        },
+        "minimum_authority_required_ppm": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1000000
+        },
+        "recovery_budget_cost_mwh": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "thermal_update_receipt": {
+          "type": "object",
+          "required": [
+            "receipt_ref",
+            "context_digest",
+            "model_digest",
+            "manifest_digest",
+            "valid_through_tick",
+            "prior_thermal_state_digest",
+            "resulting_thermal_state_digest"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "receipt_ref": {
+              "$ref": "#/$defs/str"
+            },
+            "context_digest": {
+              "$ref": "#/$defs/str"
+            },
+            "model_digest": {
+              "$ref": "#/$defs/str"
+            },
+            "manifest_digest": {
+              "$ref": "#/$defs/str"
+            },
+            "valid_through_tick": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "prior_thermal_state_digest": {
+              "$ref": "#/$defs/str"
+            },
+            "resulting_thermal_state_digest": {
+              "$ref": "#/$defs/str"
+            }
+          }
+        },
+        "thermal_node_updates": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/thermalNodeUpdate"
+          }
+        }
+      }
+    },
+    "operation": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "expected": {
+      "type": "object",
+      "required": [
+        "qualification"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "qualification": {
+          "enum": [
+            "VALID",
+            "REJECTED",
+            "UNKNOWN",
+            "INVALID"
+          ]
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "required": [
+        "case_id",
+        "initial_state",
+        "expected"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "case_id": {
+          "$ref": "#/$defs/str"
+        },
+        "initial_state": {
+          "$ref": "#/$defs/state"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/event"
+          }
+        },
+        "event_sequences": {
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/event"
+            }
+          }
+        },
+        "operation_between_events": {
+          "$ref": "#/$defs/operation"
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "events"
+          ]
+        },
+        {
+          "required": [
+            "event_sequences"
+          ]
+        }
+      ]
+    },
+    "thermalNode": {
+      "type": "object",
+      "required": [
+        "node_id",
+        "temperature_milli_c",
+        "maximum_temperature_milli_c",
+        "source_ref"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/str"
+        },
+        "temperature_milli_c": {
+          "type": "integer",
+          "minimum": -273150
+        },
+        "maximum_temperature_milli_c": {
+          "type": "integer",
+          "minimum": -273149
+        },
+        "source_ref": {
+          "$ref": "#/$defs/str"
+        }
+      }
+    },
+    "thermalNodeUpdate": {
+      "type": "object",
+      "required": [
+        "node_id",
+        "temperature_milli_c"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/str"
+        },
+        "temperature_milli_c": {
+          "type": "integer",
+          "minimum": -273150
+        }
+      }
+    }
+  }
+}
