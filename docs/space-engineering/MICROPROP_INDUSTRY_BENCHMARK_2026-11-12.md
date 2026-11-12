@@ -78,6 +78,33 @@ Huang et al. (April 2026), *Vacuum* 247, DOI [10.1016/j.vacuum.2026.115131](http
 
 Chai et al. (2025), *Journal of Applied Physics*, DOI [10.1063/5.0293389](https://doi.org/10.1063/5.0293389), report a 13.56 MHz ICP RF ion thruster with two-grid optics: 1.2 mN thrust, 1,250 s Isp, 100 W RF input and xenon at 1 sccm. This is a distinct acceleration architecture and laboratory configuration; do not compare RF input directly to spacecraft DC bus input without the PPU conversion boundary.
 
+### 3.5 Modular vacuum-arc cluster scale-out (AIS VAT1 family)
+
+The current Applied Ion Systems product pages give a concrete 1×/2×/4× module family:
+- **PQ:** one VAT module; 2.5 W / 5 W options; maximum 13 µN at 2.5 W and 26 µN at 5 W; minimum 4.2 µN below 1 W; 40,000 shots; 0.13 N·s total impulse; 87 s Isp; 56 g; 42 × 42 × 21 mm.
+- **DUO:** two parallel PQ modules; 5 W / 10 W options; maximum 26 µN at 5 W and 52 µN at 10 W; minimum 8.4 µN at 1 W; 40,000 shots; 0.26 N·s; 87 s; 84 g; 84 × 42 × 21 mm.
+- **QUAD:** four parallel PQ modules; 10 W / 20 W options; maximum 52 µN at 10 W and 104 µN at 20 W; minimum 16.8 µN at 2 W; 40,000 shots; 0.52 N·s; 87 s; 177 g; 84 × 84 × 21 mm.
+
+The manufacturer product index additionally reports **end-of-life thrust below 1 µN** for the PQ/DUO/QUAD, but does not define the EOL condition on that page. This figure must not be turned into a guaranteed failure threshold without vendor clarification.
+
+**Derived arithmetic, not a measured impulse-bit distribution:** dividing reported total impulse by 40,000 reported shots gives aggregate mean impulse per reported shot of 3.25 µN·s (PQ), 6.5 µN·s (DUO) and 13 µN·s (QUAD), or 3.25 µN·s per parallel PQ module. These values imply linear scaling in the catalogue arithmetic, but do not establish linearity of individual shot distributions, failure behavior or performance across life.
+
+There are source inconsistencies to preserve:
+- NASA's HTML Table 4-11 labels the AIS thrust column [mN], while its PDF text extraction labels it [µN]. The exact-model manufacturer pages state 13/26 µN, 26/52 µN and 52/104 µN at the specified power levels. The comparison therefore uses the manufacturer-reported µN values while retaining the NASA HTML unit-header discrepancy as a data-quality flag. The PDF screenshot was unavailable because NASA's PDF endpoint rejected the oversized file.
+- The DUO and QUAD detail-page rep-rate bullets repeat 2.5 W / 5 W labels even though their available power options are respectively 5/10 W and 10/20 W. Do not use those rep-rate values for mission duty-cycle calculations until AIS clarifies the correct mapping.
+- The manufacturer product index and detailed product pages show inconsistent current web prices and lead times. Treat these as unquoted catalogue snapshots and obtain a dated formal quote, including PPU/integration scope, before cost comparison.
+
+Primary sources: [AIS product index](https://appliedionsystems.com/products/), [PQ detail](https://appliedionsystems.com/portfolio/ais-vat1-pq-micro-vacuum-arc-thruster/), [DUO detail](https://appliedionsystems.com/portfolio/ais-vat1-dual-micro-vacuum-arc-thruster/), [QUAD detail](https://appliedionsystems.com/portfolio/ais-vat1-quad-quad-micro-vacuum-arc-thruster/).
+
+The important paradigm shift is to benchmark **per-module delivered impulse over life**, not maximum cluster thrust. The 1×/2×/4× family provides a real source-backed number-up ladder for future qualification:
+- Is aggregate thrust and total impulse additive under matched per-module power?
+- Does the impulse-bit distribution remain consistent as cells are added?
+- Can the cluster isolate a failed element and preserve a useful service floor?
+- How do common bus limits, pulse synchronization, thermal coupling, plume interaction and cluster geometry alter performance?
+- Does total impulse scale linearly after per-module erosion and all failed shots are counted?
+
+No independent reproduction or Luminous hardware result is claimed for these products.
+
 ## 4. Paradigm shift: benchmark mission service
 
 Freeze three independent mission profiles and retain separate Pareto frontiers:
