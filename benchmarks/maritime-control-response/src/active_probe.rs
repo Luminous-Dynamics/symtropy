@@ -2230,12 +2230,12 @@ mod tests {
         assert_eq!(protocol["evidence_boundaries"]["authority_status"]
             .as_str()
             .unwrap()
-            .contains("upstream mandatory checks"), true);
+            .contains("external mandatory checks"), true);
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 28);
         assert!(protocol["method"]["observation_update"]["posterior"]
             .as_str()
             .unwrap()
-            .contains("scenario-weighted"));
+            .contains("sum_s w_s"));
         assert!(protocol["method"]["observation_update"]["realized_information"]
             .as_str()
             .unwrap()
@@ -2243,7 +2243,7 @@ mod tests {
         assert!(protocol["method"]["observation_update"]["receipt_binding"]
             .as_str()
             .unwrap()
-            .contains("signer authentication"));
+            .contains("does not authenticate its signer"));
         assert!(protocol["required_metrics"]
             .as_array()
             .unwrap()
@@ -2256,7 +2256,7 @@ mod tests {
         assert!(protocol["method"]["likelihood_calibration_review"]["requirement"]
             .as_str()
             .unwrap()
-            .contains("independently reviewed"));
+            .contains("independent calibration-review receipt"));
         assert!(protocol["method"]["likelihood_calibration_review"]["qualification"]
             .as_str()
             .unwrap()
