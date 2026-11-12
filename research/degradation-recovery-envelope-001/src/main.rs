@@ -161,7 +161,6 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
 
     #[test]
     fn paired_camera_drop_fixture_is_valid() {
