@@ -115,7 +115,7 @@ A standalone, dependency-free Rust 1.96 package now lives at `reference/`:
 
 The evaluator refuses positive option counts when the branch manifest, continuation domain, per-branch viability receipt, observation freshness, thermal predecessor chain, or recovery receipt is incomplete. Physically possible branches remain in the calculation even at zero probability mass. User-facing labels collapse by canonical physical action identity. Thermal nodes are checked individually using conservative upper-temperature bounds; no mean-temperature waiver exists. A qualified recovery receipt must establish a reachable terminal safe-stop.
 
-**Sixteen authored Rust tests** cover:
+**Twenty authored Rust tests** cover:
 - clairvoyance trap versus observation-constrained intersection;
 - valid observation separation;
 - zero-probability physical branches;
@@ -151,3 +151,5 @@ Prospective finite-reference goals:
 
 This is a finite action-domain benchmark, not a continuous viability proof or a controller. The Rust output always has `actuation_authorized = false`.
 
+
+The package uses typed Rust receipts and intentionally has no third-party JSON parser/runtime dependency. The JSON corpus is a separate, versioned interchange/known-answer artefact governed by its schema; the Rust tests instantiate the same finite semantics directly. The current workflow validates Rust source only. A separate schema-validator execution / corpus-to-Rust ingestion adapter remains a subsequent qualification step.
