@@ -543,16 +543,17 @@ fn inverse_6(
             augmented.swap(pivot_row, column);
         }
         let pivot = augmented[column][column];
-        for j in 0..(DIMENSIONS * 2) {
-            augmented[column][j] /= pivot;
+        for value in augmented[column].iter_mut().take(DIMENSIONS * 2) {
+            *value /= pivot;
         }
         for row in 0..DIMENSIONS {
             if row == column {
                 continue;
             }
             let factor = augmented[row][column];
-            for j in 0..(DIMENSIONS * 2) {
-                augmented[row][j] -= factor * augmented[column][j];
+            let pivot_values = augmented[column];
+            for (value, pivot_value) in augmented[row].iter_mut().zip(pivot_values.iter()) {
+                *value -= factor * pivot_value;
             }
         }
     }
@@ -578,8 +579,8 @@ fn ensure_positive_definite(matrix: &[[f64; DIMENSIONS]; DIMENSIONS]) -> Result<
     for i in 0..DIMENSIONS {
         for j in 0..=i {
             let mut value = matrix[i][j];
-            for k in 0..j {
-                value -= lower[i][k] * lower[j][k];
+            for (left, right) in lower[i][..j].iter().zip(lower[j][..j].iter()) {
+                value -= left * right;
             }
             if i == j {
                 if value <= tolerance {
@@ -596,14 +597,14 @@ fn ensure_positive_definite(matrix: &[[f64; DIMENSIONS]; DIMENSIONS]) -> Result<
 
 fn ln_gamma(value: f64) -> f64 {
     const COEFFICIENTS: [f64; 9] = [
-        0.99999999999980993,
+        0.999_999_999_999_809_9,
         676.5203681218851,
         -1259.1392167224028,
-        771.32342877765313,
-        -176.61502916214059,
+        771.323_428_777_653_1,
+        -176.615_029_162_140_6,
         12.507343278686905,
         -0.13857109526572012,
-        9.9843695780195716e-6,
+        9.984_369_578_019_572e-6,
         1.5056327351493116e-7,
     ];
     if value < 0.5 {
