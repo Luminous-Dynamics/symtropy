@@ -74,7 +74,7 @@ for path in "${paths[@]}"; do
     | ($r.id == ($id | tonumber))
     and ($r.algorithm == "PPO")
     and ($r.is_stacked == $stacked)
-    and ($r.model == $model)
+    and (($r.model == $model) or ($stacked == "yes" and $model == "pred" and $r.model == "predator"))
     and ($r.pattern == $pattern)
     and ($r.train_steps == 1000000)
     and ($r.eval_episodes == 2000)
