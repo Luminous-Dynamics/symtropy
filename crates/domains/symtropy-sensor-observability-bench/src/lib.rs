@@ -45,6 +45,158 @@ pub struct EvaluationReport {
     pub pooled_fault_accuracy: String,
 }
 
+
+/// Evidence class for the two supported pairwise conformance modes.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PairEvidenceClass {
+    Measured,
+    SyntheticConformanceFixture,
+}
+
+/// Availability of one fault-state/channel response.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PairAvailability {
+    Valid,
+    DeclaredFaultUnavailable,
+    UnexpectedUnavailable,
+    Unknown,
+}
+
+/// Provenance role of one response interval.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PairEvidenceRole {
+    IndependentMeasurement,
+    SyntheticConformanceFixture,
+    Derived,
+    Reconstructed,
+    Simulated,
+    ExpertAuthored,
+    Unknown,
+}
+
+/// One channel's two response intervals for a declared fault pair.
+///
+/// The caller performs domain, calibration and schema admission. This kernel
+/// performs the shared interval, evidence-role, availability, dependency-cut
+/// and independent-principle logic used by domain adapters.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ChannelPairSignature {
+    pub channel_id: String,
+    pub independence_group_ref: String,
+    pub dependency_groups: BTreeSet<String>,
+    pub interval_a: Option<(f64, f64)>,
+    pub interval_b: Option<(f64, f64)>,
+    pub availability_a: PairAvailability,
+    pub availability_b: PairAvailability,
+    pub evidence_role_a: PairEvidenceRole,
+    pub evidence_role_b: PairEvidenceRole,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PairClassification {
+    pub status: String,
+    pub observed_independent_principles: usize,
+    pub discriminating_channel_ids: Vec<String>,
+    pub independence_group_refs: Vec<String>,
+    pub unresolved_evidence: bool,
+}
+
+/// Classify one fault pair using the same reusable kernel for every domain.
+///
+/// Intervals are closed: touching or overlapping intervals do not discriminate.
+/// A dependency cut removes affected channels as known unavailable for that
+/// scenario. Channels with the same independence group count at most once.
+pub fn classify_pair_signatures(
+    evidence: &[ChannelPairSignature],
+    minimum_independent_principles: usize,
+    evidence_class: PairEvidenceClass,
+    disabled_dependency_groups: &BTreeSet<String>,
+) -> Result<PairClassification, String> {
+    if minimum_independent_principles == 0 {
+        return Err("minimum independent-principle count must be positive".to_owned());
+    }
+
+    let mut seen_channels = BTreeSet::new();
+    let mut groups = BTreeSet::new();
+    let mut discriminating_channels = Vec::new();
+    let mut unresolved_evidence = false;
+
+    for item in evidence {
+        if item.channel_id.trim().is_empty() || item.independence_group_ref.trim().is_empty() {
+            return Err("channel and independence-group identities must be non-empty".to_owned());
+        }
+        if !seen_channels.insert(item.channel_id.as_str()) {
+            return Err(format!("duplicate channel identity: {}", item.channel_id));
+        }
+        for interval in [item.interval_a, item.interval_b].into_iter().flatten() {
+            if !interval.0.is_finite() || !interval.1.is_finite() || interval.0 > interval.1 {
+                return Err(format!("invalid response interval for channel {}", item.channel_id));
+            }
+        }
+
+        if item.dependency_groups.iter().any(|group| disabled_dependency_groups.contains(group)) {
+            continue;
+        }
+
+        let role_admissible = |role: PairEvidenceRole| {
+            matches!(
+                (evidence_class, role),
+                (PairEvidenceClass::Measured, PairEvidenceRole::IndependentMeasurement)
+                    | (PairEvidenceClass::SyntheticConformanceFixture, PairEvidenceRole::SyntheticConformanceFixture)
+            )
+        };
+        if !role_admissible(item.evidence_role_a) || !role_admissible(item.evidence_role_b) {
+            unresolved_evidence = true;
+            continue;
+        }
+        if item.availability_a == PairAvailability::Unknown
+            || item.availability_b == PairAvailability::Unknown
+            || item.availability_a == PairAvailability::UnexpectedUnavailable
+            || item.availability_b == PairAvailability::UnexpectedUnavailable
+        {
+            unresolved_evidence = true;
+            continue;
+        }
+        if item.availability_a == PairAvailability::DeclaredFaultUnavailable
+            || item.availability_b == PairAvailability::DeclaredFaultUnavailable
+        {
+            continue;
+        }
+        if item.availability_a != PairAvailability::Valid
+            || item.availability_b != PairAvailability::Valid
+        {
+            unresolved_evidence = true;
+            continue;
+        }
+
+        let (Some(a), Some(b)) = (item.interval_a, item.interval_b) else {
+            unresolved_evidence = true;
+            continue;
+        };
+        if intervals_disjoint(a.0, a.1, b.0, b.1) {
+            groups.insert(item.independence_group_ref.clone());
+            discriminating_channels.push(item.channel_id.clone());
+        }
+    }
+
+    discriminating_channels.sort();
+    let status = if groups.len() >= minimum_independent_principles {
+        "IDENTIFIABLE"
+    } else if unresolved_evidence {
+        "INSUFFICIENT_EVIDENCE"
+    } else {
+        "NOT_IDENTIFIABLE"
+    };
+
+    Ok(PairClassification {
+        status: status.to_owned(),
+        observed_independent_principles: groups.len(),
+        discriminating_channel_ids: discriminating_channels,
+        independence_group_refs: groups.into_iter().collect(),
+        unresolved_evidence,
+    })
+}
+
 fn push(errors: &mut Vec<Violation>, code: &str, path: &str, detail: impl Into<String>) {
     errors.push(Violation {
         code: code.to_owned(),
@@ -443,82 +595,77 @@ pub fn evaluate_case(case: &Value, parent: &Value) -> Result<EvaluationReport, V
     for pair in required_pairs {
         let state_a = text(pair, "state_a_id").expect("state A");
         let state_b = text(pair, "state_b_id").expect("state B");
-        let mut groups = BTreeSet::new();
-        let mut discriminating_channels = Vec::new();
-        let mut unresolved_evidence = false;
-
-        for (channel_id, channel) in &channel_map {
-            let a = response_map[&(state_a, *channel_id)];
-            let b = response_map[&(state_b, *channel_id)];
-            let admissible_role = |response: &Value| {
-                match text(response, "evidence_role") {
-                    Some("INDEPENDENT_MEASUREMENT") => {
-                        text(case, "evidence_class") == Some("MEASURED")
-                    }
-                    Some("SYNTHETIC_CONFORMANCE_FIXTURE") => {
-                        text(case, "evidence_class") == Some("SYNTHETIC_CONFORMANCE_FIXTURE")
-                    }
-                    _ => false,
-                }
-            };
-
-            if text(a, "availability") == Some("UNKNOWN")
-                || text(b, "availability") == Some("UNKNOWN")
-                || !admissible_role(a)
-                || !admissible_role(b)
-            {
-                unresolved_evidence = true;
-                continue;
-            }
-            if text(a, "availability") != Some("VALID")
-                || text(b, "availability") != Some("VALID")
-            {
-                let declared_faulted_in_a = state_map
-                    .get(state_a)
-                    .and_then(|state| state.get("faulted_channel_ids"))
-                    .and_then(Value::as_array)
-                    .is_some_and(|ids| ids.iter().any(|id| id.as_str() == Some(channel_id)));
-                let declared_faulted_in_b = state_map
-                    .get(state_b)
-                    .and_then(|state| state.get("faulted_channel_ids"))
-                    .and_then(Value::as_array)
-                    .is_some_and(|ids| ids.iter().any(|id| id.as_str() == Some(channel_id)));
-                let known_fault_unavailability =
-                    (declared_faulted_in_a && text(a, "availability") != Some("VALID"))
-                    || (declared_faulted_in_b && text(b, "availability") != Some("VALID"));
-                if !known_fault_unavailability {
-                    unresolved_evidence = true;
-                }
-                continue;
-            }
-            let (Some(a_lower), Some(a_upper), Some(b_lower), Some(b_upper)) = (
-                finite(a, "value_lower"),
-                finite(a, "value_upper"),
-                finite(b, "value_lower"),
-                finite(b, "value_upper"),
-            ) else {
-                unresolved_evidence = true;
-                continue;
-            };
-            if intervals_disjoint(a_lower, a_upper, b_lower, b_upper) {
-                if let Some(group) = text(channel, "independence_group_ref") {
-                    groups.insert(group.to_owned());
-                    discriminating_channels.push((*channel_id).to_owned());
-                }
-            }
-        }
-
-        discriminating_channels.sort();
         let minimum = pair["minimum_independent_principles"]
             .as_u64()
             .expect("validated minimum") as usize;
-        let status = if groups.len() >= minimum {
-            "IDENTIFIABLE"
-        } else if unresolved_evidence {
-            "INSUFFICIENT_EVIDENCE"
-        } else {
-            "NOT_IDENTIFIABLE"
-        };
+        let mut pair_evidence = Vec::with_capacity(channel_map.len());
+        for (channel_id, channel) in &channel_map {
+            let a = response_map[&(state_a, *channel_id)];
+            let b = response_map[&(state_b, *channel_id)];
+            let declared_faulted = |state_id: &str| {
+                state_map
+                    .get(state_id)
+                    .and_then(|state| state.get("faulted_channel_ids"))
+                    .and_then(Value::as_array)
+                    .is_some_and(|ids| ids.iter().any(|id| id.as_str() == Some(channel_id)))
+            };
+            let availability = |response: &Value, faulted: bool| match text(response, "availability") {
+                Some("VALID") => PairAvailability::Valid,
+                Some("UNKNOWN") => PairAvailability::Unknown,
+                _ if faulted => PairAvailability::DeclaredFaultUnavailable,
+                _ => PairAvailability::UnexpectedUnavailable,
+            };
+            let role = |response: &Value| match text(response, "evidence_role") {
+                Some("INDEPENDENT_MEASUREMENT") => PairEvidenceRole::IndependentMeasurement,
+                Some("SYNTHETIC_CONFORMANCE_FIXTURE") => PairEvidenceRole::SyntheticConformanceFixture,
+                Some("DERIVED") => PairEvidenceRole::Derived,
+                Some("RECONSTRUCTED") => PairEvidenceRole::Reconstructed,
+                Some("SIMULATED") => PairEvidenceRole::Simulated,
+                Some("EXPERT_AUTHORED") => PairEvidenceRole::ExpertAuthored,
+                _ => PairEvidenceRole::Unknown,
+            };
+            let interval = |response: &Value| {
+                match (finite(response, "value_lower"), finite(response, "value_upper")) {
+                    (Some(lower), Some(upper)) => Some((lower, upper)),
+                    _ => None,
+                }
+            };
+            let mut dependency_groups = BTreeSet::new();
+            if let Some(groups) = channel.get("dependency_groups").and_then(Value::as_array) {
+                for group in groups.iter().filter_map(Value::as_str) {
+                    dependency_groups.insert(group.to_owned());
+                }
+            }
+            pair_evidence.push(ChannelPairSignature {
+                channel_id: (*channel_id).to_owned(),
+                independence_group_ref: text(channel, "independence_group_ref")
+                    .expect("validated independence group").to_owned(),
+                dependency_groups,
+                interval_a: interval(a),
+                interval_b: interval(b),
+                availability_a: availability(a, declared_faulted(state_a)),
+                availability_b: availability(b, declared_faulted(state_b)),
+                evidence_role_a: role(a),
+                evidence_role_b: role(b),
+            });
+        }
+        let decision = classify_pair_signatures(
+            &pair_evidence,
+            minimum,
+            if text(case, "evidence_class") == Some("MEASURED") {
+                PairEvidenceClass::Measured
+            } else {
+                PairEvidenceClass::SyntheticConformanceFixture
+            },
+            &BTreeSet::new(),
+        ).map_err(|detail| vec![Violation {
+            code: "PAIR_CLASSIFICATION_INVALID".to_owned(),
+            path: "$.required_state_pairs".to_owned(),
+            detail,
+        }])?;
+        let groups: BTreeSet<String> = decision.independence_group_refs.iter().cloned().collect();
+        let discriminating_channels = decision.discriminating_channel_ids.clone();
+        let status = decision.status.as_str();
 
         pair_results.push(PairIdentifiability {
             pair_id: text(pair, "pair_id").expect("pair ID").to_owned(),
@@ -526,7 +673,7 @@ pub fn evaluate_case(case: &Value, parent: &Value) -> Result<EvaluationReport, V
             state_b_id: state_b.to_owned(),
             critical: pair["critical"].as_bool().expect("critical flag"),
             required_independent_principles: minimum,
-            observed_independent_principles: groups.len(),
+            observed_independent_principles: decision.observed_independent_principles,
             discriminating_channel_ids: discriminating_channels,
             independence_group_refs: groups.into_iter().collect(),
             status: status.to_owned(),
@@ -610,6 +757,92 @@ mod tests {
             Value::Object(items) => for item in items.values_mut() { replace_string(item, from, to); },
             _ => {}
         }
+    }
+
+
+    fn pair_signature(
+        channel: &str,
+        group: &str,
+        a: Option<(f64, f64)>,
+        b: Option<(f64, f64)>,
+    ) -> ChannelPairSignature {
+        ChannelPairSignature {
+            channel_id: channel.to_owned(),
+            independence_group_ref: group.to_owned(),
+            dependency_groups: BTreeSet::new(),
+            interval_a: a,
+            interval_b: b,
+            availability_a: PairAvailability::Valid,
+            availability_b: PairAvailability::Valid,
+            evidence_role_a: PairEvidenceRole::SyntheticConformanceFixture,
+            evidence_role_b: PairEvidenceRole::SyntheticConformanceFixture,
+        }
+    }
+
+    #[test]
+    fn reusable_pair_kernel_deduplicates_measurement_principles() {
+        let evidence = vec![
+            pair_signature("pressure-a", "pressure", Some((0.0, 1.0)), Some((2.0, 3.0))),
+            pair_signature("pressure-b", "pressure", Some((0.0, 1.0)), Some((3.0, 4.0))),
+            pair_signature("flow", "flow", Some((0.0, 1.0)), Some((2.0, 3.0))),
+        ];
+        let decision = classify_pair_signatures(
+            &evidence, 2, PairEvidenceClass::SyntheticConformanceFixture, &BTreeSet::new()
+        ).unwrap();
+        assert_eq!(decision.status, "IDENTIFIABLE");
+        assert_eq!(decision.observed_independent_principles, 2);
+        assert_eq!(decision.discriminating_channel_ids.len(), 3);
+    }
+
+    #[test]
+    fn reusable_pair_kernel_treats_touching_intervals_as_overlapping() {
+        let evidence = vec![pair_signature("pressure", "pressure", Some((0.0, 1.0)), Some((1.0, 2.0)))];
+        let decision = classify_pair_signatures(
+            &evidence, 1, PairEvidenceClass::SyntheticConformanceFixture, &BTreeSet::new()
+        ).unwrap();
+        assert_eq!(decision.status, "NOT_IDENTIFIABLE");
+    }
+
+    #[test]
+    fn reusable_pair_kernel_preserves_insufficient_evidence() {
+        let mut evidence = pair_signature("pressure", "pressure", None, None);
+        evidence.availability_a = PairAvailability::UnexpectedUnavailable;
+        let decision = classify_pair_signatures(
+            &[evidence], 1, PairEvidenceClass::SyntheticConformanceFixture, &BTreeSet::new()
+        ).unwrap();
+        assert_eq!(decision.status, "INSUFFICIENT_EVIDENCE");
+        assert!(decision.unresolved_evidence);
+    }
+
+    #[test]
+    fn reusable_pair_kernel_enforces_evidence_class_and_dependency_cuts() {
+        let mut first = pair_signature("pressure", "pressure", Some((0.0, 1.0)), Some((2.0, 3.0)));
+        first.dependency_groups.insert("shared-gateway".to_owned());
+        let second = pair_signature("flow", "flow", Some((0.0, 1.0)), Some((2.0, 3.0)));
+        let evidence = vec![first, second];
+        let disabled = BTreeSet::from(["shared-gateway".to_owned()]);
+        let decision = classify_pair_signatures(
+            &evidence, 2, PairEvidenceClass::SyntheticConformanceFixture, &disabled
+        ).unwrap();
+        assert_eq!(decision.status, "NOT_IDENTIFIABLE");
+        let mut wrong_role = evidence[1].clone();
+        wrong_role.evidence_role_a = PairEvidenceRole::IndependentMeasurement;
+        let decision = classify_pair_signatures(
+            &[wrong_role], 1, PairEvidenceClass::SyntheticConformanceFixture, &BTreeSet::new()
+        ).unwrap();
+        assert_eq!(decision.status, "INSUFFICIENT_EVIDENCE");
+    }
+
+    #[test]
+    fn reusable_pair_kernel_rejects_duplicate_channels_and_invalid_intervals() {
+        let one = pair_signature("pressure", "pressure", Some((0.0, 1.0)), Some((2.0, 3.0)));
+        assert!(classify_pair_signatures(
+            &[one.clone(), one], 1, PairEvidenceClass::SyntheticConformanceFixture, &BTreeSet::new()
+        ).is_err());
+        let invalid = pair_signature("bad", "bad", Some((2.0, 1.0)), Some((3.0, 4.0)));
+        assert!(classify_pair_signatures(
+            &[invalid], 1, PairEvidenceClass::SyntheticConformanceFixture, &BTreeSet::new()
+        ).is_err());
     }
 
     #[test]
