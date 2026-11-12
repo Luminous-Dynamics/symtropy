@@ -694,11 +694,12 @@ mod tests {
 
     #[test]
     fn quoted_commas_and_escaped_quotes_are_parsed_without_shifting_columns() {
-        let csv = b"Time_abs,Time_rel,Anomaly State,Description\n\
-symbol,time,label,description\n\
-s,s,1,text\n\
-t0,0.0,0,\"pump, ""service"" state\"\n\
-t1,0.1,1,normal\n";
+        let csv = br#"Time_abs,Time_rel,Anomaly State,Description
+symbol,time,label,description
+s,s,1,text
+t0,0.0,0,"pump, ""service"" state"
+t1,0.1,1,normal
+"#;
         let records = parse_csv_records(csv, "quoted.csv").unwrap();
         assert_eq!(records.len(), 5);
         assert_eq!(records[3][3], "pump, \"service\" state");
