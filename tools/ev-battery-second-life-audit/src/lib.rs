@@ -1019,7 +1019,7 @@ mod tests {
         pack.bms_compatibility_disposition = GateDisposition::Pass;
         pack.bms_evidence_id = "E-PHYSICAL".into();
         pack.hard_gates[0].disposition = GateDisposition::Pass;
-        pack.hard_gates[0].evidence_id = "E-PHYSICAL".into();
+        pack.hard_gates[0].evidence_id = "E-PHYSICAL-GATE".into();
         pack.hard_gates[0].requires_physical_evidence = true;
 
         let decision = manifest
@@ -1040,6 +1040,12 @@ mod tests {
             EvidenceClass::IndependentLab,
             RightsState::EvaluationOnly,
             "a",
+        ));
+        manifest.evidence_registry.push(evidence_record(
+            "E-PHYSICAL-GATE",
+            EvidenceClass::IndependentLab,
+            RightsState::EvaluationOnly,
+            "d",
         ));
         for cell in &mut manifest.cells {
             if cell.pack_id == pack_id {
@@ -1087,7 +1093,7 @@ mod tests {
         make_pack_eligible(&mut manifest, "PACK-A");
         manifest.evidence_registry
             .iter_mut()
-            .find(|x| x.evidence_id == "E-PHYSICAL")
+            .find(|x| x.evidence_id == "E-PHYSICAL-GATE")
             .unwrap()
             .evidence_class = EvidenceClass::SyntheticFixture;
 
