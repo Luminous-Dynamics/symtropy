@@ -66,7 +66,8 @@
         "residual_max_microunits",
         "uncertainty_95_microunits",
         "confidence_permille",
-        "transform"
+        "transform",
+        "evidence_class"
       ],
       "properties": {
         "workpiece_id": {
@@ -176,6 +177,9 @@
         },
         "transform": {
           "$ref": "#/$defs/transform"
+        },
+        "evidence_class": {
+          "const": "synthetic_only"
         }
       }
     },
@@ -240,7 +244,9 @@
         "source_frame_id",
         "target_frame_id",
         "decision_tick",
-        "maximum_age_ticks"
+        "maximum_age_ticks",
+        "source_scan_sha256",
+        "registration_receipt_sha256"
       ],
       "properties": {
         "workpiece_id": {
@@ -264,10 +270,12 @@
           "minLength": 1
         },
         "source_scan_sha256": {
-          "$ref": "#/$defs/sha256"
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         },
         "registration_receipt_sha256": {
-          "$ref": "#/$defs/sha256"
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         },
         "source_frame_id": {
           "type": "string",
