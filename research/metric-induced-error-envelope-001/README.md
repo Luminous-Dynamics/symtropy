@@ -66,6 +66,46 @@ A deterministic seven-point example is available at:
 
 The example reports the coordinate-matrix condition estimate, Jacobian component growth, Delassus defect, multiplier/residual norms and minimum kinetic correction norms across dense rebases. It is a bounded algebraic reference, not a contact solver benchmark.
 
+## Independent constraint-equation basis covariance
+
+The generalized-coordinate rebase is only one representation freedom. The same physical constraint manifold can be written using any nonsingular linear combination of its constraint equations.
+
+For a constraint-basis transform (T):
+
+[
+r_{new}=T r_{old},qquad J_{new}=T J_{old},
+]
+[
+lambda_{new}=T^{-T}lambda_{old},qquad
+W_{new}=T W_{old}T^T.
+]
+
+The multiplier and residual are dual objects: their pairing (lambda^T r) is invariant. The Delassus-induced dual norms are also invariant:
+
+[
+|lambda|_{W}^2=lambda^T Wlambda,qquad
+|r|_{W^{-1}}^2=r^T W^{-1}r.
+]
+
+The implementation adds `ConstraintEquationRebasisV1`, with separate residual pushforward, multiplier inverse-transpose pullback, and Jacobian left-action APIs. It does not conflate a constraint-equation change with generalized-coordinate rebasing.
+
+The test suite now checks:
+- the Delassus congruence (W_{new}=T W_{old}T^T);
+- multiplier norm, residual norm and dual-pairing invariance;
+- generalized constraint-force and induced velocity-correction invariance;
+- minimum-kinetic-norm correction invariance;
+- a deterministic 17-shear constraint-basis family;
+- a 3×3 grid combining independent generalized-coordinate and constraint-equation rebases;
+- wrong multiplier/residual variance and singular constraint-transform negative controls.
+
+A deterministic seven-point report is available:
+
+```sh
+cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example constraint_basis_ladder
+```
+
+This remains a bounded full-row-rank linear holonomic reference. It does not qualify redundant-row elimination, unilateral/frictional contact, nonlinear constraint-manifold reparameterization, or production solvers.
+
 ## Scope and next step
 
 v0.1 is a small dense linear-algebra reference. It does not yet implement a general operator backward/forward error envelope, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, unilateral/frictional contact, sparse articulated systems or production solver claims.
