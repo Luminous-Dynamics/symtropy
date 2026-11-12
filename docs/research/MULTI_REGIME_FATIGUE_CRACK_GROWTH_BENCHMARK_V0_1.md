@@ -145,6 +145,22 @@ Compose with:
 
 A crack-growth forecast is a model estimate. It is not a measured crack length, residual-strength assessment, inspection result, remaining-life guarantee, failure verdict, or maintenance authorization.
 
+## 7.3A Distinguish the NASA three-component equation from a piecewise three-region fit
+
+NASA/CR-2005-213585, Section 2.7, presents two different full-range growth-rate formulations:
+
+1. A NASGRO-compatible relation with an effective cyclic stress-intensity term, a threshold factor and a terminal Kmax/Kc acceleration factor.
+2. A NASA/SwRI three-component growth-rate equation (attributed there to Saxena and Hudak, 1979/1980), formed from three terms: a near-threshold contribution, a classic Paris-regime contribution, and an acceleration contribution associated with monotonic failure modes near instability.
+
+The report states that this three-component equation does not require a threshold to be used and was considered better suited for probabilistic fatigue-life calculations because it avoids asymptotic difficulties in statistical characterization of near-threshold uncertainty. This is one specified composite equation, not a generic name for all piecewise three-region fits.
+
+The tournament therefore distinguishes:
+- **NASGRO full-range equation:** one combined relation with threshold, stress-ratio/crack-opening and Kmax/toughness terms;
+- **NASA/SwRI three-component equation:** the particular composite formulation and parameter semantics documented in NASA/CR-2005-213585;
+- **empirical piecewise two-/three-region regressions:** separately fitted regimes and training-derived transition points.
+
+These candidates are mathematically different. Pin the exact equation variant, parameter convention, closure/stress-ratio assumptions, transition handling and source implementation before comparison. Do not compare only by calling both “three-stage”.
+
 ## 7.4 Specialist solver reference profiles
 
 The comparison set must include the following model families where the solver/version and data semantics can be configured equivalently:
@@ -153,7 +169,8 @@ The comparison set must include the following model families where the solver/ve
 - **Walker and Forman:** include as candidate conventional alternatives where inputs and assumptions are supported.
 - **NASGRO v3/v4:** high-value reference for a combined growth relationship that accounts for threshold, stress ratio/crack closure effects and Kmax relative to fracture toughness. Pin the exact version, material parameters and options.
 - **Tabular law:** use where measured curves are supplied directly; preserve interpolation, range and transition conventions.
-- **Three-component / three-regime models:** include only where the selected formulation and calibration are independently specified. Do not treat all “three-stage” models as equivalent.
+- **NASA/SwRI three-component equation:** include as its specific composite growth-rate law, distinct from NASGRO and empirical piecewise fits; pin equation variant and parameters.
+- **Empirical two-/three-regime piecewise fits:** include only where each region and transition is supported by training curves; do not force regimes on unsupported data.
 
 Current Ansys Mechanical APDL documentation states that its cited built-in XFEM-based fatigue crack-growth implementation is restricted to region II, while the SMART method exposes Paris, Walker, Forman, tabular fatigue law and NASGRO v3/v4 options. It also documents temperature- and stress-ratio-dependent data options and crack-closure models for supported criteria. NASA's current public NASGRO report explains threshold and Kmax/toughness treatment. These product features are baseline context, not proof that every product/version supports every geometry or context in the same way.
 
@@ -190,6 +207,7 @@ A claimed improvement must beat the strongest matched eligible baseline on the p
 - ASTM E647-24: https://store.astm.org/standards/e647
 - Ansys SMART fatigue crack-growth options and temperature/R-ratio/closure features: https://ansyshelp.ansys.com/public/Views/Secured/corp/v261/en/ans_frac/fracSMART.html
 - Ansys Mechanical APDL Fracture Analysis Guide (region-II restriction stated for its cited XFEM fatigue-growth implementation): https://ansyshelp.ansys.com/public/Views/Secured/corp/v252/en/pdf/Ansys_Mechanical_APDL_Fracture_Analysis_Guide.pdf
+- NASA/CR-2005-213585, *Probabilistic Fracture Mechanics Analysis of the Orbiter's LH2 Feedline Flowliner*, Section 2.7: NASGRO-compatible and NASA/SwRI three-component equations: https://ntrs.nasa.gov/api/citations/20050186899/downloads/20050186899.pdf
 - NASA NASGRO 2025 fracture/fatigue report: https://ntrs.nasa.gov/api/citations/20250011200/downloads/NASGRO%20FFS%20Final%20Report%20July%202025%20formatted.pdf
 - NASA Probabilistic Risk Assessment Guide, NASGRO equation and crack-growth parameter definitions: https://ntrs.nasa.gov/api/citations/20120001369/downloads/20120001369.pdf
 - NAFEMS code verification: https://www.nafems.org/publications/code-verification/
