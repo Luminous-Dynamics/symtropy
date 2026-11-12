@@ -1,0 +1,17 @@
+[package]
+name = "metric-physics-benchmark-reference"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.96"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Matched dense mass-metric kernel benchmark reference"
+
+[[bin]]
+name = "matched-kernel-runner"
+path = "src/main.rs"
+
+[dependencies]
+metric-induced-error-envelope-reference = { path = "../metric-induced-error-envelope-001" }
+
+[workspace]
