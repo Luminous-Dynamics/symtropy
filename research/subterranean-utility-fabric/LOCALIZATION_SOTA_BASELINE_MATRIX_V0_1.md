@@ -148,3 +148,54 @@ No single weighted score. Keep accuracy, integrity, coverage, latency, energy, d
 7. IEC TR 63439-1-2:2026 robotics for electric power systems roadmap: https://webstore.iec.ch/en/publication/109098
 8. OGC MUDDI Part 1 v1.0: https://docs.ogc.org/is/23-024/23-024.html
 9. BSI PAS 128:2022: https://accord-checkout.bsigroup.com/products/pas-128-underground-utility-detection-verification-and-location-specification
+
+
+## 5. Additional acoustic and active-sensing baselines (12 November 2026 update)
+
+### B5 — moving circular acoustic array on mobile pipe robot
+
+**Yu et al., Applied Acoustics 2025, DOI 10.1016/j.apacoust.2025.110545.**  
+Accepted manuscript: https://eprints.whiterose.ac.uk/id/eprint/239017/
+
+The method uses a circular microphone array, frequency-domain sparse representation and compensation for phase shifts caused by robot motion. It estimates defect direction and distance amid overlapping echoes and explicitly evaluates signal excitation duration.
+
+**Research implication:** continuous-motion acoustic sensing may reduce the stationary acquisition overhead visible in the later acoustic–visual baseline. This is not evidence that the method is already qualified in cable ducts. A faithful reproduction needs the actual signal/excitation timing, array geometry, robot velocity and phase compensation.
+
+### B6 — linear acoustic array and sparse beamforming
+
+**Yu et al., Measurement 2024, DOI 10.1016/j.measurement.2024.115361.**  
+Open manuscript: https://eprints.whiterose.ac.uk/id/eprint/215683/
+
+A linear microphone array and sparse-representation beamformer identify echo direction and distinguish blockage from lateral connection. The paper reports localization within 3% of sensing distance, a combined plane-wave/first non-axisymmetric mode range below 2200 Hz in a 150 mm pipe, and pipe-length error within 2%.
+
+**Research implication:** reproduce the original error definition and profile; “3% of sensing distance” is not a fixed absolute error and cannot be compared directly with mean/P95 chainage error from another paper.
+
+### B7 — guided acoustic-wave NDT on steel pipe
+
+**Pipe inspection using guided acoustic wave sensors integrated with mobile robots**, NDT & E International 2023, DOI 10.1016/j.ndteint.2023.102929.  
+https://doi.org/10.1016/j.ndteint.2023.102929
+
+The paper demonstrates multi-defect detection/localization using guided-wave ultrasonic sensors on a steel pipe. It reports less than 30 mm localization error for a reference 8.5 mm hole after follow-up measurements. Importantly, the test sensors were manually manipulated; this is not evidence of autonomous robot navigation or field deployment.
+
+**Research implication:** include guided-wave NDT as a separate defect localization task, not as a robot chainage baseline. Test separately on declared metallic cable-protection conduit only if relevant wall/material geometry and safe fixture conditions are available.
+
+### B8 — active-SLAM uncertainty planning
+
+**Sansoni et al., Robotics and Autonomous Systems 2025, DOI 10.1016/j.robot.2025.105059.**  
+https://doi.org/10.1016/j.robot.2025.105059
+
+The paper proposes an uncertainty map, uncertainty frontiers and a Signed Relative Entropy metric for exploration and stopping decisions. This provides an algorithmic reference for active sensing and information-aware mission planning.
+
+**Research implication:** combine information value with mission cost, sensor exposure and maintenance-task consequence. This is not an underground acoustic localization experiment, so use it as a planning-method reference rather than a directly comparable pipe result.
+
+## 6. Updated benchmark design implication
+
+A fair test should include at least three distinct acoustic acquisition families:
+
+1. **Stationary direct-pulse measurement + visual odometry** (Worley et al. 2026).
+2. **Moving array + phase compensation + sparse representation / beamforming** (Yu et al. 2024/2025).
+3. **Dual-resolution low-frequency navigation + high-frequency local inspection** (Sun et al. 2026).
+
+Then compare active policies for speed, pause duration, waveform and excitation length using a fixed independent truth source. The target is not to maximize acoustic signal quality; it is to maximize independently accepted maintenance information per metre, joule and second.
+
+The benchmark must still separate localization, defect classification and guided-wave NDT. A defect-localization error in millimetres is not a robot chainage error, and neither is a 2D tunnel-position error.
