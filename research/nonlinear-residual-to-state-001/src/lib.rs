@@ -223,7 +223,7 @@ pub fn evaluate_kantorovich_envelope(
         inverse_operator_norm_upper: input.inverse_operator_norm_upper,
         newton_correction_norm_upper: input.newton_correction_norm_upper,
         jacobian_lipschitz_upper: input.jacobian_lipschitz_upper,
-        kantovich_product: h,
+        kantorovich_product: h,
         state_error_radius: radius,
         neighbourhood_radius: input.neighbourhood_radius,
         status,
