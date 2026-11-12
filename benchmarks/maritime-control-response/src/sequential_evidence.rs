@@ -765,7 +765,7 @@ mod tests {
         assert!(protocol["claim_ceiling"]
             .as_str()
             .unwrap()
-            .contains("model-conditional"));
+            .contains("temporal-dependence assumptions are reviewed"));
         assert!(protocol["research_targets_not_achieved"]
             .as_array()
             .unwrap()
