@@ -762,7 +762,7 @@ mod tests {
 
     #[test]
     fn observed_zero_is_not_missing() {
-        let rows = vec![
+        let rows = [
             record((
                 "p",
                 "observed_zero",
@@ -828,7 +828,7 @@ mod tests {
 
     #[test]
     fn inverse_propensity_estimator_rejects_unknown_or_mnar_assumption() {
-        let rows = vec![record((
+        let rows = [record((
             "mnar",
             "u1",
             "a",
@@ -883,7 +883,7 @@ mod tests {
 
     #[test]
     fn mixed_evaluator_mechanisms_are_preserved_as_mixed_not_rejected() {
-        let rows = vec![
+        let rows = [
             record(("p", "u1", "a", 10, true, MissingnessMechanism::Mar)),
             record((
                 "p",
