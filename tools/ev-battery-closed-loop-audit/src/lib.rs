@@ -17,7 +17,10 @@ pub enum EvidenceClass {
 
 impl EvidenceClass {
     fn is_physical(self) -> bool {
-        matches!(self, Self::PhysicalMeasurement | Self::IndependentLaboratory)
+        matches!(
+            self,
+            Self::PhysicalMeasurement | Self::IndependentLaboratory
+        )
     }
 }
 
@@ -356,8 +359,18 @@ fn expected_dependency_digests(manifest: &Manifest) -> Vec<String> {
         values.insert(outcome.digest.clone());
     }
     let evidence_ids: BTreeSet<&str> = std::iter::once(manifest.design.evidence_id.as_str())
-        .chain(manifest.process_runs.iter().map(|run| run.evidence_id.as_str()))
-        .chain(manifest.cell_tests.iter().map(|test| test.evidence_id.as_str()))
+        .chain(
+            manifest
+                .process_runs
+                .iter()
+                .map(|run| run.evidence_id.as_str()),
+        )
+        .chain(
+            manifest
+                .cell_tests
+                .iter()
+                .map(|test| test.evidence_id.as_str()),
+        )
         .chain(
             manifest
                 .mission_outcomes
@@ -415,7 +428,9 @@ pub fn audit_closed_loop(manifest: &Manifest) -> Result<AuditReport, AuditError>
         ));
     }
     if manifest.mission_outcomes.is_empty() {
-        return Err(AuditError("at least one mission outcome is required".into()));
+        return Err(AuditError(
+            "at least one mission outcome is required".into(),
+        ));
     }
 
     let registry = evidence_registry(&manifest.evidence)?;
@@ -474,7 +489,8 @@ pub fn audit_closed_loop(manifest: &Manifest) -> Result<AuditReport, AuditError>
             )));
         }
 
-        let evidence = require_admitted(&registry, &run.evidence_id, &format!("run {}", run.run_id))?;
+        let evidence =
+            require_admitted(&registry, &run.evidence_id, &format!("run {}", run.run_id))?;
         used_evidence.insert(evidence.evidence_id.as_str());
     }
 
@@ -506,9 +522,15 @@ pub fn audit_closed_loop(manifest: &Manifest) -> Result<AuditReport, AuditError>
             require_nonempty(value, label)?;
         }
         validate_digest(&test.digest, "cell-test digest")?;
-        let run = runs_by_cell.get(test.cell_id.as_str()).copied().ok_or_else(|| {
-            AuditError(format!("cell test {} has no matching process run", test.test_id))
-        })?;
+        let run = runs_by_cell
+            .get(test.cell_id.as_str())
+            .copied()
+            .ok_or_else(|| {
+                AuditError(format!(
+                    "cell test {} has no matching process run",
+                    test.test_id
+                ))
+            })?;
         if test.run_id != run.run_id {
             return Err(AuditError(format!(
                 "cell test {} references a different production run",
@@ -521,7 +543,11 @@ pub fn audit_closed_loop(manifest: &Manifest) -> Result<AuditReport, AuditError>
                 test.test_id
             )));
         }
-        let evidence = require_admitted(&registry, &test.evidence_id, &format!("cell test {}", test.test_id))?;
+        let evidence = require_admitted(
+            &registry,
+            &test.evidence_id,
+            &format!("cell test {}", test.test_id),
+        )?;
         if test.disposition.is_physical() && !evidence.evidence_class.is_physical() {
             return Err(AuditError(format!(
                 "physical cell test {} requires physical measurement evidence",
@@ -566,7 +592,9 @@ pub fn audit_closed_loop(manifest: &Manifest) -> Result<AuditReport, AuditError>
     }
     validate_digest(&pack.digest, "pack digest")?;
     if pack.design_id != design.design_id || pack.design_revision != design.revision {
-        return Err(AuditError("pack references a different design revision".into()));
+        return Err(AuditError(
+            "pack references a different design revision".into(),
+        ));
     }
     if pack.members.is_empty() {
         return Err(AuditError("pack membership must not be empty".into()));
@@ -703,7 +731,12 @@ pub fn audit_closed_loop(manifest: &Manifest) -> Result<AuditReport, AuditError>
     let incomplete_or_invalid_run_count = manifest
         .process_runs
         .iter()
-        .filter(|run| matches!(run.disposition, RunDisposition::Incomplete | RunDisposition::Invalid))
+        .filter(|run| {
+            matches!(
+                run.disposition,
+                RunDisposition::Incomplete | RunDisposition::Invalid
+            )
+        })
         .count();
     let physical_cell_pass_count = manifest
         .cell_tests
@@ -826,10 +859,46 @@ mod tests {
         let line_2 = digest('6');
         let mut process_runs = Vec::new();
         for (index, cell, lot, lot_digest, line, line_digest, disposition, run_char) in [
-            ("1", "CELL-001", "LOT-A", lot_a.as_str(), "LINE-1", line_1.as_str(), RunDisposition::InWindow, '3'),
-            ("2", "CELL-002", "LOT-A", lot_a.as_str(), "LINE-1", line_1.as_str(), RunDisposition::InWindow, '4'),
-            ("3", "CELL-003", "LOT-B", lot_b.as_str(), "LINE-2", line_2.as_str(), RunDisposition::OutOfWindow, '7'),
-            ("4", "CELL-004", "LOT-C", lot_c.as_str(), "LINE-2", line_2.as_str(), RunDisposition::InWindow, '9'),
+            (
+                "1",
+                "CELL-001",
+                "LOT-A",
+                lot_a.as_str(),
+                "LINE-1",
+                line_1.as_str(),
+                RunDisposition::InWindow,
+                '3',
+            ),
+            (
+                "2",
+                "CELL-002",
+                "LOT-A",
+                lot_a.as_str(),
+                "LINE-1",
+                line_1.as_str(),
+                RunDisposition::InWindow,
+                '4',
+            ),
+            (
+                "3",
+                "CELL-003",
+                "LOT-B",
+                lot_b.as_str(),
+                "LINE-2",
+                line_2.as_str(),
+                RunDisposition::OutOfWindow,
+                '7',
+            ),
+            (
+                "4",
+                "CELL-004",
+                "LOT-C",
+                lot_c.as_str(),
+                "LINE-2",
+                line_2.as_str(),
+                RunDisposition::InWindow,
+                '9',
+            ),
         ] {
             process_runs.push(ProcessRun {
                 run_id: format!("RUN-{index}"),
@@ -1006,7 +1075,8 @@ mod tests {
     #[test]
     fn a_second_line_id_cannot_alias_the_same_line_identity() {
         let mut value = fixture();
-        value.process_runs[2].line_identity_digest = value.process_runs[0].line_identity_digest.clone();
+        value.process_runs[2].line_identity_digest =
+            value.process_runs[0].line_identity_digest.clone();
         assert!(audit_closed_loop(&value).is_err());
     }
 
