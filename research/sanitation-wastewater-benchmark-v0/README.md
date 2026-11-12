@@ -170,6 +170,14 @@ An AI recommendation or model prediction has no effect authority. Physical inter
 6. Compose with Johannesburg and national data only after source bytes, definitions, rights, vintage and uncertainty are pinned.
 7. Move to T1/T2 only after T0 and safety review; field pilots require local professional engineering and regulatory approval.
 
+### T0 seed artifacts on this branch
+
+- `schema/t0-accounting-case.schema.json`: JSON Schema 2020-12 contract for synthetic accounting-only cases, including explicit mass-balance tolerances and expected dispositions.
+- `fixtures/synthetic-accounting-only-v0.1.json`: positive arithmetic fixture covering water, TSS, total nitrogen, total phosphorus, BOD5/COD load arithmetic, gross/recovered energy and effluent reuse/discharge allocation.
+- `fixtures/synthetic-water-balance-negative-v0.1.json`: deliberately inconsistent water balance (5 L/day residual against a 0.01 L/day tolerance) with expected `Rejected` disposition.
+
+A one-off local sanity pass parsed the schema and both fixtures and recomputed the declared water/constituent balances, BOD5/COD load-removal arithmetic, energy arithmetic and effluent/reuse allocation (25 checks passed). This was **not** execution of a full JSON-Schema validator, a Rust test suite, hosted CI, treatment-process physics, field test, or safety qualification. The numerical values are invented test vectors, not recommended design parameters or real-world observations.
+
 ## 11. South African design constraints to retain
 
 The Compulsory National Water and Sanitation Services Standards (Government Gazette 52814, 6 June 2025) are especially relevant:
