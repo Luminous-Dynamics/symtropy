@@ -306,6 +306,8 @@
       "additionalProperties": false,
       "required": [
         "domain",
+        "source_fingerprint",
+        "target_fingerprint",
         "status",
         "evidence_id",
         "rationale"
@@ -338,6 +340,12 @@
         "rationale": {
           "type": "string",
           "minLength": 1
+        },
+        "source_fingerprint": {
+          "$ref": "#/$defs/digest"
+        },
+        "target_fingerprint": {
+          "$ref": "#/$defs/digest"
         }
       }
     },
