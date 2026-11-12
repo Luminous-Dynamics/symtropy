@@ -778,6 +778,96 @@
         "Benchmark predictive association separately from causal attribution. Use time-aware and route/spatial negative controls, context permutation within matched operating strata, and prospective interventions only where independently authorized.",
         "Symtropy differentiator: context evidence admission with source availability, valid time, spatial scope, clock uncertainty and dependency lineage, followed by explicit CONTEXT_ASSOCIATION_ONLY unless a causal design supports stronger claims."
       ]
+    },
+    {
+      "id": "operational-vessel-turbocharger-diagnosis-2025",
+      "title": "AI/ML Based Anomaly Detection and Fault Diagnosis of Turbocharged Marine Diesel Engines: Experimental Study on Engine of an Operational Vessel",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2025-12-24",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.3390/info17010016",
+      "data_domain": "In-service 1.89 MW Hyundai HiMSEN 4-stroke 900 RPM auxiliary generator on a cargo/container vessel. Healthy operational data were collected over two years across vessel engines; two reversible fouling faults (turbocharger nozzle-ring clogging and intercooler/charge-air-path restriction) were induced on one auxiliary engine at 825, 900 and 975 kW. Operational/thermodynamic values were captured non-intrusively from engine-room display screens; one single-axis vibration accelerometer per engine sampled at 20 kHz. The fault-class dataset has 96,897 observations and 42 features; fault observations are about 1.3% of the full sample set.",
+      "task": "Healthy-only anomaly detection with undercomplete/stacked autoencoders, plus supervised seven-class severity diagnosis (healthy, three nozzle-ring clogging severities, three intercooler-clogging severities) using SVM and tree/nearest-neighbour baselines.",
+      "reported_metrics": [
+        {
+          "metric": "svm_severity_diagnosis_balanced_accuracy",
+          "value": 99.72,
+          "unit": "percent",
+          "context": "Reported SVM balanced accuracy for seven-class severity classification on the paper's 80/20 data split; the paper also reports 10-fold cross-validation. The split is not shown as grouped by fault intervention, operating period or physical engine.",
+          "source_location": "Abstract; Section 5.2; Table 4"
+        },
+        {
+          "metric": "stacked_autoencoder_combined_fault_anomaly_balanced_accuracy",
+          "value": 87.57,
+          "unit": "percent",
+          "context": "Reported balanced accuracy for combined nozzle-ring and intercooler clogging anomaly detection; F1 is 83.84% and ordinary accuracy is 98.15%. The dataset is highly imbalanced, so ordinary accuracy is not the appropriate headline.",
+          "source_location": "Section 5.1; Table 3"
+        },
+        {
+          "metric": "stacked_autoencoder_combined_fault_anomaly_f1",
+          "value": 83.84,
+          "unit": "percent",
+          "context": "Combined nozzle-ring and intercooler clogging anomaly detection; event-level metrics and false alarms per valid engine-hour are not reported.",
+          "source_location": "Section 5.1; Table 3"
+        },
+        {
+          "metric": "stacked_autoencoder_intercooler_only_balanced_accuracy",
+          "value": 75,
+          "unit": "percent",
+          "context": "Intercooler-clogging anomaly detection; UAE baseline is 51.55% balanced accuracy and 6.04% F1. The weaker early/low-severity fault is a useful negative-control target.",
+          "source_location": "Section 5.1; Table 3"
+        },
+        {
+          "metric": "fault_observation_fraction",
+          "value": 1.3,
+          "unit": "percent",
+          "context": "The paper reports that failure observations represent about 1.3% of the 96,897-point dataset; class prevalence materially affects ordinary accuracy.",
+          "source_location": "Section 5, data-count discussion"
+        },
+        {
+          "metric": "healthy_data_collection_period",
+          "value": 2,
+          "unit": "years",
+          "context": "Healthy data were collected over two years; this does not imply two years of labeled faults or two years of held-out deployment evaluation.",
+          "source_location": "Section 2.1"
+        },
+        {
+          "metric": "induced_physical_fault_modes",
+          "value": 2,
+          "unit": "fault modes",
+          "context": "Nozzle-ring clogging (4/6/8 of 24 channels blocked) and intercooler/charge-air restriction (20/40/60% flow-area restriction); only one of the ship's auxiliary engines was used for the fault interventions.",
+          "source_location": "Section 4"
+        },
+        {
+          "metric": "diagnosis_load_points",
+          "value": "825, 900, 975",
+          "unit": "kW",
+          "context": "The induced-fault experiments were performed at three steady auxiliary-engine load points, all below 52% of rated 1.89 MW; dynamic load transients and broader load coverage were excluded.",
+          "source_location": "Section 4; Section 5.1"
+        }
+      ],
+      "split_protocol": "The study reports an 80/20 training/test split and 10-fold cross-validation for the seven-class supervised diagnosis task. The accessible description does not establish grouping by intervention/campaign, chronological block, engine or vessel; no independent-vessel holdout is reported. The healthy-only anomaly model uses healthy reference data, with threshold selection based on healthy reconstruction-loss distribution. Exact grouping, temporal leakage, preprocessing-fit and threshold-calibration boundaries must be recovered from the authors/data before reproduction.",
+      "reported_limitations": [
+        "The fault experiments were induced on one 1.89 MW auxiliary engine on one cargo/container vessel, with only two fault mechanisms and three severity levels each; this is operational-vessel evidence but not a multi-vessel fleet benchmark.",
+        "The fault campaign covered three steady loads (825, 900, 975 kW); the authors explicitly excluded dynamic load transients.",
+        "The 80/20 split and 10-fold CV are reported, but the accessible paper does not disclose grouping by intervention, recording/run or chronology. Randomly split correlated windows could overstate generalization; this is an audit question, not an allegation of leakage.",
+        "The diagnostic corpus is highly imbalanced (about 1.3% fault observations); ordinary accuracy is not an adequate operational metric. The 99.72% SVM balanced accuracy is a paper-reported result, not an independently reproduced or cross-vessel result.",
+        "The paper's abstract labels the SAE result as 87.6% accuracy, while the detailed combined-fault results report 98.15% ordinary accuracy and 87.57% balanced accuracy; use the table's metric-specific values and preserve the distinction.",
+        "The paper identifies the 2026 data availability as subject to institutional/partner data-sharing agreements and available only on request under specific conditions; it is not a public benchmark payload.",
+        "Thermodynamic values were extracted non-intrusively from engine-room display screens; the authors identify future work on detailed uncertainty analysis and long-term comparison against direct digital interfaces.",
+        "The vessel experiment did not establish sensor-level independence or fault-to-capability qualification under common-cause loss."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Important higher-tier comparator because faults were physically induced on an in-service vessel engine, unlike purely simulated studies. Preserve this evidence stratum separately from test-bench and simulation results.",
+        "Reproduce the 99.72% balanced-accuracy SVM result and 80/20/10-fold protocol first, then run chronological blocks and intervention/run-grouped holdout. Do not treat the paper's score as cross-engine or fleet SOTA.",
+        "Reproduce the weak intercooler-only SAE result (75% balanced accuracy, 63.1% F1) and the UAE negative control (51.55% balanced accuracy, 6.04% F1); report severity-specific recall and uncertainty.",
+        "Use matched fault-free exposure and valid engine-hour denominators to report false alarms per engine-hour, plus event recall, latency, Brier/log score, risk-coverage and false-known/OOD rates.",
+        "Run leave-one-load-point-out only within the available 825/900/975 kW steady points; separate this from chronological and intervention-held-out experiments. Do not infer dynamic-transient support.",
+        "Evaluate the paper's modality contributions: display-extracted thermodynamics only, vibration only, and fused inputs; preserve each signal's acquisition fidelity/uncertainty and dependency topology.",
+        "Symtropy differentiator is not to claim >99.72% classification. It is to reproduce the strong score under the original protocol, then qualify whether it survives harder grouped splits, rare-fault conditions, calibration, ambiguity, sensor/common-cause loss and configuration changes."
+      ]
     }
   ]
 }

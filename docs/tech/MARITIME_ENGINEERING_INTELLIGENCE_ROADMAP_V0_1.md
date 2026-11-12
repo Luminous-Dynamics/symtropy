@@ -161,7 +161,7 @@ This programme currently establishes research artifacts, synthetic evidence-cont
 
 ## Literature update — transfer baselines (10 November 2026)
 
-The diagnostic baseline registry now contains **18 unique IDs and 18 unique source DOIs**. The update adds the October 2026 Weichai WP4 physical test-bench digital-twin study and the September 2026 Wärtsilä 6L20 few-shot combustion-diagnosis study. Each remains a separate protocol; neither headline result is ranked directly against Aalto, LiU-ICE or another study without protocol alignment.
+The diagnostic baseline registry now contains **19 unique IDs and 19 unique source DOIs**. The update adds the October 2026 Weichai WP4 physical test-bench digital-twin study and the September 2026 Wärtsilä 6L20 few-shot combustion-diagnosis study. Each remains a separate protocol; neither headline result is ranked directly against Aalto, LiU-ICE or another study without protocol alignment.
 
 - The 2025 Applied Energy cross-working-condition paper reports **95% accuracy** in its abstract and describes **18 transfer tasks** across two engine case studies (8V396SE, 500 kW, and 620 V16, 2,336 kW). Its evidence mix includes experimental bench lubrication-system data and virtual intake/exhaust task data. Keep each subsystem and source type separate. The exact per-task aggregation, sample grouping and split manifest must be recovered before reproduction. This is not a common-protocol or physical fleet-transfer score.
 - The 2025 Energy mean-value-model-assisted dual-transfer paper reports **more than 97.70% average accuracy** for cross-domain lubricating-oil diagnosis. It describes a simulation-to-measured transfer between a 16V396 simulation domain and an 8V396 experimental bench domain, nine transfer tasks, and 70%, 85% and 100% load points. The exact source/target assignments, run grouping, task-level scores and leakage controls need methods/table audit. It is a separate paper from the 18-task Applied Energy study and is not comparable to the Aalto MU323DGSC data.
@@ -220,3 +220,21 @@ Report event recall at a matched false-alarm-per-engine-hour budget; context-con
 - Two weather products sharing an upstream feed/dependency do not count as independent corroboration.
 - SHAP attribution or RCAP score prediction alone cannot assert a causal engine fault.
 - Context effects must be evaluated within matched load, speed, route and sea-state strata to avoid confusing operating policy with physical degradation.
+
+
+## Literature update — operational-vessel fault diagnosis comparator (12 November 2026)
+
+**Upadrashta & Wijaya, first published 24 December 2025 — AI/ML Based Anomaly Detection and Fault Diagnosis of Turbocharged Marine Diesel Engines: Experimental Study on Engine of an Operational Vessel (DOI 10.3390/info17010016).** The study uses a 1.89 MW, 900 RPM auxiliary diesel generator aboard a cargo/container vessel. Two fault mechanisms—turbocharger nozzle-ring clogging and intercooler/charge-air restriction—were physically induced on one auxiliary engine at three steady loads (825/900/975 kW), each with three severity levels. The authors report a seven-class SVM balanced accuracy of **99.72%** under an 80/20 training/test split and 10-fold cross-validation. Their combined-fault stacked-autoencoder anomaly result is **87.57% balanced accuracy / 83.84% F1**; intercooler-only SAE is **75.0% balanced accuracy / 63.1% F1**, while UAE is **51.55% / 6.04%**. The paper also reports only about **1.3% fault observations** in a 96,897-observation dataset.
+
+This is the strongest operational-vessel classification comparator currently in this registry, but its claim ceiling must remain narrow: only one fault-injection engine, two mechanisms, three steady loads, and no independent-vessel holdout are reported. The 80/20 split is not described as intervention/run/chronology grouped. The dataset is available only under institutional/partner data-sharing conditions, not as an open payload. The abstract calls the SAE metric 87.6% “accuracy”, while the detailed results distinguish 98.15% ordinary accuracy from 87.57% balanced accuracy; our registry records the detailed table metrics.
+
+### Reproduction and confirmatory tournament
+
+1. Reproduce the paper-reported 80/20 + 10-fold protocol, SVM, SAE and UAE with exact preprocessing, threshold and feature definitions.
+2. Obtain the source split semantics and run/intervention identifiers. If unavailable, mark exact reproduction as NOT_EVALUATED and do not reconstruct a random-window split from summary figures.
+3. Run chronological block holdout and intervention/run-grouped holdout; perform leave-one-steady-load-out across 825/900/975 kW as a separate within-engine test.
+4. Report the seven-class balanced accuracy and macro-F1, per-severity recall, calibration and selective risk; report anomaly event recall, false alarms per valid engine-hour, detection latency and threshold sensitivity.
+5. Reproduce the difficult intercooler-only results and the UAE baseline, then test low-severity generalization, missing channels, sensor bias, clock/gateway loss, and held-out configuration.
+6. Compare thermodynamic-only, vibration-only and fused inputs, while preserving the differing acquisition pathways and measurement uncertainty.
+
+The 99.72% result is a **paper-reported reproduction target, not a fleet SOTA ranking**. The programme should aim to match it under the original protocol and materially outperform it under stronger unseen-run, unseen-load, weak-fault, uncertainty and evidence-integrity evaluations.

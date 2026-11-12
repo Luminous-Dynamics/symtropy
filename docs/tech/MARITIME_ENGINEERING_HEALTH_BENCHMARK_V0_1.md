@@ -125,3 +125,18 @@ The projection carries `no_authority_granted`, `may_authorize_transition=false` 
 - E6: vessel-specific approval and class/flag/operator processes.
 
 Synthetic PASS is E1/E2 only. It is not diagnostic accuracy, machinery-health evidence, seaworthiness, class/statutory compliance, maintenance authorization, MASS Code compliance or permission to operate.
+
+
+## External operational-vessel comparator — reproduce first, then challenge the split
+
+The registry contains a 2025/2026 operational-vessel study that reports 99.72% balanced accuracy for a seven-class SVM fault-severity diagnosis. It is a meaningful comparator: the engine was a 1.89 MW auxiliary generator on a cargo/container vessel, and the two fault mechanisms were physically induced onboard. It is not a fleet result: interventions were on one auxiliary engine, at 825/900/975 kW steady load points, with no dynamic load campaign or independent-vessel holdout described.
+
+The paper reports an 80/20 split and 10-fold cross-validation but does not establish whether samples were grouped by intervention, run or chronology. The reproduction sequence is:
+- recover the original data contract, signal list, class counts, split grouping, preprocessing and threshold-fit scope;
+- reproduce SVM 99.72% balanced accuracy and the SAE/UAE anomaly baselines under the stated setup;
+- run chronological block holdout and complete intervention/run-held-out confirmation, plus leave-one-load-point-out within the three tested steady loads;
+- retain class imbalance (about 1.3% fault observations) and report macro-F1, per-severity recall, calibration, event recall, false alarms per valid engine-hour and detection latency;
+- reproduce the weak intercooler-only detection case (SAE 75.0% balanced accuracy / 63.1% F1; UAE 51.55% / 6.04%) rather than reporting only the combined task headline;
+- evaluate display-extracted thermodynamics, vibration-only and fused inputs separately, with acquisition uncertainty and sensor dependency provenance.
+
+The abstract labels the SAE combined result 87.6% accuracy, while the detailed table reports 98.15% ordinary accuracy and 87.57% balanced accuracy; retain the table's metric definitions. Data access is restricted to institutional/partner agreements and a request process. No dataset SHA or result reproduction is claimed here.
