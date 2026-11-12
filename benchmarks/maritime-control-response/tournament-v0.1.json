@@ -296,7 +296,11 @@
     "overlapping normal/fault behavioral envelopes produce an ambiguity set",
     "zero matching envelopes produce unknown/out-of-support rather than a forced known class",
     "every behavioral envelope is regime-specific, source-bound, independently calibration-reviewed and digest-replayed",
-    "singleton diagnosis is qualified only relative to the complete frozen declared hypothesis catalogue and never as global physical uniqueness"
+    "singleton diagnosis is qualified only relative to the complete frozen declared hypothesis catalogue and never as global physical uniqueness",
+    "candidate likelihood models bind a stable hypothesis-space digest that excludes prior probabilities",
+    "every selection portfolio separately binds the exact prior/posterior distribution digest used for that round",
+    "after an acquired observation updates the posterior, the unchanged candidate likelihood model can be replayed only if the stable hypothesis-space digest matches",
+    "sequential observation receipts form one ledger chain; replayed receipt digests cannot be applied twice"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -508,7 +512,7 @@
   },
   "active_evidence_selection": {
     "path": "active-evidence-selection-v0.1.json",
-    "schema_version": "liu-ice-active-evidence-selection-v0.3",
+    "schema_version": "liu-ice-active-evidence-selection-v0.4",
     "status": "protocol_only_not_executed",
     "selector": "read_only_value_of_information_with_likelihood_scenario_robustness",
     "utility": "minimum scenario-specific expected information gain / (1 + normalized cost + normalized delay + normalized risk)",
@@ -534,7 +538,13 @@
     },
     "multi_scenario_assessed": "Reports whether multiple likelihood scenarios were assessed; this is not itself a calibration qualification.",
     "likelihood_calibration_reviewed_by_independent_validator": true,
-    "calibration_review_requirement": "Every eligible candidate binds an independent calibration-review receipt; the independent review state is caller-supplied and must be authenticated upstream."
+    "calibration_review_requirement": "Every eligible candidate binds an independent calibration-review receipt; the independent review state is caller-supplied and must be authenticated upstream.",
+    "identity_contract": {
+      "hypothesis_space": "stable sorted hypothesis IDs only; remains unchanged as beliefs update",
+      "prior_distribution": "separate digest over sorted IDs and exact probabilities; changes after every posterior update",
+      "candidate_model_binding": "candidate likelihood tables bind the stable hypothesis-space digest, not a transient posterior",
+      "sequential_update": "recompute portfolio with updated posterior and same stable hypothesis-space identity; append the external observation receipt to the ledger"
+    }
   },
   "streaming_contract": {
     "path": "streaming-contract-v0.1.json",
