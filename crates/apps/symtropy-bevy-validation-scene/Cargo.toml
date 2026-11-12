@@ -6,6 +6,11 @@ publish = false
 license = "Apache-2.0 OR MIT"
 description = "Executable smoke scene for the permissive Symtropy Bevy distribution."
 
+[features]
+default = []
+# Optional Bevy 0.20 realtime ray-traced lighting preview. Requires a GPU/backend with ray-query support.
+solari-preview = ["bevy/bevy_solari"]
+
 [dependencies]
 # default-features = false + this curated list matches every other bevy-using
 # crate in the workspace (e.g. symtropy-auv-demo, symtropy-humanoid-demo).
@@ -16,7 +21,7 @@ description = "Executable smoke scene for the permissive Symtropy Bevy distribut
 # crate was wired into the workspace members list (2026-07-21), since
 # Cargo.lock is resolved workspace-wide. See
 # SYMTROPY_IMPROVEMENT_PLAN_2026-07-21.md.
-bevy = { version = "0.19", default-features = false, features = [
+bevy = { version = "0.20", default-features = false, features = [
     "bevy_asset", "bevy_core_pipeline", "bevy_render",
     "bevy_sprite", "bevy_sprite_render",
     "bevy_text", "bevy_ui", "bevy_ui_render",

@@ -6,7 +6,7 @@ license = "Apache-2.0 OR MIT"
 description = "Bridge between Rapier3D and Symtropy's state-coupling framework."
 
 [dependencies]
-bevy = { version = "0.19", default-features = false }
+bevy = { version = "0.20", default-features = false }
 rapier3d = "0.18"
 symtropy-physics = { path = "../../core/symtropy-physics" }
 symtropy-math = { path = "../../core/symtropy-math" }

@@ -10,7 +10,7 @@ categories = ["game-engines", "simulation", "science"]
 readme = "README.md"
 
 [dependencies]
-bevy = { version = "0.19", default-features = false, features = [
+bevy = { version = "0.20", default-features = false, features = [
     "bevy_log", "bevy_state",
     "multi_threaded", "x11",
 ] }
