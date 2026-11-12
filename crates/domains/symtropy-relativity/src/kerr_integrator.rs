@@ -1505,7 +1505,8 @@ mod tests {
     use crate::{
         DimensionlessSpin, MassKg,
         kerr_geodesic::{
-            KerrLocalSkyDirection, KerrMinoDirection, KerrMinoState, KerrNullConstants,
+            KerrFiniteRadiusObserver, KerrLocalSkyDirection, KerrMinoDirection, KerrMinoState,
+        KerrNullConstants,
         },
     };
 
@@ -1532,6 +1533,80 @@ mod tests {
             maximum_step: 5e-2,
             maximum_steps: 200_000,
         }
+    }
+
+    #[test]
+    fn radial_schwarzschild_sachs_jacobi_matrix_matches_lambda_identity() {
+        let black_hole = hole(0.0);
+        let observer = KerrFiniteRadiusObserver::new(
+            black_hole,
+            10.0,
+            core::f64::consts::FRAC_PI_2,
+        )
+        .unwrap();
+        let seed = observer
+            .canonical_seed(KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap())
+            .unwrap();
+        let screen_basis =
+            observer.screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
+        let result = integrate_kerr_sachs_jacobi_fixed_step(
+            black_hole,
+            seed.coordinate_chart,
+            seed.state,
+            screen_basis,
+            0.05,
+            16,
+            1e-7,
+        )
+        .unwrap();
+
+        assert_eq!(result.samples.len(), 17);
+        assert_eq!(result.step_count, 16);
+        for sample in &result.samples {
+            let affine = sample.affine_parameter;
+            assert!((sample.jacobi_matrix[0][0] - affine).abs() < 2e-7);
+            assert!((sample.jacobi_matrix[1][1] - affine).abs() < 2e-7);
+            assert!(sample.jacobi_matrix[0][1].abs() < 2e-7);
+            assert!(sample.jacobi_matrix[1][0].abs() < 2e-7);
+            assert!(sample.tidal_matrix.iter().flatten().all(|value| value.abs() < 2e-7));
+            assert!(sample.null_constraint_residual < 1e-7);
+            assert!(sample.screen_orthonormality_residual < 1e-7);
+            assert!(sample.screen_transversality_residual < 1e-7);
+            assert!(sample.tidal_symmetry_residual < 1e-7);
+            assert!(sample.vacuum_trace_residual < 1e-7);
+        }
+        assert!((result.samples.last().unwrap().determinant - 0.05_f64.powi(2)).abs() < 3e-8);
+        assert!((result.samples.last().unwrap().singular_values[0] - 0.05).abs() < 2e-7);
+        assert!((result.samples.last().unwrap().singular_values[1] - 0.05).abs() < 2e-7);
+        assert!((result.samples.last().unwrap().condition_number - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn sachs_jacobi_integrator_rejects_zero_steps_and_invalid_tolerance() {
+        let black_hole = hole(0.0);
+        let observer = KerrFiniteRadiusObserver::new(
+            black_hole,
+            10.0,
+            core::f64::consts::FRAC_PI_2,
+        )
+        .unwrap();
+        let seed = observer
+            .canonical_seed(KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap())
+            .unwrap();
+        let screen_basis =
+            observer.screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
+        assert!(matches!(
+            integrate_kerr_sachs_jacobi_fixed_step(
+                black_hole, seed.coordinate_chart, seed.state, screen_basis, 0.05, 0, 1e-7,
+            ),
+            Err(KerrIntegratorError::InconsistentOptions)
+        ));
+        assert!(matches!(
+            integrate_kerr_sachs_jacobi_fixed_step(
+                black_hole, seed.coordinate_chart, seed.state, screen_basis, 0.05, 8, f64::NAN,
+            ),
+            Err(KerrIntegratorError::InvalidOption { .. })
+        ));
     }
 
     #[test]
