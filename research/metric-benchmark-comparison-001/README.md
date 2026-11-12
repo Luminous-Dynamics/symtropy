@@ -77,3 +77,25 @@ These are measured **mass-Riesz kernel** results only. The report deliberately s
 ## Next adapter gate
 
 The next increment should add one adapter at a time, beginning with Drake's mass/inverse-dynamics path and then MuJoCo/Pinocchio. Each adapter must parse the pinned source fixture, prove the mapping fields in `benchmark-case-v0.1.schema.json`, and produce a result validated by `benchmark-result-v0.1.schema.json`. A nonmatching integrator or constraint formulation must remain `NOT_COMPARABLE` until a matched alternative is provided.
+
+## Executable kernel slice
+
+The dependency-free Rust runner compares two implementations of the same frozen mass Riesz subproblem `M a = f` for both basis families:
+
+- frame-typed Cholesky/Riesz raising from `metric-induced-error-envelope-reference`;
+- a separate partial-pivoted LU factorization and back-substitution implementation.
+
+It emits four machine-readable records (two algorithms × two coordinate rebases), including coordinate norm drift, tangent/cotangent metric-norm drift, dual-pairing drift, congruence defect, normwise/componentwise backward error, dual-metric residual norm, wrong-variance negative-control error, and p50/p95/p99 timings. The runner is linked to the frame-typed reference crate by a local Cargo path dependency and uses no external Rust dependencies.
+
+Run it from the repository root:
+
+    cargo fmt --manifest-path research/metric-benchmark-comparison-001/Cargo.toml --all -- --check
+    cargo test --locked --manifest-path research/metric-benchmark-comparison-001/Cargo.toml
+    cargo clippy --locked --manifest-path research/metric-benchmark-comparison-001/Cargo.toml --all-targets -- -D warnings
+    cargo run --release --locked --manifest-path research/metric-benchmark-comparison-001/Cargo.toml --bin matched-kernel-runner -- results.json
+
+These are measured **mass-Riesz kernel** results only. The report deliberately sets overall acceptance to `INCONCLUSIVE`: it has not executed the nonlinear constrained midpoint step or attached an independent high-precision forward-error oracle. A `COMPARABLE` status means only that the two internal algorithms solve the same pinned mass-kernel task; it does not rank them as full physics solvers.
+
+## Next adapter gate
+
+The next increment should add one adapter at a time, beginning with Drake's mass/inverse-dynamics path and then MuJoCo/Pinocchio. Each adapter must parse the pinned source fixture, prove the mapping fields in `benchmark-case-v0.1.schema.json`, and produce a result validated by `benchmark-result-v0.1.schema.json`. A nonmatching integrator or constraint formulation must remain `NOT_COMPARABLE` until a matched alternative is provided.
