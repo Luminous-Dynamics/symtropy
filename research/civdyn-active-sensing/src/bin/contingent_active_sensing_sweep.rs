@@ -9,7 +9,6 @@ use civdyn_active_sensing::{
     DecisionWorld, MissingCause, PolicyOutcome, SensorAction, SensorPrediction,
     ActiveSensingConfig,
 };
-use std::error::Error;
 
 const SCENARIO_ID: &str = "contingent-three-world-screen-and-inspect-v1";
 const SOURCE_DIGEST: &str = "sha256-contingent-three-world-source-v1";
@@ -111,13 +110,13 @@ fn sensors() -> Vec<ContingentSensor> {
                 ("healthy", "healthy", None, 0.2),
                 (
                     "degraded",
-                    "ambiguous",
+                    "missing",
                     Some(MissingCause::CommonCausePowerLoss),
                     0.5,
                 ),
                 (
                     "healthy_sensor_fault",
-                    "ambiguous",
+                    "missing",
                     Some(MissingCause::TelemetryNetworkFault),
                     0.1,
                 ),
@@ -128,7 +127,7 @@ fn sensors() -> Vec<ContingentSensor> {
             0.15,
             2.0,
             1,
-            Some("ambiguous"),
+            Some("missing"),
             vec![
                 ("healthy", "healthy", None, 0.2),
                 ("degraded", "degraded", None, 0.2),
@@ -140,7 +139,7 @@ fn sensors() -> Vec<ContingentSensor> {
             0.1,
             2.0,
             1,
-            Some("ambiguous"),
+            Some("missing"),
             vec![
                 ("healthy", "healthy", None, 0.1),
                 (
@@ -162,7 +161,7 @@ fn sensors() -> Vec<ContingentSensor> {
             1.0,
             2.0,
             1,
-            Some("ambiguous"),
+            Some("missing"),
             vec![
                 ("healthy", "healthy", None, 0.1),
                 ("degraded", "degraded", None, 0.1),
@@ -312,7 +311,7 @@ fn emit_candidate_tree(
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), String> {
     let report = assess_contingent_sensing(&config(), &limits(), &worlds(), &sensors())?;
 
     let candidate_only = std::env::args().nth(1).as_deref() == Some("--candidate-policy-tree");
