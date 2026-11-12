@@ -85,21 +85,56 @@ jobs:
         run: |
           set -euo pipefail
           root="$RUNNER_TEMP/marine-engine-fault-extracted"
-          archive="${{ steps.archive.outputs.archive }}"
-          # Reject absolute paths, traversal components, and Windows-style paths
-          # before extraction. Never execute files from the archive.
-          unzip -Z1 "$archive" | awk '
+          archive="$RUNNER_TEMP/Marine_Engine_Fault_Data_v1.zip"
+          members="$RUNNER_TEMP/marine-engine-zip-members.txt"
+          listing="$RUNNER_TEMP/marine-engine-zipinfo-long.txt"
+
+          # Reject absolute, traversal and Windows-style paths before extraction.
+          unzip -Z1 "$archive" > "$members"
+          if ! awk '
             {
-              if (substr($0, 1, 1) == "/" || $0 ~ /^[A-Za-z]:/ || index($0, "\\") > 0) exit 1
+              if (substr($0, 1, 1) == "/" || $0 ~ /^[A-Za-z]:/ || index($0, "\\\\") > 0) {
+                print "Rejected absolute or Windows-style member path: " $0
+                rejected = 1
+              }
               n = split($0, component, "/")
-              for (i = 1; i <= n; i++) if (component[i] == "..") exit 1
+              for (i = 1; i <= n; i++) {
+                if (component[i] == "..") {
+                  print "Rejected traversal member path: " $0
+                  rejected = 1
+                }
+              }
             }
-          '
-          # Refuse archive symlink entries before extracting into the runner.
-          zipinfo -l "$archive" | awk 'NR > 3 && substr($1, 1, 1) == "l" { exit 1 }'
+            END { exit rejected }
+          ' "$members"; then
+            echo "Unsafe ZIP member names:"
+            cat "$members"
+            exit 1
+          fi
+
+          # Refuse symlinks before extraction; print any detected member.
+          zipinfo -l "$archive" > "$listing"
+          if ! awk '
+            NR > 3 && substr($1, 1, 1) == "l" {
+              print "Rejected symbolic-link ZIP member: " $0
+              rejected = 1
+            }
+            END { exit rejected }
+          ' "$listing"; then
+            cat "$listing"
+            exit 1
+          fi
+
+          unzip -tqq "$archive"
           mkdir -p "$root"
           unzip -q -o "$archive" -d "$root"
+          symlinks="$(find "$root" -type l -print)"
+          if test -n "$symlinks"; then
+            printf 'Unexpected extracted symbolic links:\n%s\n' "$symlinks"
+            exit 1
+          fi
           csv_count="$(find "$root" -type f -iname '*.csv' | wc -l | tr -d ' ')"
+          echo "Extracted CSV count: $csv_count"
           test "$csv_count" = "16"
           echo "DATASET_ROOT=$root" >> "$GITHUB_ENV"
 
