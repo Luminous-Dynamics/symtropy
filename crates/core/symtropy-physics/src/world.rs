@@ -2575,12 +2575,8 @@ mod transformed_halfspace_tests {
             0.0,
             SVector::zeros(),
         );
-        let mut dynamic_body = RigidBody::dynamic_sphere(
-            BodyHandle(1),
-            Point::new([0.0, 2.0, 0.0]),
-            1.0,
-            1.0e16,
-        );
+        let mut dynamic_body =
+            RigidBody::dynamic_sphere(BodyHandle(1), Point::new([0.0, 2.0, 0.0]), 1.0, 1.0e16);
         dynamic_body.linear_velocity = SVector::from([0.0, -1.0, 0.0]);
 
         let static_handle = world.add_body(static_body);
@@ -2607,5 +2603,4 @@ mod transformed_halfspace_tests {
             resolved.points[0].lambda
         );
     }
-
 }
