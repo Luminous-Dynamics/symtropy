@@ -1,0 +1,37 @@
+name: camera-boundary-fault-injection
+
+on:
+  pull_request:
+    paths:
+      - "research/camera-boundary-fault-injection-001/**"
+      - ".github/workflows/camera-boundary-fault-injection.yml"
+  push:
+    paths:
+      - "research/camera-boundary-fault-injection-001/**"
+      - ".github/workflows/camera-boundary-fault-injection.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fault-harness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install Rust 1.96.0
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/camera-boundary-fault-injection-001/Cargo.toml -- --check
+
+      - name: Run mutation and campaign tests
+        run: cargo test --locked --manifest-path research/camera-boundary-fault-injection-001/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/camera-boundary-fault-injection-001/Cargo.toml --all-targets --all-features -- -D warnings
