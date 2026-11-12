@@ -612,9 +612,10 @@ fn inspect_csv(path: &str, role: &str, bytes: &[u8]) -> Result<CsvAudit, String>
             match parsed {
                 Some(0) => anomaly_zero_rows += 1,
                 Some(1) => anomaly_one_rows += 1,
-                None => anomaly_invalid_rows += 1,
+                Some(_) | None => anomaly_invalid_rows += 1,
             }
-            if let Some(current) = parsed {
+            if matches!(parsed, Some(0) | Some(1)) {
+                let current = parsed.expect("matched binary anomaly label");
                 if previous_label == Some(0) && current == 1 {
                     anomaly_onset_transitions += 1;
                 }
