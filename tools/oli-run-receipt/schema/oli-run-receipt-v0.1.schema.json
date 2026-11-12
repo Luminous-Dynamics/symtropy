@@ -5,284 +5,1442 @@
   "description": "A provenance and replay record for one OLI activity. It records actions and evidence lineage; it does not certify scientific truth, life, intelligence, agency, consciousness, or legal status.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["receipt_schema_version", "receipt_id", "record_state", "created_at", "activity", "protocol", "actors", "execution", "inputs", "outputs", "observation", "model_assessments", "oracle_adjudications", "lineage", "replay", "limitations"],
+  "required": [
+    "receipt_schema_version",
+    "receipt_id",
+    "record_state",
+    "created_at",
+    "activity",
+    "protocol",
+    "actors",
+    "execution",
+    "inputs",
+    "outputs",
+    "observation",
+    "model_assessments",
+    "oracle_adjudications",
+    "lineage",
+    "replay",
+    "limitations"
+  ],
   "properties": {
-    "receipt_schema_version": {"const": "oli-run-receipt-v0.1"},
-    "receipt_id": {"type": "string", "minLength": 1},
-    "record_state": {"enum": ["planned", "running", "completed", "failed", "aborted", "superseded", "retracted"]},
-    "created_at": {"type": "string", "format": "date-time"},
-    "started_at": {"type": ["string", "null"], "format": "date-time"},
-    "ended_at": {"type": ["string", "null"], "format": "date-time"},
-    "activity": {"$ref": "#/$defs/activity"},
-    "protocol": {"$ref": "#/$defs/protocol"},
-    "actors": {"$ref": "#/$defs/actors"},
-    "execution": {"$ref": "#/$defs/execution"},
-    "inputs": {"type": "array", "items": {"$ref": "#/$defs/artifact"}},
-    "outputs": {"type": "array", "items": {"$ref": "#/$defs/artifact"}},
-    "observation": {"$ref": "#/$defs/observation"},
-    "model_assessments": {"type": "array", "items": {"$ref": "#/$defs/modelAssessment"}},
-    "oracle_adjudications": {"type": "array", "items": {"$ref": "#/$defs/oracleAdjudication"}},
-    "lineage": {"$ref": "#/$defs/lineage"},
-    "replay": {"$ref": "#/$defs/replay"},
-    "limitations": {"type": "array", "items": {"type": "string", "minLength": 1}},
-    "attestations": {"type": "array", "items": {"$ref": "#/$defs/attestation"}},
-    "extensions": {"type": "object", "additionalProperties": true}
+    "receipt_schema_version": {
+      "const": "oli-run-receipt-v0.1"
+    },
+    "receipt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "record_state": {
+      "enum": [
+        "planned",
+        "running",
+        "completed",
+        "failed",
+        "aborted",
+        "superseded",
+        "retracted"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "started_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "ended_at": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    },
+    "activity": {
+      "$ref": "#/$defs/activity"
+    },
+    "protocol": {
+      "$ref": "#/$defs/protocol"
+    },
+    "actors": {
+      "$ref": "#/$defs/actors"
+    },
+    "execution": {
+      "$ref": "#/$defs/execution"
+    },
+    "inputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/artifact"
+      }
+    },
+    "observation": {
+      "$ref": "#/$defs/observation"
+    },
+    "model_assessments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/modelAssessment"
+      }
+    },
+    "oracle_adjudications": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/oracleAdjudication"
+      }
+    },
+    "lineage": {
+      "$ref": "#/$defs/lineage"
+    },
+    "replay": {
+      "$ref": "#/$defs/replay"
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "attestations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/attestation"
+      }
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
   },
   "$defs": {
-    "sha256": {"type": ["string", "null"], "pattern": "^[a-fA-F0-9]{64}$"},
+    "sha256": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-fA-F0-9]{64}$"
+    },
     "actor": {
-      "type": "object", "additionalProperties": false,
-      "required": ["actor_id", "actor_type"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "actor_id",
+        "actor_type"
+      ],
       "properties": {
-        "actor_id": {"type": "string", "minLength": 1},
-        "actor_type": {"enum": ["human", "organization", "software", "instrument", "simulator", "independent_oracle", "unknown"]},
-        "display_name": {"type": "string"},
-        "organization": {"type": "string"},
-        "software_identity": {"type": "string"},
-        "role": {"type": "string"}
+        "actor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor_type": {
+          "enum": [
+            "human",
+            "organization",
+            "software",
+            "instrument",
+            "simulator",
+            "independent_oracle",
+            "unknown"
+          ]
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string"
+        },
+        "software_identity": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        }
       }
     },
     "activity": {
-      "type": "object", "additionalProperties": false,
-      "required": ["activity_id", "activity_type", "title", "purpose"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "activity_id",
+        "activity_type",
+        "title",
+        "purpose"
+      ],
       "properties": {
-        "activity_id": {"type": "string", "minLength": 1},
-        "activity_type": {"enum": ["simulation", "laboratory_observation", "field_observation", "sample_preparation", "instrument_acquisition", "data_processing", "model_inference", "controlled_intervention", "oracle_evaluation", "independent_replication", "literature_synthesis", "other"]},
-        "title": {"type": "string", "minLength": 1},
-        "purpose": {"type": "string", "minLength": 1},
-        "parent_activity_id": {"type": ["string", "null"]}
+        "activity_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "activity_type": {
+          "enum": [
+            "simulation",
+            "laboratory_observation",
+            "field_observation",
+            "sample_preparation",
+            "instrument_acquisition",
+            "data_processing",
+            "model_inference",
+            "controlled_intervention",
+            "oracle_evaluation",
+            "independent_replication",
+            "literature_synthesis",
+            "other"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_activity_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "sourceRevision": {
-      "type": "object", "additionalProperties": false,
-      "required": ["repository", "commit"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit"
+      ],
       "properties": {
-        "repository": {"type": "string", "format": "uri"},
-        "commit": {"type": "string", "pattern": "^[a-fA-F0-9]{40,64}$"},
-        "ref": {"type": "string"}
+        "repository": {
+          "type": "string",
+          "format": "uri"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{40,64}$"
+        },
+        "ref": {
+          "type": "string"
+        }
       }
     },
     "protocol": {
-      "type": "object", "additionalProperties": false,
-      "required": ["protocol_id", "protocol_version", "manifest_sha256", "protocol_uri"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_id",
+        "protocol_version",
+        "manifest_sha256",
+        "protocol_uri"
+      ],
       "properties": {
-        "protocol_id": {"type": "string", "minLength": 1},
-        "protocol_version": {"type": "string", "minLength": 1},
-        "manifest_sha256": {"$ref": "#/$defs/sha256"},
-        "protocol_uri": {"type": ["string", "null"], "format": "uri"},
-        "source_revision": {"oneOf": [{"$ref": "#/$defs/sourceRevision"}, {"type": "null"}]},
-        "deviations": {"type": "array", "items": {"type": "string", "minLength": 1}}
+        "protocol_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "manifest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "protocol_uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "source_revision": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sourceRevision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "deviations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
       }
     },
     "actors": {
-      "type": "object", "additionalProperties": false,
-      "required": ["recorder", "executor"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recorder",
+        "executor"
+      ],
       "properties": {
-        "recorder": {"$ref": "#/$defs/actor"},
-        "operator": {"oneOf": [{"$ref": "#/$defs/actor"}, {"type": "null"}]},
-        "executor": {"$ref": "#/$defs/actor"},
-        "predictor": {"oneOf": [{"$ref": "#/$defs/actor"}, {"type": "null"}]},
-        "oracle_evaluator": {"oneOf": [{"$ref": "#/$defs/actor"}, {"type": "null"}]},
-        "reviewers": {"type": "array", "items": {"$ref": "#/$defs/actor"}}
+        "recorder": {
+          "$ref": "#/$defs/actor"
+        },
+        "operator": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/actor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executor": {
+          "$ref": "#/$defs/actor"
+        },
+        "predictor": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/actor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "oracle_evaluator": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/actor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reviewers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/actor"
+          }
+        }
       }
     },
     "software": {
-      "type": "object", "additionalProperties": false,
-      "required": ["name", "version", "source_revision", "executable_sha256"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version",
+        "source_revision",
+        "executable_sha256"
+      ],
       "properties": {
-        "name": {"type": "string", "minLength": 1},
-        "version": {"type": "string", "minLength": 1},
-        "source_revision": {"oneOf": [{"$ref": "#/$defs/sourceRevision"}, {"type": "null"}]},
-        "executable_sha256": {"$ref": "#/$defs/sha256"},
-        "container_digest": {"type": ["string", "null"]},
-        "dependencies_lock_sha256": {"$ref": "#/$defs/sha256"},
-        "runtime": {"type": "string"}
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_revision": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/sourceRevision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "executable_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "container_digest": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "dependencies_lock_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "runtime": {
+          "type": "string"
+        }
       }
     },
     "execution": {
-      "type": "object", "additionalProperties": false,
-      "required": ["software", "environment", "invocation", "determinism"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "software",
+        "environment",
+        "invocation",
+        "determinism"
+      ],
       "properties": {
-        "software": {"type": "array", "items": {"$ref": "#/$defs/software"}},
+        "software": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/software"
+          }
+        },
         "environment": {
-          "type": "object", "additionalProperties": false,
-          "required": ["os", "architecture"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "os",
+            "architecture"
+          ],
           "properties": {
-            "os": {"type": "string"},
-            "architecture": {"type": "string"},
-            "hardware": {"type": "array", "items": {"type": "string"}},
-            "accelerator": {"type": ["string", "null"]},
-            "locale": {"type": "string"},
-            "timezone": {"type": "string"}
+            "os": {
+              "type": "string"
+            },
+            "architecture": {
+              "type": "string"
+            },
+            "hardware": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "accelerator": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "locale": {
+              "type": "string"
+            },
+            "timezone": {
+              "type": "string"
+            }
           }
         },
         "invocation": {
-          "type": "object", "additionalProperties": false,
-          "required": ["command", "configuration_sha256"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "command",
+            "configuration_sha256"
+          ],
           "properties": {
-            "command": {"type": "array", "items": {"type": "string"}},
-            "configuration_sha256": {"$ref": "#/$defs/sha256"},
-            "configuration_uri": {"type": ["string", "null"], "format": "uri"},
-            "working_directory": {"type": "string"}
+            "command": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "configuration_sha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "configuration_uri": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uri"
+            },
+            "working_directory": {
+              "type": "string"
+            }
           }
         },
         "determinism": {
-          "type": "object", "additionalProperties": false,
-          "required": ["declared", "scope"],
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "declared",
+            "scope"
+          ],
           "properties": {
-            "declared": {"type": "boolean"},
-            "scope": {"enum": ["same_process", "same_platform", "same_toolchain", "cross_platform", "statistical_only", "not_deterministic", "unknown"]},
-            "random_generator": {"type": ["string", "null"]},
-            "seed": {"type": ["integer", "string", "null"]},
-            "stream_definition": {"type": ["string", "null"]},
-            "numerical_precision": {"type": ["string", "null"]},
-            "parallelism": {"type": ["string", "null"]},
-            "notes": {"type": "string"}
+            "declared": {
+              "type": "boolean"
+            },
+            "scope": {
+              "enum": [
+                "same_process",
+                "same_platform",
+                "same_toolchain",
+                "cross_platform",
+                "statistical_only",
+                "not_deterministic",
+                "unknown"
+              ]
+            },
+            "random_generator": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "seed": {
+              "type": [
+                "integer",
+                "string",
+                "null"
+              ]
+            },
+            "stream_definition": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "numerical_precision": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "parallelism": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "notes": {
+              "type": "string"
+            }
           }
         }
       }
     },
     "rights": {
-      "type": "object", "additionalProperties": false,
-      "required": ["license_or_terms", "permission_status"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "license_or_terms",
+        "permission_status"
+      ],
       "properties": {
-        "license_or_terms": {"type": ["string", "null"]},
-        "rights_holder": {"type": ["string", "null"]},
-        "permission_status": {"enum": ["public_license_verified", "permission_granted", "permission_pending", "restricted", "unknown", "not_applicable"]},
-        "attribution": {"type": "string"},
-        "redistribution_allowed": {"type": ["boolean", "null"]}
+        "license_or_terms": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rights_holder": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "permission_status": {
+          "enum": [
+            "public_license_verified",
+            "permission_granted",
+            "permission_pending",
+            "restricted",
+            "unknown",
+            "not_applicable"
+          ]
+        },
+        "attribution": {
+          "type": "string"
+        },
+        "redistribution_allowed": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
       }
     },
     "artifact": {
-      "type": "object", "additionalProperties": false,
-      "required": ["artifact_id", "role", "uri", "media_type", "sha256", "rights"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "artifact_id",
+        "role",
+        "uri",
+        "media_type",
+        "sha256",
+        "rights",
+        "sha256_status"
+      ],
       "properties": {
-        "artifact_id": {"type": "string", "minLength": 1},
-        "role": {"enum": ["raw_input", "sample", "calibration", "protocol", "configuration", "source_code", "executable", "container", "intermediate", "model", "prediction", "measurement", "simulation_output", "oracle_output", "report", "log", "visualization", "other"]},
-        "uri": {"type": ["string", "null"], "format": "uri"},
-        "media_type": {"type": "string", "minLength": 1},
-        "bytes": {"type": ["integer", "null"], "minimum": 0},
-        "sha256": {"$ref": "#/$defs/sha256"},
-        "rights": {"$ref": "#/$defs/rights"},
-        "source_reference": {"type": ["string", "null"]},
-        "independence_group": {"type": ["string", "null"]},
-        "parent_artifact_ids": {"type": "array", "items": {"type": "string"}},
-        "metadata": {"type": "object", "additionalProperties": true}
-      }
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "raw_input",
+            "sample",
+            "calibration",
+            "protocol",
+            "configuration",
+            "source_code",
+            "executable",
+            "container",
+            "intermediate",
+            "model",
+            "prediction",
+            "measurement",
+            "simulation_output",
+            "oracle_output",
+            "report",
+            "log",
+            "visualization",
+            "other"
+          ]
+        },
+        "uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "bytes": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "rights": {
+          "$ref": "#/$defs/rights"
+        },
+        "source_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "independence_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "parent_artifact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "sha256_status": {
+          "enum": [
+            "recorded",
+            "pending",
+            "not_applicable"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "sha256_status": {
+                "const": "recorded"
+              }
+            },
+            "required": [
+              "sha256_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sha256": {
+                "type": "string",
+                "pattern": "^[a-fA-F0-9]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "sha256_status": {
+                "const": "pending"
+              }
+            },
+            "required": [
+              "sha256_status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "sha256": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     },
     "detectionLimit": {
-      "type": "object", "additionalProperties": false,
-      "required": ["value", "units", "definition"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "value",
+        "units",
+        "definition"
+      ],
       "properties": {
-        "value": {"type": "number", "minimum": 0},
-        "units": {"type": "string", "minLength": 1},
-        "definition": {"type": "string", "minLength": 1}
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "units": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "observationCoverage": {
-      "type": "object", "additionalProperties": false,
-      "required": ["modality", "scope", "false_negative_risks"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "modality",
+        "scope",
+        "false_negative_risks"
+      ],
       "properties": {
-        "modality": {"type": "string", "minLength": 1},
-        "scope": {"type": "string", "minLength": 1},
-        "observation_duration_seconds": {"type": ["number", "null"], "exclusiveMinimum": 0},
-        "spatial_coverage_fraction": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-        "temporal_coverage_fraction": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-        "temporal_sampling_interval_seconds": {"type": ["number", "null"], "exclusiveMinimum": 0},
-        "target_process_timescale_seconds": {"type": ["number", "null"], "exclusiveMinimum": 0},
-        "detection_limit": {"oneOf": [{"$ref": "#/$defs/detectionLimit"}, {"type": "null"}]},
-        "reference_abundance": {"type": ["number", "null"], "minimum": 0},
-        "detection_probability_at_reference": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
-        "calibration_evidence_artifact_id": {"type": ["string", "null"]},
-        "false_negative_risks": {
-          "type": "array", "uniqueItems": true,
-          "items": {"enum": ["low_abundance", "low_activity_or_dormancy", "spatial_heterogeneity", "temporal_aliasing", "preservation_or_degradation", "instrument_sensitivity", "matrix_interference", "signature_mismatch", "unknown"]}
+        "modality": {
+          "type": "string",
+          "minLength": 1
         },
-        "unsampled_regions": {"type": "array", "items": {"type": "string"}},
-        "notes": {"type": "string"}
-      }
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observation_duration_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "spatial_coverage_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "temporal_coverage_fraction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "temporal_sampling_interval_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "target_process_timescale_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "detection_limit": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/detectionLimit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reference_abundance": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "detection_probability_at_reference": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        },
+        "calibration_evidence_artifact_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "false_negative_risks": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "low_abundance",
+              "low_activity_or_dormancy",
+              "spatial_heterogeneity",
+              "temporal_aliasing",
+              "preservation_or_degradation",
+              "instrument_sensitivity",
+              "matrix_interference",
+              "signature_mismatch",
+              "unknown"
+            ]
+          }
+        },
+        "unsampled_regions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "detection_probability_at_reference": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "detection_probability_at_reference"
+            ]
+          },
+          "then": {
+            "required": [
+              "reference_abundance",
+              "calibration_evidence_artifact_id"
+            ]
+          }
+        }
+      ]
     },
     "observation": {
-      "type": "object", "additionalProperties": false,
-      "required": ["records"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "records"
+      ],
       "properties": {
-        "records": {"type": "array", "items": {"$ref": "#/$defs/observationCoverage"}},
-        "instrument_ids": {"type": "array", "items": {"type": "string"}},
-        "calibration_artifact_ids": {"type": "array", "items": {"type": "string"}},
-        "sample_hierarchy": {"type": "array", "items": {"type": "string"}},
-        "notes": {"type": "string"}
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/observationCoverage"
+          }
+        },
+        "instrument_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "calibration_artifact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "sample_hierarchy": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
       }
     },
     "modelAssessment": {
-      "type": "object", "additionalProperties": false,
-      "required": ["property", "assessment", "model_id"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "property",
+        "assessment",
+        "model_id"
+      ],
       "properties": {
-        "property": {"enum": ["organization", "boundary", "energy_matter_throughput", "persistence", "homeostasis_regulation", "self_maintenance", "information_retention", "information_transfer", "reproduction", "heredity", "adaptation", "learning", "agency", "intelligence", "collective_intelligence", "sentience_consciousness"]},
-        "assessment": {"enum": ["supported_within_scope", "contradicted_within_scope", "insufficient_evidence", "not_tested", "not_observable_with_current_instrument", "model_inadequate"]},
-        "model_id": {"type": "string", "minLength": 1},
-        "score": {"type": ["number", "null"]},
-        "score_semantics": {"type": ["string", "null"]},
-        "uncertainty": {"type": ["string", "null"]},
-        "calibration_reference": {"type": ["string", "null"]},
-        "evidence_artifact_ids": {"type": "array", "items": {"type": "string"}},
-        "alternative_hypothesis_ids": {"type": "array", "items": {"type": "string"}},
-        "notes": {"type": "string"}
+        "property": {
+          "enum": [
+            "organization",
+            "boundary",
+            "energy_matter_throughput",
+            "persistence",
+            "homeostasis_regulation",
+            "self_maintenance",
+            "information_retention",
+            "information_transfer",
+            "reproduction",
+            "heredity",
+            "adaptation",
+            "learning",
+            "agency",
+            "intelligence",
+            "collective_intelligence",
+            "sentience_consciousness"
+          ]
+        },
+        "assessment": {
+          "enum": [
+            "supported_within_scope",
+            "contradicted_within_scope",
+            "insufficient_evidence",
+            "not_tested",
+            "not_observable_with_current_instrument",
+            "model_inadequate"
+          ]
+        },
+        "model_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "score": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "score_semantics": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "uncertainty": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "calibration_reference": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_artifact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "alternative_hypothesis_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
       }
     },
     "oracleAdjudication": {
-      "type": "object", "additionalProperties": false,
-      "required": ["target", "result", "evaluator_actor_id", "evaluation_mode", "method_reference"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target",
+        "result",
+        "evaluator_actor_id",
+        "evaluation_mode",
+        "method_reference"
+      ],
       "properties": {
-        "target": {"type": "string", "minLength": 1},
-        "result": {"enum": ["positive", "negative", "inconclusive", "not_applicable", "not_run"]},
-        "evaluator_actor_id": {"type": "string", "minLength": 1},
-        "predictor_actor_id": {"type": ["string", "null"]},
-        "evaluation_mode": {"enum": ["blind_independent", "separate_implementation", "held_out_functional_test", "human_adjudication", "same_pipeline", "unknown"]},
-        "method_reference": {"type": "string", "minLength": 1},
-        "oracle_software": {"oneOf": [{"$ref": "#/$defs/software"}, {"type": "null"}]},
-        "evidence_artifact_ids": {"type": "array", "items": {"type": "string"}},
-        "limitations": {"type": "array", "items": {"type": "string"}},
-        "notes": {"type": "string"}
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result": {
+          "enum": [
+            "positive",
+            "negative",
+            "inconclusive",
+            "not_applicable",
+            "not_run"
+          ]
+        },
+        "evaluator_actor_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "predictor_actor_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evaluation_mode": {
+          "enum": [
+            "blind_independent",
+            "separate_implementation",
+            "held_out_functional_test",
+            "human_adjudication",
+            "same_pipeline",
+            "unknown"
+          ]
+        },
+        "method_reference": {
+          "type": "string",
+          "minLength": 1
+        },
+        "oracle_software": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/software"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "evidence_artifact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
       }
     },
     "lineage": {
-      "type": "object", "additionalProperties": false,
-      "required": ["parent_receipt_ids", "derived_from_artifact_ids", "correction_status"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parent_receipt_ids",
+        "derived_from_artifact_ids",
+        "correction_status"
+      ],
       "properties": {
-        "parent_receipt_ids": {"type": "array", "items": {"type": "string"}},
-        "derived_from_artifact_ids": {"type": "array", "items": {"type": "string"}},
-        "supersedes_receipt_id": {"type": ["string", "null"]},
-        "corrects_receipt_id": {"type": ["string", "null"]},
-        "retracts_receipt_id": {"type": ["string", "null"]},
-        "correction_status": {"enum": ["none", "correction", "superseding_run", "retraction", "dispute_open"]},
-        "correction_rationale": {"type": "string"}
+        "parent_receipt_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "derived_from_artifact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "supersedes_receipt_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "corrects_receipt_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retracts_receipt_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "correction_status": {
+          "enum": [
+            "none",
+            "correction",
+            "superseding_run",
+            "retraction",
+            "dispute_open"
+          ]
+        },
+        "correction_rationale": {
+          "type": "string"
+        }
       }
     },
     "replay": {
-      "type": "object", "additionalProperties": false,
-      "required": ["status", "equivalence", "attempts"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "equivalence",
+        "attempts"
+      ],
       "properties": {
-        "status": {"enum": ["not_attempted", "pending", "replayed", "failed", "partially_reproduced", "not_replayable"]},
-        "equivalence": {"enum": ["not_assessed", "bitwise_identical", "numerically_equivalent", "statistically_equivalent", "not_equivalent", "not_applicable"]},
-        "replayed_from_receipt_id": {"type": ["string", "null"]},
-        "replay_artifact_ids": {"type": "array", "items": {"type": "string"}},
-        "tolerance_definition": {"type": ["string", "null"]},
-        "difference_summary": {"type": ["string", "null"]},
-        "attempts": {"type": "integer", "minimum": 0}
+        "status": {
+          "enum": [
+            "not_attempted",
+            "pending",
+            "replayed",
+            "failed",
+            "partially_reproduced",
+            "not_replayable"
+          ]
+        },
+        "equivalence": {
+          "enum": [
+            "not_assessed",
+            "bitwise_identical",
+            "numerically_equivalent",
+            "statistically_equivalent",
+            "not_equivalent",
+            "not_applicable"
+          ]
+        },
+        "replayed_from_receipt_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "replay_artifact_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tolerance_definition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "difference_summary": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "attempts": {
+          "type": "integer",
+          "minimum": 0
+        }
       }
     },
     "attestation": {
-      "type": "object", "additionalProperties": false,
-      "required": ["format", "uri", "sha256", "verification_status", "verification_policy"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "uri",
+        "sha256",
+        "verification_status",
+        "verification_policy"
+      ],
       "properties": {
-        "format": {"enum": ["in_toto_dsse", "slsa_provenance", "ro_crate", "w3c_prov_bundle", "other"]},
-        "uri": {"type": ["string", "null"], "format": "uri"},
-        "sha256": {"$ref": "#/$defs/sha256"},
-        "signer_actor_id": {"type": ["string", "null"]},
-        "verification_status": {"enum": ["unverified", "verified", "failed", "not_applicable"]},
-        "verification_policy": {"type": "string", "minLength": 1},
-        "statement": {"type": "string"}
+        "format": {
+          "enum": [
+            "in_toto_dsse",
+            "slsa_provenance",
+            "ro_crate",
+            "w3c_prov_bundle",
+            "other"
+          ]
+        },
+        "uri": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "uri"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "signer_actor_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verification_status": {
+          "enum": [
+            "unverified",
+            "verified",
+            "failed",
+            "not_applicable"
+          ]
+        },
+        "verification_policy": {
+          "type": "string",
+          "minLength": 1
+        },
+        "statement": {
+          "type": "string"
+        }
       }
     }
-  }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "record_state": {
+            "const": "planned"
+          }
+        },
+        "required": [
+          "record_state"
+        ]
+      },
+      "then": {
+        "properties": {
+          "started_at": {
+            "type": "null"
+          },
+          "ended_at": {
+            "type": "null"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_state": {
+            "const": "completed"
+          }
+        },
+        "required": [
+          "record_state"
+        ]
+      },
+      "then": {
+        "required": [
+          "started_at",
+          "ended_at"
+        ],
+        "properties": {
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "outputs": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "record_state": {
+            "enum": [
+              "failed",
+              "aborted"
+            ]
+          }
+        },
+        "required": [
+          "record_state"
+        ]
+      },
+      "then": {
+        "required": [
+          "started_at",
+          "ended_at"
+        ],
+        "properties": {
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "limitations": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "assessment": {
+            "enum": [
+              "model_inadequate",
+              "not_observable_with_current_instrument"
+            ]
+          }
+        },
+        "required": [
+          "assessment"
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence_artifact_ids": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "evaluation_mode": {
+            "enum": [
+              "blind_independent",
+              "separate_implementation",
+              "held_out_functional_test"
+            ]
+          }
+        },
+        "required": [
+          "evaluation_mode"
+        ]
+      },
+      "then": {
+        "properties": {
+          "predictor_actor_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "replayed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attempts": {
+            "minimum": 1
+          },
+          "equivalence": {
+            "not": {
+              "const": "not_assessed"
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "not_attempted"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "attempts": {
+            "const": 0
+          },
+          "equivalence": {
+            "const": "not_assessed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verification_status": {
+            "const": "verified"
+          }
+        },
+        "required": [
+          "verification_status"
+        ]
+      },
+      "then": {
+        "required": [
+          "signer_actor_id"
+        ],
+        "properties": {
+          "signer_actor_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uri": {
+            "type": "string",
+            "format": "uri"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-fA-F0-9]{64}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "permission_status": {
+            "const": "public_license_verified"
+          }
+        },
+        "required": [
+          "permission_status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "license_or_terms": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  ]
 }
