@@ -1,0 +1,40 @@
+name: Construction Floor Production v0.1
+
+on:
+  pull_request:
+    paths:
+      - "research/construction-floor-production-v0-1/**"
+      - ".github/workflows/construction-floor-production-v0-1.yml"
+  push:
+    branches:
+      - "research/construction-floor-production-v0-1"
+    paths:
+      - "research/construction-floor-production-v0-1/**"
+      - ".github/workflows/construction-floor-production-v0-1.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: construction-floor-production-v0-1-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.96.0"
+          components: rustfmt, clippy
+      - name: Formatting
+        run: cargo fmt --manifest-path research/construction-floor-production-v0-1/Cargo.toml -- --check
+      - name: Tests
+        run: cargo test --manifest-path research/construction-floor-production-v0-1/Cargo.toml --locked
+      - name: Strict Clippy
+        run: cargo clippy --manifest-path research/construction-floor-production-v0-1/Cargo.toml --locked --all-targets -- -D warnings
