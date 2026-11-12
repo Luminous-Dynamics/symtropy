@@ -1807,4 +1807,7 @@ mod tests {
     }
 
     #[test]
-    fn standard_schedule_rejects_
+    fn standard_schedule_rejects_overflow() {
+        assert!(standard_fault_schedule(u64::MAX - 1, 5, 3, 1, 1, 2).is_err());
+    }
+}
