@@ -4,8 +4,8 @@ on:
   pull_request:
     paths:
       - "docs/transport/BATTERY_PROCESS_STRUCTURE_PERFORMANCE_V0_1.md"
-      - "schemas/transport/ev_battery_lineage_outcome_v0_1.schema.json"
-      - "fixtures/ev_battery/ev_battery_lineage_outcome_v0_1.json"
+      - "schemas/transport/battery_process_genealogy_v0_1.schema.json"
+      - "fixtures/ev_battery/battery_process_genealogy_v0_1.json"
       - "tools/battery-ev-outcome-audit/**"
       - ".github/workflows/battery-process-genealogy-audit.yml"
 
