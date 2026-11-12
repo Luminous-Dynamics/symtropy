@@ -166,10 +166,9 @@ fn valid_timestamp_utc(value: &str) -> bool {
         || bytes[13] != b':'
         || bytes[16] != b':'
         || bytes[19] != b'Z'
-        || !bytes
-            .iter()
-            .enumerate()
-            .all(|(index, byte)| matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit())
+        || !bytes.iter().enumerate().all(|(index, byte)| {
+            matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit()
+        })
     {
         return false;
     }
@@ -235,7 +234,9 @@ fn validate_period(period: &Period, name: &str) -> Result<(), String> {
     if period.rows.len() > MAX_ROWS_PER_PERIOD
         || period.rows.len() != period.target_ids.len() * period.position_ids.len()
     {
-        return Err(format!("{name}_RESIDUAL_ROW_COUNT_DOES_NOT_MATCH_TARGET_POSITION_GRID"));
+        return Err(format!(
+            "{name}_RESIDUAL_ROW_COUNT_DOES_NOT_MATCH_TARGET_POSITION_GRID"
+        ));
     }
 
     let targets: BTreeSet<&str> = period.target_ids.iter().map(String::as_str).collect();
@@ -250,7 +251,9 @@ fn validate_period(period: &Period, name: &str) -> Result<(), String> {
         if !targets.contains(row.target_id.as_str())
             || !positions.contains(row.position_id.as_str())
         {
-            return Err(format!("{name}_ROW_OUTSIDE_DECLARED_TARGET_POSITION_MANIFEST"));
+            return Err(format!(
+                "{name}_ROW_OUTSIDE_DECLARED_TARGET_POSITION_MANIFEST"
+            ));
         }
         if !pairs.insert((row.target_id.as_str(), row.position_id.as_str())) {
             return Err(format!("{name}_TARGET_POSITION_PAIR_DUPLICATED"));
@@ -298,13 +301,22 @@ fn validate_input(input: &Input) -> Result<(), String> {
         || input.baseline.instrument.firmware_version.trim().is_empty()
         || input.baseline.instrument.profile_id.trim().is_empty()
         || input.baseline.setup.residual_producer_id.trim().is_empty()
-        || input.baseline.setup.centralization_method_id.trim().is_empty()
+        || input
+            .baseline
+            .setup
+            .centralization_method_id
+            .trim()
+            .is_empty()
     {
         return Err("INSTRUMENT_OR_PRODUCER_IDENTITY_INCOMPLETE".to_owned());
     }
     for digest in [
         input.baseline.instrument.profile_sha256.as_str(),
-        input.baseline.instrument.calibration_reference_sha256.as_str(),
+        input
+            .baseline
+            .instrument
+            .calibration_reference_sha256
+            .as_str(),
         input.baseline.setup.acquisition_config_sha256.as_str(),
         input.baseline.setup.residual_producer_sha256.as_str(),
         input.baseline.setup.centralization_method_sha256.as_str(),
@@ -317,13 +329,24 @@ fn validate_input(input: &Input) -> Result<(), String> {
     if input.baseline.setup.angle_unit != "radian" {
         return Err("ANGULAR_UNIT_MUST_BE_RADIAN".to_owned());
     }
-    if !matches!(input.baseline.setup.range_unit.as_str(), "metre" | "millimetre") {
+    if !matches!(
+        input.baseline.setup.range_unit.as_str(),
+        "metre" | "millimetre"
+    ) {
         return Err("RANGE_UNIT_UNSUPPORTED".to_owned());
     }
-    let baseline_targets: BTreeSet<&str> =
-        input.baseline.target_ids.iter().map(String::as_str).collect();
-    let testing_targets: BTreeSet<&str> =
-        input.testing.target_ids.iter().map(String::as_str).collect();
+    let baseline_targets: BTreeSet<&str> = input
+        .baseline
+        .target_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
+    let testing_targets: BTreeSet<&str> = input
+        .testing
+        .target_ids
+        .iter()
+        .map(String::as_str)
+        .collect();
     if baseline_targets != testing_targets {
         return Err("TARGET_LINEAGE_CHANGED_BETWEEN_TIMEPOINTS".to_owned());
     }
@@ -344,9 +367,7 @@ fn canonical_rows(period: &Period) -> Vec<[f64; 3]> {
         .collect()
 }
 
-fn mean_covariance<const D: usize>(
-    rows: &[[f64; D]],
-) -> Result<([f64; D], [[f64; D]; D]), String> {
+fn mean_covariance<const D: usize>(rows: &[[f64; D]]) -> Result<([f64; D], [[f64; D]; D]), String> {
     if rows.len() < 2 {
         return Err("INSUFFICIENT_OBSERVATIONS_FOR_COVARIANCE".to_owned());
     }
@@ -393,8 +414,7 @@ fn covariance_summary(rows: &[[f64; 3]]) -> Result<CovarianceSummary, String> {
     }
     for i in 0..3 {
         for j in 0..3 {
-            correlation[i][j] =
-                covariance[i][j] / (standard_deviation[i] * standard_deviation[j]);
+            correlation[i][j] = covariance[i][j] / (standard_deviation[i] * standard_deviation[j]);
         }
     }
 
@@ -493,7 +513,9 @@ fn obrien_transform(rows: &[[f64; 3]]) -> Result<Vec<[f64; DIMENSIONS]>, String>
     Ok(transformed)
 }
 
-fn inverse_6(matrix: [[f64; DIMENSIONS]; DIMENSIONS]) -> Result<[[f64; DIMENSIONS]; DIMENSIONS], String> {
+fn inverse_6(
+    matrix: [[f64; DIMENSIONS]; DIMENSIONS],
+) -> Result<[[f64; DIMENSIONS]; DIMENSIONS], String> {
     let mut augmented = [[0.0; DIMENSIONS * 2]; DIMENSIONS];
     let mut scale = 0.0_f64;
     for i in 0..DIMENSIONS {
@@ -595,10 +617,7 @@ fn ln_gamma(value: f64) -> f64 {
         x += coefficient / (shifted + index as f64);
     }
     let t = shifted + 7.5;
-    0.5 * (2.0 * std::f64::consts::PI).ln()
-        + (shifted + 0.5) * t.ln()
-        - t
-        + x.ln()
+    0.5 * (2.0 * std::f64::consts::PI).ln() + (shifted + 0.5) * t.ln() - t + x.ln()
 }
 
 fn beta_continued_fraction(a: f64, b: f64, x: f64) -> Result<f64, String> {
@@ -661,10 +680,8 @@ fn regularized_beta(x: f64, a: f64, b: f64) -> Result<f64, String> {
     if x >= 1.0 {
         return Ok(1.0);
     }
-    let front = (ln_gamma(a + b) - ln_gamma(a) - ln_gamma(b)
-        + a * x.ln()
-        + b * (1.0 - x).ln())
-    .exp();
+    let front =
+        (ln_gamma(a + b) - ln_gamma(a) - ln_gamma(b) + a * x.ln() + b * (1.0 - x).ln()).exp();
 
     if x < (a + 1.0) / (a + b + 2.0) {
         Ok(front * beta_continued_fraction(a, b, x)? / a)
@@ -687,10 +704,7 @@ fn f_survival_probability(f_statistic: f64, df1: usize, df2: usize) -> Result<f6
     Ok(p_value)
 }
 
-fn robust_omnibus(
-    baseline: &[[f64; 3]],
-    testing: &[[f64; 3]],
-) -> Result<RobustOmnibus, String> {
+fn robust_omnibus(baseline: &[[f64; 3]], testing: &[[f64; 3]]) -> Result<RobustOmnibus, String> {
     let transformed_baseline = obrien_transform(baseline)?;
     let transformed_testing = obrien_transform(testing)?;
     let n1 = transformed_baseline.len();
@@ -873,9 +887,7 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<Report, Box<dyn Error>> {
 
 fn parse_input_path() -> Result<PathBuf, Box<dyn Error>> {
     let mut args = env::args().skip(1);
-    let mut input = PathBuf::from(
-        "tools/scan-bim-tls-ipa-statistic/fixtures/no-change.json",
-    );
+    let mut input = PathBuf::from("tools/scan-bim-tls-ipa-statistic/fixtures/no-change.json");
     while let Some(argument) = args.next() {
         match argument.as_str() {
             "--input" => input = args.next().ok_or("--input requires a path")?.into(),
@@ -928,7 +940,10 @@ mod tests {
     #[test]
     fn no_change_fixture_does_not_reject_equal_covariance() {
         let report = evaluate_fixture(NO_CHANGE);
-        assert_eq!(report.disposition, "NO_SIGNIFICANT_PRECISION_CHANGE_DETECTED");
+        assert_eq!(
+            report.disposition,
+            "NO_SIGNIFICANT_PRECISION_CHANGE_DETECTED"
+        );
         let statistic = report.robust_omnibus.expect("statistic exists");
         assert!(statistic.p_value >= report.alpha);
         assert_eq!(report.accuracy_disposition, "NOT_EVALUATED");
@@ -955,7 +970,11 @@ mod tests {
         assert!(covariance.covariance[0][1].is_finite());
         assert!(covariance.covariance[0][2].is_finite());
         assert!(covariance.covariance[1][2].is_finite());
-        assert!((covariance.correlation[0][1].abs() <= 1.0).then_some(()).is_some());
+        assert!(
+            (covariance.correlation[0][1].abs() <= 1.0)
+                .then_some(())
+                .is_some()
+        );
     }
 
     #[test]
@@ -976,7 +995,10 @@ mod tests {
         input.testing.target_ids[0] = "different-target".to_owned();
         let report = evaluate_input(&input, "b".repeat(64));
         assert_eq!(report.disposition, "INDETERMINATE");
-        assert_eq!(report.reason_codes, vec!["TARGET_LINEAGE_CHANGED_BETWEEN_TIMEPOINTS"]);
+        assert_eq!(
+            report.reason_codes,
+            vec!["TARGET_LINEAGE_CHANGED_BETWEEN_TIMEPOINTS"]
+        );
     }
 
     #[test]
@@ -986,7 +1008,10 @@ mod tests {
         input.baseline.rows[1].position_id = input.baseline.rows[0].position_id.clone();
         let report = evaluate_input(&input, "c".repeat(64));
         assert_eq!(report.disposition, "INDETERMINATE");
-        assert_eq!(report.reason_codes, vec!["BASELINE_TARGET_POSITION_PAIR_DUPLICATED"]);
+        assert_eq!(
+            report.reason_codes,
+            vec!["BASELINE_TARGET_POSITION_PAIR_DUPLICATED"]
+        );
     }
 
     #[test]
@@ -1007,7 +1032,10 @@ mod tests {
         input.baseline.rows[0].theta_residual = f64::NAN;
         let report = evaluate_input(&input, "e".repeat(64));
         assert_eq!(report.disposition, "INDETERMINATE");
-        assert_eq!(report.reason_codes, vec!["BASELINE_NON_FINITE_SPHERICAL_RESIDUAL"]);
+        assert_eq!(
+            report.reason_codes,
+            vec!["BASELINE_NON_FINITE_SPHERICAL_RESIDUAL"]
+        );
     }
 
     #[test]
@@ -1099,7 +1127,12 @@ mod tests {
 
     #[test]
     fn signed_square_root_preserves_product_sign() {
-        let rows = [[-2.0, 1.0, 3.0], [-1.0, 2.0, 4.0], [0.0, 3.0, 5.0], [1.0, 4.0, 6.0]];
+        let rows = [
+            [-2.0, 1.0, 3.0],
+            [-1.0, 2.0, 4.0],
+            [0.0, 3.0, 5.0],
+            [1.0, 4.0, 6.0],
+        ];
         let transformed = obrien_transform(&rows).unwrap();
         assert_eq!(transformed[0][3].signum(), -1.0);
         assert!(transformed[0][3] < 0.0);
