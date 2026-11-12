@@ -59,9 +59,13 @@ jobs:
           canonical = json.dumps(case['payload'], sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
           digest = hashlib.sha256(canonical).hexdigest()
           assert digest == case['payload_sha256'], (digest, case['payload_sha256'])
-          assert result['case_id'] == case['case_id']
-          assert result['case_payload_sha256'] == digest
-          assert result['semantic_mapping']['case_payload_sha256'] == digest
+          def verify_case_binding(record, frozen_case):
+              frozen_digest = frozen_case['payload_sha256']
+              assert record['case_id'] == frozen_case['case_id']
+              assert record['case_payload_sha256'] == frozen_digest
+              assert record['semantic_mapping']['case_payload_sha256'] == frozen_digest
+
+          verify_case_binding(result, case)
 
           payload = case['payload']
           n = payload['dimension']
@@ -119,7 +123,12 @@ jobs:
           stale = copy.deepcopy(result)
           stale['case_payload_sha256'] = '0' * 64
           assert not list(result_validator.iter_errors(stale))
-          assert stale['case_payload_sha256'] != digest, 'stale result digest was not detected'
+          try:
+              verify_case_binding(stale, case)
+          except AssertionError:
+              pass
+          else:
+              raise AssertionError('cross-file fixture digest gate accepted stale evidence')
 
           # V0 never permits a general SOTA-superiority claim or production authority.
           forged = copy.deepcopy(result)
