@@ -1,0 +1,504 @@
+{
+  "schema_version": "0.1.0",
+  "protocol_id": "LOCO-ADAPTIVE-HORIZON-001",
+  "status": "synthetic_known_answers_only",
+  "units": {
+    "time": "ms",
+    "control_period": "ms",
+    "horizon": "control_steps"
+  },
+  "cases": [
+    {
+      "case_id": "AH01_QUEUED_HORIZON_FEASIBLE",
+      "description": "All required horizons are qualified; observation freshness is the active 300 ms bound. A 200 ms p99 queued proposal requires K_min=4 and the safe envelope allows K_max=6.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 50,
+        "requested_k": 5,
+        "queued_proposal_p99_ms": 200,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": true,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 450,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "queued_horizon_feasible",
+        "h_safe_ms": 300,
+        "k_min": 4,
+        "k_max": 6,
+        "selected_k": 5,
+        "limiting_bound": "observation_freshness",
+        "extension_allowed": true,
+        "fallback_required": false,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH02_P99_LATENCY_EXCEEDS_VIABILITY_HORIZON",
+      "description": "Thermal headroom limits the safe horizon to 150 ms while p99 queued proposal latency requires 250 ms; no queued open-loop K can cover inference safely.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 50,
+        "requested_k": 4,
+        "queued_proposal_p99_ms": 250,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": true,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 150,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "no_queued_horizon_feasible",
+        "h_safe_ms": 150,
+        "k_min": 5,
+        "k_max": 3,
+        "selected_k": null,
+        "limiting_bound": "thermal_to_limit",
+        "extension_allowed": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH03_CONTACT_MODEL_SETS_HORIZON",
+      "description": "A rapidly changing contact regime limits the horizon to 180 ms; with a 50 ms period, K_max=3 and the requested K=3 remains feasible.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 50,
+        "requested_k": 3,
+        "queued_proposal_p99_ms": 80,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": true,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 180,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 450,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "queued_horizon_feasible",
+        "h_safe_ms": 180,
+        "k_min": 2,
+        "k_max": 3,
+        "selected_k": 3,
+        "limiting_bound": "contact_model_validity",
+        "extension_allowed": true,
+        "fallback_required": false,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH04_THERMAL_HEADROOM_SETS_HORIZON",
+      "description": "Qualified thermal-to-limit time of 95 ms is the active bound. At a 30 ms action period, at most three steps fit.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 30,
+        "requested_k": 2,
+        "queued_proposal_p99_ms": 55,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": true,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 95,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "queued_horizon_feasible",
+        "h_safe_ms": 95,
+        "k_min": 2,
+        "k_max": 3,
+        "selected_k": 2,
+        "limiting_bound": "thermal_to_limit",
+        "extension_allowed": true,
+        "fallback_required": false,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH05_CLOCK_MAPPING_UNKNOWN",
+      "description": "Robot and sensor clocks have no qualified mapping; observation freshness is Unknown, so H_safe and K_max cannot be computed.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 50,
+        "requested_k": 2,
+        "queued_proposal_p99_ms": 200,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": false,
+        "clock_mapping_valid": false,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": null,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 450,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "horizon_unknown_fallback",
+        "h_safe_ms": null,
+        "k_min": null,
+        "k_max": null,
+        "selected_k": null,
+        "limiting_bound": "clock_mapping",
+        "extension_allowed": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH06_THERMAL_MODEL_UNQUALIFIED",
+      "description": "The thermal transition model is not qualified; thermal-to-limit horizon is Unknown and cannot be omitted from the minimum.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 50,
+        "requested_k": 2,
+        "queued_proposal_p99_ms": 200,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": false,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": false,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": null,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "horizon_unknown_fallback",
+        "h_safe_ms": null,
+        "k_min": null,
+        "k_max": null,
+        "selected_k": null,
+        "limiting_bound": "thermal_model",
+        "extension_allowed": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH07_SPLIT_TIMESCALE_LOCAL_EXPERT",
+      "description": "A slow world-context process takes 900 ms, but the local action expert remains continuously active at 10 ms per 20 ms control period. The local action chunk is bounded by H_safe and does not need to cover slow context latency.",
+      "inputs": {
+        "execution_mode": "split_timescale_local_expert",
+        "period_ms": 20,
+        "requested_k": 3,
+        "queued_proposal_p99_ms": null,
+        "local_action_expert_p99_ms": 10,
+        "slow_world_context_p99_ms": 900,
+        "local_expert_available": true,
+        "all_horizon_evidence_qualified": true,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 160,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 180,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 450,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "split_timescale_local_expert_feasible",
+        "h_safe_ms": 160,
+        "k_min": null,
+        "k_max": 8,
+        "selected_k": 3,
+        "limiting_bound": "observation_freshness",
+        "extension_allowed": true,
+        "fallback_required": false,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH08_DEADLINE_SETS_HORIZON",
+      "description": "The action deadline is the earliest bound at 75 ms. With a 25 ms control period, three steps are admissible and p99 proposal latency requires two.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 25,
+        "requested_k": 3,
+        "queued_proposal_p99_ms": 50,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": true,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 75,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 450,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "queued_horizon_feasible",
+        "h_safe_ms": 75,
+        "k_min": 2,
+        "k_max": 3,
+        "selected_k": 3,
+        "limiting_bound": "task_deadline",
+        "extension_allowed": true,
+        "fallback_required": false,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH09_REQUESTED_CHUNK_EXCEEDS_K_MAX",
+      "description": "The safe horizon is 100 ms and the action period is 25 ms, but a policy requests K=5; the requested suffix exceeds K_max=4.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 25,
+        "requested_k": 5,
+        "queued_proposal_p99_ms": 50,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": true,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 100,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 450,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "requested_horizon_exceeds_bound",
+        "h_safe_ms": 100,
+        "k_min": 2,
+        "k_max": 4,
+        "selected_k": null,
+        "limiting_bound": "chunk_expiry",
+        "extension_allowed": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH10_SAFE_STOP_RESERVE_SETS_HORIZON",
+      "description": "The safe-stop reserve horizon is only 40 ms. A queued proposal p99 of 60 ms cannot be covered with a 20 ms action period.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 20,
+        "requested_k": 2,
+        "queued_proposal_p99_ms": 60,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": true,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 450,
+          "safe_stop_reserve_horizon_ms": 40
+        }
+      },
+      "expected": {
+        "disposition": "no_queued_horizon_feasible",
+        "h_safe_ms": 40,
+        "k_min": 3,
+        "k_max": 2,
+        "selected_k": null,
+        "limiting_bound": "safe_stop_reserve",
+        "extension_allowed": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH11_ACTUATOR_RESPONSE_SETS_HORIZON",
+      "description": "The qualified actuator command-to-motion envelope expires in 45 ms, earlier than thermal/contact/observation horizons; at 15 ms per action cycle K_max=3.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 15,
+        "requested_k": 3,
+        "queued_proposal_p99_ms": 20,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": true,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": true,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": 350,
+          "actuator_model_validity_ms": 45,
+          "thermal_to_limit_ms": 450,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "queued_horizon_feasible",
+        "h_safe_ms": 45,
+        "k_min": 2,
+        "k_max": 3,
+        "selected_k": 3,
+        "limiting_bound": "actuator_model_validity",
+        "extension_allowed": true,
+        "fallback_required": false,
+        "actuation_authorized": false
+      }
+    },
+    {
+      "case_id": "AH12_CONTACT_MODEL_UNQUALIFIED",
+      "description": "The contact/terrain model is outside its qualified regime; the corresponding horizon is Unknown even though all other bounds are available.",
+      "inputs": {
+        "execution_mode": "queued_open_loop",
+        "period_ms": 50,
+        "requested_k": 2,
+        "queued_proposal_p99_ms": 200,
+        "local_action_expert_p99_ms": null,
+        "slow_world_context_p99_ms": 500,
+        "local_expert_available": false,
+        "all_horizon_evidence_qualified": false,
+        "clock_mapping_valid": true,
+        "thermal_model_qualified": true,
+        "contact_model_qualified": false,
+        "actuator_response_qualified": true,
+        "certificate_validity_qualified": true,
+        "reserve_model_qualified": true,
+        "horizons": {
+          "observation_freshness_ms": 300,
+          "chunk_expiry_ms": 500,
+          "task_deadline_ms": 500,
+          "certificate_validity_ms": 400,
+          "contact_model_validity_ms": null,
+          "actuator_model_validity_ms": 320,
+          "thermal_to_limit_ms": 450,
+          "safe_stop_reserve_horizon_ms": 600
+        }
+      },
+      "expected": {
+        "disposition": "horizon_unknown_fallback",
+        "h_safe_ms": null,
+        "k_min": null,
+        "k_max": null,
+        "selected_k": null,
+        "limiting_bound": "contact_model",
+        "extension_allowed": false,
+        "fallback_required": true,
+        "actuation_authorized": false
+      }
+    }
+  ]
+}

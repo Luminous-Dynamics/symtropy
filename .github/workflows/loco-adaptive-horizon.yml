@@ -1,0 +1,179 @@
+name: LOCO Adaptive Horizon Fixture Validation
+
+on:
+  push:
+    branches:
+      - research/loco-adaptive-horizon-001
+    paths:
+      - "research/loco-adaptive-horizon-001/**"
+      - ".github/workflows/loco-adaptive-horizon.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "research/loco-adaptive-horizon-001/**"
+      - ".github/workflows/loco-adaptive-horizon.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  horizon-validation:
+    name: Draft 2020-12 schema and horizon arithmetic
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pinned schema validator
+        run: python -m pip install --disable-pip-version-check jsonschema==4.23.0
+      - name: Validate horizon fixtures and recompute K bounds
+        run: |
+          python - <<'PY'
+          import json
+          import math
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path("research/loco-adaptive-horizon-001/fixtures")
+          data = json.loads((root / "horizon_composition_v0_1.json").read_text())
+          schema = json.loads((root / "horizon_composition_v0_1.schema.json").read_text())
+
+          Draft202012Validator.check_schema(schema)
+          errors = sorted(
+              Draft202012Validator(schema).iter_errors(data),
+              key=lambda error: list(error.absolute_path),
+          )
+          if errors:
+              for error in errors:
+                  print(f"SCHEMA ERROR at {list(error.absolute_path)}: {error.message}")
+              raise SystemExit(1)
+
+          expected_ids = [
+              "AH01_QUEUED_HORIZON_FEASIBLE",
+              "AH02_P99_LATENCY_EXCEEDS_VIABILITY_HORIZON",
+              "AH03_CONTACT_MODEL_SETS_HORIZON",
+              "AH04_THERMAL_HEADROOM_SETS_HORIZON",
+              "AH05_CLOCK_MAPPING_UNKNOWN",
+              "AH06_THERMAL_MODEL_UNQUALIFIED",
+              "AH07_SPLIT_TIMESCALE_LOCAL_EXPERT",
+              "AH08_DEADLINE_SETS_HORIZON",
+              "AH09_REQUESTED_CHUNK_EXCEEDS_K_MAX",
+              "AH10_SAFE_STOP_RESERVE_SETS_HORIZON",
+              "AH11_ACTUATOR_RESPONSE_SETS_HORIZON",
+              "AH12_CONTACT_MODEL_UNQUALIFIED",
+          ]
+          cases = data["cases"]
+          ids = [case["case_id"] for case in cases]
+          if len(cases) != 12 or ids != expected_ids or len(set(ids)) != 12:
+              raise SystemExit("Expected 12 unique action-horizon cases in frozen order")
+
+          horizon_keys = [
+              "observation_freshness_ms",
+              "chunk_expiry_ms",
+              "task_deadline_ms",
+              "certificate_validity_ms",
+              "contact_model_validity_ms",
+              "actuator_model_validity_ms",
+              "thermal_to_limit_ms",
+              "safe_stop_reserve_horizon_ms",
+          ]
+
+          for case in cases:
+              inputs = case["inputs"]
+              expected = case["expected"]
+              horizons = inputs["horizons"]
+              unknown = (
+                  not inputs["all_horizon_evidence_qualified"]
+                  or not inputs["clock_mapping_valid"]
+                  or not inputs["thermal_model_qualified"]
+                  or not inputs["contact_model_qualified"]
+                  or not inputs["actuator_response_qualified"]
+                  or not inputs["certificate_validity_qualified"]
+                  or not inputs["reserve_model_qualified"]
+                  or any(horizons[key] is None for key in horizon_keys)
+              )
+
+              if unknown:
+                  if expected["disposition"] != "horizon_unknown_fallback":
+                      raise SystemExit(f"Unknown bound did not fail closed: {case['case_id']}")
+                  if any(expected[key] is not None for key in ("h_safe_ms", "k_min", "k_max", "selected_k")):
+                      raise SystemExit(f"Unknown horizon has numeric K/H: {case['case_id']}")
+                  if expected["extension_allowed"] or not expected["fallback_required"]:
+                      raise SystemExit(f"Unknown horizon incorrectly permits extension: {case['case_id']}")
+                  continue
+
+              h_safe = min(horizons.values())
+              limiting = next(key for key in horizon_keys if horizons[key] == h_safe)
+              k_max = h_safe // inputs["period_ms"]
+              if expected["h_safe_ms"] != h_safe or expected["k_max"] != k_max:
+                  raise SystemExit(f"H_safe/K_max arithmetic mismatch: {case['case_id']}")
+              limit_labels = {
+                  "observation_freshness_ms": "observation_freshness",
+                  "chunk_expiry_ms": "chunk_expiry",
+                  "task_deadline_ms": "task_deadline",
+                  "certificate_validity_ms": "certificate_validity",
+                  "contact_model_validity_ms": "contact_model_validity",
+                  "actuator_model_validity_ms": "actuator_model_validity",
+                  "thermal_to_limit_ms": "thermal_to_limit",
+                  "safe_stop_reserve_horizon_ms": "safe_stop_reserve",
+              }
+              if expected["limiting_bound"] != limit_labels[limiting]:
+                  raise SystemExit(f"Limiting horizon mismatch: {case['case_id']}")
+
+              if inputs["execution_mode"] == "queued_open_loop":
+                  latency = inputs["queued_proposal_p99_ms"]
+                  k_min = (latency + inputs["period_ms"] - 1) // inputs["period_ms"]
+                  if expected["k_min"] != k_min:
+                      raise SystemExit(f"K_min arithmetic mismatch: {case['case_id']}")
+                  if k_min > k_max:
+                      disposition = "no_queued_horizon_feasible"
+                      selected = None
+                      fallback = True
+                      extension = False
+                  elif inputs["requested_k"] > k_max:
+                      disposition = "requested_horizon_exceeds_bound"
+                      selected = None
+                      fallback = True
+                      extension = False
+                  else:
+                      disposition = "queued_horizon_feasible"
+                      selected = inputs["requested_k"]
+                      fallback = False
+                      extension = True
+              else:
+                  if not inputs["local_expert_available"]:
+                      raise SystemExit(f"Split-timescale case lacks local expert: {case['case_id']}")
+                  if inputs["local_action_expert_p99_ms"] > inputs["period_ms"]:
+                      raise SystemExit(f"Local action expert misses its cycle deadline: {case['case_id']}")
+                  k_min = None
+                  disposition = "split_timescale_local_expert_feasible" if inputs["requested_k"] <= k_max else "requested_horizon_exceeds_bound"
+                  selected = inputs["requested_k"] if inputs["requested_k"] <= k_max else None
+                  fallback = selected is None
+                  extension = selected is not None
+
+              if expected["disposition"] != disposition:
+                  raise SystemExit(f"Disposition mismatch: {case['case_id']}")
+              if expected["selected_k"] != selected or expected["fallback_required"] != fallback:
+                  raise SystemExit(f"Selected-K/fallback mismatch: {case['case_id']}")
+              if expected["extension_allowed"] != extension:
+                  raise SystemExit(f"Extension eligibility mismatch: {case['case_id']}")
+
+          if any(case["expected"]["actuation_authorized"] is not False for case in cases):
+              raise SystemExit("A known-answer case improperly grants actuation authority")
+
+          # Explicit boundary checks for the two central paradigms.
+          queued_infeasible = cases[1]
+          if queued_infeasible["expected"]["k_min"] <= queued_infeasible["expected"]["k_max"]:
+              raise SystemExit("K_min > K_max negative control is invalid")
+          split = cases[6]
+          if split["inputs"]["slow_world_context_p99_ms"] <= split["inputs"]["period_ms"]:
+              raise SystemExit("Split-timescale case does not separate slow and fast timescales")
+          if split["expected"]["k_min"] is not None:
+              raise SystemExit("Split-timescale local expert must not be forced to cover slow-context latency")
+
+          print(f"PASS: Draft 2020-12 schema + {len(cases)} horizon cases")
+          print("PASS: queued K_min/K_max, split-timescale local expert and Unknown fallbacks")
+          print("PASS: no fixture grants actuation authority")
+          PY
