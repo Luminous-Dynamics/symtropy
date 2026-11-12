@@ -1,0 +1,378 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/schemas/transport/ev_second_life_mission_qualification_v0_1.schema.json",
+  "title": "Second-life battery mission qualification manifest v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "campaign_id",
+    "evaluation_mode",
+    "evidence",
+    "cases"
+  ],
+  "properties": {
+    "campaign_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluation_mode": {
+      "enum": [
+        "synthetic_known_answer",
+        "evidence_review"
+      ]
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "evidence_id",
+          "source_digest",
+          "evidence_class",
+          "admission",
+          "claim_scope",
+          "rights_ref",
+          "metrology_ref"
+        ],
+        "properties": {
+          "evidence_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "evidence_class": {
+            "enum": [
+              "physical_measurement",
+              "independent_laboratory",
+              "authority_decision",
+              "documentary",
+              "simulation",
+              "synthetic"
+            ]
+          },
+          "admission": {
+            "enum": [
+              "candidate",
+              "admitted_for_research",
+              "admitted_for_evaluation",
+              "blocked",
+              "unknown"
+            ]
+          },
+          "claim_scope": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rights_ref": {
+            "type": "string",
+            "minLength": 1
+          },
+          "metrology_ref": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/case"
+      }
+    }
+  },
+  "$defs": {
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate",
+        "status",
+        "evidence_id",
+        "rationale"
+      ],
+      "properties": {
+        "gate": {
+          "enum": [
+            "pack_identity",
+            "cell_coverage",
+            "history_integrity",
+            "thermal_propagation_approval",
+            "electrical_isolation_and_protection",
+            "bms_compatibility",
+            "mission_capability",
+            "transport_and_handling",
+            "quality_control",
+            "rights_and_provenance"
+          ]
+        },
+        "status": {
+          "enum": [
+            "pass",
+            "fail",
+            "unknown",
+            "not_applicable_with_rationale"
+          ]
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rationale": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "horizon_months",
+        "required_usable_energy_kwh",
+        "required_peak_power_kw",
+        "temperature_min_c",
+        "temperature_max_c",
+        "minimum_availability_percent",
+        "reserve_percent"
+      ],
+      "properties": {
+        "horizon_months": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "required_usable_energy_kwh": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "required_peak_power_kw": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "temperature_min_c": {
+          "type": "number",
+          "exclusiveMinimum": -273.15
+        },
+        "temperature_max_c": {
+          "type": "number",
+          "exclusiveMinimum": -273.15
+        },
+        "minimum_availability_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "reserve_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        }
+      }
+    },
+    "capability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lower_bound_usable_energy_kwh",
+        "lower_bound_peak_power_kw",
+        "supported_temperature_min_c",
+        "supported_temperature_max_c",
+        "lower_bound_availability_percent",
+        "uncertainty_profile_ref",
+        "evidence_id"
+      ],
+      "properties": {
+        "lower_bound_usable_energy_kwh": {
+          "type": "number",
+          "minimum": 0
+        },
+        "lower_bound_peak_power_kw": {
+          "type": "number",
+          "minimum": 0
+        },
+        "supported_temperature_min_c": {
+          "type": "number",
+          "exclusiveMinimum": -273.15
+        },
+        "supported_temperature_max_c": {
+          "type": "number",
+          "exclusiveMinimum": -273.15
+        },
+        "lower_bound_availability_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "uncertainty_profile_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "bms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy",
+        "hardware_revision",
+        "firmware_revision",
+        "compatibility",
+        "verification_ref"
+      ],
+      "properties": {
+        "strategy": {
+          "enum": [
+            "reuse_original_unchanged",
+            "authorized_firmware_update",
+            "gateway_interface",
+            "replace_with_qualified_system"
+          ]
+        },
+        "hardware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "firmware_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compatibility": {
+          "enum": [
+            "verified_for_target_mission",
+            "not_verified",
+            "unknown"
+          ]
+        },
+        "verification_ref": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "source_pack_id",
+        "pack_revision",
+        "passport_ref",
+        "configuration_digest",
+        "cell_membership_digest",
+        "expected_cell_count",
+        "observed_cell_ids",
+        "history_coverage",
+        "incident_history",
+        "requested_use",
+        "mission",
+        "capability",
+        "bms",
+        "thermal_review_status",
+        "thermal_authority_decision_ref",
+        "gates"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_pack_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pack_revision": {
+          "type": "string",
+          "minLength": 1
+        },
+        "passport_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "configuration_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "cell_membership_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "expected_cell_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "observed_cell_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "history_coverage": {
+          "enum": [
+            "complete_since_first_commissioning",
+            "partial",
+            "unknown"
+          ]
+        },
+        "incident_history": {
+          "enum": [
+            "no_adverse_events_recorded_in_complete_history",
+            "adverse_events_present_and_adjudicated",
+            "unknown"
+          ]
+        },
+        "requested_use": {
+          "enum": [
+            "second_life_stationary",
+            "third_life_backup"
+          ]
+        },
+        "mission": {
+          "$ref": "#/$defs/mission"
+        },
+        "capability": {
+          "$ref": "#/$defs/capability"
+        },
+        "bms": {
+          "$ref": "#/$defs/bms"
+        },
+        "thermal_review_status": {
+          "enum": [
+            "accepted_by_competent_authority",
+            "candidate_for_human_review",
+            "rejected",
+            "unknown"
+          ]
+        },
+        "thermal_authority_decision_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "gates": {
+          "type": "array",
+          "minItems": 10,
+          "maxItems": 10,
+          "items": {
+            "$ref": "#/$defs/gate"
+          }
+        }
+      }
+    }
+  }
+}
