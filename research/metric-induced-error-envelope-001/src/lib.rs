@@ -482,6 +482,28 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
         &self.matrix
     }
 
+    /// Infinity-norm condition estimate for the coordinate matrix S.
+    ///
+    /// This is a coordinate-representation diagnostic, not a physical
+    /// coordinate-invariant condition number.
+    pub fn condition_inf_estimate(&self) -> Result<f64, MetricErrorV1> {
+        let mut inverse = [[0.0; N]; N];
+        for column in 0..N {
+            let mut unit = [0.0; N];
+            unit[column] = 1.0;
+            let inverse_column = self.factor.solve(&unit)?;
+            for row in 0..N {
+                inverse[row][column] = inverse_column[row];
+            }
+        }
+        let estimate = matrix_inf(&self.matrix) * matrix_inf(&inverse);
+        if estimate.is_finite() {
+            Ok(estimate)
+        } else {
+            Err(MetricErrorV1::NonFiniteIntermediate)
+        }
+    }
+
     /// Tangent components transform contravariantly: v_y = S^-1 v_q.
     pub fn tangent_to_to(
         &self,
@@ -593,6 +615,14 @@ mod tests {
             (left - right).abs() <= tolerance * scale,
             "{left} != {right}"
         );
+    }
+
+    #[test]
+    fn coordinate_condition_estimate_is_finite_and_exceeds_one_for_a_shear() {
+        let rebasis = dense_rebasis();
+        let estimate = rebasis.condition_inf_estimate().unwrap();
+        assert!(estimate.is_finite());
+        assert!(estimate > 1.0);
     }
 
     #[test]
