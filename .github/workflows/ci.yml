@@ -323,13 +323,13 @@ jobs:
         ]
         assert len(leaves) == 3
         by_world = {row["world_id"]: row for row in leaves}
-        assert by_world["healthy"]["selected_action_id"] == "defer"
+        assert by_world["healthy"]["action_id"] == "defer"
         assert by_world["healthy"]["sensing_penalty_service_units"] == "0.600000"
         assert by_world["healthy"]["path_energy_kwh"] == "0.200000"
-        assert by_world["degraded"]["selected_action_id"] == "repair"
+        assert by_world["degraded"]["action_id"] == "repair"
         assert by_world["degraded"]["sensing_penalty_service_units"] == "1.400000"
         assert by_world["degraded"]["path_energy_kwh"] == "0.350000"
-        assert by_world["healthy_sensor_fault"]["selected_action_id"] == "defer"
+        assert by_world["healthy_sensor_fault"]["action_id"] == "defer"
         assert by_world["healthy_sensor_fault"]["sensing_penalty_service_units"] == "0.900000"
         assert by_world["healthy_sensor_fault"]["path_energy_kwh"] == "0.350000"
 
@@ -388,7 +388,7 @@ jobs:
         }
         false_leaves = [row for row in false_rows if row["record_type"] == "leaf"]
         assert len(false_leaves) == 4
-        assert {row["world_id"]: row["selected_action_id"] for row in false_leaves} == {
+        assert {row["world_id"]: row["action_id"] for row in false_leaves} == {
             "healthy": "defer",
             "degraded": "repair",
             "healthy_sensor_fault": "defer",
