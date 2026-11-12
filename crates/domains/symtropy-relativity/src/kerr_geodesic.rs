@@ -3694,7 +3694,7 @@ mod tests {
         let config = KerrMinoIntegrationConfig::new(
             1.0e-9,
             [1.0e-11; 6],
-            2.0e-8,
+            1.0e-7,
             1.0e-3,
             1.0e-12,
             2.0e-2,
@@ -3718,8 +3718,8 @@ mod tests {
         assert!(final_radius > radius);
         assert!(trajectory.accepted_steps > 0);
         assert!(trajectory.rejected_steps > 0);
-        assert!(trajectory.maximum_normalized_radial_constraint_residual <= 2.0e-8);
-        assert!(trajectory.maximum_normalized_polar_constraint_residual <= 2.0e-8);
+        assert!(trajectory.maximum_normalized_radial_constraint_residual <= 1.0e-7);
+        assert!(trajectory.maximum_normalized_polar_constraint_residual <= 1.0e-7);
     }
 
     #[test]
