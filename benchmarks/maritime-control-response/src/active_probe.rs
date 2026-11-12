@@ -2695,11 +2695,11 @@ mod tests {
                 .contains("blocked until a joint hypothesis")
         );
         assert_eq!(
-            protocol["sequential_updates"]["status"],
+            protocol["method"]["sequential_update_policy"]["status"],
             "single_point_model_updates_supported_multiscenario_updates_blocked"
         );
-        assert_eq!(protocol["sequential_updates"]["no_silent_fallback"], true);
-        assert!(protocol["sequential_updates"]["required_future_joint_ledger"]
+        assert_eq!(protocol["method"]["sequential_update_policy"]["no_silent_fallback"], true);
+        assert!(protocol["method"]["sequential_update_policy"]["required_future_joint_ledger"]
             .as_array()
             .unwrap()
             .len() >= 5);
