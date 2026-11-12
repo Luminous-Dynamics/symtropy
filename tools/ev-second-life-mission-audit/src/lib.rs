@@ -523,11 +523,6 @@ fn evaluate_case(
             case.case_id
         )));
     }
-    let _uncertainty_profile = admitted(
-        registry,
-        &case.capability.uncertainty_profile_ref,
-        &format!("case {} uncertainty profile", case.case_id),
-    )?;
     if mode == EvaluationMode::EvidenceReview {
         let profile = admitted(
             registry,
@@ -903,6 +898,57 @@ mod tests {
         }
         let r = audit_manifest(&m);
         assert!(r.is_err());
+    }
+
+    #[test]
+    fn admitted_real_evidence_can_support_second_and_third_life_review() {
+        let mut m = fixture();
+        m.evaluation_mode = EvaluationMode::EvidenceReview;
+        for e in &mut m.evidence {
+            e.rights_ref = "LICENSE-DECLARATION-001".into();
+            let class = if e.evidence_id == "E-GATE-0"
+                || e.evidence_id == "E-GATE-2"
+                || e.evidence_id == "E-GATE-7"
+                || e.evidence_id == "E-GATE-9"
+            {
+                EvidenceClass::Documentary
+            } else if e.evidence_id.starts_with("AUTH-THERMAL-") {
+                EvidenceClass::AuthorityDecision
+            } else if e.evidence_id.starts_with("BMS-VERIFY-")
+                || e.evidence_id == "E-UQ-PROFILE"
+            {
+                EvidenceClass::IndependentLaboratory
+            } else {
+                EvidenceClass::PhysicalMeasurement
+            };
+            e.evidence_class = class;
+            if matches!(
+                class,
+                EvidenceClass::PhysicalMeasurement | EvidenceClass::IndependentLaboratory
+            ) {
+                e.metrology_ref = Some(format!("MET-{}", e.evidence_id));
+            }
+        }
+        let r = audit_manifest(&m).expect("admitted evidence review should audit");
+        assert_eq!(r.eligible_second_life_count, 1);
+        assert_eq!(r.eligible_third_life_count, 1);
+        assert_eq!(r.abstain_count, 1);
+        assert_eq!(
+            r.cases
+                .iter()
+                .find(|c| c.case_id == "SECOND-LIFE")
+                .unwrap()
+                .disposition,
+            Disposition::EligibleForSecondLifeMission
+        );
+        assert_eq!(
+            r.cases
+                .iter()
+                .find(|c| c.case_id == "THIRD-LIFE")
+                .unwrap()
+                .disposition,
+            Disposition::EligibleForThirdLifeBackup
+        );
     }
 
     #[test]
