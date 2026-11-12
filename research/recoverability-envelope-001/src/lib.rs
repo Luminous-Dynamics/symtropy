@@ -1131,4 +1131,45 @@ mod tests {
             report
                 .results
                 .iter()
-                .all(|resul
+                .all(|result| result.unmet_conditions.is_empty())
+        );
+    }
+
+    #[test]
+    fn rejects_non_sha256_pairing_identity() {
+        let mut episode = valid_episode();
+        episode.pairing.world_seed_sha256 = "not-a-hash".into();
+        assert!(
+            episode
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("lowercase SHA-256"))
+        );
+    }
+
+    #[test]
+    fn rejects_fault_concurrency_over_contract() {
+        let mut episode = valid_episode();
+        episode.contract.max_fault_concurrency = 1;
+        assert!(
+            episode
+                .validate()
+                .unwrap_err()
+                .iter()
+                .any(|e| e.contains("fault concurrency"))
+        );
+    }
+
+    #[test]
+    fn stable_recovery_requires_full_fault_envelope_clearance() {
+        let mut episode = valid_episode();
+        episode.fault_events[1].end_tick_exclusive = 7;
+        // Tick 6 looks nominal but the second scheduled fault is still active.
+        episode.trace[5].mode = OperatingMode::Nominal;
+        episode.trace[5].oracle_outcome = OracleOutcome::WithinEnvelope;
+        let report = episode.evaluate().unwrap();
+        assert_eq!(report.results[0].recovery_tick, Some(8));
+        assert_eq!(report.results[1].recovery_tick, Some(8));
+    }
+}
