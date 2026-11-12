@@ -17,7 +17,7 @@ For each candidate material plane:
 - the maximum shear range over in-plane directions is calculated as half the diameter of that path;
 - the Findley parameter is maximized over a declared hemisphere grid.
 
-The shear-path shape index (0 for a line-like path, approaching 1 for a circular path) is diagnostic only. It is not another fatigue-life law.
+The critical plane reports its local shear-path shape index; search diagnostics separately report the maximum shape index over all searched planes and the plane where it occurs. This avoids confusing a line-like critical plane with proportionality of the entire multiaxial stress path. The shape index is diagnostic only, not another fatigue-life law.
 
 ## Important boundaries
 
