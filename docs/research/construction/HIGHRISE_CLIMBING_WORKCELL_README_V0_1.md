@@ -57,12 +57,16 @@ This profile intentionally composes rather than duplicates existing contracts:
 - Mycelix #5149 construction provenance and approvals.
 - Sol-Atlas #622 design-to-panel-to-maintained-asset thread.
 
+## Schema and validation boundary
+
+The companion [closed JSON Schema](./HIGHRISE_CLIMBING_WORKCELL_PROFILE_SCHEMA_V0_1.json) uses JSON Schema Draft 2020-12 and rejects unrecognized fields at the declared object boundaries. A profile/schema pair still needs exact-head CI validation and adversarial fixtures; the existence of a schema is not itself a validation result.
+
 ## Immediate next work
 
 1. Review the source boundaries and reconcile the 2026 lightweight-platform paper's reported values.
 2. Define a reference floor/work-package scope and freeze the conventional baseline boundary.
 3. Complete the system functional decomposition, interface map, hazard log, load-case register and ODD with competent engineering owners.
-4. Add a closed JSON Schema and deterministic fixture tests; do not call this file schema-validated until those checks run against the exact commit.
+4. Add deterministic positive/adversarial profile fixtures and a closed-schema validator in the repository's established Rust workflow.
 5. Keep P0/P1 desk and software work separate from any physical lift or site execution.
 
 ## Claim ceiling
