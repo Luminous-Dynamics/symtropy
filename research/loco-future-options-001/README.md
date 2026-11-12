@@ -115,7 +115,7 @@ A standalone, dependency-free Rust 1.96 package now lives at `reference/`:
 
 The evaluator refuses positive option counts when the branch manifest, continuation domain, per-branch viability receipt, observation freshness, thermal predecessor chain, or recovery receipt is incomplete. Physically possible branches remain in the calculation even at zero probability mass. User-facing labels collapse by canonical physical action identity. Thermal nodes are checked individually using conservative upper-temperature bounds; no mean-temperature waiver exists. A qualified recovery receipt must establish a reachable terminal safe-stop.
 
-**Thirty-eight authored Rust tests** cover:
+**Fifty authored Rust tests** cover:
 - clairvoyance trap versus observation-constrained intersection;
 - valid observation separation;
 - zero-probability physical branches;
@@ -168,7 +168,7 @@ The evaluator distinguishes four results:
 
 The returned witness is a deterministic map from observation-history node to action. The evaluator does not pick one action per hidden state, so a clairvoyant policy cannot be mistaken for a deployable one. It permits a different action only after an evidence-qualified observation creates a new belief node. The test tree includes two indistinguishable successor states after a probe, then a fresh observation splits them so one child can retreat and the other continue; both leaves still require a safe-stop receipt.
 
-The new module contributes 18 tests: bounded two-step winning policy; disjoint hidden-state actions; incomplete transition manifest; unknown/unreachable terminal recovery; observation-partition mismatch; incomplete transition receipt; impossible transition exclusion; incomplete action domain; permutation invariance; missing child node; invalid action identity; and explicit horizon bounds. The original 20 tests remain in the same crate, for 38 authored Rust tests total.
+The new module contributes 18 tests: bounded two-step winning policy; disjoint hidden-state actions; incomplete transition manifest; unknown/unreachable terminal recovery; observation-partition mismatch; incomplete transition receipt; impossible transition exclusion; incomplete action domain; permutation invariance; missing child node; invalid action identity; and explicit horizon bounds. The original 20 tests remain in the same crate, for 50 authored Rust tests total.
 
 The one-step common-set evaluator and the bounded policy-tree evaluator are separate, intentionally composable reference surfaces. A policy-tree win over this finite graph is not a continuous-time viability proof, arbitrary fault tolerance, or authorization to execute the witness.
 
@@ -220,3 +220,32 @@ The research programme should publish a *vector scorecard*, not a weighted “ro
 **Superiority gate:** only claim improvement when the same hardware and scenario strata show non-inferior task success, tracking, per-category adverse outcomes and terminal recoverability, then a statistically supported gain on at least one declared dimension (e.g. mission productivity, thermal endurance or recovery probability) with no hidden regression on the others. Publish null and negative regimes.
 
 A useful fleet objective is **SLO-qualified safe-mission throughput**: count only completed missions that meet task deadlines and predeclared evidence, physical-limit, service-floor and terminal-recovery constraints. Keep the numerator, all attempted missions, Unknown/censored attempts and per-robot fairness visible. This extends the factory-productivity framing without confusing high request throughput with a fleet that actually completes recoverable missions.
+
+### Viability-conditioned VOI → bounded policy-tree bridge
+
+Issue [#4855](https://github.com/Luminous-Dynamics/symtropy/issues/4855) defines the composition seam between [#4310 / PR #4313](https://github.com/Luminous-Dynamics/symtropy/pull/4313) and this policy-tree evaluator.
+
+The new `reference/src/voi_policy_bridge.rs` consumes a typed projection of the upstream:
+- `ViableVoiReport` gate disposition, outcome-local selected actions, joint outcome mass and Unknown mass;
+- `ViableVoiProblem.probe` probe identity and physically possible branch/outcome support;
+- `ViableVoiProblem.continuation_evidence` exact outcome-specific robust action sets, post-state-set digests and Unknown fallback;
+- #4119/#4293 observation-equivalence, successor-state, physical/reserve/thermal and transition receipts.
+
+It does **not** recalculate VOI, probabilities, loss, resource use, probe safety or robust viability.
+
+The bridge groups outcomes by the actual delivered observation-equivalence class. If two outcome IDs are indistinguishable to the robot, their continuation action sets are intersected before they become one child belief node. Outcome-local selected actions remain diagnostics: a selected action may be valid for its own latent/outcome row and still be unavailable to the robot when the rows share one observation. `local_selection_is_deployable_by_observation` exposes that discrepancy. A qualified explicit Unknown bucket remains distinct from stale/missing observation evidence; stale evidence is merged into a conservative Unknown belief and cannot create a policy split.
+
+The bridge verifies:
+- report / continuation evidence outcome coverage;
+- exact action-set equality between VOI report and upstream continuation receipt;
+- local selected action membership;
+- single-action explicit Unknown fallback;
+- full joint-mass normalization and exact Unknown mass;
+- exact observation-class post-state-set/receipt identity;
+- complete physical branch/outcome support, including zero-mass pairs;
+- per-successor physical/reserve/thermal state identity and transition receipt.
+
+The bridge creates a **probe prefix**, not a complete mission policy. Its observation nodes deliberately have incomplete downstream transition manifests until #4293 (or the relevant transition owner) supplies the subsequent physical branches and #4549/#4555/#4511 supply terminal recovery evidence. The bounded policy evaluator therefore returns Unknown rather than claiming a multi-step win from one-step VOI data alone.
+
+Twelve new bridge tests cover indistinguishable outcomes and action-set intersection, zero-mass physical support, gate short-circuit, continuation-set mismatch, Unknown fallback, mass accounting, stale/invalid observation handling, branch/outcome support, belief-state identity and the incomplete-downstream claim boundary. The main reference package now contains **50 authored Rust tests**. The separate Rust JSON fixture-runner package has one corpus conformance test; its exact-head workflow additionally executes the seven committed JSON cases through the Rust evaluator.
+
