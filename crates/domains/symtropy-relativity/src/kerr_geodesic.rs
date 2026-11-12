@@ -141,8 +141,7 @@ impl KerrEquatorialProgradePhotonOrbit {
 
         let delta_angle = (2.0 / 3.0) * spin.acos();
         let half_sine = (0.5 * delta_angle).sin();
-        let radius_offset = 2.0 * half_sine * half_sine
-            + 3.0_f64.sqrt() * delta_angle.sin();
+        let radius_offset = 2.0 * half_sine * half_sine + 3.0_f64.sqrt() * delta_angle.sin();
         let radius_over_m = 1.0 + radius_offset;
         // Delta=(r-1)^2-kappa^2 is better conditioned than r^2-2r+a^2
         // for the near-horizon prograde photon orbit.
@@ -150,13 +149,15 @@ impl KerrEquatorialProgradePhotonOrbit {
         if !delta_over_m2.is_finite() || delta_over_m2 < 0.0 || radius_offset <= 0.0 {
             return Err(KerrGeodesicError::NonFinite("prograde_photon_orbit_delta"));
         }
-        let critical_impact_parameter_over_m = spin
-            + 2.0 * radius_over_m * delta_over_m2.sqrt() / radius_offset;
+        let critical_impact_parameter_over_m =
+            spin + 2.0 * radius_over_m * delta_over_m2.sqrt() / radius_offset;
         if !radius_over_m.is_finite()
             || !critical_impact_parameter_over_m.is_finite()
             || critical_impact_parameter_over_m <= 0.0
         {
-            return Err(KerrGeodesicError::NonFinite("prograde_critical_impact_parameter"));
+            return Err(KerrGeodesicError::NonFinite(
+                "prograde_critical_impact_parameter",
+            ));
         }
         Ok(Self {
             spin,
@@ -178,8 +179,7 @@ impl KerrEquatorialProgradePhotonOrbit {
         {
             return Err(KerrGeodesicError::InvalidCriticalOffset(scaled_offset_chi));
         }
-        Ok(self.critical_impact_parameter_over_m
-            + self.extremality_parameter * scaled_offset_chi)
+        Ok(self.critical_impact_parameter_over_m + self.extremality_parameter * scaled_offset_chi)
     }
 
     /// Equatorial (Q=0), unit-energy null constants at the scaled critical offset.
@@ -206,8 +206,7 @@ impl KerrEquatorialProgradePhotonOrbit {
         {
             return Err(KerrGeodesicError::InvalidCriticalOffset(scaled_offset_chi));
         }
-        Ok((1.0 + 2.0 * 3.0_f64.sqrt() / scaled_offset_chi).ln()
-            / self.extremality_parameter)
+        Ok((1.0 + 2.0 * 3.0_f64.sqrt() / scaled_offset_chi).ln() / self.extremality_parameter)
     }
 }
 
@@ -780,10 +779,16 @@ impl fmt::Display for KerrGeodesicError {
                 write!(f, "dimensionless Kerr spin {value} is outside [-1, 1]")
             }
             Self::InvalidProgradeSpin(value) => {
-                write!(f, "equatorial prograde photon orbit requires spin in [0, 1], got {value}")
+                write!(
+                    f,
+                    "equatorial prograde photon orbit requires spin in [0, 1], got {value}"
+                )
             }
             Self::InvalidCriticalOffset(value) => {
-                write!(f, "near-extremal critical offset chi must be finite and positive, got {value}")
+                write!(
+                    f,
+                    "near-extremal critical offset chi must be finite and positive, got {value}"
+                )
             }
             Self::InvalidRadius(value) => {
                 write!(
@@ -4125,7 +4130,6 @@ mod tests {
         close(outward.d_azimuth_rad, inward.d_azimuth_rad, 2e-14);
     }
 }
-
 
 #[cfg(test)]
 mod near_extremal_prograde_photon_orbit_tests {
