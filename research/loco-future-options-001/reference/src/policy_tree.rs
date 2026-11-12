@@ -115,14 +115,8 @@ pub enum PolicyTreeError {
     EmptyField(&'static str),
     DuplicateActionId(String),
     DuplicateNodeId(String),
-    DuplicateStateId {
-        node_id: String,
-        state_id: String,
-    },
-    DuplicateStateEvidence {
-        node_id: String,
-        state_id: String,
-    },
+    DuplicateStateId { node_id: String, state_id: String },
+    DuplicateStateEvidence { node_id: String, state_id: String },
     DuplicateTerminalRecoveryState(String),
     UnknownActionId(String),
     MissingRootNode(String),
@@ -160,9 +154,7 @@ struct NodeSolution {
     invalid_reasons: Vec<String>,
 }
 
-fn require_nonempty(
-    fields: &[(&'static str, &str)],
-) -> Result<(), PolicyTreeError> {
+fn require_nonempty(fields: &[(&'static str, &str)]) -> Result<(), PolicyTreeError> {
     for (name, value) in fields {
         if value.trim().is_empty() {
             return Err(PolicyTreeError::EmptyField(name));
@@ -270,7 +262,9 @@ fn solve_node(
             disposition: PolicyTreeDisposition::Unknown,
             winning_action_ids: Vec::new(),
             witness: BTreeMap::new(),
-            unknown_reasons: vec![format!("{node_id}:physical-reserve-or-thermal-state-evidence-incomplete")],
+            unknown_reasons: vec![format!(
+                "{node_id}:physical-reserve-or-thermal-state-evidence-incomplete"
+            )],
             invalid_reasons: Vec::new(),
         }
     } else if depth == 0 {
@@ -288,13 +282,18 @@ fn solve_node(
                     return Err(PolicyTreeError::DuplicateTerminalRecoveryState(state_id));
                 }
                 if by_state.len() != node.state_ids.len()
-                    || node.state_ids.iter().any(|state_id| !by_state.contains_key(state_id))
+                    || node
+                        .state_ids
+                        .iter()
+                        .any(|state_id| !by_state.contains_key(state_id))
                 {
                     NodeSolution {
                         disposition: PolicyTreeDisposition::Unknown,
                         winning_action_ids: Vec::new(),
                         witness: BTreeMap::new(),
-                        unknown_reasons: vec![format!("{node_id}:terminal-recovery-state-coverage-incomplete")],
+                        unknown_reasons: vec![format!(
+                            "{node_id}:terminal-recovery-state-coverage-incomplete"
+                        )],
                         invalid_reasons: Vec::new(),
                     }
                 } else {
@@ -306,12 +305,16 @@ fn solve_node(
                         if receipt.reserve_state_digest.trim().is_empty()
                             || receipt.topology_digest.trim().is_empty()
                         {
-                            unknown = Some(format!("{node_id}:{state_id}:terminal-recovery-identity-missing"));
+                            unknown = Some(format!(
+                                "{node_id}:{state_id}:terminal-recovery-identity-missing"
+                            ));
                             break;
                         }
                         let state = state_receipts[state_id];
                         if receipt.reserve_state_digest != state.reserve_state_digest {
-                            mismatch = Some(format!("{node_id}:{state_id}:terminal-reserve-state-mismatch"));
+                            mismatch = Some(format!(
+                                "{node_id}:{state_id}:terminal-reserve-state-mismatch"
+                            ));
                             break;
                         }
                         if !receipt.terminal_safe_stop_reachable {
@@ -442,10 +445,8 @@ fn solve_node(
             let mut invalid_reasons = Vec::new();
 
             for action_id in candidate_actions {
-                let mut children: BTreeMap<
-                    String,
-                    BTreeMap<String, (String, String, String)>,
-                > = BTreeMap::new();
+                let mut children: BTreeMap<String, BTreeMap<String, (String, String, String)>> =
+                    BTreeMap::new();
                 let mut action_unknown = false;
                 let mut action_invalid = false;
 
@@ -505,8 +506,8 @@ fn solve_node(
                             edge.resulting_reserve_state_digest.clone(),
                             edge.resulting_thermal_state_digest.clone(),
                         );
-                        if let Some(previous) =
-                            child_states.insert(edge.to_state_id.clone(), resulting_identity.clone())
+                        if let Some(previous) = child_states
+                            .insert(edge.to_state_id.clone(), resulting_identity.clone())
                             && previous != resulting_identity
                         {
                             action_invalid = true;
@@ -538,8 +539,7 @@ fn solve_node(
                     };
                     let reached_states: BTreeSet<String> =
                         reached_state_receipts.keys().cloned().collect();
-                    let child_states: BTreeSet<String> =
-                        child.state_ids.iter().cloned().collect();
+                    let child_states: BTreeSet<String> = child.state_ids.iter().cloned().collect();
                     if child_states != reached_states {
                         action_unknown = true;
                         unknown_reasons.push(format!(
@@ -811,12 +811,7 @@ mod tests {
         }
     }
 
-    fn edge(
-        from: &str,
-        action: &str,
-        to: &str,
-        next: &str,
-    ) -> PolicyTransition {
+    fn edge(from: &str, action: &str, to: &str, next: &str) -> PolicyTransition {
         PolicyTransition {
             from_state_id: from.to_owned(),
             action_id: action.to_owned(),
@@ -866,12 +861,7 @@ mod tests {
                 digest: "rough-transitions".to_owned(),
             },
             state_action_evidence: vec![state_actions("s1-rough", &["retreat"])],
-            transitions: vec![edge(
-                "s1-rough",
-                "retreat",
-                "s1-safe",
-                "rough-terminal",
-            )],
+            transitions: vec![edge("s1-rough", "retreat", "s1-safe", "rough-terminal")],
             terminal_recovery: None,
         };
         let firm = BeliefNode {
@@ -885,12 +875,7 @@ mod tests {
                 digest: "firm-transitions".to_owned(),
             },
             state_action_evidence: vec![state_actions("s2-firm", &["continue"])],
-            transitions: vec![edge(
-                "s2-firm",
-                "continue",
-                "s2-safe",
-                "firm-terminal",
-            )],
+            transitions: vec![edge("s2-firm", "continue", "s2-safe", "firm-terminal")],
             terminal_recovery: None,
         };
         FinitePolicyTree {
@@ -918,7 +903,10 @@ mod tests {
     fn bounded_policy_tree_uses_one_action_per_observation_and_safe_leaves() {
         let tree = root_two_step_tree();
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
-        assert_eq!(report.disposition, PolicyTreeDisposition::WinningPolicyFound);
+        assert_eq!(
+            report.disposition,
+            PolicyTreeDisposition::WinningPolicyFound
+        );
         assert_eq!(report.root_winning_action_ids, vec!["probe".to_owned()]);
         assert_eq!(report.policy_witness["root"], "probe");
         assert_eq!(report.policy_witness["rough-observation"], "retreat");
@@ -984,7 +972,12 @@ mod tests {
         tree.nodes[1].state_ids = vec!["unreached-state".to_owned()];
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
         assert_eq!(report.disposition, PolicyTreeDisposition::Unknown);
-        assert!(report.unknown_reasons.iter().any(|r| r.contains("partition-mismatch")));
+        assert!(
+            report
+                .unknown_reasons
+                .iter()
+                .any(|r| r.contains("partition-mismatch"))
+        );
     }
 
     #[test]
@@ -1014,10 +1007,11 @@ mod tests {
             receipt_digest: String::new(),
         });
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
-        assert_eq!(report.disposition, PolicyTreeDisposition::WinningPolicyFound);
+        assert_eq!(
+            report.disposition,
+            PolicyTreeDisposition::WinningPolicyFound
+        );
     }
-
-
 
     #[test]
     fn transition_predecessor_reserve_and_thermal_digests_must_match_parent_state() {
@@ -1025,7 +1019,9 @@ mod tests {
         reserve.nodes[0].transitions[0].predecessor_reserve_state_digest =
             "reserve:other".to_owned();
         assert_eq!(
-            evaluate_bounded_policy_tree(&reserve, 2).unwrap().disposition,
+            evaluate_bounded_policy_tree(&reserve, 2)
+                .unwrap()
+                .disposition,
             PolicyTreeDisposition::Invalid
         );
 
@@ -1033,7 +1029,9 @@ mod tests {
         thermal.nodes[0].transitions[0].predecessor_thermal_state_digest =
             "thermal:other".to_owned();
         assert_eq!(
-            evaluate_bounded_policy_tree(&thermal, 2).unwrap().disposition,
+            evaluate_bounded_policy_tree(&thermal, 2)
+                .unwrap()
+                .disposition,
             PolicyTreeDisposition::Invalid
         );
     }
@@ -1045,17 +1043,21 @@ mod tests {
             "thermal:wrong-successor".to_owned();
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
         assert_eq!(report.disposition, PolicyTreeDisposition::Invalid);
-        assert!(report
-            .invalid_reasons
-            .iter()
-            .any(|reason| reason.contains("successor-state-binding-mismatch")));
+        assert!(
+            report
+                .invalid_reasons
+                .iter()
+                .any(|reason| reason.contains("successor-state-binding-mismatch"))
+        );
     }
 
     #[test]
     fn terminal_recovery_must_cover_every_hidden_state_at_the_leaf() {
         let mut tree = root_two_step_tree();
         tree.nodes[3].state_ids = vec!["s1-safe".to_owned(), "s1-safe-alt".to_owned()];
-        tree.nodes[3].state_evidence.push(state_receipt("s1-safe-alt"));
+        tree.nodes[3]
+            .state_evidence
+            .push(state_receipt("s1-safe-alt"));
         // The terminal receipt still covers only s1-safe.
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
         assert_eq!(report.disposition, PolicyTreeDisposition::Unknown);
@@ -1074,10 +1076,12 @@ mod tests {
         });
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
         assert_eq!(report.disposition, PolicyTreeDisposition::Invalid);
-        assert!(report
-            .invalid_reasons
-            .iter()
-            .any(|reason| reason.contains("terminal-reserve-state-mismatch")));
+        assert!(
+            report
+                .invalid_reasons
+                .iter()
+                .any(|reason| reason.contains("terminal-reserve-state-mismatch"))
+        );
     }
 
     #[test]
@@ -1135,10 +1139,12 @@ mod tests {
             "unprovided-observation-node".to_owned();
         let report = evaluate_bounded_policy_tree(&missing_child, 2).unwrap();
         assert_eq!(report.disposition, PolicyTreeDisposition::Unknown);
-        assert!(report
-            .unknown_reasons
-            .iter()
-            .any(|reason| reason.contains("missing-child-node")));
+        assert!(
+            report
+                .unknown_reasons
+                .iter()
+                .any(|reason| reason.contains("missing-child-node"))
+        );
     }
 
     #[test]
