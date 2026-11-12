@@ -1,8 +1,8 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-pub mod delivery;
 pub mod continuity;
+pub mod delivery;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
