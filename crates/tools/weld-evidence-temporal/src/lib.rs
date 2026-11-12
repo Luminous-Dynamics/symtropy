@@ -183,7 +183,6 @@ pub enum LedgerError {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ExclusionReason {
-    LateArrival,
     FutureEvent,
     ClockMappingUnavailable,
     ClockMappingUnauthorized,
@@ -211,7 +210,6 @@ pub enum ExclusionReason {
 impl ExclusionReason {
     fn code(self) -> u8 {
         match self {
-            Self::LateArrival => 1,
             Self::FutureEvent => 2,
             Self::ClockMappingUnavailable => 3,
             Self::ClockMappingUnauthorized => 4,
@@ -600,10 +598,13 @@ pub fn snapshot_as_of(ledger: &EvidenceLedger, request: &DecisionRequest) -> Sna
     let mut applied_lifecycle_events = Vec::new();
 
     for event in &ledger.events {
+        // An event received after T was unknowable at T. Do not even put it in
+        // the exclusion list: its presence must not alter the historical
+        // snapshot transcript.
+        if event.first_received_at_tick > request.cutoff_tick {
+            continue;
+        }
         let result = (|| {
-            if event.first_received_at_tick > request.cutoff_tick {
-                return Err(ExclusionReason::LateArrival);
-            }
             if let Some(reason) = lifecycle_effect(
                 &event.event_id,
                 ledger,
@@ -796,12 +797,13 @@ mod tests {
     }
 
     #[test]
-    fn measurement_before_cutoff_but_received_after_is_excluded() {
+    fn measurement_before_cutoff_but_received_after_is_invisible() {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.source_tick = 5;
         item.first_received_at_tick = 11;
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
-        assert_eq!(result.excluded[0].reason, ExclusionReason::LateArrival);
+        assert!(result.included.is_empty());
+        assert!(result.excluded.is_empty());
     }
 
     #[test]
@@ -1300,7 +1302,9 @@ mod tests {
     fn clock_mapping_overflow_is_excluded_not_wrapped() {
         let mut item = event("E1", EvidenceKind::ProcessObservation);
         item.source_tick = i64::MAX;
-        let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
+        let mut evidence = ledger(vec![item]);
+        evidence.clock_mappings[0].ledger_offset_ticks = 1;
+        let result = snapshot(&evidence, DecisionPurpose::FastProcess, 10);
         assert_eq!(
             result.excluded[0].reason,
             ExclusionReason::ClockMappingOverflow
