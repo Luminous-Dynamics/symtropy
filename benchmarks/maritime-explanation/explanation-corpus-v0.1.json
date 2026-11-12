@@ -1,0 +1,1049 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "MARITIME-EXPLANATION-KNOWN-TRUTH-001",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "claim_ceiling": "Synthetic explanation-contract behavior only. This corpus does not validate a trained fault model, a SHAP/IG/LIME explanation, a physical engine mechanism, causal root cause, shipboard machinery diagnosis, safety, class approval, maintenance authority or permission to operate.",
+  "prediction_clock": {
+    "timebase_id": "synthetic-engine-run-ptp",
+    "qualification_state": "SYNTHETIC_CONFORMANCE",
+    "maximum_timestamp_uncertainty_ms": 2
+  },
+  "asset": {
+    "asset_id": "SYNTHETIC-MARINE-ENGINE-01",
+    "configuration_revision": "r1",
+    "configuration_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "operating_domain": {
+    "regime_id": "steady-75-mcr",
+    "qualification_state": "SYNTHETIC_CONFORMANCE",
+    "load_percent": 75,
+    "speed_rpm": 750,
+    "transient_state": "steady"
+  },
+  "signals": [
+    {
+      "signal_id": "fuel-index-command",
+      "role": "CONTROL_INTENT",
+      "source_kind": "CONTROLLER_REGISTER",
+      "evidence_class": "MEASURED",
+      "installed": true,
+      "unit": "percent",
+      "quality_state": "CURRENT",
+      "calibration_state": "NOT_APPLICABLE",
+      "timebase_id": "synthetic-engine-run-ptp",
+      "timestamp_uncertainty_ms": 1,
+      "available_at_ms": 900,
+      "dependency_groups": [
+        "controller:engine-ecu"
+      ],
+      "derived_from_signal_ids": []
+    },
+    {
+      "signal_id": "shaft-speed",
+      "role": "PHYSICAL_RESPONSE",
+      "source_kind": "PHYSICAL_SENSOR",
+      "evidence_class": "MEASURED",
+      "installed": true,
+      "unit": "rpm",
+      "quality_state": "CURRENT",
+      "calibration_state": "CURRENT",
+      "timebase_id": "synthetic-engine-run-ptp",
+      "timestamp_uncertainty_ms": 1,
+      "available_at_ms": 940,
+      "dependency_groups": [
+        "sensor:crank-speed"
+      ],
+      "derived_from_signal_ids": []
+    },
+    {
+      "signal_id": "exhaust-temperature",
+      "role": "PHYSICAL_RESPONSE",
+      "source_kind": "PHYSICAL_SENSOR",
+      "evidence_class": "MEASURED",
+      "installed": true,
+      "unit": "degC",
+      "quality_state": "CURRENT",
+      "calibration_state": "CURRENT",
+      "timebase_id": "synthetic-engine-run-ptp",
+      "timestamp_uncertainty_ms": 1,
+      "available_at_ms": 945,
+      "dependency_groups": [
+        "sensor:exhaust-thermocouple"
+      ],
+      "derived_from_signal_ids": []
+    },
+    {
+      "signal_id": "engine-load-context",
+      "role": "DISTURBANCE_CONTEXT",
+      "source_kind": "PHYSICAL_SENSOR",
+      "evidence_class": "MEASURED",
+      "installed": true,
+      "unit": "percent",
+      "quality_state": "CURRENT",
+      "calibration_state": "CURRENT",
+      "timebase_id": "synthetic-engine-run-ptp",
+      "timestamp_uncertainty_ms": 1,
+      "available_at_ms": 950,
+      "dependency_groups": [
+        "sensor:load-reference"
+      ],
+      "derived_from_signal_ids": []
+    },
+    {
+      "signal_id": "derived-load-estimate",
+      "role": "DERIVED_RESPONSE",
+      "source_kind": "DERIVED_TRANSFORM",
+      "evidence_class": "DERIVED",
+      "installed": true,
+      "unit": "percent",
+      "quality_state": "CURRENT",
+      "calibration_state": "NOT_APPLICABLE",
+      "timebase_id": "synthetic-engine-run-ptp",
+      "timestamp_uncertainty_ms": 1,
+      "available_at_ms": 960,
+      "dependency_groups": [
+        "transform:load-estimator"
+      ],
+      "derived_from_signal_ids": [
+        "fuel-index-command",
+        "shaft-speed"
+      ]
+    },
+    {
+      "signal_id": "twin-boost-estimate",
+      "role": "SIMULATED",
+      "source_kind": "MODEL_OUTPUT",
+      "evidence_class": "SIMULATED",
+      "installed": false,
+      "unit": "kPa",
+      "quality_state": "CURRENT",
+      "calibration_state": "NOT_APPLICABLE",
+      "timebase_id": "synthetic-engine-run-ptp",
+      "timestamp_uncertainty_ms": 1,
+      "available_at_ms": 960,
+      "dependency_groups": [
+        "model:twin-v1"
+      ],
+      "derived_from_signal_ids": [
+        "fuel-index-command",
+        "engine-load-context"
+      ]
+    },
+    {
+      "signal_id": "optional-vibration",
+      "role": "PHYSICAL_RESPONSE",
+      "source_kind": "PHYSICAL_SENSOR",
+      "evidence_class": "MEASURED",
+      "installed": false,
+      "unit": "mm_s2_rms",
+      "quality_state": "MISSING",
+      "calibration_state": "UNKNOWN",
+      "timebase_id": "synthetic-engine-run-ptp",
+      "timestamp_uncertainty_ms": 1,
+      "available_at_ms": 940,
+      "dependency_groups": [
+        "sensor:optional-vibration"
+      ],
+      "derived_from_signal_ids": []
+    },
+    {
+      "signal_id": "wave-height-context",
+      "role": "DISTURBANCE_CONTEXT",
+      "source_kind": "EXTERNAL_CONTEXT",
+      "evidence_class": "MEASURED",
+      "installed": true,
+      "unit": "m",
+      "quality_state": "CURRENT",
+      "calibration_state": "NOT_APPLICABLE",
+      "timebase_id": "synthetic-engine-run-ptp",
+      "timestamp_uncertainty_ms": 1,
+      "available_at_ms": 1200,
+      "dependency_groups": [
+        "external:metocean-feed"
+      ],
+      "derived_from_signal_ids": []
+    }
+  ],
+  "features": [
+    {
+      "feature_id": "f-shaft-speed-residual",
+      "role": "PHYSICAL_RESPONSE",
+      "signal_ids": [
+        "shaft-speed"
+      ],
+      "transform_id": "speed-residual-v1",
+      "transform_sha256": null,
+      "available_at_ms": 960,
+      "unit": "rpm",
+      "semantic_scope": "measured_response"
+    },
+    {
+      "feature_id": "f-exhaust-temperature-rise",
+      "role": "PHYSICAL_RESPONSE",
+      "signal_ids": [
+        "exhaust-temperature"
+      ],
+      "transform_id": "temperature-delta-v1",
+      "transform_sha256": null,
+      "available_at_ms": 960,
+      "unit": "degC",
+      "semantic_scope": "measured_response"
+    },
+    {
+      "feature_id": "f-fuel-index-command",
+      "role": "CONTROL_INTENT",
+      "signal_ids": [
+        "fuel-index-command"
+      ],
+      "transform_id": "controller-feature-v1",
+      "transform_sha256": null,
+      "available_at_ms": 910,
+      "unit": "percent",
+      "semantic_scope": "control_intent"
+    },
+    {
+      "feature_id": "f-derived-load",
+      "role": "DERIVED_RESPONSE",
+      "signal_ids": [
+        "derived-load-estimate"
+      ],
+      "transform_id": "derived-load-v1",
+      "transform_sha256": null,
+      "available_at_ms": 965,
+      "unit": "percent",
+      "semantic_scope": "derived_only"
+    },
+    {
+      "feature_id": "f-twin-boost",
+      "role": "SIMULATED",
+      "signal_ids": [
+        "twin-boost-estimate"
+      ],
+      "transform_id": "twin-boost-v1",
+      "transform_sha256": null,
+      "available_at_ms": 970,
+      "unit": "kPa",
+      "semantic_scope": "simulation_only"
+    },
+    {
+      "feature_id": "f-vibration",
+      "role": "PHYSICAL_RESPONSE",
+      "signal_ids": [
+        "optional-vibration"
+      ],
+      "transform_id": "vibration-rms-v1",
+      "transform_sha256": null,
+      "available_at_ms": 950,
+      "unit": "mm_s2_rms",
+      "semantic_scope": "uninstalled_sensor"
+    },
+    {
+      "feature_id": "f-wave-height",
+      "role": "DISTURBANCE_CONTEXT",
+      "signal_ids": [
+        "wave-height-context"
+      ],
+      "transform_id": "wave-context-v1",
+      "transform_sha256": null,
+      "available_at_ms": 1200,
+      "unit": "m",
+      "semantic_scope": "external_context"
+    }
+  ],
+  "mechanism_links": [
+    {
+      "mechanism_link_id": "mechanism-turbocharger-fouling",
+      "fault_id": "TURBOCHARGER_FOULING",
+      "component_id": "TURBOCHARGER",
+      "effect_id": "BOOST_AND_EXHAUST_RESPONSE_CHANGE",
+      "required_signal_roles": [
+        "PHYSICAL_RESPONSE",
+        "DISTURBANCE_CONTEXT"
+      ],
+      "expected_direction": "REGIME_CONDITIONED",
+      "review_state": "SYNTHETIC_CONFORMANCE",
+      "evidence_ref": "synthetic-mechanism-fixture:turbocharger-v1"
+    },
+    {
+      "mechanism_link_id": "mechanism-intercooler-restriction",
+      "fault_id": "INTERCOOLER_RESTRICTION",
+      "component_id": "INTERCOOLER",
+      "effect_id": "CHARGE_AIR_AND_EXHAUST_RESPONSE_CHANGE",
+      "required_signal_roles": [
+        "PHYSICAL_RESPONSE",
+        "DISTURBANCE_CONTEXT"
+      ],
+      "expected_direction": "REGIME_CONDITIONED",
+      "review_state": "SYNTHETIC_CONFORMANCE",
+      "evidence_ref": "synthetic-mechanism-fixture:intercooler-v1"
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "measured-association-with-limits",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "SHAP",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-supported-v1",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-shaft-speed-residual",
+            "rank": 1,
+            "attribution": 0.6
+          },
+          {
+            "feature_id": "f-exhaust-temperature-rise",
+            "rank": 2,
+            "attribution": 0.3
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-association-1",
+            "claim_type": "MODEL_ASSOCIATION",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": "TURBOCHARGER",
+            "effect_id": "BOOST_AND_EXHAUST_RESPONSE_CHANGE",
+            "supporting_feature_ids": [
+              "f-shaft-speed-residual",
+              "f-exhaust-temperature-rise"
+            ],
+            "independent_source_signal_ids": [
+              "shaft-speed",
+              "exhaust-temperature"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": "mechanism-turbocharger-fouling"
+          }
+        ]
+      },
+      "expected_disposition": "ACCEPTED_WITH_LIMITS"
+    },
+    {
+      "case_id": "command-promoted-to-physical-delivery",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "SHAP",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-command-promotion",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-fuel-index-command",
+            "rank": 1,
+            "attribution": 0.9
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-command-delivery",
+            "claim_type": "MECHANISM_SUPPORTED",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": "FUEL_SYSTEM",
+            "effect_id": "FUEL_DELIVERY_CONFIRMED",
+            "supporting_feature_ids": [
+              "f-fuel-index-command"
+            ],
+            "independent_source_signal_ids": [
+              "fuel-index-command"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": null
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_CLAIM_ROLE_PROMOTION"
+    },
+    {
+      "case_id": "derived-feature-double-counted-as-independent",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "SHAP",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-double-count",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-derived-load",
+            "rank": 1,
+            "attribution": 0.7
+          },
+          {
+            "feature_id": "f-fuel-index-command",
+            "rank": 2,
+            "attribution": 0.2
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-independent-derived",
+            "claim_type": "MECHANISM_SUPPORTED",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": "TURBOCHARGER",
+            "effect_id": "BOOST_RESPONSE_CHANGE",
+            "supporting_feature_ids": [
+              "f-derived-load",
+              "f-fuel-index-command"
+            ],
+            "independent_source_signal_ids": [
+              "derived-load-estimate",
+              "fuel-index-command"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": "mechanism-turbocharger-fouling"
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_INDEPENDENCE_CLAIM"
+    },
+    {
+      "case_id": "simulation-promoted-to-measured-physical-evidence",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "SHAP",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-sim-promotion",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-twin-boost",
+            "rank": 1,
+            "attribution": 0.8
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-sim-physical",
+            "claim_type": "MECHANISM_SUPPORTED",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": "TURBOCHARGER",
+            "effect_id": "BOOST_RESPONSE_MEASURED",
+            "supporting_feature_ids": [
+              "f-twin-boost"
+            ],
+            "independent_source_signal_ids": [
+              "twin-boost-estimate"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": "mechanism-turbocharger-fouling"
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_EVIDENCE_ROLE_PROMOTION"
+    },
+    {
+      "case_id": "nonisolable-pair-unique-root-cause-claim",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "AMBIGUITY_CLASS",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING",
+          "INTERCOOLER_RESTRICTION"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "INTEGRATED_GRADIENTS",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-unique-from-ambiguous",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-exhaust-temperature-rise",
+            "rank": 1,
+            "attribution": 0.8
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-unique-fault",
+            "claim_type": "MECHANISM_SUPPORTED",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": "TURBOCHARGER",
+            "effect_id": "EXHAUST_RESPONSE_CHANGE",
+            "supporting_feature_ids": [
+              "f-exhaust-temperature-rise"
+            ],
+            "independent_source_signal_ids": [
+              "exhaust-temperature"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": "mechanism-turbocharger-fouling"
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_UNIQUE_CAUSE_CLAIM"
+    },
+    {
+      "case_id": "nonisolable-pair-ambiguity-preserved",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "AMBIGUITY_CLASS",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING",
+          "INTERCOOLER_RESTRICTION"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "PHYSICS_RULES",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-ambiguity-preserved",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-shaft-speed-residual",
+            "rank": 1,
+            "attribution": 0.5
+          },
+          {
+            "feature_id": "f-exhaust-temperature-rise",
+            "rank": 2,
+            "attribution": 0.4
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-ambiguity",
+            "claim_type": "MODEL_ASSOCIATION",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING",
+              "INTERCOOLER_RESTRICTION"
+            ],
+            "component_id": null,
+            "effect_id": "SHARED_EXHAUST_SPEED_PATTERN",
+            "supporting_feature_ids": [
+              "f-shaft-speed-residual",
+              "f-exhaust-temperature-rise"
+            ],
+            "independent_source_signal_ids": [
+              "shaft-speed",
+              "exhaust-temperature"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": null
+          }
+        ]
+      },
+      "expected_disposition": "AMBIGUITY_PRESERVED"
+    },
+    {
+      "case_id": "uninstalled-sensor-cited-as-observed",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "LIME",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-uninstalled",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-vibration",
+            "rank": 1,
+            "attribution": 0.8
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-uninstalled",
+            "claim_type": "MECHANISM_SUPPORTED",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": "TURBOCHARGER",
+            "effect_id": "VIBRATION_PATTERN",
+            "supporting_feature_ids": [
+              "f-vibration"
+            ],
+            "independent_source_signal_ids": [
+              "optional-vibration"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": "mechanism-turbocharger-fouling"
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_UNAVAILABLE_EVIDENCE"
+    },
+    {
+      "case_id": "post-prediction-external-context-leakage",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "SHAP",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-future-context",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-wave-height",
+            "rank": 1,
+            "attribution": 0.7
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-future-context",
+            "claim_type": "MODEL_ASSOCIATION",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": null,
+            "effect_id": null,
+            "supporting_feature_ids": [
+              "f-wave-height"
+            ],
+            "independent_source_signal_ids": [
+              "wave-height-context"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": null
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_FUTURE_INFORMATION"
+    },
+    {
+      "case_id": "explanation-unchanged-after-evidence-withdrawal",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "NOT_EVALUATED",
+        "admissible_fault_ids": []
+      },
+      "evidence_overrides": [
+        {
+          "signal_id": "shaft-speed",
+          "quality_state": "MISSING",
+          "installed": true
+        }
+      ],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "SHAP",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-supported-v1",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-shaft-speed-residual",
+            "rank": 1,
+            "attribution": 0.6
+          },
+          {
+            "feature_id": "f-exhaust-temperature-rise",
+            "rank": 2,
+            "attribution": 0.3
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-stale-confidence",
+            "claim_type": "MODEL_ASSOCIATION",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": "TURBOCHARGER",
+            "effect_id": "BOOST_AND_EXHAUST_RESPONSE_CHANGE",
+            "supporting_feature_ids": [
+              "f-shaft-speed-residual",
+              "f-exhaust-temperature-rise"
+            ],
+            "independent_source_signal_ids": [
+              "shaft-speed",
+              "exhaust-temperature"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": "mechanism-turbocharger-fouling"
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_UNRESPONSIVE_EXPLANATION"
+    },
+    {
+      "case_id": "shap-association-mislabelled-as-causal",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "SHAP",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-causal-overclaim",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-exhaust-temperature-rise",
+            "rank": 1,
+            "attribution": 0.9
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-causal-from-shap",
+            "claim_type": "CAUSAL",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": "TURBOCHARGER",
+            "effect_id": "EXHAUST_TEMPERATURE_CHANGE",
+            "supporting_feature_ids": [
+              "f-exhaust-temperature-rise"
+            ],
+            "independent_source_signal_ids": [
+              "exhaust-temperature"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": "mechanism-turbocharger-fouling"
+          }
+        ]
+      },
+      "expected_disposition": "INVALID_CAUSAL_OVERCLAIM"
+    },
+    {
+      "case_id": "unsupported-regime-detailed-narrative",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "UNSUPPORTED_REGIME",
+        "admissible_fault_ids": []
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "ATTENTION_WEIGHTS",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-ood",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-exhaust-temperature-rise",
+            "rank": 1,
+            "attribution": 0.8
+          }
+        ],
+        "claims": []
+      },
+      "expected_disposition": "NOT_EVALUATED"
+    },
+    {
+      "case_id": "unit-invariance-reference",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "SHAP",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-unit-invariant",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-shaft-speed-residual",
+            "rank": 1,
+            "attribution": 0.6
+          },
+          {
+            "feature_id": "f-exhaust-temperature-rise",
+            "rank": 2,
+            "attribution": 0.3
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-unit-reference",
+            "claim_type": "MODEL_ASSOCIATION",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": null,
+            "effect_id": null,
+            "supporting_feature_ids": [
+              "f-shaft-speed-residual",
+              "f-exhaust-temperature-rise"
+            ],
+            "independent_source_signal_ids": [
+              "shaft-speed",
+              "exhaust-temperature"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": null
+          }
+        ]
+      },
+      "expected_disposition": "ACCEPTED_WITH_LIMITS",
+      "metamorphic_assertions": [
+        {
+          "assertion_id": "unit-scale-invariance",
+          "kind": "UNIT_INVARIANCE",
+          "related_case_ids": [
+            "unit-invariance-reference",
+            "unit-invariance-converted"
+          ],
+          "expected_relation": "SAME_TOP_K_RANK_AND_DISPOSITION"
+        }
+      ]
+    },
+    {
+      "case_id": "unit-invariance-converted",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "SHAP",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-unit-invariant",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-shaft-speed-residual",
+            "rank": 1,
+            "attribution": 0.6
+          },
+          {
+            "feature_id": "f-exhaust-temperature-rise",
+            "rank": 2,
+            "attribution": 0.3
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-unit-converted",
+            "claim_type": "MODEL_ASSOCIATION",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": null,
+            "effect_id": null,
+            "supporting_feature_ids": [
+              "f-shaft-speed-residual",
+              "f-exhaust-temperature-rise"
+            ],
+            "independent_source_signal_ids": [
+              "shaft-speed",
+              "exhaust-temperature"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": null
+          }
+        ]
+      },
+      "expected_disposition": "ACCEPTED_WITH_LIMITS",
+      "unit_transformations": [
+        {
+          "signal_id": "shaft-speed",
+          "source_unit": "rpm",
+          "target_unit": "rad/s",
+          "scale": 0.10471975511965977,
+          "offset": 0
+        },
+        {
+          "signal_id": "exhaust-temperature",
+          "source_unit": "degC",
+          "target_unit": "K",
+          "scale": 1,
+          "offset": 273.15
+        }
+      ]
+    },
+    {
+      "case_id": "uncertainty-bounded-attribution-stability",
+      "prediction_time_ms": 1000,
+      "diagnostic_state": {
+        "observability_state": "ISOLABLE",
+        "admissible_fault_ids": [
+          "TURBOCHARGER_FOULING"
+        ]
+      },
+      "evidence_overrides": [],
+      "explanation": {
+        "model_id": "synthetic-diagnostic-model",
+        "model_sha256": null,
+        "explainer": {
+          "method": "INTEGRATED_GRADIENTS",
+          "version": "synthetic-fixture",
+          "background_set_sha256": null
+        },
+        "explanation_signature": "sig-stable-under-uncertainty",
+        "ranked_attributions": [
+          {
+            "feature_id": "f-shaft-speed-residual",
+            "rank": 1,
+            "attribution": 0.58
+          },
+          {
+            "feature_id": "f-exhaust-temperature-rise",
+            "rank": 2,
+            "attribution": 0.31
+          }
+        ],
+        "claims": [
+          {
+            "claim_id": "claim-stable",
+            "claim_type": "MODEL_ASSOCIATION",
+            "fault_ids": [
+              "TURBOCHARGER_FOULING"
+            ],
+            "component_id": null,
+            "effect_id": null,
+            "supporting_feature_ids": [
+              "f-shaft-speed-residual",
+              "f-exhaust-temperature-rise"
+            ],
+            "independent_source_signal_ids": [
+              "shaft-speed",
+              "exhaust-temperature"
+            ],
+            "causal_evidence_refs": [],
+            "mechanism_link_id": null
+          }
+        ]
+      },
+      "expected_disposition": "ACCEPTED_WITH_LIMITS",
+      "metamorphic_assertions": [
+        {
+          "assertion_id": "bounded-uncertainty-stability",
+          "kind": "UNCERTAINTY_PERTURBATION_STABILITY",
+          "related_case_ids": [
+            "unit-invariance-reference",
+            "uncertainty-bounded-attribution-stability"
+          ],
+          "expected_relation": "SAME_TOP_K_FEATURE_SET"
+        }
+      ],
+      "measurement_perturbations": [
+        {
+          "signal_id": "shaft-speed",
+          "value_delta": 0.8,
+          "declared_measurement_uncertainty": 1
+        },
+        {
+          "signal_id": "exhaust-temperature",
+          "value_delta": -0.2,
+          "declared_measurement_uncertainty": 0.5
+        }
+      ]
+    }
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "controller_write": false,
+    "actuation": false,
+    "maintenance_authorization": false,
+    "mode_transition": false,
+    "restriction_clearance": false
+  }
+}
