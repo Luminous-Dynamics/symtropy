@@ -1,0 +1,67 @@
+{
+  "schema_version": "mission-card/v1",
+  "mission_id": "regional-hybrid-electric-fixed-wing-template",
+  "revision": 1,
+  "title": "Regional hybrid-electric fixed-wing reference mission template",
+  "status": "planning_reference",
+  "aircraft_class": "hybrid_electric_fixed_wing",
+  "architectures_to_compare": [
+    "series_hybrid",
+    "parallel_hybrid",
+    "conventional_fixed_wing"
+  ],
+  "mission": {
+    "passengers": null,
+    "crew": null,
+    "reference_range": {
+      "value": null,
+      "unit": "nautical_mile",
+      "interpretation": "Intentionally unspecified until a target route, aircraft class, payload, reserve policy, and baseline are selected."
+    },
+    "payload_mass_kg": null
+  },
+  "flight_profile": {
+    "profile_status": "not_defined",
+    "segments": []
+  },
+  "environment": {
+    "temperature_c": null,
+    "wind_speed_m_s": null,
+    "wind_direction_deg": null,
+    "density_altitude_m": null,
+    "weather_basis": "not_defined"
+  },
+  "reserve_policy": {
+    "status": "not_defined",
+    "authority_or_operating_reference": null,
+    "diversion_definition": null
+  },
+  "system_boundaries": {
+    "energy_metering_boundary": "not_defined",
+    "battery_specific_energy_boundary": "not_defined",
+    "mass_boundary": "not_defined",
+    "thermal_boundary": "not_defined"
+  },
+  "open_questions": [
+    "Select the regional aircraft class and a matched conventional reference aircraft.",
+    "Define passenger, crew, baggage, cargo payload, and centre-of-gravity envelopes.",
+    "Select route distance, cruise altitude, speed, climb profile, and alternate airport.",
+    "Choose the operating jurisdiction and applicable reserve and diversion requirements.",
+    "Specify fuel type, engine/generator map, battery power/energy requirements, and hybrid power-split policy.",
+    "Model takeoff, climb, cruise, go-around, descent, landing, and required failure cases separately.",
+    "Define the thermal management system and allowable degraded-cooling operating envelope.",
+    "Define fuel, battery, generator, inverter, motor, and propulsor measurement boundaries.",
+    "Establish lifecycle emissions, fuel-burn, turnaround, maintenance, and dispatch availability baselines."
+  ],
+  "provenance": {
+    "source_name": "NASA, GE Aerospace Work Enables Hybrid-Electric Flight Demonstration",
+    "source_url": "https://www.nasa.gov/directorates/rtmd/nasa-ge-hybrid-electric-flight/",
+    "source_type": "government_research",
+    "accessed_date": "2026-11-12",
+    "source_claim": "NASA reported a megawatt-class hybrid-electric system flight demonstration on a modified Saab 340B in July 2026. This is a technology reference, not a mission specification or a claim that the reference aircraft meets this template."
+  },
+  "maturity": {
+    "evidence_class": "planning_reference",
+    "performance_claims_authorized": false
+  }
+}
