@@ -177,3 +177,10 @@ All thresholds are prospective research goals, not achieved results or certifica
 ## Claim ceiling
 
 A valid report establishes only internal consistency and metrics over the exact declared trace and evaluator contract. It does not authenticate injected faults, execute vehicle/actor dynamics, verify a real fallback controller, prove a physical safety envelope, estimate real-world collision risk, validate a learned model, or authorize vehicle actuation.
+
+
+### Causal attribution under overlapping faults
+
+The per-tick trace now carries `deadline_miss_fault_ids` and `constraint_violation_fault_ids`. An event receives a deadline-miss or constraint-violation count only when its ID is present on that tick. The validator checks the referenced fault exists, is active at the tick, and the evidence supports the attribution (measured deadline overrun or oracle constraint violation).
+
+This avoids cross-attributing a compute deadline miss to an overlapping camera fault, or counting a shared constraint violation against every active fault by default. A true common-cause violation may explicitly list multiple fault IDs, but each attribution is visible in the trace. Aggregate run-level deadline and constraint counts remain separate and are not replaced by per-fault attribution.
