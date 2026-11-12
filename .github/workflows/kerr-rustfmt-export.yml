@@ -1,0 +1,34 @@
+name: Kerr rustfmt source export
+
+on:
+  push:
+    branches:
+      - research/kerr-separated-null-geodesics-v0.1
+    paths:
+      - .github/workflows/kerr-rustfmt-export.yml
+      - crates/domains/symtropy-relativity/src/kerr_geodesic.rs
+      - crates/domains/symtropy-relativity/src/kerr_integrator.rs
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    name: Export rustfmt-normalized Kerr source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt
+      - name: Format the source files in the runner workspace
+        run: cargo fmt --manifest-path crates/domains/symtropy-relativity/Cargo.toml
+      - name: Upload normalized source
+        uses: actions/upload-artifact@v4
+        with:
+          name: kerr-rustfmt-normalized-source
+          path: |
+            crates/domains/symtropy-relativity/src/kerr_geodesic.rs
+            crates/domains/symtropy-relativity/src/kerr_integrator.rs
