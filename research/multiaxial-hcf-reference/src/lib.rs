@@ -60,15 +60,9 @@ impl StressTensorMpa {
 
     fn multiply_vector(self, vector: [f64; 3]) -> [f64; 3] {
         [
-            self.sigma_xx * vector[0]
-                + self.tau_xy * vector[1]
-                + self.tau_zx * vector[2],
-            self.tau_xy * vector[0]
-                + self.sigma_yy * vector[1]
-                + self.tau_yz * vector[2],
-            self.tau_zx * vector[0]
-                + self.tau_yz * vector[1]
-                + self.sigma_zz * vector[2],
+            self.sigma_xx * vector[0] + self.tau_xy * vector[1] + self.tau_zx * vector[2],
+            self.tau_xy * vector[0] + self.sigma_yy * vector[1] + self.tau_yz * vector[2],
+            self.tau_zx * vector[0] + self.tau_yz * vector[1] + self.sigma_zz * vector[2],
         ]
     }
 
@@ -253,8 +247,16 @@ impl StressHistory {
             previous_phase = Some(sample.phase_rad);
         }
 
-        let first = self.samples.first().expect("sample count validated").phase_rad;
-        let last = self.samples.last().expect("sample count validated").phase_rad;
+        let first = self
+            .samples
+            .first()
+            .expect("sample count validated")
+            .phase_rad;
+        let last = self
+            .samples
+            .last()
+            .expect("sample count validated")
+            .phase_rad;
         let wrap_gap = TAU - (last - first);
         let mut maximum_gap = wrap_gap;
         for pair in self.samples.windows(2) {
@@ -272,9 +274,7 @@ impl FindleyProfile {
         if self.profile_id.trim().is_empty() || self.version.trim().is_empty() {
             return Err(HcfError::InvalidProfileIdentity);
         }
-        if !self.normal_stress_sensitivity.is_finite()
-            || self.normal_stress_sensitivity < 0.0
-        {
+        if !self.normal_stress_sensitivity.is_finite() || self.normal_stress_sensitivity < 0.0 {
             return Err(HcfError::InvalidMaterialParameter);
         }
         if self.polar_steps < 2
@@ -337,16 +337,9 @@ pub fn evaluate_findley(
 
         for azimuth_index in 0..profile.azimuth_steps {
             let phi = TAU * (azimuth_index as f64) / (profile.azimuth_steps as f64);
-            let normal = [
-                sin_theta * phi.cos(),
-                sin_theta * phi.sin(),
-                cos_theta,
-            ];
-            let candidate = evaluate_plane(
-                &history.samples,
-                normal,
-                profile.normal_stress_sensitivity,
-            )?;
+            let normal = [sin_theta * phi.cos(), sin_theta * phi.sin(), cos_theta];
+            let candidate =
+                evaluate_plane(&history.samples, normal, profile.normal_stress_sensitivity)?;
             examined += 1;
 
             let should_replace = best.is_none_or(|current| {
@@ -440,11 +433,7 @@ fn convex_hull(mut points: Vec<[f64; 2]>) -> Vec<[f64; 2]> {
     let mut lower = Vec::with_capacity(points.len());
     for point in &points {
         while lower.len() >= 2
-            && cross_2d(
-                lower[lower.len() - 2],
-                lower[lower.len() - 1],
-                *point,
-            ) <= 0.0
+            && cross_2d(lower[lower.len() - 2], lower[lower.len() - 1], *point) <= 0.0
         {
             lower.pop();
         }
@@ -454,11 +443,7 @@ fn convex_hull(mut points: Vec<[f64; 2]>) -> Vec<[f64; 2]> {
     let mut upper = Vec::with_capacity(points.len());
     for point in points.iter().rev() {
         while upper.len() >= 2
-            && cross_2d(
-                upper[upper.len() - 2],
-                upper[upper.len() - 1],
-                *point,
-            ) <= 0.0
+            && cross_2d(upper[upper.len() - 2], upper[upper.len() - 1], *point) <= 0.0
         {
             upper.pop();
         }
@@ -496,14 +481,11 @@ fn polygon_area(hull: &[[f64; 2]]) -> f64 {
 }
 
 fn cross_2d(origin: [f64; 2], left: [f64; 2], right: [f64; 2]) -> f64 {
-    (left[0] - origin[0]) * (right[1] - origin[1])
-        - (left[1] - origin[1]) * (right[0] - origin[0])
+    (left[0] - origin[0]) * (right[1] - origin[1]) - (left[1] - origin[1]) * (right[0] - origin[0])
 }
 
 fn validate_digest(digest: &str) -> Result<(), HcfError> {
-    if digest.len() != DIGEST_HEX_LENGTH
-        || !digest.bytes().all(|byte| byte.is_ascii_hexdigit())
-    {
+    if digest.len() != DIGEST_HEX_LENGTH || !digest.bytes().all(|byte| byte.is_ascii_hexdigit()) {
         return Err(HcfError::InvalidDigest);
     }
     Ok(())
@@ -527,10 +509,8 @@ fn validate_rotation(rotation: [[f64; 3]; 3]) -> Result<(), HcfError> {
     }
     let determinant = rotation[0][0]
         * (rotation[1][1] * rotation[2][2] - rotation[1][2] * rotation[2][1])
-        - rotation[0][1]
-            * (rotation[1][0] * rotation[2][2] - rotation[1][2] * rotation[2][0])
-        + rotation[0][2]
-            * (rotation[1][0] * rotation[2][1] - rotation[1][1] * rotation[2][0]);
+        - rotation[0][1] * (rotation[1][0] * rotation[2][2] - rotation[1][2] * rotation[2][0])
+        + rotation[0][2] * (rotation[1][0] * rotation[2][1] - rotation[1][1] * rotation[2][0]);
     if (determinant - 1.0).abs() > tolerance {
         return Err(HcfError::InvalidRotation);
     }
@@ -580,10 +560,7 @@ mod tests {
         }
     }
 
-    fn history(
-        case_id: &str,
-        stress_at_phase: impl Fn(f64) -> StressTensorMpa,
-    ) -> StressHistory {
+    fn history(case_id: &str, stress_at_phase: impl Fn(f64) -> StressTensorMpa) -> StressHistory {
         let samples = (0..SAMPLE_COUNT)
             .map(|index| {
                 let phase = TAU * (index as f64) / (SAMPLE_COUNT as f64);
@@ -688,7 +665,9 @@ mod tests {
         for sample in &mut shifted.samples {
             sample.phase_rad = (sample.phase_rad + shift) % TAU;
         }
-        shifted.samples.sort_by(|a, b| a.phase_rad.total_cmp(&b.phase_rad));
+        shifted
+            .samples
+            .sort_by(|a, b| a.phase_rad.total_cmp(&b.phase_rad));
 
         let first = evaluate_findley(&original, profile(0.28)).unwrap();
         let second = evaluate_findley(&shifted, profile(0.28)).unwrap();
@@ -708,11 +687,7 @@ mod tests {
             sigma_yy: 12.0 * (phase - 0.3).sin(),
             ..zero_stress()
         });
-        let rotation = [
-            [0.0, -1.0, 0.0],
-            [1.0, 0.0, 0.0],
-            [0.0, 0.0, 1.0],
-        ];
+        let rotation = [[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]];
         let mut rotated = original.clone();
         for sample in &mut rotated.samples {
             sample.stress = sample.stress.rotated(rotation).unwrap();
@@ -732,7 +707,8 @@ mod tests {
     fn phase_gap_above_profile_limit_is_rejected() {
         let mut h = history("bad-phase-gap", |_| zero_stress());
         h.samples[20].phase_rad += 0.2;
-        h.samples.sort_by(|a, b| a.phase_rad.total_cmp(&b.phase_rad));
+        h.samples
+            .sort_by(|a, b| a.phase_rad.total_cmp(&b.phase_rad));
         assert_eq!(
             evaluate_findley(&h, profile(0.3)),
             Err(HcfError::PhaseGapTooLarge)
@@ -804,9 +780,6 @@ mod tests {
         let h = history("bounded-search", |_| zero_stress());
         let mut p = profile(0.3);
         p.polar_steps = 92;
-        assert_eq!(
-            evaluate_findley(&h, p),
-            Err(HcfError::InvalidPlaneSearch)
-        );
+        assert_eq!(evaluate_findley(&h, p), Err(HcfError::InvalidPlaneSearch));
     }
 }
