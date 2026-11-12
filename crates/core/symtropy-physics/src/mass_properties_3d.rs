@@ -54,10 +54,7 @@ impl MassProperties3 {
     /// - `Ixx = m/3 (hy^2 + hz^2)`
     /// - `Iyy = m/3 (hx^2 + hz^2)`
     /// - `Izz = m/3 (hx^2 + hy^2)`
-    pub fn solid_cuboid(
-        mass: f64,
-        half_extents: [f64; 3],
-    ) -> Result<Self, MassProperties3Error> {
+    pub fn solid_cuboid(mass: f64, half_extents: [f64; 3]) -> Result<Self, MassProperties3Error> {
         validate_mass(mass)?;
         for (axis, half_extent) in half_extents.iter().copied().enumerate() {
             if !half_extent.is_finite() || half_extent <= 0.0 {
@@ -151,7 +148,10 @@ impl MassProperties3 {
     }
 
     fn from_moments(mass: f64, moments: [f64; 3]) -> Result<Self, MassProperties3Error> {
-        if moments.iter().any(|moment| !moment.is_finite() || *moment <= 0.0) {
+        if moments
+            .iter()
+            .any(|moment| !moment.is_finite() || *moment <= 0.0)
+        {
             return Err(MassProperties3Error::UnrepresentableInertia);
         }
         let principal_inertia = PrincipalInertia3::new(moments)
