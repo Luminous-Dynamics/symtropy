@@ -213,7 +213,11 @@ fn render_report(measurements: &[Measurement], total_elapsed: Duration) -> Strin
         std::env::consts::OS,
         json_escape(&cpu_model()),
         json_escape(&rustc_version()),
-        json_escape(&std::env::var("GITHUB_SHA").unwrap_or_else(|_| "local".to_owned())),
+        json_escape(
+            &std::env::var("METRIC_BENCHMARK_SOURCE_SHA")
+                .or_else(|_| std::env::var("GITHUB_SHA"))
+                .unwrap_or_else(|_| "local".to_owned()),
+        ),
         json_escape(&std::env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned())),
         std::thread::available_parallelism()
             .map(|v| v.get())
