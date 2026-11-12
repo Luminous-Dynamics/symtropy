@@ -233,6 +233,41 @@ impl ColonyWorld {
         }
     }
 
+    /// Randomize the spatial arrangement of both social-memory fields while preserving
+    /// each channel's exact value multiset.
+    ///
+    /// This is a structure-destruction control: field magnitudes and histogram are
+    /// preserved, but spatial correlations and trail geometry are destroyed. Each
+    /// channel is shuffled independently using a deterministic seed. Non-social
+    /// environmental channels, agents and food inventory remain unchanged.
+    pub fn randomize_social_memory(&mut self, seed: u64) {
+        let width = self.fields.width();
+        let height = self.fields.height();
+        let mut food: Vec<f32> = (0..height)
+            .flat_map(|y| {
+                (0..width).map(move |x| self.fields.get(FieldLayer::FoodPheromone, x, y))
+            })
+            .collect();
+        let mut home: Vec<f32> = (0..height)
+            .flat_map(|y| {
+                (0..width).map(move |x| self.fields.get(FieldLayer::HomePheromone, x, y))
+            })
+            .collect();
+
+        shuffle_preserving_values(&mut food, seed ^ 0xF00D_F00D_F00D_F00D);
+        shuffle_preserving_values(&mut home, seed ^ 0xA11C_E5E5_A11C_E5E5);
+
+        for y in 0..height {
+            for x in 0..width {
+                let index = y * width + x;
+                self.fields
+                    .set(FieldLayer::FoodPheromone, x, y, food[index]);
+                self.fields
+                    .set(FieldLayer::HomePheromone, x, y, home[index]);
+            }
+        }
+    }
+
     /// Copy only the food/home pheromone fields from another world.
     ///
     /// This models transfer of environmental traces to a replacement cohort. Agent
@@ -691,6 +726,23 @@ impl ColonyWorld {
     }
 }
 
+/// Deterministic Fisher–Yates shuffle using SplitMix64 output and rejection sampling.
+fn shuffle_preserving_values<T>(values: &mut [T], seed: u64) {
+    let mut counter = 0u64;
+    for upper in (1..values.len()).rev() {
+        let range = (upper + 1) as u64;
+        let zone = u64::MAX - (u64::MAX % range);
+        let selected = loop {
+            let value = splitmix64(seed.wrapping_add(counter));
+            counter = counter.wrapping_add(1);
+            if value < zone {
+                break (value % range) as usize;
+            }
+        };
+        values.swap(upper, selected);
+    }
+}
+
 fn splitmix64(mut value: u64) -> u64 {
     value = value.wrapping_add(0x9E37_79B9_7F4A_7C15);
     value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
@@ -878,6 +930,106 @@ mod tests {
         assert_eq!(
             transferred.next_target(1, 12, 8),
             externally_signaled.next_target(1, 12, 8)
+        );
+    }
+
+    #[test]
+    fn randomized_social_memory_preserves_channel_histograms_and_other_fields() {
+        let mut original = ColonyWorld::new_with_information_mode(
+            4,
+            3,
+            (0, 0),
+            2,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        for y in 0..3 {
+            for x in 0..4 {
+                let index = y * 4 + x;
+                original.fields.set(FieldLayer::FoodPheromone, x, y, (index % 4) as f32);
+                original.fields.set(FieldLayer::HomePheromone, x, y, (index / 4) as f32);
+            }
+        }
+        original.fields.set(FieldLayer::DangerPheromone, 1, 1, 9.0);
+        original.fields.set(FieldLayer::Nutrient, 2, 1, 7.0);
+
+        let mut shuffled = original.clone();
+        shuffled.randomize_social_memory(1234);
+
+        let collect = |world: &ColonyWorld, layer| {
+            (0..world.fields.height())
+                .flat_map(|y| {
+                    (0..world.fields.width())
+                        .map(move |x| world.fields.get(layer, x, y))
+                })
+                .collect::<Vec<_>>()
+        };
+        let mut original_food = collect(&original, FieldLayer::FoodPheromone);
+        let mut shuffled_food = collect(&shuffled, FieldLayer::FoodPheromone);
+        let mut original_home = collect(&original, FieldLayer::HomePheromone);
+        let mut shuffled_home = collect(&shuffled, FieldLayer::HomePheromone);
+        original_food.sort_by(f32::total_cmp);
+        shuffled_food.sort_by(f32::total_cmp);
+        original_home.sort_by(f32::total_cmp);
+        shuffled_home.sort_by(f32::total_cmp);
+
+        assert_eq!(original_food, shuffled_food);
+        assert_eq!(original_home, shuffled_home);
+        assert_eq!(
+            shuffled.fields.get(FieldLayer::DangerPheromone, 1, 1),
+            9.0
+        );
+        assert_eq!(shuffled.fields.get(FieldLayer::Nutrient, 2, 1), 7.0);
+        assert_eq!(shuffled.ants().len(), original.ants().len());
+        assert_eq!(shuffled.mind.food_reserve, original.mind.food_reserve);
+
+        assert_ne!(
+            collect(&original, FieldLayer::FoodPheromone),
+            collect(&shuffled, FieldLayer::FoodPheromone)
+        );
+    }
+
+    #[test]
+    fn randomized_social_memory_is_seed_replayable_and_seed_sensitive() {
+        let mut first = ColonyWorld::new_with_information_mode(
+            5,
+            4,
+            (0, 0),
+            1,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        for y in 0..4 {
+            for x in 0..5 {
+                let index = (y * 5 + x) as f32;
+                first.fields.set(FieldLayer::FoodPheromone, x, y, index);
+                first.fields.set(FieldLayer::HomePheromone, x, y, 19.0 - index);
+            }
+        }
+        let mut replay = first.clone();
+        let mut other = first.clone();
+
+        first.randomize_social_memory(10);
+        replay.randomize_social_memory(10);
+        other.randomize_social_memory(11);
+
+        let collect = |world: &ColonyWorld, layer| {
+            (0..world.fields.height())
+                .flat_map(|y| {
+                    (0..world.fields.width())
+                        .map(move |x| world.fields.get(layer, x, y))
+                })
+                .collect::<Vec<_>>()
+        };
+        assert_eq!(
+            collect(&first, FieldLayer::FoodPheromone),
+            collect(&replay, FieldLayer::FoodPheromone)
+        );
+        assert_eq!(
+            collect(&first, FieldLayer::HomePheromone),
+            collect(&replay, FieldLayer::HomePheromone)
+        );
+        assert_ne!(
+            collect(&first, FieldLayer::FoodPheromone),
+            collect(&other, FieldLayer::FoodPheromone)
         );
     }
 
