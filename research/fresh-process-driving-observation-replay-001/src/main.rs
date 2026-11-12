@@ -790,8 +790,6 @@ fn run_bridge_negative_controls(
     let mut calibration_mismatch = base_request.clone();
     calibration_mismatch["observations"][0]["upstream"]["camera_calibration_sha256"] =
         json!("f".repeat(64));
-    calibration_mismatch["observations"][0]["upstream"]["camera_calibration_sha256"] =
-        json!("f".repeat(64));
     recompute_upstream_policy_receipt(
         &mut calibration_mismatch["observations"][0]["upstream"],
     )?;
@@ -1037,6 +1035,12 @@ fn invoke_symthaea_bridge(
         .first()
         .and_then(|observation| observation["upstream"]["camera_calibration_sha256"].as_str())
         .ok_or("first renderer observation is missing its calibration digest")?;
+    if observations.iter().any(|observation| {
+        observation["upstream"]["camera_calibration_sha256"].as_str()
+            != Some(expected_calibration)
+    }) {
+        return Err("episode contains mixed camera-calibration identities".into());
+    }
     bridge_config["expected_camera_calibration_sha256"] = json!(expected_calibration);
     let request = json!({
         "schema_version": 1,
@@ -1983,6 +1987,24 @@ mod tests {
     }
 
     #[test]
+    fn receipt_recommitment_matches_renderer_and_binds_calibration_mutation() {
+        let rendered = SoftwareCameraRenderer::render(
+            &snapshot(1, false),
+            1,
+            clocks(1),
+        )
+        .unwrap();
+        let mut receipt = serde_json::to_value(rendered.policy_receipt).unwrap();
+        let original = receipt["receipt_sha256"].as_str().unwrap().to_string();
+        recompute_upstream_policy_receipt(&mut receipt).unwrap();
+        assert_eq!(receipt["receipt_sha256"], original);
+
+        receipt["camera_calibration_sha256"] = json!("f".repeat(64));
+        recompute_upstream_policy_receipt(&mut receipt).unwrap();
+        assert_ne!(receipt["receipt_sha256"], original);
+    }
+
+    #[test]
     fn bridge_configuration_requires_the_declared_camera_episode() {
         let bridge_config = json!({
             "identity": {
@@ -1999,12 +2021,16 @@ mod tests {
             "max_frame_bytes":691200,
             "initial_dt_us":33333,
             "maximum_frame_gap_us":66666,
+            "maximum_observation_delivery_age_us":5000,
             "maximum_sensor_clock_skew_us":1000,
             "visual_weight_ppm":500000,
             "vehicle_encoder_seed_phrase":"fixture-seed"
         });
         let vision_config = json!({"hdc_dim":16384,"enable_depth":false});
         assert!(validate_bridge_configuration(&bridge_config, &vision_config).is_ok());
+        let mut too_stale = bridge_config.clone();
+        too_stale["maximum_observation_delivery_age_us"] = json!(MAX_DELIVERY_AGE_US - 1);
+        assert!(validate_bridge_configuration(&too_stale, &vision_config).is_err());
         let mut invalid = bridge_config;
         invalid["identity"]["camera_id"] = json!("rear");
         assert!(validate_bridge_configuration(&invalid, &vision_config).is_err());
