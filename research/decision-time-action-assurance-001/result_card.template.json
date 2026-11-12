@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1.0",
+  "run_id": "NOT_RUN",
+  "status": "not_run",
+  "protocol_id": "DECISION-TIME-ACTION-ASSURANCE-001",
+  "track_id": "T0_conformance",
+  "policy_revision": "NOT_RUN",
+  "evaluator_revision": "NOT_RUN",
+  "hardware": {
+    "cpu_id": "NOT_MEASURED",
+    "os": "NOT_MEASURED",
+    "rustc": "1.96.0",
+    "profile": "NOT_MEASURED"
+  },
+  "denominators": {
+    "expected_cases": 0,
+    "observed_cases": 0,
+    "authorized": 0,
+    "authorized_restricted": 0,
+    "fallback_required": 0,
+    "incomplete": 0,
+    "censored": 0
+  },
+  "conformance": {
+    "invalid_authorizations": null,
+    "stale_envelopes_accepted": null,
+    "bundle_mismatch_accepts": null,
+    "action_mismatch_accepts": null,
+    "false_restrictions": null
+  },
+  "latency": {
+    "gate_eval_p50_us": null,
+    "gate_eval_p95_us": null,
+    "gate_eval_p99_us": null,
+    "revalidation_p50_us": null,
+    "revalidation_p99_us": null
+  },
+  "evidence": {
+    "input_manifest_sha256": null,
+    "raw_artifact_manifest_sha256": null,
+    "notes": [
+      "This is a not-run template; it is not a benchmark result."
+    ]
+  }
+}
