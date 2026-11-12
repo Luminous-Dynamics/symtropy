@@ -266,8 +266,8 @@ fn validate_trajectory_signature_cases(input:&Value)->Check<()>{
                 let ta=sa["offset_ms"].as_u64().ok_or_else(||err("TRAJECTORY_OFFSET",&pa,"offset must be a non-negative integer"))?;
                 let tb=sb["offset_ms"].as_u64().ok_or_else(||err("TRAJECTORY_OFFSET",&pb,"offset must be a non-negative integer"))?;
                 if ta!=tb{return Err(err("TRAJECTORY_OFFSET_MISMATCH",&at,"state A/B samples must share identical event-relative offsets"));}
-                if let Some(prev)=previous{
-                    if ta<=prev||ta-prev!=sample_period{return Err(err("TRAJECTORY_SAMPLE_GRID",&at,"sample offsets must be strictly increasing on the declared regular grid"));}
+                if previous.is_some_and(|prev|ta<=prev||ta-prev!=sample_period){
+                    return Err(err("TRAJECTORY_SAMPLE_GRID",&at,"sample offsets must be strictly increasing on the declared regular grid"));
                 }
                 previous=Some(ta);
                 for (sample,path) in [(sa,&pa),(sb,&pb)]{
