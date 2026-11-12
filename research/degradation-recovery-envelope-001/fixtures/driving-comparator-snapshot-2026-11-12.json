@@ -1,0 +1,192 @@
+{
+  "schema_version": "1.0.0",
+  "snapshot_date": "2026-11-12",
+  "status": "source-backed comparator register; no Symtropy results",
+  "claim_ceiling": "Public claims are preserved in their native task/evidence class. The register is not a unified leaderboard and no external result is independently reproduced here.",
+  "comparators": [
+    {
+      "id": "bench2drive-v0.0.4-lead",
+      "evidence_class": "closed_loop_simulator_benchmark",
+      "benchmark": "Bench2Drive",
+      "variant": "v0.0.4",
+      "method": "LEAD",
+      "metrics": {
+        "driving_score": 95.59,
+        "success_rate_percent": 87.28,
+        "efficiency": 201.55,
+        "comfort": 20.56
+      },
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md",
+      "caveats": [
+        "Pin v0.0.4 evaluator, route set, sensor privileges and simulator configuration.",
+        "Native metrics are separate; no robustness/recovery metric is implied."
+      ]
+    },
+    {
+      "id": "navsim-v2-end-to-end-planning-test",
+      "evidence_class": "third_party_leaderboard_snapshot",
+      "benchmark": "NAVSIM v2",
+      "variant": "end-to-end planning test",
+      "snapshot_method": "WAM-Flow",
+      "metrics": {
+        "epdms_star": 84.7
+      },
+      "source": "https://www.sota2.com/research/sota/end-to-end-planning-on-navsim-v2-test",
+      "caveats": [
+        "Third-party catalog snapshot; use upstream evaluator and test protocol for reproduction.",
+        "EPDMS(*) is a distinct column from EPDMS."
+      ]
+    },
+    {
+      "id": "navsim-v2-e2e-drivevla-w0",
+      "evidence_class": "third_party_leaderboard_snapshot",
+      "benchmark": "NAVSIM v2",
+      "variant": "end-to-end planning test",
+      "method": "DriveVLA-W0",
+      "metrics": {
+        "epdms_star": 86.1
+      },
+      "source": "https://www.sota2.com/research/sota/end-to-end-planning-on-navsim-v2-test",
+      "caveats": [
+        "Not the closed-loop planning leaderboard.",
+        "Do not pool EPDMS(*) with EPDMS."
+      ]
+    },
+    {
+      "id": "navsim-v2-closed-loop-clear",
+      "evidence_class": "third_party_leaderboard_snapshot",
+      "benchmark": "NAVSIM v2",
+      "variant": "closed-loop planning",
+      "method": "CLEAR",
+      "metrics": {
+        "epdms": 88.6
+      },
+      "source": "https://www.sota2.com/research/sota/closed-loop-planning-on-navsim-v2",
+      "caveats": [
+        "Distinct from NAVSIM v2 end-to-end planning test."
+      ]
+    },
+    {
+      "id": "navsim-v2-closed-loop-driveworld-vla",
+      "evidence_class": "third_party_leaderboard_snapshot",
+      "benchmark": "NAVSIM v2",
+      "variant": "closed-loop planning",
+      "method": "DriveWorld-VLA",
+      "metrics": {
+        "epdms": 86.8
+      },
+      "source": "https://www.sota2.com/research/sota/closed-loop-planning-on-navsim-v2",
+      "caveats": [
+        "Distinct task track and metric protocol from other NAVSIM v2 tables."
+      ]
+    },
+    {
+      "id": "alpamayo-2-edge-model-card",
+      "evidence_class": "vendor_published_model_card",
+      "benchmark": "AlpaSim",
+      "variant": "875 scenarios; three rollout sets",
+      "method": "NVIDIA Alpamayo 2 Edge",
+      "model": {
+        "backbone_parameters_billions": 2.45,
+        "action_expert_parameters_billions": 0.2,
+        "weight_precision": "BF16"
+      },
+      "metrics": {
+        "kilometers_per_at_fault_incident_mean": 15.15,
+        "rollout_set_standard_deviation_km": 0.04,
+        "open_loop_minADE6_at_5s_m": 0.52,
+        "lingo_judge": 75.2
+      },
+      "source": "https://huggingface.co/nvidia/Alpamayo2-Edge",
+      "caveats": [
+        "Closed-loop distance-per-incident, open-loop minADE6 and reasoning score are separate evidence classes.",
+        "Vendor-published; not independently reproduced here."
+      ]
+    },
+    {
+      "id": "alpamayo-2-edge-deployment-latency",
+      "evidence_class": "vendor_published_deployment_recipe",
+      "benchmark": "DRIVE AGX Thor-X",
+      "variant": "DRIVE OS 7.2.7.0; CUDA 13.4; TensorRT 11.3.1.9",
+      "method": "NVIDIA Alpamayo 2 Edge",
+      "metrics": {
+        "pixel_to_trajectory_latency_ms_min": 160,
+        "pixel_to_trajectory_latency_ms_max": 190
+      },
+      "source": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "caveats": [
+        "Hardware/software-specific reference; no laptop comparison.",
+        "Latency varies with adaptive reasoning."
+      ]
+    },
+    {
+      "id": "alpamayo-2-edge-blog-at-fault-distance",
+      "evidence_class": "vendor_published_comparison_figure",
+      "benchmark": "AlpaSim",
+      "variant": "NVIDIA article's Edge vs Qwen-Drive-1.0 comparison",
+      "method": "NVIDIA Alpamayo 2 Edge",
+      "metrics": {
+        "kilometers_between_at_fault_incidents": 9.87,
+        "comparison_qwen_drive_1_0_4b_kilometers": 0.25
+      },
+      "source": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/",
+      "caveats": [
+        "Do not reconcile with the 15.15km model-card figure without matching exact scenario/evaluator revisions.",
+        "Separate vendor-reported comparison, not an independent replication."
+      ]
+    },
+    {
+      "id": "wod-e2e-cvpr-2026",
+      "evidence_class": "dataset_coverage",
+      "benchmark": "WOD-E2E",
+      "variant": "CVPR 2026",
+      "method": "Waymo Open Dataset for End-to-End Driving",
+      "metrics": {
+        "segments": 4021,
+        "approximate_hours": 12,
+        "rare_event_frequency_threshold_percent": 0.03
+      },
+      "source": "https://openaccess.thecvf.com/content/CVPR2026/html/Xu_WOD-E2E_Waymo_Open_Dataset_for_End-to-End_Driving_in_Challenging_Long-tail_CVPR_2026_paper.html",
+      "caveats": [
+        "Dataset coverage is not a driving score or closed-loop safety proof."
+      ]
+    },
+    {
+      "id": "waymo-safety-impact-through-june-2026",
+      "evidence_class": "company_published_operational_safety",
+      "benchmark": "Waymo Driver rider-only operations",
+      "variant": "through June 2026",
+      "metrics": {
+        "rider_only_miles_millions": 271.3,
+        "serious_injury_or_worse_crash_reduction_percent": 95,
+        "injury_causing_crash_reduction_percent": 82
+      },
+      "source": "https://waymo.com/safety/impact/",
+      "caveats": [
+        "Retrospective company-published comparison against location-adjusted human crash benchmark.",
+        "Operational fleet evidence is not comparable to simulator scores and is not a formal safety case."
+      ]
+    },
+    {
+      "id": "carla-leaderboard-2.1-status",
+      "evidence_class": "benchmark_availability_status",
+      "benchmark": "CARLA Autonomous Driving Leaderboard 2.1",
+      "variant": "official hosted leaderboard",
+      "metrics": {
+        "submissions_open": false,
+        "evaluation_servers_operating": false
+      },
+      "source": "https://leaderboard.carla.org/get_started_v2_1/",
+      "caveats": [
+        "Historical/local protocol reference only; no current hosted submission channel."
+      ]
+    }
+  ],
+  "comparison_rules": [
+    "Never pool Bench2Drive DS, NAVSIM EPDMS variants, AlpaSim km-per-incident, open-loop minADE, reasoning scores, latency and real-world incident rates.",
+    "Matched comparisons require equal sensor inputs, privileges, evaluator version, scenario split, hardware, data exposure and compute accounting.",
+    "Model-card and blog results with different stated protocols remain separate until a same-revision reproduction explains the discrepancy.",
+    "Waymo operational results remain an evidence-class reference, not a simulator target.",
+    "SOTA2 leaderboard pages are third-party snapshots; they orient candidate baselines but must not replace upstream evaluator verification."
+  ]
+}
