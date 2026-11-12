@@ -224,9 +224,9 @@ fn validate_input(input: &Input) -> Result<(Vec<String>, Vec<CanonicalSession>, 
                     ));
                 }
                 let sigma = target.within_session_standard_deviation_mm;
-                if !sigma.is_finite() || sigma <= 0.0 {
+                if !sigma.is_finite() || !(1e-9..=1e6).contains(&sigma) {
                     return Err(format!(
-                        "target {} in session {} has a non-positive or non-finite standard deviation",
+                        "target {} in session {} has a standard deviation outside [1e-9, 1e6] mm",
                         target.target_id, session.session_id
                     ));
                 }
@@ -372,7 +372,9 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<HealthReport, Box<dyn Error>> {
         return Err("input exceeds the 4 MiB monitor budget".into());
     }
     let input: Input = serde_json::from_slice(bytes)?;
-    let (target_ids, sessions, baseline_count) = validate_input(&input)?;
+    let (target_ids, sessions, baseline_count) = validate_input(&input).map_err(|error| {
+        std::io::Error::new(std::io::ErrorKind::InvalidData, error)
+    })?;
     let current_count = sessions.len() - baseline_count;
     let baseline_indices: Vec<usize> = sessions
         .iter()
