@@ -211,7 +211,7 @@
       "properties": {
         "required_backends": {
           "type": "array",
-          "minItems": 5,
+          "minItems": 6,
           "uniqueItems": true,
           "items": {
             "enum": [
@@ -222,11 +222,12 @@
               "pinocchio",
               "independent_high_precision"
             ]
-          }
+          },
+          "maxItems": 6
         },
         "matching_fields": {
           "type": "array",
-          "minItems": 9,
+          "minItems": 10,
           "uniqueItems": true,
           "items": {
             "enum": [
@@ -241,7 +242,8 @@
               "units",
               "solver_tolerances"
             ]
-          }
+          },
+          "maxItems": 10
         },
         "strict_matching": {
           "const": true
@@ -253,7 +255,7 @@
     },
     "required_metric_groups": {
       "type": "array",
-      "minItems": 5,
+      "minItems": 6,
       "uniqueItems": true,
       "items": {
         "enum": [
@@ -264,7 +266,8 @@
           "decision_quality",
           "systems_cost"
         ]
-      }
+      },
+      "maxItems": 6
     },
     "acceptance_policy": {
       "type": "object",
