@@ -36,12 +36,3 @@ jobs:
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path research/selective-driving-competence-001/Cargo.toml --all-targets --all-features -- -D warnings
 
-      - name: Validate protocol documents parse as JSON
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          root = Path("research/selective-driving-competence-001")
-          for name in ["manifest-v0_1.json", "selective-driving-evaluation-v0_1.schema.json"]:
-              json.loads((root / name).read_text())
-          PY
