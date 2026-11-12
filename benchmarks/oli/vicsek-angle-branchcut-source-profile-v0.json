@@ -1,0 +1,150 @@
+{
+  "schema_version": "oli-vicsek-angle-convention-v0.1",
+  "case_id": "OLI-VICSEK-ANGLE-BRANCHCUT-001",
+  "status": "SOURCE_PROFILE_AND_MINIMAL_CONTROL_PINNED_FULL_SOURCE_REPRODUCTION_PENDING",
+  "claim_ceiling": "Numerical sensitivity analysis of distinct angular-mean conventions; no universal active-matter phase-transition claim and no biological or intelligence claim",
+  "evidence_class": "SIMULATION",
+  "source": {
+    "title": "Absence of O(2) symmetry in the Vicsek model",
+    "authors": [
+      "Yushin Takahashi",
+      "Kota Mitsui",
+      "Tsuyoshi Mizohata",
+      "Hideyuki Miyahara"
+    ],
+    "journal": "Physical Review E 114, 014134 (2026)",
+    "published": "2026-07-17",
+    "doi": "10.1103/9gcy-ky3z",
+    "url": "https://doi.org/10.1103/9gcy-ky3z",
+    "open_manuscript": "https://hdl.handle.net/2115/100224",
+    "exact_equation": "theta_i(t+dt) = atan(mean_j sin(theta_j) / mean_j cos(theta_j)) + Xi_i, modulo 2pi",
+    "adaptive_phase_protocol": "phi(t) = phi_bar - arithmetic_mean_i(theta_i(t)); apply to all headings before calculating velocities and the next alignment update",
+    "adaptive_phase_targets_rad": [
+      0,
+      3.141592653589793
+    ],
+    "author_reported_conclusion": "The principal-value arctan-ratio update depends on the global phase reference; under adaptive phase reference phi_bar=pi, the paper reports that clear flocking order does not develop in the studied regime. The authors separately report their arithmetic-mean-angle variant as phase-invariant.",
+    "important_math_distinction": "atan(sum_sin/sum_cos) is not equal to atan2(sum_sin,sum_cos) in quadrants II and III. atan2 is the quadrant-correct complex-argument/circular-mean convention. The paper's scalar arithmetic-mean variant is a third distinct rule and is not the same as atan2."
+  },
+  "source_profile": {
+    "particle_count": 1600,
+    "box_size": 8,
+    "speed": 0.01,
+    "interaction_radius": 0.1,
+    "dt": 1,
+    "angular_noise_eta": 0.75,
+    "noise_interval_at_dt_1": [
+      -0.375,
+      0.375
+    ],
+    "initial_positions": "Independent uniform draws over [0,8) × [0,8)",
+    "initial_headings": "Independent uniform draws over (-pi,pi]",
+    "plotted_horizon_steps": 10000,
+    "phase_targets": [
+      0,
+      3.141592653589793
+    ],
+    "phase_mean": "Arithmetic mean of principal heading representatives; not a circular mean",
+    "implementation_status": "Source parameters and operation order pinned from paper; exact random seeds, sampling/averaging windows, and source implementation commit still require admission for a full numerical reproduction."
+  },
+  "implementation": {
+    "module": "symtropy-lifesim-core::vicsek",
+    "model_heading_mean_variants": [
+      {
+        "id": "QUADRANT_CORRECT_ATAN2",
+        "formula": "atan2(sum_sin, sum_cos)",
+        "status": "DEFAULT_OLI_MODEL",
+        "meaning": "Quadrant-correct circular mean / complex argument; rotationally equivariant under common phase shifts when neighbourhood structure is held fixed."
+      },
+      {
+        "id": "PRINCIPAL_VALUE_ARCTAN_RATIO",
+        "formula": "atan(sum_sin / sum_cos)",
+        "status": "SOURCE_VARIANT",
+        "meaning": "Principal-value ratio formula discussed in Takahashi et al. (2026); identifies directions separated by pi and can introduce branch-cut dependence."
+      }
+    ],
+    "implemented_adaptive_phase_operation": "apply_adaptive_global_phase_shift(target_phase_rad) maps headings into (-pi,pi], calculates their arithmetic mean, and adds target_phase - mean to every heading without wrapping the shifted headings before the next update.",
+    "receipts": "VicsekMetrics and VicsekClusterGeometryReport record heading_mean, so the angle convention travels with every result."
+  },
+  "minimal_known_truth_controls": [
+    {
+      "id": "SELF_ONLY_ATAN2_GLOBAL_PHASE",
+      "particles": 4,
+      "headings_rad": [
+        -2.5,
+        -1,
+        1,
+        2.5
+      ],
+      "interaction_radius": 0,
+      "speed": 0,
+      "noise_width_rad": 0,
+      "target_phase_rad": 3.141592653589793,
+      "expected_before_order": 0.13042065483939697,
+      "expected_after_order": 0.13042065483939697,
+      "acceptance": "Atan2 self-only alignment preserves the polar order under a common phase shift."
+    },
+    {
+      "id": "SELF_ONLY_PRINCIPAL_RATIO_BRANCH_FOLD",
+      "particles": 4,
+      "headings_rad": [
+        -2.5,
+        -1,
+        1,
+        2.5
+      ],
+      "interaction_radius": 0,
+      "speed": 0,
+      "noise_width_rad": 0,
+      "target_phase_rad": 3.141592653589793,
+      "expected_before_order": 0.13042065483939697,
+      "expected_after_order": 0.6707229607075367,
+      "expected_delta_order": 0.5403023058681398,
+      "acceptance": "Principal-value ratio folds the self-aligned directions across a pi branch and changes the order parameter without inter-particle interactions."
+    },
+    {
+      "id": "ONE_PARTICLE_QUADRANT_CONTROL",
+      "initial_heading_rad": 0.4,
+      "rotated_heading_rad": 3.541592653589793,
+      "expected_rule": "Atan2 output shifts by pi; principal-value ratio maps both inputs to the same tangent branch."
+    }
+  ],
+  "metamorphic_suite": {
+    "test_name": "global_rotation_equivariance_holds_for_both_update_conventions",
+    "phases_rad": [
+      1e-9,
+      3.141592652589793,
+      3.141592654589793,
+      6.283185306179586,
+      1.137
+    ],
+    "seeds": [
+      20903,
+      1,
+      99
+    ],
+    "update_rules": [
+      "CurrentPositionAlignment",
+      "NextPositionAlignment"
+    ],
+    "steps": 40,
+    "particles": 9,
+    "caveat": "The test keeps the cluster far from the periodic boundary; it tests local finite-domain rotation equivariance, not continuous rotational symmetry of a square torus under arbitrary whole-domain rotations."
+  },
+  "source_reproduction_gates": [
+    "Recover exact source initial-state RNG law and random seed(s).",
+    "Run the exact N=1600, L=8, v=0.01, r=0.1, dt=1, eta=0.75, 10,000-step profile.",
+    "Run both fixed phase and adaptive phase target values 0 and pi using the paper's order of operations.",
+    "Preserve the arctan-ratio and scalar arithmetic-mean models as separate variants; do not substitute atan2 for either.",
+    "Report order parameter time series, stationary-window averaging, seed-level uncertainty and phase-shift sensitivity.",
+    "Check whether any phase-dependent behavior is due to branch-cut implementation, adaptive coordinate convention, or finite-size stochasticity.",
+    "Do not infer the paper's phase-transition conclusion from the four-particle unit test."
+  ],
+  "reproducibility": {
+    "code_head": "research/oli-vicsek-active-matter-v0",
+    "exact_rust_test_status": "PENDING_EXACT_HEAD_CI",
+    "full_source_profile_status": "NOT_RUN",
+    "raw_source_data_status": "NO_EXTERNAL_DATA_REQUIRED_FOR_THE_PAPER'S_SYNTHETIC_MODEL; RANDOM_SEED_AND_SOURCE_IMPLEMENTATION_STILL_TO_BE_ADMITTED",
+    "output_digest_sha256": null
+  }
+}
