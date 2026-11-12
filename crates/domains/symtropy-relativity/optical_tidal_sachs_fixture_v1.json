@@ -1,0 +1,125 @@
+{
+  "schema": "luminous.symtropy.kerr_optical_tidal_sachs.v1",
+  "status": "analytic_Schwarzschild_regressions_authored; Rust execution pending",
+  "claim_ceiling": "Pointwise optical tidal matrix calculated from the local Riemann tensor. This is not a parallel-transported Sachs solver, propagated optical Jacobi matrix, caustic solver, or wave-optics calculation.",
+  "conventions": {
+    "coordinate_order": [
+      "ct/M or v/M",
+      "r/M",
+      "theta",
+      "phi"
+    ],
+    "metric_signature": "(-,+,+,+)",
+    "ray_normalization": "unit local ZAMO photon energy",
+    "affine_parameter": "canonical dimensionless affine parameter",
+    "riemann_convention": "R^rho_(sigma mu nu) from symtropy-relativity::curvature::RiemannTensor4",
+    "optical_tidal_definition": "T_AB = R_(mu nu rho sigma) e_A^mu k^nu e_B^rho k^sigma",
+    "screen_frame": "two contravariant coordinate vectors orthonormal and transverse to k",
+    "screen_frame_transport": "not yet implemented; pointwise basis must be supplied at each event"
+  },
+  "implementation": {
+    "api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
+    "screen_basis_conversion": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
+    "metric_path": "DifferentiatedMetric4::kerr_exterior or kerr_ingoing",
+    "independent_curvature_path": "MetricDerivatives4 + MetricSecondDerivatives4 -> RiemannTensor4 -> fully_covariant",
+    "source_file": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
+    "status": "source_authored_not_executed"
+  },
+  "regression_cases": [
+    {
+      "id": "SACHS-SCHW-RADIAL-001",
+      "metric": "Schwarzschild, spin chi=0, M=1",
+      "observer": {
+        "radius_over_M": 10,
+        "theta_rad": "pi/2"
+      },
+      "local_direction": {
+        "radial": -1,
+        "polar": 0,
+        "azimuthal": 0
+      },
+      "expected": {
+        "null_constraint_residual": "0 within floating-point tolerance",
+        "screen_orthonormality_residual": "0 within floating-point tolerance",
+        "screen_transversality_residual": "0 within floating-point tolerance",
+        "optical_tidal_matrix": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "vacuum_trace_residual": 0
+      },
+      "analytic_reason": "A radial principal null direction in Schwarzschild has vanishing screen-projected Weyl optical tide; Ricci is zero."
+    },
+    {
+      "id": "SACHS-SCHW-NONRADIAL-002",
+      "metric": "Schwarzschild, spin chi=0, M=1",
+      "observer": {
+        "radius_over_M": 10,
+        "theta_rad": "pi/2"
+      },
+      "local_direction": {
+        "radial": -0.8,
+        "polar": 0.6,
+        "azimuthal": 0
+      },
+      "local_screen_basis_convention": "reference=[0,0,1]; first=normalize(reference cross direction); second=normalize(direction cross first)",
+      "independent_sympy_comparator": {
+        "optical_tidal_matrix": [
+          [
+            -0.00108,
+            0
+          ],
+          [
+            0,
+            0.00108
+          ]
+        ],
+        "trace": 0,
+        "note": "Independent symbolic-metric/Riemann contraction with the same tetrad and local frame convention; verifies a nonzero trace-free tidal matrix, not Rust output."
+      },
+      "expected": {
+        "tidal_matrix": "nonzero, symmetric, and trace-free within 1e-8",
+        "screen_orthonormality_residual": 1e-10,
+        "screen_transversality_residual": 1e-10,
+        "vacuum_trace_residual": 1e-8,
+        "tidal_symmetry_residual": 1e-8
+      }
+    }
+  ],
+  "negative_controls": [
+    "supply a screen vector parallel to the photon direction",
+    "supply a non-orthonormal pair of screen vectors",
+    "claim a propagated Jacobi matrix from a pointwise optical-tidal evaluation",
+    "classify a caustic from a small determinant without a transported screen and root convergence",
+    "compare curvature-based tidal results to the canonical variational map without matching affine normalization and screen gauge"
+  ],
+  "next_required_steps": [
+    "parallel transport the two Sachs vectors using the connection along the canonical null ray",
+    "integrate the 2x2 Jacobi equation D''=-T D from vertex initial conditions",
+    "project the existing 8x8 canonical fundamental matrix into the same transported frame",
+    "compare the two 2x2 matrices over Schwarzschild and Kerr cases, including tolerance refinement"
+  ],
+  "required_receipt_fields": [
+    "source_sha",
+    "chart",
+    "state_coordinates",
+    "null_tangent",
+    "screen_basis",
+    "null_residual",
+    "screen_orthonormality_residual",
+    "screen_transversality_residual",
+    "tidal_matrix",
+    "tidal_symmetry_residual",
+    "vacuum_trace_residual",
+    "affine_normalization",
+    "tolerance",
+    "runtime",
+    "peak_memory"
+  ]
+}
