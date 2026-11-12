@@ -1697,7 +1697,12 @@ mod tests {
     fn selected_probe_context(
         hypotheses: &[HypothesisPrior],
         candidates: &[DiagnosticProbeCandidate],
-    ) -> (ProbeSelectionPolicy, ProbePortfolio, ProbeBaselineSelection) {
+    ) -> (
+        ProbeSelectionPolicy,
+        ProbePortfolio,
+        ProbeBaselineSelection,
+        ProbeObservationLedger,
+    ) {
         let policy = ProbeSelectionPolicy::conservative_read_only();
         let portfolio = rank_diagnostic_probes(hypotheses, candidates, &policy).unwrap();
         let selection = select_probe_baseline(
@@ -1708,7 +1713,8 @@ mod tests {
             policy.cost_penalty_scale_seconds,
         )
         .unwrap();
-        (policy, portfolio, selection)
+        let ledger = new_probe_observation_ledger(hypotheses).unwrap();
+        (policy, portfolio, selection, ledger)
     }
 
     #[test]
@@ -1911,7 +1917,7 @@ mod tests {
         );
         let hypotheses = hypotheses();
         let candidates = vec![item.clone()];
-        let (policy, portfolio, selection) =
+        let (policy, portfolio, selection, ledger) =
             selected_probe_context(&hypotheses, &candidates);
         let update = realize_probe_observation(
             &hypotheses,
@@ -1919,6 +1925,7 @@ mod tests {
             &policy,
             &portfolio,
             &selection,
+            &ledger,
             &item,
             &item.candidate_manifest_sha256,
             "bearing_signature",
@@ -1952,7 +1959,7 @@ mod tests {
         item.candidate_manifest_sha256 = candidate_manifest_sha256(&item).unwrap();
         let hypotheses = hypotheses();
         let candidates = vec![item.clone()];
-        let (policy, portfolio, selection) =
+        let (policy, portfolio, selection, ledger) =
             selected_probe_context(&hypotheses, &candidates);
         let update = realize_probe_observation(
             &hypotheses,
@@ -1960,6 +1967,7 @@ mod tests {
             &policy,
             &portfolio,
             &selection,
+            &ledger,
             &item,
             &item.candidate_manifest_sha256,
             "bearing_signature",
@@ -1984,7 +1992,7 @@ mod tests {
         );
         let hypotheses = hypotheses();
         let candidates = vec![item.clone()];
-        let (policy, portfolio, selection) =
+        let (policy, portfolio, selection, ledger) =
             selected_probe_context(&hypotheses, &candidates);
         assert_eq!(
             realize_probe_observation(
@@ -1993,6 +2001,7 @@ mod tests {
                 &policy,
                 &portfolio,
                 &selection,
+                &ledger,
                 &item,
                 &digest('0'),
                 "bearing_signature",
@@ -2007,6 +2016,7 @@ mod tests {
                 &policy,
                 &portfolio,
                 &selection,
+                &ledger,
                 &item,
                 &item.candidate_manifest_sha256,
                 "unlisted_outcome",
@@ -2037,7 +2047,7 @@ mod tests {
         ];
         impossible.candidate_manifest_sha256 = candidate_manifest_sha256(&impossible).unwrap();
         let impossible_candidates = vec![impossible.clone()];
-        let (policy, portfolio, selection) =
+        let (policy, portfolio, selection, ledger) =
             selected_probe_context(&hypotheses, &impossible_candidates);
         assert_eq!(
             realize_probe_observation(
@@ -2046,6 +2056,7 @@ mod tests {
                 &policy,
                 &portfolio,
                 &selection,
+                &ledger,
                 &impossible,
                 &impossible.candidate_manifest_sha256,
                 "impossible_signature",
@@ -2088,7 +2099,7 @@ mod tests {
         );
         let candidates = vec![item.clone()];
         let initial = hypotheses();
-        let (policy, first_portfolio, first_selection) =
+        let (policy, first_portfolio, first_selection, ledger) =
             selected_probe_context(&initial, &candidates);
         let first = realize_probe_observation(
             &initial,
@@ -2096,6 +2107,7 @@ mod tests {
             &policy,
             &first_portfolio,
             &first_selection,
+            &ledger,
             &item,
             &item.candidate_manifest_sha256,
             "bearing_signature",
@@ -2120,7 +2132,7 @@ mod tests {
             hypothesis_prior_sha256(&updated_prior).unwrap()
         );
 
-        let (second_policy, second_portfolio, second_selection) =
+        let (second_policy, second_portfolio, second_selection, _) =
             selected_probe_context(&updated_prior, &candidates);
         assert_eq!(
             second_portfolio.hypothesis_manifest_sha256,
@@ -2136,6 +2148,7 @@ mod tests {
             &second_policy,
             &second_portfolio,
             &second_selection,
+            &first.observation_ledger,
             &item,
             &item.candidate_manifest_sha256,
             "fuel_signature",
