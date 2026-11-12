@@ -237,6 +237,71 @@
         "report hardware/compiler/precision/options",
         "retain raw FPS as a secondary metric"
       ]
+    },
+    {
+      "id": "OS-5C",
+      "name": "matched Kerr geodesic/image comparison with AART",
+      "status": "not_implemented",
+      "model": "Compare asymptotic-observer integrable Kerr geodesics and image/visibility observables against AART for exactly matched spin, inclination, camera orientation, source surface, image branch, and emission convention.",
+      "observables": [
+        "screen_coordinate_discrepancy",
+        "arrival_time_discrepancy",
+        "image_branch_identity",
+        "critical_curve_and_subring_location",
+        "visibility_amplitude_and_phase_discrepancy",
+        "matched_case_runtime_and_memory"
+      ],
+      "acceptance": {
+        "observer_limit": "Only compare regimes where the finite-radius Symtropy observer is taken to the same asymptotic convention as AART",
+        "branch_matching": "Require explicit image/subring branch identity; do not compare pixel colors as a substitute for ray identity",
+        "convergence": "Repeat both codes under independently tightened numerical tolerances",
+        "screen_orientation": "Require an explicit screen-frame handedness and rotation map",
+        "claim_ceiling": "Cross-code implementation consistency for matched Kerr observables, not validation of astrophysical emission assumptions"
+      }
+    },
+    {
+      "id": "OS-7B",
+      "name": "matched strong-field gravitational-wave wave-optics comparison",
+      "status": "not_implemented",
+      "external_references": [
+        "https://arxiv.org/abs/2610.18958",
+        "https://doi.org/10.1103/9bxg-sqn5",
+        "https://arxiv.org/abs/2610.39181"
+      ],
+      "observables": [
+        "frequency_dependent_amplification_factor",
+        "waveform_phase_and_amplitude_discrepancy",
+        "caustic_uniform_asymptotic_error",
+        "polarization_and_incidence_angle_dependence",
+        "time_delay_and_diffraction_coda"
+      ],
+      "acceptance": {
+        "matched_physics": "Pin spin, source angular pattern, incidence and polarization, frequency band, observer convention and waveform normalization",
+        "independent_formulations": "Compare geometric-optics ray transfer, uniform fold/cusp asymptotics and at least one independent finite-frequency solver",
+        "uncertainty": "Report truncation, mode-sum, frequency-grid and ray-bundle error separately",
+        "claim_ceiling": "A matched wave-optics benchmark; no extension of validity beyond the external solver's approximation domain"
+      }
+    },
+    {
+      "id": "OS-9",
+      "name": "time-domain lensing echoes and two-point image correlations",
+      "status": "research_target_not_implemented",
+      "motivation": "Recent strong-lensing movie analysis suggests correlated delayed images can carry a more robust extreme-lensing signature than time-averaged image morphology or light-curve autocorrelation.",
+      "observables": [
+        "geodesic_branch_arrival_time_distribution",
+        "time_lagged_two_point_image_correlation",
+        "cross_image_correlation_by_subring_order",
+        "correlation_peak_lag_and_width",
+        "source_variability_marginalization",
+        "instrument_transfer_and_observability"
+      ],
+      "acceptance": {
+        "source_model": "Use a versioned time-dependent emissivity or GRMHD movie; do not infer brightness correlations from ray geometry alone",
+        "branch_identity": "Track image branches continuously across source and observer time",
+        "instrument": "Convolve with a declared temporal/spectral/spatial instrument response and noise model",
+        "negative_control": "Show that time averaging or a single-pixel light curve does not reproduce the claimed two-point image statistic",
+        "claim_ceiling": "A synthetic-observable feasibility calculation, not a detection forecast until instrument and source uncertainties are propagated"
+      }
     }
   ],
   "competitive_reference_map": [
@@ -274,6 +339,16 @@
       "system": "Kerr GW lensing time-domain mode-sum preprint (arXiv:2610.39181, 2026)",
       "role": "Hyperboloidal time-domain Kerr perturbation calculation with 68,000 coupled angular modes; reports strong-field wave-optical focusing and post-merger waveform effects.",
       "symtropy_position": "Potential external wave-domain cross-check. Treat as a preprint and pin its version, parameter conventions and numerical convergence before benchmarking."
+    },
+    {
+      "system": "Strong Field Gravitational Lensing in Full Wave Optics (arXiv:2610.18958, 2026)",
+      "role": "Finite-frequency strong-field lensing of gravitational waves in a perturbative framework, including spinning lenses; reports approximately 10% agreement with selected Schwarzschild ray-tracing cases.",
+      "symtropy_position": "Wave-optics comparator for OS-7; compare only identical lens spin, source angular emission, inclination, frequency and normalization. Preserve its stated approximation regime."
+    },
+    {
+      "system": "Extreme lensing signatures revealed by correlations of simulated black hole movies (Nature Astronomy, 2026)",
+      "role": "Uses two-point image correlations of brightness fluctuations to expose lagged, strongly lensed images; the reported signatures are not visible in time-averaged images or light-curve autocorrelations at expected next-generation ground-array resolution.",
+      "symtropy_position": "Motivates a future OS-9 time-domain observable pipeline; source variability, GRMHD emission, finite observation windows and instrument transfer functions must be explicit."
     }
   ],
   "benchmark_policy": {
@@ -285,7 +360,26 @@
     "every_result_binds_options_seed_branch_and_source_sha": true,
     "unknown_or_ill_conditioned_returns_unresolved": true,
     "screen_frame_chart_changes_are_explicit": true,
-    "sachs_jacobi_comparator_required_before_caustic_certification": true
+    "sachs_jacobi_comparator_required_before_caustic_certification": true,
+    "cost_per_qualified_observable": {
+      "primary_metric": "qualified_observables_per_compute_cost",
+      "required_cost_fields": [
+        "wall_clock_seconds",
+        "cpu_model_and_thread_count",
+        "gpu_model_and_driver_if_used",
+        "peak_host_memory_bytes",
+        "peak_device_memory_bytes",
+        "energy_joules_if_measured_with_provenance"
+      ],
+      "qualification_denominator": "Only outputs that pass the declared physical, numerical, gauge, conditioning, and independent-reference gates count; unresolved or failed outputs remain in the denominator as attempted work but not as qualified results.",
+      "comparison_rule": "Compare only matched physical cases, matched output precision and matching qualification thresholds. Report raw throughput separately from qualified throughput.",
+      "prohibited_shortcuts": [
+        "count an image pixel as a physically qualified ray without invariant and error gates",
+        "compare CPU and GPU throughput without reporting precision and numerical error",
+        "exclude unresolved/failed rays from benchmark accounting without reporting the exclusion rate",
+        "combine caustic, wave-optics and geodesic workloads into one opaque score"
+      ]
+    }
   },
   "references": [
     "https://einsteintoolkit.org/about/releases/ET_2026_05_announcement.html",
@@ -295,7 +389,9 @@
     "https://tucoff.github.io/relativistic-raytracer-page/",
     "https://doi.org/10.1103/9bxg-sqn5",
     "https://arxiv.org/abs/2610.39181",
-    "https://doi.org/10.1103/tkk2-x9st"
+    "https://doi.org/10.1103/tkk2-x9st",
+    "https://arxiv.org/abs/2610.18958",
+    "https://www.nature.com/articles/s41550-026-02874-x"
   ],
   "screen_frame_policy": {
     "status": "same-event SO(2) source-screen re-expression implemented; parallel-transported Sachs frame and across-event atlas remain not implemented",
