@@ -13,7 +13,7 @@ The central shift is from component-first optimization to **mission-first, evide
 
 > Optimize the aircraft and its energy ecosystem against a declared mission, while making every assumption, constraint, failure mode, and verification result traceable.
 
-This RFC establishes the first research architecture, benchmark taxonomy, external comparison points, and staged development gates. It deliberately does not add a new Symthaea flight-control platform. A new full-scale fixed-wing/eVTOL controller must wait until the existing robotics-control evidence gate is satisfied.
+This RFC establishes the first research architecture, benchmark taxonomy, external comparison points, and staged development gates. It deliberately does not add a new full-scale Symthaea flight-control platform. The public multirotor code now includes a trained-controller transfer path and dedicated cognition-causality / Red-tier non-interference tests. Their presence is not proof of a passing exact-head run (the inspected public commit returned no CI statuses), and even a passing microquad acceptance test would not validate full-scale aircraft dynamics. Full-scale fixed-wing/eVTOL integration is therefore gated on (1) reproducible exact-head acceptance evidence for the current controller path, (2) a separately qualified aerodynamic/propulsion/energy model for the new aircraft regime, and (3) HIL, fault-injection, and independent safety-boundary evidence.
 
 ## 1. What exists, and what does not
 
@@ -98,12 +98,14 @@ A model output is a design prediction. It becomes validation evidence only after
 
 Use deterministic, bounded control and independent safety supervision for safety-critical functions. Learning or active-inference components may advise, estimate, or optimize within a verified envelope; they must not silently acquire actuator authority or override independent protection.
 
-For future Symthaea integration:
+For Symthaea integration:
+- preserve the existing trained-controller transfer path and cognition-causality acceptance tests as a microquad-level foundation; do not treat source presence as a passing test result;
 - retain a conventional, testable baseline controller;
 - enforce command limits and a runtime safety envelope independently of the learned policy;
 - define loss-of-model, sensor disagreement, OOD, power, thermal, and communication responses;
 - make every policy change replayable and attributable;
-- require hardware-in-the-loop and fault-injection evidence before any higher-authority role.
+- require HIL and fault-injection evidence before any higher-authority role;
+- require aircraft-regime-specific models and tests before using this work for fixed-wing or eVTOL decisions.
 
 ### 2.6 The vertiport is part of the aircraft energy system
 
@@ -258,7 +260,7 @@ Validate submodels against independent component data. Freeze datasets before tu
 
 ### P5 — flight-control integration
 
-Only after the mission model and physics are grounded should the team develop dedicated fixed-wing/eVTOL flight dynamics and control interfaces. Preserve the existing multirotor line; do not rename or stretch it into an airliner. Symthaea's learned components should remain behind independently verified safety boundaries.
+Develop dedicated fixed-wing/eVTOL flight dynamics and control interfaces only after the mission model and physics are grounded. Preserve the existing multirotor line; do not rename or stretch it into an airliner. The current trained-controller / cognition-causality work can continue on the microquad line, but its exact-head test evidence must be checked separately and it does not transfer aircraft validity. Symthaea's learned components should remain behind independently verified safety boundaries.
 
 ### P6 — certification and operational demonstration
 
