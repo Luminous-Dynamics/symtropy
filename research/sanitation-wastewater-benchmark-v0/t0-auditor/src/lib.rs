@@ -111,6 +111,12 @@ pub fn audit_case(input: &str) -> Result<AuditResult, String> {
     let water_evaporation = number(water, "evaporation_l_day")?;
     let water_expected = number(water, "expected_closure_l_day")?;
     let water_tolerance = number(water, "closure_tolerance_l_day")?;
+    if [water_in, water_effluent, water_sludge, water_evaporation]
+        .iter()
+        .any(|value| *value < 0.0)
+    {
+        return Err("water flow values cannot be negative".to_owned());
+    }
     if water_tolerance < 0.0 {
         return Err("water closure tolerance cannot be negative".to_owned());
     }
@@ -144,6 +150,12 @@ pub fn audit_case(input: &str) -> Result<AuditResult, String> {
         let other = number(item, "other_outputs_kg_day")?;
         let expected = number(item, "expected_closure_kg_day")?;
         let tolerance = number(item, "closure_tolerance_kg_day")?;
+        if [inflow, effluent, sludge, other]
+            .iter()
+            .any(|value| *value < 0.0)
+        {
+            return Err(format!("{name} constituent loads cannot be negative"));
+        }
         if tolerance < 0.0 {
             return Err(format!("{name} closure tolerance cannot be negative"));
         }
@@ -166,6 +178,14 @@ pub fn audit_case(input: &str) -> Result<AuditResult, String> {
     }
     for item in performance {
         let parameter = string(item, "parameter")?;
+        if parameter != "BOD5" && parameter != "COD" {
+            return Err(format!("unsupported non-conservative parameter: {parameter}"));
+        }
+        if string(item, "interpretation")?
+            != "calculated_metric_not_a_conserved_species_or_compliance_result"
+        {
+            return Err(format!("{parameter} interpretation/evidence ceiling mismatch"));
+        }
         require_unit(item, "mg/L", &mut diagnostics, &mut actual_reason_codes)?;
         let influent_concentration = number(item, "influent_mg_l")?;
         let effluent_concentration = number(item, "effluent_mg_l")?;
@@ -195,6 +215,11 @@ pub fn audit_case(input: &str) -> Result<AuditResult, String> {
     // Gross import, recovered energy and net import are kept separately.
     let energy = field(&root, "energy")?;
     require_unit(energy, "kWh/day", &mut diagnostics, &mut actual_reason_codes)?;
+    if string(energy, "status")?
+        != "synthetic_arithmetic_only_not_an_energy_performance_claim"
+    {
+        return Err("energy evidence ceiling mismatch".to_owned());
+    }
     let gross = number(energy, "gross_import_kwh_day")?;
     let recovered = number(energy, "recovered_kwh_day")?;
     let net = number(energy, "net_import_kwh_day")?;
