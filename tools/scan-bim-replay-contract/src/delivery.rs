@@ -7,7 +7,6 @@
 //! not parse IFC, execute IDS checks, read evidence files, or validate geometry.
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 
 const REQUIRED_GATE_IDS: [GateId; 9] = [
