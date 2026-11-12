@@ -204,6 +204,8 @@
         "standard_id",
         "standard_revision",
         "protocol_revision",
+        "acceptance_criteria_id",
+        "acceptance_criteria_evidence_id",
         "trigger_method",
         "trigger_achieved",
         "post_trigger_observation_minutes",
@@ -297,6 +299,20 @@
         },
         "evidence_id": {
           "type": "string",
+          "minLength": 1
+        },
+        "acceptance_criteria_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "acceptance_criteria_evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ],
           "minLength": 1
         }
       }
