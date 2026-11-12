@@ -669,6 +669,7 @@ mod tests {
     fn model_likelihood_and_receipt_tampering_fail_before_acceptance() {
         let mut invalid = model();
         invalid.outcomes[0].probability_under_null = 0.95;
+        invalid.outcomes[1].probability_under_null = 0.05;
         assert_eq!(
             invalid.validate(),
             Err(SequentialEvidenceError::InvalidModel)
