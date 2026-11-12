@@ -1,0 +1,251 @@
+{
+  "schema_version": "0.1.0",
+  "protocol_id": "DECISION-TIME-ACTION-ASSURANCE-001",
+  "as_of": "2026-11-13",
+  "status": "specification_and_reference_implementation_only_no_benchmark_runs",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4961",
+  "claim_ceiling": "Typed-record, digest-consistency and time-window checks only. No semantic correctness, physical safety, controller, actuator or road-safety result is claimed.",
+  "core_hypothesis": "Short-lived action-evidence envelopes, revalidated at execution time, can prevent time-of-check/time-of-use failures under sensor and compute perturbations while allowing explicitly bounded degraded action profiles.",
+  "paradigm_shift": {
+    "from": "A model output is treated as actionable when inference completes.",
+    "to": "An action is a short-lived proposal bound to an exact evidence bundle, explicit evidence profile and execution-time revalidation.",
+    "differentiator": "The authorization expires at the earliest proposal, policy or required-evidence deadline; any evidence, policy or action mutation invalidates the old envelope."
+  },
+  "industry_comparators": [
+    {
+      "id": "bench2drive_v004_lead",
+      "class": "closed_loop_driving_performance",
+      "name": "Bench2Drive v0.0.4 LEAD",
+      "metrics": {
+        "driving_score": 95.59,
+        "success_rate_percent": 87.28
+      },
+      "context": "Published 220-route closed-loop result table; these driving metrics are not directly comparable with this crate's authorization conformance tests.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md"
+    },
+    {
+      "id": "bench2drive_robust_2026",
+      "class": "deployment_perturbation_benchmark",
+      "name": "Bench2Drive-Robust",
+      "metrics": null,
+      "perturbations": {
+        "burst_frame_drop_ticks": [
+          20,
+          60
+        ],
+        "partial_observation_percent": [
+          50,
+          80
+        ],
+        "gps_noise_m": [
+          5,
+          15
+        ],
+        "inference_control_delay_ms": [
+          100,
+          200,
+          500
+        ],
+        "speed_estimation_noise": "multiplicative noise sweep"
+      },
+      "context": "Complementary closed-loop benchmark: this project adds action authorization lifecycle and pre-execution revalidation.",
+      "source": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust"
+    },
+    {
+      "id": "drivedegrade_2026",
+      "class": "image_degradation_and_information_deletion",
+      "name": "DriveDegrade",
+      "metrics": null,
+      "perturbations": {
+        "corruption_families": 16,
+        "severities": 5,
+        "axes": [
+          "image quality degradation",
+          "information deletion"
+        ]
+      },
+      "context": "Use paired critical-evidence deletion and irrelevant-input controls; invariance under blindness must not be mislabelled robustness.",
+      "source": "https://arxiv.org/abs/2608.29005"
+    },
+    {
+      "id": "alpamayo_2_edge_2026_11_10",
+      "class": "industry_edge_vla",
+      "name": "NVIDIA Alpamayo 2 Edge",
+      "metrics": {
+        "parameters_billions": 2,
+        "reported_closed_loop_rl_uplift_percent": 48.9,
+        "pixel_to_trajectory_latency_ms": [
+          160,
+          190
+        ]
+      },
+      "context": "NVIDIA-reported model, training and deployment figures on its own hardware/workflow. Not independently reproduced by this repository.",
+      "source": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/"
+    },
+    {
+      "id": "waymo_safety_dashboard_2026_06",
+      "class": "operational_safety_evidence",
+      "name": "Waymo Driver safety impact dashboard",
+      "metrics": {
+        "rider_only_miles_millions": 271.3
+      },
+      "context": "Company-published operational mileage through June 2026 with location-adjusted comparisons and 95% confidence intervals; not comparable to simulator or gate tests.",
+      "source": "https://waymo.com/safety/impact/"
+    }
+  ],
+  "profiles": [
+    {
+      "id": "nominal",
+      "description": "Normal action profile with caller-defined evidence recency, delivery/processing bounds, health requirements, inter-sensor skew and action set."
+    },
+    {
+      "id": "restricted",
+      "description": "Explicit, narrower action set with caller-defined degraded evidence tolerances. It cannot be inferred or invented by the gate."
+    }
+  ],
+  "fault_families": [
+    "required_camera_missing",
+    "required_vehicle_state_missing",
+    "required_localization_missing",
+    "delayed_camera_delivery",
+    "stale_capture_with_recent_delivery",
+    "future_dated_sample",
+    "capture_ready_delivery_timestamp_order_violation",
+    "timestamp_regression_by_sequence",
+    "duplicate_sensor_sequence",
+    "inter_sensor_skew",
+    "clock_id_mismatch",
+    "sensor_health_invalid_or_degraded",
+    "missing_event_after_latest_sample",
+    "payload_or_calibration_digest_mutation",
+    "proposal_source_bundle_digest_mismatch",
+    "new_observation_between_authorization_and_execution",
+    "policy_revision_mutation",
+    "action_digest_mutation",
+    "proposal_expiry",
+    "authorization_expiry",
+    "execution_before_authorization"
+  ],
+  "experiment_tracks": [
+    {
+      "id": "T0_conformance",
+      "type": "deterministic_known_answer",
+      "runs": "valid nominal/restricted, each violation boundary and negative control",
+      "primary_metrics": [
+        "false_authorization_count",
+        "invalid_fixture_rejection_percent",
+        "event_denominator_match_percent"
+      ]
+    },
+    {
+      "id": "T1_TOCTOU",
+      "type": "fresh_process_replay",
+      "runs": "mutate sensor payload, add a new observation, change policy, mutate action or expire envelope between authorization and execution",
+      "primary_metrics": [
+        "stale_envelope_accept_count",
+        "changed_bundle_accept_count",
+        "changed_action_accept_count"
+      ]
+    },
+    {
+      "id": "T2_bench2drive_robust",
+      "type": "closed_loop_deployment_perturbation",
+      "runs": "reproduce the published frame-drop, partial-view, localization, speed-noise and latency settings using matched Bench2Drive agents",
+      "primary_metrics": [
+        "native_driving_score",
+        "success_rate",
+        "invalid_authorization_rate",
+        "false_restriction_rate",
+        "recovery_lead_time_us"
+      ]
+    },
+    {
+      "id": "T3_drivedegrade",
+      "type": "paired_information_dependency",
+      "runs": "critical evidence deletion vs irrelevant sensor/input ablation, matched policy and task",
+      "primary_metrics": [
+        "authorization_sensitivity",
+        "action_distribution_change",
+        "false_robustness_rate"
+      ]
+    },
+    {
+      "id": "T4_runtime_cost",
+      "type": "pinned_hardware_microbenchmark",
+      "runs": "fixed-size and scaled evidence bundles on a named CPU and exact build",
+      "primary_metrics": [
+        "gate_eval_p50_us",
+        "gate_eval_p95_us",
+        "gate_eval_p99_us",
+        "revalidation_p50_us",
+        "revalidation_p99_us"
+      ]
+    }
+  ],
+  "metrics": {
+    "invalid_authorization_rate": {
+      "formula": "invalid proposals authorized / invalid proposals submitted",
+      "direction": "minimize"
+    },
+    "stale_execution_acceptance_rate": {
+      "formula": "expired or superseded envelopes accepted / invalidated envelopes submitted",
+      "direction": "minimize"
+    },
+    "bundle_mismatch_acceptance_rate": {
+      "formula": "executions accepted with evidence digest different from the proposal source digest / mismatch attempts",
+      "direction": "minimize"
+    },
+    "false_restriction_rate": {
+      "formula": "nominally valid proposals sent to restricted/fallback / nominally valid proposals",
+      "direction": "minimize"
+    },
+    "fallback_required_rate": {
+      "formula": "proposals requiring declared fallback / all proposals",
+      "direction": "report"
+    },
+    "recovery_lead_time_us": {
+      "formula": "execution deadline minus first evidence-invalid time when the gate rejects",
+      "direction": "maximize"
+    },
+    "gate_eval_latency_us": {
+      "formula": "wall-clock time for evaluate(bundle,proposal,policy,now)",
+      "direction": "report p50/p95/p99"
+    },
+    "revalidation_latency_us": {
+      "formula": "wall-clock time for revalidate_at_execution",
+      "direction": "report p50/p95/p99"
+    },
+    "evidence_dependence": {
+      "formula": "paired change under decision-critical evidence deletion contrasted with irrelevant-input ablation",
+      "direction": "report per action family"
+    }
+  },
+  "prospective_targets": {
+    "status": "not_measured",
+    "deterministic_invalid_fixture_rejection_percent": 100,
+    "event_denominator_match_percent": 100,
+    "invalid_authorizations_allowed": 0,
+    "stale_envelopes_accepted": 0,
+    "changed_bundle_envelopes_accepted": 0,
+    "changed_action_envelopes_accepted": 0,
+    "p99_gate_evaluation_latency_target_us": 1000,
+    "note": "The 1 ms p99 target is a research target on a pinned reference CPU, not a measured result or safety requirement. False-restriction and capability-retention targets must be frozen only after baseline reproduction."
+  },
+  "negative_controls": [
+    "valid evidence but wrong proposal source digest",
+    "new camera frame arrives after authorization",
+    "same payload with different calibration digest",
+    "sequence increases while capture timestamp regresses",
+    "delivery timestamp appears current while capture timestamp is stale",
+    "restricted profile permits routine actions but not overtaking",
+    "envelope expiry is extended and commitment recomputed by an untrusted caller",
+    "policy profile changes between decision and execution",
+    "irrelevant sensor deletion is confused with decision-critical deletion"
+  ],
+  "outputs": {
+    "request_schema": "schemas/gate-request-v1.schema.json",
+    "report_schema": "schemas/gate-report-v1.schema.json",
+    "result_card_schema": "result_card.schema.json",
+    "result_card_template": "result_card.template.json"
+  }
+}
