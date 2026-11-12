@@ -316,22 +316,57 @@
     ],
     "implemented_api": "KerrOpticalScreenMap::reexpress_source_screen(target_basis,tolerance)",
     "implemented_checks": [
-      "construct the two-dimensional transition from the source and target 3D basis rows",
+      "construct the two-dimensional transition from source and target 3D basis rows",
       "require R*R^T=I within caller tolerance",
       "require det(R)=+1 within caller tolerance",
       "reject reflections and non-orthogonal screen bases",
       "apply J_target=R*J_source and recompute determinant, singular values and conditioning"
     ],
     "authored_tests": [
-      "rotation of a 2x2 map preserves signed determinant, both singular values and condition number",
+      "rotating a screen basis preserves signed determinant, both singular values and condition number",
       "reflection is rejected",
       "non-orthogonal frame is rejected"
     ],
     "remaining": [
-      "store/validate source event and photon direction identity rather than relying on caller contract",
+      "store and validate source-event and photon-direction identity rather than relying on caller contract",
       "parallel-transport Sachs screen basis across source events",
-      "continuous atlas transition across the observer sky seam",
-      "fold/cusp classification must remain disabled until frame transport is qualified"
+      "continuous atlas transition across the observer-sky seam",
+      "fold/cusp classification remains blocked until transported-frame and independent Sachs-Jacobi checks pass"
     ]
+  },
+  "caustic_qualification_policy": {
+    "status": "future_gate_not_implemented",
+    "candidate_definition": "A small sampled determinant is not a caustic. A candidate must be localized as a rank-deficient optical map with a converged smallest singular value and stable source-screen gauge.",
+    "simple_fold_requirements": [
+      "the optical Jacobi map has rank one at the candidate within a scale-aware residual",
+      "the determinant has a simple zero along a defined transverse control parameter or affine family, with a converged signed derivative",
+      "the nonzero singular value remains bounded away from zero",
+      "the null direction and caustic normal are continuous under source-screen SO(2) re-expression",
+      "the root is stable under tighter trajectory and variational tolerances and independent affine-step refinement"
+    ],
+    "cusp_requirements": [
+      "fold degeneracy condition plus vanishing first derivative of the caustic mapping along the critical direction",
+      "nonzero next-order derivative satisfying the declared cusp normal-form nondegeneracy condition",
+      "two-dimensional source/observer parameter continuation rather than classification from a single affine trace",
+      "classification stable under chart changes and parameter-grid refinement"
+    ],
+    "root_localization_requirements": [
+      "bracketed scalar root solve only after establishing a sign-changing simple-root bracket",
+      "for non-sign-changing or even-multiplicity candidates, minimize the smallest singular value and validate the local normal form; do not use sign-change-only detection",
+      "integrate the variational system at the refined parameter rather than interpolating raw determinant samples as final evidence",
+      "report determinant scale, singular values, condition number, bracket width, root residual, refinement history and unresolved status"
+    ],
+    "prohibited_shortcuts": [
+      "classify a caustic when abs(det(J)) is merely below a fixed absolute threshold",
+      "interpolate matrix components across the sky-basis chart seam without an SO(2) frame transition",
+      "report a caustic coordinate before the exact Schwarzschild map and independent Sachs-Jacobi formulation agree",
+      "turn an unresolved near-singular matrix into a finite magnification by clipping the smaller singular value"
+    ],
+    "target_acceptance": {
+      "caustic_location_error_in_M": 0.0001,
+      "root_residual_dimensionless": 1e-8,
+      "smallest_singular_value_refinement_stability": 0.000001,
+      "root_location_change_under_tolerance_refinement_in_M": 0.00001
+    }
   }
 }
