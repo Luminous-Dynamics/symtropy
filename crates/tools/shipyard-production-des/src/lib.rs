@@ -742,6 +742,68 @@ mod tests {
     }
 
     #[test]
+    fn unknown_resource_is_rejected() {
+        let scenario = input(
+            vec![resource("robot", 1)],
+            vec![task("A", 1, 1, &[("crane", 1)])],
+            vec![],
+        );
+        assert_eq!(simulate(&scenario), Err(ScheduleError::UnknownResource));
+    }
+
+    #[test]
+    fn zero_resource_demand_is_rejected() {
+        let scenario = input(
+            vec![resource("robot", 1)],
+            vec![task("A", 1, 1, &[("robot", 0)])],
+            vec![],
+        );
+        assert_eq!(simulate(&scenario), Err(ScheduleError::ZeroResourceDemand));
+    }
+
+    #[test]
+    fn task_without_resource_demand_is_rejected() {
+        let scenario = input(
+            vec![resource("robot", 1)],
+            vec![task("A", 1, 1, &[])],
+            vec![],
+        );
+        assert_eq!(simulate(&scenario), Err(ScheduleError::TaskHasNoResourceDemand));
+    }
+
+    #[test]
+    fn self_dependency_is_rejected() {
+        let scenario = input(
+            vec![resource("robot", 1)],
+            vec![task("A", 1, 1, &[("robot", 1)])],
+            vec![Dependency {
+                predecessor_id: "A".to_owned(),
+                successor_id: "A".to_owned(),
+                minimum_lag_ticks: 0,
+            }],
+        );
+        assert_eq!(simulate(&scenario), Err(ScheduleError::SelfDependency));
+    }
+
+    #[test]
+    fn duplicate_dependency_is_rejected() {
+        let dependency = Dependency {
+            predecessor_id: "A".to_owned(),
+            successor_id: "B".to_owned(),
+            minimum_lag_ticks: 0,
+        };
+        let scenario = input(
+            vec![resource("robot", 1)],
+            vec![
+                task("A", 1, 1, &[("robot", 1)]),
+                task("B", 1, 2, &[("robot", 1)]),
+            ],
+            vec![dependency.clone(), dependency],
+        );
+        assert_eq!(simulate(&scenario), Err(ScheduleError::DuplicateDependency));
+    }
+
+    #[test]
     fn time_overflow_is_rejected() {
         let scenario = input(
             vec![resource("robot", 1)],
