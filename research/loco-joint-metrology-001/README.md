@@ -129,7 +129,7 @@ cargo test --locked --manifest-path research/loco-joint-metrology-001/adapter/Ca
 cargo clippy --locked --manifest-path research/loco-joint-metrology-001/adapter/Cargo.toml --all-targets -- -D warnings
 ```
 
-The reference source contains 20 deterministic unit tests covering complete trace closure, independent AoI and actuator response, bounded and unknown clock relations, interval uncertainty, timestamp inversions, missing thermal nodes, thermal resets and predecessor mismatch, decision regret/expiry/prefix mismatch, energy boundary incompleteness and upstream receipt rejection, sampling limits, terminal safe-stop, and causal identity/sequence integrity. These are authored tests; exact-head CI is the execution gate.
+The reference source contains 29 deterministic unit tests covering complete trace closure, independent AoI and actuator response, bounded and unknown clock relations, interval uncertainty, timestamp inversions, missing thermal nodes, thermal resets and predecessor mismatch, decision regret/expiry/prefix mismatch, energy boundary incompleteness and upstream receipt rejection, sampling limits, terminal safe-stop, and causal identity/sequence integrity. These are authored tests; exact-head CI is the execution gate.
 
 The adapter accepts typed, normalized upstream receipts. It does not parse raw DAQ files, establish transducer calibration, estimate motor/thermal state, compute first-law closure, generate causal event IDs, or authorize actuation. An energy PASS requires a complete boundary and an upstream balanced receipt. A retrospective report always has `actuation_authorized = false`. Raw traces and calibration artifacts remain separately stored and digest-bound.
 
