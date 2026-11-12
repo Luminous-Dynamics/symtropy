@@ -7,7 +7,7 @@ Tracking: [SHIPYARD-INTERPASS-ADAPTIVE-001 #4649](https://github.com/Luminous-Dy
 Recent adjacent SOTA already includes:
 - Yu et al. (2026): 4,434 beads from 270 specimens; inter-pass 3D profiling; residual cross-sectional volume reallocation; nine additional validation specimens with reported UT acceptance.
 - Wang et al. (October 2026): online synchronous welding path and torch-posture planning, reporting path RMSE ≤0.1334 mm and torch-posture RMSE ≤0.8064° across its stated test context.
-- 2026 closed-loop robotic welding survey: the forward perception→modelling→decision→execution path is more mature than the backward assessment→model/decision learning loop, and calls for comparable multi-layer evaluation with clear system maturity.
+- A February 2027 closed-loop robotic welding survey is forthcoming as of 12 November 2026 and is not used as current evidence. The programme's three-loop architecture below is our engineering design, not a claim derived from that future publication.
 
 The opportunity is not to claim we are better at point-cloud path fitting or to introduce RL by default. The differentiator is a machine-checkable, evidence-governed recommendation contract: exact predecessor scan binding, freshness, registration/coverage/occlusion limits, uncertainty-aware Pareto output, procedure-scope checks, resource/reachability checks, and explicit abstention. No action is automatically selected; no robot is commanded.
 
@@ -36,7 +36,7 @@ All numeric quantities in v0 are **symbolic synthetic units**, not mm², deposit
 - `docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1.schema.json`: Draft 2020-12 input contract.
 - `docs/tech/SHIPYARD_INTERPASS_ADAPTIVE_V0_1.md`: benchmark and claim-boundary protocol.
 - Focused CI runs rustfmt, tests and Clippy with warnings denied.
-- 28 Rust unit/mutation tests cover Pareto preservation, uncertainty, stale scan, wrong predecessor, low coverage, occlusion, registration error, future observation, stale observation, future leakage, OOD, measured-data rejection, live execution, procedure scope/revision, wrong scan, collision, resource infeasibility, duplicate candidates, no-feasible-plan and numeric overflow.
+- 29 Rust unit/mutation tests cover Pareto preservation, uncertainty, stale scan, wrong predecessor, low coverage, occlusion, registration error, future observation, stale observation, future leakage, OOD, measured-data rejection, live execution, procedure scope/revision, wrong scan, collision, resource infeasibility, duplicate candidates, no-feasible-plan and numeric overflow.
 
 This crate is an isolated nested Cargo workspace so it does not add another competing root Cargo.toml/Cargo.lock edit while the other three shipyard draft PRs are outstanding. It has no external crate dependencies.
 
@@ -63,3 +63,10 @@ The synthetic fixture includes two intentionally different single-objective base
 A separate two-observation test advances from PASS-02 to PASS-03, supplies a new scan ID plus new scan/registration digests, updates residual geometry from 100±10 to 55±5 units, and verifies that the geometry-only comparator changes from FILL-MID to FILL-55. This demonstrates deterministic replanning on the latest observation, not a physical performance improvement.
 
 The planner's measurement identity now binds the scan-byte digest and registration/transform receipt digest. These are symbolic identifiers in the synthetic v0.1 fixture; physical adapters must calculate and verify real digests from authorized source bytes and transform artifacts.
+
+
+## October 2026 online laser-welding comparator
+
+Moscatelli, Tanelli and Demir (2026), *Vision-based real-time autonomous trajectory planning in robotic laser welding applications*, Journal of Manufacturing Processes, 15 October 2026, DOI [10.1016/j.jmapro.2026.08.049](https://doi.org/10.1016/j.jmapro.2026.08.049), report a coaxial-camera/deep-learning online seam estimation and incremental robot trajectory loop. The study reports nominal perception-to-execution latency of 35 ms and prediction-to-seam deviations below 200 µm for its stated linear/curved laser-welding tests. Data are confidential and only processed data may be available subject to the industrial partner. This is a laser trajectory/control result, not a matched GMAW inter-pass volume-allocation or shipyard qualification benchmark; we must not compare its seam-centreline deviation directly to our synthetic geometry units.
+
+The closest process-specific digital-twin reference is **published** ISO/TR 23247-101:2026 (May 2026), which explicitly covers monitoring/management of robotic multilayer and multipass GMAW. **Under development**, ISO/AWI 23247-8 was approved and registered on 23 October 2026 for VVUQ of manufacturing digital twins. Align evidence-lifecycle and VVUQ interfaces with those documents, but do not claim conformity to an unfinished work item or that the Technical Report itself validates our implementation.
