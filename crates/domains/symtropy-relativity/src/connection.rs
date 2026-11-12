@@ -220,8 +220,7 @@ impl LeviCivitaConnection4 {
                     {
                         return Err(ConnectionError::NonFiniteMetricCompatibility);
                     }
-                    maximum_absolute_residual =
-                        maximum_absolute_residual.max(residual.abs());
+                    maximum_absolute_residual = maximum_absolute_residual.max(residual.abs());
                     global_term_scale = global_term_scale
                         .max(derivative.abs())
                         .max(first.abs())
