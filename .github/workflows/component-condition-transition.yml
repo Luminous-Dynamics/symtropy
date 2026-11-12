@@ -1,0 +1,32 @@
+name: Component Condition Transition Reference
+
+on:
+  pull_request:
+    paths:
+      - "research/component-condition-transition/**"
+      - ".github/workflows/component-condition-transition.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-source:
+    name: Exact-source format, tests, and strict Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy
+
+      - name: Check formatting
+        run: cargo +1.96.0 fmt --manifest-path research/component-condition-transition/Cargo.toml -- --check
+
+      - name: Run tests
+        run: cargo +1.96.0 test --manifest-path research/component-condition-transition/Cargo.toml --locked
+
+      - name: Run strict Clippy
+        run: cargo +1.96.0 clippy --manifest-path research/component-condition-transition/Cargo.toml --all-targets --locked -- -D warnings
