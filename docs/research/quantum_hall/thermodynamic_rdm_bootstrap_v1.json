@@ -1,0 +1,512 @@
+{
+  "schema": "luminous.quantum-hall.thermodynamic-rdm-bootstrap",
+  "schema_version": "1.0.0",
+  "artifact_id": "symtropy.quantum_hall.thermodynamic_bootstrap_v1",
+  "created_utc": "2026-11-10",
+  "status": "planned_replication_manifest",
+  "objective": "Independently reproduce a thermodynamic-limit many-body bootstrap that yields energy lower bounds and an optimized local-window reduced density matrix, then qualify local correlation/OES diagnostics and phase hypotheses.",
+  "claim_ceiling": "This is a source/benchmark specification only. Luminous has not reproduced the thermodynamic energy bound, optimized any RDM, computed a pair-correlation function or OES, or confirmed any phase identification in arXiv:2610.21317.",
+  "owners": {
+    "physics_and_rdm": "Symtropy issue #4570",
+    "formal_and_identifiability": "Symthaea issue #11448",
+    "exact_gap_certificate": "Symthaea issue #11422",
+    "finite_size_spectra": "Symtropy issue #4529",
+    "evidence": "Mycelix issue #6027"
+  },
+  "primary_source": {
+    "id": "gao_wang_thermodynamic_bootstrap",
+    "authors": [
+      "Qiang Gao",
+      "Taige Wang"
+    ],
+    "title": "Solving fractional quantum Hall problems with thermodynamic-limit bootstrap",
+    "arxiv": "2610.21317",
+    "url": "https://arxiv.org/abs/2610.21317",
+    "first_published": "2026-10-29",
+    "source_updated": "2026-10-30",
+    "reported_claims": [
+      "A rigorous and tight lower bound on the thermodynamic ground-state energy.",
+      "An optimized reduced density matrix rho_W_star on a spatial window.",
+      "For sufficiently tight bounds, the window RDM reproduces known model-state RDMs with reported fidelity comparisons.",
+      "For Laughlin and Moore-Read parent Hamiltonians, pair correlations and orbital entanglement spectra are reproduced.",
+      "For projected Coulomb interactions, the paper reports recovery of nu=1/3 Laughlin, nu=5/2 Moore-Read and nu=1/2 composite Fermi liquid diagnostics.",
+      "The paper reports a nu=1/4 composite-Fermi-liquid interpretation from OES and real-space correlations.",
+      "The paper reports a nu=12/5 anti-Read-Rezayi_3 interpretation from combined diagnostics."
+    ],
+    "intake_status": "abstract_reviewed_full_method_and_ancillary_source_intake_pending",
+    "required_before_reproduction": [
+      "Exact ancillary/source archive and revision.",
+      "Full equation-to-code and theorem crosswalk.",
+      "Exact geometry and gauge conventions.",
+      "Window shape, size and boundary assumptions.",
+      "Bootstrap hierarchy, moment/RDM constraints and truncation.",
+      "Objective functional and rigorous thermodynamic-limit argument.",
+      "Optimizer settings, primal/dual residuals and exactness/rounding policy.",
+      "Observable definitions, OES cut, symmetry sectors and phase diagnostic thresholds."
+    ]
+  },
+  "complementary_sources": [
+    {
+      "id": "gao_laughlin_gap",
+      "title": "Improving the lower bound on the Laughlin gap: An SDP search",
+      "arxiv": "2610.12700",
+      "url": "https://arxiv.org/abs/2610.12700",
+      "evidence_kind": "exact_rational_spectral_gap_certificate",
+      "known_claim": "Reported gamma_star about 0.2190037845 and spherical Laughlin gap >= 1/5 for sufficiently large N in the stated convention.",
+      "local_reproduction": "not_run",
+      "relation": "Complementary to ground-state energy and local-RDM reconstruction; it is not the same theorem."
+    },
+    {
+      "id": "scheer_khalaf_gap_hierarchy",
+      "title": "A hierarchy of exact lower bounds on the Laughlin spectral gap",
+      "arxiv": "2610.18854",
+      "url": "https://arxiv.org/abs/2610.18854",
+      "evidence_kind": "independent_exact_sdp_certificate_and_rank_stability",
+      "local_reproduction": "not_run",
+      "relation": "A separate gap-certificate route; not a local-RDM or thermodynamic energy bootstrap reproduction."
+    },
+    {
+      "id": "openai_math_family_269",
+      "repository": "openai/math",
+      "commit": "4eaee87548250b2682affda7d05d947c05554bae",
+      "url": "https://github.com/openai/math/tree/4eaee87548250b2682affda7d05d947c05554bae",
+      "evidence_kind": "lean_formalization_of_original_unperturbed_laughlin_gap_family",
+      "local_reproduction": "source_crosswalk_opened",
+      "relation": "Formalization comparison baseline only. Does not establish Gao's newer gap certificate or the local-RDM bootstrap."
+    }
+  ],
+  "state_registry": [
+    {
+      "id": "laughlin_13_parent",
+      "filling": "1/3",
+      "interaction": "fermionic Laughlin V1 parent Hamiltonian",
+      "reference_state": "Laughlin",
+      "tasks": [
+        "thermodynamic_energy_bound",
+        "local_RDM",
+        "RDM_fidelity",
+        "pair_correlation",
+        "orbital_entanglement_spectrum"
+      ],
+      "benchmark_priority": "P0"
+    },
+    {
+      "id": "moore_read_52_parent",
+      "filling": "5/2",
+      "interaction": "Moore-Read parent Hamiltonian (pin exact three-body convention from source)",
+      "reference_state": "Moore-Read",
+      "tasks": [
+        "thermodynamic_energy_bound",
+        "local_RDM",
+        "RDM_fidelity",
+        "pair_correlation",
+        "orbital_entanglement_spectrum"
+      ],
+      "benchmark_priority": "P0"
+    },
+    {
+      "id": "coulomb_13",
+      "filling": "1/3",
+      "interaction": "Landau-level-projected Coulomb interaction",
+      "source_reported_phase": "Laughlin",
+      "tasks": [
+        "energy_bound",
+        "local_RDM",
+        "correlation",
+        "OES",
+        "competing_phase_diagnostics"
+      ],
+      "benchmark_priority": "P1"
+    },
+    {
+      "id": "coulomb_12",
+      "filling": "1/2",
+      "interaction": "Landau-level-projected Coulomb interaction",
+      "source_reported_phase": "composite_Fermi_liquid",
+      "tasks": [
+        "energy_bound",
+        "local_RDM",
+        "correlation",
+        "OES",
+        "competing_phase_diagnostics"
+      ],
+      "benchmark_priority": "P1"
+    },
+    {
+      "id": "coulomb_52",
+      "filling": "5/2",
+      "interaction": "Landau-level-projected Coulomb interaction",
+      "source_reported_phase": "Moore-Read",
+      "tasks": [
+        "energy_bound",
+        "local_RDM",
+        "correlation",
+        "OES",
+        "competing_phase_diagnostics"
+      ],
+      "benchmark_priority": "P1"
+    },
+    {
+      "id": "coulomb_14",
+      "filling": "1/4",
+      "interaction": "Landau-level-projected Coulomb interaction",
+      "source_reported_phase": "composite_Fermi_liquid",
+      "tasks": [
+        "energy_bound",
+        "local_RDM",
+        "correlation",
+        "OES",
+        "competing_phase_diagnostics"
+      ],
+      "benchmark_priority": "P2",
+      "caution": "Paper-reported interpretation; reproduce geometry, interaction and all diagnostics before adopting the phase label."
+    },
+    {
+      "id": "coulomb_125",
+      "filling": "12/5",
+      "interaction": "Landau-level-projected Coulomb interaction",
+      "source_reported_phase": "anti_Read-Rezayi_3_candidate",
+      "tasks": [
+        "energy_bound",
+        "local_RDM",
+        "correlation",
+        "OES",
+        "competing_phase_diagnostics"
+      ],
+      "benchmark_priority": "P2",
+      "caution": "Paper-reported suggested phase; retain competing hypotheses and uncertainty."
+    }
+  ],
+  "evidence_objects": [
+    {
+      "id": "thermodynamic_energy_bound",
+      "kind": "rigorous_energy_lower_bound",
+      "required": [
+        "hamiltonian_digest",
+        "geometry",
+        "filling",
+        "interaction",
+        "bootstrap_hierarchy",
+        "window_definition",
+        "boundary_assumptions",
+        "thermodynamic_limit_proof",
+        "optimizer_candidate_digest",
+        "independent_exact_check",
+        "bound_value",
+        "units_or_normalization"
+      ],
+      "not_equivalent_to": [
+        "spectral_gap",
+        "exact_ground_state_density_matrix",
+        "topological_order_proof"
+      ]
+    },
+    {
+      "id": "optimized_window_rdm",
+      "kind": "numerical_or_exact_local_reduced_density_matrix",
+      "required": [
+        "rho_digest",
+        "window_shape",
+        "window_size",
+        "geometry",
+        "gauge",
+        "orbital_order",
+        "particle_number_or_charge_sectors",
+        "basis",
+        "truncation",
+        "optimizer",
+        "primal_dual_residuals",
+        "hermiticity_residual",
+        "trace_residual",
+        "minimum_eigenvalue",
+        "RDM_marginal_checks"
+      ],
+      "not_equivalent_to": [
+        "global_ground_state_wavefunction",
+        "exact_thermodynamic_state",
+        "global_topological_order_proof"
+      ]
+    },
+    {
+      "id": "RDM_fidelity",
+      "kind": "local_state_comparison",
+      "required": [
+        "rho_W_digest",
+        "reference_state_digest",
+        "window_match",
+        "fidelity_definition",
+        "fidelity_value",
+        "uncertainty",
+        "finite_size_or_thermodynamic_status"
+      ],
+      "not_equivalent_to": [
+        "global_state_fidelity",
+        "topological_phase_theorem"
+      ]
+    },
+    {
+      "id": "pair_correlations",
+      "kind": "local_observable",
+      "required": [
+        "rho_digest",
+        "operator_definition",
+        "distance_or_momentum_grid",
+        "normalization",
+        "uncertainty",
+        "reference_data_digest"
+      ]
+    },
+    {
+      "id": "orbital_entanglement_spectrum",
+      "kind": "entanglement_diagnostic",
+      "required": [
+        "rho_or_state_digest",
+        "orbital_cut",
+        "particle_or_charge_sector",
+        "eigenvalue_convention",
+        "symmetry_labels",
+        "counting_rule",
+        "uncertainty",
+        "reference_digest"
+      ]
+    },
+    {
+      "id": "phase_hypothesis",
+      "kind": "model_comparison_not_truth_adjudication",
+      "required": [
+        "candidate_models",
+        "diagnostics_used",
+        "window_sweeps",
+        "cut_sweeps",
+        "fit_or_score_definition",
+        "posterior_or_uncertainty",
+        "competing_explanations",
+        "robustness_tests",
+        "abstention_reason"
+      ]
+    }
+  ],
+  "RDM_validation": {
+    "required_checks": [
+      "Hermiticity residual",
+      "Trace normalization",
+      "Positive semidefiniteness and minimum eigenvalue",
+      "Particle number / charge and symmetry sectors",
+      "Fermionic antisymmetry and CAR consistency",
+      "Consistency of nested-window marginals",
+      "Consistency between RDM and declared operator expectations",
+      "Gauge, orbital-order and basis convention identity"
+    ],
+    "exact_vs_numeric": {
+      "exact": "Finite rational/algebraic identities and exact positivity certificates where available.",
+      "numeric": "Floating-point eigenvalue floor, solver primal/dual residual and conditioning with declared precision.",
+      "rule": "Never report numerical PSD within tolerance as exact PSD without a certificate."
+    }
+  },
+  "phase_diagnostics": {
+    "minimum_independent_families": [
+      "real_space_pair_correlation",
+      "orbital_entanglement_spectrum",
+      "local_RDM_fidelity_or_independent_model_comparison"
+    ],
+    "robustness_sweeps": [
+      "window_size",
+      "window_shape",
+      "orbital_cut",
+      "basis_truncation",
+      "bootstrap_hierarchy_depth",
+      "optimizer_initialization"
+    ],
+    "uncertainty": [
+      "optimizer_residual",
+      "RDM_positive_floor",
+      "window_dependence",
+      "cut_dependence",
+      "model_discrepancy",
+      "finite_size_validation"
+    ],
+    "rule": "A phase label is withheld when diagnostics disagree, finite-window sensitivity is uncontrolled, or candidate model families are incomplete."
+  },
+  "benchmark_ladder": [
+    {
+      "level": "T0",
+      "name": "Paper/ancillary source identity",
+      "metrics": [
+        "source_revision",
+        "ancillary_hashes",
+        "license"
+      ],
+      "acceptance": "Every source and implementation file is pinned."
+    },
+    {
+      "level": "T1",
+      "name": "Bootstrap theorem crosswalk",
+      "metrics": [
+        "constraint_id",
+        "operator_identity",
+        "boundary_assumption",
+        "limit_argument"
+      ],
+      "acceptance": "Each proof-relevant statement is mapped to its equation and premise."
+    },
+    {
+      "level": "T2",
+      "name": "RDM algebra and representability",
+      "metrics": [
+        "hermiticity",
+        "trace",
+        "minimum_eigenvalue",
+        "CAR_residual",
+        "marginal_consistency"
+      ],
+      "acceptance": "All exact/numeric RDM invariants meet separately declared qualification rules."
+    },
+    {
+      "level": "T3",
+      "name": "Thermodynamic energy bound",
+      "metrics": [
+        "bound_value",
+        "primal_residual",
+        "dual_residual",
+        "certificate_status",
+        "limit_proof_status"
+      ],
+      "acceptance": "Independent checker reproduces the reported bound and its thermodynamic proof boundary."
+    },
+    {
+      "level": "T4",
+      "name": "Parent-state RDM reproduction",
+      "metrics": [
+        "local_RDM_fidelity",
+        "window_size",
+        "window_shape",
+        "min_RDM_eigenvalue"
+      ],
+      "acceptance": "Laughlin and Moore-Read local RDMs reproduce on source-matched windows and stable sweeps."
+    },
+    {
+      "level": "T5",
+      "name": "Correlation/OES reproduction",
+      "metrics": [
+        "pair_correlation_error",
+        "structure_factor_error",
+        "OES_spectrum_error",
+        "counting_match"
+      ],
+      "acceptance": "Independent observable implementation matches source references with uncertainty."
+    },
+    {
+      "level": "T6",
+      "name": "Coulomb phase atlas",
+      "metrics": [
+        "filling",
+        "candidate_phase",
+        "diagnostic_agreement",
+        "posterior_or_score",
+        "abstention"
+      ],
+      "acceptance": "Each filling receives a robust multi-diagnostic comparison, including uncertainty and competing hypotheses."
+    },
+    {
+      "level": "T7",
+      "name": "Finite-size cross-validation",
+      "metrics": [
+        "N",
+        "flux",
+        "sector",
+        "ED_energy",
+        "RDM_overlap",
+        "finite_size_trend"
+      ],
+      "acceptance": "Finite-size ED supports local diagnostics where tractable; it is not used as the thermodynamic proof."
+    },
+    {
+      "level": "T8",
+      "name": "Gap + local-state joint claims",
+      "metrics": [
+        "gap_certificate",
+        "local_RDM_fidelity",
+        "stability_assumptions",
+        "joint_theorem"
+      ],
+      "acceptance": "Any implication between gap, local-state stability and phase diagnostics has its own explicit proof."
+    },
+    {
+      "level": "T9",
+      "name": "New phase discovery",
+      "metrics": [
+        "new_candidate",
+        "all_diagnostic_families",
+        "robustness",
+        "independent_replication",
+        "formal_claim_status"
+      ],
+      "acceptance": "No new phase label is adopted without independent multi-diagnostic replication."
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "nonhermitian_RDM",
+      "expected_failure": "RDMHermiticityFailure"
+    },
+    {
+      "id": "RDM_trace_not_one",
+      "expected_failure": "RDMNormalizationFailure"
+    },
+    {
+      "id": "negative_RDM_eigenvalue",
+      "expected_failure": "RDMNotPositive"
+    },
+    {
+      "id": "wrong_flux_filling_or_shift",
+      "expected_failure": "ModelConventionMismatch"
+    },
+    {
+      "id": "wrong_projected_interaction",
+      "expected_failure": "HamiltonianMismatch"
+    },
+    {
+      "id": "incorrect_fermionic_CAR",
+      "expected_failure": "FermionicAlgebraFailure"
+    },
+    {
+      "id": "window_boundary_changed_without_rebuild",
+      "expected_failure": "WindowContractMismatch"
+    },
+    {
+      "id": "single_OES_cut_called_global_phase_proof",
+      "expected_failure": "EvidenceScopeMismatch"
+    },
+    {
+      "id": "RDM_fidelity_called_global_state_fidelity",
+      "expected_failure": "LocalGlobalScopeMismatch"
+    },
+    {
+      "id": "thermodynamic_energy_bound_called_spectral_gap",
+      "expected_failure": "ObservableMismatch"
+    },
+    {
+      "id": "finite_size_extrapolation_called_thermodynamic_theorem",
+      "expected_failure": "LimitScopeMismatch"
+    },
+    {
+      "id": "optimizer_residual_accepted_as_exact_certificate",
+      "expected_failure": "ProofLevelMismatch"
+    },
+    {
+      "id": "phase_label_without_competing_models",
+      "expected_failure": "PhaseIdentifiabilityFailure"
+    }
+  ],
+  "execution": {
+    "source_intake": "abstract_reviewed_full_source_and_ancillary_intake_pending",
+    "thermodynamic_energy_reproduced": false,
+    "local_RDM_reproduced": false,
+    "pair_correlations_reproduced": false,
+    "OES_reproduced": false,
+    "Coulomb_phase_atlas_reproduced": false,
+    "exact_RDM_certificate": false,
+    "lean_formalization": false,
+    "run_receipts": []
+  }
+}
