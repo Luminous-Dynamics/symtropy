@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "benchmark_id": "independent-environment-qualified-throughput-v0",
+  "suite_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "comparison_group_id": "same-host-gpu-debug-profile",
+  "hardware_profile_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "workload_family": "independent_environment_batch",
+  "max_energy_sample_gap_us": null,
+  "cases": [
+    {
+      "case_id": "robotics-env-001",
+      "required_simulated_ticks": 1000,
+      "max_error_upper_bound": 0.01,
+      "max_hard_constraint_violations": 0,
+      "require_replay_conformance": true
+    },
+    {
+      "case_id": "robotics-env-002",
+      "required_simulated_ticks": 1000,
+      "max_error_upper_bound": 0.01,
+      "max_hard_constraint_violations": 0,
+      "require_replay_conformance": true
+    },
+    {
+      "case_id": "robotics-env-003",
+      "required_simulated_ticks": 1000,
+      "max_error_upper_bound": 0.01,
+      "max_hard_constraint_violations": 0,
+      "require_replay_conformance": true
+    }
+  ],
+  "campaigns": [
+    {
+      "engine_id": "cpu-fast-partial",
+      "engine_version": "synthetic-fixture",
+      "executable_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "configuration_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "hardware_profile_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "campaign_wall_time_us": 1000000,
+      "peak_memory_bytes": 100000000,
+      "step_latency_p50_us": 200,
+      "step_latency_p95_us": 300,
+      "step_latency_p99_us": 500,
+      "energy_measurement": null,
+      "results": [
+        {
+          "case_id": "robotics-env-001",
+          "outcome": "completed",
+          "semantic_equivalence": "matched",
+          "completed_simulated_ticks": 1000,
+          "error_upper_bound": 0.005,
+          "hard_constraint_violations": 0,
+          "replay_conformant": true,
+          "evidence_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "case_id": "robotics-env-002",
+          "outcome": "completed",
+          "semantic_equivalence": "mismatch",
+          "completed_simulated_ticks": 1000,
+          "error_upper_bound": 0.005,
+          "hard_constraint_violations": 0,
+          "replay_conformant": true,
+          "evidence_receipt_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+        },
+        {
+          "case_id": "robotics-env-003",
+          "outcome": "timed_out",
+          "semantic_equivalence": "unknown",
+          "completed_simulated_ticks": 100,
+          "error_upper_bound": null,
+          "hard_constraint_violations": null,
+          "replay_conformant": null,
+          "evidence_receipt_sha256": null
+        }
+      ],
+      "campaign_id": "cpu-fast-partial-run-01"
+    },
+    {
+      "engine_id": "cpu-slower-complete",
+      "engine_version": "synthetic-fixture",
+      "executable_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "configuration_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "hardware_profile_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "campaign_wall_time_us": 3000000,
+      "peak_memory_bytes": 130000000,
+      "step_latency_p50_us": 300,
+      "step_latency_p95_us": 450,
+      "step_latency_p99_us": 800,
+      "energy_measurement": null,
+      "results": [
+        {
+          "case_id": "robotics-env-001",
+          "outcome": "completed",
+          "semantic_equivalence": "matched",
+          "completed_simulated_ticks": 1000,
+          "error_upper_bound": 0.002,
+          "hard_constraint_violations": 0,
+          "replay_conformant": true,
+          "evidence_receipt_sha256": "2222222222222222222222222222222222222222222222222222222222222222"
+        },
+        {
+          "case_id": "robotics-env-002",
+          "outcome": "completed",
+          "semantic_equivalence": "matched",
+          "completed_simulated_ticks": 1000,
+          "error_upper_bound": 0.003,
+          "hard_constraint_violations": 0,
+          "replay_conformant": true,
+          "evidence_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        {
+          "case_id": "robotics-env-003",
+          "outcome": "completed",
+          "semantic_equivalence": "matched",
+          "completed_simulated_ticks": 1000,
+          "error_upper_bound": 0.004,
+          "hard_constraint_violations": 0,
+          "replay_conformant": true,
+          "evidence_receipt_sha256": "4444444444444444444444444444444444444444444444444444444444444444"
+        }
+      ],
+      "campaign_id": "cpu-slower-complete-run-01"
+    }
+  ]
+}
