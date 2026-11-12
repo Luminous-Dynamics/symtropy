@@ -89,7 +89,7 @@ jobs:
             (.external_dataset_track.dataset.license == "CC-BY-4.0") and
             (.external_dataset_track.dataset.zenodo_record.file.md5_independently_verified == true) and
             (.external_dataset_track.dataset.zenodo_record.file.sha256 == "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b") and
-            (.external_dataset_track.audit_receipt.artifact_id == 13987275055) and
+            (.external_dataset_track.audit_receipt.artifact_id == 13986307496) and
             (.external_dataset_track.dataset_file_inventory.recording_files == 16) and
             (.external_dataset_track.dataset_file_inventory.baseline_files == 1) and
             (.external_dataset_track.dataset_file_inventory.scenario_files == 15) and
@@ -240,7 +240,7 @@ jobs:
             .dataset.license == "CC-BY-4.0" and
             .dataset.zenodo_record.file.md5_independently_verified == true and
             .dataset.zenodo_record.file.sha256 == "3fba7aa0c288ae1bc05383fb54bf67cbde209d61b26e3e811d4bc2f22f97442b" and
-            .archive_audit_receipt.artifact_id == 13987275055 and
+            .archive_audit_receipt.artifact_id == 13986307496 and
             .evaluation_tracks[0].status == "completed_archive_and_csv_payload_audit"
             (.evaluation_tracks | length >= 5) and
             (.claim_ceiling | contains("no model accuracy") and contains("unaudited"))
