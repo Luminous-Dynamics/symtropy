@@ -50,9 +50,19 @@ pub enum TerminalRecoveryEvidence {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ObservationDisposition {
+    Qualified,
+    Unknown,
+    Invalid,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BeliefNode {
     pub node_id: String,
+    /// Receipt that justifies this delivered observation-equivalence class.
+    pub observation_receipt_digest: String,
+    pub observation_disposition: ObservationDisposition,
     /// All hidden states that produce this observation history.
     pub state_ids: Vec<String>,
     pub transition_manifest: EvidenceManifest,
@@ -172,7 +182,25 @@ fn solve_node(
         }
     }
 
-    let solution = if node.state_ids.is_empty() {
+    let solution = if node.observation_disposition == ObservationDisposition::Invalid {
+        NodeSolution {
+            disposition: PolicyTreeDisposition::Invalid,
+            winning_action_ids: Vec::new(),
+            witness: BTreeMap::new(),
+            unknown_reasons: Vec::new(),
+            invalid_reasons: vec![format!("{node_id}:observation-receipt-invalid")],
+        }
+    } else if node.observation_disposition == ObservationDisposition::Unknown
+        || node.observation_receipt_digest.trim().is_empty()
+    {
+        NodeSolution {
+            disposition: PolicyTreeDisposition::Unknown,
+            winning_action_ids: Vec::new(),
+            witness: BTreeMap::new(),
+            unknown_reasons: vec![format!("{node_id}:observation-receipt-unknown-or-missing")],
+            invalid_reasons: Vec::new(),
+        }
+    } else if node.state_ids.is_empty() {
         NodeSolution {
             disposition: PolicyTreeDisposition::Unknown,
             winning_action_ids: Vec::new(),
@@ -553,6 +581,8 @@ mod tests {
     fn qualified_leaf(node_id: &str, state_id: &str) -> BeliefNode {
         BeliefNode {
             node_id: node_id.to_owned(),
+            observation_receipt_digest: format!("observation:{node_id}"),
+            observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec![state_id.to_owned()],
             transition_manifest: EvidenceManifest {
                 complete: true,
@@ -597,6 +627,8 @@ mod tests {
     fn root_two_step_tree() -> FinitePolicyTree {
         let root = BeliefNode {
             node_id: "root".to_owned(),
+            observation_receipt_digest: "observation:root".to_owned(),
+            observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec!["s1".to_owned(), "s2".to_owned()],
             transition_manifest: EvidenceManifest {
                 complete: true,
@@ -614,6 +646,8 @@ mod tests {
         };
         let rough = BeliefNode {
             node_id: "rough-observation".to_owned(),
+            observation_receipt_digest: "observation:rough".to_owned(),
+            observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec!["s1-rough".to_owned()],
             transition_manifest: EvidenceManifest {
                 complete: true,
@@ -630,6 +664,8 @@ mod tests {
         };
         let firm = BeliefNode {
             node_id: "firm-observation".to_owned(),
+            observation_receipt_digest: "observation:firm".to_owned(),
+            observation_disposition: ObservationDisposition::Qualified,
             state_ids: vec!["s2-firm".to_owned()],
             transition_manifest: EvidenceManifest {
                 complete: true,
@@ -757,6 +793,25 @@ mod tests {
         });
         let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
         assert_eq!(report.disposition, PolicyTreeDisposition::WinningPolicyFound);
+    }
+
+
+    #[test]
+    fn unknown_or_stale_observation_receipt_cannot_split_a_belief() {
+        let mut tree = root_two_step_tree();
+        tree.nodes[0].observation_disposition = ObservationDisposition::Unknown;
+        let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
+        assert_eq!(report.disposition, PolicyTreeDisposition::Unknown);
+        assert!(report.policy_witness.is_empty());
+    }
+
+    #[test]
+    fn invalid_observation_receipt_rejects_a_policy_witness() {
+        let mut tree = root_two_step_tree();
+        tree.nodes[1].observation_disposition = ObservationDisposition::Invalid;
+        let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
+        assert_eq!(report.disposition, PolicyTreeDisposition::Invalid);
+        assert!(report.policy_witness.is_empty());
     }
 
     #[test]
