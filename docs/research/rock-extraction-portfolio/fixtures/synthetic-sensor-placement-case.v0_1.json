@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "case_id": "SYNTHETIC-SENSOR-PLACEMENT-001",
+  "observability_case_id": "SYNTHETIC-SENSOR-OBSERVABILITY-001",
+  "evidence_class": "SYNTHETIC_CONFORMANCE_FIXTURE",
+  "placement_profile": {
+    "profile_ref": "placement-profile:critical-pair-robustness-v1",
+    "cost_unit": "SYNTHETIC_COST_POINTS",
+    "exact_search_limit": 20,
+    "maximum_selected_channels": 5,
+    "max_lifecycle_cost_units": 9000,
+    "require_all_critical_pairs_nominal": true,
+    "require_all_critical_pairs_under_outages": true
+  },
+  "candidates": [
+    {
+      "candidate_id": "candidate-dp-line",
+      "channel_id": "dp-line",
+      "lifecycle_cost_units": 700,
+      "cost_unit": "SYNTHETIC_COST_POINTS",
+      "maintenance_hours_per_year": 2.5,
+      "planned_unavailability_hours_per_year": 0.8,
+      "source_class": "SYNTHETIC_COST_FIXTURE",
+      "cost_source_ref": "cost:synthetic:candidate-dp-line"
+    },
+    {
+      "candidate_id": "candidate-dp-filter",
+      "channel_id": "dp-filter",
+      "lifecycle_cost_units": 500,
+      "cost_unit": "SYNTHETIC_COST_POINTS",
+      "maintenance_hours_per_year": 2.2,
+      "planned_unavailability_hours_per_year": 0.7,
+      "source_class": "SYNTHETIC_COST_FIXTURE",
+      "cost_source_ref": "cost:synthetic:candidate-dp-filter"
+    },
+    {
+      "candidate_id": "candidate-airflow",
+      "channel_id": "airflow",
+      "lifecycle_cost_units": 1200,
+      "cost_unit": "SYNTHETIC_COST_POINTS",
+      "maintenance_hours_per_year": 3,
+      "planned_unavailability_hours_per_year": 1,
+      "source_class": "SYNTHETIC_COST_FIXTURE",
+      "cost_source_ref": "cost:synthetic:candidate-airflow"
+    },
+    {
+      "candidate_id": "candidate-blower-current",
+      "channel_id": "blower-current",
+      "lifecycle_cost_units": 250,
+      "cost_unit": "SYNTHETIC_COST_POINTS",
+      "maintenance_hours_per_year": 1.2,
+      "planned_unavailability_hours_per_year": 0.3,
+      "source_class": "SYNTHETIC_COST_FIXTURE",
+      "cost_source_ref": "cost:synthetic:candidate-blower-current"
+    },
+    {
+      "candidate_id": "candidate-gravimetric",
+      "channel_id": "gravimetric-flow",
+      "lifecycle_cost_units": 4000,
+      "cost_unit": "SYNTHETIC_COST_POINTS",
+      "maintenance_hours_per_year": 4,
+      "planned_unavailability_hours_per_year": 1.5,
+      "source_class": "SYNTHETIC_COST_FIXTURE",
+      "cost_source_ref": "cost:synthetic:candidate-gravimetric"
+    },
+    {
+      "candidate_id": "candidate-ecc",
+      "channel_id": "ecc-flow",
+      "lifecycle_cost_units": 1800,
+      "cost_unit": "SYNTHETIC_COST_POINTS",
+      "maintenance_hours_per_year": 1.8,
+      "planned_unavailability_hours_per_year": 0.6,
+      "source_class": "SYNTHETIC_COST_FIXTURE",
+      "cost_source_ref": "cost:synthetic:candidate-ecc"
+    },
+    {
+      "candidate_id": "candidate-self-check",
+      "channel_id": "sensor-self-check",
+      "lifecycle_cost_units": 800,
+      "cost_unit": "SYNTHETIC_COST_POINTS",
+      "maintenance_hours_per_year": 1.5,
+      "planned_unavailability_hours_per_year": 0.2,
+      "source_class": "SYNTHETIC_COST_FIXTURE",
+      "cost_source_ref": "cost:synthetic:candidate-self-check"
+    }
+  ],
+  "outage_scenarios": [
+    {
+      "scenario_id": "pressure-principle-unavailable",
+      "failed_channel_ids": [],
+      "failed_independence_group_refs": [
+        "principle:pressure-differential"
+      ]
+    },
+    {
+      "scenario_id": "airflow-principle-unavailable",
+      "failed_channel_ids": [],
+      "failed_independence_group_refs": [
+        "principle:gas-flow"
+      ]
+    },
+    {
+      "scenario_id": "gravimetric-principle-unavailable",
+      "failed_channel_ids": [],
+      "failed_independence_group_refs": [
+        "principle:gravimetry"
+      ]
+    },
+    {
+      "scenario_id": "electrical-principle-unavailable",
+      "failed_channel_ids": [],
+      "failed_independence_group_refs": [
+        "principle:electrical"
+      ]
+    },
+    {
+      "scenario_id": "electrostatic-principle-unavailable",
+      "failed_channel_ids": [],
+      "failed_independence_group_refs": [
+        "principle:electrostatic-capacitance"
+      ]
+    }
+  ]
+}
