@@ -19,7 +19,7 @@ Use the declared curvature convention consistently throughout the implementation
 = -R^\mu{}_{\nu\alpha\beta}v^\nu .
 \]
 
-For a fiducial affinely parameterized null geodesic with tangent \(k^\mu\), define the connecting vector \(\xi^\mu\) and covariant tangent deviation \(\ell^\mu=D\xi^\mu/d\lambda\). With the convention above, record the exact sign used in code and fixtures for the tidal operator
+For a fiducial affinely parameterized null geodesic with tangent \(k^\mu\), define the connecting vector \(\xi^\mu\) and covariant tangent deviation \(\ell^\mu=D\xi^\mu/d\lambda\). With this commutator convention, the full covariant geodesic-deviation equation has the plus sign shown below. Keep this full four-dimensional equation distinct from the screen-projected Sachs equation: the sign of the 2×2 screen tidal matrix depends on its explicit definition and must be derived during projection, then checked against the existing Rust convention rather than copied by name.
 
 \[
 \mathcal T^\mu{}_\nu
@@ -28,7 +28,7 @@ For a fiducial affinely parameterized null geodesic with tangent \(k^\mu\), defi
 \frac{D\xi^\mu}{d\lambda}=\ell^\mu,
 \qquad
 \frac{D\ell^\mu}{d\lambda}
-=-\mathcal T^\mu{}_\nu\xi^\nu .
+=+\mathcal T^\mu{}_\nu\xi^\nu .
 \]
 
 The BGO is the 8×8 block operator
@@ -46,7 +46,7 @@ W_{KX}&W_{KK}
 \end{pmatrix}.
 \]
 
-The implementation must make endpoint tangent/covector and coordinate-chart conventions explicit. A coordinate-component BGO is not directly comparable to a canonical \((x^\mu,p_\mu)\) fundamental matrix until the endpoint conversion includes the metric and the derivative of the metric in the momentum variation. Do not compare arrays merely because both happen to be 8×8.
+The implementation must make endpoint tangent/covector and coordinate-chart conventions explicit. The full covariant deviation sign above follows the pinned BGO curvature convention; the existing Sachs/Jacobi implementation uses its own screen-tidal definition in \(D''=-T_{AB}D\). The endpoint projection must derive the mapping between those definitions and test its sign on the exact radial and nonradial Schwarzschild fixtures. A coordinate-component BGO is not directly comparable to a canonical \((x^\mu,p_\mu)\) fundamental matrix until the endpoint conversion includes the metric and the derivative of the metric in the momentum variation. Do not compare arrays merely because both happen to be 8×8.
 
 ### Required identities
 
@@ -60,7 +60,7 @@ The implementation must make endpoint tangent/covector and coordinate-chart conv
 
 ## Benchmark ladder
 
-For BGO-0 in Minkowski spacetime, the exact transfer over affine interval \(\\Delta\\lambda\) is \(W_{XX}=I_4\), \(W_{XK}=\\Delta\\lambda I_4\), \(W_{KX}=0\), and \(W_{KK}=I_4\). This is the first machine-checkable known-answer case.
+For BGO-0 in Minkowski spacetime, the exact transfer over affine interval \(\Delta\lambda\) is \(W_{XX}=I_4\), \(W_{XK}=\\Delta\\lambda I_4\), \(W_{KX}=0\), and \(W_{KK}=I_4\). This is the first machine-checkable known-answer case.
 
 | ID | Case | Required outputs |
 |---|---|---|
