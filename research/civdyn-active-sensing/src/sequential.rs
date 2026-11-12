@@ -446,7 +446,7 @@ mod tests {
         }
     }
 
-    fn plan(second_stage_outcomes: Vec<(&str, &str, f64)>) -> SequentialSensorPlan {
+    fn build_plan(second_stage_outcomes: Vec<(&str, &str, f64)>) -> SequentialSensorPlan {
         SequentialSensorPlan {
             plan_id: "setup-then-inspect".to_owned(),
             protocol_digest: "sha256-setup-then-inspect".to_owned(),
@@ -471,7 +471,7 @@ mod tests {
 
     #[test]
     fn myopically_useless_setup_enables_nonmyopic_safe_inspection() {
-        let plan = plan(vec![
+        let plan = build_plan(vec![
             ("world_a", "trace_alpha", 0.4),
             ("world_b", "trace_beta", 0.4),
         ]);
@@ -504,7 +504,7 @@ mod tests {
 
     #[test]
     fn an_uninformative_second_measurement_does_not_create_feasibility() {
-        let plan = plan(vec![
+        let plan = build_plan(vec![
             ("world_a", "same_trace", 0.4),
             ("world_b", "same_trace", 0.4),
         ]);
@@ -516,7 +516,7 @@ mod tests {
 
     #[test]
     fn over_budget_two_stage_plan_is_not_recommended() {
-        let plan = plan(vec![
+        let plan = build_plan(vec![
             ("world_a", "trace_alpha", 0.4),
             ("world_b", "trace_beta", 0.4),
         ]);
@@ -530,14 +530,14 @@ mod tests {
 
     #[test]
     fn missing_prerequisite_or_duplicate_stage_identity_fails_closed() {
-        let mut plan = plan(vec![
+        let mut plan = build_plan(vec![
             ("world_a", "trace_alpha", 0.4),
             ("world_b", "trace_beta", 0.4),
         ]);
         plan.stages[1].required_previous_observation = Some("not_ready".to_owned());
         assert!(assess_sequential_sensor_plan(&config(), &worlds(), &plan).is_err());
 
-        let mut plan = plan(vec![
+        let mut plan = build_plan(vec![
             ("world_a", "trace_alpha", 0.4),
             ("world_b", "trace_beta", 0.4),
         ]);
