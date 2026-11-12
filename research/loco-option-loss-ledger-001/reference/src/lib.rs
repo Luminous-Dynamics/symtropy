@@ -544,15 +544,6 @@ pub fn audit_transition(
                 }
                 statuses.push(*disposition);
                 statuses.extend(preconditions.iter().map(|p| p.disposition));
-                // Keep each resource quantity intact; no blended score is made.
-                let _separate_cost_dimensions = (
-                    cost.time_ns,
-                    cost.electrical_energy_microjoules,
-                    cost.mechanical_work_microjoules,
-                    cost.compute_microseconds,
-                    cost.observation_count,
-                    cost.actuator_authority_delta_units,
-                );
                 additions.push(OptionAdditionEntry {
                     action_id: action_id.clone(),
                     cause: cause.clone(),
@@ -691,7 +682,7 @@ mod tests {
         assert_eq!(report.disposition, AuditDisposition::Qualified);
         assert_eq!(report.losses.len(), 1);
         assert_eq!(report.losses[0].action_id, "step-left");
-        assert_eq!(report.actuation_authorized, false);
+        assert!(!report.actuation_authorized);
     }
 
     #[test]
