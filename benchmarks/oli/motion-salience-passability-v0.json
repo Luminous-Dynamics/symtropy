@@ -1,0 +1,219 @@
+{
+  "schema_version": "oli-collective-signal-assay-v0.1",
+  "case_id": "OLI-MST-PASSABILITY-WINDOW-001",
+  "status": "OLI_OPERATIONALIZATION_SOURCE_PROFILE_PINNED_DATA_PENDING",
+  "owner": "symtropy-lifesim-core::motion_salience",
+  "evidence_class": "SIMULATION",
+  "scientific_claim_ceiling": "Synthetic active-particle source-specific propagation benchmark; no claim of biological communication, agency, intelligence, life or consciousness.",
+  "source_papers": [
+    {
+      "title": "Motion-salience gating shapes information passability in self-propelled collectives",
+      "authors": [
+        "Yanan Li",
+        "Tong Liu",
+        "Bingyun Zou",
+        "Tao Wang",
+        "Xingguang Peng"
+      ],
+      "journal": "Chaos, Solitons & Fractals",
+      "volume": 212,
+      "part": 3,
+      "article": 119091,
+      "published": "2026-11",
+      "doi": "10.1016/j.chaos.2026.119091",
+      "url": "https://doi.org/10.1016/j.chaos.2026.119091",
+      "key_claim": "A bounded intermediate salience-threshold window supports source-linked, temporally outward propagation. Lower thresholds admit background activity; higher thresholds starve group-scale relay. High global order alone does not establish source-specific propagation.",
+      "accessible_method_detail": "The accessible source text describes motion salience as the rate of change of a neighbour's relative bearing. The full exact equation and source data have not been admitted."
+    },
+    {
+      "title": "Collective motion of self-propelled particles with selective interactions regulated by Motion Salience Threshold",
+      "authors": [
+        "Yanan Li",
+        "Yongjian Zhou",
+        "Xiaokang Lei",
+        "Xingguang Peng"
+      ],
+      "journal": "Chaos, Solitons & Fractals",
+      "volume": 199,
+      "part": 1,
+      "article": 116585,
+      "published": "2025-10",
+      "doi": "10.1016/j.chaos.2025.116585",
+      "url": "https://doi.org/10.1016/j.chaos.2025.116585",
+      "key_claim": "Binary active/inactive selective interaction; threshold sweeps can show first-order transitions and hysteresis at low noise and continuous transitions as noise increases."
+    }
+  ],
+  "source_reported_simulation_profile_2026": {
+    "particle_count": 800,
+    "domain": {
+      "width": 50,
+      "height": 50,
+      "topology": "periodic_square"
+    },
+    "speed_v0": 1,
+    "lambda": 10,
+    "interaction_radius_R": 5,
+    "deactivation_angle_theta_deac_degrees": 10,
+    "timestep_seconds": 0.1,
+    "threshold_M_T": {
+      "start": 0.5,
+      "stop": 5,
+      "step": 0.5,
+      "values": [
+        0.5,
+        1,
+        1.5,
+        2,
+        2.5,
+        3,
+        3.5,
+        4,
+        4.5,
+        5
+      ]
+    },
+    "noise_eta": {
+      "values": [
+        0,
+        0.05,
+        0.1,
+        0.15,
+        0.2
+      ]
+    },
+    "seeds": "NOT_DISCLOSED_IN_ACCESSIBLE_SOURCE_TEXT",
+    "source_code_and_raw_trajectory_data": "NOT_ADMITTED"
+  },
+  "olI_implementation": {
+    "module": "crates/domains/symtropy-lifesim-core/src/motion_salience.rs",
+    "operationalization": "absolute_wrapped_relative_bearing_rate",
+    "equation": "salience_ij(t) = abs(wrap_pi(beta_ij(t) - beta_ij(t-dt))) / dt",
+    "signed_rate": "wrap_pi(beta_current - beta_previous) / sample_interval_seconds",
+    "threshold_units": "radians_per_second",
+    "gate": "admit when within_interaction_range AND salience >= threshold",
+    "status": "OLI finite-difference operationalization; not source-faithful until the authors' complete equation, inactive-state dynamics and code/data are inspected",
+    "angular_aliasing": "Bearing deltas near pi are explicitly warned as near the angular sampling limit. This warning does not rule out aliasing at faster unsampled rotation rates."
+  },
+  "benchmark_design": {
+    "stage_0_exact_controls": [
+      "wrapped angle across +pi/-pi boundary",
+      "inclusive threshold equality",
+      "outside-range neighbour exclusion",
+      "near-Nyquist warning",
+      "finite/positive interval validation",
+      "duplicate observation/agent rejection"
+    ],
+    "stage_1_OLI_parameter_grid": {
+      "particle_count": 800,
+      "box_width": 50,
+      "box_height": 50,
+      "speed_v0": 1,
+      "interaction_radius": 5,
+      "timestep_seconds": 0.1,
+      "theta_deac_degrees": 10,
+      "thresholds": [
+        0.5,
+        1,
+        1.5,
+        2,
+        2.5,
+        3,
+        3.5,
+        4,
+        4.5,
+        5
+      ],
+      "noise_levels": [
+        0,
+        0.05,
+        0.1,
+        0.15,
+        0.2
+      ],
+      "independent_seeds_target": 30,
+      "seed_start": 20261112,
+      "burn_in_steps": 1000,
+      "measurement_steps": 3000,
+      "sham_common_random_numbers": true,
+      "note": "OLI pre-registered extension. Only the source-reported particle/system/threshold/noise settings above are claimed as paper values; burn-in, measurement horizon and 30-seed target are OLI choices."
+    },
+    "matched_controls": [
+      {
+        "id": "PULSE_TREATMENT",
+        "description": "One registered source agent receives a heading pulse; downstream response times and distances are recorded."
+      },
+      {
+        "id": "MATCHED_SHAM",
+        "description": "Same initial state, seed and random stream but no source pulse; estimates spontaneous/common-driver background activation."
+      },
+      {
+        "id": "GATE_REMOVED",
+        "description": "Selective salience gate disabled while preserving the rest of the declared dynamics; tests whether global order alone is sufficient."
+      },
+      {
+        "id": "GATE_CLOSED",
+        "description": "Threshold above observed salience range; tests participation starvation."
+      },
+      {
+        "id": "COMMON_DRIVER",
+        "description": "A shared exogenous field drives multiple agents without direct agent-to-agent interaction; should not count as source-specific relay."
+      },
+      {
+        "id": "SHUFFLED_SOURCE",
+        "description": "Pulse-source identity is permuted after observing the run; tests source-attribution leakage."
+      }
+    ],
+    "passability_default_criteria": {
+      "minimum_treatment_response_fraction": 0.1,
+      "maximum_sham_response_fraction": 0.05,
+      "minimum_incremental_response_fraction": 0.1,
+      "minimum_outward_order_score": 0.75,
+      "status": "OLI provisional engineering thresholds, not values claimed from the paper; tune only on a declared development split then freeze before blind evaluation."
+    }
+  },
+  "metrics": [
+    "global_polar_order",
+    "mean_local_polar_order_and_coverage",
+    "fraction_salience_gate_admitted",
+    "treatment_response_fraction",
+    "sham_response_fraction",
+    "incremental_response_fraction",
+    "source_response_radius",
+    "response_time_distribution",
+    "outward_temporal_order_pairwise_concordance",
+    "bounded_threshold_window_per_noise",
+    "activation_fraction",
+    "false_source_attribution_rate",
+    "risk_coverage_under_temporal_downsampling"
+  ],
+  "bounded_window_rule": {
+    "definition": "A contiguous run of passing threshold coordinates for one fixed noise level, bounded by at least one failed tested threshold below and one failed tested threshold above.",
+    "interpretation": "A bounded window is supported only within the tested grid and source-specific acceptance criteria; it is not by itself a thermodynamic phase transition.",
+    "aggregation_unit": "one independent seed and one (noise, threshold) coordinate",
+    "confidence_interval_unit": "bootstrap independent seeds, never particle frames or repeated observations as independent samples"
+  },
+  "anti_leakage_and_observability": [
+    "All frames from one trajectory and seed remain in the same split.",
+    "Never distribute particles from one simulation trajectory across train and test as independent cases.",
+    "Pulse and sham use common random numbers and share the same initial configuration.",
+    "Use source identity only as a pre-registered intervention label, not as a post-hoc fit feature.",
+    "Temporal downsampling and angular wrapping are explicit challenge dimensions.",
+    "Report source attribution separately from global order and transfer-entropy-like association.",
+    "A common external driver must not be misclassified as direct inter-agent propagation."
+  ],
+  "source_data_admission": {
+    "source_article_accessed": true,
+    "exact_equation_verified": false,
+    "authors_code_acquired": false,
+    "source_trajectory_data_acquired": false,
+    "files_hashed": false,
+    "request_required": true
+  },
+  "result": {
+    "source_reproduction": false,
+    "OLI_grid_executed": false,
+    "source_specific_passability_window_verified": false,
+    "performance_claim": false,
+    "digest": null
+  }
+}
