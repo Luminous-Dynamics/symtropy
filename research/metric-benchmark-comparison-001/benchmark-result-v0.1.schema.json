@@ -1,0 +1,667 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/metric-benchmark-comparison-001/benchmark-result-v0.1.schema.json",
+  "title": "Luminous matched metric-physics benchmark result v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "record_kind",
+    "run_id",
+    "case_binding",
+    "implementation",
+    "model_mapping",
+    "execution",
+    "metrics",
+    "decision",
+    "claim_boundary"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous.metric_physics_benchmark_result.v0.1"
+    },
+    "record_kind": {
+      "enum": [
+        "synthetic_contract_example",
+        "measured_result"
+      ]
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "repository",
+        "commit_sha",
+        "path",
+        "git_blob_sha"
+      ],
+      "properties": {
+        "case_id": {
+          "const": "DUMBBELL-DENSE-REBASIS-001"
+        },
+        "repository": {
+          "const": "Luminous-Dynamics/symtropy"
+        },
+        "commit_sha": {
+          "const": "b9fcf688b502d602eac91297880bf3a3e484545f"
+        },
+        "path": {
+          "const": "research/generalized-coordinate-covariance-001/fixtures/covariance_case_v0.1.json"
+        },
+        "git_blob_sha": {
+          "const": "9c4b5eb25680f126fbcdb7307ec15a87fff8f284"
+        }
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend_id",
+        "implementation_name",
+        "version",
+        "source_commit_sha"
+      ],
+      "properties": {
+        "backend_id": {
+          "enum": [
+            "symtropy_reference_lu",
+            "symtropy_reference_cholesky",
+            "drake",
+            "mujoco",
+            "pinocchio",
+            "independent_high_precision"
+          ]
+        },
+        "implementation_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_commit_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "model_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "physical_model",
+        "coordinate_order",
+        "velocity_convention",
+        "force_covector_convention",
+        "constraint_equations",
+        "initial_state",
+        "time_step_seconds",
+        "integration_method",
+        "units",
+        "solver_tolerances",
+        "notes"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "MATCHED",
+            "NOT_MATCHED",
+            "NOT_VERIFIED"
+          ]
+        },
+        "physical_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "coordinate_order": {
+          "type": "string",
+          "minLength": 1
+        },
+        "velocity_convention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "force_covector_convention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "constraint_equations": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "time_step_seconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "integration_method": {
+          "type": "string",
+          "minLength": 1
+        },
+        "units": {
+          "type": "string",
+          "minLength": 1
+        },
+        "solver_tolerances": {
+          "type": "string",
+          "minLength": 1
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "cpu_model",
+        "os",
+        "architecture",
+        "compiler",
+        "floating_point_mode",
+        "thread_count",
+        "warmup_steps",
+        "repetitions",
+        "random_seed"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "COMPLETED",
+            "NOT_RUN",
+            "FAILED",
+            "INCONCLUSIVE"
+          ]
+        },
+        "cpu_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "os": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compiler": {
+          "type": "string",
+          "minLength": 1
+        },
+        "floating_point_mode": {
+          "enum": [
+            "IEEE754_binary64",
+            "extended",
+            "mixed",
+            "unknown"
+          ]
+        },
+        "thread_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "warmup_steps": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "repetitions": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "random_seed": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "coordinate_invariance",
+        "numerical_quality",
+        "physical_fidelity",
+        "decision_quality",
+        "systems_cost"
+      ],
+      "properties": {
+        "coordinate_invariance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tangent_norm_relative_drift",
+            "cotangent_norm_relative_drift",
+            "canonical_pairing_relative_drift",
+            "mass_congruence_relative_defect",
+            "constraint_jacobian_relative_defect",
+            "raw_coordinate_inf_norm_change"
+          ],
+          "properties": {
+            "tangent_norm_relative_drift": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "cotangent_norm_relative_drift": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "canonical_pairing_relative_drift": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "mass_congruence_relative_defect": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "constraint_jacobian_relative_defect": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "raw_coordinate_inf_norm_change": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "numerical_quality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "coordinate_condition_2",
+            "metric_induced_operator_condition",
+            "normwise_backward_error",
+            "componentwise_backward_error",
+            "metric_residual_norm",
+            "forward_error_bound",
+            "observed_high_precision_forward_error",
+            "forward_bound_covers_observed"
+          ],
+          "properties": {
+            "coordinate_condition_2": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "metric_induced_operator_condition": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "normwise_backward_error": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "componentwise_backward_error": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "metric_residual_norm": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "forward_error_bound": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "observed_high_precision_forward_error": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "forward_bound_covers_observed": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            }
+          }
+        },
+        "physical_fidelity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lifted_position_l2_error",
+            "lifted_velocity_l2_error",
+            "momentum_l2_error",
+            "constraint_residual",
+            "energy_work_defect_j",
+            "discrete_step_equivariance_defect"
+          ],
+          "properties": {
+            "lifted_position_l2_error": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "lifted_velocity_l2_error": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "momentum_l2_error": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "constraint_residual": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "energy_work_defect_j": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "discrete_step_equivariance_defect": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        },
+        "decision_quality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "negative_controls_run",
+            "false_accept_count",
+            "false_reject_count",
+            "inconclusive_case_count"
+          ],
+          "properties": {
+            "negative_controls_run": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "false_accept_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "false_reject_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "inconclusive_case_count": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "systems_cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "solve_median_ns",
+            "solve_p95_ns",
+            "solve_p99_ns",
+            "factorization_median_ns",
+            "evidence_overhead_median_ns",
+            "peak_memory_bytes"
+          ],
+          "properties": {
+            "solve_median_ns": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "solve_p95_ns": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "solve_p99_ns": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "factorization_median_ns": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "evidence_overhead_median_ns": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "peak_memory_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "acceptance",
+        "comparison_status",
+        "reason"
+      ],
+      "properties": {
+        "acceptance": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE"
+          ]
+        },
+        "comparison_status": {
+          "enum": [
+            "COMPARABLE",
+            "NOT_COMPARABLE",
+            "INSUFFICIENT_EVIDENCE"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "comparison_status": {
+                "const": "COMPARABLE"
+              }
+            },
+            "required": [
+              "comparison_status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "model_mapping": {
+            "properties": {
+              "status": {
+                "const": "MATCHED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "execution": {
+            "properties": {
+              "status": {
+                "const": "COMPLETED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "model_mapping": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "NOT_MATCHED",
+                  "NOT_VERIFIED"
+                ]
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "comparison_status": {
+                "const": "NOT_COMPARABLE"
+              }
+            },
+            "required": [
+              "comparison_status"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "execution": {
+            "properties": {
+              "status": {
+                "const": "NOT_RUN"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "acceptance": {
+                "const": "INCONCLUSIVE"
+              },
+              "comparison_status": {
+                "const": "NOT_COMPARABLE"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
