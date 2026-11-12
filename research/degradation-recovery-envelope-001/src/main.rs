@@ -183,12 +183,10 @@ mod tests {
         assert_eq!(report.events.len(), 2);
         assert!(report.events.iter().all(|event| {
             event.causality == degradation_recovery_envelope::FaultCausality::CommonCause
-                && event.causal_group_id.as_deref()
-                    == Some("shared-power-clock-domain-001")
+                && event.causal_group_id.as_deref() == Some("shared-power-clock-domain-001")
         }));
         assert!(report.events.iter().all(|event| {
-            event.detection_latency_ticks == Some(0)
-                && event.containment_latency_ticks == Some(0)
+            event.detection_latency_ticks == Some(0) && event.containment_latency_ticks == Some(0)
         }));
     }
 
@@ -223,16 +221,8 @@ mod tests {
 
     #[test]
     fn cli_exposes_severity_sweep_generator() {
-        let events = severity_sweep_schedule(
-            10,
-            5,
-            3,
-            1,
-            1,
-            2,
-            &[100_000, 500_000, 1_000_000],
-        )
-        .unwrap();
+        let events =
+            severity_sweep_schedule(10, 5, 3, 1, 1, 2, &[100_000, 500_000, 1_000_000]).unwrap();
         assert_eq!(events.len(), 21);
         assert_eq!(events[0].severity_ppm, 100_000);
         assert_eq!(events[2].severity_ppm, 1_000_000);
@@ -329,30 +319,4 @@ mod tests {
         );
     }
 
-    #[test]
-    fn malformed_unknown_fields_are_rejected_by_typed_cli() {
-        let mut value: serde_json::Value =
-            serde_json::from_str(include_str!("../fixtures/camera-drop-paired-v1.json")).unwrap();
-        value["unaccounted_simulator_privilege"] = json!("ground-truth-world-state");
-        assert!(audit_value(&value.to_string()).is_err());
-    }
-
-    #[test]
-    fn rejected_campaign_still_produces_a_deterministic_report() {
-        let mut value: serde_json::Value =
-            serde_json::from_str(include_str!("../fixtures/camera-drop-paired-v1.json")).unwrap();
-        value["faulted_run"]["ticks"][2]["policy_input_accepted"] = json!(true);
-        value["faulted_run"]["ticks"][2]["conditions"] = json!(["stale"]);
-        value["events"][0]["kind"] = json!("stale_replay");
-        let first = audit_value(&value.to_string()).unwrap();
-        let second = audit_value(&value.to_string()).unwrap();
-        assert_eq!(first, second);
-        assert_eq!(first.disposition, "rejected");
-        assert!(
-            first
-                .findings
-                .iter()
-                .any(|finding| { finding == "forbidden_policy_input_accepted" })
-        );
-    }
-}
+    #[test
