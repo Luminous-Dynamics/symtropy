@@ -818,8 +818,8 @@ mod tests {
     fn parallel_axis_combination_matches_two_component_mass_moments() {
         let body_a = BivectorInertia::<3>::uniform_solid_ball(2.0, 1.0).unwrap();
         let body_b = BivectorInertia::<3>::uniform_solid_ball(1.0, 0.5).unwrap();
-        let offset_a = SVector::new(-1.0, 0.0, 0.0);
-        let offset_b = SVector::new(2.0, 0.0, 0.0);
+        let offset_a = SVector::<f64, 3>::new(-1.0, 0.0, 0.0);
+        let offset_b = SVector::<f64, 3>::new(2.0, 0.0, 0.0);
         let combined = BivectorInertia::<3>::combine_at_common_center(
             2.0, &body_a, &offset_a, 1.0, &body_b, &offset_b,
         )
@@ -838,8 +838,8 @@ mod tests {
     fn parallel_axis_combination_is_scale_safe_for_large_offsets_and_tiny_masses() {
         let mass = 1.0e-310;
         let inertia = BivectorInertia::<3>::uniform_solid_ball(mass, 1.0).unwrap();
-        let offset_a = SVector::new(1.0e155, 0.0, 0.0);
-        let offset_b = SVector::new(-1.0e155, 0.0, 0.0);
+        let offset_a = SVector::<f64, 3>::new(1.0e155, 0.0, 0.0);
+        let offset_b = SVector::<f64, 3>::new(-1.0e155, 0.0, 0.0);
         let combined = BivectorInertia::<3>::combine_at_common_center(
             mass, &inertia, &offset_a, mass, &inertia, &offset_b,
         )
@@ -862,8 +862,8 @@ mod tests {
     fn parallel_axis_combination_rejects_underflowed_nonzero_mass_terms() {
         let mass = 1.0e-300;
         let inertia = BivectorInertia::<3>::uniform_solid_ball(mass, 1.0).unwrap();
-        let offset_a = SVector::new(1.0e-100, 0.0, 0.0);
-        let offset_b = SVector::new(-1.0e-100, 0.0, 0.0);
+        let offset_a = SVector::<f64, 3>::new(1.0e-100, 0.0, 0.0);
+        let offset_b = SVector::<f64, 3>::new(-1.0e-100, 0.0, 0.0);
         let result = BivectorInertia::<3>::combine_at_common_center(
             mass, &inertia, &offset_a, mass, &inertia, &offset_b,
         );
@@ -931,10 +931,10 @@ mod tests {
             BivectorInertia::<3>::combine_at_common_center(
                 1.0,
                 &body_a,
-                &SVector::new(0.0, 0.0, 0.0),
+                &SVector::<f64, 3>::new(0.0, 0.0, 0.0),
                 1.0,
                 &body_b,
-                &SVector::new(1.0, 0.0, 0.0),
+                &SVector::<f64, 3>::new(1.0, 0.0, 0.0),
             )
             .unwrap_err(),
             RotationalInertiaError::OffsetsNotCentered
@@ -1031,7 +1031,7 @@ mod tests {
         // Unit mass, semi-axes (2, 1, 0.5): S_ii = a_i^2 / 5.
         // Rotation-plane moments are sums of the corresponding S diagonal.
         let inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
                 .unwrap();
 
         let xy = Bivector::<3>::unit_plane(0, 1); // rotation about z
@@ -1075,7 +1075,7 @@ mod tests {
     #[test]
     fn rotated_inertia_is_covariant_and_preserves_kinetic_energy() {
         let body_inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
                 .unwrap();
         let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.63);
         let world_inertia = body_inertia.rotated_by(&rotation).unwrap();
@@ -1112,7 +1112,7 @@ mod tests {
     #[test]
     fn gyroscopic_acceleration_is_covariant_between_body_and_world_frames() {
         let body_inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.5, 0.9, 0.4))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.5, 0.9, 0.4))
                 .unwrap();
         let rotation = Rotor::<3>::from_plane_angle(&Bivector::<3>::unit_plane(0, 2), 0.71);
         let world_inertia = body_inertia.rotated_by(&rotation).unwrap();
@@ -1150,8 +1150,8 @@ mod tests {
     #[test]
     fn rotational_inverse_effective_mass_matches_isotropic_lever_arm() {
         let inertia = BivectorInertia::<3>::uniform_solid_ball(3.0, 2.0).unwrap();
-        let offset = SVector::new(1.0, 0.0, 0.0);
-        let normal = SVector::new(0.0, 1.0, 0.0);
+        let offset = SVector::<f64, 3>::new(1.0, 0.0, 0.0);
+        let normal = SVector::<f64, 3>::new(0.0, 1.0, 0.0);
         let value = inertia
             .rotational_inverse_effective_mass(&offset, &normal, 1e-12)
             .unwrap();
@@ -1161,10 +1161,10 @@ mod tests {
     #[test]
     fn rotational_inverse_effective_mass_uses_asymmetric_plane_inertia() {
         let inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(2.0, 1.0, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(2.0, 1.0, 0.5))
                 .unwrap();
-        let offset = SVector::new(1.0, 0.0, 0.0);
-        let normal = SVector::new(0.0, 1.0, 0.0);
+        let offset = SVector::<f64, 3>::new(1.0, 0.0, 0.0);
+        let normal = SVector::<f64, 3>::new(0.0, 1.0, 0.0);
         let value = inertia
             .rotational_inverse_effective_mass(&offset, &normal, 1e-12)
             .unwrap();
@@ -1175,10 +1175,10 @@ mod tests {
     #[test]
     fn off_center_angular_impulse_matches_contact_velocity_and_energy_identity() {
         let inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.4, 0.9, 0.5))
                 .unwrap();
-        let offset = SVector::new(0.7, -0.25, 0.4);
-        let impulse = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let offset = SVector::<f64, 3>::new(0.7, -0.25, 0.4);
+        let impulse = SVector::<f64, 3>::new(-0.2, 0.9, 0.35).normalize();
         let angular_impulse = Bivector::from_wedge(&offset, &impulse);
         let angular_response = inertia
             .angular_velocity_from_momentum(&angular_impulse, 1e-12)
@@ -1214,9 +1214,9 @@ mod tests {
 
         for sample in 1..=32 {
             let k = sample as f64;
-            let offset = SVector::new(0.2 + 0.07 * k, (0.31 * k).sin(), (0.17 * k).cos());
+            let offset = SVector::<f64, 3>::new(0.2 + 0.07 * k, (0.31 * k).sin(), (0.17 * k).cos());
             let direction =
-                SVector::new((0.71 * k).sin(), (0.37 * k).cos(), 0.5 + (0.13 * k).sin())
+                SVector::<f64, 3>::new((0.71 * k).sin(), (0.37 * k).cos(), 0.5 + (0.13 * k).sin())
                     .normalize();
             let angular_impulse = Bivector::from_wedge(&offset, &direction);
             let angular_response = operator
@@ -1257,7 +1257,7 @@ mod tests {
     #[test]
     fn rotational_inverse_effective_mass_is_covariant_under_global_rotation() {
         let body_inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.4, 0.9, 0.5))
                 .unwrap();
         let mut generator = Bivector::<3>::zero();
         generator.set(0, 1, 0.3);
@@ -1265,8 +1265,8 @@ mod tests {
         generator.set(1, 2, 0.4);
         let global = Rotor::from_bivector(&generator);
         let world_inertia = body_inertia.rotated_by(&global).unwrap();
-        let offset = SVector::new(0.7, -0.25, 0.4);
-        let direction = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let offset = SVector::<f64, 3>::new(0.7, -0.25, 0.4);
+        let direction = SVector::<f64, 3>::new(-0.2, 0.9, 0.35).normalize();
         let expected = body_inertia
             .rotational_inverse_effective_mass(&offset, &direction, 1e-12)
             .unwrap();
@@ -1287,15 +1287,15 @@ mod tests {
     #[test]
     fn body_frame_contact_effective_mass_matches_world_rotated_operator() {
         let body_inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.4, 0.9, 0.5))
                 .unwrap();
         let mut generator = Bivector::<3>::zero();
         generator.set(0, 1, 0.31);
         generator.set(0, 2, -0.22);
         generator.set(1, 2, 0.43);
         let body_to_world = Rotor::from_bivector(&generator);
-        let offset_body = SVector::new(0.7, -0.25, 0.4);
-        let direction_body = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let offset_body = SVector::<f64, 3>::new(0.7, -0.25, 0.4);
+        let direction_body = SVector::<f64, 3>::new(-0.2, 0.9, 0.35).normalize();
         let expected = body_inertia
             .rotational_inverse_effective_mass(&offset_body, &direction_body, 1e-12)
             .unwrap();
@@ -1322,10 +1322,10 @@ mod tests {
     #[test]
     fn rotational_inverse_effective_mass_normalizes_extreme_finite_direction() {
         let inertia =
-            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+            BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.4, 0.9, 0.5))
                 .unwrap();
-        let offset = SVector::new(0.7, -0.25, 0.4);
-        let direction = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let offset = SVector::<f64, 3>::new(0.7, -0.25, 0.4);
+        let direction = SVector::<f64, 3>::new(-0.2, 0.9, 0.35).normalize();
         let expected = inertia
             .rotational_inverse_effective_mass(&offset, &direction, 1e-12)
             .unwrap();
@@ -1341,7 +1341,7 @@ mod tests {
         assert_eq!(
             inertia
                 .rotational_inverse_effective_mass(
-                    &SVector::new(1.0, 0.0, 0.0),
+                    &SVector::<f64, 3>::new(1.0, 0.0, 0.0),
                     &SVector::zeros(),
                     1e-12,
                 )
@@ -1735,7 +1735,7 @@ mod tests {
         assert_eq!(
             BivectorInertia::<3>::uniform_solid_ellipsoid(
                 1.0e-300,
-                SVector::new(1.0e-100, 1.0e-100, 1.0e-100),
+                SVector::<f64, 3>::new(1.0e-100, 1.0e-100, 1.0e-100),
             )
             .unwrap_err(),
             RotationalInertiaError::NonFinite
@@ -1745,12 +1745,12 @@ mod tests {
     #[test]
     fn zero_mass_and_degenerate_ellipsoid_fail_closed() {
         assert_eq!(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(0.0, SVector::new(1.0, 2.0, 3.0),)
+            BivectorInertia::<3>::uniform_solid_ellipsoid(0.0, SVector::<f64, 3>::new(1.0, 2.0, 3.0),)
                 .unwrap_err(),
             RotationalInertiaError::InvalidMassProperties
         );
         assert_eq!(
-            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::new(1.0, 0.0, 3.0),)
+            BivectorInertia::<3>::uniform_solid_ellipsoid(1.0, SVector::<f64, 3>::new(1.0, 0.0, 3.0),)
                 .unwrap_err(),
             RotationalInertiaError::InvalidMassProperties
         );
@@ -1862,10 +1862,10 @@ mod tests {
 
     #[test]
     fn rotational_inverse_effective_mass_scales_inversely_with_mass() {
-        let base = BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+        let base = BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::<f64, 3>::new(1.4, 0.9, 0.5))
             .unwrap();
-        let offset = SVector::new(0.7, -0.25, 0.4);
-        let direction = SVector::new(-0.2, 0.9, 0.35).normalize();
+        let offset = SVector::<f64, 3>::new(0.7, -0.25, 0.4);
+        let direction = SVector::<f64, 3>::new(-0.2, 0.9, 0.35).normalize();
         let base_value = base
             .rotational_inverse_effective_mass(&offset, &direction, 1e-12)
             .unwrap();
@@ -1873,7 +1873,7 @@ mod tests {
         for scale in [1.0e-12, 1.0, 1.0e12] {
             let scaled = BivectorInertia::<3>::uniform_solid_ellipsoid(
                 2.0 * scale,
-                SVector::new(1.4, 0.9, 0.5),
+                SVector::<f64, 3>::new(1.4, 0.9, 0.5),
             )
             .unwrap();
             let observed = scaled
@@ -1992,8 +1992,8 @@ mod tests {
             SMatrix::<f64, 3, 3>::new(1.7, 0.21, -0.13, 0.21, 1.1, 0.18, -0.13, 0.18, 0.8);
         let inertia = BivectorInertia::<3>::from_second_moment(second_moment).unwrap();
         let mass = 2.3;
-        let offsets = [SVector::new(0.6, -0.4, 0.2), SVector::new(-0.3, -0.4, 0.5)];
-        let normal = SVector::new(0.0, 1.0, 0.0);
+        let offsets = [SVector::<f64, 3>::new(0.6, -0.4, 0.2), SVector::<f64, 3>::new(-0.3, -0.4, 0.5)];
+        let normal = SVector::<f64, 3>::new(0.0, 1.0, 0.0);
 
         // Construct the complete two-contact Delassus operator by applying
         // each unit contact impulse through the same checked bivector inertia
@@ -2052,7 +2052,7 @@ mod tests {
         // A positive active-set solution is known exactly by construction.
         // This checks the small coupled KKT solve rather than validating two
         // unrelated scalar effective masses.
-        let expected_impulses = SVector::new(0.7, 1.3);
+        let expected_impulses = SVector::<f64, 2>::new(0.7, 1.3);
         let free_normal_speeds = -(observed * expected_impulses);
         let recovered_impulses = observed
             .lu()
