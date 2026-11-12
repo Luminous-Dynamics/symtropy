@@ -84,6 +84,26 @@ pub trait PhysicsCallback<const D: usize> {
     /// Negative work = energy recovered (regenerative braking).
     fn record_work(&mut self, body: BodyHandle, work_joules: f64);
 
+    /// Report the signed kinetic-energy change caused by a contact-friction impulse.
+    ///
+    /// Negative values are measured mechanical energy loss; positive values are
+    /// energy injection and must not be relabelled as dissipation. The default
+    /// implementation preserves the legacy callback by forwarding only finite
+    /// negative changes to record_dissipation. Implementations that audit solver
+    /// energy should override this method to retain both signs.
+    ///
+    /// Values are joules when the world uses SI mass, length and time units.
+    fn record_contact_energy_change(
+        &mut self,
+        _body_a: BodyHandle,
+        _body_b: BodyHandle,
+        delta_kinetic_energy: f64,
+    ) {
+        if delta_kinetic_energy.is_finite() && delta_kinetic_energy < 0.0 {
+            self.record_dissipation(-delta_kinetic_energy);
+        }
+    }
+
     /// Calculates and applies the long-term effect of a collision event
     /// (e.g., trauma, fatigue, shock) to the entity's internal state.
     /// This is the primary hook for persistent state change based on impact.
@@ -1050,7 +1070,9 @@ impl<const D: usize> PhysicsWorld<D> {
 
         // ─── TGS Soft: per-point velocity+position constraint ───
         let mut total_normal_impulse = 0.0_f64;
-        let mut total_friction_dissipation = 0.0_f64;
+        // Signed kinetic-energy change caused by friction impulses only.
+        // Negative means mechanical dissipation; positive means solver injection.
+        let mut total_friction_energy_change = 0.0_f64;
 
         for pt in &mut contact.points {
             let r_a = pt.position - com_a;
@@ -1190,6 +1212,12 @@ impl<const D: usize> PhysicsWorld<D> {
                     let j_t_desired = -v_t_mag / denom_t;
                     let j_t = j_t_desired.clamp(-mu * point_bound, mu * point_bound);
                     let friction_impulse = tangent * j_t;
+                    // Measure the actual state-energy change around the exact
+                    // production impulse path. An impulse magnitude has units
+                    // of momentum, not energy; never convert it with a constant.
+                    let energy_before =
+                        self.bodies[a].kinetic_energy() + self.bodies[b].kinetic_energy();
+
                     integrator::apply_impulse(&mut self.bodies[a], &(-friction_impulse));
                     integrator::apply_impulse(&mut self.bodies[b], &friction_impulse);
 
@@ -1198,16 +1226,21 @@ impl<const D: usize> PhysicsWorld<D> {
                     integrator::apply_angular_impulse(&mut self.bodies[a], &torque_a);
                     integrator::apply_angular_impulse(&mut self.bodies[b], &torque_b);
 
-                    total_friction_dissipation += j_t.abs() * 0.1;
+                    let energy_after =
+                        self.bodies[a].kinetic_energy() + self.bodies[b].kinetic_energy();
+                    total_friction_energy_change += energy_after - energy_before;
                 }
             }
         }
 
         // ─── Post-manifold bookkeeping ───
         if total_normal_impulse > 1e-15 {
-            // Record friction dissipation for consciousness energy budget
-            if total_friction_dissipation > 0.0 {
-                callback.record_dissipation(total_friction_dissipation);
+            if total_friction_energy_change != 0.0 || !total_friction_energy_change.is_finite() {
+                callback.record_contact_energy_change(
+                    contact.body_a,
+                    contact.body_b,
+                    total_friction_energy_change,
+                );
             }
 
             // ─── Emit collision event ───
@@ -2561,3 +2594,7 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+#[cfg(test)]
+#[path = "world_friction_energy_tests.rs"]
+mod friction_energy_tests;
