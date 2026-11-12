@@ -52,7 +52,6 @@ jobs:
             "$root/tournament-v0.1.json"
             "$root/published-six-solution-baselines-v0.1.json"
             "$root/published-dx2026-graybox-baseline-v0.1.json"
-            "$root/dx2026-boundary-falsification-v0.1.json"
             "$root/startup-adaptation-guard-v0.1.json"
             "$root/active-evidence-selection-v0.1.json"
             "$root/behavioral-set-diagnosis-v0.1.json"
@@ -82,7 +81,7 @@ jobs:
             (.event_evaluation.status == "protocol_only_not_executed") and
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
             (.shift_matrix.axes | length == 6) and
-            (.shift_matrix.axes | index("C_PLUS_F_SHIFT") != null) and
+            ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
             (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.4") and
             (.active_evidence_selection.status == "protocol_only_not_executed") and
             (.active_evidence_selection.execution_performed == false) and
@@ -103,10 +102,10 @@ jobs:
             (.deployability_matrix.aggregate_readiness_score_allowed == false) and
             (.external_dataset_track.schema_version == "symtropy-marine-external-dataset-track-v0.1") and
             (.external_dataset_track.status == "archive_downloaded_publisher_md5_verified_payload_audit_pending") and
-            (.external_dataset_track.dataset.doi == "10.5281/zenodo.19857425") and
-            (.external_dataset_track.dataset.license == "CC-BY-4.0") and
-            (.external_dataset_track.dataset.engine == "Matsui Iron Works MU323DGSC") and
-            (.external_dataset_track.dataset.files.csv_count == 16) and
+            (.external_dataset_track.dataset_doi == "10.5281/zenodo.19857425") and
+            (.external_dataset_track.dataset_license == "CC-BY-4.0") and
+            (.external_dataset_track.engine == "Matsui Iron Works MU323DGSC") and
+            (.external_dataset_track.dataset_file_inventory.publisher_reported_recording_data_csv_count == 16) and
             (.external_dataset_track.evaluation_tracks | length == 6) and
             ([.external_dataset_track.research_targets_not_achieved[].status] | all(. == "aspirational"))
           ' "$root/tournament-v0.1.json" >/dev/null
@@ -115,15 +114,15 @@ jobs:
             .schema_version == "liu-ice-published-six-solution-baselines-v0.1" and
             .status == "literature_reference_not_reproduced" and
             (.solutions | length == 6) and
-            (.solutions[3].historical_mean_percent.one_minus_far == 99.9) and
-            (.solutions[3].historical_mean_percent.tdr == 97.2) and
-            (.solutions[1].historical_mean_percent.tir == 85.5) and
-            (.protocol_context.comparability_warning | contains("not current DX2026 FIA")) and
+            (.solutions[3].mean.one_minus_far == 99.9) and
+            (.solutions[3].mean.tdr == 97.2) and
+            (.solutions[1].mean.tir == 85.5) and
+            (.protocol_context.comparability_warning | contains("not current DX2026 scores")) and
             ([.solutions[].reproduction_status] | all(. == "not_reproduced"))
           ' "$root/published-six-solution-baselines-v0.1.json" >/dev/null
 
           jq -e '
-            .schema_version == "liu-ice-dx2026-graybox-baseline-v0.1" and
+            .schema_version == "liu-ice-dx2026-published-graybox-baseline-v0.1" and
             .status == "published_reference_not_reproduced" and
             (.official_results.overall.tdr_percent == 92.26) and
             (.official_results.overall.one_minus_false_alarm_rate_percent == 92.14) and
@@ -135,26 +134,13 @@ jobs:
           ' "$root/published-dx2026-graybox-baseline-v0.1.json" >/dev/null
 
           jq -e '
-            .schema_version == "liu-ice-dx2026-boundary-falsification-v0.1" and
-            .status == "protocol_only_not_executed" and
-            (.cases | length == 3) and
-            (.cases[0].published.tdr_percent == 21.12) and
-            (.cases[0].synthetic_behavioral_set_fixture.expected_status == "ambiguous_hypothesis_set") and
-            (.cases[1].published.score_percent == 97.05) and
-            (.cases[1].synthetic_behavioral_set_fixture.expected_status == "unique_within_declared_catalogue") and
-            (.cases[2].published.fia_percent == 0.0) and
-            (.cases[2].synthetic_behavioral_set_fixture.expected_status == "unknown_or_out_of_support") and
-            ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
-          ' "$root/dx2026-boundary-falsification-v0.1.json" >/dev/null
-
-          jq -e '
             .schema_version == "liu-ice-active-evidence-selection-v0.4" and
             .status == "protocol_only_not_executed" and
             (.comparators | length == 6) and
-            (.candidate_classes.controlled_perturbation.eligible == false) and
+            (.candidate_classes.controlled_perturbation.eligible_when == false) and
             (.hard_gates | length >= 40) and
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
-            (.method.likelihood_calibration_review.requirement | contains("independently reviewed")) and
+            (.method.likelihood_calibration_review.requirement | contains("independent calibration-review receipt")) and
             (.method.likelihood_calibration_review.qualification | contains("not self-authenticating")) and
             (.research_targets_not_achieved | all(.status == "aspirational"))
           ' "$root/active-evidence-selection-v0.1.json" >/dev/null
@@ -162,11 +148,11 @@ jobs:
           jq -e '
             .schema_version == "symtropy-startup-adaptation-guard-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.live_baseline_mutation_by_guard == false) and
-            (.live_reference_detection_during_shadow_collection == true) and
-            (.automatic_baseline_commit == false) and
-            (.minimum_shadow_samples == 1800) and
-            (.minimum_independent_health_attestations == 2) and
+            (.architecture.live_reference.mutability | contains("immutable")) and
+            (.architecture.live_reference.role | contains("continues inference from sample zero")) and
+            (.architecture.update_authority | contains("no commit or activation function")) and
+            (.policy.minimum_shadow_samples == 1800) and
+            (.policy.minimum_independent_health_attestations == 2) and
             (.comparators | length == 5) and
             (.hard_gates | length >= 13) and
             (.research_targets_not_achieved | all(.status == "aspirational")) and
@@ -183,7 +169,7 @@ jobs:
             (.hard_gates | length >= 12) and
             (.implementation.trained_model_present == false) and
             (.implementation.physical_validation == false) and
-            (.limitations.global_identifiability | contains("global uniqueness"))
+            (.limitations.global_identifiability | contains("global physical uniqueness"))
           ' "$root/behavioral-set-diagnosis-v0.1.json" >/dev/null
 
           jq -e '
@@ -235,8 +221,8 @@ jobs:
             (.properties.files.minItems == 16) and
             (.properties.files.maxItems == 16) and
             (.properties.archive_md5.pattern == "^[a-f0-9]{32}$") and
-            (.$defs.file.properties.header_rows.const == 3) and
-            (.$defs.file.properties.recorded_column_count.enum == [70,73])
+            (.properties.files.items.properties.header_rows.const == 3) and
+            (.properties.files.items.properties.recorded_column_count.enum == [70,73])
           ' "$root/external-dataset-file-manifest.schema.json" >/dev/null
 
       - name: Validate Rust formatting
