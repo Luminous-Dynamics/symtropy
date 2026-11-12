@@ -256,5 +256,87 @@
       },
       "oracle": "An unmeasured or omitted declared residual stream prevents complete-cycle closure and recovery claims"
     }
+  ],
+  "network_diagnostics_cases": [
+    {
+      "case_id": "WDN-T0-001-legitimate-demand-shift",
+      "inputs": {
+        "observed_zone_flow_change": true,
+        "observed_pressure_residual": true,
+        "declared_legitimate_demand_change": true,
+        "independent_leak_evidence": false
+      },
+      "expected": {
+        "diagnostic_disposition": "ALTERNATIVE_CAUSE_CANDIDATE",
+        "confirmed_leak": false,
+        "physical_action_allowed": false
+      },
+      "oracle": "Demand changes can produce hydraulic residuals; an anomaly is not confirmation of a leak"
+    },
+    {
+      "case_id": "WDN-T0-002-pump-valve-transient-confounder",
+      "inputs": {
+        "pressure_transient": true,
+        "pump_or_valve_event_recorded": true,
+        "steady_state_leak_model_only": true
+      },
+      "expected": {
+        "diagnostic_disposition": "INDETERMINATE_PENDING_TRANSIENT_REVIEW",
+        "confirmed_leak": false
+      },
+      "oracle": "A steady-state model cannot classify an unmodelled pump/valve transient as a leak"
+    },
+    {
+      "case_id": "WDN-T0-003-insufficient-localization-observability",
+      "inputs": {
+        "leak_candidate": true,
+        "independent_sensor_count": 1,
+        "network_segment_ambiguity": true
+      },
+      "expected": {
+        "localization_disposition": "INDETERMINATE",
+        "high_confidence_location_allowed": false
+      },
+      "oracle": "Detection candidate and unique localization are distinct outputs"
+    },
+    {
+      "case_id": "WDN-T0-004-common-mode-sensor-drift",
+      "inputs": {
+        "flow_sensor_drift": true,
+        "pressure_sensor_shared_calibration_dependency": true,
+        "independent_reference_available": false
+      },
+      "expected": {
+        "diagnostic_disposition": "INDETERMINATE",
+        "sensor_consensus_is_not_independent": true
+      },
+      "oracle": "Correlated sensor errors cannot be counted as independent corroboration"
+    },
+    {
+      "case_id": "WDN-T0-005-missing-telemetry-no-leak-absence",
+      "inputs": {
+        "unobserved_pipe_fraction": 0.35,
+        "critical_pressure_sensor_missing": true,
+        "alarm_count": 0
+      },
+      "expected": {
+        "network_disposition": "PARTIALLY_UNOBSERVED",
+        "leak_absence_claim_allowed": false
+      },
+      "oracle": "No alarm with missing telemetry or unobserved pipe length is not evidence of no leak"
+    },
+    {
+      "case_id": "WDN-T0-006-repair-claim-without-outcome-observation",
+      "inputs": {
+        "maintenance_completion_reported": true,
+        "post_repair_flow_pressure_evidence": false,
+        "independent_reinspection": false
+      },
+      "expected": {
+        "repair_disposition": "NOT_VERIFIED",
+        "saved_water_claim_allowed": false
+      },
+      "oracle": "A work-order closeout or operator assertion alone does not prove repair success or water saved"
+    }
   ]
 }
