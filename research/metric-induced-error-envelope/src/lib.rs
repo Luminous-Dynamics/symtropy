@@ -531,15 +531,15 @@ impl<const N: usize, FromFrame, ToFrame> CoordinateChangeV1<N, FromFrame, ToFram
 
     /// Pull a bilinear map T_from -> T*_from back to the destination frame.
     /// For x_from = S x_to, A_to = S^T A_from S.
-    pub fn pull_bilinear_map_to_to(
+    pub fn pull_linear_map_to_to(
         &self,
-        map_from: &BilinearMapV1<N, FromFrame>,
-    ) -> BilinearMapV1<N, ToFrame> {
+        map_from: &LinearMapV1<N, FromFrame, FromFrame>,
+    ) -> LinearMapV1<N, ToFrame, ToFrame> {
         let transformed = multiply(
             &multiply(&transpose(&self.from_from_to), &map_from.matrix),
             &self.from_from_to,
         );
-        BilinearMapV1::new(transformed)
+        LinearMapV1::new(transformed)
     }
 
     pub fn pull_tangent_to_to(
@@ -551,16 +551,18 @@ impl<const N: usize, FromFrame, ToFrame> CoordinateChangeV1<N, FromFrame, ToFram
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct BilinearMapV1<const N: usize, Frame> {
+pub struct LinearMapV1<const N: usize, DomainFrame, CodomainFrame> {
     matrix: Matrix<N>,
-    frame: PhantomData<fn() -> Frame>,
+    frames: PhantomData<fn() -> (DomainFrame, CodomainFrame)>,
 }
 
-impl<const N: usize, Frame> BilinearMapV1<N, Frame> {
+impl<const N: usize, DomainFrame, CodomainFrame>
+    LinearMapV1<N, DomainFrame, CodomainFrame>
+{
     pub fn new(matrix: Matrix<N>) -> Self {
         Self {
             matrix,
-            frame: PhantomData,
+            frames: PhantomData,
         }
     }
 
@@ -570,8 +572,8 @@ impl<const N: usize, Frame> BilinearMapV1<N, Frame> {
 
     pub fn apply(
         &self,
-        tangent: &TangentVectorV1<N, Frame>,
-    ) -> CotangentCovectorV1<N, Frame> {
+        tangent: &TangentVectorV1<N, DomainFrame>,
+    ) -> CotangentCovectorV1<N, CodomainFrame> {
         CotangentCovectorV1::new(apply(&self.matrix, &tangent.values))
     }
 }
@@ -584,7 +586,7 @@ pub struct OperatorMeasureV1 {
 }
 
 fn operator_measure<const N: usize, DomainFrame, CodomainFrame>(
-    map: &BilinearMapV1<N, DomainFrame>,
+    map: &LinearMapV1<N, DomainFrame, CodomainFrame>,
     domain_metric: &MetricTensorV1<N, DomainFrame>,
     codomain_metric: &MetricTensorV1<N, CodomainFrame>,
 ) -> Result<OperatorMeasureV1, MetricErrorV1> {
@@ -636,7 +638,7 @@ pub struct MetricErrorEnvelopeV1 {
 /// Assess A x = b where A maps the domain tangent space to the codomain
 /// cotangent space. The residual is therefore a codomain covector.
 pub fn assess_solution<const N: usize, DomainFrame, CodomainFrame>(
-    map: &BilinearMapV1<N, DomainFrame>,
+    map: &LinearMapV1<N, DomainFrame, CodomainFrame>,
     domain_metric: &MetricTensorV1<N, DomainFrame>,
     codomain_metric: &MetricTensorV1<N, CodomainFrame>,
     rhs: &CotangentCovectorV1<N, CodomainFrame>,
@@ -786,12 +788,12 @@ mod tests {
         let metric_q = base_metric();
         let change = dense_change();
         let metric_y = change.pull_metric_to_to(&metric_q).unwrap();
-        let operator_q = BilinearMapV1::<3, Cartesian>::new([
+        let operator_q = LinearMapV1::<3, Cartesian, Cartesian>::new([
             [4.0, 1.0, 0.5],
             [0.25, 2.0, 0.0],
             [0.0, 0.75, 3.0],
         ]);
-        let operator_y = change.pull_bilinear_map_to_to(&operator_q);
+        let operator_y = change.pull_linear_map_to_to(&operator_q);
 
         let q_measure = operator_measure(&operator_q, &metric_q, &metric_q).unwrap();
         let y_measure = operator_measure(&operator_y, &metric_y, &metric_y).unwrap();
