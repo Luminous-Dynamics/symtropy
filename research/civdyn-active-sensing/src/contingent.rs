@@ -679,6 +679,13 @@ pub fn assess_contingent_sensing(
 mod tests {
     use super::*;
 
+    fn assert_close(actual: f64, expected: f64) {
+        assert!(
+            (actual - expected).abs() <= 1.0e-8,
+            "floating-point mismatch: actual={actual:.12}, expected={expected:.12}"
+        );
+    }
+
     fn config() -> ActiveSensingConfig {
         ActiveSensingConfig {
             scenario_id: "contingent-three-world-screen-and-inspect-v1".to_owned(),
@@ -838,8 +845,8 @@ mod tests {
             assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
         assert_eq!(report.status, SensorStatus::Evaluated);
         assert!(report.recommended);
-        assert_eq!(report.worst_case_regret_reduction, Some(13.6));
-        assert_eq!(report.worst_case_post_sensing_regret, Some(1.4));
+        assert_close(report.worst_case_regret_reduction.unwrap(), 13.6);
+        assert_close(report.worst_case_post_sensing_regret.unwrap(), 1.4);
         assert_eq!(report.selected_tree_depth, 2);
         assert_eq!(report.maximum_path_energy_kwh, 0.35);
         assert_eq!(report.maximum_path_latency_ticks, 2);
@@ -1045,8 +1052,8 @@ mod tests {
         let report = assess_contingent_sensing(&cfg, &limits(2), &worlds, &sensors).unwrap();
         assert_eq!(report.baseline.worst_case_regret, Some(15.0));
         assert!(report.recommended);
-        assert_eq!(report.worst_case_post_sensing_regret, Some(0.6));
-        assert_eq!(report.worst_case_regret_reduction, Some(14.4));
+        assert_close(report.worst_case_post_sensing_regret.unwrap(), 0.6);
+        assert_close(report.worst_case_regret_reduction.unwrap(), 14.4);
         assert_eq!(report.maximum_path_energy_kwh, 0.2);
         assert_eq!(report.maximum_path_latency_ticks, 2);
         assert_eq!(report.maximum_path_penalty_service_units, 0.6);
@@ -1117,10 +1124,10 @@ mod tests {
             .unwrap();
         assert_eq!(healthy_leaf.path_energy_kwh, 0.2);
         assert_eq!(healthy_leaf.path_latency_ticks, 1);
-        assert_eq!(healthy_leaf.sensing_penalty_service_units, 0.6);
+        assert_close(healthy_leaf.sensing_penalty_service_units, 0.6);
         assert_eq!(degraded_leaf.path_energy_kwh, 0.35);
         assert_eq!(degraded_leaf.path_latency_ticks, 2);
-        assert_eq!(degraded_leaf.sensing_penalty_service_units, 1.4);
+        assert_close(degraded_leaf.sensing_penalty_service_units, 1.4);
         assert_eq!(report.maximum_path_energy_kwh, 0.35);
         assert_eq!(report.maximum_path_latency_ticks, 2);
     }
