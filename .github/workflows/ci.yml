@@ -84,5 +84,90 @@ jobs:
       if: ${{ hashFiles('tools/airborne-energy-observability-validator/Cargo.toml') != '' }}
       run: cargo test --locked -p airborne-energy-observability-validator
 
+    - name: Qualify CIVDYN Observation Integrity Reference
+      if: runner.os == 'Linux'
+      run: |
+        set -euo pipefail
+        cargo fmt --manifest-path research/civdyn-observation-integrity/Cargo.toml --all -- --check
+        cargo clippy --locked --manifest-path research/civdyn-observation-integrity/Cargo.toml --all-targets -- -D warnings
+        cargo check --locked --manifest-path research/civdyn-observation-integrity/Cargo.toml --all-targets
+        cargo test --locked --manifest-path research/civdyn-observation-integrity/Cargo.toml --all-targets
+        cargo run --quiet --locked --manifest-path research/civdyn-observation-integrity/Cargo.toml --bin observation-integrity-sweep > /tmp/civdyn-observation-integrity-evaluator.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-observation-integrity/Cargo.toml --bin observation-integrity-sweep > /tmp/civdyn-observation-integrity-evaluator-replay.csv
+        cmp /tmp/civdyn-observation-integrity-evaluator.csv /tmp/civdyn-observation-integrity-evaluator-replay.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-observation-integrity/Cargo.toml --bin observation-integrity-sweep -- --candidate-only > /tmp/civdyn-observation-integrity-candidate.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-observation-integrity/Cargo.toml --bin observation-integrity-sweep -- --candidate-only > /tmp/civdyn-observation-integrity-candidate-replay.csv
+        cmp /tmp/civdyn-observation-integrity-candidate.csv /tmp/civdyn-observation-integrity-candidate-replay.csv
+        python3 - <<'PY'
+        import csv
+        from pathlib import Path
+
+        with Path("/tmp/civdyn-observation-integrity-evaluator.csv").open(newline="", encoding="utf-8") as handle:
+            evaluator_reader = csv.DictReader(handle)
+            assert evaluator_reader.fieldnames == [
+                "scenario_id", "hidden_evaluator_cause", "disposition", "action",
+                "primary_value", "admitted_evidence_ids", "rejected_evidence_ids",
+                "unresolved_hypotheses", "reason_codes",
+            ]
+            evaluator = list(evaluator_reader)
+
+        assert len(evaluator) == 12
+        by_id = {row["scenario_id"]: row for row in evaluator}
+        assert len(by_id) == 12
+
+        equivalent = [
+            by_id["same_value_physical_cause"],
+            by_id["same_value_instrument_bias"],
+            by_id["same_value_in_path_alteration"],
+        ]
+        assert len({row["disposition"] for row in equivalent}) == 1
+        assert len({row["action"] for row in equivalent}) == 1
+        assert len({row["unresolved_hypotheses"] for row in equivalent}) == 1
+        assert {row["disposition"] for row in equivalent} == {"abstain_observational_equivalence"}
+        assert all("physical_state_change" in row["unresolved_hypotheses"] for row in equivalent)
+        assert all("instrument_measurement_fault" in row["unresolved_hypotheses"] for row in equivalent)
+        assert all("in_path_integrity_anomaly" in row["unresolved_hypotheses"] for row in equivalent)
+
+        assert by_id["stale_but_authenticated"]["disposition"] == "reject_evidence"
+        assert by_id["shared_gateway_false_independence"]["disposition"] == "abstain_observational_equivalence"
+        assert by_id["derived_value_not_direct_measurement"]["disposition"] == "abstain_observational_equivalence"
+        assert by_id["independent_physical_corroboration"]["disposition"] == "use_corroborated_measurement"
+        assert by_id["independent_measurement_conflict"]["disposition"] == "evidence_conflict"
+        assert by_id["instrument_self_test_failure"]["disposition"] == "request_independent_physical_measurement"
+        assert by_id["independent_forensic_integrity_review"]["disposition"] == "integrity_investigation"
+        assert by_id["wrong_calibration_revision"]["disposition"] == "reject_evidence"
+        assert by_id["unverified_receipt"]["disposition"] == "reject_evidence"
+
+        with Path("/tmp/civdyn-observation-integrity-candidate.csv").open(newline="", encoding="utf-8") as handle:
+            candidate_reader = csv.DictReader(handle)
+            assert candidate_reader.fieldnames == [
+                "scenario_id", "disposition", "action", "unresolved_hypotheses", "reason_codes"
+            ]
+            candidate = list(candidate_reader)
+
+        assert len(candidate) == 12
+        assert all(set(row) == set(candidate_reader.fieldnames) for row in candidate)
+        assert not any("hidden" in key or "cause" in key or "world" in key for key in candidate_reader.fieldnames)
+        candidate_by_id = {row["scenario_id"]: row for row in candidate}
+        assert {
+            candidate_by_id[key]["disposition"]
+            for key in (
+                "same_value_physical_cause",
+                "same_value_instrument_bias",
+                "same_value_in_path_alteration",
+            )
+        } == {"abstain_observational_equivalence"}
+        assert len({
+            candidate_by_id[key]["reason_codes"]
+            for key in (
+                "same_value_physical_cause",
+                "same_value_instrument_bias",
+                "same_value_in_path_alteration",
+            )
+        }) == 1
+
+        print("CIVDYN observation-integrity contract passed: exact-value equivalence abstains, stale/shared/derived evidence is not promoted, conflict is preserved, corroboration is typed, and candidate/evaluator outputs remain separate.")
+        PY
+
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
