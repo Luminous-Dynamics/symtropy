@@ -941,7 +941,23 @@
           }
         ]
       },
-      "expected_disposition": "ACCEPTED_WITH_LIMITS"
+      "expected_disposition": "ACCEPTED_WITH_LIMITS",
+      "unit_transformations": [
+        {
+          "signal_id": "shaft-speed",
+          "source_unit": "rpm",
+          "target_unit": "rad/s",
+          "scale": 0.10471975511965977,
+          "offset": 0
+        },
+        {
+          "signal_id": "exhaust-temperature",
+          "source_unit": "degC",
+          "target_unit": "K",
+          "scale": 1,
+          "offset": 273.15
+        }
+      ]
     },
     {
       "case_id": "uncertainty-bounded-attribution-stability",
@@ -1007,7 +1023,27 @@
           ],
           "expected_relation": "SAME_TOP_K_FEATURE_SET"
         }
+      ],
+      "measurement_perturbations": [
+        {
+          "signal_id": "shaft-speed",
+          "value_delta": 0.8,
+          "declared_measurement_uncertainty": 1
+        },
+        {
+          "signal_id": "exhaust-temperature",
+          "value_delta": -0.2,
+          "declared_measurement_uncertainty": 0.5
+        }
       ]
     }
-  ]
+  ],
+  "authority_boundary": {
+    "read_only": true,
+    "controller_write": false,
+    "actuation": false,
+    "maintenance_authorization": false,
+    "mode_transition": false,
+    "restriction_clearance": false
+  }
 }
