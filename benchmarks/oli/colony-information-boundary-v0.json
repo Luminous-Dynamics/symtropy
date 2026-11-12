@@ -1,5 +1,5 @@
 {
-  "schema_version": "oli-collective-information-boundary-v0.2",
+  "schema_version": "oli-collective-information-boundary-v0.3",
   "case_id": "OLI-COLONY-FOOD-DISCOVERY-INFORMATION-BOUNDARY-001",
   "status": "INFORMATION_MODES_IMPLEMENTED_FIXTURE_SPECIFIED_RUST_VALIDATION_PENDING",
   "evidence_class": "SYNTHETIC_SIMULATION",
@@ -220,10 +220,40 @@
         "preserved trace compared with erased trace",
         "preserved trace compared with randomized trace preserving marginal values",
         "preserved trace compared with an identical externally authored field (common-input control)",
-        "recipient performance measured with ongoing source/nest pheromone broadcast disabled"
+        "recipient performance measured with ongoing source/nest pheromone broadcast disabled",
+        "randomized trace preserves exact food/home value histograms but destroys spatial arrangement, compared with intact transferred trace"
       ],
       "interpretation": "A replacement cohort responding to transferred fields demonstrates environmental information persistence and field-mediated behavior. It does not by itself prove cognition, collective intelligence, agent-generated memory, or a causal historical link. The externally authored identical-field control isolates current field state from its provenance.",
-      "statistical_unit": "A paired donor/recipient world run under one independent seed and one scenario configuration."
+      "statistical_unit": "A paired donor/recipient world run under one independent seed and one scenario configuration.",
+      "randomization": {
+        "api": "ColonyWorld::randomize_social_memory(seed)",
+        "algorithm": "independent deterministic Fisher-Yates shuffle for FoodPheromone and HomePheromone using SplitMix64 and rejection sampling",
+        "preserves": [
+          "exact value multiset of FoodPheromone",
+          "exact value multiset of HomePheromone"
+        ],
+        "destroys": [
+          "spatial adjacency",
+          "trail geometry",
+          "spatial correlation structure"
+        ],
+        "excluded_from_mutation": [
+          "agents",
+          "food inventory",
+          "DangerPheromone",
+          "Obstacle",
+          "Nutrient",
+          "Toxin",
+          "Moisture",
+          "Heat",
+          "Light",
+          "Oxygen",
+          "Disease",
+          "SignalNoise"
+        ],
+        "purpose": "structure-destruction control that preserves per-channel histograms while removing the original spatial arrangement",
+        "pairing": "apply the same shuffle seed to both channels within the same registered recipient replicate; use distinct independent run seeds across replicates"
+      }
     }
   },
   "required_metrics": [
@@ -254,7 +284,9 @@
     "Only FoodPheromone and HomePheromone are transferred; danger/obstacle/resource fields and food inventory remain matched but are not silently copied.",
     "Preserved, erased, randomized and externally authored identical-field conditions must be compared using paired recipient seeds.",
     "An identical externally authored field that produces the same response is a common-input control: it shows field-mediated behavior, not proof of who created the trace.",
-    "A transfer result is an environmental-memory effect; collective intelligence requires a separate task-competence advantage over matched individual and fixed-rule baselines."
+    "A transfer result is an environmental-memory effect; collective intelligence requires a separate task-competence advantage over matched individual and fixed-rule baselines.",
+    "Randomized-memory controls must preserve each social field's exact value multiset while changing spatial arrangement; report both histogram and spatial autocorrelation differences.",
+    "Do not infer memory content from the histogram alone. A recipient benefit that survives randomization may be attributable to marginal field intensity rather than spatially organized historical information."
   ],
   "ablations": [
     "food pheromone source reinforcement disabled",
@@ -273,6 +305,7 @@
     "output_digest_status": "PENDING_EXACT_HEAD_EXECUTION",
     "claim_status": "IMPLEMENTATION_AND_STRUCTURAL_TESTS_ONLY_UNTIL_CI",
     "seeded_ensemble_status": "IMPLEMENTED_SEED_API; ENSEMBLE_NOT_RUN",
-    "environmental_memory_transfer_status": "API_AND_STRUCTURAL_CONTROLS_IMPLEMENTED; TASK_ENSEMBLE_NOT_RUN"
+    "environmental_memory_transfer_status": "API_AND_STRUCTURAL_CONTROLS_IMPLEMENTED; TASK_ENSEMBLE_NOT_RUN",
+    "randomized_memory_control_status": "IMPLEMENTED_WITH_HISTOGRAM_AND_SEED_REPLAY_TESTS; BENCHMARK_ENSEMBLE_NOT_RUN"
   }
 }
