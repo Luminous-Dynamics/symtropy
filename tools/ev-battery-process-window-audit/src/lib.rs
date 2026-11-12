@@ -911,13 +911,36 @@ mod tests {
             evidence: vec![
                 evidence("PROC-SYNTH", EvidenceClass::SyntheticFixture),
                 evidence("QUALITY-SYNTH", EvidenceClass::SyntheticFixture),
-                evidence("QUALITY-ADMITTED-PHYSICAL", EvidenceClass::PhysicalMeasurement),
+                evidence(
+                    "QUALITY-ADMITTED-PHYSICAL",
+                    EvidenceClass::PhysicalMeasurement,
+                ),
             ],
             production_runs: vec![
-                run("1", "LOT-A", "LINE-1", observed_quality(4.9, 28.0, "QUALITY-SYNTH")),
-                run("2", "LOT-A", "LINE-1", observed_quality(4.7, 28.0, "QUALITY-SYNTH")),
-                run("3", "LOT-B", "LINE-1", observed_quality(5.0, 25.0, "QUALITY-SYNTH")),
-                run("4", "LOT-C", "LINE-2", observed_quality(4.9, 27.0, "QUALITY-SYNTH")),
+                run(
+                    "1",
+                    "LOT-A",
+                    "LINE-1",
+                    observed_quality(4.9, 28.0, "QUALITY-SYNTH"),
+                ),
+                run(
+                    "2",
+                    "LOT-A",
+                    "LINE-1",
+                    observed_quality(4.7, 28.0, "QUALITY-SYNTH"),
+                ),
+                run(
+                    "3",
+                    "LOT-B",
+                    "LINE-1",
+                    observed_quality(5.0, 25.0, "QUALITY-SYNTH"),
+                ),
+                run(
+                    "4",
+                    "LOT-C",
+                    "LINE-2",
+                    observed_quality(4.9, 27.0, "QUALITY-SYNTH"),
+                ),
             ],
         }
     }
@@ -971,8 +994,7 @@ mod tests {
     #[test]
     fn not_measured_quality_does_not_become_a_pass() {
         let mut manifest = valid_manifest();
-        manifest.production_runs[0].quality_observations[1].status =
-            MeasurementStatus::NotMeasured;
+        manifest.production_runs[0].quality_observations[1].status = MeasurementStatus::NotMeasured;
         manifest.production_runs[0].quality_observations[1].value = None;
 
         let report = audit_process_window(&manifest).expect("missing observation remains visible");
@@ -1003,10 +1025,12 @@ mod tests {
         let report = audit_process_window(&manifest).expect("evidence tier remains explicit");
         assert_eq!(report.physical_evidence_run_count, 0);
         assert_eq!(report.unadmitted_evidence_run_count, 4);
-        assert!(report
-            .lot_summaries
-            .iter()
-            .all(|summary| summary.evidence_tier == RunEvidenceTier::NotAdmittedForEvaluation));
+        assert!(
+            report
+                .lot_summaries
+                .iter()
+                .all(|summary| summary.evidence_tier == RunEvidenceTier::NotAdmittedForEvaluation)
+        );
     }
 
     #[test]
@@ -1032,7 +1056,11 @@ mod tests {
         manifest.production_runs[0].cell_configuration_ref = "CELL-CONFIG-R2".into();
 
         let error = audit_process_window(&manifest).expect_err("configuration mismatch fails");
-        assert!(error.0.contains("recipe or cell-configuration identity mismatch"));
+        assert!(
+            error
+                .0
+                .contains("recipe or cell-configuration identity mismatch")
+        );
     }
 
     #[test]
@@ -1047,7 +1075,8 @@ mod tests {
     #[test]
     fn rejects_quality_metric_boundary_mismatch() {
         let mut manifest = valid_manifest();
-        manifest.production_runs[0].quality_observations[0].boundary = "active_material_only".into();
+        manifest.production_runs[0].quality_observations[0].boundary =
+            "active_material_only".into();
 
         let error = audit_process_window(&manifest).expect_err("boundary mismatch fails");
         assert!(error.0.contains("mismatched unit or physical boundary"));
@@ -1056,8 +1085,7 @@ mod tests {
     #[test]
     fn rejects_missing_evidence_reference() {
         let mut manifest = valid_manifest();
-        manifest.production_runs[0].quality_observations[0].evidence_id =
-            "UNREGISTERED".into();
+        manifest.production_runs[0].quality_observations[0].evidence_id = "UNREGISTERED".into();
 
         let error = audit_process_window(&manifest).expect_err("unknown evidence fails");
         assert!(error.0.contains("references unknown evidence ID"));
