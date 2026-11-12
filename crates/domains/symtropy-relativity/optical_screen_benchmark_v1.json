@@ -460,8 +460,13 @@
         "matched_physics": "Pin spin, source angular pattern, incidence and polarization, frequency band, observer convention and waveform normalization",
         "independent_formulations": "Compare geometric-optics ray transfer, uniform fold/cusp asymptotics and at least one independent finite-frequency solver",
         "uncertainty": "Report truncation, mode-sum, frequency-grid and ray-bundle error separately",
-        "claim_ceiling": "A matched wave-optics benchmark; no extension of validity beyond the external solver's approximation domain"
-      }
+        "claim_ceiling": "A matched wave-optics benchmark; no extension of validity beyond the external solver's approximation domain",
+        "source_angular_emission_pattern": "Must be matched; face-on and edge-on binaries are not interchangeable.",
+        "geometric_wave_agreement": "Compare only in matched regimes and state the asymptotic conditions; no universal 10% target is inferred from one published configuration."
+      },
+      "comparators": [
+        "Strong Field Gravitational Lensing in Full Wave Optics, arXiv:2610.18958 (13 October 2026)"
+      ]
     },
     {
       "id": "OS-8",
@@ -587,6 +592,14 @@
       "reference": "https://arxiv.org/abs/2610.08399",
       "status": "preprint; BGO/Jacobi cross-comparison not yet implemented",
       "symtropy_position": "A stronger OS-5E target than image-pixel similarity. The paper explicitly separates geometric focusing/timing from a complete waveform, which still needs source evolution, redshift, phase/polarization transport and detector response."
+    },
+    {
+      "system": "Strong Field Gravitational Lensing in Full Wave Optics, arXiv:2610.18958 (13 October 2026)",
+      "role": "Preprint comparator for strong-field wave-optics amplification from anisotropic compact-binary gravitational-wave sources lensed by massive black holes, including spinning lenses and configurations beyond thin-lens/geometric-optics assumptions.",
+      "reference": "https://arxiv.org/abs/2610.18958",
+      "comparison": "Match source inclination and quadrupolar emission, lens spin, source/lens/observer geometry and frequency before comparing amplification factor, peak shift, fringe spacing and the geometric-optics limit. The paper reports approximately 10% agreement with a Schwarzschild ray-tracing calculation for one face-on configuration; that is not a general ray/wave accuracy claim.",
+      "status": "2026 preprint; no Symtropy wave-optics solver or matched reproduction",
+      "symtropy_position": "Use the Jacobi map and image-branch structure as the geometric-optics baseline, then add a distinct finite-frequency solver. Do not infer coherent amplification or phase from ray density alone."
     }
   ],
   "benchmark_policy": {
