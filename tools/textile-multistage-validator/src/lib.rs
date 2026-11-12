@@ -371,15 +371,15 @@ pub fn validate(problem: &Problem, schedule: &Schedule) -> ValidationReport {
                         ),
                     );
                 }
-                if let Some(certification) = &operation.required_certification {
-                    if !operator.certifications.contains(certification) {
-                        finding(
-                            &mut findings,
-                            "OPERATOR_CERTIFICATION_MISMATCH",
-                            &assignment.operation_id,
-                            format!("operator {} lacks {certification}", operator.id),
-                        );
-                    }
+                if let Some(certification) = &operation.required_certification
+                    && !operator.certifications.contains(certification)
+                {
+                    finding(
+                        &mut findings,
+                        "OPERATOR_CERTIFICATION_MISMATCH",
+                        &assignment.operation_id,
+                        format!("operator {} lacks {certification}", operator.id),
+                    );
                 }
                 if interval_valid
                     && !available(
