@@ -86,3 +86,23 @@ jobs:
 
     - name: Verify Workspace Build
       run: cargo check --workspace --all-targets
+
+  # Small standalone physical-evidence adapter. It is intentionally not part
+  # of the application workspace, so the main matrix does not compile or lint
+  # it. Qualify its exact manifest explicitly on the pinned toolchain.
+  loco-joint-metrology-reference:
+    name: LOCO Joint Trace Adapter (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check adapter formatting
+        run: cargo fmt --manifest-path research/loco-joint-metrology-001/adapter/Cargo.toml -- --check
+      - name: Test deterministic adapter
+        run: cargo test --locked --manifest-path research/loco-joint-metrology-001/adapter/Cargo.toml
+      - name: Strict adapter Clippy
+        run: cargo clippy --locked --manifest-path research/loco-joint-metrology-001/adapter/Cargo.toml --all-targets -- -D warnings

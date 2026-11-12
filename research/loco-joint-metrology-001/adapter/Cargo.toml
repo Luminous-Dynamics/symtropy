@@ -1,0 +1,10 @@
+[package]
+name = "loco-joint-trace-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+
+# Keep this small reference package isolated from the large application
+# package at the repository root. It has no third-party dependencies.
+[workspace]
