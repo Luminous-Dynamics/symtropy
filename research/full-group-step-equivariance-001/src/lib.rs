@@ -81,10 +81,7 @@ fn apply_matrix(matrix: &Matrix2, vector: &[f64; 2]) -> [f64; 2] {
 }
 
 fn transpose(matrix: &Matrix2) -> Matrix2 {
-    [
-        [matrix[0][0], matrix[1][0]],
-        [matrix[0][1], matrix[1][1]],
-    ]
+    [[matrix[0][0], matrix[1][0]], [matrix[0][1], matrix[1][1]]]
 }
 
 fn multiply(left: &Matrix2, right: &Matrix2) -> Matrix2 {
@@ -205,13 +202,7 @@ pub fn projected_circle_step<F: CoordinateFrame>(
     }
     let position_next = scale_vector(&drift, scale)?;
 
-    let force_1 = force_at(
-        mass_metric,
-        &position_next,
-        external_force,
-        mass,
-        spring,
-    )?;
+    let force_1 = force_at(mass_metric, &position_next, external_force, mass, spring)?;
     let acceleration_1 = acceleration(mass_metric, &force_1)?;
     let velocity_star = add_vectors(
         velocity,
@@ -237,8 +228,7 @@ pub fn projected_circle_step<F: CoordinateFrame>(
     let velocity_multiplier = -0.5 * mass * radial_velocity;
     let position_norm_sq = mass_metric.tangent_norm(&position_next)?.powi(2) / mass;
     let position_constraint_defect = position_norm_sq - radius * radius;
-    let velocity_constraint_defect =
-        2.0 * pairing(&lowered_position, &velocity_next) / mass;
+    let velocity_constraint_defect = 2.0 * pairing(&lowered_position, &velocity_next) / mass;
 
     let jacobian_components = [
         2.0 * lowered_position.components()[0] / mass,
@@ -250,14 +240,11 @@ pub fn projected_circle_step<F: CoordinateFrame>(
         profile,
     )?;
     let multiplier = ConstraintMultiplierV1::<ConstraintSpace, 1>::new([velocity_multiplier])?;
-    let residual = ConstraintResidualV1::<ConstraintSpace, 1>::new([
-        2.0 * numerator / mass,
-    ])?;
+    let residual = ConstraintResidualV1::<ConstraintSpace, 1>::new([2.0 * numerator / mass])?;
 
     let delta_position = add_vectors(&position_next, &scale_vector(position, -1.0)?)?;
     let external_work = pairing(external_force, &delta_position);
-    let kinetic_energy =
-        0.5 * pairing(&mass_metric.lower(&velocity_next)?, &velocity_next);
+    let kinetic_energy = 0.5 * pairing(&mass_metric.lower(&velocity_next)?, &velocity_next);
     let potential_energy = 0.5 * spring * radius * radius;
     let multiplier_metric_norm = delassus.multiplier_norm(&multiplier)?;
     let residual_dual_norm = delassus.residual_norm(&residual)?;
@@ -311,7 +298,11 @@ mod tests {
         Metric::admit([[MASS, 0.0], [0.0, MASS]], PROFILE).unwrap()
     }
 
-    fn fixture_q() -> (Tangent<CartesianQ, 2>, Tangent<CartesianQ, 2>, Cotangent<CartesianQ, 2>) {
+    fn fixture_q() -> (
+        Tangent<CartesianQ, 2>,
+        Tangent<CartesianQ, 2>,
+        Cotangent<CartesianQ, 2>,
+    ) {
         (
             Tangent::new([1.0, 0.7]).unwrap(),
             Tangent::new([0.2, -0.35]).unwrap(),
@@ -320,10 +311,7 @@ mod tests {
     }
 
     fn rotation(theta: f64) -> Matrix2 {
-        [
-            [theta.cos(), -theta.sin()],
-            [theta.sin(), theta.cos()],
-        ]
+        [[theta.cos(), -theta.sin()], [theta.sin(), theta.cos()]]
     }
 
     fn reflection() -> Matrix2 {
@@ -354,7 +342,15 @@ mod tests {
         force: &Cotangent<F, 2>,
     ) {
         let source = projected_circle_step(
-            mass_metric, position, velocity, force, MASS, SPRING, TIMESTEP, RADIUS, PROFILE,
+            mass_metric,
+            position,
+            velocity,
+            force,
+            MASS,
+            SPRING,
+            TIMESTEP,
+            RADIUS,
+            PROFILE,
         )
         .unwrap();
         let action_position = transform_tangent(action, position).unwrap();
@@ -383,8 +379,16 @@ mod tests {
             &transform_tangent(action, &source.velocity).unwrap(),
             4.0e-12,
         );
-        close(acted.position_multiplier, source.position_multiplier, 4.0e-12);
-        close(acted.velocity_multiplier, source.velocity_multiplier, 4.0e-12);
+        close(
+            acted.position_multiplier,
+            source.position_multiplier,
+            4.0e-12,
+        );
+        close(
+            acted.velocity_multiplier,
+            source.velocity_multiplier,
+            4.0e-12,
+        );
         close(
             acted.position_constraint_defect,
             source.position_constraint_defect,
@@ -401,11 +405,7 @@ mod tests {
             source.multiplier_metric_norm,
             4.0e-12,
         );
-        close(
-            acted.residual_dual_norm,
-            source.residual_dual_norm,
-            4.0e-12,
-        );
+        close(acted.residual_dual_norm, source.residual_dual_norm, 4.0e-12);
         close(acted.external_work, source.external_work, 4.0e-12);
         close(acted.kinetic_energy, source.kinetic_energy, 4.0e-12);
         close(acted.potential_energy, source.potential_energy, 4.0e-12);
@@ -473,24 +473,25 @@ mod tests {
             &rebasis.tangent_to_from(&step_y.velocity).unwrap(),
             5.0e-12,
         );
-        close(step_q.position_multiplier, step_y.position_multiplier, 5.0e-12);
-        close(step_q.velocity_multiplier, step_y.velocity_multiplier, 5.0e-12);
+        close(
+            step_q.position_multiplier,
+            step_y.position_multiplier,
+            5.0e-12,
+        );
+        close(
+            step_q.velocity_multiplier,
+            step_y.velocity_multiplier,
+            5.0e-12,
+        );
         close(step_q.delassus, step_y.delassus, 5.0e-12);
         close(step_q.external_work, step_y.external_work, 5.0e-12);
 
         for action_q in [rotation(0.61), reflection()] {
             let action_y = conjugate_action(&rebasis_matrix, &action_q).unwrap();
-            let isometry = multiply(
-                &multiply(&transpose(&action_y), mass_y.matrix()),
-                &action_y,
-            );
+            let isometry = multiply(&multiply(&transpose(&action_y), mass_y.matrix()), &action_y);
             for row in 0..2 {
                 for column in 0..2 {
-                    close(
-                        isometry[row][column],
-                        mass_y.matrix()[row][column],
-                        5.0e-12,
-                    );
+                    close(isometry[row][column], mass_y.matrix()[row][column], 5.0e-12);
                 }
             }
             assert_step_action(&mass_y, &action_y, &position_y, &velocity_y, &force_y);
@@ -499,8 +500,7 @@ mod tests {
         // The dense representation is not Euclidean-orthogonal; the transformed
         // mass metric, rather than the Euclidean component norm, is the invariant.
         let reflection_y = conjugate_action(&rebasis_matrix, &reflection()).unwrap();
-        let euclidean_defect =
-            multiply(&transpose(&reflection_y), &reflection_y);
+        let euclidean_defect = multiply(&transpose(&reflection_y), &reflection_y);
         assert!(
             (euclidean_defect[0][1]).abs() > 1.0e-3
                 || (euclidean_defect[1][0]).abs() > 1.0e-3
@@ -510,13 +510,7 @@ mod tests {
 
     #[test]
     fn mass_metric_rejects_nonpositive_and_nonfinite_geometry() {
-        assert!(Metric::<CartesianQ, 2>::admit(
-            [[1.0, 0.0], [0.0, 0.0]],
-            PROFILE
-        ).is_err());
-        assert!(Metric::<CartesianQ, 2>::admit(
-            [[f64::NAN, 0.0], [0.0, 1.0]],
-            PROFILE
-        ).is_err());
+        assert!(Metric::<CartesianQ, 2>::admit([[1.0, 0.0], [0.0, 0.0]], PROFILE).is_err());
+        assert!(Metric::<CartesianQ, 2>::admit([[f64::NAN, 0.0], [0.0, 1.0]], PROFILE).is_err());
     }
 }
