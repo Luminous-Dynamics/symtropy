@@ -3,7 +3,7 @@
   "case_id": "OLI-SCM-INDEPENDENT-RUST-REFERENCE-001",
   "status": "RUST_REFERENCE_TASK_METRICS_ADDED_VALIDATION_PENDING",
   "evidence_class": "SYNTHETIC_KNOWN_TRUTH_SIMULATION",
-  "claim_ceiling": "Independent CPU implementation of a consensus-coupled adaptive-noise swarm optimizer with explicit equation variants and numerical safeguards; not a source-faithful MATLAB reproduction, qualified optimizer, or physical swarm controller",
+  "claim_ceiling": "Independent CPU implementation of the published and pinned MATLAB consensus-coupled adaptive-noise swarm optimizer with numerical safeguards; not yet a source-reproduced, qualified optimizer, or physical swarm controller",
   "source_profile": "benchmarks/oli/scm-collective-optimization-source-profile-v0.json",
   "implementation": {
     "repository": "https://github.com/Luminous-Dynamics/symtropy",
@@ -18,24 +18,15 @@
     "update_order": "synchronous; all agents update from a shared previous-state snapshot",
     "function_evaluation_accounting": "initial observations are cached; first step counts initial plus successor observations; each subsequent step counts the newly observed successor positions",
     "transactional_update": "Agent positions, RNG, tick, successor cache and consensus history commit only after the complete successor observation batch validates. Successfully acquired initial observations and their function-evaluation cost remain cached/countable if a later successor batch fails; no partial movement commits.",
-    "function_evaluation_contract": "Step candidates and successor observations are built locally; positions, RNG state, cache, tick, history and counters commit only if all successor observations validate."
-  },
-  "equation_variants": [
-    {
-      "id": "PUBLISHED_HTML_EQUATION",
-      "implementation": "ScmInteractionKernel::PublishedHtmlEquation",
-      "sine_argument_scale": "2/pi",
-      "source_interpretation": "Accessible Nature Communications HTML Equation (2) rendering.",
-      "status": "REQUIRES_AUTHORITATIVE_PDF_AND_SUPPLEMENTARY_CONFIRMATION"
-    },
-    {
-      "id": "REPOSITORY_MATLAB_SOURCE",
-      "implementation": "ScmInteractionKernel::RepositoryMatlabSource",
-      "sine_argument_scale": "pi/2",
-      "source_interpretation": "Inspected MATLAB SCM/tstep.m at pinned GitHub source commit.",
-      "status": "SOURCE_CODE_OBSERVED_BUT_SOFTWARE_LICENSE_UNRESOLVED"
+    "function_evaluation_contract": "Step candidates and successor observations are built locally; positions, RNG state, cache, tick, history and counters commit only if all successor observations validate.",
+    "social_kernel": {
+      "formula": "sin((pi/2) * (x_i - x_j))",
+      "published_discrete_update": "The published discrete-time model equation uses pi/2 inside the sine.",
+      "pinned_matlab_source": "SCM/tstep.m at the pinned upstream commit uses sin(dx_ij.*pi/2).",
+      "disposition": "RECONCILED_PUBLISHED_AND_SOURCE_AGREE",
+      "implementation": "ScmInteractionKernel::PublishedEquationAndMatlabSource"
     }
-  ],
+  },
   "numerical_assurance": {
     "fitness_range": [
       0,
@@ -51,27 +42,11 @@
   },
   "unit_controls": [
     {
-      "id": "KERNEL_VARIANT_DIVERGENCE",
-      "purpose": "Prove that the two source interpretations are not numerically interchangeable.",
-      "initial_positions": [
-        [
-          0.2,
-          0.2
-        ],
-        [
-          0.8,
-          0.2
-        ],
-        [
-          0.5,
-          0.8
-        ]
-      ],
-      "landscape": "constant fitness 0.5 with zero gradient",
-      "seed": 101,
-      "tau_steps": 4,
-      "expected": "one-step positions differ between PublishedHtmlEquation and RepositoryMatlabSource",
-      "test": "paper_and_repository_kernel_variants_change_the_social_trajectory"
+      "id": "PUBLISHED_AND_MATLAB_KERNEL_CONCORDANCE",
+      "purpose": "Prevent regression to the previously misread 2/pi sine argument and pin the shared published/MATLAB update term.",
+      "formula": "sin((pi/2) * position_difference)",
+      "expected": "ScmInteractionKernel::PublishedEquationAndMatlabSource.argument_scale() == pi/2",
+      "test": "published_discrete_equation_and_matlab_source_share_pi_over_two_kernel"
     },
     {
       "id": "DETERMINISTIC_REPLAY",
@@ -240,17 +215,18 @@
     "matlab_source_copied": false,
     "source_data_downloaded": false,
     "bitwise_matlab_parity": false,
-    "paper_source_equation_resolved": false,
+    "paper_source_equation_resolved": true,
     "static_benchmark_reproduced": false,
     "dynamic_auv_simulation_reproduced": false,
     "status": "NOT_A_SOURCE_REPRODUCTION",
     "independent_rust_reference_added": true,
-    "independent_rust_reference_validated": false
+    "independent_rust_reference_validated": false,
+    "resolution": "Published discrete equation and pinned MATLAB tstep.m both use sin((pi/2)*delta_x); the earlier claimed 2/pi paper variant was a misreading and has been removed."
   },
   "qualification_next_steps": [
+    "Run exact-head fmt, strict Clippy and unit tests for the single published/MATLAB pi/2 social kernel; keep consensus-window indexing as a separate discrete reproduction sensitivity.",
     "Run cargo fmt and cargo test for symtropy-lifesim-core at the exact PR head.",
     "Have an independent reviewer compare the Rust update against both the article equations and the pinned tstep/consensus source.",
-    "Resolve the sine scaling with authoritative PDF/SI or author response.",
     "Add normalized Ackley and Rastrigin landscapes and reproduce the SCM 100-replication source protocol.",
     "Implement matched PSO and MIPA baselines with identical initial states, sensor/function-evaluation budgets and success criteria.",
     "Add moving peak/advection scenarios and network constraints before comparing the AUV proof-of-concept."
