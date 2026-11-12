@@ -1060,9 +1060,16 @@ mod tests {
     #[test]
     fn row_order_is_semantically_invariant_but_input_digest_is_byte_sensitive() {
         let original = evaluate_fixture(NO_CHANGE);
-        let mut input = parse_fixture(NO_CHANGE);
-        input.baseline.rows.reverse();
-        input.testing.rows.reverse();
+        let mut input: serde_json::Value =
+            serde_json::from_str(NO_CHANGE).expect("fixture JSON parses");
+        input["baseline"]["rows"]
+            .as_array_mut()
+            .expect("baseline rows")
+            .reverse();
+        input["testing"]["rows"]
+            .as_array_mut()
+            .expect("testing rows")
+            .reverse();
         let reversed_bytes = serde_json::to_vec(&input).expect("fixture serializes");
         let reversed = evaluate_bytes(&reversed_bytes).expect("reversed fixture evaluates");
         assert_eq!(original.disposition, reversed.disposition);
