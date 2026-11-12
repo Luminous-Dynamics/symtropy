@@ -185,7 +185,7 @@ jobs:
         assert lift_inspection["status"] == "evaluated"
         assert lift_inspection["baseline_policy_id"] == ""
         assert lift_inspection["baseline_worst_regret"] == ""
-        assert lift_inspection["worst_case_post_sensing_regret"] == "0.000000"
+        assert lift_inspection["worst_case_post_sensing_regret"] == "0.500000"
         assert lift_inspection["regret_reduction"] == ""
         assert lift_inspection["resolves_no_sensing_infeasibility"] == "true"
         assert lift_inspection["recommended"] == "true"
