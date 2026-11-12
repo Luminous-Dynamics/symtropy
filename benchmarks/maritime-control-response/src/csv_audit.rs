@@ -53,6 +53,11 @@ pub struct MarineCsvAuditReport {
     pub schema_version: String,
     pub dataset_doi: String,
     pub archive_sha256: String,
+    /// All CSV members in the ZIP, including index/dictionary metadata exports.
+    pub archive_csv_entry_count: usize,
+    /// CSV members treated as dataset-index or variable-dictionary metadata.
+    pub metadata_csv_artifact_count: usize,
+    /// Recording payload CSVs only (the published one-baseline/fifteen-scenario inventory).
     pub csv_file_count: usize,
     pub baseline_file_count: usize,
     pub scenario_file_count: usize,
@@ -132,7 +137,7 @@ pub fn audit_marine_dataset_directory(
     all_files.sort();
 
     let metadata_artifact_sha256 = audit_metadata_artifacts(&all_files)?;
-    let mut csv_paths = all_files
+    let mut archive_csv_paths = all_files
         .iter()
         .filter(|path| {
             path.extension()
@@ -141,7 +146,16 @@ pub fn audit_marine_dataset_directory(
         })
         .cloned()
         .collect::<Vec<_>>();
-    csv_paths.sort();
+    archive_csv_paths.sort();
+    let archive_csv_entry_count = archive_csv_paths.len();
+    let metadata_csv_artifact_count = archive_csv_paths
+        .iter()
+        .filter(|path| is_metadata_csv_artifact(path))
+        .count();
+    let csv_paths = archive_csv_paths
+        .into_iter()
+        .filter(|path| !is_metadata_csv_artifact(path))
+        .collect::<Vec<_>>();
 
     if csv_paths.len() != MARINE_EXPECTED_CSV_FILES {
         return Err(CsvAuditError::WrongCsvInventory {
@@ -200,6 +214,8 @@ pub fn audit_marine_dataset_directory(
         schema_version: "symtropy-marine-csv-audit-v0.1".into(),
         dataset_doi: "10.5281/zenodo.19857425".into(),
         archive_sha256: archive_sha256.to_owned(),
+        archive_csv_entry_count,
+        metadata_csv_artifact_count,
         csv_file_count: files.len(),
         baseline_file_count,
         scenario_file_count,
@@ -487,6 +503,20 @@ fn collect_files(
     Ok(())
 }
 
+/// Metadata exports are CSV files in this ZIP but are not engine recordings.
+/// Keep their hashes in metadata_artifact_sha256 and exclude them from the
+/// one-baseline/fifteen-scenario data inventory.
+fn is_metadata_csv_artifact(path: &Path) -> bool {
+    let Some(name) = path.file_name().and_then(|name| name.to_str()) else {
+        return false;
+    };
+    let lower = name.to_ascii_lowercase();
+    lower.contains("dataset_index")
+        || lower.contains("variable_dictionary")
+        || lower.contains("normaliz")
+        || lower.contains("normalis")
+}
+
 fn audit_metadata_artifacts(
     paths: &[PathBuf],
 ) -> Result<BTreeMap<String, String>, CsvAuditError> {
@@ -604,6 +634,14 @@ mod tests {
             .collect::<Vec<_>>()
             .join("\n")
             .into_bytes()
+    }
+
+    #[test]
+    fn metadata_csv_exports_are_not_misclassified_as_engine_recordings() {
+        assert!(is_metadata_csv_artifact(Path::new("dataset_index.csv")));
+        assert!(is_metadata_csv_artifact(Path::new("variable_dictionary.csv")));
+        assert!(is_metadata_csv_artifact(Path::new("normalization_script.csv")));
+        assert!(!is_metadata_csv_artifact(Path::new("scenario_01.csv")));
     }
 
     #[test]
