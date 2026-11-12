@@ -16,27 +16,23 @@ use std::error::Error;
 use std::f64::consts::{PI, TAU};
 use std::fmt;
 
-/// The two social-interaction sine scalings that require source reconciliation.
+/// Social-interaction kernel shared by the published discrete update and the
+/// pinned MATLAB reference implementation (both use sin((pi/2) * delta_x)).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ScmInteractionKernel {
-    /// Argument scale rendered in the accessible HTML equation: 2/pi.
-    PublishedHtmlEquation,
-    /// Argument scale in the inspected GitHub MATLAB source: pi/2.
-    RepositoryMatlabSource,
+    PublishedEquationAndMatlabSource,
 }
 
 impl ScmInteractionKernel {
     pub const fn argument_scale(self) -> f64 {
         match self {
-            Self::PublishedHtmlEquation => 2.0 / PI,
-            Self::RepositoryMatlabSource => PI / 2.0,
+            Self::PublishedEquationAndMatlabSource => PI / 2.0,
         }
     }
 
     pub const fn label(self) -> &'static str {
         match self {
-            Self::PublishedHtmlEquation => "published_html_equation_sin_2_over_pi",
-            Self::RepositoryMatlabSource => "repository_matlab_source_sin_pi_over_2",
+            Self::PublishedEquationAndMatlabSource => "published_eq10_and_matlab_tstep_sin_pi_over_2",
         }
     }
 }
@@ -124,7 +120,7 @@ impl Default for ScmConfig {
             numerical_epsilon: 1.0e-12,
             // Explicitly choose the publication-rendered variant, not the repository
             // source variant. The profile requires this choice to be recorded.
-            kernel: ScmInteractionKernel::PublishedHtmlEquation,
+            kernel: ScmInteractionKernel::PublishedEquationAndMatlabSource,
             consensus_window: ScmConsensusWindow::PublishedEqualHalfIntervals,
             communication_topology: ScmCommunicationTopology::CompleteGraph,
         }
@@ -1007,18 +1003,16 @@ mod tests {
     }
 
     #[test]
-    fn paper_and_repository_kernels_are_explicit_and_distinct() {
+    fn published_discrete_equation_and_matlab_source_share_pi_over_two_kernel() {
         assert!(
-            (ScmInteractionKernel::PublishedHtmlEquation.argument_scale() - 2.0 / PI).abs()
+            (ScmInteractionKernel::PublishedEquationAndMatlabSource.argument_scale()
+                - PI / 2.0)
+                .abs()
                 < 1.0e-15
         );
-        assert!(
-            (ScmInteractionKernel::RepositoryMatlabSource.argument_scale() - PI / 2.0).abs()
-                < 1.0e-15
-        );
-        assert_ne!(
-            ScmInteractionKernel::PublishedHtmlEquation.argument_scale(),
-            ScmInteractionKernel::RepositoryMatlabSource.argument_scale()
+        assert_eq!(
+            ScmInteractionKernel::PublishedEquationAndMatlabSource.label(),
+            "published_eq10_and_matlab_tstep_sin_pi_over_2"
         );
     }
 
@@ -1499,25 +1493,25 @@ mod tests {
     }
 
     #[test]
-    fn paper_and_repository_kernel_variants_change_the_social_trajectory() {
+    fn source_kernel_uses_the_published_and_matlab_pi_over_two_social_term() {
         let agents = small_agents();
-        let paper_config = ScmConfig {
+        let config = ScmConfig {
             tau_steps: 4,
-            kernel: ScmInteractionKernel::PublishedHtmlEquation,
+            kernel: ScmInteractionKernel::PublishedEquationAndMatlabSource,
             ..ScmConfig::default()
         };
-        let repository_config = ScmConfig {
-            tau_steps: 4,
-            kernel: ScmInteractionKernel::RepositoryMatlabSource,
-            ..ScmConfig::default()
-        };
-        let mut paper = ScmModel::new(agents.clone(), paper_config, 101).unwrap();
-        let mut repository = ScmModel::new(agents, repository_config, 101).unwrap();
+        let mut model = ScmModel::new(agents.clone(), config, 101).unwrap();
 
-        paper.step(&Flat).unwrap();
-        repository.step(&Flat).unwrap();
+        let before = agents.iter().map(|agent| agent.position.clone()).collect::<Vec<_>>();
+        model.step(&Flat).unwrap();
 
-        assert_ne!(paper.agents(), repository.agents());
+        assert!(model.agents().iter().all(|agent| {
+            agent.position.iter().all(|coordinate| coordinate.is_finite())
+        }));
+        assert_ne!(
+            model.agents().iter().map(|agent| agent.position.clone()).collect::<Vec<_>>(),
+            before
+        );
     }
 
     #[test]
