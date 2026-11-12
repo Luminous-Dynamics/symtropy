@@ -1,0 +1,2460 @@
+{
+  "schema_version": "0.1.0",
+  "corpus_id": "SCAN-BIM-MEASUREMENT-OBSERVABILITY-SYNTHETIC-001",
+  "claim_ceiling": "Deterministic contract/oracle behaviour on synthetic records only; no sensor calibration, physical accuracy, or engineering authority.",
+  "cases": [
+    {
+      "case_id": "valid_visible_measurement",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "pass",
+        "reason_codes": []
+      }
+    },
+    {
+      "case_id": "visible_but_not_captured",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-02",
+      "visibility": "observable",
+      "observation": "not_captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "OBSERVATION_NOT_CAPTURED"
+        ]
+      }
+    },
+    {
+      "case_id": "self_occluded",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-03",
+      "visibility": "self_occluded",
+      "observation": "not_captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "GEOMETRICALLY_SELF_OCCLUDED",
+          "OBSERVATION_NOT_CAPTURED"
+        ]
+      }
+    },
+    {
+      "case_id": "calibration_missing_unresolved",
+      "building_group_id": "synthetic-building-b",
+      "capture_group_id": "capture-04",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-02",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "missing",
+        "calibration_evidence_sha256": null,
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 1.25,
+        "standard_uncertainty_m": 0.001,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "CALIBRATION_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "out_of_domain_unresolved",
+      "building_group_id": "synthetic-building-b",
+      "capture_group_id": "capture-05",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-02",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 25,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 3,
+        "standard_uncertainty_m": 0.001,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_OPERATING_DOMAIN_OUT_OF_DOMAIN"
+        ]
+      }
+    },
+    {
+      "case_id": "duplicate_reference_lineage",
+      "building_group_id": "synthetic-building-b",
+      "capture_group_id": "capture-06",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-02",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-a"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2,
+        "standard_uncertainty_m": 0.001,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "DUPLICATE_REFERENCE_LINEAGE_NOT_INDEPENDENT"
+        ]
+      }
+    },
+    {
+      "case_id": "coarse_layout_pass",
+      "building_group_id": "synthetic-building-c",
+      "capture_group_id": "capture-07",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-03",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 4,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "pass",
+        "reason_codes": []
+      }
+    },
+    {
+      "case_id": "tight_installation_fail",
+      "building_group_id": "synthetic-building-c",
+      "capture_group_id": "capture-07",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-03",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 4,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "tight-installation",
+        "maximum_total_error_bound_m": 0.004
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "TASK_TOTAL_ERROR_BOUND_EXCEEDED"
+        ]
+      }
+    },
+    {
+      "case_id": "unknown_visibility_and_observation",
+      "building_group_id": "synthetic-building-d",
+      "capture_group_id": "capture-08",
+      "visibility": "unknown",
+      "observation": "unknown",
+      "sensor": {
+        "sensor_id": "tls-synthetic-04",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "unknown",
+        "independent_reference_lineage_ids": [],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "OBSERVATION_UNKNOWN",
+          "VISIBILITY_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "case_id": "capture_conflicts_with_occlusion",
+      "building_group_id": "synthetic-building-d",
+      "capture_group_id": "capture-09",
+      "visibility": "externally_occluded",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-04",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 1,
+        "standard_uncertainty_m": 0.001,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "CAPTURE_CONFLICTS_WITH_VISIBILITY",
+          "GEOMETRICALLY_EXTERNALLY_OCCLUDED"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_measurement_uncertainty",
+      "building_group_id": "synthetic-building-e",
+      "capture_group_id": "capture-10",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-05",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 1,
+        "standard_uncertainty_m": -0.001,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "INVALID_MEASUREMENT_UNCERTAINTY"
+        ]
+      }
+    },
+    {
+      "case_id": "correlated_reference_lineages",
+      "building_group_id": "synthetic-building-e",
+      "capture_group_id": "capture-11",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-05",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "correlated",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 1,
+        "standard_uncertainty_m": 0.001,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "REFERENCE_LINEAGES_CORRELATED"
+        ]
+      }
+    },
+    {
+      "case_id": "stale_calibration_unresolved",
+      "building_group_id": "synthetic-building-f",
+      "capture_group_id": "capture-12",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-06",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "stale",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 1,
+        "standard_uncertainty_m": 0.001,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "CALIBRATION_STALE"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_calibration",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "invalid",
+        "calibration_evidence_sha256": null,
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "CALIBRATION_INVALID"
+        ]
+      }
+    },
+    {
+      "case_id": "outside_sensor_coverage",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "outside_sensor_coverage",
+      "observation": "not_captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "OBSERVATION_NOT_CAPTURED",
+          "OUTSIDE_SENSOR_COVERAGE"
+        ]
+      }
+    },
+    {
+      "case_id": "mixed_return_unresolved",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "observable",
+      "observation": "mixed_return",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "OBSERVATION_MIXED_RETURN"
+        ]
+      }
+    },
+    {
+      "case_id": "captured_without_measurement",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "CAPTURED_MEASUREMENT_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "contradictory_visibility",
+      "building_group_id": "synthetic-building-a",
+      "capture_group_id": "capture-01",
+      "visibility": "contradictory",
+      "observation": "unknown",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": null,
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "OBSERVATION_UNKNOWN",
+          "VISIBILITY_CONTRADICTORY"
+        ]
+      }
+    },
+    {
+      "case_id": "grazing_incidence_out_of_domain",
+      "building_group_id": "synthetic-grazing_incidence_out_of_domain",
+      "capture_group_id": "capture-grazing_incidence_out_of_domain",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 5,
+          "incidence_angle_rad": 1.5,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_INCIDENCE_OUT_OF_DOMAIN"
+        ]
+      }
+    },
+    {
+      "case_id": "unsupported_surface_response_out_of_domain",
+      "building_group_id": "synthetic-unsupported_surface_response_out_of_domain",
+      "capture_group_id": "capture-unsupported_surface_response_out_of_domain",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 5,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "mirror_glass",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_SURFACE_RESPONSE_OUT_OF_DOMAIN"
+        ]
+      }
+    },
+    {
+      "case_id": "sensor_profile_domain_missing_unresolved",
+      "building_group_id": "synthetic-sensor_profile_domain_missing_unresolved",
+      "capture_group_id": "capture-sensor_profile_domain_missing_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": null,
+        "observed_conditions": {
+          "range_m": 5,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_QUALIFIED_DOMAIN_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "case_id": "sensor_conditions_missing_unresolved",
+      "building_group_id": "synthetic-sensor_conditions_missing_unresolved",
+      "capture_group_id": "capture-sensor_conditions_missing_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": null
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_OBSERVED_CONDITIONS_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_sensor_profile_domain",
+      "building_group_id": "synthetic-invalid_sensor_profile_domain",
+      "capture_group_id": "capture-invalid_sensor_profile_domain",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 0.1,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 0.8,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "SENSOR_PROFILE_DOMAIN_INVALID"
+        ]
+      }
+    },
+    {
+      "case_id": "unsupported_environment_class_out_of_domain",
+      "building_group_id": "synthetic-unsupported-environment",
+      "capture_group_id": "capture-unsupported-environment",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_steam"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SENSOR_ENVIRONMENT_OUT_OF_DOMAIN"
+        ]
+      }
+    },
+    {
+      "case_id": "systematic_error_bound_changes_task_acceptance",
+      "building_group_id": "synthetic-systematic_error_bound_changes_task_acceptance",
+      "capture_group_id": "capture-systematic_error_bound_changes_task_acceptance",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.01,
+        "systematic_bound_method_id": "synthetic-large-systematic-bound-v1",
+        "systematic_bound_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.015
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "TASK_TOTAL_ERROR_BOUND_EXCEEDED"
+        ]
+      }
+    },
+    {
+      "case_id": "systematic_error_bound_unknown_unresolved",
+      "building_group_id": "synthetic-systematic_error_bound_unknown_unresolved",
+      "capture_group_id": "capture-systematic_error_bound_unknown_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": null,
+        "systematic_bound_method_id": null,
+        "systematic_bound_evidence_sha256": null
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SYSTEMATIC_ERROR_BOUND_UNKNOWN"
+        ]
+      }
+    },
+    {
+      "case_id": "systematic_error_bound_evidence_missing_unresolved",
+      "building_group_id": "synthetic-systematic_error_bound_evidence_missing_unresolved",
+      "capture_group_id": "capture-systematic_error_bound_evidence_missing_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": null,
+        "systematic_bound_evidence_sha256": null
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "SYSTEMATIC_ERROR_BOUND_EVIDENCE_MISSING_OR_INVALID"
+        ]
+      }
+    },
+    {
+      "case_id": "invalid_systematic_error_bound_fails",
+      "building_group_id": "synthetic-invalid_systematic_error_bound_fails",
+      "capture_group_id": "capture-invalid_systematic_error_bound_fails",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": -0.001,
+        "systematic_bound_method_id": "synthetic-invalid-bound-v1",
+        "systematic_bound_evidence_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "INVALID_SYSTEMATIC_ERROR_BOUND"
+        ]
+      }
+    },
+    {
+      "case_id": "calibration_holdout_lineage_overlap_fail",
+      "building_group_id": "synthetic-calibration_holdout_lineage_overlap_fail",
+      "capture_group_id": "capture-calibration_holdout_lineage_overlap_fail",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "calibration-face1-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "CALIBRATION_HOLDOUT_GROUP_OVERLAP"
+        ]
+      }
+    },
+    {
+      "case_id": "parameters_refit_on_holdout_fail",
+      "building_group_id": "synthetic-parameters_refit_on_holdout_fail",
+      "capture_group_id": "capture-parameters_refit_on_holdout_fail",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": false,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "HOLDOUT_PARAMETERS_NOT_FROZEN"
+        ]
+      }
+    },
+    {
+      "case_id": "calibration_fit_receipt_missing_unresolved",
+      "building_group_id": "synthetic-calibration_fit_receipt_missing_unresolved",
+      "capture_group_id": "capture-calibration_fit_receipt_missing_unresolved",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": null,
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "CALIBRATION_FIT_RECEIPT_MISSING_OR_INVALID"
+        ]
+      }
+    },
+    {
+      "case_id": "holdout_reference_groups_missing_unresolved",
+      "building_group_id": "synthetic-holdout-groups-missing",
+      "capture_group_id": "capture-holdout-groups-missing",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": []
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "unresolved",
+        "reason_codes": [
+          "HOLDOUT_REFERENCE_GROUPS_MISSING"
+        ]
+      }
+    },
+    {
+      "case_id": "duplicate_calibration_reference_group_fail",
+      "building_group_id": "synthetic-duplicate_calibration_reference_group_fail",
+      "capture_group_id": "capture-duplicate_calibration_reference_group_fail",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1",
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "CALIBRATION_REFERENCE_GROUP_ID_DUPLICATE"
+        ]
+      }
+    },
+    {
+      "case_id": "duplicate_holdout_reference_group_fail",
+      "building_group_id": "synthetic-duplicate_holdout_reference_group_fail",
+      "capture_group_id": "capture-duplicate_holdout_reference_group_fail",
+      "visibility": "observable",
+      "observation": "captured",
+      "sensor": {
+        "sensor_id": "tls-synthetic-01",
+        "profile_id": "tls-profile-synthetic-v1",
+        "profile_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "calibration_status": "qualified",
+        "calibration_evidence_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "qualified_domain": {
+          "min_range_m": 0.5,
+          "max_range_m": 20,
+          "max_incidence_angle_rad": 1.3,
+          "surface_response_classes": [
+            "painted_concrete",
+            "glass",
+            "metal"
+          ],
+          "environment_classes": [
+            "indoor_dry",
+            "indoor_humid"
+          ]
+        },
+        "observed_conditions": {
+          "range_m": 3,
+          "incidence_angle_rad": 0.4,
+          "surface_response_class": "painted_concrete",
+          "environment_class": "indoor_dry"
+        }
+      },
+      "validation": {
+        "status": "qualified",
+        "evidence_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "independence": "independent",
+        "independent_reference_lineage_ids": [
+          "reference-a",
+          "reference-b"
+        ],
+        "minimum_independent_lineages": 2,
+        "calibration_reference_group_ids": [
+          "calibration-face1-session1"
+        ],
+        "parameters_frozen_before_holdout": true,
+        "calibration_fit_receipt_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+        "frozen_parameter_digest_sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+        "holdout_reference_group_ids": [
+          "holdout-face2-session1",
+          "holdout-face2-session1"
+        ]
+      },
+      "measurement": {
+        "value_m": 2.5,
+        "standard_uncertainty_m": 0.003,
+        "coverage_factor": 2,
+        "coverage_probability": 0.95,
+        "uncertainty_method_id": "synthetic-known-answer-v1",
+        "uncertainty_evidence_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "unit": "metre",
+        "systematic_error_bound_m": 0.001,
+        "systematic_bound_method_id": "synthetic-interval-bound-v1",
+        "systematic_bound_evidence_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      },
+      "task": {
+        "task_id": "coarse-layout",
+        "maximum_total_error_bound_m": 0.02
+      },
+      "expected": {
+        "overall_disposition": "fail",
+        "reason_codes": [
+          "HOLDOUT_REFERENCE_GROUP_ID_DUPLICATE"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+name: Scan-to-BIM TLS Precision Health Monitor
+
+on:
+  pull_request:
+    branches: ["main", "research/scan-bim-measurement-observability-v0-1"]
+    paths:
+      - "tools/scan-bim-tls-health-monitor/**"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_TLS_HEALTH_V0_1.md"
+      - ".github/workflows/scan-bim-tls-health-monitor.yml"
+  push:
+    branches: ["main"]
+    paths:
+      - "tools/scan-bim-tls-health-monitor/**"
+      - "docs/research/built-asset/scan-bim/SCAN_BIM_TLS_HEALTH_V0_1.md"
+      - ".github/workflows/scan-bim-tls-health-monitor.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scan-bim-tls-health-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tls-health:
+    name: TLS precision health monitor (Rust 1.96)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: clippy, rustfmt
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/scan-bim-tls-health-monitor/Cargo.toml -- --check
+      - name: Test statistical monitor
+        run: cargo test --locked --manifest-path tools/scan-bim-tls-health-monitor/Cargo.toml
+      - name: Strict Clippy
+        run: cargo clippy --locked --manifest-path tools/scan-bim-tls-health-monitor/Cargo.toml --all-targets -- -D warnings
+      - name: Evaluate no-change control
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-tls-health-monitor/Cargo.toml -- \
+            --input tools/scan-bim-tls-health-monitor/fixtures/no-change.json \
+            > /tmp/scan-bim-tls-health-no-change.json
+          jq -e '
+            .disposition == "NO_SIGNIFICANT_PRECISION_CHANGE_DETECTED" and
+            .accuracy_disposition == "NOT_EVALUATED" and
+            .task_fitness_disposition == "NOT_EVALUATED" and
+            .p_value >= .alpha
+          ' /tmp/scan-bim-tls-health-no-change.json
+      - name: Evaluate known precision degradation
+        run: |
+          cargo run --locked --manifest-path tools/scan-bim-tls-health-monitor/Cargo.toml -- \
+            --input tools/scan-bim-tls-health-monitor/fixtures/precision-change.json \
+            > /tmp/scan-bim-tls-health-precision-change.json
+          jq -e '
+            .disposition == "SIGNIFICANT_PRECISION_CHANGE_DETECTED" and
+            .accuracy_disposition == "NOT_EVALUATED" and
+            .task_fitness_disposition == "NOT_EVALUATED" and
+            .p_value < .alpha and
+            .standard_deviation_ratio_testing_over_baseline[2] > 2.9
+          ' /tmp/scan-bim-tls-health-precision-change.json
+      - name: Bind outputs to exact source and inputs
+        run: |
+          sha256sum \
+            tools/scan-bim-tls-health-monitor/Cargo.toml \
+            tools/scan-bim-tls-health-monitor/Cargo.lock \
+            tools/scan-bim-tls-health-monitor/src/main.rs \
+            tools/scan-bim-tls-health-monitor/fixtures/no-change.json \
+            tools/scan-bim-tls-health-monitor/fixtures/precision-change.json \
+            /tmp/scan-bim-tls-health-no-change.json \
+            /tmp/scan-bim-tls-health-precision-change.json > /tmp/scan-bim-tls-health.sha256
+          git rev-parse HEAD > /tmp/scan-bim-tls-health.commit
+      - name: Upload exact-head precision health receipt
+        uses: actions/upload-artifact@v4
+        with:
+          name: scan-bim-tls-health-receipt
+          if-no-files-found: error
+          path: |
+            /tmp/scan-bim-tls-health-no-change.json
+            /tmp/scan-bim-tls-health-precision-change.json
+            /tmp/scan-bim-tls-health.sha256
+            /tmp/scan-bim-tls-health.commit
+            tools/scan-bim-tls-health-monitor/Cargo.lock
