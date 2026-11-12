@@ -58,7 +58,9 @@
       "mode": "nominal",
       "oracle_outcome": "within_envelope",
       "fallback_reason_fault_ids": [],
-      "maneuver_phase": "approach"
+      "maneuver_phase": "approach",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
     },
     {
       "tick": 2,
@@ -72,7 +74,9 @@
       "mode": "degraded",
       "oracle_outcome": "degraded_within_envelope",
       "fallback_reason_fault_ids": [],
-      "maneuver_phase": "merge"
+      "maneuver_phase": "merge",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
     },
     {
       "tick": 3,
@@ -89,7 +93,11 @@
         "camera-drop",
         "inference-delay"
       ],
-      "maneuver_phase": "merge"
+      "maneuver_phase": "merge",
+      "deadline_miss_fault_ids": [
+        "inference-delay"
+      ],
+      "constraint_violation_fault_ids": []
     },
     {
       "tick": 4,
@@ -103,7 +111,9 @@
       "fallback_reason_fault_ids": [
         "inference-delay"
       ],
-      "maneuver_phase": "merge"
+      "maneuver_phase": "merge",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
     },
     {
       "tick": 5,
@@ -117,7 +127,9 @@
       "fallback_reason_fault_ids": [
         "inference-delay"
       ],
-      "maneuver_phase": "merge"
+      "maneuver_phase": "merge",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
     },
     {
       "tick": 6,
@@ -129,7 +141,9 @@
       "mode": "nominal",
       "oracle_outcome": "within_envelope",
       "fallback_reason_fault_ids": [],
-      "maneuver_phase": "exit-merge"
+      "maneuver_phase": "exit-merge",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
     },
     {
       "tick": 7,
@@ -141,7 +155,9 @@
       "mode": "nominal",
       "oracle_outcome": "within_envelope",
       "fallback_reason_fault_ids": [],
-      "maneuver_phase": "recovery"
+      "maneuver_phase": "recovery",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
     },
     {
       "tick": 8,
@@ -153,7 +169,9 @@
       "mode": "nominal",
       "oracle_outcome": "within_envelope",
       "fallback_reason_fault_ids": [],
-      "maneuver_phase": "recovery"
+      "maneuver_phase": "recovery",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
     },
     {
       "tick": 9,
@@ -165,7 +183,9 @@
       "mode": "nominal",
       "oracle_outcome": "within_envelope",
       "fallback_reason_fault_ids": [],
-      "maneuver_phase": "recovery"
+      "maneuver_phase": "recovery",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
     },
     {
       "tick": 10,
@@ -177,7 +197,9 @@
       "mode": "nominal",
       "oracle_outcome": "within_envelope",
       "fallback_reason_fault_ids": [],
-      "maneuver_phase": "recovery"
+      "maneuver_phase": "recovery",
+      "deadline_miss_fault_ids": [],
+      "constraint_violation_fault_ids": []
     }
   ]
 }
