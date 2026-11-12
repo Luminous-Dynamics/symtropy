@@ -13,12 +13,13 @@ Autonomous-driving comparisons are misleading when they ignore input privileges,
 1. **Matched capability:** same benchmark implementation, evaluation split, input permissions, data exposure, action space, scenario transitions and inference rig wherever feasible.
 2. **Capability frontier:** native task score against measured inference energy, p99 latency, memory, training transitions, GPU-hours, energy and human correction effort.
 
-The aim is not to prove that an HDC model is smaller than a transformer. The aim is to find the best measured competence/constraint frontier and determine which Symthaea components actually contribute. The current public Bench2Drive leaderboard snapshot is v0.0.3; its self-reported results vary in data acquisition, expert use, compute and privileges, so the table is a target-selection reference, not a controlled comparison.
+The aim is not to prove that an HDC model is smaller than a transformer. The aim is to find the best measured competence/constraint frontier and determine which Symthaea components actually contribute. Bench2Drive v0.0.4 is the maintainer-designated current benchmark release; its LEAD result is 95.59 DS / 87.28 SR. The separate community leaderboard snapshot reports methods on v0.0.3, including BridgeDrive (LEAD) at 96.34 / 89.25 and privileged PDM-Lite at 97.02 / 92.27. Do not compare v0.0.3 and v0.0.4 scores directly: v0.0.4 changes the scenario distribution and adds 3D occupancy. The public v0.0.3 leaderboard also warns that methods vary in data acquisition, expert use, compute and privileges.
 
 ## What the field is doing (snapshot: 11 November 2026)
 
 | Comparator | Public reference | How to use it |
 |---|---|---|
+| Bench2Drive v0.0.4 current release | LEAD: 95.59 DS / 87.28 SR; efficiency 201.55; comfort 20.56 | Maintainer README marks v0.0.4 as current; uses a uniform 44-scenario × 25-route training set, 220-route validation set and adds 3D occupancy |
 | Bench2Drive v0.0.3 self-reported leaderboard | BridgeDrive (LEAD): 96.34 DS / 89.25 SR; TFv6: 95.28 / 86.81 | Public leaderboard says methods differ in data, experts, compute and privileges; these are not matched head-to-head runs |
 | Bench2Drive v0.0.3 privileged section | PDM-Lite: 97.02 DS / 92.27 SR | Ground-truth/privileged perception; retain as a separate upper-bound comparator, not a fair vision-only target |
 | DriveWorld-VLA, ICML 2026 | NAVSIMv1 PDMS 91.3; NAVSIMv2 EPDMS 86.8; nuScenes 3-second average collision rate 0.16 | Action-conditioned latent world-model/VLA reference; preserve each native task metric |
