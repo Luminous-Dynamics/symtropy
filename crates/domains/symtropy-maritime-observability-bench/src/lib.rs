@@ -930,7 +930,7 @@ mod tests{
         let pair=r["pair_assessments"].as_array().unwrap().iter()
             .find(|p|p["fault_a"]=="ENGINE_NORMAL_STEADY"&&p["fault_b"]=="ENGINE_FUEL_INJECTION_FAULT").unwrap();
         assert_eq!(pair["state"],"not_evaluated");
-        assert!(!pair["evidence_refs"].as_array().unwrap()
+        assert!(!pair["evidence_refs"].as_array().unwrap().iter()
             .any(|e|e["channel_ids"].as_array().unwrap().contains(&json!("fuel-rail-pressure"))));
         assert_eq!(r["metrics"].as_array().unwrap().iter()
             .find(|m|m["metric_id"]=="dependency_unreviewed_installed_sensor_count").unwrap()["value"],1);
