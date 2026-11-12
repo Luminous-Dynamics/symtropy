@@ -237,6 +237,7 @@
       "additionalProperties": false,
       "required": [
         "tick",
+        "maneuver_phase",
         "camera_age_us",
         "vehicle_state_age_us",
         "inference_duration_us",
@@ -303,6 +304,11 @@
             "type": "string",
             "minLength": 1
           }
+        },
+        "maneuver_phase": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
         }
       }
     }
@@ -315,6 +321,9 @@
     "Stable recovery requires min_stable_nominal_ticks consecutive post-fault ticks with no scheduled fault active, nominal mode, fresh camera and vehicle-state observations, inference within deadline and oracle outcome within_envelope.",
     "SHA-256 fields establish identity syntax only; this evaluator does not authenticate upstream artifacts or injected faults.",
     "A contract_met result is a declared trace-level criterion, not a vehicle safety certification.",
-    "Fallback mode must identify the scheduled fault IDs that caused the fallback; non-fallback modes cannot declare fallback reasons."
+    "Fallback mode must identify the scheduled fault IDs that caused the fallback; non-fallback modes cannot declare fallback reasons.",
+    "Each tick declares the frozen manoeuvre phase used for phase-conditioned fault analysis.",
+    "If a fault declares critical_phase, its event interval must overlap at least one tick with that maneuver_phase.",
+    "Fault reports preserve onset-in-phase, overlap, fallback, deadline-miss and constraint-violation counts within the declared critical phase as separate values."
   ]
 }
