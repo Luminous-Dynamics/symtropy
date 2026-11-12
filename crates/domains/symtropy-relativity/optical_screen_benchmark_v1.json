@@ -163,7 +163,7 @@
     {
       "id": "OS-5B",
       "name": "independent Sachs optical-Jacobi equation cross-check",
-      "status": "pointwise Sachs optical tide and transport RHS plus 24-component fixed-step frame/Jacobi integration authored; radial Schwarzschild D=lambda*I tests authored; Rust execution, N/2N/4N refinement and canonical-vs-Sachs comparison pending",
+      "status": "fixed-step and adaptive step-doubled Sachs-frame/Jacobi source plus radial Schwarzschild regressions authored; Rust exact-head execution and nonradial cross-formulation receipts pending",
       "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
       "observables": [
         "screen_basis_parallel_transport_residual",
@@ -198,7 +198,9 @@
         "nonradial_Schwarzschild_tidal_symmetry": 1e-8,
         "radial_Schwarzschild_Jacobi_absolute_error": 2e-7,
         "radial_Schwarzschild_endpoint_determinant_absolute_error": 3e-8,
-        "jacobi_step_refinement_relative_change_2N_vs_4N": 0.000001
+        "jacobi_step_refinement_relative_change_2N_vs_4N": 0.000001,
+        "adaptive_radial_schwarzschild_endpoint_error": 2e-7,
+        "adaptive_step_error_channels": "each accepted step requires all four scaled local-error channels <= 1"
       },
       "required": [
         "integrate the screen basis and 2x2 Jacobi matrix without reselecting a fresh reference-axis frame at every sample",
@@ -260,13 +262,17 @@
           "inward finite-ZAMO Schwarzschild radial null ray reproduces D(lambda)=lambda*I within 2e-7 at 17 stored samples",
           "radial Schwarzschild endpoint determinant equals lambda squared within 3e-8",
           "radial Schwarzschild endpoint singular values equal lambda and condition number equals one",
-          "zero step count and non-finite tolerance are rejected"
+          "zero step count and non-finite tolerance are rejected",
+          "adaptive radial Schwarzschild D(lambda)=lambda*I regression checks all four local-error channels and analytic endpoint invariants",
+          "adaptive Sachs/Jacobi options reject inconsistent step bounds"
         ],
         "limitations": [
           "fixed-step only; must compare step counts N, 2N, and 4N",
           "does not yet compare the Sachs Jacobi matrix against the canonical 8x8 fundamental matrix projected into the same transported frame",
           "does not perform caustic root localization or catastrophe classification",
-          "no finite-frequency diffraction or wave-optics solve"
+          "no finite-frequency diffraction or wave-optics solve",
+          "step-doubled RK4 local error estimate is not a rigorous global error bound",
+          "independent Sachs map still requires fixed/adaptive agreement and canonical 8x8 cross-projection on nonradial Schwarzschild and generic Kerr cases"
         ],
         "step_refinement_protocol": {
           "required_step_counts": "N, 2N, 4N over the same affine interval and identical initial state/frame",
@@ -287,14 +293,33 @@
             "canonical_vs_sachs_jacobi_relative_error_well_conditioned": 0.00001
           },
           "caveat": "These are proposed acceptance thresholds. No 2N/4N or canonical-vs-Sachs convergence result has been measured yet."
-        }
+        },
+        "adaptive_api": "integrate_kerr_sachs_jacobi_adaptive",
+        "adaptive_state": "same coupled 24-component ray + parallel screen frame + Jacobi matrix + Jacobi derivative state",
+        "adaptive_integrator": "step-doubled classical RK4; accept two-half-step solution; local error estimate (two_half-full)/15",
+        "adaptive_error_channels": [
+          "canonical ray 8 components",
+          "parallel Sachs screen frame 8 components",
+          "Jacobi matrix 4 components",
+          "Jacobi derivative 4 components"
+        ],
+        "adaptive_diagnostics": [
+          "accepted and rejected step counts",
+          "maximum scaled error in each of the four channels",
+          "null constraint and frame orthonormality/transversality",
+          "tidal symmetry and vacuum trace",
+          "orthonormality/transversality transport rates",
+          "metric compatibility",
+          "last accepted step and next proposed step"
+        ],
+        "adaptive_claim_ceiling": "Local step-doubling control for the coupled system. It is not a rigorous global error bound; compare against fixed-step N/2N/4N and canonical-vs-Sachs cross-formulation results."
       },
       "remaining": [
-        "execute and record the 17-point radial Schwarzschild known-answer tests in Rust",
-        "run fixed-step refinements at N, 2N, 4N and report matrix and invariant convergence",
-        "compare the Sachs Jacobi matrix against the canonical 8x8 variation projected into the same transported frame",
-        "add nonradial Schwarzschild and generic Kerr trajectory cross-formulation receipts",
-        "benchmark convergence through a caustic without determinant-only classification"
+        "execute fixed-step and adaptive radial Schwarzschild known-answer tests at the exact PR head",
+        "compare fixed-step N/2N/4N and adaptive Sachs/Jacobi solutions on identical initial data",
+        "compare curvature-based Sachs Jacobi matrix against canonical 8x8 variation in the same transported screen frame",
+        "add nonradial Schwarzschild and generic Kerr cross-formulation receipts",
+        "validate caustic convergence without determinant-only classification"
       ],
       "fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json",
       "validation_status": "fixed-step source and radial analytic test authored; prior runner test of the radial Sachs/Jacobi reference passed; rerun required after later test corrections"
@@ -650,14 +675,23 @@
       "fold/cusp classification remains blocked until transported-frame and independent Sachs-Jacobi checks pass"
     ],
     "sachs_pointwise_api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
-    "sachs_transport_status": "fixed-step coupled frame/Jacobi RK4 source implemented; Rust endpoint tests, N/2N/4N refinement and canonical-vs-Sachs comparison pending",
+    "sachs_transport_status": "fixed-step and adaptive step-doubled RK4 source implemented; Rust execution and independent cross-formulation receipts pending",
     "sachs_frame_conversion_api": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
     "sachs_transport_api": "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
     "sachs_transport_equation": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta",
     "sachs_jacobi_api": "integrate_kerr_sachs_jacobi_fixed_step",
     "sachs_jacobi_initial_data": "D(0)=0; D'(0)=I; two initial chart-coordinate Sachs basis vectors must be null-transverse and orthonormal",
     "sachs_jacobi_integration": "24-component fixed-step RK4 jointly evolves canonical ray, transported frame, D and D'",
-    "sachs_jacobi_fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json"
+    "sachs_jacobi_fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json",
+    "sachs_jacobi_adaptive_api": "integrate_kerr_sachs_jacobi_adaptive",
+    "sachs_jacobi_adaptive_error_channels": [
+      "ray",
+      "screen_frame",
+      "jacobi_matrix",
+      "jacobi_derivative"
+    ],
+    "sachs_jacobi_adaptive_error_estimate": "RK4 step-doubling local estimate (two_half_steps - full_step)/15; accepted state is two-half-step solution",
+    "sachs_jacobi_adaptive_global_bound": false
   },
   "caustic_qualification_policy": {
     "status": "future_gate_not_implemented",
