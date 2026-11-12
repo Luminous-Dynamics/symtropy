@@ -7,3 +7,5 @@ description = "Bounded, dependency-free analytical references for fatigue accumu
 
 [lib]
 path = "src/lib.rs"
+
+[workspace]
