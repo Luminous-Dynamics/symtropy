@@ -1114,17 +1114,6 @@ mod tests {
                 "supersession_known_at_tick":null,
                 "allowed_purposes":["medium_building_update","slow_quality_requalification"]
             }));
-        let step = candidate["sequences"]
-            .as_array_mut()
-            .unwrap()
-            .iter_mut()
-            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
-            .unwrap()["steps"]
-            .as_array_mut()
-            .unwrap()
-            .iter_mut()
-            .find(|step| step["step_id"] == "f-02")
-            .unwrap();
         let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
         let reference_bytes = serde_json::to_vec(&reference).unwrap();
         let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
@@ -1167,17 +1156,6 @@ mod tests {
                 "supersession_known_at_tick":null,
                 "allowed_purposes":["medium_building_update","slow_quality_requalification"]
             }));
-        let step = candidate["sequences"]
-            .as_array_mut()
-            .unwrap()
-            .iter_mut()
-            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
-            .unwrap()["steps"]
-            .as_array_mut()
-            .unwrap()
-            .iter_mut()
-            .find(|step| step["step_id"] == "f-02")
-            .unwrap();
         let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
         let reference_bytes = serde_json::to_vec(&reference).unwrap();
         let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
