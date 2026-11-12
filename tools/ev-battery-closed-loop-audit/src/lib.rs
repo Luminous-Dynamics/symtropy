@@ -260,7 +260,7 @@ fn evidence_registry(
             && record
                 .metrology_ref
                 .as_deref()
-                .map_or(true, |value| value.trim().is_empty())
+                .is_none_or(|value| value.trim().is_empty())
         {
             return Err(AuditError(format!(
                 "physical evidence {} requires a metrology reference",
