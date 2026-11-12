@@ -1,0 +1,863 @@
+{
+  "corpus_id": "BUILT-ASSET-CORPUS-V0.1",
+  "schema_version": "0.1.0",
+  "evidence_tier": "E1_SYNTHETIC_KNOWN_ANSWER",
+  "created_on": "2026-11-07",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4043",
+  "implementation_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4062",
+  "claim_ceiling": "Synthetic contract/oracle agreement only; not physical sensor validation, engineering design, safety, building-code compliance, repair quality, return-to-service or lifecycle economic evidence.",
+  "units_note": "All numeric geometry/condition values are synthetic fixture values; mm is a declared comparison unit, not a recommended tolerance.",
+  "reference_subject": {
+    "site_id": "SITE-TEST-01",
+    "building_id": "BLDG-TEST-01",
+    "assembly_id": "ASM-ENV-01",
+    "assembly_class": "NON_LOAD_BEARING_ENVELOPE_SERVICE_PANEL",
+    "design_revision": "D-02",
+    "as_built_revision": "AB-01",
+    "coordinate_frame": "SITE-ENU-01",
+    "coordinate_axes": "x=east, y=north, z=up; local synthetic site frame",
+    "canonical_unit": "mm",
+    "required_regions": [
+      "PANEL-FRONT",
+      "PANEL-EDGE-LEFT",
+      "PANEL-EDGE-RIGHT",
+      "FASTENER-01",
+      "FASTENER-02",
+      "FASTENER-03",
+      "FASTENER-04",
+      "SEAL-PERIMETER"
+    ],
+    "component_ids": [
+      "PNL-01",
+      "FRM-01",
+      "FST-01",
+      "FST-02",
+      "FST-03",
+      "FST-04",
+      "SEAL-01"
+    ],
+    "supported_material_classes": [
+      "synthetic_panel_laminate_v1"
+    ],
+    "reference_conflict_threshold_mm": 2,
+    "expected_calibration_id": "CAL-01"
+  },
+  "evidence_planes": {
+    "design_intent": "approved synthetic target model; never overwrite with scan output",
+    "as_built_reference": "independently authored/surveyed known-answer reference; sealed from candidate input",
+    "inspection_observation": "candidate sensor evidence with explicit coverage, time, frame, calibration, uncertainty and lineage"
+  },
+  "cases": [
+    {
+      "case_id": "BA-001",
+      "title": "Known-good complete inspection",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "none",
+          "region_id": null,
+          "value": null
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "nominal",
+        "panel_offset_mm": 0,
+        "missing_fasteners": [],
+        "seal_gap_regions": []
+      },
+      "expected_oracle": {
+        "disposition": "ACCEPTED_FOR_DECLARED_SYNTHETIC_CHECK",
+        "reason_codes": [
+          "REQUIRED_COVERAGE_COMPLETE",
+          "EVIDENCE_CONTEXT_CURRENT"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-002",
+      "title": "Panel displacement outside synthetic tolerance",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "panel_displacement",
+          "region_id": "PANEL-FRONT",
+          "value": {
+            "offset_mm": 6,
+            "tolerance_mm": 2
+          }
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "panel_displacement",
+        "panel_offset_mm": 6,
+        "synthetic_tolerance_mm": 2,
+        "missing_fasteners": [],
+        "seal_gap_regions": []
+      },
+      "expected_oracle": {
+        "disposition": "DEFECT_OBSERVED",
+        "reason_codes": [
+          "OBSERVED_GEOMETRY_OUTSIDE_DECLARED_SYNTHETIC_TOLERANCE"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-003",
+      "title": "Critical seal defect hidden by unobserved region",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04"
+        ],
+        "unobserved_regions": [
+          "SEAL-PERIMETER"
+        ],
+        "finding": {
+          "kind": "none",
+          "region_id": null,
+          "value": null
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "seal_discontinuity",
+        "panel_offset_mm": 0,
+        "missing_fasteners": [],
+        "seal_gap_regions": [
+          "SEAL-PERIMETER"
+        ]
+      },
+      "expected_oracle": {
+        "disposition": "UNKNOWN_REQUIRED_COVERAGE",
+        "reason_codes": [
+          "REQUIRED_SEAL_REGION_UNOBSERVED",
+          "NO_FALSE_CLEAR_FROM_MISSING_OBSERVATION"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-004",
+      "title": "Benign visual mark resembles a seal defect",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "candidate_seal_discontinuity",
+          "region_id": "SEAL-PERIMETER",
+          "value": {
+            "visual_similarity": "high"
+          }
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "nominal_with_benign_surface_mark",
+        "panel_offset_mm": 0,
+        "missing_fasteners": [],
+        "seal_gap_regions": []
+      },
+      "expected_oracle": {
+        "disposition": "CANDIDATE_NOT_CONFIRMED",
+        "reason_codes": [
+          "LOOKALIKE_REQUIRES_ADDITIONAL_EVIDENCE",
+          "NO_CONFIRMED_FUNCTIONAL_DEFECT"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-005",
+      "title": "Stale calibration invalidates otherwise plausible observation",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-OLD-00",
+        "calibration_state": "expired",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "panel_displacement",
+          "region_id": "PANEL-FRONT",
+          "value": {
+            "offset_mm": 6
+          }
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "panel_displacement",
+        "panel_offset_mm": 6,
+        "synthetic_tolerance_mm": 2,
+        "missing_fasteners": [],
+        "seal_gap_regions": []
+      },
+      "expected_oracle": {
+        "disposition": "STALE_EVIDENCE",
+        "reason_codes": [
+          "CALIBRATION_NOT_VALID_FOR_CAPTURE",
+          "OBSERVATION_NOT_ADMISSIBLE_FOR_CLAIM"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-006",
+      "title": "Wrong sensor-to-asset coordinate frame",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "UNRELATED-FRAME-99",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "panel_displacement",
+          "region_id": "PANEL-FRONT",
+          "value": {
+            "offset_mm": 6
+          }
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "panel_displacement",
+        "panel_offset_mm": 6,
+        "synthetic_tolerance_mm": 2,
+        "missing_fasteners": [],
+        "seal_gap_regions": []
+      },
+      "expected_oracle": {
+        "disposition": "INVALID_INPUT",
+        "reason_codes": [
+          "FRAME_ID_MISMATCH",
+          "GEOMETRY_COMPARISON_BLOCKED"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-007",
+      "title": "Unit label changed without value conversion",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "m",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "panel_displacement",
+          "region_id": "PANEL-FRONT",
+          "value": {
+            "offset": 6,
+            "unit": "mm"
+          }
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "panel_displacement",
+        "panel_offset_mm": 6,
+        "synthetic_tolerance_mm": 2,
+        "missing_fasteners": [],
+        "seal_gap_regions": []
+      },
+      "expected_oracle": {
+        "disposition": "INVALID_INPUT",
+        "reason_codes": [
+          "INCONSISTENT_QUANTITY_UNITS",
+          "NO_IMPLICIT_UNIT_CONVERSION"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-008",
+      "title": "Correlated sensor products falsely presented as independent",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-RGB-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "candidate_panel_displacement",
+          "region_id": "PANEL-FRONT",
+          "value": {
+            "offset_mm": 3
+          }
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "panel_offset_uncertain",
+        "panel_offset_mm": 3,
+        "synthetic_tolerance_mm": 2,
+        "reference_status": "not_independently_resolved",
+        "missing_fasteners": [],
+        "seal_gap_regions": []
+      },
+      "expected_oracle": {
+        "disposition": "INSUFFICIENT_INDEPENDENT_EVIDENCE",
+        "reason_codes": [
+          "DUPLICATE_UPSTREAM_SENSOR_LINEAGE",
+          "CORROBORATION_NOT_INDEPENDENT"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-009",
+      "title": "Observation refers to superseded design generation",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-01",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "none",
+          "region_id": null,
+          "value": null
+        },
+        "capture_revision": "CAP-OLD-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "nominal",
+        "current_design_revision": "D-02",
+        "observation_design_revision": "D-01",
+        "panel_offset_mm": 0,
+        "missing_fasteners": [],
+        "seal_gap_regions": []
+      },
+      "expected_oracle": {
+        "disposition": "STALE_EVIDENCE",
+        "reason_codes": [
+          "DESIGN_REVISION_SUPERSEDED",
+          "REOBSERVATION_REQUIRED"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-010",
+      "title": "Missing fastener detected in required region",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "missing_fastener",
+          "region_id": "FASTENER-03",
+          "value": {
+            "fastener_id": "FST-03"
+          }
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "missing_fastener",
+        "panel_offset_mm": 0,
+        "missing_fasteners": [
+          "FST-03"
+        ],
+        "seal_gap_regions": []
+      },
+      "expected_oracle": {
+        "disposition": "DEFECT_OBSERVED",
+        "reason_codes": [
+          "FASTENER_ABSENCE_OBSERVED_AT_REQUIRED_LOCATION"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-011",
+      "title": "Visual repair appears complete but functional acceptance fails",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "none",
+          "region_id": null,
+          "value": null
+        },
+        "capture_revision": "CAP-01",
+        "repair": {
+          "work_id": "WORK-11",
+          "visual_completion": "claimed_complete",
+          "independent_functional_test": {
+            "test_id": "TEST-SEAL-01",
+            "result": "fail"
+          },
+          "human_authorization": "present"
+        }
+      },
+      "sealed_reference_truth": {
+        "condition": "post_repair_seal_failure",
+        "repair_claimed": true,
+        "independent_functional_test": "fail"
+      },
+      "expected_oracle": {
+        "disposition": "REPAIR_REJECTED_FUNCTIONAL_TEST",
+        "reason_codes": [
+          "INDEPENDENT_FUNCTIONAL_TEST_FAILED",
+          "TASK_COMPLETION_NOT_ACCEPTANCE"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-012",
+      "title": "Non-identical repair restores declared non-structural function",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "none",
+          "region_id": null,
+          "value": null
+        },
+        "capture_revision": "CAP-01",
+        "repair": {
+          "work_id": "WORK-12",
+          "geometry_matches_original": "false",
+          "independent_functional_test": {
+            "test_id": "TEST-PANEL-01",
+            "result": "pass"
+          },
+          "human_authorization": "present"
+        }
+      },
+      "sealed_reference_truth": {
+        "condition": "post_repair_functionally_acceptable",
+        "repair_claimed": true,
+        "independent_functional_test": "pass",
+        "scope": "declared_non_structural_panel_function"
+      },
+      "expected_oracle": {
+        "disposition": "REPAIR_ACCEPTED_FOR_DECLARED_NONSTRUCTURAL_FUNCTION",
+        "reason_codes": [
+          "INDEPENDENT_FUNCTIONAL_TEST_PASSED",
+          "FUNCTION_NOT_VISUAL_IDENTITY_IS_ACCEPTANCE_BASIS"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-013",
+      "title": "Unsupported material / defect class",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "delamination",
+          "region_id": "PANEL-FRONT",
+          "value": {
+            "score": 0.99
+          }
+        },
+        "capture_revision": "CAP-01",
+        "material_class": "unknown_composite_77"
+      },
+      "sealed_reference_truth": {
+        "condition": "unknown_material_and_defect_mechanism",
+        "material_class": "unknown_composite_77"
+      },
+      "expected_oracle": {
+        "disposition": "OUT_OF_DOMAIN",
+        "reason_codes": [
+          "MATERIAL_CLASS_NOT_IN_VALIDATED_PROFILE",
+          "MODEL_SCORE_DOES_NOT_EXTEND_CLAIM_SCOPE"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-014",
+      "title": "Independent measurements conflict",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "panel_displacement",
+          "region_id": "PANEL-FRONT",
+          "value": {
+            "conflict": true
+          }
+        },
+        "capture_revision": "CAP-01",
+        "independent_measurements": [
+          {
+            "lineage": "LINEAGE-LASER-01",
+            "offset_mm": 1
+          },
+          {
+            "lineage": "LINEAGE-TRACKER-02",
+            "offset_mm": 7
+          }
+        ]
+      },
+      "sealed_reference_truth": {
+        "condition": "panel_offset_conflicted",
+        "measurement_truth_mm": 4,
+        "synthetic_tolerance_mm": 2
+      },
+      "expected_oracle": {
+        "disposition": "CONFLICTED_EVIDENCE",
+        "reason_codes": [
+          "INDEPENDENT_REFERENCE_MEASUREMENTS_CONFLICT",
+          "ADJUDICATION_REQUIRED"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-015",
+      "title": "Intervention lacks required human authorization",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": "mm",
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "none",
+          "region_id": null,
+          "value": null
+        },
+        "capture_revision": "CAP-01",
+        "repair": {
+          "work_id": "WORK-15",
+          "requested_action": "replace_panel",
+          "human_authorization": "absent"
+        }
+      },
+      "sealed_reference_truth": {
+        "condition": "intervention_requested_without_authority",
+        "repair_claimed": false
+      },
+      "expected_oracle": {
+        "disposition": "INTERVENTION_NOT_AUTHORIZED",
+        "reason_codes": [
+          "REQUIRED_HUMAN_AUTHORIZATION_ABSENT",
+          "NO_ACTUATION_OR_WORK_RELEASE"
+        ]
+      }
+    },
+    {
+      "case_id": "BA-016",
+      "title": "Required input field omitted",
+      "candidate_input": {
+        "asset_id": "BLDG-TEST-01/ASM-ENV-01",
+        "design_revision": "D-02",
+        "as_built_revision": "AB-01",
+        "frame_id": "SITE-ENU-01",
+        "unit": null,
+        "calibration_id": "CAL-01",
+        "calibration_state": "valid_for_fixture",
+        "sensor_lineages": [
+          "LINEAGE-RGB-01",
+          "LINEAGE-LIDAR-01"
+        ],
+        "observed_regions": [
+          "PANEL-FRONT",
+          "PANEL-EDGE-LEFT",
+          "PANEL-EDGE-RIGHT",
+          "FASTENER-01",
+          "FASTENER-02",
+          "FASTENER-03",
+          "FASTENER-04",
+          "SEAL-PERIMETER"
+        ],
+        "unobserved_regions": [],
+        "finding": {
+          "kind": "panel_displacement",
+          "region_id": "PANEL-FRONT",
+          "value": {
+            "offset_mm": 6
+          }
+        },
+        "capture_revision": "CAP-01"
+      },
+      "sealed_reference_truth": {
+        "condition": "panel_displacement",
+        "panel_offset_mm": 6,
+        "synthetic_tolerance_mm": 2
+      },
+      "expected_oracle": {
+        "disposition": "INVALID_INPUT",
+        "reason_codes": [
+          "REQUIRED_UNIT_FIELD_MISSING_OR_NULL"
+        ]
+      }
+    }
+  ]
+}
