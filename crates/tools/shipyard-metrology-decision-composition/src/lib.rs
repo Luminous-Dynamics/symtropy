@@ -218,7 +218,7 @@ pub struct ComposedDecisionReceipt {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum CompositionDecision {
-    Composed(ComposedDecisionReceipt),
+    Composed(Box<ComposedDecisionReceipt>),
     Abstain(Vec<AbstainReason>),
 }
 
@@ -239,10 +239,10 @@ fn push_reason(reasons: &mut Vec<AbstainReason>, reason: AbstainReason) {
     }
 }
 
-fn one<'a>(
-    evidence: &'a [EvidenceEnvelope],
+fn one(
+    evidence: &[EvidenceEnvelope],
     kind: EvidenceKind,
-) -> Result<&'a EvidenceEnvelope, AbstainReason> {
+) -> Result<&EvidenceEnvelope, AbstainReason> {
     let mut matches = evidence.iter().filter(|item| item.kind == kind);
     let first = matches
         .next()
@@ -598,7 +598,7 @@ pub fn compose_medium_decision(input: &CompositionInput) -> CompositionDecision 
     pending.sort();
     pending.dedup();
 
-    CompositionDecision::Composed(ComposedDecisionReceipt {
+    CompositionDecision::Composed(Box::new(ComposedDecisionReceipt {
         identity: input.identity.clone(),
         decision_tick: input.decision_tick,
         clock_id: input.clock_id.clone(),
@@ -625,7 +625,7 @@ pub fn compose_medium_decision(input: &CompositionInput) -> CompositionDecision 
         live_execution_authorized: false,
         wps_change_authorized: false,
         accepted_as_built_write_authorized: false,
-    })
+    }))
 }
 
 #[cfg(test)]
