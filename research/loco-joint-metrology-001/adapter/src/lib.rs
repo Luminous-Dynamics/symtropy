@@ -420,7 +420,11 @@ fn validate_identity(
             identity.assurance_event_id.as_str(),
             identity.assurance_event_sequence,
         ),
-        ("command", identity.command_id.as_str(), identity.command_event_sequence),
+        (
+            "command",
+            identity.command_id.as_str(),
+            identity.command_event_sequence,
+        ),
         (
             "application",
             identity.actuator_application_event_id.as_str(),
