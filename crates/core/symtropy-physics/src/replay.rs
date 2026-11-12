@@ -11,10 +11,12 @@
 //! The goal is to make it easy to build a replay harness that asserts
 //! **bitwise-equal state per tick** across record/replay passes.
 
+use std::collections::HashSet;
+
 use nalgebra::SVector;
 use symtropy_math::Bivector;
 
-use crate::body::{BodyHandle, BodyType, RigidBody};
+use crate::body::{BodyHandle, BodyType, NetId, RigidBody};
 use crate::integrator;
 use crate::world::PhysicsWorld;
 
@@ -176,7 +178,107 @@ pub struct WorldSnapshot<const D: usize> {
     pub collision_events: Vec<CollisionEventSnapshot<D>>,
 }
 
+/// Optional runtime identity for one body in a [WorldSnapshotWithRuntimeIds].
+///
+/// NetId is a scoped runtime hint, not a canonical engineering subject.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct BodyRuntimeIdentitySnapshot {
+    pub handle: BodyHandle,
+    pub net_id: Option<NetId>,
+}
+
+/// Additive identity-enriched snapshot that leaves [WorldSnapshot] and
+/// [BodySnapshot] layout unchanged for existing consumers.
+///
+/// body_identities is aligned with snapshot.bodies and retains explicit
+/// None values so absence is not confused with a missing sidecar entry.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct WorldSnapshotWithRuntimeIds<const D: usize> {
+    pub snapshot: WorldSnapshot<D>,
+    pub body_identities: Vec<BodyRuntimeIdentitySnapshot>,
+}
+
+/// Structural failures in an identity-enriched snapshot sidecar.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RuntimeIdentitySnapshotError {
+    BodyCountMismatch {
+        snapshot_count: usize,
+        identity_count: usize,
+    },
+    BodyHandleMismatch {
+        index: usize,
+        snapshot_handle: BodyHandle,
+        identity_handle: BodyHandle,
+    },
+    DuplicateBodyHandle(BodyHandle),
+    DuplicateNetId(NetId),
+}
+
+impl<const D: usize> WorldSnapshotWithRuntimeIds<D> {
+    /// Check that the identity sidecar is one-to-one and aligned with the
+    /// ordered body list in the ordinary snapshot.
+    ///
+    /// A NetId is unique within one PhysicsWorld by the runtime lookup-map
+    /// contract. This validates the captured sidecar, not the authority or
+    /// world-generation scope of the identifier.
+    pub fn validate_alignment(&self) -> Result<(), RuntimeIdentitySnapshotError> {
+        if self.snapshot.bodies.len() != self.body_identities.len() {
+            return Err(RuntimeIdentitySnapshotError::BodyCountMismatch {
+                snapshot_count: self.snapshot.bodies.len(),
+                identity_count: self.body_identities.len(),
+            });
+        }
+
+        let mut handles = HashSet::with_capacity(self.body_identities.len());
+        let mut net_ids = HashSet::with_capacity(self.body_identities.len());
+        for (index, (body, identity)) in self
+            .snapshot
+            .bodies
+            .iter()
+            .zip(&self.body_identities)
+            .enumerate()
+        {
+            if body.handle != identity.handle {
+                return Err(RuntimeIdentitySnapshotError::BodyHandleMismatch {
+                    index,
+                    snapshot_handle: body.handle,
+                    identity_handle: identity.handle,
+                });
+            }
+            if !handles.insert(identity.handle) {
+                return Err(RuntimeIdentitySnapshotError::DuplicateBodyHandle(
+                    identity.handle,
+                ));
+            }
+            if let Some(net_id) = identity.net_id
+                && !net_ids.insert(net_id)
+            {
+                return Err(RuntimeIdentitySnapshotError::DuplicateNetId(net_id));
+            }
+        }
+        Ok(())
+    }
+}
+
 impl<const D: usize> WorldSnapshot<D> {
+    /// Capture the existing bitwise snapshot plus an aligned optional-NetId
+    /// sidecar without changing the existing snapshot struct layout.
+    pub fn capture_with_runtime_ids(world: &PhysicsWorld<D>) -> WorldSnapshotWithRuntimeIds<D> {
+        let snapshot = Self::capture(world);
+        let body_identities = snapshot
+            .bodies
+            .iter()
+            .map(|body| BodyRuntimeIdentitySnapshot {
+                handle: body.handle,
+                net_id: world.body(body.handle).and_then(|source| source.net_id),
+            })
+            .collect();
+        WorldSnapshotWithRuntimeIds {
+            snapshot,
+            body_identities,
+        }
+    }
+
     pub fn capture(world: &PhysicsWorld<D>) -> Self {
         let mut bodies: Vec<_> = world.bodies.iter().map(BodySnapshot::from_body).collect();
         bodies.sort_by_key(|b| b.handle);
@@ -192,5 +294,116 @@ impl<const D: usize> WorldSnapshot<D> {
             bodies,
             collision_events,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use nalgebra::SVector;
+    use symtropy_math::Point;
+
+    #[test]
+    fn runtime_identity_sidecar_preserves_present_and_absent_net_ids() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let identified = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        let unidentified = world.add_sphere(Point::new([3.0, 0.0]), 1.0, 1.0);
+        world.set_net_id(identified, NetId(77));
+
+        let snapshot = WorldSnapshot::capture_with_runtime_ids(&world);
+        assert_eq!(snapshot.snapshot.bodies.len(), 2);
+        assert_eq!(snapshot.body_identities.len(), 2);
+        assert_eq!(
+            snapshot.body_identities[0].handle,
+            snapshot.snapshot.bodies[0].handle
+        );
+        assert_eq!(
+            snapshot.body_identities[1].handle,
+            snapshot.snapshot.bodies[1].handle
+        );
+
+        let identified_identity = snapshot
+            .body_identities
+            .iter()
+            .find(|identity| identity.handle == identified)
+            .expect("identified sidecar entry");
+        let unidentified_identity = snapshot
+            .body_identities
+            .iter()
+            .find(|identity| identity.handle == unidentified)
+            .expect("unidentified sidecar entry");
+
+        assert_eq!(identified_identity.net_id, Some(NetId(77)));
+        assert_eq!(unidentified_identity.net_id, None);
+    }
+
+    #[test]
+    fn runtime_identity_sidecar_validates_when_aligned_and_unique() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let first = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        let second = world.add_sphere(Point::new([3.0, 0.0]), 1.0, 1.0);
+        world.set_net_id(first, NetId(1));
+        world.set_net_id(second, NetId(2));
+
+        let snapshot = WorldSnapshot::capture_with_runtime_ids(&world);
+        assert_eq!(snapshot.validate_alignment(), Ok(()));
+    }
+
+    #[test]
+    fn runtime_identity_sidecar_rejects_body_count_mismatch() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        let mut snapshot = WorldSnapshot::capture_with_runtime_ids(&world);
+        snapshot.body_identities.clear();
+        assert_eq!(
+            snapshot.validate_alignment(),
+            Err(RuntimeIdentitySnapshotError::BodyCountMismatch {
+                snapshot_count: 1,
+                identity_count: 0
+            })
+        );
+    }
+
+    #[test]
+    fn runtime_identity_sidecar_rejects_misaligned_handle() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        world.add_sphere(Point::new([3.0, 0.0]), 1.0, 1.0);
+        let mut snapshot = WorldSnapshot::capture_with_runtime_ids(&world);
+        snapshot.body_identities.swap(0, 1);
+        assert!(matches!(
+            snapshot.validate_alignment(),
+            Err(RuntimeIdentitySnapshotError::BodyHandleMismatch { index: 0, .. })
+        ));
+    }
+
+    #[test]
+    fn runtime_identity_sidecar_rejects_duplicate_net_ids() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let first = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        let second = world.add_sphere(Point::new([3.0, 0.0]), 1.0, 1.0);
+        world.set_net_id(first, NetId(99));
+        // Model a corrupted state introduced through the public mutable body
+        // API. The sidecar validator must surface it even when setter APIs
+        // reject duplicate assignments.
+        world.body_mut(second).expect("second body").net_id = Some(NetId(99));
+
+        let snapshot = WorldSnapshot::capture_with_runtime_ids(&world);
+        assert_eq!(
+            snapshot.validate_alignment(),
+            Err(RuntimeIdentitySnapshotError::DuplicateNetId(NetId(99)))
+        );
+    }
+
+    #[test]
+    fn runtime_identity_capture_leaves_existing_snapshot_unchanged() {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let handle = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        world.set_net_id(handle, NetId(42));
+
+        let ordinary = WorldSnapshot::capture(&world);
+        let enriched = WorldSnapshot::capture_with_runtime_ids(&world);
+        assert_eq!(ordinary, enriched.snapshot);
+        assert_eq!(ordinary.bodies.len(), enriched.body_identities.len());
     }
 }

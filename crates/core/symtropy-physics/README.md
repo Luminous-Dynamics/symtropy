@@ -93,3 +93,20 @@ world.step_with_callback(0.016, &mut MyCallback);
 ```
 
 Part of the [Symtropy consciousness-physics engine](https://github.com/luminous-dynamics/symtropy).
+
+
+### Replay and observation snapshot capture
+
+The Criterion suite now compares ordinary `WorldSnapshot::capture`, identity-enriched `capture_with_runtime_ids`, sidecar validation and capture-plus-validation at 1k, 10k and 100k bodies with 0%, 50% and 100% NetId coverage. This isolates capture cost from physics-step cost and makes the provenance overhead visible. Benchmark numbers are not claimed until the suite is run on identified hardware; compare like-for-like CPU, Rust toolchain and source revision.
+
+
+Run the focused matrix locally with:
+
+```bash
+cargo +1.96.0 bench --locked -p symtropy-physics --bench physics_bench -- snapshot_capture --sample-size 100 --warm-up-time 1 --measurement-time 3 --noplot
+```
+
+The `Physics Snapshot Capture Benchmark` workflow preserves raw Criterion
+estimates plus exact source SHA, compiler, CPU model, runner architecture and OS.
+The results isolate snapshot/provenance overhead from physics-step latency; they
+are not a claim about total simulation throughput.

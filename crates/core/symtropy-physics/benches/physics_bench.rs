@@ -1,12 +1,12 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 // Commercial licensing: see COMMERCIAL_LICENSE.md at repository root
-use criterion::{Criterion, black_box, criterion_group, criterion_main};
+use criterion::{BenchmarkId, Criterion, Throughput, black_box, criterion_group, criterion_main};
 use nalgebra::SVector;
 use symtropy_math::{Capsule, ConvexHull, HyperBox, Point, Sphere};
-use symtropy_physics::PhysicsWorld;
 use symtropy_physics::gjk;
 use symtropy_physics::raycast;
+use symtropy_physics::{NetId, PhysicsWorld, RigidBody, WorldSnapshot, body::BodyHandle};
 
 fn bench_gjk_sphere_sphere(c: &mut Criterion) {
     let a = Sphere::<3>::unit();
@@ -196,6 +196,88 @@ fn bench_raycast_100_bodies(c: &mut Criterion) {
     });
 }
 
+// ═══ Replay / observation snapshot benchmarks ═══
+
+fn bench_snapshot_runtime_identity(c: &mut Criterion) {
+    for body_count in [1_000_usize, 10_000, 100_000] {
+        let mut group = c.benchmark_group(format!("snapshot_capture_{body_count}_bodies"));
+        group.throughput(Throughput::Elements(body_count as u64));
+
+        for coverage_percent in [0_u64, 50, 100] {
+            let mut profiled_world = PhysicsWorld::<3>::new(SVector::zeros());
+            let identified_bodies = (0..body_count)
+                .filter(|index| (*index as u64 % 100) < coverage_percent)
+                .map(|index| {
+                    (
+                        NetId(index as u64 + 1),
+                        RigidBody::dynamic_sphere(
+                            BodyHandle(usize::MAX),
+                            Point::new([index as f64 * 2.0, 0.0, 0.0]),
+                            0.5,
+                            1.0,
+                        ),
+                    )
+                })
+                .collect();
+            profiled_world
+                .add_bodies_deterministic(identified_bodies)
+                .expect("benchmark NetIds are unique");
+            for index in 0..body_count {
+                if (index as u64 % 100) >= coverage_percent {
+                    profiled_world.add_sphere(Point::new([index as f64 * 2.0, 0.0, 0.0]), 0.5, 1.0);
+                }
+            }
+            let sidecar = WorldSnapshot::capture_with_runtime_ids(&profiled_world);
+            assert!(sidecar.validate_alignment().is_ok());
+
+            group.bench_with_input(
+                BenchmarkId::new("ordinary_capture", format!("netid-{coverage_percent}pct")),
+                &profiled_world,
+                |bencher, source| {
+                    bencher.iter(|| black_box(WorldSnapshot::capture(black_box(source))));
+                },
+            );
+
+            group.bench_with_input(
+                BenchmarkId::new(
+                    "capture_with_runtime_ids",
+                    format!("netid-{coverage_percent}pct"),
+                ),
+                &profiled_world,
+                |bencher, source| {
+                    bencher.iter(|| {
+                        black_box(WorldSnapshot::capture_with_runtime_ids(black_box(source)))
+                    });
+                },
+            );
+
+            group.bench_with_input(
+                BenchmarkId::new("sidecar_validation", format!("netid-{coverage_percent}pct")),
+                &sidecar,
+                |bencher, snapshot| {
+                    bencher.iter(|| black_box(snapshot.validate_alignment().is_ok()));
+                },
+            );
+
+            group.bench_with_input(
+                BenchmarkId::new(
+                    "capture_and_validate",
+                    format!("netid-{coverage_percent}pct"),
+                ),
+                &profiled_world,
+                |bencher, source| {
+                    bencher.iter(|| {
+                        let snapshot = WorldSnapshot::capture_with_runtime_ids(black_box(source));
+                        black_box(snapshot.validate_alignment().is_ok())
+                    });
+                },
+            );
+        }
+
+        group.finish();
+    }
+}
+
 // ═══ Stress tests ═══
 
 fn bench_physics_step_500_bodies(c: &mut Criterion) {
@@ -237,5 +319,6 @@ criterion_group!(
     bench_physics_step_100_bodies,
     bench_physics_step_500_bodies,
     bench_physics_step_2d,
+    bench_snapshot_runtime_identity,
 );
 criterion_main!(benches);

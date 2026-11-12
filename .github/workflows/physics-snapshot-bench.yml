@@ -1,0 +1,76 @@
+name: Physics Snapshot Capture Benchmark
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "crates/core/symtropy-physics/**"
+      - "Cargo.lock"
+      - ".github/workflows/physics-snapshot-bench.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: physics-snapshot-bench-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  snapshot-capture:
+    name: Criterion snapshot capture
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.96.0 --profile minimal
+
+      - name: Record hardware and toolchain provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target
+          {
+            echo "source_sha=$(git rev-parse HEAD)"
+            echo "rustc_begin"
+            rustc +1.96.0 --version --verbose
+            echo "rustc_end"
+            echo "runner_os=${RUNNER_OS:-unrecorded}"
+            echo "runner_arch=${RUNNER_ARCH:-unrecorded}"
+            echo "cpu_model=$(lscpu | awk -F: '/^Model name:/ { sub(/^[[:space:]]+/, "", $2); print $2; exit }')"
+            echo "logical_cpus=$(nproc)"
+            echo "kernel=$(uname -srmo)"
+            echo "os_release=$(grep PRETTY_NAME /etc/os-release | cut -d= -f2- | tr -d '"')"
+            echo "github_run_id=$GITHUB_RUN_ID"
+            echo "github_run_attempt=$GITHUB_RUN_ATTEMPT"
+          } > target/physics-snapshot-benchmark-environment.txt
+          cat target/physics-snapshot-benchmark-environment.txt
+
+      - name: Run snapshot capture Criterion matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo +1.96.0 bench --locked -p symtropy-physics --bench physics_bench -- \
+            snapshot_capture \
+            --sample-size 100 \
+            --warm-up-time 1 \
+            --measurement-time 3 \
+            --noplot
+
+      - name: Preserve raw Criterion reports and provenance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: physics-snapshot-benchmark-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            target/physics-snapshot-benchmark-environment.txt
+            target/criterion/
+          if-no-files-found: error
+          retention-days: 30
