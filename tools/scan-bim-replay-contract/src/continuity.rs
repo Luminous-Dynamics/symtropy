@@ -1168,6 +1168,10 @@ mod tests {
         fixture_value()["canonical_receipt"].clone()
     }
 
+    fn valid_multi_hop_receipt() -> Value {
+        fixture_value()["multi_hop_receipt"].clone()
+    }
+
     fn audit(value: &Value) -> Result<RepresentationContinuityReport, String> {
         let bytes = serde_json::to_vec(value).expect("serialize continuity test receipt");
         audit_representation_continuity_bytes(&bytes)
@@ -1358,41 +1362,98 @@ mod tests {
     }
 
     #[test]
-    fn rejects_changed_bytes_when_a_later_transition_reuses_an_output_artifact_id() {
-        let mut value = valid_receipt();
-        let mut next = value["transitions"][0].clone();
-        next["transition_id"] = json!("SURFACE-TO-GRAPH-001");
-        next["from_representation"] = json!("surface_mesh");
-        next["to_representation"] = json!("spatial_graph");
-        next["source_artifacts"] = json!([{
+    fn accepts_connected_multi_hop_representation_chain() {
+        let report = audit(&valid_multi_hop_receipt()).expect("connected two-hop chain");
+        assert_eq!(report.transition_count, 2);
+        assert_eq!(report.root_transition_id, "RAW-TO-SURFACE-001");
+        assert_eq!(report.terminal_transition_id, "SURFACE-TO-GRAPH-001");
+        assert_eq!(report.claim_count, 2);
+        assert_eq!(report.measured_claim_count, 1);
+        assert_eq!(report.inferred_claim_count, 1);
+        assert_eq!(report.source_relation_count, 2);
+        assert_eq!(report.preserved_relation_count, 2);
+        assert_eq!(report.continuity_state, "continuity_preserved");
+    }
+
+    #[test]
+    fn rejects_disconnected_second_hop_without_parent_output() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["source_artifacts"][0]["artifact_id"] =
+            json!("UNRELATED-MESH-001");
+        value["transitions"][1]["source_artifacts"][0]["sha256"] = json!("19".repeat(32));
+        let error = audit(&value).expect_err("second hop must consume exact parent output");
+        assert!(error.contains("is disconnected"));
+    }
+
+    #[test]
+    fn rejects_representation_kind_jump_between_hops() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["from_representation"] = json!("parametric_model");
+        let error = audit(&value).expect_err("consumer kind must match parent output");
+        assert!(error.contains("from_representation does not match parent"));
+    }
+
+    #[test]
+    fn rejects_uncertainty_reset_between_hops() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["uncertainty"]["before"]["absolute_bound_m"] = json!(0.001);
+        let error = audit(&value).expect_err("uncertainty state must carry forward exactly");
+        assert!(error.contains("does not carry forward parent"));
+    }
+
+    #[test]
+    fn rejects_missing_upstream_entity_from_complete_chain_inventory() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["correspondences"].as_array_mut().unwrap().pop();
+        let error = audit(&value).expect_err("prior target entity cannot silently disappear");
+        assert!(error.contains("silently drops parent entity"));
+    }
+
+    #[test]
+    fn rejects_missing_upstream_relation_from_complete_chain_inventory() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["relation_audit"]["relations"] = json!([]);
+        let error = audit(&value).expect_err("prior relation cannot silently disappear");
+        assert!(error.contains("silently drops parent relation"));
+    }
+
+    #[test]
+    fn rejects_transition_reordered_away_from_its_parent() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"].as_array_mut().unwrap().reverse();
+        let error = audit(&value).expect_err("transition order must be topological");
+        assert!(error.contains("root transition must not declare parent_transition_ids"));
+    }
+
+    #[test]
+    fn rejects_ancestor_artifact_reuse_that_skips_an_intermediate_hop() {
+        let mut value = valid_multi_hop_receipt();
+        let mut third = value["transitions"][1].clone();
+        third["transition_id"] = json!("GRAPH-TO-PARAMETRIC-001");
+        third["parent_transition_ids"] = json!(["SURFACE-TO-GRAPH-001"]);
+        third["from_representation"] = json!("spatial_graph");
+        third["to_representation"] = json!("parametric_model");
+        third["source_artifacts"].as_array_mut().unwrap().push(json!({
             "artifact_id": "MESH-001",
             "sha256": "c".repeat(64),
             "role": "geometry_output"
-        }]);
-        next["output_artifacts"] = json!([{
-            "artifact_id": "GRAPH-001",
-            "sha256": "8".repeat(64),
-            "role": "geometry_output"
-        }]);
-        next["correspondences"] = json!([{
-            "event_id": "CORR-GRAPH-001",
-            "kind": "one_to_one",
-            "source_entity_ids": ["WALL-SURFACE-001"],
-            "target_entity_ids": ["WALL-GRAPH-001"],
-            "identity_receipt_sha256": "e".repeat(64)
-        }]);
-        next["claims"] = json!([]);
-        next["uncertainty"]["approximation_error_bound_m"] = json!(0.0);
-        next["uncertainty"]["before"]["absolute_bound_m"] = json!(0.0025);
-        next["uncertainty"]["after"]["absolute_bound_m"] = json!(0.0025);
-        value["transitions"]
-            .as_array_mut()
-            .expect("transition array")
-            .push(next.clone());
+        }));
+        value["transitions"].as_array_mut().unwrap().push(third);
+        let error = audit(&value).expect_err("a later hop cannot skip its immediate parent");
+        assert!(error.contains("skips an intermediate parent"));
+    }
 
-        let report = audit(&value).expect("exact prior output may feed the next transition");
-        assert_eq!(report.transition_count, 2);
+    #[test]
+    fn rejects_claim_origin_promotion_from_inferred_to_measured_without_new_measurement() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["claims"][0]["origin"] = json!("measured");
+        let error = audit(&value).expect_err("derived graph evidence is not a direct measurement");
+        assert!(error.contains("requires directly traceable measurement"));
+    }
 
+    #[test]
+    fn rejects_changed_bytes_when_a_later_transition_reuses_an_output_artifact_id() {
+        let mut value = valid_multi_hop_receipt();
         value["transitions"][1]["source_artifacts"][0]["sha256"] = json!("9".repeat(64));
         let error = audit(&value)
             .expect_err("the same artifact ID cannot silently point at new bytes");
