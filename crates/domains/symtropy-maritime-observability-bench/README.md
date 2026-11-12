@@ -73,3 +73,17 @@ Every installed sensor must declare at least one dependency group. The validator
 ## Measurement-window coherence
 
 All response channels within one fault-state hypothesis must refer to the same declared synchronized measurement window. The adapter rejects a matrix that combines different windows for different channels of the same state; pairwise interval separation is meaningless if the compared channels do not describe the same operating episode. The window identity is distinct across state hypotheses, so the exact comparison windows remain auditable in the source response manifest.
+
+
+## P0.8 — guaranteed common acquisition-window overlap
+
+The previous P0.2 check required all sensor responses for a state to carry the same `measurement_window_ref`. That identifier equality alone does not establish that acquisition intervals overlap in time.
+
+P0.8 adds explicit `window_start_ms` and `window_end_ms` to every response, plus a positive `minimum_common_window_overlap_ms` to the layout profile. For each admitted channel, the evaluator computes a conservative guaranteed interval using that sensor's qualified timestamp uncertainty:
+
+- guaranteed start = recorded start + timestamp uncertainty;
+- guaranteed end = recorded end − timestamp uncertainty.
+
+A state window is qualified only when the intersection across contributing channels is at least the declared minimum duration. Otherwise, the affected state is withdrawn from pairwise diagnosis rather than combining asynchronous response signatures. The report exposes the guaranteed common interval and overlap duration.
+
+The same calculation is repeated after every declared sensor/common-cause outage. Removing an unaligned sensor may restore coherent evidence from the remaining channels; losing a shared clock can withdraw the window and its diagnoses. The fixture is synthetic; its timestamp and window values do not demonstrate shipboard synchronization.

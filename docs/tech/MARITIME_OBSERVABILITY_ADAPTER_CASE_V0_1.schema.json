@@ -188,7 +188,8 @@
         "required_pair_set_ref",
         "minimum_independent_principles_for_critical_pairs",
         "reference_state_id",
-        "maximum_timestamp_uncertainty_ms"
+        "maximum_timestamp_uncertainty_ms",
+        "minimum_common_window_overlap_ms"
       ],
       "properties": {
         "layout_profile_ref": {
@@ -210,6 +211,10 @@
         "maximum_timestamp_uncertainty_ms": {
           "type": "number",
           "minimum": 0
+        },
+        "minimum_common_window_overlap_ms": {
+          "type": "number",
+          "minimum": 1
         }
       }
     },
@@ -608,7 +613,9 @@
           "measurement_window_ref",
           "artifact_id",
           "source_sha256",
-          "adjudication_ref"
+          "adjudication_ref",
+          "window_start_ms",
+          "window_end_ms"
         ],
         "properties": {
           "response_id": {
@@ -664,6 +671,14 @@
           },
           "adjudication_ref": {
             "$ref": "#/$defs/ref"
+          },
+          "window_start_ms": {
+            "type": "number",
+            "minimum": 0
+          },
+          "window_end_ms": {
+            "type": "number",
+            "minimum": 0
           }
         }
       }

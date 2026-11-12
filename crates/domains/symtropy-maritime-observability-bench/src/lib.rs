@@ -174,12 +174,15 @@ fn validate_input(input:&Value)->Check<()>{
         }
     }
     let profile=&input["layout_profile"];
-    allowed_keys(profile,&["layout_profile_ref","state_taxonomy_ref","required_pair_set_ref","reference_state_id","minimum_independent_principles_for_critical_pairs","maximum_timestamp_uncertainty_ms"],"$.layout_profile")?;
+    allowed_keys(profile,&["layout_profile_ref","state_taxonomy_ref","required_pair_set_ref","reference_state_id","minimum_independent_principles_for_critical_pairs","maximum_timestamp_uncertainty_ms","minimum_common_window_overlap_ms"],"$.layout_profile")?;
     for k in ["layout_profile_ref","state_taxonomy_ref","required_pair_set_ref","reference_state_id"]{let _=txt(profile,k,"$.layout_profile")?;}
     let min=profile["minimum_independent_principles_for_critical_pairs"].as_u64().filter(|n|*n>0)
         .ok_or_else(||err("INDEPENDENCE_THRESHOLD","$.layout_profile.minimum_independent_principles_for_critical_pairs","must be positive"))?;
     if profile["maximum_timestamp_uncertainty_ms"].as_f64().is_none_or(|x|!x.is_finite()||x<0.0){
         return Err(err("PROFILE_TIMEBASE_LIMIT","$.layout_profile.maximum_timestamp_uncertainty_ms","must be a finite non-negative millisecond bound"));
+    }
+    if profile["minimum_common_window_overlap_ms"].as_f64().is_none_or(|x|!x.is_finite()||x<=0.0){
+        return Err(err("MINIMUM_COMMON_WINDOW_OVERLAP","$.layout_profile.minimum_common_window_overlap_ms","must be a finite positive millisecond duration"));
     }
     let domain_max=regime["maximum_timestamp_uncertainty_ms"].as_f64().unwrap();
     let profile_max=profile["maximum_timestamp_uncertainty_ms"].as_f64().unwrap();
@@ -321,7 +324,7 @@ fn validate_input(input:&Value)->Check<()>{
     let mut measurement_window_by_state:BTreeMap<String,String>=BTreeMap::new();
     for (i,r) in responses.iter().enumerate(){
         let p=format!("$.responses[{i}]");
-        allowed_keys(r,&["response_id","state_id","channel_id","availability","value_lower","value_upper","unit","evidence_role","measurement_window_ref","artifact_id","source_sha256","adjudication_ref"],&p)?;
+        allowed_keys(r,&["response_id","state_id","channel_id","availability","value_lower","value_upper","unit","evidence_role","measurement_window_ref","window_start_ms","window_end_ms","artifact_id","source_sha256","adjudication_ref"],&p)?;
         let response_id=txt(r,"response_id",&p)?;
         if !response_ids.insert(response_id.to_owned()){return Err(err("DUPLICATE_RESPONSE_ID",&p,"response IDs must be unique"));}
         let state=txt(r,"state_id",&p)?;let ch=txt(r,"channel_id",&p)?;
@@ -330,6 +333,11 @@ fn validate_input(input:&Value)->Check<()>{
         let availability=txt(r,"availability",&p)?;
         if !matches!(availability,"VALID"|"DEGRADED"|"MISSING"|"UNKNOWN"){return Err(err("RESPONSE_AVAILABILITY",&p,"unknown availability"));}
         for k in ["unit","evidence_role","measurement_window_ref","artifact_id","adjudication_ref"]{let _=txt(r,k,&p)?;}
+        let window_start=r["window_start_ms"].as_f64().filter(|x|x.is_finite()&&*x>=0.0)
+            .ok_or_else(||err("RESPONSE_WINDOW_START",&format!("{p}.window_start_ms"),"expected finite non-negative timestamp"))?;
+        let window_end=r["window_end_ms"].as_f64().filter(|x|x.is_finite()&&*x>=0.0)
+            .ok_or_else(||err("RESPONSE_WINDOW_END",&format!("{p}.window_end_ms"),"expected finite non-negative timestamp"))?;
+        if window_end<=window_start{return Err(err("INVALID_RESPONSE_WINDOW",&p,"measurement window end must be strictly later than start"));}
         let window=txt(r,"measurement_window_ref",&p)?;
         match measurement_window_by_state.get(state) {
             Some(existing) if existing!=window => {
@@ -390,7 +398,76 @@ fn validate_input(input:&Value)->Check<()>{
     Ok(())
 }
 
-fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_dependencies:&BTreeSet<String>)->Check<(Value,Value)>{
+/// A response window is usable only if every admitted channel has a
+/// guaranteed common acquisition interval after its own clock uncertainty is
+/// applied. Matching a window identifier alone is not temporal evidence.
+fn measurement_window_assessments(input:&Value,removed_sensors:&BTreeSet<String>,removed_dependencies:&BTreeSet<String>)->(Vec<Value>,BTreeSet<String>){
+    let evidence_class=input["evidence_class"].as_str().unwrap_or("");
+    let domain=&input["operating_domain"];
+    let profile=&input["layout_profile"];
+    let minimum=profile["minimum_common_window_overlap_ms"].as_f64().unwrap_or(f64::INFINITY);
+    let mut reports=Vec::new();
+    let mut unqualified_states=BTreeSet::new();
+    for state in input["states"].as_array().unwrap(){
+        let state_id=state["state_id"].as_str().unwrap_or("");
+        let mut starts=Vec::new();let mut ends=Vec::new();let mut eligible_channels=Vec::new();
+        for response in input["responses"].as_array().unwrap().iter()
+            .filter(|r|r["state_id"].as_str()==Some(state_id)&&r["availability"]=="VALID"){
+            let channel_id=response["channel_id"].as_str().unwrap_or("");
+            let Some(sensor)=input["sensors"].as_array().unwrap().iter().find(|s|s["channel_id"].as_str()==Some(channel_id)) else{continue};
+            if sensor["installed"]!=true{continue;}
+            let sensor_id=sensor["sensor_id"].as_str().unwrap_or("");
+            let dep=sensor["dependency_groups"].as_array().cloned().unwrap_or_default();
+            if removed_sensors.contains(sensor_id)||dep.iter().filter_map(Value::as_str).any(|g|removed_dependencies.contains(g)){continue;}
+            let dependency_reviewed=match evidence_class{
+                "SYNTHETIC_CONFORMANCE_FIXTURE"=>sensor["dependency_review_state"]=="synthetic_conformance",
+                "MEASURED"=>sensor["dependency_review_state"]=="independently_reviewed"
+                    &&sensor["dependency_review_record_id"].as_str().is_some_and(|x|!x.trim().is_empty())
+                    &&sensor["dependency_review_record_sha256"].as_str().is_some_and(hex64),
+                _=>false
+            };
+            let derived=sensor["derived_from_channel_ids"].as_array().is_some_and(|a|!a.is_empty());
+            let role_ok=match evidence_class{
+                "SYNTHETIC_CONFORMANCE_FIXTURE"=>sensor["source_role"]=="synthetic"&&response["evidence_role"]=="SYNTHETIC_CONFORMANCE_FIXTURE"&&!derived,
+                "MEASURED"=>sensor["source_role"]=="measured"&&response["evidence_role"]=="INDEPENDENT_MEASUREMENT"&&!derived,
+                _=>false
+            };
+            let eligible=sensor["quality_state"]=="current"
+                &&matches!(sensor["calibration_state"].as_str(),Some("current"|"not_applicable"))
+                &&domain["qualification_state"]=="qualified"
+                &&sensor_timebase_qualified(sensor,domain,profile,evidence_class)
+                &&dependency_reviewed&&role_ok;
+            if !eligible{continue;}
+            let uncertainty=sensor["timestamp_uncertainty_ms"].as_f64().unwrap_or(f64::INFINITY);
+            let start=response["window_start_ms"].as_f64().unwrap_or(f64::NAN);
+            let end=response["window_end_ms"].as_f64().unwrap_or(f64::NAN);
+            let guaranteed_start=start+uncertainty;
+            let guaranteed_end=end-uncertainty;
+            if !guaranteed_start.is_finite()||!guaranteed_end.is_finite()||guaranteed_end<=guaranteed_start{continue;}
+            starts.push(guaranteed_start);ends.push(guaranteed_end);eligible_channels.push(channel_id.to_owned());
+        }
+        let (common_start,common_end,overlap)=if starts.is_empty(){(None,None,0.0)}else{
+            let start=starts.iter().copied().fold(f64::NEG_INFINITY,f64::max);
+            let end=ends.iter().copied().fold(f64::INFINITY,f64::min);
+            (Some(start),Some(end),(end-start).max(0.0))
+        };
+        let qualified=!starts.is_empty()&&overlap+1e-9>=minimum;
+        if !qualified{unqualified_states.insert(state_id.to_owned());}
+        let window_ref=input["responses"].as_array().unwrap().iter().find(|r|r["state_id"].as_str()==Some(state_id))
+            .and_then(|r|r["measurement_window_ref"].as_str()).unwrap_or("");
+        reports.push(json!({
+            "state_id":state_id,"measurement_window_ref":window_ref,
+            "status":if qualified{"qualified"}else{"not_evaluated"},
+            "eligible_channel_ids":eligible_channels,"required_common_overlap_ms":minimum,
+            "guaranteed_common_start_ms":if qualified{json!(common_start)}else{Value::Null},
+            "guaranteed_common_end_ms":if qualified{json!(common_end)}else{Value::Null},
+            "guaranteed_common_overlap_ms":overlap
+        }));
+    }
+    (reports,unqualified_states)
+}
+
+fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_dependencies:&BTreeSet<String>,unaligned_states:&BTreeSet<String>)->Check<(Value,Value)>{
     let asset=&input["asset"];let regime=&input["operating_domain"];
     let family=format!("engine-family:{}",txt(asset,"engine_model","$.asset")?);
     let config=format!("asset-config-sha256:{}",txt(asset,"configuration_sha256","$.asset")?);
@@ -464,6 +541,7 @@ fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_d
         let faulted= set(state,"faulted_sensor_ids","$.states[]")?;
         let declared_sensor_fault=faulted.contains(sid);
         let availability=if scenario_removed{"MISSING"}
+            else if unaligned_states.contains(r["state_id"].as_str().unwrap_or("")){"UNKNOWN"}
             else if declared_sensor_fault&&matches!(raw_availability,"MISSING"|"DEGRADED"){raw_availability}
             else if !ok{"UNKNOWN"}else{raw_availability};
         let role=txt(sensor,"source_role","$.sensors[]")?;
@@ -634,7 +712,7 @@ fn fault_assessments(input:&Value,report:&EvaluationReport)->(Vec<Value>,Vec<Val
     (fault_out,classes_out)
 }
 
-fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
+fn make_report(input:&Value,base:&EvaluationReport,window_assessments:Vec<Value>,scenarios:Vec<Value>)->Value{
     let asset=&input["asset"];let domain=&input["operating_domain"];let digests=&input["evidence_digests"];
     let sensors:Vec<Value>=input["sensors"].as_array().unwrap().iter().map(|s|json!({
         "sensor_id":s["sensor_id"],"channel_id":s["channel_id"],"installed":s["installed"],
@@ -671,7 +749,9 @@ fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
         "asset":{"asset_id":asset["asset_id"],"asset_class":asset["asset_class"],"vessel_id":asset["vessel_id"],"engine_id":asset["engine_id"],"configuration_revision":asset["configuration_revision"],"configuration_sha256":asset["configuration_sha256"]},
         "operating_domain":{"regime_id":domain["regime_id"],"description":domain["description"],"qualification_state":domain["qualification_state"],"load_percent":domain["load_percent"],"speed_rpm":domain["speed_rpm"],"transient_state":domain["transient_state"],"measurement_timebase_id":domain["measurement_timebase_id"],"maximum_timestamp_uncertainty_ms":profile["maximum_timestamp_uncertainty_ms"]},
         "evidence_digests":{"sensor_topology_sha256":digests["sensor_topology_sha256"],"fault_model_sha256":digests["fault_model_sha256"],"evaluator_sha256":digests["evaluator_sha256"],"dataset_sha256":digests["dataset_sha256"],"split_manifest_sha256":digests["split_manifest_sha256"],"model_sha256":digests["model_sha256"]},
-        "sensor_inventory":sensors,"fault_assessments":fault_report,"ambiguity_classes":ambiguity_report,"pair_assessments":pair_assessments(input,base),"sensor_loss_scenarios":scenarios,
+        "sensor_inventory":sensors,"fault_assessments":fault_report,"ambiguity_classes":ambiguity_report,
+        "measurement_window_assessments":window_assessments,
+        "pair_assessments":pair_assessments(input,base),"sensor_loss_scenarios":scenarios,
         "metrics":[metric("installed_sensor_count",base.channel_count),metric("independent_evidence_group_count",base.independence_group_count),
             metric("state_hypothesis_count",base.state_count),metric("required_fault_pair_count",base.required_pair_count),
             metric("identifiable_fault_pair_count",base.identifiable_pair_count),metric("non_identifiable_fault_pair_count",base.not_identifiable_pair_count),
@@ -681,7 +761,7 @@ fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
             metric("dependency_reviewed_installed_sensor_count",dependency_reviewed_count),
             metric("dependency_unreviewed_installed_sensor_count",installed_count.saturating_sub(dependency_reviewed_count))],
         "authority_boundary":{"read_only":true,"actuation":false,"maintenance_authorization":false,"mode_transition_authorization":false,"restriction_clearance":false},
-        "claim_ceiling":"Structural detectability against the declared reference and pairwise fault isolability for the exact declared asset/configuration, installed sensors, dependency groups, operating domain, synchronized measurement windows, response intervals, declared clock/timebase metadata and evidence class. This does not measure empirical event-detection accuracy or trained-model performance. Timebase hashes bind declared artifact references but do not authenticate the clock qualification process or prove the physical synchronization network. Synthetic timebase evidence remains synthetic only. No physical engine validation, shipboard safety, maintenance authorization, ODD clearance or permission to operate is established."
+        "claim_ceiling":"Structural detectability against the declared reference and pairwise fault isolability for the exact declared asset/configuration, installed sensors, dependency groups, operating domain, response intervals, and guaranteed common acquisition-window overlap after per-sensor timestamp uncertainty. Matching measurement-window identifiers alone are not sufficient. This does not measure empirical event-detection accuracy or trained-model performance. Timebase hashes bind declared artifact references but do not authenticate the clock qualification process or prove the physical synchronization network. Synthetic timebase evidence remains synthetic only. No physical engine validation, shipboard safety, maintenance authorization, ODD clearance or permission to operate is established."
     })
 }
 
@@ -690,13 +770,15 @@ pub fn evaluate_maritime_case(input:&Value,clock:&Value,clock_sha256:&str)->Chec
     validate_clock_qualification(input,clock,clock_sha256)?;
     let empty_sensors=BTreeSet::new();
     let empty_dependencies=BTreeSet::new();
-    let (base_case,parent)=make_parent_and_case(input,&empty_sensors,&empty_dependencies)?;
+    let (base_windows,base_unaligned)=measurement_window_assessments(input,&empty_sensors,&empty_dependencies);
+    let (base_case,parent)=make_parent_and_case(input,&empty_sensors,&empty_dependencies,&base_unaligned)?;
     let base=evaluate_case(&base_case,&parent)?;
     let mut scenarios=Vec::new();
     for scenario in input["common_cause_scenarios"].as_array().unwrap(){
         let removed_sensors=set(scenario,"removed_sensor_ids","$.common_cause_scenarios[]")?;
         let removed_dependencies=set(scenario,"removed_dependency_groups","$.common_cause_scenarios[]")?;
-        let (case,scenario_parent)=make_parent_and_case(input,&removed_sensors,&removed_dependencies)?;
+        let (scenario_windows,scenario_unaligned)=measurement_window_assessments(input,&removed_sensors,&removed_dependencies);
+        let (case,scenario_parent)=make_parent_and_case(input,&removed_sensors,&removed_dependencies,&scenario_unaligned)?;
         let replay=evaluate_case(&case,&scenario_parent)?;
         let lost:Vec<Value>=base.pair_results.iter()
             .filter(|p|p.status=="IDENTIFIABLE")
@@ -708,10 +790,11 @@ pub fn evaluate_maritime_case(input:&Value,clock:&Value,clock_sha256:&str)->Chec
             "removed_sensor_ids":removed_sensors,
             "removed_dependency_groups":removed_dependencies,
             "assessment_state":"recomputed",
+            "measurement_window_assessments":scenario_windows,
             "lost_isolability_pairs":lost
         }));
     }
-    Ok(make_report(input,&base,scenarios))
+    Ok(make_report(input,&base,base_windows,scenarios))
 }
 
 pub fn evaluate_and_bind_execution(input:&Value,clock:&Value,source_commit:&str,case_sha256:&str,clock_sha256:&str)->Check<Value>{
@@ -749,7 +832,7 @@ mod tests{
     fn null_evidence_digests_remain_unbound_profile_identity_is_not_a_hash() {
         let c=fixture();
         assert!(c["evidence_digests"]["sensor_topology_sha256"].is_null());
-        let (adapted,parent)=make_parent_and_case(&c,&BTreeSet::new(),&BTreeSet::new()).unwrap();
+        let (adapted,parent)=make_parent_and_case(&c,&BTreeSet::new(),&BTreeSet::new(),&BTreeSet::new()).unwrap();
         let installation=parent["profile"]["installation_profile_ref"].as_str().unwrap();
         assert!(installation.starts_with("installation-profile:"));
         assert!(!installation.starts_with("sensor-topology-sha256:"));
@@ -982,6 +1065,53 @@ mod tests{
             .find(|s|s["scenario_id"]=="gateway-and-clock-loss").unwrap();
         assert_eq!(scenario["assessment_state"],"recomputed");
         assert_eq!(scenario["lost_isolability_pairs"].as_array().unwrap().len(),8);
+    }
+    #[test]
+    fn common_window_report_uses_guaranteed_overlap_after_sensor_clock_uncertainty(){
+        let r=eval(&fixture()).unwrap();
+        let windows=r["measurement_window_assessments"].as_array().unwrap();
+        assert_eq!(windows.len(),6);
+        assert!(windows.iter().all(|w|w["status"]=="qualified"));
+        assert!(windows.iter().all(|w|w["guaranteed_common_overlap_ms"].as_f64().unwrap()>=w["required_common_overlap_ms"].as_f64().unwrap()));
+        assert_eq!(windows[0]["guaranteed_common_overlap_ms"],json!(9998.0));
+    }
+    #[test]
+    fn matching_window_ids_without_guaranteed_temporal_overlap_are_not_admitted(){
+        let mut c=fixture();let fault="ENGINE_FUEL_INJECTION_FAULT";
+        for response in c["responses"].as_array_mut().unwrap().iter_mut().filter(|r|r["state_id"]==fault&&r["channel_id"]=="fuel-rail-pressure"){
+            response["window_start_ms"]=json!(response["window_start_ms"].as_f64().unwrap()+7000.0);
+            response["window_end_ms"]=json!(response["window_end_ms"].as_f64().unwrap()+7000.0);
+        }
+        let r=eval(&c).unwrap();
+        let w=r["measurement_window_assessments"].as_array().unwrap().iter().find(|w|w["state_id"]==fault).unwrap();
+        assert_eq!(w["status"],"not_evaluated");
+        let pair=r["pair_assessments"].as_array().unwrap().iter().find(|p|p["fault_a"]=="ENGINE_NORMAL_STEADY"&&p["fault_b"]==fault).unwrap();
+        assert_eq!(pair["state"],"not_evaluated");
+    }
+    #[test]
+    fn excluding_the_unaligned_sensor_recomputes_and_can_restore_window_coherence(){
+        let mut c=fixture();let fault="ENGINE_FUEL_INJECTION_FAULT";
+        for response in c["responses"].as_array_mut().unwrap().iter_mut().filter(|r|r["state_id"]==fault&&r["channel_id"]=="fuel-rail-pressure"){
+            response["window_start_ms"]=json!(response["window_start_ms"].as_f64().unwrap()+7000.0);
+            response["window_end_ms"]=json!(response["window_end_ms"].as_f64().unwrap()+7000.0);
+        }
+        let r=eval(&c).unwrap();
+        let scenario=r["sensor_loss_scenarios"].as_array().unwrap().iter().find(|s|s["scenario_id"]=="fuel-pressure-transducer-loss").unwrap();
+        let w=scenario["measurement_window_assessments"].as_array().unwrap().iter().find(|w|w["state_id"]==fault).unwrap();
+        assert_eq!(w["status"],"qualified");
+    }
+    #[test]
+    fn uncertainty_reduces_guaranteed_overlap_and_boundary_is_inclusive(){
+        let mut c=fixture();c["layout_profile"]["minimum_common_window_overlap_ms"]=json!(10000.0);
+        let r=eval(&c).unwrap();assert_eq!(r["measurement_window_assessments"][0]["status"],"not_evaluated");
+        c["layout_profile"]["minimum_common_window_overlap_ms"]=json!(9998.0);
+        let r=eval(&c).unwrap();assert_eq!(r["measurement_window_assessments"][0]["status"],"qualified");
+    }
+    #[test]
+    fn measurement_window_timestamps_must_be_ordered_and_finite(){
+        let mut c=fixture();c["responses"][0]["window_end_ms"]=c["responses"][0]["window_start_ms"].clone();
+        assert!(eval(&c).is_err());
+        c=fixture();c["responses"][0]["window_start_ms"]=json!(-1.0);assert!(eval(&c).is_err());
     }
     #[test]
     fn same_input_is_deterministic(){

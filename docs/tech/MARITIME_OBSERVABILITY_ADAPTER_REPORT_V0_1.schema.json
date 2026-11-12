@@ -19,7 +19,8 @@
     "metrics",
     "authority_boundary",
     "claim_ceiling",
-    "execution"
+    "execution",
+    "measurement_window_assessments"
   ],
   "properties": {
     "schema_version": {
@@ -547,7 +548,8 @@
           "removed_sensor_ids",
           "removed_dependency_groups",
           "assessment_state",
-          "lost_isolability_pairs"
+          "lost_isolability_pairs",
+          "measurement_window_assessments"
         ],
         "properties": {
           "scenario_id": {
@@ -583,6 +585,64 @@
                 },
                 "fault_b": {
                   "$ref": "#/$defs/ref"
+                }
+              }
+            }
+          },
+          "measurement_window_assessments": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state_id",
+                "measurement_window_ref",
+                "status",
+                "eligible_channel_ids",
+                "required_common_overlap_ms",
+                "guaranteed_common_start_ms",
+                "guaranteed_common_end_ms",
+                "guaranteed_common_overlap_ms"
+              ],
+              "properties": {
+                "state_id": {
+                  "$ref": "#/$defs/ref"
+                },
+                "measurement_window_ref": {
+                  "$ref": "#/$defs/ref"
+                },
+                "status": {
+                  "enum": [
+                    "qualified",
+                    "not_evaluated"
+                  ]
+                },
+                "eligible_channel_ids": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/ref"
+                  }
+                },
+                "required_common_overlap_ms": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "guaranteed_common_start_ms": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "guaranteed_common_end_ms": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "guaranteed_common_overlap_ms": {
+                  "type": "number",
+                  "minimum": 0
                 }
               }
             }
@@ -733,6 +793,64 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "measurement_window_assessments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "state_id",
+          "measurement_window_ref",
+          "status",
+          "eligible_channel_ids",
+          "required_common_overlap_ms",
+          "guaranteed_common_start_ms",
+          "guaranteed_common_end_ms",
+          "guaranteed_common_overlap_ms"
+        ],
+        "properties": {
+          "state_id": {
+            "$ref": "#/$defs/ref"
+          },
+          "measurement_window_ref": {
+            "$ref": "#/$defs/ref"
+          },
+          "status": {
+            "enum": [
+              "qualified",
+              "not_evaluated"
+            ]
+          },
+          "eligible_channel_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/ref"
+            }
+          },
+          "required_common_overlap_ms": {
+            "type": "number",
+            "minimum": 0
+          },
+          "guaranteed_common_start_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "guaranteed_common_end_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "guaranteed_common_overlap_ms": {
+            "type": "number",
+            "minimum": 0
           }
         }
       }
