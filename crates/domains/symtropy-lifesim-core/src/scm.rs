@@ -422,7 +422,6 @@ impl ScmModel {
         let kernel_scale = self.config.kernel.argument_scale();
         let noise_scale = (2.0 / PI) * self.sigma;
         let social_scale = 2.0 / PI;
-        let fitness_scale = fitness_gradient_gain * 4.0 / (PI * PI);
         let sqrt_dt = self.config.dt.sqrt();
         let mut next_agents = Vec::with_capacity(self.agents.len());
 
@@ -858,78 +857,7 @@ fn communication_consensus_state(
     }
 }
 
-    positions: &[Vec<f64>],
-    observations: &[ScmObservation],
-    epsilon: f64,
-) -> (Vec<f64>, Vec<f64>, f64, f64, Vec<f64>, bool) {
-    let count = positions.len();
-    let dimension = positions[0].len();
-    let minimum_fitness = observations
-        .iter()
-        .map(|observation| observation.fitness)
-        .fold(f64::INFINITY, f64::min);
-    let weights: Vec<f64> = observations
-        .iter()
-        .map(|observation| (observation.fitness - minimum_fitness).max(0.0))
-        .collect();
-    let weight_sum = weights.iter().sum::<f64>();
-
-    // Fitness-shifted centroid; equal/degenerate fitness uses an unweighted finite fallback.
-    let mut centroid = vec![0.0; dimension];
-    if weight_sum <= epsilon {
-        for position in positions {
-            for coordinate in 0..dimension {
-                centroid[coordinate] += position[coordinate] / count as f64;
-            }
-        }
-    } else {
-        for (position, weight) in positions.iter().zip(weights.iter()) {
-            for coordinate in 0..dimension {
-                centroid[coordinate] += position[coordinate] * weight / weight_sum;
-            }
-        }
-    }
-
-    let distances: Vec<f64> = positions
-        .iter()
-        .map(|position| {
-            let difference: Vec<f64> = position
-                .iter()
-                .zip(centroid.iter())
-                .map(|(left, right)| left - right)
-                .collect();
-            l2_norm(&difference)
-        })
-        .collect();
-
-    let mut maximum_pairwise_distance: f64 = 0.0;
-    for left in 0..count {
-        for right in (left + 1)..count {
-            let difference: Vec<f64> = positions[left]
-                .iter()
-                .zip(positions[right].iter())
-                .map(|(a, b)| a - b)
-                .collect();
-            maximum_pairwise_distance =
-                maximum_pairwise_distance.max(l2_norm(&difference));
-        }
-    }
-
-    let raw_consensus = 1.0 - (2.0 / count as f64) * distances.iter().sum::<f64>();
-    let consensus = raw_consensus.max(0.05);
-    let spread_degenerate = maximum_pairwise_distance <= epsilon;
-    let lambdas = if spread_degenerate {
-        vec![0.0; count]
-    } else {
-        distances
-            .iter()
-            .map(|distance| distance / (maximum_pairwise_distance * consensus))
-            .collect()
-    };
-
-    (
-        centroid,
-        distances,
+fn l2_norm(values: &[f64]) -> f64 {ances,
         maximum_pairwise_distance,
         consensus,
         lambdas,
