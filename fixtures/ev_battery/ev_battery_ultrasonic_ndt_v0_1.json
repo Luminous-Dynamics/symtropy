@@ -1,0 +1,146 @@
+{
+  "schema_version": "0.1.0",
+  "manifest_id": "SYNTH-ULTRASONIC-NDT-001",
+  "dataset": {
+    "dataset_id": "WARWICK-ULTRASONIC-ELECTRODE",
+    "version": "4",
+    "source_uri": "https://data.mendeley.com/datasets/c62yn37d9h/4",
+    "license": "CC BY 4.0",
+    "raw_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "rights_receipt_ref": "SYNTH-RIGHTS-RECEIPT",
+    "attribution": "Synthetic fixture only; real release attribution required."
+  },
+  "observations": [
+    {
+      "observation_id": "OBS-G1-PRE",
+      "specimen_id": "SPEC-G1",
+      "pair_group_id": "PAIR-G1",
+      "material_family": "graphite_anode",
+      "process_domain": "pilot_calenderer_A",
+      "state": "before_calendering",
+      "partition": "train",
+      "feature_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "feature_available_at_ns": 100,
+      "prediction_at_ns": 110,
+      "thickness_um": 95,
+      "thickness_metrology_ref": "SYNTH-METROLOGY-G1-PRE",
+      "target_boundary": "electrode_thickness"
+    },
+    {
+      "observation_id": "OBS-G1-POST",
+      "specimen_id": "SPEC-G1",
+      "pair_group_id": "PAIR-G1",
+      "material_family": "graphite_anode",
+      "process_domain": "pilot_calenderer_A",
+      "state": "after_calendering",
+      "partition": "train",
+      "feature_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "feature_available_at_ns": 200,
+      "prediction_at_ns": 210,
+      "thickness_um": 82,
+      "thickness_metrology_ref": "SYNTH-METROLOGY-G1-POST",
+      "target_boundary": "electrode_thickness"
+    },
+    {
+      "observation_id": "OBS-N1-PRE",
+      "specimen_id": "SPEC-N1",
+      "pair_group_id": "PAIR-N1",
+      "material_family": "NMC622_cathode",
+      "process_domain": "pilot_calenderer_A",
+      "state": "before_calendering",
+      "partition": "train",
+      "feature_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+      "feature_available_at_ns": 300,
+      "prediction_at_ns": 310,
+      "thickness_um": 110,
+      "thickness_metrology_ref": "SYNTH-METROLOGY-N1-PRE",
+      "target_boundary": "electrode_thickness"
+    },
+    {
+      "observation_id": "OBS-N1-POST",
+      "specimen_id": "SPEC-N1",
+      "pair_group_id": "PAIR-N1",
+      "material_family": "NMC622_cathode",
+      "process_domain": "pilot_calenderer_A",
+      "state": "after_calendering",
+      "partition": "train",
+      "feature_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+      "feature_available_at_ns": 400,
+      "prediction_at_ns": 410,
+      "thickness_um": 92,
+      "thickness_metrology_ref": "SYNTH-METROLOGY-N1-POST",
+      "target_boundary": "electrode_thickness"
+    },
+    {
+      "observation_id": "OBS-G2-PRE",
+      "specimen_id": "SPEC-G2",
+      "pair_group_id": "PAIR-G2",
+      "material_family": "graphite_anode",
+      "process_domain": "pilot_calenderer_B",
+      "state": "before_calendering",
+      "partition": "test",
+      "feature_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "feature_available_at_ns": 500,
+      "prediction_at_ns": 510,
+      "thickness_um": 96,
+      "thickness_metrology_ref": "SYNTH-METROLOGY-G2-PRE",
+      "target_boundary": "electrode_thickness"
+    },
+    {
+      "observation_id": "OBS-G2-POST",
+      "specimen_id": "SPEC-G2",
+      "pair_group_id": "PAIR-G2",
+      "material_family": "graphite_anode",
+      "process_domain": "pilot_calenderer_B",
+      "state": "after_calendering",
+      "partition": "test",
+      "feature_digest": "6666666666666666666666666666666666666666666666666666666666666666",
+      "feature_available_at_ns": 600,
+      "prediction_at_ns": 610,
+      "thickness_um": 83,
+      "thickness_metrology_ref": "SYNTH-METROLOGY-G2-POST",
+      "target_boundary": "electrode_thickness"
+    }
+  ],
+  "split": {
+    "split_id": "SYNTH-SPECIMEN-HOLDOUT-1",
+    "kind": "paired_specimen_holdout",
+    "train_observation_ids": [
+      "OBS-G1-PRE",
+      "OBS-G1-POST",
+      "OBS-N1-PRE",
+      "OBS-N1-POST"
+    ],
+    "validation_observation_ids": [],
+    "test_observation_ids": [
+      "OBS-G2-PRE",
+      "OBS-G2-POST"
+    ],
+    "train_specimen_ids": [
+      "SPEC-G1",
+      "SPEC-N1"
+    ],
+    "validation_specimen_ids": [],
+    "test_specimen_ids": [
+      "SPEC-G2"
+    ]
+  },
+  "predictions": [
+    {
+      "observation_id": "OBS-G2-PRE",
+      "specimen_id": "SPEC-G2",
+      "predicted_thickness_um": 96.5,
+      "lower_thickness_um": 94.5,
+      "upper_thickness_um": 98.5,
+      "model_evidence_ref": "SYNTH-MODEL"
+    },
+    {
+      "observation_id": "OBS-G2-POST",
+      "specimen_id": "SPEC-G2",
+      "predicted_thickness_um": 82.5,
+      "lower_thickness_um": 80.5,
+      "upper_thickness_um": 84.5,
+      "model_evidence_ref": "SYNTH-MODEL"
+    }
+  ]
+}
