@@ -168,7 +168,7 @@ The evaluator distinguishes four results:
 
 The returned witness is a deterministic map from observation-history node to action. The evaluator does not pick one action per hidden state, so a clairvoyant policy cannot be mistaken for a deployable one. It permits a different action only after an evidence-qualified observation creates a new belief node. The test tree includes two indistinguishable successor states after a probe, then a fresh observation splits them so one child can retreat and the other continue; both leaves still require a safe-stop receipt.
 
-The new module contributes 18 tests: bounded two-step winning policy; disjoint hidden-state actions; incomplete transition manifest; unknown/unreachable terminal recovery; observation-partition mismatch; incomplete transition receipt; impossible transition exclusion; incomplete action domain; permutation invariance; missing child node; invalid action identity; and explicit horizon bounds. The original 20 tests remain in the same crate, for 32 authored Rust tests total.
+The new module contributes 18 tests: bounded two-step winning policy; disjoint hidden-state actions; incomplete transition manifest; unknown/unreachable terminal recovery; observation-partition mismatch; incomplete transition receipt; impossible transition exclusion; incomplete action domain; permutation invariance; missing child node; invalid action identity; and explicit horizon bounds. The original 20 tests remain in the same crate, for 38 authored Rust tests total.
 
 The one-step common-set evaluator and the bounded policy-tree evaluator are separate, intentionally composable reference surfaces. A policy-tree win over this finite graph is not a continuous-time viability proof, arbitrary fault tolerance, or authorization to execute the witness.
 
@@ -183,3 +183,40 @@ The bounded evaluator does not treat an observation graph as sufficient physical
 Terminal recovery is also state-specific: each hidden state remaining at a leaf must have a matching reserve-state digest, topology receipt and safe-stop reachability result. Missing coverage is Unknown; contradictory predecessor/result identities are Invalid. This prevents an apparently valid policy from being stitched across different physical histories.
 
 This adds four adversarial tests to the bounded tree: parent reserve/thermal mismatch, child result digest mismatch, incomplete per-state leaf recovery coverage, and terminal reserve digest mismatch.
+
+
+## Frontier update — 12 November 2026
+
+The comparison set has moved since the first protocol draft. These results are useful baselines but belong to **different experimental strata**:
+
+- **Thermal-aware legged locomotion:** Qian et al. report Unitree A1 continuous operation beyond 27 minutes with a 3 kg payload, versus about 7 minutes for their baseline ([arXiv:2603.01631](https://arxiv.org/abs/2603.01631)). A separate residual-policy study reports over 13 minutes versus about 5 minutes on A1 under its own 3 kg payload/multi-terrain conditions ([arXiv:2605.27046](https://arxiv.org/abs/2605.27046)). These are separate methods and protocols; do not merge the runtimes into one leaderboard.
+- **Manipulation success is approaching saturation on LIBERO:** PriorVLA reports 99.1% average LIBERO success ([project/paper summary](https://priorvla.github.io/)); MaskWAM reports 98.4% ([arXiv:2606.13515](https://arxiv.org/abs/2606.13515)). Streaming-WAM reports 98.35% with 41 ms action-chunk preparation and a 12× chunk-time speedup versus FastWAM in its own four-H100 evaluation ([official results](https://github.com/SJTU-DENG-Lab/Streaming-WAM)). These are distinct papers, models, data splits and runtime setups. They establish that high task-success alone is no longer enough to differentiate a robotics architecture; tail latency, causal execution alignment, observation-conditioned recoverability and hardware generalization matter.
+- **Factory-scale foundation-model serving:** ROSA reports up to 12.06× factory productivity over conventional dedicated serving, using shared GPU pools and SLO-qualified task scheduling ([NVIDIA Research / arXiv:2607.01088](https://research.nvidia.com/publication/2026-07_rosa-robotics-foundation-model-serving-system-robot-factories)). That is factory productivity on its tested workloads, not a directly comparable speedup for this finite evaluator or a legged-robot result.
+
+**Comparison rule:** never mix a manipulation LIBERO number, A1 endurance minutes, a Go2 fault campaign and factory serving throughput into one score. Reproduce each reference within its exact robot/morphology, task split, payload, terrain, controller/model, compute hardware, disturbance schedule, measurement boundary and success definition. Report simulation, hardware and preprint evidence separately.
+
+### Proposed Luminous benchmark scorecard
+
+The research programme should publish a *vector scorecard*, not a weighted “robot intelligence” scalar:
+
+| Dimension | Primary measure | Required matched comparisons |
+|---|---|---|
+| Task capability | success, useful work, tracking error, adverse outcomes by category | strongest policy/control baseline on the same task and embodiment |
+| Observation-conditioned recoverability | one-step common-action sets; clairvoyant upper bound; bounded winning-policy rate by horizon | successor-count baseline; per-hidden-state clairvoyant bound; common-set evaluator; policy-tree evaluator |
+| Persistent reserve | per-node thermal trajectory/headroom, per-joint authority, energy and terminal reserve | nominal, thermal-aware, residual thermal, robust MPC / WBC |
+| Decision integrity | regret upper bound, calibration coverage, decision-horizon expiry, stale-action rejection | fixed-age, fixed-chunk, latency-only and evidence-bounded horizon |
+| Causal execution | applications linked, causal-closure ppm, AoI, command-to-motion, independent assurance and physical transition | event-order replay, missing-evidence negative controls, exact configuration identity |
+| Fleet productivity | SLO-qualified safe missions per wall-clock, per-robot service-floor breaches, p95/p99 latency, GPU/VRAM/network/KV use | dedicated-local serving, RR, EDF, EVSI admission, shared-pool serving |
+| Recovery and fairness | terminal safe-stop reachability, recovery-route/cut-set reserve, starvation by robot, unknown/abstention rates | matched fault sequences with physical state carried between events |
+
+### Staged experimental targets
+
+**Finite reference:** 100% agreement against independent enumeration for the committed synthetic corpus; zero clairvoyant or alias inflation; adding a physically possible branch cannot increase its observation class's common set; zero positive policy claims with Unknown branch, observation, state-transition, viability or recovery evidence; every policy leaf has per-state reserve/topology/safe-stop receipts.
+
+**Software / replay qualification:** zero causal-closure credit for an application with missing, duplicate, expired, mismatched or unordered evidence; every negative control must be rejected or retained as Unknown as specified; preserve a separate denominator for all application attempts.
+
+**Physical baseline reproduction:** reproduce the A1 thermal-aware baseline under its documented 3 kg payload and hardware/terrain/ambient/gait conditions before claiming a locomotion improvement. Then execute *sequential* disturbances without resetting temperature, SOC, actuator derating, wear proxy or recovery reserve. A single isolated successful fault test is not mission-resilience evidence.
+
+**Superiority gate:** only claim improvement when the same hardware and scenario strata show non-inferior task success, tracking, per-category adverse outcomes and terminal recoverability, then a statistically supported gain on at least one declared dimension (e.g. mission productivity, thermal endurance or recovery probability) with no hidden regression on the others. Publish null and negative regimes.
+
+A useful fleet objective is **SLO-qualified safe-mission throughput**: count only completed missions that meet task deadlines and predeclared evidence, physical-limit, service-floor and terminal-recovery constraints. Keep the numerator, all attempted missions, Unknown/censored attempts and per-robot fairness visible. This extends the factory-productivity framing without confusing high request throughput with a fleet that actually completes recoverable missions.
