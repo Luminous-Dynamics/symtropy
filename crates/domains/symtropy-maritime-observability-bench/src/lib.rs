@@ -778,7 +778,7 @@ fn append_failure_combinations(
 /// Exact bounded resilience analysis over individual installed-sensor outages
 /// and shared dependency-group outages. Singleton dependency groups are
 /// represented by their sensor atom to avoid duplicate names for the same cut.
-fn resilience_analysis(input:&Value,base:&EvaluationReport,base_windows:&[Value],base_trajectory_reports:&[Value])->Check<Value>{
+fn resilience_analysis(input:&Value,base:&EvaluationReport,base_trajectory_reports:&[Value])->Check<Value>{
     let profile=&input["layout_profile"];
     let (declared_atom_limit,max_order)=failure_cut_bounds(profile)?;
     let mut atoms=Vec::new();
@@ -1356,7 +1356,7 @@ pub fn evaluate_maritime_case(input:&Value,clock:&Value,clock_sha256:&str)->Chec
     let trajectory_reports=trajectory_pair_assessments(
         input,&base,&base_windows,&empty_sensors,&empty_dependencies
     )?;
-    let resilience=resilience_analysis(input,&base,&base_windows,&trajectory_reports)?;
+    let resilience=resilience_analysis(input,&base,&trajectory_reports)?;
     Ok(make_report(input,&base,base_windows,scenarios,resilience,trajectory_reports))
 }
 
