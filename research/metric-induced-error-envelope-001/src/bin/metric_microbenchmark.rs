@@ -114,7 +114,9 @@ fn fixture() -> (
     let vector_y = rebasis.tangent_to_to(&vector_q).unwrap();
     let covector_y = rebasis.cotangent_to_to(&covector_q).unwrap();
 
-    (metric_q, rebasis, vector_q, covector_q, vector_y, covector_y, metric_y)
+    (
+        metric_q, rebasis, vector_q, covector_q, vector_y, covector_y, metric_y,
+    )
 }
 
 fn json_number(value: f64) -> String {
