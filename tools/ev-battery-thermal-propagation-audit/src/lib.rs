@@ -1085,8 +1085,9 @@ mod tests {
                     source_digest: digest('9'),
                     evidence_class: EvidenceClass::Literature,
                     admission: Admission::AdmittedForEvaluation,
-                    claim_scope: "IEC-62660-3 IEC-62660-3-2022-cell-block-safety-criteria 2022 edition"
-                        .into(),
+                    claim_scope:
+                        "IEC-62660-3 IEC-62660-3-2022-cell-block-safety-criteria 2022 edition"
+                            .into(),
                     authority_or_lab_ref: "SYNTHETIC-IEC-62660-3-REFERENCE".into(),
                     metrology_ref: None,
                 },
