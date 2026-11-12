@@ -31,18 +31,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     for scale in [0.01_f64, 0.1, 0.5, 1.0, 2.0, 10.0, 100.0] {
-        let change = ConstraintEquationRebasisV1::<
-            ConstraintSpaceScaled,
-            ConstraintSpace,
-            2,
-        >::new([[scale, 0.0], [0.0, 1.0]], profile)?;
+        let change = ConstraintEquationRebasisV1::<ConstraintSpaceScaled, ConstraintSpace, 2>::new(
+            [[scale, 0.0], [0.0, 1.0]],
+            profile,
+        )?;
         let jacobian_new = change.jacobian_to_new(&jacobian_old)?;
-        let delassus_new = DelassusMetricV1::<
-            CartesianQ,
-            ConstraintSpaceScaled,
-            3,
-            2,
-        >::from_mass_jacobian(&mass, jacobian_new, profile)?;
+        let delassus_new =
+            DelassusMetricV1::<CartesianQ, ConstraintSpaceScaled, 3, 2>::from_mass_jacobian(
+                &mass,
+                jacobian_new,
+                profile,
+            )?;
         let multiplier_new = change.multiplier_to_new(&multiplier_old, profile)?;
         let residual_new = change.residual_to_new(&residual_old)?;
 
@@ -57,9 +56,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                         * (delassus_old.matrix()[1][0] * transform[column][0]
                             + delassus_old.matrix()[1][1] * transform[column][1]);
                 let scale = expected.abs().max(1.0);
-                delassus_relative_defect = delassus_relative_defect.max(
-                    (delassus_new.matrix()[row][column] - expected).abs() / scale,
-                );
+                delassus_relative_defect = delassus_relative_defect
+                    .max((delassus_new.matrix()[row][column] - expected).abs() / scale);
             }
         }
         let multiplier_norm_drift =
@@ -87,8 +85,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!(
             "{scale:.6e},{:.8e},{:.8e},{delassus_relative_defect:.8e},{multiplier_norm_drift:.8e},{residual_norm_drift:.8e},{pairing_drift:.8e},{minimum_correction_defect:.8e}",
             change.condition_inf_estimate()?,
-            jacobian_new.iter().map(|row| row.iter().map(|v| v.abs()).fold(0.0, f64::max)).fold(0.0, f64::max)
-                / jacobian_old.iter().map(|row| row.iter().map(|v| v.abs()).fold(0.0, f64::max)).fold(1.0, f64::max),
+            jacobian_new
+                .iter()
+                .map(|row| row.iter().map(|v| v.abs()).fold(0.0, f64::max))
+                .fold(0.0, f64::max)
+                / jacobian_old
+                    .iter()
+                    .map(|row| row.iter().map(|v| v.abs()).fold(0.0, f64::max))
+                    .fold(1.0, f64::max),
         );
     }
 
