@@ -200,26 +200,40 @@ impl fmt::Display for ScmError {
             Self::TooFewAgents(count) => write!(f, "SCM requires at least two agents, got {count}"),
             Self::EmptyDimension => write!(f, "SCM requires at least one decision dimension"),
             Self::DimensionMismatch { expected, actual } => {
-                write!(f, "SCM dimension mismatch: expected {expected}, got {actual}")
+                write!(
+                    f,
+                    "SCM dimension mismatch: expected {expected}, got {actual}"
+                )
             }
             Self::InvalidParameter { name, value } => {
                 write!(f, "invalid SCM parameter {name}={value}")
             }
             Self::InvalidConfiguration => write!(f, "invalid SCM configuration"),
             Self::NonFiniteInitialPosition { agent, dimension } => {
-                write!(f, "agent {agent} has non-finite initial coordinate {dimension}")
+                write!(
+                    f,
+                    "agent {agent} has non-finite initial coordinate {dimension}"
+                )
             }
             Self::LandscapeFailure { agent, reason } => {
                 write!(f, "landscape evaluation failed for agent {agent}: {reason}")
             }
             Self::InvalidLandscapeObservation { agent } => {
-                write!(f, "landscape returned invalid fitness/gradient for agent {agent}")
+                write!(
+                    f,
+                    "landscape returned invalid fitness/gradient for agent {agent}"
+                )
             }
             Self::NonFiniteState { agent, dimension } => {
-                write!(f, "SCM generated a non-finite coordinate for agent {agent}, dimension {dimension}")
+                write!(
+                    f,
+                    "SCM generated a non-finite coordinate for agent {agent}, dimension {dimension}"
+                )
             }
             Self::TickOverflow => write!(f, "SCM tick counter overflow"),
-            Self::EvaluationCounterOverflow => write!(f, "SCM function-evaluation counter overflow"),
+            Self::EvaluationCounterOverflow => {
+                write!(f, "SCM function-evaluation counter overflow")
+            }
         }
     }
 }
@@ -442,10 +456,7 @@ impl ScmModel {
                 };
                 let fitness_gradient = current_observations[agent_index].gradient[coordinate];
                 let fitness_scale = gradient_gain_by_agent[agent_index] * 4.0 / (PI * PI);
-                let noise = noise_scale
-                    * lambdas[agent_index]
-                    * sqrt_dt
-                    * next_rng.next_normal();
+                let noise = noise_scale * lambdas[agent_index] * sqrt_dt * next_rng.next_normal();
                 next[coordinate] = previous_positions[agent_index][coordinate]
                     + self.config.dt
                         * (social_scale * social_gradient + fitness_scale * fitness_gradient)
@@ -625,7 +636,11 @@ impl ScmModel {
             // Count one agent observation request, including the failing request. This
             // matches the source protocol's per-agent function-evaluation accounting.
             attempted_agent_evaluations += 1;
-            if agent.position.iter().any(|value| !(0.0..=1.0).contains(value)) {
+            if agent
+                .position
+                .iter()
+                .any(|value| !(0.0..=1.0).contains(value))
+            {
                 observations.push(ScmObservation {
                     fitness: 0.0,
                     gradient: conical_barrier_gradient(&agent.position, self.config),
@@ -741,10 +756,7 @@ fn build_communication_neighbors(
     neighbors
 }
 
-fn local_neighborhood_indices(
-    focal: usize,
-    neighbors: &[Vec<usize>],
-) -> Vec<usize> {
+fn local_neighborhood_indices(focal: usize, neighbors: &[Vec<usize>]) -> Vec<usize> {
     let mut indices = Vec::with_capacity(neighbors[focal].len() + 1);
     indices.push(focal);
     indices.extend(neighbors[focal].iter().copied());
@@ -829,11 +841,9 @@ fn communication_consensus_state(
                 local_max_distance = local_max_distance.max(l2_norm(&difference));
             }
         }
-        maximum_local_pairwise_distance =
-            maximum_local_pairwise_distance.max(local_max_distance);
+        maximum_local_pairwise_distance = maximum_local_pairwise_distance.max(local_max_distance);
 
-        let raw_consensus =
-            1.0 - (2.0 / local_count as f64) * local_distances.iter().sum::<f64>();
+        let raw_consensus = 1.0 - (2.0 / local_count as f64) * local_distances.iter().sum::<f64>();
         let local_consensus = raw_consensus.max(0.05);
         consensus_sum += local_consensus / count as f64;
 
@@ -858,7 +868,9 @@ fn communication_consensus_state(
 }
 
 fn l2_norm(values: &[f64]) -> f64 {
-    values.iter().fold(0.0_f64, |norm, value| norm.hypot(*value))
+    values
+        .iter()
+        .fold(0.0_f64, |norm, value| norm.hypot(*value))
 }
 
 /// Deterministic xorshift64 + Box-Muller Gaussian stream. This is not MATLAB's RNG and
@@ -924,16 +936,28 @@ mod tests {
 
     fn small_agents() -> Vec<ScmAgent> {
         vec![
-            ScmAgent { position: vec![0.2, 0.2] },
-            ScmAgent { position: vec![0.8, 0.2] },
-            ScmAgent { position: vec![0.5, 0.8] },
+            ScmAgent {
+                position: vec![0.2, 0.2],
+            },
+            ScmAgent {
+                position: vec![0.8, 0.2],
+            },
+            ScmAgent {
+                position: vec![0.5, 0.8],
+            },
         ]
     }
 
     #[test]
     fn paper_and_repository_kernels_are_explicit_and_distinct() {
-        assert!((ScmInteractionKernel::PublishedHtmlEquation.argument_scale() - 2.0 / PI).abs() < 1.0e-15);
-        assert!((ScmInteractionKernel::RepositoryMatlabSource.argument_scale() - PI / 2.0).abs() < 1.0e-15);
+        assert!(
+            (ScmInteractionKernel::PublishedHtmlEquation.argument_scale() - 2.0 / PI).abs()
+                < 1.0e-15
+        );
+        assert!(
+            (ScmInteractionKernel::RepositoryMatlabSource.argument_scale() - PI / 2.0).abs()
+                < 1.0e-15
+        );
         assert_ne!(
             ScmInteractionKernel::PublishedHtmlEquation.argument_scale(),
             ScmInteractionKernel::RepositoryMatlabSource.argument_scale()
@@ -942,7 +966,10 @@ mod tests {
 
     #[test]
     fn deterministic_seed_replays_the_rust_reference() {
-        let config = ScmConfig { tau_steps: 4, ..ScmConfig::default() };
+        let config = ScmConfig {
+            tau_steps: 4,
+            ..ScmConfig::default()
+        };
         let mut left = ScmModel::new(small_agents(), config, 42).unwrap();
         let mut right = ScmModel::new(small_agents(), config, 42).unwrap();
         let left_reports = left.run_steps(&Quadratic, 20).unwrap();
@@ -954,14 +981,23 @@ mod tests {
     #[test]
     fn coincident_agents_have_finite_zero_noise_weights() {
         let agents = vec![
-            ScmAgent { position: vec![0.5, 0.5] },
-            ScmAgent { position: vec![0.5, 0.5] },
+            ScmAgent {
+                position: vec![0.5, 0.5],
+            },
+            ScmAgent {
+                position: vec![0.5, 0.5],
+            },
         ];
         let mut model = ScmModel::new(agents, ScmConfig::default(), 7).unwrap();
         let report = model.step(&Quadratic).unwrap();
         assert!(report.swarm_spread_degenerate);
         assert!(report.consensus.is_finite());
-        assert!(model.agents().iter().all(|agent| agent.position.iter().all(|x| x.is_finite())));
+        assert!(
+            model
+                .agents()
+                .iter()
+                .all(|agent| agent.position.iter().all(|x| x.is_finite()))
+        );
     }
 
     #[test]
@@ -976,26 +1012,46 @@ mod tests {
     #[test]
     fn flat_consensus_window_does_not_generate_nan_noise_adaptation() {
         let agents = vec![
-            ScmAgent { position: vec![0.5, 0.5] },
-            ScmAgent { position: vec![0.5, 0.5] },
+            ScmAgent {
+                position: vec![0.5, 0.5],
+            },
+            ScmAgent {
+                position: vec![0.5, 0.5],
+            },
         ];
-        let config = ScmConfig { tau_steps: 4, ..ScmConfig::default() };
+        let config = ScmConfig {
+            tau_steps: 4,
+            ..ScmConfig::default()
+        };
         let mut model = ScmModel::new(agents, config, 19).unwrap();
         let reports = model.run_steps(&Flat, 8).unwrap();
-        assert!(reports.iter().all(|report| report.sigma_after_update.is_finite()));
+        assert!(
+            reports
+                .iter()
+                .all(|report| report.sigma_after_update.is_finite())
+        );
         assert!((model.sigma() - config.sigma_initial).abs() < 1.0e-15);
     }
 
     #[test]
     fn out_of_domain_agents_use_a_finite_conical_barrier_observation() {
         let agents = vec![
-            ScmAgent { position: vec![1.1, 0.5] },
-            ScmAgent { position: vec![1.2, 0.5] },
+            ScmAgent {
+                position: vec![1.1, 0.5],
+            },
+            ScmAgent {
+                position: vec![1.2, 0.5],
+            },
         ];
         let mut model = ScmModel::new(agents, ScmConfig::default(), 23).unwrap();
         let report = model.step(&Quadratic).unwrap();
         assert_eq!(report.outside_domain_agents, 2);
-        assert!(model.agents().iter().all(|agent| agent.position.iter().all(|x| x.is_finite())));
+        assert!(
+            model
+                .agents()
+                .iter()
+                .all(|agent| agent.position.iter().all(|x| x.is_finite()))
+        );
     }
 
     struct FailOnNextObservationBatch {
@@ -1010,10 +1066,7 @@ mod tests {
             if call >= self.successful_calls {
                 return Err("injected observation failure".to_owned());
             }
-            Ok((
-                0.5,
-                vec![0.0; position.len()],
-            ))
+            Ok((0.5, vec![0.0; position.len()]))
         }
     }
 
@@ -1058,9 +1111,12 @@ mod tests {
         let mut model = ScmModel::new(agents, config, 37).unwrap();
         let report = model.step(&Flat).unwrap();
         assert_eq!(report.outside_domain_agents, 2);
-        assert!(model.agents().iter().all(|agent| {
-            agent.position.iter().all(|value| value.is_finite())
-        }));
+        assert!(
+            model
+                .agents()
+                .iter()
+                .all(|agent| { agent.position.iter().all(|value| value.is_finite()) })
+        );
     }
 
     #[test]
@@ -1095,12 +1151,18 @@ mod tests {
 
         assert_eq!(complete.agents(), radius.agents());
         assert_eq!(complete.sigma(), radius.sigma());
-        assert_eq!(complete.total_function_evaluations(), radius.total_function_evaluations());
+        assert_eq!(
+            complete.total_function_evaluations(),
+            radius.total_function_evaluations()
+        );
         for (left, right) in complete_reports.iter().zip(radius_reports.iter()) {
             assert_eq!(left.consensus, right.consensus);
             assert_eq!(left.centroid, right.centroid);
             assert_eq!(left.mean_agent_distance, right.mean_agent_distance);
-            assert_eq!(left.maximum_pairwise_distance, right.maximum_pairwise_distance);
+            assert_eq!(
+                left.maximum_pairwise_distance,
+                right.maximum_pairwise_distance
+            );
             assert_eq!(left.mean_communicating_neighbors, 2.0);
             assert_eq!(right.mean_communicating_neighbors, 2.0);
         }
@@ -1109,10 +1171,18 @@ mod tests {
     #[test]
     fn ring_topology_reports_two_neighbors_per_agent_for_four_agent_ring() {
         let agents = vec![
-            ScmAgent { position: vec![0.1, 0.1] },
-            ScmAgent { position: vec![0.8, 0.1] },
-            ScmAgent { position: vec![0.8, 0.8] },
-            ScmAgent { position: vec![0.1, 0.8] },
+            ScmAgent {
+                position: vec![0.1, 0.1],
+            },
+            ScmAgent {
+                position: vec![0.8, 0.1],
+            },
+            ScmAgent {
+                position: vec![0.8, 0.8],
+            },
+            ScmAgent {
+                position: vec![0.1, 0.8],
+            },
         ];
         let config = ScmConfig {
             communication_topology: ScmCommunicationTopology::Ring,
@@ -1123,7 +1193,10 @@ mod tests {
 
         assert_eq!(report.mean_communicating_neighbors, 2.0);
         assert_eq!(report.isolated_agents, 0);
-        assert_eq!(report.communication_topology, ScmCommunicationTopology::Ring);
+        assert_eq!(
+            report.communication_topology,
+            ScmCommunicationTopology::Ring
+        );
     }
 
     #[test]
@@ -1141,8 +1214,15 @@ mod tests {
         assert_eq!(report.locally_degenerate_spread_agents, agents.len());
         assert!(report.swarm_spread_degenerate);
         assert_eq!(
-            model.agents().iter().map(|agent| agent.position.clone()).collect::<Vec<_>>(),
-            agents.iter().map(|agent| agent.position.clone()).collect::<Vec<_>>()
+            model
+                .agents()
+                .iter()
+                .map(|agent| agent.position.clone())
+                .collect::<Vec<_>>(),
+            agents
+                .iter()
+                .map(|agent| agent.position.clone())
+                .collect::<Vec<_>>()
         );
     }
 
@@ -1239,7 +1319,9 @@ mod tests {
     fn rejects_one_agent_and_odd_consensus_window() {
         assert!(matches!(
             ScmModel::new(
-                vec![ScmAgent { position: vec![0.1] }],
+                vec![ScmAgent {
+                    position: vec![0.1]
+                }],
                 ScmConfig::default(),
                 1
             ),
@@ -1248,7 +1330,10 @@ mod tests {
         assert!(matches!(
             ScmModel::new(
                 small_agents(),
-                ScmConfig { tau_steps: 3, ..ScmConfig::default() },
+                ScmConfig {
+                    tau_steps: 3,
+                    ..ScmConfig::default()
+                },
                 1
             ),
             Err(ScmError::InvalidConfiguration)
