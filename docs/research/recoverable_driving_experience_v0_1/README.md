@@ -1,0 +1,381 @@
+# Recoverable Driving Experience Benchmark v0.1
+
+**Status:** research protocol and machine-readable manifest; not an implemented simulator, training sampler, or driving result  
+**Owner:** [#4550 — RECOVERABLE-DRIVING-EXPERIENCE-001](https://github.com/Luminous-Dynamics/symtropy/issues/4550)  
+**Environment:** [#4536 — camera-first virtual driving environment](https://github.com/Luminous-Dynamics/symtropy/issues/4536)  
+**Curriculum:** [#4538 — Symthaea driver apprenticeship curriculum](https://github.com/Luminous-Dynamics/symtropy/pull/4538)  
+**Learner:** [Symthaea #11414](https://github.com/Luminous-Dynamics/symthaea/issues/11414)
+
+## 1. Research question
+
+Does choosing driving experiences by **decision-sensitive value of information and recoverability** produce more durable driving competence per simulator transition, human intervention minute, compute budget and energy budget than uniform sampling, rarity sampling, predictive uncertainty, temporal prediction error, or decision-boundary sampling?
+
+This is deliberately narrower than asking whether Symthaea is a better driver. It isolates the learning mechanism that could make an embodied learner improve faster, transfer better, and preserve recoverable choices when its current model is wrong.
+
+The hypothesis is falsifiable. A null result or a result favouring a simple sampler is useful.
+
+## 2. Paradigm shift: learn by choosing experiments
+
+The ordinary loop is:
+
+`observe -> act -> receive outcome -> update policy`
+
+The proposed loop adds an explicit experiment-selection layer:
+
+`observe -> maintain hypotheses -> identify decision sensitivity -> choose an informative intervention -> branch and re-simulate causal consequences -> learn -> measure changed competence and recoverability`
+
+The learner should not merely seek unfamiliar scenes, high entropy or large prediction errors. It should seek experiences where the information can change an important future decision before that decision's deadline.
+
+Examples:
+- A pedestrian is partially occluded. A second view may distinguish a safe yield from a blocked path.
+- A lead vehicle brakes. The useful query may be whether available stopping distance survives a delayed actuator, not whether the frame encoder is uncertain.
+- A merge has two plausible actor-response modes. An intervention that changes the ego gap may reveal whether another driver yields or accelerates.
+- A stale camera frame and a delayed control command occur together. The useful experience tests whether the controller retains a feasible recovery path, not merely whether it predicts the next image.
+
+SAM supplies independent decision/recoverability evidence. The learner's own confidence is not its safety certificate.
+
+## 3. Experimental arms
+
+All arms begin from the same declared checkpoint, initial corpus and curriculum state. They receive matched budgets.
+
+| ID | Selection mechanism | What it tests |
+|---|---|---|
+| `uniform` | Uniform over eligible episodes/scenario families | Data-volume reference |
+| `rarity` | Frequency / inverse-frequency scenario sampling | Long-tail exposure |
+| `entropy` | Predictive entropy or ensemble disagreement | Generic uncertainty sampling |
+| `prediction_error` | Recent temporal/world-model prediction error | Surprise-driven practice |
+| `decision_margin` | Near action-ranking boundaries or small feasible-set margins | Decision-boundary practice |
+| `sam_value_of_information` | Estimated value of information for a decision before its deadline | Decision-sensitive teaching |
+| `sam_recoverability` | Counterexamples selected by option fragility, recovery depth or residual decision time | Recoverability-directed learning |
+| `fixed_human_intervention` | Fixed-rate instructor intervention/correction | Human-effort reference |
+
+A human demonstration arm is a reference distribution, not an autonomous policy. Add hybrid combinations only after the primary arms have been reported separately.
+
+The sampler must be tested with the same policy family and model architecture first. Model-architecture ablations are a separate axis:
+- current engineered-state HDC-LTC reference;
+- matched visual GRU/LSTM;
+- matched visual compact transformer;
+- visual encoder + structured HDC + LTC/CfC;
+- the same hybrid plus action-conditioned latent world model;
+- the same world-model arm plus independent SAM-guided experience selection.
+
+Do not attribute sampler gains to an architecture change or architecture gains to a sampler change.
+
+## 4. Counterfactual branch protocol
+
+### 4.1 Branch point
+
+A branch point is an immutable, receipted decision boundary. It binds:
+- episode, branch and parent-branch identity;
+- policy-visible observation/history digest and acquisition/delivery times;
+- learner checkpoint, recurrent-state policy and inference configuration;
+- simulator, renderer, vehicle, map, scenario and actor-policy revisions;
+- declared traffic-rule profile and action-space version;
+- candidate intervention identity and action sequence;
+- source-qualified exogenous event manifest and random keys;
+- evaluator-only world-state reference, stored outside policy-visible inputs.
+
+A branch is not identified only by a random seed. The seed, scenario revision, actor policy, model revision and complete initial-state manifest are part of its identity.
+
+### 4.2 Causal replay
+
+When the ego action changes, other agents may respond differently. Therefore:
+- Do **not** replay an actor's old action as though it were its response to a new ego action.
+- Recompute actor-policy descendants affected by the intervention.
+- Reuse random keys only for exogenous variables demonstrated to be intervention-invariant.
+- Recompute endogenous/counterfactual descendants; record their new lineage.
+- Preserve a branch manifest showing which exogenous inputs were shared, which descendants were recomputed and which evidence is missing.
+
+If causal classification is unknown, do not claim paired counterfactual equivalence. Keep the branch as unpaired/unknown.
+
+### 4.3 Privilege separation
+
+The learner and sampler may use only declared policy-visible information available at the query time. Hidden simulator state, teacher actions, future frames, branch outcomes, evaluator labels and oracle action rankings are evaluator-only unless a training arm explicitly declares that privilege.
+
+Frozen evaluation disables:
+- teacher-action blending and future-label access;
+- online updates and exploration noise;
+- query-selection access to future branch outcomes;
+- train/holdout scenario-family overlap;
+- recurrent state or checkpoint mutation.
+
+A query decision must be timestamped before its answer/outcome becomes available.
+
+## 5. Metrics: keep the evidence multidimensional
+
+Do not collapse the benchmark into one scalar. Publish every family below, with per-scenario-family distributions and confidence intervals across independent seeds.
+
+### Learning efficiency
+- New simulator transitions to a preregistered skill threshold.
+- Instructor intervention minutes and correction count to the same threshold.
+- Area under competence-versus-transition and competence-versus-human-time curves.
+- Regression/relearning cost after the environment or actor-policy distribution changes.
+
+For an active arm, relative transition reduction is:
+
+`1 - transitions_active / transitions_uniform`
+
+Use the same frozen competence threshold and evaluation set. The initial 20% improvement target is a research target, not a safety threshold.
+
+### Decision and query value
+- Query precision: fraction of requested demonstrations/measurements that change a feasible action set, action ranking, recovery classification or uncertainty disposition.
+- Query utility: held-out outcome difference after the answer/correction, against a matched no-query continuation.
+- Query regret: realized loss from asking too late, asking the wrong question or not asking when a decision would have changed.
+- Policy-change rate: fraction of answers that change the action or its admissibility; report alongside outcome benefit so a changed action is not automatically counted as useful.
+
+### Action-conditioned model quality
+- Predictive error for ego and actor trajectories, road-relative state and sensor outcomes.
+- Proper probabilistic scores (for example NLL or CRPS when their distributional assumptions are met).
+- Coverage and sharpness of predeclared prediction sets/intervals.
+- Action-ranking regret evaluated using the simulator oracle only after the policy decision.
+- Counterfactual sensitivity: whether distinct interventions produce the correct direction and magnitude of downstream changes.
+
+Visual fidelity is reported separately. A photorealistic future that violates vehicle dynamics or actor response is not a good driving world model.
+
+### Recoverability and constraint performance
+Consume SAM's independent, source-qualified outputs:
+- viable alternative-action count/set and option width;
+- policy-tree or state-space recoverability depth;
+- option fragility under declared faults;
+- residual decision time before fallback becomes infeasible;
+- fallback admissibility and evidence completeness;
+- other-agent option externalities, reported separately from ego options.
+
+Report contact/collision, traffic-rule, hard-constraint, route-progress and comfort/jerk outcomes under explicit simulator semantics. Do not let average progress hide unsafe or unrecoverable episodes.
+
+### Resource performance
+- p50/p95/p99 inference, sensing, planning, action-latch and recovery latency;
+- model parameters, resident memory, peak memory and compute;
+- measured energy per environment transition and per unit competence gain, only when raw, source-grade telemetry exists;
+- simulator wall time separately from simulated time.
+
+Synthetic estimates must be labelled synthetic. Missing telemetry stays missing.
+
+### Evidence completeness
+- expected versus observed episodes, branches, sensors and action receipts;
+- failed, incomplete, censored, timed-out and excluded episodes;
+- exact checkpoint, manifest, code, simulator and dataset digests;
+- fresh-process replay agreement;
+- denominator and exclusion reconciliation.
+
+No missing or failed episode may silently disappear from a reported score.
+
+## 6. Matching and evaluation design
+
+Run two distinct resource comparisons.
+
+**Exposure-matched:** same number of environment transitions, scenario exposures, update opportunities and human corrections. This isolates what the learner learned from the same experience budget.
+
+**Cost-matched:** same wall-clock, accelerator/CPU, memory and human-intervention budget. This evaluates practical learning efficiency. Do not conflate the two.
+
+Keep the following fixed or explicitly match them:
+- starting checkpoint and recurrent state;
+- sensor modality, observation history, action space and control timing;
+- scenario population and split manifests;
+- model parameter count and compute budget where possible;
+- optimizer, training steps and update rules;
+- training data, intervention opportunities and simulator transition budget.
+
+When exact matching is impossible, report the mismatch and avoid a causal claim.
+
+Split by map, route geometry, scenario family, actor-policy family, weather/lighting, vehicle profile, traffic convention, sensor fault family and deployment perturbation. Hold out combinations, not merely random frames from the same episode.
+
+Report mean, median, worst-family, 5th percentile and CVaR for declared tail levels. Confidence intervals must account for independent scenario seeds; frames from one episode are not independent samples.
+
+## 7. Required negative controls
+
+1. Simulator truth accidentally enters a camera-only policy or sampler.
+2. Future observations, future actions or branch outcomes leak into a query at time t.
+3. Teacher blending remains active during frozen evaluation.
+4. A stale/duplicated frame is admitted as fresh independent evidence.
+5. A changed ego action is paired with the old actor actions rather than re-simulated actor response.
+6. A purportedly exogenous event changes with ego action without being reclassified.
+7. The sampler selects only easy/high-reward scenes and neglects critical rare families.
+8. An always-stop policy appears successful because progress/mission completion is not measured.
+9. Reward hacking improves aggregate reward while violating hard constraints.
+10. Training and holdout share maps, actor policies, randomization seeds or scenario templates.
+11. Failed, censored or incomplete episodes disappear from denominators.
+12. Model checkpoint, recurrent state or policy configuration changes during evaluation.
+13. The sampler uses outcome labels that would not exist at its decision time.
+14. The world model predicts plausible images but physically impossible trajectories.
+15. SAM outputs are copied from the learner instead of independently recomputed/qualified.
+
+The benchmark should prove these controls are rejected before positive results are interpreted.
+
+## 8. Promotion gates and prospective target
+
+A candidate sampler may advance only after:
+1. protocol and fixture conformance;
+2. negative-control rejection;
+3. matched exposure study;
+4. cost-matched study;
+5. held-out map/actor/fault-family evaluation;
+6. independent SAM/recoverability assessment;
+7. exact replay and complete denominator reconciliation.
+
+**Initial research target:** at least one active sampler reaches the same preregistered competence threshold using at least 20% fewer simulator transitions or instructor-intervention minutes than uniform sampling, with no regression in predeclared worst-family constraints, calibration, fallback integrity, held-out transfer or deadline compliance.
+
+The exact competence threshold, non-inferiority margin, confidence level, tail levels and family coverage must be frozen before evaluation begins. The 20% target is not a universal guarantee and is not an achieved result.
+
+## 9. External benchmark positioning
+
+Use each external benchmark for the question it actually measures:
+
+| Benchmark | Proper role | Limitation / control |
+|---|---|---|
+| CARLA local closed-loop scenarios | Closed-loop interaction and controlled scenario execution | The original public Leaderboard 2.1 submission service is closed; pin local simulator, scenario runner and route revisions |
+| Bench2Drive | Closed-loop route and scenario performance | Pin version and score semantics; leaderboard results vary by data/compute/teacher/privilege |
+| Bench2Drive-Robust | Deployment perturbations: dropped/partial frames, state noise and inference delay | Preserve exact perturbation protocol; do not mix with clean Driving Score |
+| NAVSIM v2 | Planning metric (EPDMS) and follow-up-scene evaluation | It approximates closed-loop effects with selected precomputed follow-up scenes; it is not a reciprocal online simulator |
+| DrivingGen | Video/trajectory generation, consistency and controllability | World-model evaluation, not a substitute for driving competence |
+| Waymo Open Dataset | Large-scale perception, motion and end-to-end driving data/evaluation | Confirm data license and challenge task; dataset results are not physical vehicle validation |
+
+External scores are not pooled. Report native score names and evaluation protocols.
+
+### Bench2Drive v0.0.4 reference snapshot
+
+The Bench2Drive repository marks v0.0.4 (released 6 August 2026) as the version currently in use. It adds a strictly uniform 1,100-route training set (44 scenarios × 25 routes) and a separate 220-route evaluation set (44 scenarios × 5 routes), plus 3D occupancy and dataset/sensor bug fixes. This makes it a particularly useful uniform-sampling reference for the apprenticeship programme. The repository's v0.0.4 results table lists:
+- LEAD: 95.59 Driving Score, 87.28% Success Rate, 201.55 Efficiency, 20.56 Comfort.
+- Simlingo: 86.55 Driving Score, 70.45% Success Rate, 251.72 Efficiency, 35.47 Comfort.
+
+These are upstream-reported results for the named benchmark revision, not independent Symtropy reproductions. The earlier 89.07 AlignDrive snapshot belongs to a different hosted-board snapshot/version context and must not be carried forward as the current v0.0.4 reference. Pin the exact evaluator, route XML, code tag, model/checkpoint, sensor profile, training data and compute/privilege budget before attempting reproduction. See the [v0.0.4 release results](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md) and [tagged repository README](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md).
+
+### NAVSIM v2: keep task tracks and evaluation snapshots separate
+
+NAVSIM v2 results are not one universal ranking. Third-party indexed boards now expose separate end-to-end driving and end-to-end planning tracks; the exact board, metric variant and evaluator revision must accompany every comparison.
+
+- The **End-to-end Driving on NAVSIM v2 (test)** SOTA2 snapshot lists NTR (2026.05) at **90.9 EPDMS**. The board is an external leaderboard snapshot, not a Symtropy reproduction.
+- The separate **End-to-end planning on NAVSIM v2 (test)** board has its own entries and EPDMS variants. Do not merge those rows into the end-to-end driving board.
+- The peer-reviewed DriveWorld-VLA ICML 2026 paper reports **86.8 EPDMS on NAVSIM v2** and 91.3 PDMS on NAVSIM v1 under its stated protocol. A paper-reported result and a later third-party leaderboard submission are not automatically comparable.
+
+**Protocol requirement:** record the board/task identifier, NAVSIM code and data commit, metric implementation, evaluator version, sensor/history privileges, checkpoint, compute and submission date alongside every score. Keep EPDMS, PDMS and any starred/variant metric distinct.
+
+Sources: [NAVSIM v2 end-to-end driving test board](https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test), [NAVSIM v2 end-to-end planning test board](https://www.sota2.com/research/sota/end-to-end-planning-on-navsim-v2-test), [DriveWorld-VLA, ICML 2026](https://proceedings.mlr.press/v306/jia26f.html), [NAVSIM v2 metric definitions](https://github.com/autonomousvision/navsim/blob/main/docs/metrics.md).
+
+### Deployed-industry comparison is a separate evidence class
+
+A simulation benchmark and an operating driverless service do not measure the same thing. For calibration, Waymo's public safety-impact dashboard reports 271.3 million rider-only miles through June 2026 and compares crash rates against location-adjusted human benchmarks. Waymo reports 95% fewer serious-injury-or-worse crashes and 82% fewer injury-causing crashes in the operating locations covered by that analysis. The same materials distinguish retrospective safety-impact analysis from pre-deployment release readiness, which Waymo evaluates through its Safety Framework and Safety Case. These are company-published operational results, not results Symthaea can meaningfully claim to match through simulation alone. See [Waymo Safety Impact and methodology](https://waymo.com/safety/impact/).
+
+Tesla's public FSD (Supervised) safety report is another, different form of fleet telemetry: it describes collision event definitions and compares FSD (Supervised) driving against manually driven Tesla vehicles with and without active safety features. Tesla counts a collision as FSD-engaged when FSD was active at any point in the five seconds before the event, and does not assign fault in its reported collision data. Its event definitions, road mix, control mode and comparison population differ from Waymo's and from simulator benchmarks. Do not compare raw cross-company rates without reconstructing the methodology and denominators. See [Tesla's FSD (Supervised) Vehicle Safety Report and methodology](https://www.tesla.com/fsd/safety).
+
+### NVIDIA Alpamayo as a current platform comparator
+
+NVIDIA is the most useful industry comparator for the teacher-to-edge-student strategy:
+
+- **Alpamayo 2 Super:** marketed as a 34B-class VLA foundation model. The current NIM documentation describes roughly 35.8B total checkpoint parameters, comprising a 32B vision-language reasoner and approximately 2.3B diffusion action expert. It consumes multi-camera video, ego-motion and navigation context and emits trajectories, Chain-of-Causation reasoning, meta-actions, VQA and auto-labels. The published BF16 path requires at least 80 GB GPU memory; FP8/runtime profiles are also documented.
+- **Alpamayo 2 Edge:** a 2B in-vehicle reasoning VLA designed for DRIVE AGX Thor. NVIDIA's 10 November 2026 technical post describes adaptive reasoning, multi-camera video and ego-motion inputs, offline distillation from Super-generated causal labels, AlpaGym closed-loop RL post-training, multi-resolution inputs and speculative decoding. The NVIDIA developer hub still labels Edge **Coming Soon**; treat it as a newly announced target platform, not as a generally available product.
+- **AlpaSim / AlpaGym:** NVIDIA's closed-loop simulator and reinforcement-learning infrastructure, which raises the bar for simulator throughput, actor fidelity, rendering, compute scheduling and post-training.
+- **Physical AI datasets and CoC labels:** a high-capacity source of teacher supervision, rare-event labels and evaluation signals.
+
+This creates a direct experimental question for Symthaea:
+
+1. **Teacher/student, not model-size theatre.** Use Alpamayo 2 Super as an offline teacher/critic where weights, dataset access, licences and compute permit. Compare the resulting compact HDC/LTC student to Edge-class deployment constraints—not to a 34B teacher running with an unconstrained compute budget.
+2. **Measure the Pareto frontier.** Plot closed-loop competence against p95/p99 decision latency, peak memory, measured joules per decision, model size, training transitions and human intervention minutes. Report the exact hardware, precision, batch, sensor set and teacher privilege.
+3. **Make temporal irregularity a first-class test.** Compare fixed-rate transformer/VLA policies and HDC/LTC under variable frame intervals, camera loss, stale observations, clock skew, delayed actions and recovery. This is a concrete way to exploit continuous-time state dynamics, if the ablation demonstrates a gain.
+4. **Ground explanations in evidence.** A Chain-of-Causation text or a generated explanation is not an assurance case. Link claims to policy-visible observation IDs, candidate-action consequences, uncertainty, and independently qualified SAM evidence.
+5. **Exploit closed-loop learning efficiency.** World-In-World reports that visual fidelity alone does not guarantee task success, action-observation post-training is more effective than upgrading the pretrained video generator, and additional inference compute can improve closed-loop task success. This supports measuring decision value per unit of inference compute—not just image quality.
+6. **Use deployment perturbations as core evaluation.** Bench2Drive-Robust studies camera frame drops/partial observations, ego-state estimation noise and compute-induced control delay. Those faults should be in the first robustness suite, not left for a future safety phase.
+
+Sources: [NVIDIA Alpamayo 2 Super NIM documentation](https://docs.nvidia.com/nim/alpamayo/2.0.0/overview), [Alpamayo 2 Super release and workflows](https://developer.nvidia.com/blog/generate-trajectories-reasoning-traces-and-auto-labels-with-nvidia-alpamayo-2-super), [NVIDIA Alpamayo 2 Edge technical post, 10 November 2026](https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/), [NVIDIA developer availability status](https://developer.nvidia.com/drive), [World-In-World, ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html), [Bench2Drive-Robust](https://arxiv.org/abs/2605.18059).
+
+**Strategic implication:** Symthaea is currently a research architecture and specification programme, not an industry-level autonomous-driving product. The credible path is: reproduce public research baselines; show a predeclared architectural or learning-efficiency advantage under matched budgets; validate robustness and recovery independently; then build a separately governed, staged physical evidence case. Fleet mileage and safety-case evidence are a long-term validation destination, not a near-term leaderboard target.
+
+### What would count as a Symthaea advantage
+
+The target is not “beat every model on every leaderboard.” It is a **matched-budget capability frontier** with independently replayable evidence.
+
+Compare these arms under the same policy-visible sensors, action space, scenario seeds, training transitions and deployment hardware where possible:
+- existing engineered-state HDC/LTC vehicle controller;
+- camera encoder + structured HDC scene binding + CfC/LTC;
+- matched GRU/LSTM;
+- matched compact temporal transformer;
+- action-conditioned latent world-model + compact policy;
+- Alpamayo 2 Super teacher (offline) and Alpamayo 2 Edge when its reproducible weights/runtime become accessible;
+- human demonstrations/corrections as an instructor reference, not as an autonomous baseline.
+
+Predeclare a scorecard rather than collapsing outcomes into one weighted number:
+
+| Axis | Comparison / target |
+|---|---|
+| Closed-loop competence | Reproduce Bench2Drive v0.0.4 LEAD reference: 95.59 Driving Score / 87.28% success; then exceed it on the same locked route/evaluator split with confidence intervals and no worst-family regression |
+| NAVSIM planning | Match the exact NAVSIM v2 task/metric track; current external references include NTR 90.9 EPDMS on the end-to-end driving board and DriveWorld-VLA 86.8 EPDMS in its paper protocol |
+| Robustness | Compare degradation under frame drop, partial camera, stale frames, localization/speed/odometry noise and inference delay; retain per-fault severity curves and worst-family tails |
+| Action-conditioned model | Measure multi-step trajectory error, calibration/coverage, action-ranking regret, counterfactual sensitivity and actor-response consistency—not just next-frame similarity |
+| Apprenticeship efficiency | At matched starting checkpoint and compute, target at least 20% fewer simulator transitions or human-intervention minutes to the same frozen skill gate, subject to the #4550 non-regression constraints |
+| Runtime efficiency | Report p50/p95/p99 end-to-end policy latency, memory, model bytes and measured joules per decision/route on named hardware; only claim advantage on a matched platform |
+| Recoverability | Preserve feasible option count, minimum safe fallback quality, recovery time/depth, residual decision time and SAM-qualified uncertainty; an average-score win does not override a failed hard gate |
+| Evidence quality | Exact episode/branch denominators, fresh-process replay, source/teacher/evaluator privilege separation, all failed/censored runs retained |
+
+A result should be called “better than SOTA” only when the exact protocol and resource budget match, the improvement survives independent seeds and confidence intervals, and no critical worst-family, calibration, latency or recoverability gate regresses. A higher average score on a different data split is not a SOTA comparison.
+
+The strongest differentiator hypothesis is **competence per unit of scarce inference and learning resource under partial, asynchronous, faulted observation**. A smaller HDC/LTC student could win even if it does not beat the teacher's absolute score, provided it has a reproducible edge in data efficiency, event-time robustness, recovery, memory or energy at comparable competence. That hypothesis remains unproven until the matched ablations run.
+
+The 10 November 2026 literature snapshot includes:
+- DriveWorld-VLA (ICML 2026), which reports NAVSIMv1 PDMS 91.3 and NAVSIMv2 EPDMS 86.8 for its own protocol.
+- DriveVLA-W0 (ICLR 2026), which combines future-image world modeling with VLA planning and reports experiments on NAVSIM plus a substantially larger in-house dataset.
+- World-In-World (ICLR 2026), which argues that visual fidelity alone is insufficient and emphasizes closed-loop controllability/action-observation training.
+- Bench2Drive-Robust (2026), which explicitly studies system-side perturbations including camera failures, localization noise and inference delay.
+- DrivingGen (ICLR 2026), which separates generated-video quality, trajectory plausibility, temporal consistency and controllability.
+
+These results establish strong comparators and evaluation dimensions, not a direct ranking of Symthaea.
+
+## 10. Integration and ownership
+
+This benchmark consumes, rather than reimplements:
+- Symtropy #4536 observation/action/transition and event receipts;
+- Symtropy deterministic scenario execution and replay owners;
+- Symtropy reciprocal actor execution owners;
+- Symthaea #11414 model and apprenticeship ablation programme;
+- SAM option preservation, counterexample discovery, decision-sensitive measurement, fragility and independent runtime assurance.
+
+No second safety authority or duplicate option evaluator is introduced.
+
+## 11. Current implementation boundary
+
+This benchmark PR remains a research protocol, machine-readable manifest and JSON Schema. It does not itself add a trained model, simulator or driving result.
+
+### Executable input and environment increments
+
+- [Symthaea #11476 / draft PR #11480 — camera-conditioned driving input](https://github.com/Luminous-Dynamics/symthaea/pull/11480) composes the existing Vision Manifold and vehicle proprioceptive HDC encoder. It freezes Vision Manifold parameter learning, derives elapsed time from monotonic camera timestamps, fuses the 16,384D visual/proprioceptive states and emits a receipt chaining prior visual and vehicle-state digests. It does **not** call a vehicle controller or establish a trained camera-conditioned policy. Exact-head Rust verification was not confirmed when this benchmark snapshot was authored.
+- [Symtropy #4595 / draft PR #4616 — action-conditioned offscreen camera renderer](https://github.com/Luminous-Dynamics/symtropy/pull/4616) adds a standalone Rust 1.96 reference backend. It renders deterministic RGB frames from immutable action-linked world snapshots using fixed-point camera transforms, integer projection/rasterization, a z-buffer and near/far segment clipping. It includes straight/curved road polylines, a lead vehicle and pedestrian fixture, separate capture/render/delivery clocks, sequenced missing-frame records, and separate policy/evaluator receipt APIs. Three JSON Schemas define the policy receipt, evaluator audit and missing-frame event. Forty-one known-answer/adversarial tests are authored, including a 20-tick serialized snapshot replay fixture. The PR's latest exact-head checks were pending/queued when inspected; neither state is a pass. This is a bounded software camera/test backend—not a photorealistic renderer, CARLA replacement, validated sensor model or traffic simulator. No local Rust compiler is available in this authoring environment; CI is the first compilation authority.
+- [Symtropy #4618 — fresh-process driving observation replay](https://github.com/Luminous-Dynamics/symtropy/issues/4618) is the next integration task. It links rendered frames, applied-action receipts, vehicle-state records and the Symthaea fused-input receipt chain, then verifies all digests after replay in a new process. Its first fixture is deliberately non-learning: it proves causal/replay plumbing before any camera-conditioned policy-performance claim.
+- Symtropy [#4556 — recoverable driving branch evidence auditor](https://github.com/Luminous-Dynamics/symtropy/pull/4556) validates finite branch records, actor-response provenance, explicit exogenous-randomness pairing, privilege and denominator accounting. It cannot prove upstream causal declarations are physically true.
+- Symtropy [#4575 — deadline-aware decision-value experience selector](https://github.com/Luminous-Dynamics/symtropy/pull/4575) compares seven sampling strategies and rejects unqualified, low-value or late SAM-guided queries.
+- Symtropy [#4581 — deadline-aware anytime imagination allocator](https://github.com/Luminous-Dynamics/symtropy/pull/4581) addresses adaptive inference-time compute. Its queued/pending checks are not pass evidence.
+
+These increments are deliberately separate owners. Symtropy owns snapshot execution, rendered policy observations and action/transition receipts; Symthaea owns learner inputs and training; SAM qualifies decision value, recoverability and independent runtime assurance. Do not fuse the evaluator audit into policy input, or promote the camera bridge output to a controller without a separately trained and matched policy.
+
+### Next executable gate
+
+Execute [#4618 — fresh-process driving observation replay](https://github.com/Luminous-Dynamics/symtropy/issues/4618) using the #4536 action/observation/transition contract:
+
+1. render the post-action immutable world snapshot through PR #4616;
+2. pass only pixels plus the policy receipt and matched vehicle-state record into the Symthaea #11480 bridge;
+3. preserve candidate policy output separately from the action actually applied;
+4. serialize the exact episode manifest and all expected inputs;
+5. replay in a fresh process and verify frame, observation, fused-input, action, transition and branch digests;
+6. run matched HDC/LTC, GRU/LSTM, compact transformer and teacher-student ablations only after the integration replay passes.
+
+The first fixture is non-learning and validates causality/replay, not driving performance. Only after a policy has been trained on the fused input and evaluated against matched baselines should we report camera-conditioned closed-loop results.
+
+## References
+
+- [DriveWorld-VLA, ICML 2026](https://proceedings.mlr.press/v306/jia26f.html)
+- [DriveVLA-W0, ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/0d70423f59c5fdd24f0dd3fa52e34623-Abstract-Conference.html)
+- [World-In-World, ICLR 2026](https://proceedings.iclr.cc/paper_files/paper/2026/hash/5b4263be85820683d78675cc18d2efc7-Abstract-Conference.html)
+- [DrivingGen, ICLR 2026](https://drivinggen-bench.github.io/)
+- [Bench2Drive v0.0.4 release results and data split](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/docs/v004_update.md)
+- [Bench2Drive-Robust paper](https://arxiv.org/abs/2605.18059) and [code](https://github.com/Thinklab-SJTU/Bench2Drive-Robust)
+- [NVIDIA Alpamayo product overview](https://www.nvidia.com/en-us/solutions/autonomous-vehicles/alpamayo/)
+- [NVIDIA Alpamayo 2 Super NIM technical documentation](https://docs.nvidia.com/nim/alpamayo/2.0.0/overview)
+- [NVIDIA Alpamayo 2 Super open-model workflows](https://developer.nvidia.com/blog/generate-trajectories-reasoning-traces-and-auto-labels-with-nvidia-alpamayo-2-super)
+- [NVIDIA Alpamayo 2 Edge onboard compute/latency post, 10 November 2026](https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/)
+- [NVIDIA developer availability status for Alpamayo 2 Edge](https://developer.nvidia.com/drive)
+- [Waymo Safety Impact dashboard](https://waymo.com/safety/impact/)
+- [Tesla FSD (Supervised) Safety Report](https://www.tesla.com/fsd/safety)
+- [NAVSIM v2 end-to-end driving test board](https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test)
+- [NAVSIM v2 end-to-end planning test board](https://www.sota2.com/research/sota/end-to-end-planning-on-navsim-v2-test)
+- [NAVSIM v2 metric definitions](https://github.com/autonomousvision/navsim/blob/main/docs/metrics.md)
+- [Bench2Drive v0.0.4 leaderboard snapshot](https://github.com/Thinklab-SJTU/Bench2Drive/blob/0.0.4/README.md)
+- [Waymo Open Dataset challenges](https://waymo.com/open/challenges/)
+- [CARLA Leaderboard 2.1 status](https://leaderboard.carla.org/get_started_v2_1/)

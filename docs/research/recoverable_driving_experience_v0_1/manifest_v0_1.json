@@ -1,0 +1,348 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "recoverable-driving-experience-v0.1",
+  "status": "protocol_specification_not_executed",
+  "owner_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4550",
+  "related_owners": {
+    "environment": "https://github.com/Luminous-Dynamics/symtropy/issues/4536",
+    "curriculum": "https://github.com/Luminous-Dynamics/symtropy/pull/4538",
+    "learner": "https://github.com/Luminous-Dynamics/symthaea/issues/11414"
+  },
+  "claim_ceiling": "This manifest specifies a research protocol only. Protocol conformance does not establish a driving model, simulator competence, real-world transfer, roadworthiness, safety, certification or SAE Level 4/5 capability.",
+  "hypothesis": {
+    "statement": "At matched initial checkpoint, initial corpus, action space, simulator exposure, human intervention and compute budgets, decision-sensitive experience selection improves sample efficiency and/or held-out competence without worsening predeclared worst-family constraints, calibration, fallback integrity or deadline compliance.",
+    "falsification": "A null result or an outcome favouring a simpler sampler is valid. Average score improvement with a predeclared guardrail regression is not a positive result."
+  },
+  "sampling_arms": [
+    {
+      "id": "uniform",
+      "kind": "baseline",
+      "description": "Uniform over eligible episodes and scenario families."
+    },
+    {
+      "id": "rarity",
+      "kind": "active_sampler",
+      "description": "Frequency or inverse-frequency based scenario selection."
+    },
+    {
+      "id": "entropy",
+      "kind": "active_sampler",
+      "description": "Predictive entropy or ensemble disagreement only."
+    },
+    {
+      "id": "prediction_error",
+      "kind": "active_sampler",
+      "description": "Recent temporal or world-model prediction error."
+    },
+    {
+      "id": "decision_margin",
+      "kind": "active_sampler",
+      "description": "Near action-ranking boundaries or small feasible-set margins."
+    },
+    {
+      "id": "sam_value_of_information",
+      "kind": "sam_guided",
+      "description": "Expected decision-sensitive information value before the relevant decision deadline."
+    },
+    {
+      "id": "sam_recoverability",
+      "kind": "sam_guided",
+      "description": "Option fragility, recovery depth, residual decision time and counterexample evidence."
+    },
+    {
+      "id": "fixed_human_intervention",
+      "kind": "human_reference",
+      "description": "Fixed-rate instructor interventions; not an autonomous policy."
+    }
+  ],
+  "branch_point_contract": {
+    "required_identity_fields": [
+      "episode_id",
+      "branch_id",
+      "parent_branch_id",
+      "observation_history_digest",
+      "checkpoint_digest",
+      "recurrent_state_policy_id",
+      "simulator_revision",
+      "renderer_revision",
+      "vehicle_model_revision",
+      "map_revision",
+      "scenario_revision",
+      "actor_policy_revision",
+      "traffic_rule_profile_id",
+      "action_space_id",
+      "intervention_id",
+      "initial_state_manifest_digest"
+    ],
+    "policy_visible_fields": [
+      "observation_history_digest",
+      "observation_acquisition_times",
+      "observation_delivery_times",
+      "declared_sensor_profile",
+      "declared_proprioception",
+      "checkpoint_digest",
+      "recurrent_state_policy_id"
+    ],
+    "evaluator_only_fields": [
+      "simulator_truth_digest",
+      "oracle_action_outcomes",
+      "future_observations",
+      "future_branch_outcomes",
+      "evaluator_labels"
+    ],
+    "random_event_rules": {
+      "stable_exogenous_key_required": true,
+      "exogenous_invariance_must_be_declared": true,
+      "causal_descendants_must_be_resimulated": true,
+      "old_actor_actions_may_not_be_replayed_as_counterfactual_responses": true,
+      "unknown_causal_status": "unpaired_unknown"
+    }
+  },
+  "budget_profiles": [
+    {
+      "id": "exposure_matched",
+      "required": [
+        "simulator_transitions",
+        "scenario_exposures",
+        "model_update_opportunities",
+        "human_intervention_budget"
+      ],
+      "purpose": "Isolate learning value from matched experience exposure."
+    },
+    {
+      "id": "cost_matched",
+      "required": [
+        "wall_clock_budget",
+        "compute_budget",
+        "memory_budget",
+        "human_intervention_budget"
+      ],
+      "purpose": "Measure practical learning efficiency under matched cost."
+    }
+  ],
+  "model_comparison_arms": [
+    {
+      "id": "existing_state_hdc_ltc",
+      "role": "reproduction_baseline"
+    },
+    {
+      "id": "visual_gru_lstm",
+      "role": "matched_recurrent_baseline"
+    },
+    {
+      "id": "visual_compact_transformer",
+      "role": "matched_attention_baseline"
+    },
+    {
+      "id": "visual_hdc_scene_ltc",
+      "role": "hybrid_temporal_candidate"
+    },
+    {
+      "id": "hybrid_action_world_model",
+      "role": "action_conditioned_world_model_candidate"
+    },
+    {
+      "id": "hybrid_world_model_sam",
+      "role": "assurance_guided_learning_candidate"
+    }
+  ],
+  "split_dimensions": [
+    "map",
+    "route_geometry",
+    "scenario_family",
+    "actor_policy_family",
+    "weather_lighting",
+    "vehicle_profile",
+    "traffic_convention",
+    "sensor_fault_family",
+    "deployment_perturbation_family"
+  ],
+  "metrics": [
+    {
+      "id": "transitions_to_skill_threshold",
+      "family": "learning_efficiency",
+      "direction": "lower",
+      "definition": "New simulator transitions until a preregistered skill threshold is achieved on the frozen validation gate."
+    },
+    {
+      "id": "human_minutes_to_skill_threshold",
+      "family": "learning_efficiency",
+      "direction": "lower",
+      "definition": "Instructor intervention minutes until the same frozen skill threshold."
+    },
+    {
+      "id": "competence_auc_by_transitions",
+      "family": "learning_efficiency",
+      "direction": "higher",
+      "definition": "Area under the frozen competence versus cumulative simulator-transition curve."
+    },
+    {
+      "id": "competence_auc_by_human_minutes",
+      "family": "learning_efficiency",
+      "direction": "higher",
+      "definition": "Area under the frozen competence versus cumulative instructor-time curve."
+    },
+    {
+      "id": "heldout_family_success",
+      "family": "generalization",
+      "direction": "higher",
+      "definition": "Task success per sealed map/scenario/actor/fault family."
+    },
+    {
+      "id": "worst_family_constraint_rate",
+      "family": "guardrail",
+      "direction": "lower",
+      "definition": "Worst per-family rate of simulator-defined hard-constraint violations."
+    },
+    {
+      "id": "action_conditioned_forecast_score",
+      "family": "world_model",
+      "direction": "lower",
+      "definition": "Proper probabilistic score for future ego/actor state and observation variables, selected according to the declared predictive distribution."
+    },
+    {
+      "id": "prediction_set_coverage",
+      "family": "world_model",
+      "direction": "target",
+      "definition": "Empirical coverage of preregistered prediction sets at their declared nominal levels."
+    },
+    {
+      "id": "action_ranking_regret",
+      "family": "decision_quality",
+      "direction": "lower",
+      "definition": "Post-decision evaluator-only utility gap between the best admissible candidate and the selected admissible candidate; hard-constraint violations are reported separately."
+    },
+    {
+      "id": "query_decision_change_precision",
+      "family": "query_value",
+      "direction": "higher",
+      "definition": "Fraction of requested information events that alter action admissibility, action ranking, recovery classification or uncertainty disposition."
+    },
+    {
+      "id": "query_outcome_utility",
+      "family": "query_value",
+      "direction": "higher",
+      "definition": "Matched held-out outcome difference after the answer/correction versus a no-query continuation."
+    },
+    {
+      "id": "recoverability_depth",
+      "family": "recoverability",
+      "direction": "higher",
+      "definition": "Independently qualified SAM recoverability depth under a named state, action and fault profile."
+    },
+    {
+      "id": "fallback_admissibility",
+      "family": "recoverability",
+      "direction": "higher",
+      "definition": "Fraction of evaluated decision points with an evidence-qualified fallback that meets the declared deadline and resource contract."
+    },
+    {
+      "id": "residual_decision_time",
+      "family": "recoverability",
+      "direction": "higher",
+      "definition": "Time remaining before declared recovery alternatives become infeasible, under named simulator and actuator semantics."
+    },
+    {
+      "id": "p95_policy_latency",
+      "family": "resources",
+      "direction": "lower",
+      "definition": "p95 end-to-end policy computation latency under a declared measurement boundary."
+    },
+    {
+      "id": "energy_per_transition",
+      "family": "resources",
+      "direction": "lower",
+      "definition": "Measured energy per simulator transition only when source-grade raw telemetry is available."
+    },
+    {
+      "id": "evidence_denominator_completeness",
+      "family": "evidence",
+      "direction": "higher",
+      "definition": "Observed/expected episode and branch reconciliation with failures, incomplete and censored records retained."
+    },
+    {
+      "id": "fresh_process_replay_agreement",
+      "family": "evidence",
+      "direction": "higher",
+      "definition": "Exact agreement rate for receipt identities and declared replay outputs in a fresh process."
+    }
+  ],
+  "negative_controls": [
+    "simulator_truth_leakage",
+    "future_observation_or_action_leakage",
+    "teacher_blending_in_frozen_evaluation",
+    "stale_or_duplicate_frame_admitted_as_fresh",
+    "counterfactual_replay_of_old_actor_actions",
+    "unreclassified_intervention_dependent_randomness",
+    "easy_scene_only_sampling",
+    "always_stop_without_task_progress",
+    "reward_hacking_against_hard_constraints",
+    "train_holdout_family_overlap",
+    "episode_denominator_loss",
+    "checkpoint_or_recurrent_state_mutation",
+    "future_outcome_access_by_query_selector",
+    "visually_plausible_physically_impossible_prediction",
+    "learner_self_certification_of_sam_outputs"
+  ],
+  "promotion_gates": [
+    "protocol_and_synthetic_fixture_conformance",
+    "negative_control_rejection",
+    "exposure_matched_study",
+    "cost_matched_study",
+    "sealed_map_actor_and_fault_family_evaluation",
+    "independent_sam_recoverability_assessment",
+    "fresh_process_replay_and_denominator_reconciliation"
+  ],
+  "prospective_targets": {
+    "status": "not_measured",
+    "active_sampler_minimum_transition_or_human_time_reduction": 0.2,
+    "comparison": "uniform",
+    "same_preregistered_skill_threshold": true,
+    "worst_family_constraints_must_not_regress": true,
+    "heldout_performance_noninferiority_margin": "must_be_preregistered_before_evaluation",
+    "calibration_fallback_and_deadline_gates_must_hold": true,
+    "caveat": "20% is an initial research target, not an achieved result, universal threshold, or safety guarantee."
+  },
+  "external_benchmarks": [
+    {
+      "id": "CARLA_local_closed_loop",
+      "role": "closed_loop_interaction",
+      "caveat": "Pin local simulator and scenario revisions; original public Leaderboard 2.1 submission service is closed."
+    },
+    {
+      "id": "Bench2Drive",
+      "role": "closed_loop_route_and_scenario",
+      "caveat": "Pin version and score semantics; report data, compute, teacher and privilege differences."
+    },
+    {
+      "id": "Bench2Drive_Robust",
+      "role": "deployment_perturbation",
+      "caveat": "Preserve exact frame-drop, partial-observation, state-noise and latency protocols."
+    },
+    {
+      "id": "NAVSIM_v2",
+      "role": "planning_metric",
+      "caveat": "EPDMS includes precomputed follow-up scenes; not a reciprocal online driving simulator."
+    },
+    {
+      "id": "DrivingGen",
+      "role": "generative_world_model",
+      "caveat": "Visual and trajectory quality does not establish driving competence."
+    },
+    {
+      "id": "Waymo_Open_Dataset",
+      "role": "large_scale_data_and_task_evaluation",
+      "caveat": "Confirm dataset license and task-specific protocol; no physical vehicle validation."
+    }
+  ],
+  "execution_status": {
+    "simulator_implemented": false,
+    "visual_policy_implemented": false,
+    "active_sampler_implemented": false,
+    "executable_evaluator_implemented": false,
+    "training_runs_completed": false,
+    "human_demonstrations_recorded": false,
+    "ci_verified": false,
+    "measured_sota_comparison": false
+  }
+}
