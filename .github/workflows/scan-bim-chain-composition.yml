@@ -37,7 +37,7 @@ jobs:
         run: |
           jq -e '
             (.$schema == "https://json-schema.org/draft/2020-12/schema") and
-            (.\$defs.transition.required | index("parent_transition_ids") != null)
+            (.$defs.transition.required | index("parent_transition_ids") != null)
           ' research/scan-bim-representation-continuity-001/schema/representation-continuity-receipt.schema.json
           jq -e '
             (.fixture_version == "0.1") and
