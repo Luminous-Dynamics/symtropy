@@ -324,7 +324,9 @@ fn disposition_rank(value: EvidenceDisposition) -> u8 {
     }
 }
 
-fn aggregate_disposition(values: impl IntoIterator<Item = EvidenceDisposition>) -> AuditDisposition {
+fn aggregate_disposition(
+    values: impl IntoIterator<Item = EvidenceDisposition>,
+) -> AuditDisposition {
     let rank = values.into_iter().map(disposition_rank).max().unwrap_or(0);
     match rank {
         0 => AuditDisposition::Qualified,
@@ -347,12 +349,27 @@ fn validate_snapshot(snapshot: &OptionSnapshot) -> Result<(), LedgerError> {
     for (name, value) in [
         ("mission_id", snapshot.scope.mission_id.as_str()),
         ("robot_id", snapshot.scope.robot_id.as_str()),
-        ("scenario_manifest_digest", snapshot.scope.scenario_manifest_digest.as_str()),
-        ("branch_manifest_digest", snapshot.scope.branch_manifest_digest.as_str()),
-        ("action_domain_digest", snapshot.scope.action_domain_digest.as_str()),
-        ("predecessor_state_digest", snapshot.predecessor_state_digest.as_str()),
+        (
+            "scenario_manifest_digest",
+            snapshot.scope.scenario_manifest_digest.as_str(),
+        ),
+        (
+            "branch_manifest_digest",
+            snapshot.scope.branch_manifest_digest.as_str(),
+        ),
+        (
+            "action_domain_digest",
+            snapshot.scope.action_domain_digest.as_str(),
+        ),
+        (
+            "predecessor_state_digest",
+            snapshot.predecessor_state_digest.as_str(),
+        )
         ("result_state_digest", snapshot.result_state_digest.as_str()),
-        ("observation_partition_digest", snapshot.observation_partition_digest.as_str()),
+        (
+            "observation_partition_digest",
+            snapshot.observation_partition_digest.as_str(),
+        )
     ] {
         if !nonempty(value) {
             return Err(LedgerError::MissingReceiptDigest(name.to_owned()));
@@ -383,17 +400,30 @@ fn validate_scope(previous: &OptionSnapshot, next: &OptionSnapshot) -> Result<()
     Ok(())
 }
 
-fn validate_reversibility(action_id: &str, reversibility: &Reversibility) -> Result<(), LedgerError> {
+fn validate_reversibility(
+    action_id: &str,
+    reversibility: &Reversibility,
+) -> Result<(), LedgerError> {
     match reversibility {
         Reversibility::Irreversible => Ok(()),
-        Reversibility::Conditional { required_preconditions }
-        | Reversibility::Temporary { required_preconditions } => {
+        Reversibility::Conditional {
+            required_preconditions,
+        }
+        | Reversibility::Temporary {
+            required_preconditions,
+        } => {
             if required_preconditions.is_empty() {
-                return Err(LedgerError::InvalidReversibilityDeclaration(action_id.to_owned()));
+                return Err(LedgerError::InvalidReversibilityDeclaration(
+                    action_id.to_owned(),
+                ));
             }
             for precondition in required_preconditions {
-                if !nonempty(&precondition.precondition_id) || !nonempty(&precondition.receipt_digest) {
-                    return Err(LedgerError::InvalidReversibilityDeclaration(action_id.to_owned()));
+                if !nonempty(&precondition.precondition_id)
+                    || !nonempty(&precondition.receipt_digest)
+                {
+                    return Err(LedgerError::InvalidReversibilityDeclaration(
+                        action_id.to_owned(),
+                    ));
                 }
             }
             Ok(())
@@ -465,7 +495,9 @@ pub fn audit_transition(
             | OptionChangeEvidence::Added { action_id, .. } => action_id,
         };
         if !nonempty(action_id) || change_map.insert(action_id.clone(), change).is_some() {
-            return Err(LedgerError::DuplicateOrUnexpectedChangeEvidence(action_id.clone()));
+            return Err(LedgerError::DuplicateOrUnexpectedChangeEvidence(
+                action_id.clone(),
+            ));
         }
     }
 
@@ -477,8 +509,10 @@ pub fn audit_transition(
     }
 
     let mut statuses = vec![previous.disposition, next.disposition];
-    if !previous.branch_manifest_complete || !next.branch_manifest_complete
-        || !previous.action_domain_complete || !next.action_domain_complete
+    if !previous.branch_manifest_complete
+        || !next.branch_manifest_complete
+        || !previous.action_domain_complete
+        || !next.action_domain_complete
     {
         statuses.push(EvidenceDisposition::Unknown);
     }
@@ -504,8 +538,12 @@ pub fn audit_transition(
                     return Err(LedgerError::MissingReceiptDigest(action_id.clone()));
                 }
                 statuses.push(*disposition);
-                if let Reversibility::Conditional { required_preconditions }
-                    | Reversibility::Temporary { required_preconditions } = reversibility
+                if let Reversibility::Conditional {
+                    required_preconditions,
+                }
+                | Reversibility::Temporary {
+                    required_preconditions,
+                } = reversibility
                 {
                     statuses.extend(required_preconditions.iter().map(|p| p.disposition));
                 }
@@ -548,10 +586,13 @@ pub fn audit_transition(
                 if !nonempty(receipt_digest) {
                     return Err(LedgerError::MissingReceiptDigest(action_id.clone()));
                 }
-                if preconditions.iter().any(|p| {
-                    !nonempty(&p.precondition_id) || !nonempty(&p.receipt_digest)
-                }) {
-                    return Err(LedgerError::InvalidReversibilityDeclaration(action_id.clone()));
+                if preconditions
+                    .iter()
+                    .any(|p| !nonempty(&p.precondition_id) || !nonempty(&p.receipt_digest))
+                {
+                    return Err(LedgerError::InvalidReversibilityDeclaration(
+                        action_id.clone(),
+                    ));
                 }
                 statuses.push(*disposition);
                 statuses.extend(preconditions.iter().map(|p| p.disposition));
@@ -629,7 +670,11 @@ mod tests {
         }
     }
 
-    fn remove(action_id: &str, cause: LossCause, reversibility: Reversibility) -> OptionChangeEvidence {
+    fn remove(
+        action_id: &str,
+        cause: LossCause,
+        reversibility: Reversibility,
+    ) -> OptionChangeEvidence {
         OptionChangeEvidence::Removed {
             action_id: action_id.into(),
             cause,
@@ -639,7 +684,11 @@ mod tests {
         }
     }
 
-    fn add(action_id: &str, previous: &OptionSnapshot, next: &OptionSnapshot) -> OptionChangeEvidence {
+    fn add(
+        action_id: &str,
+        previous: &OptionSnapshot,
+        next: &OptionSnapshot,
+    ) -> OptionChangeEvidence {
         OptionChangeEvidence::Added {
             action_id: action_id.into(),
             cause: AdditionCause::ThermalCooldown,
@@ -697,17 +746,21 @@ mod tests {
         let report = audit_transition(
             &previous,
             &next,
-            &transition(&previous, &next, vec![remove(
-                "step-left",
-                LossCause::ThermalDerating,
-                Reversibility::Conditional {
-                    required_preconditions: vec![PreconditionEvidence {
-                        precondition_id: "motor-below-requal-temp".into(),
-                        receipt_digest: "temperature-receipt".into(),
-                        disposition: EvidenceDisposition::Qualified,
-                    }],
-                },
-            )]),
+            &transition(
+                &previous,
+                &next,
+                vec![remove(
+                    "step-left",
+                    LossCause::ThermalDerating,
+                    Reversibility::Conditional {
+                        required_preconditions: vec![PreconditionEvidence {
+                            precondition_id: "motor-below-requal-temp".into(),
+                            receipt_digest: "temperature-receipt".into(),
+                            disposition: EvidenceDisposition::Qualified,
+                        }],
+                    },
+                )],
+            ),
         )
         .expect("valid transition");
         assert_eq!(report.disposition, AuditDisposition::Qualified);
@@ -720,7 +773,8 @@ mod tests {
     fn missing_loss_cause_remains_unknown() {
         let previous = snapshot(1, "s0", "s1", &["retreat", "step-left"]);
         let next = snapshot(2, "s1", "s2", &["retreat"]);
-        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![])).unwrap();
+        let report =
+            audit_transition(&previous, &next, &transition(&previous, &next, vec![])).unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
         assert!(report.result_option_ids.is_empty());
     }
@@ -743,7 +797,12 @@ mod tests {
         if let OptionChangeEvidence::Removed { disposition, .. } = &mut evidence {
             *disposition = EvidenceDisposition::Unknown;
         }
-        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![evidence])).unwrap();
+        let report = audit_transition(
+            &previous,
+            &next,
+            &transition(&previous, &next, vec![evidence]),
+        )
+        .unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
         assert!(report.result_option_ids.is_empty());
     }
@@ -752,10 +811,22 @@ mod tests {
     fn duplicate_change_evidence_is_rejected() {
         let previous = snapshot(1, "s0", "s1", &["retreat", "step-left"]);
         let next = snapshot(2, "s1", "s2", &["retreat"]);
-        let evidence = transition(vec![
-            remove("step-left", LossCause::EnergyDepletion, Reversibility::Irreversible),
-            remove("step-left", LossCause::EnergyDepletion, Reversibility::Irreversible),
-        ]);
+        let evidence = transition(
+            &previous,
+            &next,
+            vec![
+                remove(
+                    "step-left",
+                    LossCause::EnergyDepletion,
+                    Reversibility::Irreversible,
+                ),
+                remove(
+                    "step-left",
+                    LossCause::EnergyDepletion,
+                    Reversibility::Irreversible,
+                ),
+            ],
+        );
         assert!(matches!(
             audit_transition(&previous, &next, &evidence),
             Err(LedgerError::DuplicateOrUnexpectedChangeEvidence(_))
@@ -813,7 +884,15 @@ mod tests {
         let report = audit_transition(
             &previous,
             &next,
-            &transition(&previous, &next, vec![remove("step-left", LossCause::ContactUncertainty, Reversibility::Irreversible)]),
+            &transition(
+                &previous,
+                &next,
+                vec![remove(
+                    "step-left",
+                    LossCause::ContactUncertainty,
+                    Reversibility::Irreversible,
+                )],
+            ),
         )
         .unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
@@ -851,11 +930,19 @@ mod tests {
         let previous = snapshot(1, "s0", "s1", &["retreat"]);
         let next = snapshot(2, "s1", "s2", &["retreat", "step-left"]);
         let mut evidence = add("step-left", &previous, &next);
-        if let OptionChangeEvidence::Added { predecessor_state_digest, .. } = &mut evidence {
+        if let OptionChangeEvidence::Added {
+            predecessor_state_digest,
+            ..
+        } = &mut evidence
+        {
             *predecessor_state_digest = "stale-state".into();
         }
         assert!(matches!(
-            audit_transition(&previous, &next, &transition(&previous, &next, vec![evidence])),
+            audit_transition(
+                &previous,
+                &next,
+                &transition(&previous, &next, vec![evidence])
+            ),
             Err(LedgerError::TransitionReceiptBindingMismatch(_))
         ));
     }
@@ -927,8 +1014,18 @@ mod tests {
             remove("step-right", LossCause::EnergyDepletion, Reversibility::Irreversible),
             remove("step-left", LossCause::ThermalDerating, Reversibility::Irreversible),
         ];
-        let a = audit_transition(&previous_a, &next_a, &transition(&previous_a, &next_a, changes_a)).unwrap();
-        let b = audit_transition(&previous_b, &next_b, &transition(&previous_b, &next_b, changes_b)).unwrap();
+        let a = audit_transition(
+            &previous_a,
+            &next_a,
+            &transition(&previous_a, &next_a, changes_a),
+        )
+        .unwrap();
+        let b = audit_transition(
+            &previous_b,
+            &next_b,
+            &transition(&previous_b, &next_b, changes_b),
+        )
+        .unwrap();
         assert_eq!(a, b);
     }
 
