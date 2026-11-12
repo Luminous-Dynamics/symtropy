@@ -344,6 +344,67 @@ mod tests {
     }
 
     #[test]
+    fn cruise_shaft_power_feeds_the_mission_energy_ledger() {
+        use crate::mission_energy::{
+            evaluate_mission, BatteryEnvelope, FlightPhase, MissionDefinition, MissionSegment,
+            SegmentPurpose,
+        };
+
+        let estimate = estimate_steady_level_cruise(&cruise_config()).unwrap();
+        let mission = MissionDefinition {
+            mission_id: "synthetic-fixed-wing-cruise".to_owned(),
+            passenger_count: Some(4),
+            payload_mass_kg: Some(400.0),
+            segments: vec![
+                MissionSegment {
+                    id: "cruise".to_owned(),
+                    purpose: SegmentPurpose::PlannedMission,
+                    phase: FlightPhase::Cruise,
+                    duration_s: 3_600.0,
+                    distance_m: 180_000.0,
+                    average_shaft_power_w: estimate.propulsor_shaft_power_w,
+                    peak_shaft_power_w: estimate.propulsor_shaft_power_w,
+                    peak_duration_s: 0.0,
+                    auxiliary_dc_power_w: 2_000.0,
+                    inverter_efficiency: 0.97,
+                    motor_efficiency: 0.95,
+                },
+                MissionSegment {
+                    id: "reserve-hold".to_owned(),
+                    purpose: SegmentPurpose::Reserve,
+                    phase: FlightPhase::Hold,
+                    duration_s: 600.0,
+                    distance_m: 0.0,
+                    average_shaft_power_w: 12_000.0,
+                    peak_shaft_power_w: 12_000.0,
+                    peak_duration_s: 0.0,
+                    auxiliary_dc_power_w: 1_000.0,
+                    inverter_efficiency: 0.97,
+                    motor_efficiency: 0.95,
+                },
+            ],
+        };
+        let battery = BatteryEnvelope {
+            rated_dc_energy_wh_at_reference: 120_000.0,
+            state_of_health: 0.9,
+            initial_state_of_charge: 0.95,
+            minimum_state_of_charge: 0.10,
+            max_continuous_dc_power_w: 90_000.0,
+            max_peak_dc_power_w: 110_000.0,
+            max_peak_duration_s: 30.0,
+        };
+
+        let ledger = evaluate_mission(&mission, &battery).unwrap();
+        let expected_cruise_bus_power =
+            estimate.propulsor_shaft_power_w / (0.97 * 0.95) + 2_000.0;
+        assert!(
+            (ledger.segments[0].average_dc_power_w - expected_cruise_bus_power).abs() < 1e-8
+        );
+        assert!(ledger.passes_initial_screen());
+        assert!(ledger.energy_margin_wh > 0.0);
+    }
+
+    #[test]
     fn unsupported_atmosphere_altitude_is_rejected() {
         assert!(matches!(
             standard_atmosphere(12_000.0),
