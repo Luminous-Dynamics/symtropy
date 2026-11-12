@@ -518,6 +518,17 @@ impl NonreciprocalVicsekModel {
         }
     }
 
+    /// Clear cumulative source-style influence statistics after a declared burn-in.
+    ///
+    /// The current source study discards the first 1,000 steps before computing its
+    /// information/influence summaries. Call this at the registered analysis start tick
+    /// to make the subsequent A_at/A_ta summaries use only post-burn-in frames.
+    pub fn reset_influence_accumulator(&mut self) {
+        self.cumulative_absolute_components.fill(0.0);
+        self.cumulative_signed_components.fill(0.0);
+        self.influence_frames = 0;
+    }
+
     pub fn influence_component(
         &self,
         receiver: usize,
