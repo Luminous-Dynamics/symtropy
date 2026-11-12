@@ -330,7 +330,9 @@
     "the exact published DX2026 FTP75 Standard f_pim -10% boundary is retained as an ambiguity falsification case",
     "the same f_pim -10% magnitude under FTP75 Highway is evaluated using a separate regime-specific catalogue and cannot transfer singleton confidence back to Standard",
     "the published WLTP f_pic +8% case may trigger detection but must remain unknown/out-of-support if no declared known envelope matches",
-    "published comparator metrics are references only; synthetic envelope tests do not reproduce the underlying waveforms or establish Symtropy superiority"
+    "published comparator metrics are references only; synthetic envelope tests do not reproduce the underlying waveforms or establish Symtropy superiority",
+    "a singleton behavioral hypothesis is unique only within the frozen declared catalogue; global physical uniqueness is never inferred from local envelope disjointness",
+    "deployability dimensions remain non-compensatory and no aggregate readiness score may convert a failed dimension into a pass"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -731,7 +733,8 @@
     "execution_performed": false,
     "trained_model_present": false,
     "physical_validation": false,
-    "claim_ceiling": "source contract and synthetic fixtures only"
+    "claim_ceiling": "source contract and synthetic fixtures only",
+    "global_unique_physical_cause_claim_allowed": false
   },
   "startup_adaptation_guard": {
     "path": "startup-adaptation-guard-v0.1.json",
