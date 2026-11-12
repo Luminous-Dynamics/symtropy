@@ -26,6 +26,9 @@ The following values are transcribed from NASA Table 4-11. They are **published 
 
 | Device | Thrust | Impulse bit | Isp | Total impulse | Wet mass | Envelope | Power | NASA PMI | Notes |
 |---|---:|---:|---:|---:|---:|---:|---:|---|---|
+| AIS-VAT1-PQ (VAT, not PPT) | 26 µN max BOL at 5 W; 13 µN at 2.5 W; 4.2 µN minimum <1 W | not reported | 87 s | 0.13 N·s | 0.056 kg | 37 cm³ (42×42×21 mm) | 2.5 / 5 W options | D | 40,000 shots reported; vendor index says EOL thrust <1 µN (condition unspecified) |
+| AIS-VAT1-DUO (2 parallel VAT modules) | 52 µN max BOL at 10 W; 26 µN at 5 W; 8.4 µN minimum at 1 W | not reported | 87 s | 0.26 N·s | 0.084 kg | 74 cm³ (84×42×21 mm) | 5 / 10 W options | D | 40,000 shots reported; vendor index says EOL thrust <1 µN (condition unspecified) |
+| AIS-VAT1-QUAD (4 parallel VAT modules) | 104 µN max BOL at 20 W; 52 µN at 10 W; 16.8 µN minimum at 2 W | not reported | 87 s | 0.52 N·s | 0.177 kg | 148 cm³ (84×84×21 mm) | 10 / 20 W options | D | 40,000 shots reported; vendor index says EOL thrust <1 µN (condition unspecified) |
 | Xantus Metal Plasma Thruster | 400 µN | 1 µN·s | 1,774 s | 5,000 N·s | 1.2 kg | 0.53 U | 40 W | E | NASA lists USSF RROCI (not deployed) and USSF EWS |
 | Comat Plasma Jet Pack | 150 µN | 20 µN·s | 2,000 s | 120 N·s | 1.2 kg | 0.66 U | 30 W | E | NASA notes launch on ∑yndeo-2; commissioning details not yet reported in the survey |
 | CU Aerospace FPPT-1.7 | 500 µN | 165 µN·s | 3,200 s | 24,000 N·s | 3.0 kg | 1.7 U | 96 W | E | NASA lists DUPLEX (2025) |
@@ -35,6 +38,15 @@ The following values are transcribed from NASA Table 4-11. They are **published 
 | Neumann ND-50 | 100 µN | 150 µN·s | 2,000 s | 1,800 N·s | 1.3 kg | 1 U | 50 W | F | NASA lists EDISON and CarbSAR missions |
 
 NASA's footnote marks mass values with † as wet mass and notes values are nominal. The table states data are documented as provided in references and, unless otherwise published, must not be assumed independently verified. Preserve those qualifications in every downstream dataset.
+
+### AIS vacuum-arc unit and lifecycle caveats
+
+NASA Table 4-11's HTML chapter labels the AIS VAT thrust column `mN`, while the same report's PDF text layer labels it `µN`. The current exact-model Applied Ion Systems product pages explicitly give 13/26 µN for the PQ at 2.5/5 W, 26/52 µN for the DUO at 5/10 W, and 52/104 µN for the QUAD at 10/20 W; the manufacturer's listing supports µN as the source-reported thrust unit. The discrepancy remains recorded as a NASA HTML transcription issue rather than erased. The PDF page screenshot could not be retrieved because NASA's PDF endpoint rejected the oversized file; the PDF text extraction itself reports µN.
+
+Primary manufacturer sources: [VAT1-PQ](https://appliedionsystems.com/portfolio/ais-vat1-pq-micro-vacuum-arc-thruster/), [VAT1-DUO](https://appliedionsystems.com/portfolio/ais-vat1-dual-micro-vacuum-arc-thruster/), [VAT1-QUAD](https://appliedionsystems.com/portfolio/ais-vat1-quad-quad-micro-vacuum-arc-thruster/), [AIS product index](https://appliedionsystems.com/products/).
+
+These pages are important for a different reason too: they report a **40,000-shot life**, 87 s Isp, 0.13/0.26/0.52 N·s total impulse and a vendor-index EOL thrust below 1 µN. The EOL measurement condition is not described on the index. The research benchmark must therefore measure per-unit thrust/impulse-bit drift versus shot count, failed shots, total impulse accrued before the service floor, and actual end-of-life definition—not merely quote 40,000 shots as an endurance pass. The manufacturer index and detailed pages also disagree on displayed web prices / lead times; use a dated formal quote, including PPU/integration scope, for cost comparisons.
+
 
 This is not one homogeneous leaderboard:
 - Xantus, Comat, FPPT-1.7, Hypernova and PPTCUP do not necessarily share the same pulse physics, propellant, power boundary or qualification context.
