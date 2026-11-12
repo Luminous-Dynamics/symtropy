@@ -443,5 +443,4 @@ fn main() {
     )
     .expect("known propensity estimate");
     emit("mar_positive_control", &mar_eval, None, Some(mar_estimate));
-
 }
