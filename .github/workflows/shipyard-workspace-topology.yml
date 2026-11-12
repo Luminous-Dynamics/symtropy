@@ -15,8 +15,8 @@ on:
       - "crates/tools/shipyard-interpass-adaptive/Cargo.lock"
       - "crates/tools/shipyard-scan-metrology/Cargo.toml"
       - "crates/tools/shipyard-scan-metrology/Cargo.lock"
-      - "crates/tools/shipyard-profile-geometry-oracle/Cargo.toml"
-      - "crates/tools/shipyard-profile-geometry-oracle/Cargo.lock"
+      - "crates/tools/shipyard-geometry-metrology-oracle/Cargo.toml"
+      - "crates/tools/shipyard-geometry-metrology-oracle/Cargo.lock"
       - ".github/workflows/shipyard-workspace-topology.yml"
   workflow_dispatch:
 
@@ -57,8 +57,8 @@ jobs:
       - name: Resolve scan metrology workspace metadata
         run: cargo metadata --locked --no-deps --format-version 1 --manifest-path crates/tools/shipyard-scan-metrology/Cargo.toml > /tmp/scan-metrology-metadata.json
 
-      - name: Resolve profile geometry oracle workspace metadata
-        run: cargo metadata --locked --no-deps --format-version 1 --manifest-path crates/tools/shipyard-profile-geometry-oracle/Cargo.toml > /tmp/profile-geometry-metadata.json
+      - name: Resolve geometry metrology oracle workspace metadata
+        run: cargo metadata --locked --no-deps --format-version 1 --manifest-path crates/tools/shipyard-geometry-metrology-oracle/Cargo.toml > /tmp/geometry-metrology-metadata.json
 
       - name: Confirm metadata validation was read-only
         run: git diff --exit-code
