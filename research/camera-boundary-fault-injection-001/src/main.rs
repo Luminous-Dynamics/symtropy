@@ -300,9 +300,9 @@ fn sha256_hex(input: &[u8]) -> String {
     ];
     for chunk in data.chunks_exact(64) {
         let mut schedule = [0_u32; 64];
-        for index in 0..16 {
+        for (index, word) in schedule.iter_mut().enumerate().take(16) {
             let offset = index * 4;
-            schedule[index] = u32::from_be_bytes([
+            *word = u32::from_be_bytes([
                 chunk[offset],
                 chunk[offset + 1],
                 chunk[offset + 2],
@@ -629,7 +629,7 @@ fn run_case(
     let policy_input_dir = case_root.join("policy-inputs");
     fs::create_dir_all(&input_root)?;
 
-    let (mut request, corrupt_target, _calibration_pin, _, _) = prepare_request(base_request, case)
+    let (request, corrupt_target, _calibration_pin, _, _) = prepare_request(base_request, case)
         .map_err(|error| format!("cannot prepare {} case: {error}", case.id()))?;
     copy_episode_frames(source_episode_dir, &input_root, &request)?;
     if let Some(target) = &corrupt_target {
@@ -742,9 +742,7 @@ fn run_case(
     } else {
         let expected_observed = !child_output.status.success()
             && expected_error.is_some_and(|error| stderr.contains(error));
-        let no_commit = !receipt_exists
-            && policy_artifact_count == 0
-            && (!policy_dir_exists || policy_artifact_count == 0);
+        let no_commit = !receipt_exists && policy_artifact_count == 0;
         (false, expected_observed, no_commit)
     };
 
