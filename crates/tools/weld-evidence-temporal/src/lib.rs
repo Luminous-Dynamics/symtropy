@@ -290,12 +290,7 @@ fn map_event_time(
     if !mapping.authorized {
         return Err(ExclusionReason::ClockMappingUnauthorized);
     }
-    if mapping.first_received_at_tick > request.cutoff_tick
-        || mapping.valid_from_tick > request.cutoff_tick
-        || mapping
-            .valid_until_tick
-            .is_some_and(|until| request.cutoff_tick >= until)
-    {
+    if mapping.first_received_at_tick > request.cutoff_tick {
         return Err(ExclusionReason::ClockMappingUnavailable);
     }
     if !nonzero_digest(&mapping.mapping_sha256) {
@@ -326,6 +321,13 @@ fn map_event_time(
         .checked_add(uncertainty_i64)
         .ok_or(ExclusionReason::ClockMappingOverflow)?;
 
+    if earliest_tick < mapping.valid_from_tick
+        || mapping
+            .valid_until_tick
+            .is_some_and(|until| latest_tick >= until)
+    {
+        return Err(ExclusionReason::ClockMappingUnavailable);
+    }
     if earliest_tick > request.cutoff_tick {
         return Err(ExclusionReason::FutureEvent);
     }
@@ -577,6 +579,15 @@ pub fn snapshot_as_of(
             if event.first_received_at_tick > request.cutoff_tick {
                 return Err(ExclusionReason::LateArrival);
             }
+            if let Some(reason) = lifecycle_effect(
+                &event.event_id,
+                ledger,
+                request.cutoff_tick,
+                &mut pending_lifecycle_event_ids,
+                &mut applied_lifecycle_event_ids,
+            ) {
+                return Err(reason);
+            }
             if event.evidence_class != EvidenceClass::SyntheticContractOnly {
                 return Err(match event.evidence_class {
                     EvidenceClass::MeasuredPhysical => ExclusionReason::PhysicalEvidenceNotAdmitted,
@@ -613,15 +624,6 @@ pub fn snapshot_as_of(
                 return Err(ExclusionReason::ClockMappingUnavailable);
             };
             let mapped = map_event_time(event, mapping, request)?;
-            if let Some(reason) = lifecycle_effect(
-                &event.event_id,
-                ledger,
-                request.cutoff_tick,
-                &mut pending_lifecycle_event_ids,
-                &mut applied_lifecycle_event_ids,
-            ) {
-                return Err(reason);
-            }
             Ok(mapped)
         })();
 
@@ -776,6 +778,25 @@ mod tests {
         item.first_received_at_tick = 10;
         let result = snapshot(&ledger(vec![item]), DecisionPurpose::FastProcess, 10);
         assert_eq!(result.excluded[0].reason, ExclusionReason::FutureEvent);
+    }
+
+    #[test]
+    fn clock_mapping_must_be_valid_at_measurement_time_not_merely_at_decision_time() {
+        let mut mapping = clock();
+        mapping.valid_from_tick = 11;
+        let result = snapshot(
+            &EvidenceLedger {
+                clock_mappings: vec![mapping],
+                events: vec![event("E1", EvidenceKind::ProcessObservation)],
+                lifecycle_events: Vec::new(),
+            },
+            DecisionPurpose::FastProcess,
+            12,
+        );
+        assert_eq!(
+            result.excluded[0].reason,
+            ExclusionReason::ClockMappingUnavailable
+        );
     }
 
     #[test]
