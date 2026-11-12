@@ -1,0 +1,48 @@
+name: Material Damage Reference
+
+on:
+  push:
+    branches: ["research/material-damage-reference-v0-1"]
+    paths:
+      - "research/material-damage-reference/**"
+      - "docs/research/MATERIAL_DAMAGE_REFERENCE_BENCHMARK_V0_1.md"
+      - ".github/workflows/material-damage-reference.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "research/material-damage-reference/**"
+      - "docs/research/MATERIAL_DAMAGE_REFERENCE_BENCHMARK_V0_1.md"
+      - ".github/workflows/material-damage-reference.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: material-damage-reference-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path research/material-damage-reference/Cargo.toml --all -- --check
+
+      - name: Run analytical oracle and metamorphic tests
+        run: cargo test --locked --manifest-path research/material-damage-reference/Cargo.toml
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --manifest-path research/material-damage-reference/Cargo.toml --all-targets -- -D warnings
