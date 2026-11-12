@@ -155,6 +155,34 @@
       ]
     },
     {
+      "id": "OS-5B",
+      "name": "independent Sachs optical-Jacobi equation cross-check",
+      "status": "not_implemented",
+      "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
+      "observables": [
+        "screen_basis_parallel_transport_residual",
+        "screen_basis_orthonormality_residual",
+        "optical_tidal_symmetry_residual",
+        "vacuum_optical_tidal_trace_residual",
+        "Jacobi_matrix_relative_error_vs_canonical_phase_space_variation",
+        "singular_value_and_signed_determinant_agreement"
+      ],
+      "target": {
+        "screen_basis_parallel_transport_residual": 1e-10,
+        "screen_basis_orthonormality_residual": 1e-10,
+        "optical_tidal_symmetry_residual": 1e-10,
+        "vacuum_optical_tidal_trace_residual": 1e-10,
+        "jacobi_matrix_relative_error_well_conditioned": 0.00001
+      },
+      "required": [
+        "integrate the screen basis and 2x2 Jacobi matrix without reselecting a fresh reference-axis frame at every sample",
+        "cross-check against the existing 8x8 canonical fundamental matrix projected to the same screen",
+        "verify the exact Schwarzschild radial vertex solution D(lambda)=lambda*I",
+        "report conditioning and unresolved near-caustic cases; do not regularize the smaller singular value"
+      ],
+      "claim_ceiling": "An independent optical-geodesic formulation cross-check, not a caustic catalogue or finite-frequency wave solution."
+    },
+    {
       "id": "OS-6",
       "name": "fold caustic localization and catastrophe classification",
       "status": "not_implemented",
@@ -236,6 +264,16 @@
       "system": "SIBGRAPI 2026 multi-engine raytracer benchmark",
       "role": "16,656 timed renders across Newton, Schwarzschild and Kerr, four integrators and six scenes.",
       "symtropy_position": "Adopt its performance/accuracy discipline but add physical invariant, tangent-map and caustic qualification gates."
+    },
+    {
+      "system": "Strong-field gravitational-wave lensing in Kerr (PRD 113, 084056, 2026)",
+      "role": "Wave-optical Kerr lensing calculation; an external comparator for the future OS-7 finite-frequency and waveform observables.",
+      "symtropy_position": "Use as a matched-physics external reference for selected incidence angles, scattering directions, spin, polarization and waveform observables when its exact cases/data can be pinned."
+    },
+    {
+      "system": "Kerr GW lensing time-domain mode-sum preprint (arXiv:2610.39181, 2026)",
+      "role": "Hyperboloidal time-domain Kerr perturbation calculation with 68,000 coupled angular modes; reports strong-field wave-optical focusing and post-merger waveform effects.",
+      "symtropy_position": "Potential external wave-domain cross-check. Treat as a preprint and pin its version, parameter conventions and numerical convergence before benchmarking."
     }
   ],
   "benchmark_policy": {
@@ -245,13 +283,36 @@
     "queued_or_skipped_ci_is_not_pass": true,
     "no_posthoc_null_projection_or_screen_regularization": true,
     "every_result_binds_options_seed_branch_and_source_sha": true,
-    "unknown_or_ill_conditioned_returns_unresolved": true
+    "unknown_or_ill_conditioned_returns_unresolved": true,
+    "screen_frame_chart_changes_are_explicit": true,
+    "sachs_jacobi_comparator_required_before_caustic_certification": true
   },
   "references": [
     "https://einsteintoolkit.org/about/releases/ET_2026_05_announcement.html",
     "https://bhptoolkit.org/",
     "https://data.black-holes.org/waveforms/index.html",
     "https://github.com/iAART/aart",
-    "https://tucoff.github.io/relativistic-raytracer-page/"
-  ]
+    "https://tucoff.github.io/relativistic-raytracer-page/",
+    "https://doi.org/10.1103/9bxg-sqn5",
+    "https://arxiv.org/abs/2610.39181",
+    "https://doi.org/10.1103/tkk2-x9st"
+  ],
+  "screen_frame_policy": {
+    "status": "qualification_requirement_not_yet_implemented",
+    "topology": "An orthonormal tangent frame cannot be chosen globally continuously over the full observer sky S^2; use overlapping local charts or a transported screen frame.",
+    "current_source_observation": "local_sky_tangent_basis selects between two reference axes at abs(azimuthal_direction)=0.9. The resulting bases are co-oriented, so an ideal chart transition is in SO(2), but the displayed 2x2 components can jump at the seam.",
+    "risks": [
+      "component-wise interpolation across a chart seam can produce a false discontinuity",
+      "fold/cusp normal-form coefficients are frame-dependent unless the same oriented screen frame is used",
+      "the determinant and singular values are invariant under an orientation-preserving SO(2) row rotation, but this must be tested rather than assumed for a computed transition"
+    ],
+    "requirements": [
+      "record the source-screen basis chart for every optical-map sample",
+      "compute and record the same-event SO(2) chart transition matrix",
+      "assert transition orthogonality and determinant +1",
+      "assert signed determinant and singular values are invariant under the transition",
+      "for comparisons across distinct source events, use a parallel-transported Sachs screen basis rather than dotting basis vectors from unrelated local tetrads",
+      "refuse a fold/cusp classification when the screen-frame transition is unresolved"
+    ]
+  }
 }
