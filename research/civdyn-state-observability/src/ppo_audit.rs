@@ -348,7 +348,7 @@ fn run_audit(input: &str) -> Result<String, String> {
     // ICU and Predator returns have different task semantics/scales; do not
     // pool them into a cross-environment headline value.
     output.push_str(&format!(
-        "TOTAL,all,all,all,{actual_total},{actual_total},{unique_seeds},{minimum_seed},{maximum_seed},NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA\\n"
+        "TOTAL,all,all,all,{actual_total},{actual_total},{unique_seeds},{minimum_seed},{maximum_seed},NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA\\n"
     ));
     Ok(output)
 }
