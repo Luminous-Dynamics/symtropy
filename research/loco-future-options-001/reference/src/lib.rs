@@ -127,11 +127,20 @@ pub enum UpstreamDisposition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RecoveryEvidence {
-    pub disposition: UpstreamDisposition,
+pub struct BranchRecoveryReceipt {
+    pub branch_id: String,
     pub reserve_state_digest: String,
     pub topology_digest: String,
     pub terminal_safe_stop_reachable: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RecoveryEvidence {
+    pub disposition: UpstreamDisposition,
+    /// Exact branch manifest covered by the recovery receipt set.
+    pub branch_manifest_digest: String,
+    /// One receipt for each physically possible successor branch.
+    pub branch_receipts: Vec<BranchRecoveryReceipt>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -284,19 +293,64 @@ fn validate_thermal(
     Ok((unknown, invalid))
 }
 
-fn validate_recovery(recovery: &RecoveryEvidence) -> (Vec<String>, Vec<String>) {
+fn validate_recovery(
+    recovery: &RecoveryEvidence,
+    branch_manifest: &EvidenceManifest,
+    physically_possible_branch_ids: &BTreeSet<String>,
+) -> (Vec<String>, Vec<String>) {
     let mut unknown = Vec::new();
     let mut invalid = Vec::new();
     match recovery.disposition {
         UpstreamDisposition::Qualified => {
-            if recovery.reserve_state_digest.trim().is_empty() {
-                unknown.push("recovery:reserve-state-digest-missing".to_owned());
+            if !branch_manifest.complete {
+                unknown.push("recovery:source-branch-manifest-incomplete".to_owned());
             }
-            if recovery.topology_digest.trim().is_empty() {
-                unknown.push("recovery:topology-digest-missing".to_owned());
+            if recovery.branch_manifest_digest.trim().is_empty() {
+                unknown.push("recovery:branch-manifest-digest-missing".to_owned());
+            } else if recovery.branch_manifest_digest != branch_manifest.digest {
+                invalid.push("recovery:branch-manifest-digest-mismatch".to_owned());
             }
-            if !recovery.terminal_safe_stop_reachable {
-                invalid.push("recovery:terminal-safe-stop-unreachable".to_owned());
+
+            let mut receipts = BTreeMap::new();
+            for receipt in &recovery.branch_receipts {
+                if receipt.branch_id.trim().is_empty() {
+                    unknown.push("recovery:branch-id-missing".to_owned());
+                    continue;
+                }
+                if !physically_possible_branch_ids.contains(&receipt.branch_id) {
+                    invalid.push(format!(
+                        "recovery:receipt-for-branch-outside-manifest:{}",
+                        receipt.branch_id
+                    ));
+                    continue;
+                }
+                if receipts.insert(receipt.branch_id.clone(), receipt).is_some() {
+                    invalid.push(format!(
+                        "recovery:duplicate-branch-receipt:{}",
+                        receipt.branch_id
+                    ));
+                    continue;
+                }
+                if receipt.reserve_state_digest.trim().is_empty()
+                    || receipt.topology_digest.trim().is_empty()
+                {
+                    unknown.push(format!(
+                        "recovery:{}:reserve-or-topology-digest-missing",
+                        receipt.branch_id
+                    ));
+                }
+                if !receipt.terminal_safe_stop_reachable {
+                    invalid.push(format!(
+                        "recovery:{}:terminal-safe-stop-unreachable",
+                        receipt.branch_id
+                    ));
+                }
+            }
+
+            for branch_id in physically_possible_branch_ids {
+                if !receipts.contains_key(branch_id) {
+                    unknown.push(format!("recovery:branch-receipt-missing:{branch_id}"));
+                }
             }
         }
         UpstreamDisposition::Unknown => unknown.push("recovery:upstream-unknown".to_owned()),
@@ -388,7 +442,15 @@ pub fn evaluate_future_options(
     let (thermal_unknown, thermal_invalid) = validate_thermal(&scenario.thermal)?;
     unknown_reasons.extend(thermal_unknown);
     invalid_reasons.extend(thermal_invalid);
-    let (recovery_unknown, recovery_invalid) = validate_recovery(&scenario.recovery);
+    let physically_possible_branch_ids = possible
+        .iter()
+        .map(|branch| branch.branch_id.clone())
+        .collect::<BTreeSet<_>>();
+    let (recovery_unknown, recovery_invalid) = validate_recovery(
+        &scenario.recovery,
+        &scenario.branch_manifest,
+        &physically_possible_branch_ids,
+    );
     unknown_reasons.extend(recovery_unknown);
     invalid_reasons.extend(recovery_invalid);
 
@@ -547,12 +609,19 @@ pub fn evaluate_future_options(
 mod tests {
     use super::*;
 
-    fn qualified_recovery() -> RecoveryEvidence {
+    fn qualified_recovery(branch_ids: &[String]) -> RecoveryEvidence {
         RecoveryEvidence {
             disposition: UpstreamDisposition::Qualified,
-            reserve_state_digest: "reserve:current".to_owned(),
-            topology_digest: "topology:current".to_owned(),
-            terminal_safe_stop_reachable: true,
+            branch_manifest_digest: "manifest:branches".to_owned(),
+            branch_receipts: branch_ids
+                .iter()
+                .map(|branch_id| BranchRecoveryReceipt {
+                    branch_id: branch_id.clone(),
+                    reserve_state_digest: format!("reserve:{branch_id}"),
+                    topology_digest: format!("topology:{branch_id}"),
+                    terminal_safe_stop_reachable: true,
+                })
+                .collect(),
         }
     }
 
@@ -561,6 +630,11 @@ mod tests {
     }
 
     fn scenario(branches: Vec<SuccessorBranch>) -> FutureOptionScenario {
+        let branch_ids = branches
+            .iter()
+            .filter(|branch| branch.physically_possible)
+            .map(|branch| branch.branch_id.clone())
+            .collect::<Vec<_>>();
         FutureOptionScenario {
             candidate_action_id: "first-action:step".to_owned(),
             initial_state_digest: "state:initial".to_owned(),
@@ -596,7 +670,7 @@ mod tests {
             },
             branches,
             thermal: thermal_na(),
-            recovery: qualified_recovery(),
+            recovery: qualified_recovery(&branch_ids),
         }
     }
 
@@ -762,6 +836,44 @@ mod tests {
         assert!(report.observation_sets.is_empty());
     }
 
+
+    #[test]
+    fn missing_per_branch_recovery_receipt_blocks_positive_options() {
+        let mut s = scenario(vec![
+            branch("b1", "same", 500_000, &["retreat"]),
+            branch("b2", "same", 500_000, &["retreat"]),
+        ]);
+        s.recovery.branch_receipts.pop();
+        let report = evaluate_future_options(&s).unwrap();
+        assert_eq!(report.disposition, ScenarioDisposition::Unknown);
+        assert!(report.observation_sets.is_empty());
+        assert_eq!(report.clairvoyance_gap, None);
+    }
+
+    #[test]
+    fn recovery_receipt_must_bind_to_the_exact_branch_manifest() {
+        let mut s = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
+        s.recovery.branch_manifest_digest = "other-manifest".to_owned();
+        let report = evaluate_future_options(&s).unwrap();
+        assert_eq!(report.disposition, ScenarioDisposition::Invalid);
+        assert!(report.invalid_reasons.iter().any(|reason| reason.contains("branch-manifest-digest-mismatch")));
+        assert_eq!(report.deployable_common_option_count, 0);
+    }
+
+    #[test]
+    fn recovery_receipt_for_an_unlisted_branch_is_invalid() {
+        let mut s = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
+        s.recovery.branch_receipts.push(BranchRecoveryReceipt {
+            branch_id: "not-in-branch-manifest".to_owned(),
+            reserve_state_digest: "reserve:other".to_owned(),
+            topology_digest: "topology:other".to_owned(),
+            terminal_safe_stop_reachable: true,
+        });
+        let report = evaluate_future_options(&s).unwrap();
+        assert_eq!(report.disposition, ScenarioDisposition::Invalid);
+        assert!(report.invalid_reasons.iter().any(|reason| reason.contains("outside-manifest")));
+    }
+
     #[test]
     fn hard_thermal_limit_is_per_node_not_hidden_by_the_mean() {
         let mut s = scenario(vec![branch("b1", "hot-state", 1_000_000, &["continue"])]);
@@ -871,6 +983,12 @@ mod tests {
         let before = evaluate_future_options(&base).unwrap();
         let mut extended = base;
         extended.branches.push(branch("b3", "same", 0, &["left"]));
+        extended.recovery.branch_receipts.push(BranchRecoveryReceipt {
+            branch_id: "b3".to_owned(),
+            reserve_state_digest: "reserve:b3".to_owned(),
+            topology_digest: "topology:b3".to_owned(),
+            terminal_safe_stop_reachable: true,
+        });
         let after = evaluate_future_options(&extended).unwrap();
         let before_set: BTreeSet<_> = before.observation_sets["same"]
             .common_physical_action_ids
