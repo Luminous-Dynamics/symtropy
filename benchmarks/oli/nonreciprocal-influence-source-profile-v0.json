@@ -220,7 +220,12 @@
       "explicit matrix size validation",
       "periodic minimum-image geometry",
       "finite configuration checks"
-    ]
+    ],
+    "noise_modes": {
+      "source_faithful": "One scalar angular-noise width from the paper's pairwise driver is applied to all particles; constructors new() and random_uniform() preserve this mode.",
+      "oli_extension": "new_with_noise_profile() accepts one full-width angular-noise interval per particle, validated finite in [0, 2π]. This permits influencer-noise versus follower-noise ablations while preserving the scalar source profile separately.",
+      "seeded_stream": "Per-agent noise draws use the same explicit sequential RNG stream; zero-width agents still consume their draw to keep the draw count stable across noise profiles."
+    }
   },
   "rust_reference_cases": [
     {
@@ -268,6 +273,23 @@
       "id": "MATCHED_SHAM_INTERVENTION",
       "description": "Clone pre-intervention state and PRNG; intervene on leader and compare follower's downstream heading to sham",
       "expected": "nonzero downstream difference with matching future RNG stream"
+    },
+    {
+      "id": "PER_PARTICLE_NOISE_ASYMMETRY_EXTENSION",
+      "status": "OLI_EXTENSION_NOT_SOURCE_FAITHFUL",
+      "noise_widths_rad": [
+        0,
+        3.141592653589793
+      ],
+      "expected": "zero-noise receiver has no stochastic heading perturbation; high-noise receiver changes under the registered seed"
+    },
+    {
+      "id": "INVALID_PER_PARTICLE_NOISE_PROFILE",
+      "status": "VALIDATION_NEGATIVE_CONTROL",
+      "expected": [
+        "reject profile length mismatch",
+        "reject non-finite and out-of-range noise widths"
+      ]
     }
   ],
   "reproduction_constraints": {
@@ -282,6 +304,8 @@
     ],
     "source_burn_in_steps": 1000,
     "source_frames": 131072,
-    "rust_seed_sweep_required": true
+    "rust_seed_sweep_required": true,
+    "source_noise_profile": "SINGLE_SHARED_SCALAR_ETA_FOR_PAIRWISE_SOURCE_DRIVER",
+    "per_particle_noise_profile": "SEPARATE_OLI_EXTENSION_FOR_INFLUENCER_VS_FOLLOWER_NOISE_ABLATION"
   }
 }
