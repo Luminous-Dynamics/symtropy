@@ -1033,7 +1033,7 @@ mod tests {
                 mask = 1_u32 << (next_u64(&mut state) as usize % FAULTS);
             }
             let mut evidence = bundle(1);
-            let mut current = context(1);
+            let current = context(1);
 
             for (bit, seen) in coverage.iter_mut().enumerate() {
                 if mask & (1_u32 << bit) == 0 {
