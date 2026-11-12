@@ -854,6 +854,193 @@
           }
         }
       }
+    },
+    "resilience_analysis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "analysis_method",
+        "failure_atom_count",
+        "failure_atom_catalog",
+        "maximum_failure_cut_order",
+        "failure_scenario_count",
+        "critical_pair_count",
+        "baseline_qualified_critical_pair_count",
+        "cut_found_critical_pair_count",
+        "no_cut_found_within_bound_critical_pair_count",
+        "baseline_not_qualified_critical_pair_count",
+        "pair_results",
+        "claim_ceiling"
+      ],
+      "properties": {
+        "analysis_method": {
+          "const": "EXACT_SENSOR_AND_SHARED_DEPENDENCY_CUT_ENUMERATION_V0_1"
+        },
+        "failure_atom_count": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "failure_atom_catalog": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "kind",
+              "identity"
+            ],
+            "properties": {
+              "kind": {
+                "enum": [
+                  "sensor",
+                  "dependency_group"
+                ]
+              },
+              "identity": {
+                "$ref": "#/$defs/ref"
+              }
+            }
+          }
+        },
+        "maximum_failure_cut_order": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
+        },
+        "failure_scenario_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_qualified_critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cut_found_critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "no_cut_found_within_bound_critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "baseline_not_qualified_critical_pair_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "pair_results": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "fault_a",
+              "fault_b",
+              "baseline_state",
+              "status",
+              "minimum_cut_order",
+              "maximum_tolerated_failure_atoms",
+              "tolerated_failure_atoms_lower_bound",
+              "minimal_cut_sets"
+            ],
+            "properties": {
+              "fault_a": {
+                "$ref": "#/$defs/ref"
+              },
+              "fault_b": {
+                "$ref": "#/$defs/ref"
+              },
+              "baseline_state": {
+                "enum": [
+                  "isolable",
+                  "non_isolable",
+                  "not_evaluated"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "baseline_not_qualified",
+                  "cut_found_within_bound",
+                  "no_cut_found_within_bound"
+                ]
+              },
+              "minimum_cut_order": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 2
+              },
+              "maximum_tolerated_failure_atoms": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 0,
+                "maximum": 1
+              },
+              "tolerated_failure_atoms_lower_bound": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "minimum": 1,
+                "maximum": 2
+              },
+              "minimal_cut_sets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "order",
+                    "failure_atoms"
+                  ],
+                  "properties": {
+                    "order": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 2
+                    },
+                    "failure_atoms": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "identity"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "enum": [
+                              "sensor",
+                              "dependency_group"
+                            ]
+                          },
+                          "identity": {
+                            "$ref": "#/$defs/ref"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "claim_ceiling": {
+          "type": "string",
+          "minLength": 80
+        }
+      }
     }
   },
   "$defs": {

@@ -43,6 +43,20 @@ fn set(v:&Value,k:&str,p:&str)->Check<BTreeSet<String>>{
     Ok(out)
 }
 fn hex64(s:&str)->bool{s.len()==64&&s.bytes().all(|b|b.is_ascii_digit()||(b'a'..=b'f').contains(&b))}
+
+fn failure_cut_bounds(profile:&Value)->Check<(usize,usize)>{
+    let atom_limit=profile.get("maximum_failure_atoms_for_exact_cut_analysis").and_then(Value::as_u64);
+    let order_limit=profile.get("maximum_failure_cut_order").and_then(Value::as_u64);
+    let (atoms,order)=match (atom_limit,order_limit){
+        (None,None)=>(12usize,2usize),
+        (Some(a),Some(o))=>(a as usize,o as usize),
+        _=>return Err(err("INCOMPLETE_FAILURE_CUT_BOUNDS","$.layout_profile","maximum failure atom and cut-order bounds must be supplied together")),
+    };
+    if atoms==0||atoms>16||order==0||order>2||order>atoms{
+        return Err(err("INVALID_FAILURE_CUT_BOUNDS","$.layout_profile","v0.1 exact analysis permits 1..=16 atoms and cut order 1..=2"));
+    }
+    Ok((atoms,order))
+}
 fn sensor_timebase_qualified(sensor:&Value,domain:&Value,profile:&Value,evidence_class:&str)->bool{
     let Some(expected_id)=domain["measurement_timebase_id"].as_str() else{return false};
     let Some(actual_id)=sensor["timebase_id"].as_str() else{return false};
@@ -174,7 +188,7 @@ fn validate_input(input:&Value)->Check<()>{
         }
     }
     let profile=&input["layout_profile"];
-    allowed_keys(profile,&["layout_profile_ref","state_taxonomy_ref","required_pair_set_ref","reference_state_id","minimum_independent_principles_for_critical_pairs","maximum_timestamp_uncertainty_ms","minimum_common_window_overlap_ms"],"$.layout_profile")?;
+    allowed_keys(profile,&["layout_profile_ref","state_taxonomy_ref","required_pair_set_ref","reference_state_id","minimum_independent_principles_for_critical_pairs","maximum_timestamp_uncertainty_ms","minimum_common_window_overlap_ms","maximum_failure_atoms_for_exact_cut_analysis","maximum_failure_cut_order"],"$.layout_profile")?;
     for k in ["layout_profile_ref","state_taxonomy_ref","required_pair_set_ref","reference_state_id"]{let _=txt(profile,k,"$.layout_profile")?;}
     let min=profile["minimum_independent_principles_for_critical_pairs"].as_u64().filter(|n|*n>0)
         .ok_or_else(||err("INDEPENDENCE_THRESHOLD","$.layout_profile.minimum_independent_principles_for_critical_pairs","must be positive"))?;
@@ -184,6 +198,7 @@ fn validate_input(input:&Value)->Check<()>{
     if profile["minimum_common_window_overlap_ms"].as_f64().is_none_or(|x|!x.is_finite()||x<=0.0){
         return Err(err("MINIMUM_COMMON_WINDOW_OVERLAP","$.layout_profile.minimum_common_window_overlap_ms","must be a finite positive millisecond duration"));
     }
+    let _=failure_cut_bounds(profile)?;
     let domain_max=regime["maximum_timestamp_uncertainty_ms"].as_f64().unwrap();
     let profile_max=profile["maximum_timestamp_uncertainty_ms"].as_f64().unwrap();
     if (domain_max-profile_max).abs()>1e-9{
@@ -608,6 +623,171 @@ fn pair_assessments(input:&Value,report:&EvaluationReport)->Vec<Value>{
         json!({"fault_a":declaration["fault_a"],"fault_b":declaration["fault_b"],"state":pair_state(&result.status),"method":"structural","evidence_refs":refs})
     }).collect()
 }
+
+#[derive(Clone,Debug)]
+struct FailureAtom{
+    kind:String,
+    identity:String,
+}
+fn append_failure_combinations(
+    atom_count:usize,
+    order:usize,
+    start:usize,
+    selected:&mut Vec<usize>,
+    out:&mut Vec<Vec<usize>>,
+){
+    if selected.len()==order{
+        out.push(selected.clone());
+        return;
+    }
+    for index in start..atom_count{
+        selected.push(index);
+        append_failure_combinations(atom_count,order,index+1,selected,out);
+        selected.pop();
+    }
+}
+
+/// Exact bounded resilience analysis over individual installed-sensor outages
+/// and shared dependency-group outages. Singleton dependency groups are
+/// represented by their sensor atom to avoid duplicate names for the same cut.
+fn resilience_analysis(input:&Value,base:&EvaluationReport)->Check<Value>{
+    let profile=&input["layout_profile"];
+    let (declared_atom_limit,max_order)=failure_cut_bounds(profile)?;
+    let mut atoms=Vec::new();
+    let sensors=input["sensors"].as_array().expect("validated sensors");
+    let mut dependency_counts:BTreeMap<String,usize>=BTreeMap::new();
+    for sensor in sensors.iter().filter(|s|s["installed"]==true){
+        atoms.push(FailureAtom{
+            kind:"sensor".to_owned(),
+            identity:txt(sensor,"sensor_id","$.sensors[]")?.to_owned(),
+        });
+        for group in set(sensor,"dependency_groups","$.sensors[]")?{
+            *dependency_counts.entry(group).or_default()+=1;
+        }
+    }
+    for (group,count) in dependency_counts{
+        if count>=2{
+            atoms.push(FailureAtom{kind:"dependency_group".to_owned(),identity:group});
+        }
+    }
+    atoms.sort_by(|a,b|a.kind.cmp(&b.kind).then_with(||a.identity.cmp(&b.identity)));
+    if atoms.len()>declared_atom_limit{
+        return Err(err("EXACT_FAILURE_ATOM_LIMIT_EXCEEDED",
+            "$.layout_profile.maximum_failure_atoms_for_exact_cut_analysis",
+            format!("{} failure atoms exceed declared exact-search bound {declared_atom_limit}; no heuristic fallback is permitted",atoms.len())));
+    }
+    if atoms.is_empty()||max_order>atoms.len(){
+        return Err(err("EMPTY_OR_INVALID_FAILURE_ATOM_CATALOG","$.sensors",
+            "exact resilience analysis requires a non-empty bounded failure-atom catalog"));
+    }
+    let catalog:Vec<Value>=atoms.iter().map(|a|json!({"kind":&a.kind,"identity":&a.identity})).collect();
+    let mut combinations=Vec::new();
+    for order in 1..=max_order{
+        append_failure_combinations(atoms.len(),order,0,&mut Vec::new(),&mut combinations);
+    }
+    let scenario_count=combinations.len();
+    let critical_pairs:Vec<_>=base.pair_results.iter().filter(|p|p.critical).collect();
+    let mut minimal_by_pair:BTreeMap<String,Vec<Vec<usize>>>=BTreeMap::new();
+    for pair in critical_pairs.iter().filter(|p|p.status=="IDENTIFIABLE"){
+        minimal_by_pair.insert(pair_key(&pair.state_a_id,&pair.state_b_id),Vec::new());
+    }
+
+    // Enumerate by increasing cardinality: a cut is retained only when none
+    // of its already-recorded strict subsets is itself a cut.
+    for combination in combinations{
+        let mut removed_sensors=BTreeSet::new();
+        let mut removed_dependencies=BTreeSet::new();
+        for index in &combination{
+            let atom=&atoms[*index];
+            match atom.kind.as_str(){
+                "sensor"=>{removed_sensors.insert(atom.identity.clone());}
+                "dependency_group"=>{removed_dependencies.insert(atom.identity.clone());}
+                _=>return Err(err("UNKNOWN_FAILURE_ATOM_KIND","$.layout_profile","invalid internal failure-atom kind")),
+            }
+        }
+        let (_,unaligned)=measurement_window_assessments(input,&removed_sensors,&removed_dependencies);
+        let (adapted,parent)=make_parent_and_case(input,&removed_sensors,&removed_dependencies,&unaligned)?;
+        let replay=evaluate_case(&adapted,&parent)?;
+        for pair in critical_pairs.iter().filter(|p|p.status=="IDENTIFIABLE"){
+            if pair_status(&replay,&pair.state_a_id,&pair.state_b_id)!=Some("IDENTIFIABLE"){
+                let cuts=minimal_by_pair.get_mut(&pair_key(&pair.state_a_id,&pair.state_b_id)).expect("baseline-qualified critical pair");
+                let has_smaller_subset=cuts.iter().any(|existing|existing.iter().all(|i|combination.contains(i)));
+                if !has_smaller_subset{cuts.push(combination.clone());}
+            }
+        }
+    }
+
+    let mut pair_results=Vec::new();
+    let mut baseline_qualified=0usize;
+    let mut cut_found=0usize;
+    let mut no_cut=0usize;
+    let mut baseline_not_qualified=0usize;
+    for pair in critical_pairs{
+        let baseline_state=match pair.status.as_str(){
+            "IDENTIFIABLE"=>"isolable",
+            "NOT_IDENTIFIABLE"=>"non_isolable",
+            _=>"not_evaluated",
+        };
+        let key=pair_key(&pair.state_a_id,&pair.state_b_id);
+        let cuts=minimal_by_pair.get(&key).cloned().unwrap_or_default();
+        let minimum_cut_order=cuts.iter().map(Vec::len).min();
+        let status;
+        let maximum_tolerated;
+        let tolerated_lower_bound;
+        if pair.status!="IDENTIFIABLE"{
+            status="baseline_not_qualified";
+            maximum_tolerated=Value::Null;
+            tolerated_lower_bound=Value::Null;
+            baseline_not_qualified+=1;
+        }else if let Some(order)=minimum_cut_order{
+            status="cut_found_within_bound";
+            maximum_tolerated=json!(order-1);
+            tolerated_lower_bound=Value::Null;
+            baseline_qualified+=1;
+            cut_found+=1;
+        }else{
+            status="no_cut_found_within_bound";
+            maximum_tolerated=Value::Null;
+            tolerated_lower_bound=json!(max_order);
+            baseline_qualified+=1;
+            no_cut+=1;
+        }
+        let minimal_cut_sets:Vec<Value>=cuts.iter().map(|cut|{
+            let failure_atoms:Vec<Value>=cut.iter().map(|i|json!({
+                "kind":&atoms[*i].kind,"identity":&atoms[*i].identity
+            })).collect();
+            json!({"order":cut.len(),"failure_atoms":failure_atoms})
+        }).collect();
+        pair_results.push(json!({
+            "fault_a":&pair.state_a_id,
+            "fault_b":&pair.state_b_id,
+            "baseline_state":baseline_state,
+            "status":status,
+            "minimum_cut_order":minimum_cut_order,
+            "maximum_tolerated_failure_atoms":maximum_tolerated,
+            "tolerated_failure_atoms_lower_bound":tolerated_lower_bound,
+            "minimal_cut_sets":minimal_cut_sets
+        }));
+    }
+    Ok(json!({
+        "analysis_method":"EXACT_SENSOR_AND_SHARED_DEPENDENCY_CUT_ENUMERATION_V0_1",
+        "failure_atom_count":atoms.len(),
+        "failure_atom_catalog":catalog,
+        "maximum_failure_cut_order":max_order,
+        "failure_scenario_count":scenario_count,
+        "critical_pair_count":critical_pairs_count(base),
+        "baseline_qualified_critical_pair_count":baseline_qualified,
+        "cut_found_critical_pair_count":cut_found,
+        "no_cut_found_within_bound_critical_pair_count":no_cut,
+        "baseline_not_qualified_critical_pair_count":baseline_not_qualified,
+        "pair_results":pair_results,
+        "claim_ceiling":"Exact enumeration of declared single-sensor and shared-dependency failure combinations up to the stated cut order. Failure atoms are modeled outage hypotheses, not probabilistically independent events. No reliability probability, physical failure rate, hardware independence or resilience outside the enumerated configuration and cardinality bound is inferred."
+    }))
+}
+fn critical_pairs_count(report:&EvaluationReport)->usize{
+    report.pair_results.iter().filter(|p|p.critical).count()
+}
+
 fn pair_status<'a>(report:&'a EvaluationReport,a:&str,b:&str)->Option<&'a str>{
     report.pair_results.iter().find(|p|
         (p.state_a_id==a&&p.state_b_id==b)||(p.state_a_id==b&&p.state_b_id==a)
@@ -712,7 +892,7 @@ fn fault_assessments(input:&Value,report:&EvaluationReport)->(Vec<Value>,Vec<Val
     (fault_out,classes_out)
 }
 
-fn make_report(input:&Value,base:&EvaluationReport,window_assessments:Vec<Value>,scenarios:Vec<Value>)->Value{
+fn make_report(input:&Value,base:&EvaluationReport,window_assessments:Vec<Value>,scenarios:Vec<Value>,resilience:Value)->Value{
     let asset=&input["asset"];let domain=&input["operating_domain"];let digests=&input["evidence_digests"];
     let sensors:Vec<Value>=input["sensors"].as_array().unwrap().iter().map(|s|json!({
         "sensor_id":s["sensor_id"],"channel_id":s["channel_id"],"installed":s["installed"],
@@ -752,6 +932,7 @@ fn make_report(input:&Value,base:&EvaluationReport,window_assessments:Vec<Value>
         "sensor_inventory":sensors,"fault_assessments":fault_report,"ambiguity_classes":ambiguity_report,
         "measurement_window_assessments":window_assessments,
         "pair_assessments":pair_assessments(input,base),"sensor_loss_scenarios":scenarios,
+        "resilience_analysis":resilience,
         "metrics":[metric("installed_sensor_count",base.channel_count),metric("independent_evidence_group_count",base.independence_group_count),
             metric("state_hypothesis_count",base.state_count),metric("required_fault_pair_count",base.required_pair_count),
             metric("identifiable_fault_pair_count",base.identifiable_pair_count),metric("non_identifiable_fault_pair_count",base.not_identifiable_pair_count),
@@ -794,7 +975,8 @@ pub fn evaluate_maritime_case(input:&Value,clock:&Value,clock_sha256:&str)->Chec
             "lost_isolability_pairs":lost
         }));
     }
-    Ok(make_report(input,&base,base_windows,scenarios))
+    let resilience=resilience_analysis(input,&base)?;
+    Ok(make_report(input,&base,base_windows,scenarios,resilience))
 }
 
 pub fn evaluate_and_bind_execution(input:&Value,clock:&Value,source_commit:&str,case_sha256:&str,clock_sha256:&str)->Check<Value>{
@@ -1116,6 +1298,66 @@ mod tests{
         assert!(eval(&c).is_err());
         c=fixture();c["responses"][0]["window_start_ms"]=json!(-1.0);assert!(eval(&c).is_err());
     }
+
+    #[test]
+    fn exact_resilience_enumerates_sensor_and_shared_dependency_singletons_and_pairs(){
+        let r=eval(&fixture()).unwrap();
+        let x=&r["resilience_analysis"];
+        assert_eq!(x["failure_atom_count"],7);
+        assert_eq!(x["maximum_failure_cut_order"],2);
+        assert_eq!(x["failure_scenario_count"],28);
+        assert_eq!(x["critical_pair_count"],3);
+        assert_eq!(x["baseline_qualified_critical_pair_count"],2);
+        assert_eq!(x["cut_found_critical_pair_count"],2);
+        assert_eq!(x["baseline_not_qualified_critical_pair_count"],1);
+        let pairs=x["pair_results"].as_array().unwrap();
+        let injection=pairs.iter().find(|p|p["fault_a"]=="ENGINE_NORMAL_STEADY"&&p["fault_b"]=="ENGINE_FUEL_INJECTION_FAULT").unwrap();
+        assert_eq!(injection["minimum_cut_order"],1);
+        assert_eq!(injection["maximum_tolerated_failure_atoms"],0);
+        let cut_groups:BTreeSet<String>=injection["minimal_cut_sets"].as_array().unwrap().iter()
+            .flat_map(|cut|cut["failure_atoms"].as_array().unwrap())
+            .filter(|atom|atom["kind"]=="dependency_group")
+            .map(|atom|atom["identity"].as_str().unwrap().to_owned()).collect();
+        assert_eq!(cut_groups,BTreeSet::from([
+            "clock:ptp-engine-1".to_owned(),
+            "gateway:engine-io-1".to_owned()
+        ]));
+        let sensor_fault=pairs.iter().find(|p|p["fault_b"]=="FUEL_PRESSURE_SENSOR_FAULT").unwrap();
+        assert_eq!(sensor_fault["status"],"baseline_not_qualified");
+        assert!(sensor_fault["minimum_cut_order"].is_null());
+    }
+    #[test]
+    fn exact_resilience_cut_sets_are_inclusion_minimal(){
+        let r=eval(&fixture()).unwrap();
+        for pair in r["resilience_analysis"]["pair_results"].as_array().unwrap(){
+            let cuts=pair["minimal_cut_sets"].as_array().unwrap();
+            let sets:Vec<BTreeSet<String>>=cuts.iter().map(|cut|
+                cut["failure_atoms"].as_array().unwrap().iter().map(|atom|
+                    format!("{}:{}",atom["kind"].as_str().unwrap(),atom["identity"].as_str().unwrap())
+                ).collect()
+            ).collect();
+            for (i,a) in sets.iter().enumerate(){
+                for (j,b) in sets.iter().enumerate(){
+                    if i!=j{assert!(!(a.len()<b.len()&&a.is_subset(b)),"cut set {i} is a strict subset of {j}");}
+                }
+            }
+        }
+    }
+    #[test]
+    fn exact_resilience_search_bound_fails_closed_instead_of_approximating(){
+        let mut c=fixture();
+        c["layout_profile"]["maximum_failure_atoms_for_exact_cut_analysis"]=json!(6);
+        let errors=eval(&c).expect_err("seven atoms exceed declared exact bound");
+        assert!(errors.iter().any(|e|e.code=="EXACT_FAILURE_ATOM_LIMIT_EXCEEDED"));
+    }
+    #[test]
+    fn exact_resilience_v01_rejects_cut_order_above_two(){
+        let mut c=fixture();
+        c["layout_profile"]["maximum_failure_cut_order"]=json!(3);
+        let errors=eval(&c).expect_err("v0.1 must not approximate order three");
+        assert!(errors.iter().any(|e|e.code=="INVALID_FAILURE_CUT_BOUNDS"));
+    }
+
     #[test]
     fn same_input_is_deterministic(){
         let c=fixture();assert_eq!(eval(&c).unwrap(),eval(&c).unwrap());

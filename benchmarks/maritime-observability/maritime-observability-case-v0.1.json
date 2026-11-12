@@ -37,7 +37,9 @@
     "minimum_independent_principles_for_critical_pairs": 2,
     "reference_state_id": "ENGINE_NORMAL_STEADY",
     "maximum_timestamp_uncertainty_ms": 5,
-    "minimum_common_window_overlap_ms": 5000
+    "minimum_common_window_overlap_ms": 5000,
+    "maximum_failure_atoms_for_exact_cut_analysis": 12,
+    "maximum_failure_cut_order": 2
   },
   "sensors": [
     {

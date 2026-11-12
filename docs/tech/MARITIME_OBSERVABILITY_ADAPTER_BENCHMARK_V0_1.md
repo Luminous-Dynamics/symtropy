@@ -64,3 +64,12 @@ The validator requires explicit outage scenarios for each dependency group share
 ## P0.8 — synchronized state-window admission
 
 Each fault-state response matrix now requires one common `measurement_window_ref` across all installed channels. The adapter rejects a state whose channels combine different windows. This prevents pairwise signatures from being compared when they were acquired from different operating episodes, transients or controller modes. This is a deterministic contract over declared window identity; it does not independently validate the physical clock network or prove that the windows are correctly segmented.
+
+
+## P0.9 — exact diagnosability resilience and minimal cut sets
+
+A named outage suite is useful but does not establish the full resilience envelope of an installed measurement layout. P0.9 adds exact combinatorial enumeration over one atom for each installed sensor, one atom for every dependency group shared by at least two installed sensors, and every combination through the declared maximum cut order.
+
+For each critical pair that is isolable in the baseline, the adapter replays the same domain-neutral pairwise evaluator under each outage combination and records every inclusion-minimal set that removes identifiability. It reports minimum cut order and the tolerated failure-atom count before the first cut. A pair already non-isolable or not evaluated in the baseline receives `baseline_not_qualified`; where no cut appears within the declared order, the report states only a lower bound.
+
+The search is deterministic and exhaustive within explicit bounds. v0.1 permits at most 16 failure atoms and cut order at most 2; both values must be declared together or the runtime uses the documented 12-atom / order-2 defaults. Exceeding a bound produces an error, not a sampled or heuristic result. Failure atoms are structural outage hypotheses, not probabilistically independent events. This does not estimate reliability, failure rates or fault probabilities.

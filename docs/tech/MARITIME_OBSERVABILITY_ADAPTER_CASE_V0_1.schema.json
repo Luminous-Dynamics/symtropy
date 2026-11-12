@@ -215,6 +215,16 @@
         "minimum_common_window_overlap_ms": {
           "type": "number",
           "minimum": 1
+        },
+        "maximum_failure_atoms_for_exact_cut_analysis": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16
+        },
+        "maximum_failure_cut_order": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2
         }
       }
     },

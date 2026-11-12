@@ -87,3 +87,12 @@ P0.8 adds explicit `window_start_ms` and `window_end_ms` to every response, plus
 A state window is qualified only when the intersection across contributing channels is at least the declared minimum duration. Otherwise, the affected state is withdrawn from pairwise diagnosis rather than combining asynchronous response signatures. The report exposes the guaranteed common interval and overlap duration.
 
 The same calculation is repeated after every declared sensor/common-cause outage. Removing an unaligned sensor may restore coherent evidence from the remaining channels; losing a shared clock can withdraw the window and its diagnoses. The fixture is synthetic; its timestamp and window values do not demonstrate shipboard synchronization.
+
+
+## P0.9 — exact diagnosability resilience and minimal cut sets
+
+The adapter enumerates every singleton installed-sensor outage and every pairwise combination of those sensor outages and shared dependency-group outages. Dependency groups shared by two or more installed sensors are common-cause atoms; singleton dependencies are subsumed by their sensor atom to avoid duplicate labels for the same sensor loss.
+
+For the frozen fixture this is 7 failure atoms (5 sensors + 2 shared dependencies) and 28 exact outage combinations at cut order 2. For each baseline-identifiable critical fault pair, the evaluator reports every inclusion-minimal cut set that makes the pair non-identifiable or not evaluated, the minimum cut order found, and the number of enumerated failure atoms tolerated before the first cut. Baseline non-identifiable pairs are marked `baseline_not_qualified`; no positive resilience is assigned to them. No-cut results through the bound report only a lower bound.
+
+The search is exact and bounded. Inputs exceeding the declared bounds fail closed; there is no random sampling or heuristic fallback. Failure atoms are outage hypotheses and are **not** assumed probabilistically independent. The cut sets are structural evidence for the exact declared topology and response matrix, not field reliability probabilities.
