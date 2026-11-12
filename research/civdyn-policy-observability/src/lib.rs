@@ -487,13 +487,9 @@ mod tests {
     };
 
     fn record(
-        policy: &str,
-        unit: &str,
-        stratum: &str,
-        truth: u64,
-        observed: bool,
-        mechanism: MissingnessMechanism,
+        input: (&str, &str, &str, u64, bool, MissingnessMechanism),
     ) -> EvaluatorRecord {
+        let (policy, unit, stratum, truth, observed, mechanism) = input;
         let (observed_outcome, missing_reason) = if observed {
             (Some(truth), None)
         } else {
@@ -517,72 +513,72 @@ mod tests {
     #[test]
     fn complete_case_can_reverse_policy_ranking_when_adverse_outcomes_are_hidden() {
         let masked = vec![
-            record(
+            record((
                 "masked",
                 "u1",
                 "high_need",
                 100,
                 true,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "masked",
                 "u2",
                 "high_need",
                 0,
                 false,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "masked",
                 "u3",
                 "general",
                 0,
                 false,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "masked",
                 "u4",
                 "general",
                 0,
                 false,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
+           )),
         ];
         let transparent = vec![
-            record(
+            record((
                 "transparent",
                 "u1",
                 "high_need",
                 60,
                 true,
                 MissingnessMechanism::Complete,
-            ),
-            record(
+           )),
+            record((
                 "transparent",
                 "u2",
                 "high_need",
                 60,
                 true,
                 MissingnessMechanism::Complete,
-            ),
-            record(
+           )),
+            record((
                 "transparent",
                 "u3",
                 "general",
                 60,
                 true,
                 MissingnessMechanism::Complete,
-            ),
-            record(
+           )),
+            record((
                 "transparent",
                 "u4",
                 "general",
                 60,
                 true,
                 MissingnessMechanism::Complete,
-            ),
+           )),
         ];
 
         let a = evaluate_policy(&masked, SUPPORT).expect("masked policy");
@@ -607,72 +603,72 @@ mod tests {
     #[test]
     fn missing_as_zero_can_reverse_policy_ranking_when_beneficial_outcomes_are_hidden() {
         let hidden = vec![
-            record(
+            record((
                 "hidden_successes",
                 "u1",
                 "high_need",
                 100,
                 true,
                 MissingnessMechanism::MnarBeneficialOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "hidden_successes",
                 "u2",
                 "high_need",
                 100,
                 false,
                 MissingnessMechanism::MnarBeneficialOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "hidden_successes",
                 "u3",
                 "general",
                 100,
                 false,
                 MissingnessMechanism::MnarBeneficialOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "hidden_successes",
                 "u4",
                 "general",
                 100,
                 false,
                 MissingnessMechanism::MnarBeneficialOutcomesHidden,
-            ),
+           )),
         ];
         let steady = vec![
-            record(
+            record((
                 "steady",
                 "u1",
                 "high_need",
                 60,
                 true,
                 MissingnessMechanism::Complete,
-            ),
-            record(
+           )),
+            record((
                 "steady",
                 "u2",
                 "high_need",
                 60,
                 true,
                 MissingnessMechanism::Complete,
-            ),
-            record(
+           )),
+            record((
                 "steady",
                 "u3",
                 "general",
                 60,
                 true,
                 MissingnessMechanism::Complete,
-            ),
-            record(
+           )),
+            record((
                 "steady",
                 "u4",
                 "general",
                 60,
                 true,
                 MissingnessMechanism::Complete,
-            ),
+           )),
         ];
 
         let a = evaluate_policy(&hidden, SUPPORT).expect("hidden policy");
@@ -695,39 +691,39 @@ mod tests {
 
     #[test]
     fn identified_bounds_contain_truth_for_all_frozen_mnar_fixtures() {
-        let rows = vec![
-            record(
+        let rows = [
+            record((
                 "p",
                 "u1",
                 "a",
                 100,
                 true,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "p",
                 "u2",
                 "a",
                 0,
                 false,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "p",
                 "u3",
                 "b",
                 0,
                 false,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "p",
                 "u4",
                 "b",
                 0,
                 false,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
+           )),
         ];
         let result = evaluate_policy(&rows, SUPPORT).expect("evaluation");
         assert!(
@@ -741,22 +737,22 @@ mod tests {
     #[test]
     fn all_missing_is_full_support_not_zero_reward() {
         let rows = vec![
-            record(
+            record((
                 "p",
                 "u1",
                 "a",
                 0,
                 false,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
-            record(
+           )),
+            record((
                 "p",
                 "u2",
                 "a",
                 100,
                 false,
                 MissingnessMechanism::MnarAdverseOutcomesHidden,
-            ),
+           )),
         ];
         let result = evaluate_policy(&rows, SUPPORT).expect("evaluation");
         assert_eq!(result.estimates.complete_case_mean, None);
@@ -769,22 +765,22 @@ mod tests {
     #[test]
     fn observed_zero_is_not_missing() {
         let rows = vec![
-            record(
+            record((
                 "p",
                 "observed_zero",
                 "a",
                 0,
                 true,
                 MissingnessMechanism::Complete,
-            ),
-            record(
+           )),
+            record((
                 "p",
                 "missing",
                 "a",
                 100,
                 false,
                 MissingnessMechanism::MnarBeneficialOutcomesHidden,
-            ),
+           )),
         ];
         let observations: Vec<_> = rows.iter().map(|row| row.observation.clone()).collect();
         let estimates = estimate_from_observations(&observations, SUPPORT).expect("estimates");
@@ -809,14 +805,14 @@ mod tests {
             ("u3", "upper", 80, true),
             ("u4", "upper", 80, false),
         ] {
-            let mut row = record(
+            let mut row = record((
                 "mar",
                 unit,
                 stratum,
                 truth,
                 observed,
                 MissingnessMechanism::Mar,
-            );
+           ));
             row.observation.observation_propensity_bps = Some(5_000);
             rows.push(row);
         }
@@ -834,14 +830,14 @@ mod tests {
 
     #[test]
     fn inverse_propensity_estimator_rejects_unknown_or_mnar_assumption() {
-        let rows = vec![record(
+        let rows = vec![record((
             "mnar",
             "u1",
             "a",
             10,
             true,
             MissingnessMechanism::MnarAdverseOutcomesHidden,
-        )];
+       ))];
         let observations: Vec<_> = rows.iter().map(|row| row.observation.clone()).collect();
         assert_eq!(
             known_mar_propensity_mean(&observations, SUPPORT, ObservationAssumption::UnknownOrMnar),
@@ -851,7 +847,7 @@ mod tests {
 
     #[test]
     fn inverse_propensity_estimator_rejects_missing_propensity_and_zero_support() {
-        let mut row = record("mar", "u1", "a", 10, true, MissingnessMechanism::Mar);
+        let mut row = record(("mar", "u1", "a", 10, true, MissingnessMechanism::Ma));
         let missing_propensity = vec![row.observation.clone()];
         assert_eq!(
             known_mar_propensity_mean(
@@ -870,7 +866,7 @@ mod tests {
 
     #[test]
     fn duplicate_ids_and_malformed_observation_states_fail_closed() {
-        let row = record("p", "u1", "a", 10, true, MissingnessMechanism::Complete);
+        let row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Complet));
         let mut duplicate = row.observation.clone();
         duplicate.observed_outcome = Some(20);
         assert_eq!(
@@ -890,15 +886,15 @@ mod tests {
     #[test]
     fn mixed_evaluator_mechanisms_are_preserved_as_mixed_not_rejected() {
         let rows = vec![
-            record("p", "u1", "a", 10, true, MissingnessMechanism::Mar),
-            record(
+            record(("p", "u1", "a", 10, true, MissingnessMechanism::Ma)),
+            record((
                 "p",
                 "u2",
                 "a",
                 20,
                 false,
                 MissingnessMechanism::MnarBeneficialOutcomesHidden,
-            ),
+           )),
         ];
         let result = evaluate_policy(&rows, SUPPORT).expect("mixed mechanism evaluation");
         assert_eq!(result.true_mechanism, MissingnessMechanism::Mixed);
@@ -912,7 +908,7 @@ mod tests {
 
     #[test]
     fn evaluator_rejects_observed_value_that_disagrees_with_latent_truth() {
-        let mut row = record("p", "u1", "a", 10, true, MissingnessMechanism::Complete);
+        let mut row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Complet));
         row.observation.observed_outcome = Some(11);
         assert_eq!(
             evaluate_policy(&[row], SUPPORT),
@@ -922,7 +918,7 @@ mod tests {
 
     #[test]
     fn propensity_bounds_must_have_positive_support() {
-        let row = record("p", "u1", "a", 10, true, MissingnessMechanism::Mar);
+        let row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Ma));
         let mut observations = row.observation;
         observations.observation_propensity_bps = Some(10_001);
         assert_eq!(
