@@ -115,7 +115,7 @@ A standalone, dependency-free Rust 1.96 package now lives at `reference/`:
 
 The evaluator refuses positive option counts when the branch manifest, continuation domain, per-branch viability receipt, observation freshness, thermal predecessor chain, or recovery receipt is incomplete. Physically possible branches remain in the calculation even at zero probability mass. User-facing labels collapse by canonical physical action identity. Thermal nodes are checked individually using conservative upper-temperature bounds; no mean-temperature waiver exists. A qualified recovery receipt must establish a reachable terminal safe-stop.
 
-**Thirty-two authored Rust tests** cover:
+**Thirty-four authored Rust tests** cover:
 - clairvoyance trap versus observation-constrained intersection;
 - valid observation separation;
 - zero-probability physical branches;
@@ -168,6 +168,6 @@ The evaluator distinguishes four results:
 
 The returned witness is a deterministic map from observation-history node to action. The evaluator does not pick one action per hidden state, so a clairvoyant policy cannot be mistaken for a deployable one. It permits a different action only after an evidence-qualified observation creates a new belief node. The test tree includes two indistinguishable successor states after a probe, then a fresh observation splits them so one child can retreat and the other continue; both leaves still require a safe-stop receipt.
 
-The new module contributes 12 tests: bounded two-step winning policy; disjoint hidden-state actions; incomplete transition manifest; unknown/unreachable terminal recovery; observation-partition mismatch; incomplete transition receipt; impossible transition exclusion; incomplete action domain; permutation invariance; missing child node; invalid action identity; and explicit horizon bounds. The original 20 tests remain in the same crate, for 32 authored Rust tests total.
+The new module contributes 14 tests: bounded two-step winning policy; disjoint hidden-state actions; incomplete transition manifest; unknown/unreachable terminal recovery; observation-partition mismatch; incomplete transition receipt; impossible transition exclusion; incomplete action domain; permutation invariance; missing child node; invalid action identity; and explicit horizon bounds. The original 20 tests remain in the same crate, for 32 authored Rust tests total.
 
 The one-step common-set evaluator and the bounded policy-tree evaluator are separate, intentionally composable reference surfaces. A policy-tree win over this finite graph is not a continuous-time viability proof, arbitrary fault tolerance, or authorization to execute the witness.
