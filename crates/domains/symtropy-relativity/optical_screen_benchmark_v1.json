@@ -159,7 +159,7 @@
     {
       "id": "OS-5B",
       "name": "independent Sachs optical-Jacobi equation cross-check",
-      "status": "fixed-step coupled Sachs-frame/Jacobi source and radial Schwarzschild known-answer tests authored; Rust execution and step-refinement receipts pending",
+      "status": "pointwise Sachs optical tide and transport RHS plus 24-component fixed-step frame/Jacobi integration authored; radial Schwarzschild D=lambda*I tests authored; Rust execution, N/2N/4N refinement and canonical-vs-Sachs comparison pending",
       "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
       "observables": [
         "screen_basis_parallel_transport_residual",
@@ -222,11 +222,11 @@
           "ingoing Kerr Sachs transport RHS preserves screen orthonormality and transversality rates"
         ],
         "remaining": [
-          "execute and record the 17-point radial Schwarzschild known-answer tests in Rust",
-          "run fixed-step refinements at N, 2N, 4N and report matrix and invariant convergence",
-          "compare the Sachs Jacobi matrix against the canonical 8x8 variation projected into the same transported frame",
-          "add nonradial Schwarzschild and generic Kerr trajectory cross-formulation receipts",
-          "benchmark convergence through a caustic without determinant-only classification"
+          "execute the radial Schwarzschild Jacobi known-answer tests at the exact PR head",
+          "run N, 2N, 4N step refinements",
+          "compare curvature-based Sachs Jacobi matrix with the canonical 8x8 fundamental-matrix projection in the same transported frame",
+          "add nonradial Schwarzschild and generic Kerr cross-formulation receipts",
+          "continue only after those gates to caustic localization"
         ],
         "apis": [
           "KerrCanonicalHamiltonian::optical_tidal_matrix",
@@ -296,6 +296,39 @@
       "validation_status": "fixed-step source and radial analytic test authored; prior runner test of the radial Sachs/Jacobi reference passed; rerun required after later test corrections"
     },
     {
+      "id": "OS-5D",
+      "name": "near-extremal prograde strong-deflection crossover",
+      "status": "analytic critical-photon-orbit helper and leading uniform phase reference source authored; Rust execution and numerical trajectory reproduction pending",
+      "model": "Subextremal equatorial prograde Kerr scattering in the joint near-critical/near-extremal regime. kappa=sqrt(1-a^2), b/M=b_c/M+kappa*chi with chi>0, and Phi_LO=kappa^-1*ln(1+2*sqrt(3)/chi). Exact photon-orbit data use r_ph/M=1+2 sin^2(delta/2)+sqrt(3)sin(delta), delta=(2/3)acos(a), and b_c/M=a+2 r_ph sqrt(Delta_ph)/(r_ph-1).",
+      "observables": [
+        "prograde_photon_orbit_radius",
+        "critical_impact_parameter",
+        "near_extremal_scaling_ratio_(b_c/M-2)/kappa",
+        "scaled_critical_offset_chi",
+        "leading_uniform_strong_deflection_phase",
+        "exact_numeric_azimuthal_deflection",
+        "matched_next_to_leading_order_phase_residual",
+        "high_order_image_branch_accumulation",
+        "coordinate_time_delay_spacing"
+      ],
+      "target": {
+        "schwarzschild_radius_and_critical_impact_known_answer": 1e-12,
+        "spin_0_9_radius_and_impact_known_answer": 1e-12,
+        "near_extremal_scaling_ratio_at_kappa_1e_3": 0.0004,
+        "asymptotic_phase": "For fixed chi>0, kappa*Phi_numeric must converge toward F(chi)=ln(1+2*sqrt(3)/chi); estimate observed convergence rather than invent a universal error floor.",
+        "matched_nlo_55_trajectory_reproduction": "Pin and reproduce the preprint's 55 high-precision trajectories; the matched NLO formula must improve aggregate error over leading-order uniform and fixed-subextremal logarithmic approximations, with every trajectory reported."
+      },
+      "source": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
+      "fixture": "crates/domains/symtropy-relativity/near_extremal_kerr_strong_deflection_v1.json",
+      "api": [
+        "KerrEquatorialProgradePhotonOrbit::from_spin",
+        "KerrEquatorialProgradePhotonOrbit::impact_parameter_for_scaled_offset",
+        "KerrEquatorialProgradePhotonOrbit::null_constants_for_scaled_offset",
+        "KerrEquatorialProgradePhotonOrbit::leading_uniform_deflection_phase"
+      ],
+      "claim_ceiling": "Analytic critical-orbit data and an asymptotic reference helper only. No 55-trajectory reproduction, numerical strong-deflection solver, image-branch catalogue or wave-optics result is currently qualified."
+    },
+    {
       "id": "OS-5C",
       "name": "matched Kerr geodesic/image comparison with AART",
       "status": "not_implemented",
@@ -315,6 +348,29 @@
         "screen_orientation": "Require an explicit screen-frame handedness and rotation map",
         "claim_ceiling": "Cross-code implementation consistency for matched Kerr observables, not validation of astrophysical emission assumptions"
       }
+    },
+    {
+      "id": "OS-5E",
+      "name": "point-to-point Kerr Jacobi magnification and bilocal-operator cross-check",
+      "status": "research_target_not_implemented",
+      "model": "Match a source event and observer event in Kerr, solve the point-to-point null lens map for each image branch, and compare the Jacobi map/magnification against a bilocal geodesic-operator (BGO) formulation.",
+      "observables": [
+        "source_to_observer_image_branch_identity",
+        "point_to_point_screen_map",
+        "bilocal_geodesic_operator_W_XK",
+        "Jacobi_determinant_and_singular_values",
+        "geometric_optics_strain_magnification",
+        "redshift_and_directional_emission_normalization",
+        "source_observer_propagation_time"
+      ],
+      "required": [
+        "match source and observer events, tetrads, affine normalization and screen handedness",
+        "separate gravitational focusing from redshift and source directional-emission normalization",
+        "compare canonical phase-space, Sachs-Jacobi and BGO formulations in the same source/observer frames",
+        "report branch identity and unresolved near-caustic condition rather than summing ambiguously matched images"
+      ],
+      "reference": "https://arxiv.org/abs/2610.08399",
+      "claim_ceiling": "Geometric-optics point-source focusing and timing only. A complete observed waveform additionally needs source evolution, frequency shift, phase/polarization transport, finite-source and wave effects, and detector response."
     },
     {
       "id": "OS-6",
@@ -486,6 +542,22 @@
       "reference": "https://arxiv.org/abs/2610.39181",
       "status": "preprint; peer-reviewed status not assumed; no Symtropy reproduction",
       "symtropy_position": "A separate future wave-propagation track, not a direct geodesic or fixed-step Jacobi benchmark."
+    },
+    {
+      "system": "Uniform Strong-Deflection Lensing in Near-Extremal Kerr (arXiv:2610.02900, 2 October 2026)",
+      "role": "Uniform asymptotic reference for the joint near-critical/near-extremal prograde equatorial regime, with kappa-scaled critical impact offset, matched next-to-leading correction and image-branch/time-delay crossover.",
+      "matched_comparison": "Reproduce the paper's 55 high-precision trajectories with the exact spin, critical impact, scaled offset, affine and azimuthal conventions. Compare ordinary logarithmic, leading uniform and matched-NLO errors per trajectory.",
+      "reference": "https://arxiv.org/abs/2610.02900",
+      "status": "preprint; analytic reference helper authored, matched 55-trajectory reproduction pending",
+      "symtropy_position": "A targeted numerical-conditioning and asymptotic-regime benchmark for the canonical Kerr integrator, not a claim of improved accuracy."
+    },
+    {
+      "system": "Self-lensing of GWs from binary EMRIs: Extended caustics and paired flashes (arXiv:2610.08399, 6 October 2026)",
+      "role": "Point-to-point Kerr lens map and bilocal geodesic-operator Jacobi map for individual-image geometric magnification, plus source-orbit caustic crossings and propagation-time separation.",
+      "matched_comparison": "Compare individual image branches, Jacobi determinants, strain magnifications and source-to-observer delays only under matched source event, observer event, spin, inclination, screen normalization and redshift/emission conventions.",
+      "reference": "https://arxiv.org/abs/2610.08399",
+      "status": "preprint; BGO/Jacobi cross-comparison not yet implemented",
+      "symtropy_position": "A stronger OS-5E target than image-pixel similarity. The paper explicitly separates geometric focusing/timing from a complete waveform, which still needs source evolution, redshift, phase/polarization transport and detector response."
     }
   ],
   "benchmark_policy": {
@@ -517,7 +589,10 @@
         "combine caustic, wave-optics and geodesic workloads into one opaque score"
       ]
     },
-    "sachs_curvature_comparison_required_before_caustic_claim": true
+    "sachs_curvature_comparison_required_before_caustic_claim": true,
+    "near_extremal_regime_is_a_separate_accuracy_tier": true,
+    "no_strong_deflection_claim_without_per_trajectory_reference_errors": true,
+    "jacobi_magnification_requires_source_observer_and_emission_normalization": true
   },
   "references": [
     "https://einsteintoolkit.org/about/releases/ET_2026_05_announcement.html",
@@ -530,7 +605,9 @@
     "https://doi.org/10.1103/tkk2-x9st",
     "https://arxiv.org/abs/2610.18958",
     "https://www.nature.com/articles/s41550-026-02874-x",
-    "https://doi.org/10.1093/mnras/stag1890"
+    "https://doi.org/10.1093/mnras/stag1890",
+    "https://arxiv.org/abs/2610.02900",
+    "https://arxiv.org/abs/2610.08399"
   ],
   "screen_frame_policy": {
     "status": "same-event SO(2) re-expression, pointwise Sachs optical tide, local frame-transport RHS, and fixed-step coupled Sachs-frame/Jacobi source implemented; Rust execution and refinement pending",
@@ -618,7 +695,8 @@
       "Boyer-Lindquist Sachs transport smoke test uses an outward seed, consistent with the seed's chart selection; ingoing-chart tests use ingoing seeds.",
       "Forbidden radial-region test now uses a genuinely negative radial potential at r/M=2.5 rather than the critical impact parameter, which admits the interior captured branch.",
       "Adaptive Schwarzschild scattering regression declares a 1e-8 radial/polar constraint acceptance in the integration config.",
-      "Future-horizon test permits a smaller minimum adaptive step in the regular ingoing chart; finite-observer source-screen test integrates to an affine interval long enough to reach the horizon."
+      "Future-horizon test permits a smaller minimum adaptive step in the regular ingoing chart; finite-observer source-screen test integrates to an affine interval long enough to reach the horizon.",
+      "Added exact equatorial prograde photon-orbit helper, near-extremal kappa/chi scaling and leading uniform phase reference; five new Rust known-answer/domain tests authored. Exact-head Rust execution pending."
     ],
     "status": "formatted branch contains corrected test inputs; exact-head Rust rerun requested after the contract update",
     "latest_source_test_inventory": {
