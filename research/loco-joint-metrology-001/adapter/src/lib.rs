@@ -22,7 +22,7 @@ pub struct TimestampInterval {
 }
 
 impl TimestampInterval {
-    fn validate(self, field: &'static str) -> Result<(), TraceValidationError> {
+    fn validate(&self, field: &'static str) -> Result<(), TraceValidationError> {
         if self.clock_id.trim().is_empty() {
             return Err(TraceValidationError::EmptyField(field));
         }
@@ -473,7 +473,7 @@ fn validate_identity(
 
 fn validate_timestamp(
     field: &'static str,
-    timestamp: TimestampInterval,
+    timestamp: &TimestampInterval,
     expected_boot_epoch: u64,
 ) -> Result<(), TraceValidationError> {
     timestamp.validate(field)?;
@@ -546,7 +546,7 @@ fn source_to_application_aoi(trace: &JointTrace) -> Evidence<DurationBounds> {
             ) else {
                 return Evidence::Unknown(UnknownReason::ClockMappingDoesNotCoverTrace);
             };
-            elapsed_in_one_clock(mapped_source, trace.actuator_application)
+            elapsed_in_one_clock(&mapped_source, &trace.actuator_application)
         }
     }
 }
@@ -687,7 +687,7 @@ pub fn adapt_joint_trace(trace: &JointTrace) -> Result<AdapterReport, TraceValid
     )?;
     validate_timestamp(
         "actuator_application",
-        trace.actuator_application,
+        &trace.actuator_application,
         trace.identity.boot_epoch,
     )?;
     validate_timestamp(
@@ -818,7 +818,7 @@ mod tests {
                 upper_ns: 100_000_000,
             },
             actuator_application: TimestampInterval {
-                clock_id: "joint-clock",
+                clock_id: "joint-clock".into(),
                 boot_epoch: 7,
                 lower_ns: 110_000_000,
                 upper_ns: 110_000_000,
