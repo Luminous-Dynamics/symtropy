@@ -164,6 +164,9 @@ pub enum BaselineAdaptationError {
     InvalidObservation(String),
     ObservationNotAccepted(BaselineQuarantineReason),
     InvalidAttestation,
+    ReceiptChainBroken,
+    ReceiptDigestMismatch,
+    MixedReceiptIdentity,
     Serialization,
 }
 
@@ -179,6 +182,9 @@ impl fmt::Display for BaselineAdaptationError {
             Self::InvalidObservation(id) => write!(formatter, "invalid shadow observation: {id}"),
             Self::ObservationNotAccepted(reason) => write!(formatter, "shadow observation failed closed: {reason:?}"),
             Self::InvalidAttestation => write!(formatter, "independent health-attestation set is incomplete or invalid"),
+            Self::ReceiptChainBroken => write!(formatter, "shadow observation receipt chain is incomplete or out of order"),
+            Self::ReceiptDigestMismatch => write!(formatter, "shadow observation receipt digest does not match its contents"),
+            Self::MixedReceiptIdentity => write!(formatter, "shadow receipt chain contains mixed baseline, model, recording or regime identities"),
             Self::Serialization => write!(formatter, "failed to serialize baseline adaptation evidence"),
         }
     }
@@ -188,6 +194,9 @@ impl std::error::Error for BaselineAdaptationError {}
 
 #[derive(Clone, Debug, Serialize, PartialEq)]
 pub struct ShadowObservationReceipt {
+    pub base_baseline_sha256: String,
+    pub model_sha256: String,
+    pub regime_id: String,
     pub recording_id: String,
     pub sample_index: u64,
     pub time_seconds: f64,
@@ -197,6 +206,7 @@ pub struct ShadowObservationReceipt {
     pub all_required_signals_current: bool,
     pub command_history_available: bool,
     pub command_response_timing_causally_valid: bool,
+    pub dependency_health_verified_upstream: bool,
     pub dependency_health_verification_sha256: String,
     pub known_fault_alarm_present: bool,
     pub unknown_fault_alarm_present: bool,
@@ -373,19 +383,10 @@ impl BaselineShadowCandidate {
         &self,
         observation: &BaselineShadowObservation,
     ) -> Result<ShadowObservationReceipt, BaselineAdaptationError> {
-        let payload = (
-            self.base_baseline_sha256.as_str(),
-            self.model_sha256.as_str(),
-            observation.recording_id.as_str(),
-            observation.sample_index,
-            observation.time_seconds,
-            observation.input_receipt_sha256.as_str(),
-            observation.dependency_health_verification_sha256.as_str(),
-            self.previous_receipt_sha256.as_deref(),
-        );
-        let receipt_sha256 =
-            sha256_serializable(b"symtropy-baseline-shadow-observation-v1\0", &payload)?;
-        Ok(ShadowObservationReceipt {
+        let mut receipt = ShadowObservationReceipt {
+            base_baseline_sha256: self.base_baseline_sha256.clone(),
+            model_sha256: self.model_sha256.clone(),
+            regime_id: self.regime_id.clone(),
             recording_id: observation.recording_id.clone(),
             sample_index: observation.sample_index,
             time_seconds: observation.time_seconds,
@@ -395,13 +396,16 @@ impl BaselineShadowCandidate {
             all_required_signals_current: observation.all_required_signals_current,
             command_history_available: observation.command_history_available,
             command_response_timing_causally_valid: observation.command_response_timing_causally_valid,
+            dependency_health_verified_upstream: observation.dependency_health_verified_upstream,
             dependency_health_verification_sha256: observation.dependency_health_verification_sha256.clone(),
             known_fault_alarm_present: observation.known_fault_alarm_present,
             unknown_fault_alarm_present: observation.unknown_fault_alarm_present,
             ambiguous_hypothesis_set_present: observation.ambiguous_hypothesis_set_present,
             previous_receipt_sha256: self.previous_receipt_sha256.clone(),
-            receipt_sha256,
-        })
+            receipt_sha256: String::new(),
+        };
+        receipt.receipt_sha256 = shadow_observation_receipt_sha256(&receipt)?;
+        Ok(receipt)
     }
 
     pub fn status(&self) -> BaselineCandidateStatus {
@@ -488,6 +492,93 @@ impl BaselineShadowCandidate {
                 .collect::<Vec<_>>(),
         )
     }
+}
+
+/// Recompute the digest over every decision-relevant field in a shadow receipt.
+pub fn shadow_observation_receipt_sha256(
+    receipt: &ShadowObservationReceipt,
+) -> Result<String, BaselineAdaptationError> {
+    let payload = (
+        receipt.base_baseline_sha256.as_str(),
+        receipt.model_sha256.as_str(),
+        receipt.regime_id.as_str(),
+        receipt.recording_id.as_str(),
+        receipt.sample_index,
+        receipt.time_seconds,
+        receipt.input_receipt_sha256.as_str(),
+        receipt.standardized_absolute_residual,
+        receipt.regime_supported_by_frozen_reference,
+        receipt.all_required_signals_current,
+        receipt.command_history_available,
+        receipt.command_response_timing_causally_valid,
+        receipt.dependency_health_verified_upstream,
+        receipt.dependency_health_verification_sha256.as_str(),
+        receipt.known_fault_alarm_present,
+        receipt.unknown_fault_alarm_present,
+        receipt.ambiguous_hypothesis_set_present,
+        &receipt.previous_receipt_sha256,
+    );
+    sha256_serializable(b"symtropy-baseline-shadow-observation-v2\0", &payload)
+}
+
+/// Replay the complete shadow receipt chain and reject any content or order change.
+pub fn validate_shadow_receipt_chain(
+    receipts: &[ShadowObservationReceipt],
+) -> Result<(), BaselineAdaptationError> {
+    if receipts.is_empty() {
+        return Err(BaselineAdaptationError::ReceiptChainBroken);
+    }
+    let first = &receipts[0];
+    let mut previous_receipt: Option<&str> = None;
+    let mut previous_index = None;
+    let mut previous_time = None;
+    for receipt in receipts {
+        if receipt.base_baseline_sha256 != first.base_baseline_sha256
+            || receipt.model_sha256 != first.model_sha256
+            || receipt.regime_id != first.regime_id
+            || receipt.recording_id != first.recording_id
+        {
+            return Err(BaselineAdaptationError::MixedReceiptIdentity);
+        }
+        if !is_sha256_hex(&receipt.base_baseline_sha256)
+            || !is_sha256_hex(&receipt.model_sha256)
+            || !is_sha256_hex(&receipt.input_receipt_sha256)
+            || !is_sha256_hex(&receipt.dependency_health_verification_sha256)
+            || !is_sha256_hex(&receipt.receipt_sha256)
+            || !receipt.time_seconds.is_finite()
+            || receipt.time_seconds < 0.0
+            || !receipt.standardized_absolute_residual.is_finite()
+            || receipt.standardized_absolute_residual < 0.0
+        {
+            return Err(BaselineAdaptationError::ReceiptChainBroken);
+        }
+        if previous_index.is_some_and(|index| receipt.sample_index != index.saturating_add(1))
+            || previous_time.is_some_and(|time| receipt.time_seconds <= time)
+        {
+            return Err(BaselineAdaptationError::ReceiptChainBroken);
+        }
+        if receipt.previous_receipt_sha256.as_deref() != previous_receipt {
+            return Err(BaselineAdaptationError::ReceiptChainBroken);
+        }
+        if !receipt.regime_supported_by_frozen_reference
+            || !receipt.all_required_signals_current
+            || !receipt.command_history_available
+            || !receipt.command_response_timing_causally_valid
+            || !receipt.dependency_health_verified_upstream
+            || receipt.known_fault_alarm_present
+            || receipt.unknown_fault_alarm_present
+            || receipt.ambiguous_hypothesis_set_present
+        {
+            return Err(BaselineAdaptationError::ReceiptChainBroken);
+        }
+        if shadow_observation_receipt_sha256(receipt)? != receipt.receipt_sha256 {
+            return Err(BaselineAdaptationError::ReceiptDigestMismatch);
+        }
+        previous_index = Some(receipt.sample_index);
+        previous_time = Some(receipt.time_seconds);
+        previous_receipt = Some(receipt.receipt_sha256.as_str());
+    }
+    Ok(())
 }
 
 fn validate_attestations(
