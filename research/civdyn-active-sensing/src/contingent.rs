@@ -728,8 +728,8 @@ mod tests {
                 None,
                 vec![
                     ("healthy", "healthy", None, 0.2),
-                    ("degraded", "ambiguous", Some(MissingCause::CommonCausePowerLoss), 0.5),
-                    ("healthy_sensor_fault", "ambiguous", Some(MissingCause::TelemetryNetworkFault), 0.1),
+                    ("degraded", "missing", Some(MissingCause::CommonCausePowerLoss), 0.5),
+                    ("healthy_sensor_fault", "missing", Some(MissingCause::TelemetryNetworkFault), 0.1),
                 ],
             ),
             sensor(
@@ -737,7 +737,7 @@ mod tests {
                 0.15,
                 2.0,
                 1,
-                Some("ambiguous"),
+                Some("missing"),
                 vec![
                     ("healthy", "healthy", None, 0.2),
                     ("degraded", "degraded", None, 0.2),
@@ -749,7 +749,7 @@ mod tests {
                 0.1,
                 2.0,
                 1,
-                Some("ambiguous"),
+                Some("missing"),
                 vec![
                     ("healthy", "healthy", None, 0.1),
                     ("degraded", "missing", Some(MissingCause::SensorDeviceFailure), 0.1),
@@ -761,7 +761,7 @@ mod tests {
                 1.0,
                 2.0,
                 1,
-                Some("ambiguous"),
+                Some("missing"),
                 vec![
                     ("healthy", "healthy", None, 0.1),
                     ("degraded", "degraded", None, 0.1),
@@ -794,7 +794,7 @@ mod tests {
             *healthy.next,
             CandidatePolicyNode::StopAndAct { action_id: "defer".to_owned() }
         );
-        let ambiguous = branches.iter().find(|branch| branch.observation_id == "ambiguous").unwrap();
+        let ambiguous = branches.iter().find(|branch| branch.observation_id == "missing").unwrap();
         let CandidatePolicyNode::RequestSensor { sensor_id, branches } = ambiguous.next.as_ref() else {
             panic!("only the ambiguous branch should request a follow-up");
         };
@@ -823,7 +823,7 @@ mod tests {
     fn distinct_hidden_missingness_causes_remain_one_public_observation_branch() {
         let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
         let screen_receipts: Vec<&ContingentPredictionReceipt> = report.evaluator_prediction_receipts
-            .iter().filter(|receipt| receipt.sensor_id == "screen" && receipt.observation_id == "ambiguous")
+            .iter().filter(|receipt| receipt.sensor_id == "screen" && receipt.observation_id == "missing")
             .collect();
         assert_eq!(screen_receipts.len(), 2);
         assert_eq!(
@@ -832,7 +832,7 @@ mod tests {
         );
         let root = report.candidate_policy_tree.unwrap();
         let CandidatePolicyNode::RequestSensor { branches, .. } = root else { unreachable!() };
-        assert_eq!(branches.iter().filter(|branch| branch.observation_id == "ambiguous").count(), 1);
+        assert_eq!(branches.iter().filter(|branch| branch.observation_id == "missing").count(), 1);
     }
 
     #[test]
