@@ -972,7 +972,7 @@ mod tests {
 
     fn perturbed_run() -> RunRecord {
         let fault = fault_spec();
-        let fault_events = (100..120)
+        let mut fault_events = (100..120)
             .map(|tick| FaultEvent {
                 event_id: format!("missing-frame-{tick}"),
                 fault_family: "camera_burst_drop".into(),
@@ -982,7 +982,16 @@ mod tests {
                 sampled_value_sha256: digest('7'),
                 evidence_sha256: digest('8'),
             })
-            .collect();
+            .collect::<Vec<_>>();
+        fault_events.push(FaultEvent {
+            event_id: "camera-restored-120".into(),
+            fault_family: "camera_burst_drop".into(),
+            kind: FaultEventKind::FaultRestored,
+            tick: 120,
+            affected_channel: "front_camera".into(),
+            sampled_value_sha256: digest('7'),
+            evidence_sha256: digest('8'),
+        });
         RunRecord {
             run_id: "perturbed-1".into(),
             context: context(),
