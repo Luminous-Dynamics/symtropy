@@ -78,6 +78,35 @@ pub struct ColonyDebugMetrics {
     pub stress: f32,
 }
 
+/// Failure to transfer only the colony's shared food/home environmental memory.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ColonyMemoryTransferError {
+    DimensionsMismatch {
+        source_width: usize,
+        source_height: usize,
+        target_width: usize,
+        target_height: usize,
+    },
+}
+
+impl std::fmt::Display for ColonyMemoryTransferError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DimensionsMismatch {
+                source_width,
+                source_height,
+                target_width,
+                target_height,
+            } => write!(
+                f,
+                "social-memory field dimensions differ: source {source_width}x{source_height}, target {target_width}x{target_height}"
+            ),
+        }
+    }
+}
+
+impl std::error::Error for ColonyMemoryTransferError {}
+
 #[derive(Debug, Clone)]
 pub struct ColonyWorld {
     pub fields: FieldGrid,
@@ -87,6 +116,9 @@ pub struct ColonyWorld {
     ants: Vec<AntCohort>,
     information_mode: ColonyInformationMode,
     seed: u64,
+    /// Whether food sources/nest emit exogenous pheromone fields each tick.
+    /// Disable this when testing persistence of agent-generated environmental traces.
+    source_emission_enabled: bool,
     tick: u64,
 }
 
@@ -165,6 +197,7 @@ impl ColonyWorld {
             ants,
             information_mode,
             seed,
+            source_emission_enabled: true,
             tick: 0,
         }
     }
@@ -175,6 +208,67 @@ impl ColonyWorld {
 
     pub const fn seed(&self) -> u64 {
         self.seed
+    }
+
+    pub const fn source_emission_enabled(&self) -> bool {
+        self.source_emission_enabled
+    }
+
+    /// Enable/disable exogenous food-source and nest pheromone emission.
+    ///
+    /// This is distinct from ant-generated trail deposition and is required to
+    /// separate source broadcasting from environmental memory created by agents.
+    pub fn set_source_emission_enabled(&mut self, enabled: bool) {
+        self.source_emission_enabled = enabled;
+    }
+
+    /// Remove only the shared food/home pheromone channels, leaving danger, obstacles,
+    /// nutrients, geometry and all other environmental layers unchanged.
+    pub fn clear_social_memory(&mut self) {
+        for y in 0..self.fields.height() {
+            for x in 0..self.fields.width() {
+                self.fields.set(FieldLayer::FoodPheromone, x, y, 0.0);
+                self.fields.set(FieldLayer::HomePheromone, x, y, 0.0);
+            }
+        }
+    }
+
+    /// Copy only the food/home pheromone fields from another world.
+    ///
+    /// This models transfer of environmental traces to a replacement cohort. Agent
+    /// state, food inventory, danger fields, obstacles and other channels are not copied.
+    pub fn copy_social_memory_from(
+        &mut self,
+        source: &Self,
+    ) -> Result<(), ColonyMemoryTransferError> {
+        if self.fields.width() != source.fields.width()
+            || self.fields.height() != source.fields.height()
+        {
+            return Err(ColonyMemoryTransferError::DimensionsMismatch {
+                source_width: source.fields.width(),
+                source_height: source.fields.height(),
+                target_width: self.fields.width(),
+                target_height: self.fields.height(),
+            });
+        }
+
+        for y in 0..self.fields.height() {
+            for x in 0..self.fields.width() {
+                self.fields.set(
+                    FieldLayer::FoodPheromone,
+                    x,
+                    y,
+                    source.fields.get(FieldLayer::FoodPheromone, x, y),
+                );
+                self.fields.set(
+                    FieldLayer::HomePheromone,
+                    x,
+                    y,
+                    source.fields.get(FieldLayer::HomePheromone, x, y),
+                );
+            }
+        }
+        Ok(())
     }
 
     pub fn ants(&self) -> &[AntCohort] {
@@ -242,7 +336,9 @@ impl ColonyWorld {
 
     pub fn step(&mut self) {
         self.tick += 1;
-        if self.information_mode != ColonyInformationMode::IndependentLocalSearch {
+        if self.source_emission_enabled
+            && self.information_mode != ColonyInformationMode::IndependentLocalSearch
+        {
             self.reinforce_sources();
         }
 
@@ -666,6 +762,139 @@ mod tests {
         assert!(ppm.contains("70 130 255"));
         assert!(ppm.contains("40 220 80"));
         assert!(ppm.contains("12 12 12"));
+    }
+
+    #[test]
+    fn social_memory_transfer_copies_only_food_and_home_fields() {
+        let mut donor = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            7,
+        );
+        donor.fields.set(FieldLayer::FoodPheromone, 3, 4, 17.0);
+        donor.fields.set(FieldLayer::HomePheromone, 2, 4, 9.0);
+        donor.fields.set(FieldLayer::DangerPheromone, 3, 4, 5.0);
+        donor.fields.set(FieldLayer::Nutrient, 3, 4, 11.0);
+
+        let mut recipient = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            8,
+        );
+        recipient.fields.set(FieldLayer::DangerPheromone, 3, 4, 2.0);
+        recipient.copy_social_memory_from(&donor).unwrap();
+
+        assert_eq!(recipient.fields.get(FieldLayer::FoodPheromone, 3, 4), 17.0);
+        assert_eq!(recipient.fields.get(FieldLayer::HomePheromone, 2, 4), 9.0);
+        assert_eq!(recipient.fields.get(FieldLayer::DangerPheromone, 3, 4), 2.0);
+        assert_eq!(recipient.fields.get(FieldLayer::Nutrient, 3, 4), 0.0);
+        assert_eq!(recipient.ants().len(), 4);
+        assert_eq!(recipient.mind.food_reserve, 0);
+    }
+
+    #[test]
+    fn replacement_cohort_uses_transferred_trace_without_source_broadcast() {
+        let mut donor = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            7,
+        );
+        donor.fields.set(FieldLayer::FoodPheromone, 2, 4, 1.0);
+        donor.fields.set(FieldLayer::FoodPheromone, 3, 4, 30.0);
+        donor.fields.set(FieldLayer::HomePheromone, 1, 4, 30.0);
+
+        let mut replacement = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            19,
+        );
+        replacement.set_source_emission_enabled(false);
+        replacement.copy_social_memory_from(&donor).unwrap();
+        let target_with_memory = replacement.next_target(1, 12, 8);
+
+        let mut erased = ColonyWorld::new_with_information_mode_and_seed(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+            19,
+        );
+        erased.set_source_emission_enabled(false);
+        erased.clear_social_memory();
+        let target_without_memory = erased.next_target(1, 12, 8);
+
+        assert_eq!(target_with_memory, (2, 4));
+        assert_ne!(target_with_memory, target_without_memory);
+        assert!(!replacement.source_emission_enabled());
+        assert_eq!(replacement.tick(), 0);
+    }
+
+    #[test]
+    fn exogenous_common_field_control_can_reproduce_a_transferred_field_decision() {
+        let mut donor = ColonyWorld::new_with_information_mode(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        donor.fields.set(FieldLayer::FoodPheromone, 2, 4, 1.0);
+        donor.fields.set(FieldLayer::FoodPheromone, 3, 4, 30.0);
+
+        let mut transferred = ColonyWorld::new_with_information_mode(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        transferred.set_source_emission_enabled(false);
+        transferred.copy_social_memory_from(&donor).unwrap();
+
+        let mut externally_signaled = ColonyWorld::new_with_information_mode(
+            12,
+            8,
+            (1, 4),
+            4,
+            ColonyInformationMode::StigmergicFieldOnly,
+        );
+        externally_signaled.set_source_emission_enabled(false);
+        externally_signaled.fields.set(FieldLayer::FoodPheromone, 2, 4, 1.0);
+        externally_signaled.fields.set(FieldLayer::FoodPheromone, 3, 4, 30.0);
+
+        assert_eq!(
+            transferred.next_target(1, 12, 8),
+            externally_signaled.next_target(1, 12, 8)
+        );
+    }
+
+    #[test]
+    fn social_memory_transfer_rejects_different_grid_dimensions() {
+        let donor = ColonyWorld::new(12, 8, (1, 4), 4);
+        let mut recipient = ColonyWorld::new(10, 8, (1, 4), 4);
+
+        assert_eq!(
+            recipient.copy_social_memory_from(&donor),
+            Err(ColonyMemoryTransferError::DimensionsMismatch {
+                source_width: 12,
+                source_height: 8,
+                target_width: 10,
+                target_height: 8,
+            })
+        );
     }
 
     #[test]
