@@ -191,7 +191,7 @@ jobs:
             --bin marine-dataset-audit -- "$DATASET_ROOT" "${{ steps.archive.outputs.archive_sha256 }}" \
             > "$report"
           jq -e '
-            .schema_version == "symtropy-marine-csv-audit-v0.1" and
+            .schema_version == "symtropy-marine-csv-audit-v0.2" and
             .dataset_doi == "10.5281/zenodo.19857425" and
             .archive_sha256 == "${{ steps.archive.outputs.archive_sha256 }}" and
             .csv_file_count == 16 and
@@ -199,7 +199,12 @@ jobs:
             .scenario_file_count == 15 and
             (.total_data_rows > 0) and
             (.files | length == 16) and
-            ([.files[].time_rel_strictly_increasing] | all) and
+            ([.files[].time_strictly_increasing] | all) and
+            ([.files[] | select(.role == "baseline_reference") | .time_column_name] == ["Time"]) and
+            ([.files[] | select(.role == "baseline_reference") | .time_column_index] == [0]) and
+            ([.files[] | select(.role == "fault_scenario") | .time_column_name] | all(. == "Time_rel")) and
+            ([.files[] | select(.role == "fault_scenario") | .time_column_index] | all(. == 1)) and
+            ([.files[].time_column_unit] | all(. == "sec")) and
             (.metadata_artifact_sha256.dataset_index != null) and
             (.metadata_artifact_sha256.variable_dictionary != null) and
             (.metadata_artifact_sha256.normalization_script != null) and
