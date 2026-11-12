@@ -1,0 +1,41 @@
+name: decision-time-action-assurance
+
+on:
+  pull_request:
+    paths:
+      - "research/decision-time-action-assurance-001/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/decision-time-action-assurance.yml"
+  push:
+    paths:
+      - "research/decision-time-action-assurance-001/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/decision-time-action-assurance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  assurance-reference:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact commit
+        uses: actions/checkout@v4
+
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+
+      - name: Check formatting
+        run: cargo fmt --package decision-time-action-assurance -- --check
+
+      - name: Run reference and CLI tests
+        run: cargo test --locked --package decision-time-action-assurance
+
+      - name: Run strict Clippy
+        run: cargo clippy --locked --package decision-time-action-assurance --all-targets --all-features -- -D warnings
