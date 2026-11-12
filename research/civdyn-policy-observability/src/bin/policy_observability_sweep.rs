@@ -10,7 +10,7 @@ use civdyn_policy_observability::{
 const SUPPORT_LOWER: u64 = 0;
 const SUPPORT_UPPER: u64 = 100;
 
-#[derive(Clone, Copy)]
+#[derive(Debug)]
 struct RowSpec<'a> {
     policy_id: &'a str,
     unit_id: &'a str,
