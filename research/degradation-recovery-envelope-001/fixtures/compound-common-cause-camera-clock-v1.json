@@ -285,7 +285,7 @@
         "degraded_mode": false,
         "fallback_active": false,
         "safe_stop_complete": false,
-        "normal_mode": true,
+        "normal_mode": false,
         "decision_latency_us": 10700,
         "inference_energy_uj": 47,
         "fault_detection_event_ids": [],
