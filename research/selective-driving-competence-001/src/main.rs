@@ -26,20 +26,18 @@ fn run() -> Result<(), Box<dyn Error>> {
         return Err("input must be a regular file no larger than 256 MiB".into());
     }
     let encoded = fs::read_to_string(input_path)?;
-    let input = EvaluationInput::from_json(&encoded)
-        .map_err(|error| format!("cannot parse evaluation input: {error}"))?;
-    let report = input
-        .evaluate()
+    let rendered_report = evaluate_json(&encoded)
         .map_err(|error| format!("evaluation rejected: {error}"))?;
+    let report_value: serde_json::Value = serde_json::from_str(&rendered_report)?;
     if let Some(parent) = report_path.parent().filter(|path| !path.as_os_str().is_empty()) {
         fs::create_dir_all(parent)?;
     }
-    fs::write(report_path, serde_json::to_vec_pretty(&report)?)?;
+    fs::write(report_path, rendered_report)?;
     println!(
         "selective-driving evaluation: {} decisions, {:.3} actual coverage, AURC={:.6}; report={}",
-        report.observed_decision_count,
-        report.actual_autonomy_coverage,
-        report.risk_coverage_area_failure_rate,
+        report_value["observed_decision_count"].as_u64().unwrap_or(0),
+        report_value["actual_autonomy_coverage"].as_f64().unwrap_or(0.0),
+        report_value["risk_coverage_area_failure_rate"].as_f64().unwrap_or(0.0),
         report_path.display()
     );
     Ok(())
