@@ -374,7 +374,6 @@ pub fn compare_profiles(request: &ComparisonRequest) -> Result<GeometryCompariso
         let (delta_end, uncertainty_end) = end_delta.ok_or(AbstainReason::NoSupportedIntervals)?;
 
         let (net, added, removed) = segment_areas2(dx_um, delta_start, delta_end)?;
-        let net = i128::try_from(net).map_err(|_| AbstainReason::NumericOverflow)?;
         net_area2_um2 = net_area2_um2
             .checked_add(net)
             .ok_or(AbstainReason::NumericOverflow)?;
