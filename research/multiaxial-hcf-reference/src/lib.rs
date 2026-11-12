@@ -353,9 +353,8 @@ pub fn evaluate_findley(
             if should_replace {
                 best = Some(candidate);
             }
-            let should_replace_shape = maximum_shape.is_none_or(|(shape, _)| {
-                candidate.shear_path_shape_index > shape
-            });
+            let should_replace_shape =
+                maximum_shape.is_none_or(|(shape, _)| candidate.shear_path_shape_index > shape);
             if should_replace_shape {
                 maximum_shape = Some((candidate.shear_path_shape_index, normal));
             }
@@ -665,12 +664,7 @@ mod tests {
         let quadrature_report = evaluate_findley(&quadrature, profile(0.3)).unwrap();
 
         assert!(in_phase_report.diagnostics.maximum_shear_path_shape_index < 1.0e-8);
-        assert!(
-            quadrature_report
-                .diagnostics
-                .maximum_shear_path_shape_index
-                > 0.05
-        );
+        assert!(quadrature_report.diagnostics.maximum_shear_path_shape_index > 0.05);
     }
 
     #[test]
