@@ -46,7 +46,10 @@ pub struct Cotangent<F: CoordinateFrame, const N: usize> {
 impl<F: CoordinateFrame, const N: usize> Tangent<F, N> {
     pub fn new(components: Vector<N>) -> Result<Self, MetricErrorV1> {
         validate_vector(&components)?;
-        Ok(Self { components, _frame: PhantomData })
+        Ok(Self {
+            components,
+            _frame: PhantomData,
+        })
     }
 
     pub fn components(&self) -> &Vector<N> {
@@ -158,7 +161,9 @@ pub fn vector_inf<const N: usize>(vector: &Vector<N>) -> f64 {
 }
 
 pub fn vector_euclidean<const N: usize>(vector: &Vector<N>) -> f64 {
-    vector.iter().fold(0.0_f64, |norm, value| norm.hypot(*value))
+    vector
+        .iter()
+        .fold(0.0_f64, |norm, value| norm.hypot(*value))
 }
 
 fn dot<const N: usize>(left: &Vector<N>, right: &Vector<N>) -> f64 {
@@ -234,11 +239,7 @@ fn factor<const N: usize>(
     let mut permutation = std::array::from_fn(|index| index);
     for column in 0..N {
         let pivot_row = (column..N)
-            .max_by(|left, right| {
-                lu[*left][column]
-                    .abs()
-                    .total_cmp(&lu[*right][column].abs())
-            })
+            .max_by(|left, right| lu[*left][column].abs().total_cmp(&lu[*right][column].abs()))
             .ok_or(MetricErrorV1::ZeroDimension)?;
         let pivot = lu[pivot_row][column].abs();
         if !pivot.is_finite() || pivot <= threshold {
@@ -288,10 +289,7 @@ impl<const N: usize> LuFactorV1<N> {
 }
 
 impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
-    pub fn admit(
-        matrix: Matrix<N>,
-        profile: MetricProfileV1,
-    ) -> Result<Self, MetricErrorV1> {
+    pub fn admit(matrix: Matrix<N>, profile: MetricProfileV1) -> Result<Self, MetricErrorV1> {
         validate_profile(profile)?;
         if N == 0 {
             return Err(MetricErrorV1::ZeroDimension);
@@ -315,8 +313,7 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
                 if !defect.is_finite() {
                     return Err(MetricErrorV1::NonFiniteIntermediate);
                 }
-                maximum_relative_symmetry_defect =
-                    maximum_relative_symmetry_defect.max(defect);
+                maximum_relative_symmetry_defect = maximum_relative_symmetry_defect.max(defect);
                 if defect > profile.relative_symmetry_tolerance {
                     return Err(MetricErrorV1::NonSymmetricMetric { row, column });
                 }
@@ -464,10 +461,7 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
 
 impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, To, N> {
     /// Construct from q = S y, where S is nonsingular.
-    pub fn new(
-        matrix: Matrix<N>,
-        profile: MetricProfileV1,
-    ) -> Result<Self, MetricErrorV1> {
+    pub fn new(matrix: Matrix<N>, profile: MetricProfileV1) -> Result<Self, MetricErrorV1> {
         validate_profile(profile)?;
         let factor = factor(&matrix, profile.relative_pivot_tolerance)?;
         Ok(Self {
@@ -512,10 +506,7 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
         profile: MetricProfileV1,
     ) -> Result<Cotangent<From, N>, MetricErrorV1> {
         validate_profile(profile)?;
-        let transpose_factor = factor(
-            &transpose(&self.matrix),
-            profile.relative_pivot_tolerance,
-        )?;
+        let transpose_factor = factor(&transpose(&self.matrix), profile.relative_pivot_tolerance)?;
         Cotangent::new(transpose_factor.solve(&covector_to.components)?)
     }
 
@@ -583,7 +574,10 @@ mod tests {
 
     fn close(left: f64, right: f64, tolerance: f64) {
         let scale = 1.0_f64.max(left.abs()).max(right.abs());
-        assert!((left - right).abs() <= tolerance * scale, "{left} != {right}");
+        assert!(
+            (left - right).abs() <= tolerance * scale,
+            "{left} != {right}"
+        );
     }
 
     #[test]
@@ -739,10 +733,7 @@ mod tests {
         let correct_covector_y = rebasis.cotangent_to_to(&covector_q).unwrap();
 
         // Deliberate wrong laws: apply S^T to a tangent and S^-1 to a covector.
-        let wrong_vector_y = apply(
-            &transpose(rebasis.matrix()),
-            vector_q.components(),
-        );
+        let wrong_vector_y = apply(&transpose(rebasis.matrix()), vector_q.components());
         let wrong_covector_y = rebasis.factor.solve(covector_q.components()).unwrap();
 
         let correct_pairing = pairing(&correct_covector_y, &correct_vector_y);
@@ -758,10 +749,7 @@ mod tests {
     #[test]
     fn singular_basis_and_non_positive_metric_fail_closed() {
         assert!(matches!(
-            Rebasis::<CartesianQ, DenseY, 2>::new(
-                [[1.0, 2.0], [2.0, 4.0]],
-                profile()
-            ),
+            Rebasis::<CartesianQ, DenseY, 2>::new([[1.0, 2.0], [2.0, 4.0]], profile()),
             Err(MetricErrorV1::SingularCoordinateTransform { .. })
         ));
 
@@ -778,10 +766,7 @@ mod tests {
             Err(MetricErrorV1::NonSymmetricMetric { .. })
         ));
         assert_eq!(
-            Metric::<CartesianQ, 2>::admit(
-                [[f64::NAN, 0.0], [0.0, 1.0]],
-                profile()
-            ),
+            Metric::<CartesianQ, 2>::admit([[f64::NAN, 0.0], [0.0, 1.0]], profile()),
             Err(MetricErrorV1::NonFiniteMatrix)
         );
     }
@@ -797,9 +782,7 @@ mod tests {
         );
         let difference = (0..3)
             .flat_map(|row| (0..3).map(move |column| (row, column)))
-            .map(|(row, column)| {
-                (correct.matrix()[row][column] - wrong[row][column]).abs()
-            })
+            .map(|(row, column)| (correct.matrix()[row][column] - wrong[row][column]).abs())
             .fold(0.0_f64, f64::max);
         assert!(difference > 1.0e-3);
     }
