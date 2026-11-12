@@ -188,7 +188,9 @@ jobs:
             ([.dimensions[].id] | unique | length == 9) and
             (.overall_status == "not_deployable_claimed") and
             (.aggregate_readiness_score_allowed == false) and
-            ([.dimensions[].research_target] | all(. != null))
+            ([.dimensions[].current_status] | all(. != null)) and
+            ([.dimensions[].required_metrics] | all(length > 0)) and
+            ([.dimensions[].qualification_gates] | all(length > 0))
           ' "$root/deployability-matrix-v0.1.json" >/dev/null
 
           jq -e '
