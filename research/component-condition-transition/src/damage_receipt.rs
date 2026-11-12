@@ -11,7 +11,7 @@ use std::fmt;
 
 use crate::{
     ComponentIdentity, ConditionClaim, ConditionDisposition, ConditionEvent, ConditionQuantity,
-    DamageMechanism, EventTime, EvidenceClass, EvidenceRef, TransitionError, TransitionKind,
+    DamageMechanism, EventTime, EvidenceClass, EvidenceRef, TransitionKind,
 };
 
 const PARIS_CLOSURE_RELATIVE_TOLERANCE: f64 = 64.0 * f64::EPSILON;
@@ -599,6 +599,7 @@ mod tests {
                 maximum: 20.0,
             },
         };
+        receipt.cycle_count.canonical_blocks_sha256 = digest('3');
         receipt.model_input_blocks_sha256 = digest('3');
         receipt.delta_k_input = Some(DeltaKInputArtifact {
             artifact: evidence("delta-k-001", EvidenceClass::Derived, '4'),
@@ -893,7 +894,7 @@ mod tests {
         let event = receipt.into_condition_event("event-1", 3, time()).unwrap();
         let mut ledger = ConditionLedger::new(subject(), "test-clock").unwrap();
         let before = ledger.clone();
-        assert_eq!(ledger.apply(event), Err(TransitionError::StaleRevision));
+        assert_eq!(ledger.apply(event), Err(crate::TransitionError::StaleRevision));
         assert_eq!(ledger, before);
     }
 }
