@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/convention-metamorphic-fixture-v1.schema.json",
+  "title": "Left/right traffic convention metamorphic fixture v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "fixture_id",
+    "base_jurisdiction",
+    "alternate_jurisdiction",
+    "base_traffic_side",
+    "alternate_traffic_side",
+    "task_intent_id",
+    "base_task_intent_id",
+    "alternate_task_intent_id",
+    "base_rule_bundle_sha256",
+    "alternate_rule_bundle_sha256",
+    "base_maneuver",
+    "alternate_maneuver",
+    "base_geometry",
+    "alternate_geometry",
+    "transformation",
+    "note"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "fixture_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "base_jurisdiction": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "alternate_jurisdiction": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "base_traffic_side": {
+      "enum": [
+        "left",
+        "right"
+      ]
+    },
+    "alternate_traffic_side": {
+      "enum": [
+        "left",
+        "right"
+      ]
+    },
+    "task_intent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_task_intent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "alternate_task_intent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_rule_bundle_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "alternate_rule_bundle_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "base_maneuver": {
+      "enum": [
+        "left_turn",
+        "right_turn",
+        "straight",
+        "u_turn"
+      ]
+    },
+    "alternate_maneuver": {
+      "enum": [
+        "left_turn",
+        "right_turn",
+        "straight",
+        "u_turn"
+      ]
+    },
+    "base_geometry": {
+      "$ref": "#/$defs/geometry"
+    },
+    "alternate_geometry": {
+      "$ref": "#/$defs/geometry"
+    },
+    "transformation": {
+      "const": "mirror_about_road_centerline"
+    },
+    "note": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ego_lateral_mm",
+        "lane_center_offsets_mm",
+        "actor_lateral_offsets_mm"
+      ],
+      "properties": {
+        "ego_lateral_mm": {
+          "type": "integer"
+        },
+        "lane_center_offsets_mm": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "actor_lateral_offsets_mm": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "Base and alternate traffic sides must differ, task intent IDs must match, and base/alternate rule-bundle digests must differ.",
+    "The transform mirrors lateral coordinates and corresponding left/right maneuver direction only. It does not mirror or infer law, signs, markings, actors or right-of-way semantics.",
+    "A passing fixture proves geometry/identity consistency only."
+  ]
+}

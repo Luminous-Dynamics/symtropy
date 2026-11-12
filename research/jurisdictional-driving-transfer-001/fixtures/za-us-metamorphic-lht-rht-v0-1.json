@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "fixture_id": "ZA-US-left-right-road-mirror-v0-1",
+  "base_jurisdiction": "ZA",
+  "alternate_jurisdiction": "US",
+  "base_traffic_side": "left",
+  "alternate_traffic_side": "right",
+  "task_intent_id": "approach-junction-and-take-corresponding-mirrored-exit-v1",
+  "base_task_intent_id": "approach-junction-and-take-corresponding-mirrored-exit-v1",
+  "alternate_task_intent_id": "approach-junction-and-take-corresponding-mirrored-exit-v1",
+  "base_rule_bundle_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "alternate_rule_bundle_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "base_maneuver": "left_turn",
+  "alternate_maneuver": "right_turn",
+  "base_geometry": {
+    "ego_lateral_mm": 1000,
+    "lane_center_offsets_mm": [
+      1750,
+      5250
+    ],
+    "actor_lateral_offsets_mm": [
+      -900,
+      2100
+    ]
+  },
+  "alternate_geometry": {
+    "ego_lateral_mm": -1000,
+    "lane_center_offsets_mm": [
+      -1750,
+      -5250
+    ],
+    "actor_lateral_offsets_mm": [
+      900,
+      -2100
+    ]
+  },
+  "transformation": "mirror_about_road_centerline",
+  "note": "Synthetic geometry-only fixture. It preserves a corresponding topological exit while mirroring coordinates, maneuver handedness and traffic-side metadata. It does not transform, compare or validate jurisdiction law or traffic-sign semantics."
+}
