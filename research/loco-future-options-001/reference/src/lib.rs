@@ -929,7 +929,6 @@ mod tests {
         );
     }
 
-
     #[test]
     fn thermal_envelope_must_bind_to_complete_successor_manifest() {
         let mut scenario = scenario(vec![
@@ -954,9 +953,12 @@ mod tests {
         };
         let report = evaluate_future_options(&scenario).unwrap();
         assert_eq!(report.disposition, ScenarioDisposition::Invalid);
-        assert!(report.invalid_reasons.iter().any(|reason| {
-            reason.contains("thermal:branch-manifest-digest-mismatch")
-        }));
+        assert!(
+            report
+                .invalid_reasons
+                .iter()
+                .any(|reason| { reason.contains("thermal:branch-manifest-digest-mismatch") })
+        );
         assert_eq!(report.deployable_common_option_count, 0);
     }
 
@@ -966,9 +968,12 @@ mod tests {
         scenario.recovery.branch_receipts[0].successor_state_digest = "other-state".to_owned();
         let report = evaluate_future_options(&scenario).unwrap();
         assert_eq!(report.disposition, ScenarioDisposition::Invalid);
-        assert!(report.invalid_reasons.iter().any(|reason| {
-            reason.contains("successor-state-digest-mismatch")
-        }));
+        assert!(
+            report
+                .invalid_reasons
+                .iter()
+                .any(|reason| { reason.contains("successor-state-digest-mismatch") })
+        );
         assert_eq!(report.deployable_common_option_count, 0);
     }
 
@@ -978,7 +983,10 @@ mod tests {
             branch("likely", "same", 1_000_000, &["continue"]),
             branch("zero-mass", "same", 0, &[]),
         ]);
-        scenario.recovery.branch_receipts.retain(|receipt| receipt.branch_id != "zero-mass");
+        scenario
+            .recovery
+            .branch_receipts
+            .retain(|receipt| receipt.branch_id != "zero-mass");
         let report = evaluate_future_options(&scenario).unwrap();
         assert_eq!(report.disposition, ScenarioDisposition::Unknown);
         assert!(report.observation_sets.is_empty());
