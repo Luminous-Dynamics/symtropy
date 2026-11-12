@@ -2168,9 +2168,17 @@ mod tests {
             serde_json::from_str(include_str!("../active-evidence-selection-v0.1.json")).unwrap();
         assert_eq!(
             protocol["schema_version"],
-            "liu-ice-active-evidence-selection-v0.3"
+            "liu-ice-active-evidence-selection-v0.4"
         );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
+        assert!(protocol["method"]["identity_contract"]["hypothesis_space_digest"]
+            .as_str()
+            .unwrap()
+            .contains("excludes probabilities"));
+        assert!(protocol["method"]["identity_contract"]["prior_distribution_digest"]
+            .as_str()
+            .unwrap()
+            .contains("changes whenever evidence changes the posterior"));
         assert_eq!(protocol["comparators"].as_array().unwrap().len(), 6);
         assert_eq!(protocol["candidate_classes"]["controlled_perturbation"]["eligible"], false);
         assert_eq!(protocol["evidence_boundaries"]["authority_status"]
