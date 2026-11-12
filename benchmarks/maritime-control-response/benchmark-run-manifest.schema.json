@@ -262,7 +262,8 @@
         "external_dataset_track",
         "deployability_matrix_sha256",
         "deployability_assessment",
-        "behavioral_set_evaluation"
+        "behavioral_set_evaluation",
+        "sequential_evidence"
       ],
       "properties": {
         "protocol_sha256": {
@@ -1401,6 +1402,165 @@
               "const": false
             }
           }
+        },
+        "sequential_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "schema_version",
+            "status",
+            "model_sha256",
+            "likelihood_table_sha256",
+            "calibration_sha256",
+            "calibration_review_receipt_sha256",
+            "receipt_chain_sha256",
+            "channel_id",
+            "null_hypothesis_id",
+            "alternative_hypothesis_id",
+            "familywise_alpha_ppm",
+            "alternative_count",
+            "per_alternative_alpha_ppm",
+            "observation_count",
+            "threshold_crossed",
+            "unsupported_outcome_count",
+            "validity_assumption_review_sha256"
+          ],
+          "properties": {
+            "schema_version": {
+              "const": "symtropy-sequential-evidence-v0.1"
+            },
+            "status": {
+              "enum": [
+                "not_executed",
+                "synthetic_contract_only",
+                "evaluated_model_conditional"
+              ]
+            },
+            "model_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "likelihood_table_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "calibration_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "calibration_review_receipt_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "receipt_chain_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "channel_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "null_hypothesis_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "alternative_hypothesis_id": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "familywise_alpha_ppm": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "alternative_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "per_alternative_alpha_ppm": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "observation_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "threshold_crossed": {
+              "type": "boolean"
+            },
+            "unsupported_outcome_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "validity_assumption_review_sha256": {
+              "oneOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-f0-9]{64}$"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          }
         }
       }
     },
@@ -1834,6 +1994,53 @@
         "chernoff_discretization_intervals": {
           "type": "integer",
           "minimum": 2
+        },
+        "sequential_log_evalue": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "sequential_log_threshold": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sequential_per_alternative_alpha_ppm": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "sequential_familywise_alpha_ppm": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "sequential_observations_to_threshold": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sequential_time_to_threshold_seconds": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "sequential_unsupported_outcome_count": {
+          "type": "integer",
+          "minimum": 0
         }
       }
     },
@@ -2174,6 +2381,22 @@
                   },
                   "global_unique_physical_cause_claim_allowed": {
                     "const": false
+                  }
+                }
+              },
+              "sequential_evidence": {
+                "properties": {
+                  "status": {
+                    "const": "not_executed"
+                  },
+                  "observation_count": {
+                    "const": 0
+                  },
+                  "threshold_crossed": {
+                    "const": false
+                  },
+                  "unsupported_outcome_count": {
+                    "const": 0
                   }
                 }
               }
