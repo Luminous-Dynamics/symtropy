@@ -230,5 +230,48 @@
     "critical_noise_estimate": null,
     "scaling_exponents": null,
     "claim_status": "NO_PHASE_BOUNDARY_OR_SCALING_RESULT_CLAIMED"
+  },
+  "symmetry_and_angle_convention_challenge": {
+    "id": "OLI_VICSEK_ANGLE_BRANCHCUT-001",
+    "source_profile": "benchmarks/oli/vicsek-angle-branchcut-source-profile-v0.json",
+    "source_reference": {
+      "title": "Absence of O(2) symmetry in the Vicsek model",
+      "doi": "10.1103/9gcy-ky3z",
+      "publication_date": "2026-07-17",
+      "authors": [
+        "Yushin Takahashi",
+        "Kota Mitsui",
+        "Tsuyoshi Mizohata",
+        "Hideyuki Miyahara"
+      ]
+    },
+    "implementation_conventions": [
+      "QuadrantCorrectAtan2",
+      "PrincipalValueArctanRatio",
+      "ArithmeticScalarMean (separate implementation required; never alias to atan2)"
+    ],
+    "required_protocols": [
+      "Metamorphic global rotation of positions+headings with identical seeds and noise stream, away from square-torus boundaries.",
+      "Adaptive global phase shift phi(t)=phi_bar-mean_i(theta_i(t)) applied to headings before every update, with target phases 0 and pi.",
+      "Exact source profile N=1600, L=8, speed 0.01, radius 0.1, dt 1, eta 0.75 and 10000 time steps, once exact seeds/averaging windows are recovered.",
+      "Keep current-position and next-position neighbour-time conventions as independent model tags."
+    ],
+    "minimal_control_expected": {
+      "initial_headings_rad": [
+        -2.5,
+        -1,
+        1,
+        2.5
+      ],
+      "interaction_radius": 0,
+      "speed": 0,
+      "noise_width_rad": 0,
+      "adaptive_target_phase_rad": 3.141592653589793,
+      "atan2_order_before_after": 0.13042065483939697,
+      "principal_ratio_order_before": 0.13042065483939697,
+      "principal_ratio_order_after": 0.6707229607075367,
+      "interpretation": "Synthetic branch-cut known-truth unit control only; not a full source reproduction or collective dynamics result."
+    },
+    "statistical_rule": "Do not pool outputs from different angle-mean conventions or adaptive phase protocols in one phase diagram."
   }
 }
