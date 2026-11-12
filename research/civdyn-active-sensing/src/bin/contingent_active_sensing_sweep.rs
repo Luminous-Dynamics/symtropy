@@ -334,6 +334,132 @@ fn emit_candidate_tree(scenario_id: &str, node: &CandidatePolicyNode, history: &
     }
 }
 
+fn fixed_sequence_reference_rows(
+    report: &civdyn_active_sensing::contingent::ContingentSensingReport,
+) -> Result<Vec<Vec<String>>, String> {
+    let catalog = sensors();
+    let screen = catalog.iter()
+        .find(|item| item.sensor.sensor_id == "screen")
+        .ok_or_else(|| "fixed sequence lacks screen sensor".to_owned())?;
+    let inspection = catalog.iter()
+        .find(|item| item.sensor.sensor_id == "independent_inspection")
+        .ok_or_else(|| "fixed sequence lacks inspection sensor".to_owned())?;
+
+    let mut path_rows = Vec::new();
+    let mut worst_regret = 0.0_f64;
+    let mut maximum_penalty = 0.0_f64;
+    let mut maximum_energy = 0.0_f64;
+    let mut maximum_latency = 0_u32;
+
+    for world in worlds() {
+        let screen_prediction = screen.sensor.predictions.iter()
+            .find(|prediction| prediction.world_id == world.world_id)
+            .ok_or_else(|| format!("screen prediction missing for {}", world.world_id))?;
+        let inspection_prediction = inspection.sensor.predictions.iter()
+            .find(|prediction| prediction.world_id == world.world_id)
+            .ok_or_else(|| format!("inspection prediction missing for {}", world.world_id))?;
+
+        let action_id = match (
+            screen_prediction.observation_id.as_str(),
+            inspection_prediction.observation_id.as_str(),
+        ) {
+            ("healthy", "healthy") => "defer",
+            ("missing", "degraded") => "repair",
+            ("missing", "healthy") => "defer",
+            _ => return Err(format!(
+                "unregistered fixed-sequence observation pair for {}: {} / {}",
+                world.world_id,
+                screen_prediction.observation_id,
+                inspection_prediction.observation_id
+            )),
+        };
+        let policy = world.policies.iter()
+            .find(|policy| policy.policy_id == action_id)
+            .ok_or_else(|| format!("fixed action {action_id} missing for {}", world.world_id))?;
+        let oracle = world.policies.iter()
+            .filter(|candidate| candidate.service_units + 1.0e-9 >= world.service_floor)
+            .max_by(|left, right| left.service_units.total_cmp(&right.service_units)
+                .then_with(|| right.policy_id.cmp(&left.policy_id)))
+            .ok_or_else(|| format!("no oracle action meets floor in {}", world.world_id))?;
+
+        let energy_kwh = screen.sensor.energy_cost_kwh + inspection.sensor.energy_cost_kwh;
+        let latency_ticks = screen.sensor.latency_ticks + inspection.sensor.latency_ticks;
+        let energy_penalty = screen.sensor.energy_cost_kwh * screen.sensor.service_units_per_kwh
+            + inspection.sensor.energy_cost_kwh * inspection.sensor.service_units_per_kwh;
+        let latency_penalty = f64::from(screen.sensor.latency_ticks)
+            * screen_prediction.latency_service_loss_per_tick
+            + f64::from(inspection.sensor.latency_ticks)
+            * inspection_prediction.latency_service_loss_per_tick;
+        let penalty = energy_penalty + latency_penalty;
+        let net = policy.service_units - penalty;
+        if net + 1.0e-9 < world.service_floor {
+            return Err(format!("fixed sequence violates service floor in {}", world.world_id));
+        }
+        let regret = (oracle.service_units - net).max(0.0);
+        worst_regret = worst_regret.max(regret);
+        maximum_penalty = maximum_penalty.max(penalty);
+        maximum_energy = maximum_energy.max(energy_kwh);
+        maximum_latency = maximum_latency.max(latency_ticks);
+
+        let mut row = base_fields(report);
+        row[0] = "fixed_sequence_path".to_owned();
+        row[3] = "reference_baseline".to_owned();
+        row[4] = "false".to_owned();
+        row[17] = format!(
+            "screen:{}>independent_inspection:{}",
+            screen_prediction.observation_id,
+            inspection_prediction.observation_id
+        );
+        row[18] = "execute_both_sensors".to_owned();
+        row[19] = "1".to_owned();
+        row[20] = world.world_id.clone();
+        row[21] = "screen+independent_inspection".to_owned();
+        row[22] = action_id.to_owned();
+        row[23] = format!(
+            "{}+{}",
+            screen.sensor.protocol_digest,
+            inspection.sensor.protocol_digest
+        );
+        row[24] = format!("{energy_kwh:.6}");
+        row[25] = latency_ticks.to_string();
+        row[26] = format!("{penalty:.6}");
+        row[27] = world.world_id.clone();
+        row[28] = format!(
+            "{}>{}",
+            screen_prediction.observation_id,
+            inspection_prediction.observation_id
+        );
+        row[29] = format!(
+            "{}+{}",
+            screen_prediction.prediction_receipt_digest,
+            inspection_prediction.prediction_receipt_digest
+        );
+        row[30] = screen_prediction.missing_cause.as_ref()
+            .map_or_else(|| "none".to_owned(), |cause| cause.id().to_owned());
+        row[31] = format!("{:.6}", policy.service_units);
+        row[32] = format!("{:.6}", oracle.service_units);
+        row[33] = format!("{penalty:.6}");
+        row[34] = format!("{net:.6}");
+        row[35] = format!("{regret:.6}");
+        path_rows.push(row);
+    }
+
+    let mut summary = base_fields(report);
+    summary[0] = "fixed_sequence_summary".to_owned();
+    summary[3] = "reference_baseline".to_owned();
+    summary[4] = "false".to_owned();
+    summary[8] = format!("{worst_regret:.6}");
+    summary[9] = report.baseline.worst_case_regret
+        .map_or_else(String::new, |baseline| format!("{:.6}", baseline - worst_regret));
+    summary[13] = "2".to_owned();
+    summary[14] = format!("{maximum_energy:.6}");
+    summary[15] = maximum_latency.to_string();
+    summary[16] = format!("{maximum_penalty:.6}");
+    let mut rows = vec![summary];
+    rows.extend(path_rows);
+    Ok(rows)
+}
+
 fn false_reassurance_config() -> ActiveSensingConfig {
     ActiveSensingConfig {
         scenario_id: "contingent-false-reassurance-corroboration-v1".to_owned(),
@@ -438,6 +564,11 @@ fn main() -> Result<(), String> {
 
     for report in &reports {
         emit(base_fields(report));
+        if report.scenario_id == "contingent-three-world-screen-and-inspect-v1" {
+            for row in fixed_sequence_reference_rows(report)? {
+                emit(row);
+            }
+        }
         for receipt in &report.evaluator_node_receipts {
             emit(node_fields(report, receipt));
         }
