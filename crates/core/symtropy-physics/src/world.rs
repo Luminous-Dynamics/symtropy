@@ -920,7 +920,7 @@ impl<const D: usize> PhysicsWorld<D> {
             .map(|c| c.normal_impulse * 0.8) // 80% of previous frame
             .unwrap_or(0.0);
 
-        if cached_total > 1e-15 {
+        if cached_total.is_finite() && cached_total > 0.0 {
             let n_pts = contact.points.len().max(1) as f64;
             let per_pt = cached_total / n_pts;
 
@@ -1093,7 +1093,7 @@ impl<const D: usize> PhysicsWorld<D> {
             let actual_delta = new_lambda - pt.lambda;
             pt.lambda = new_lambda;
 
-            if actual_delta.abs() > 1e-15 {
+            if actual_delta.is_finite() && actual_delta != 0.0 {
                 // ═══ CONSCIOUSNESS MODULATION: sanctuary + harmony fields ═══
                 let modulated_delta = callback.modulate_impulse(actual_delta, &pt.position);
 
@@ -1145,15 +1145,15 @@ impl<const D: usize> PhysicsWorld<D> {
         // original single-point behaviour when there's one point, respects
         // full blocking when `total_normal_impulse` is zero, and still
         // load-shares (and self-limits) torque across multi-point manifolds.
-        if total_normal_impulse > 1e-15 {
+        if total_normal_impulse.is_finite() && total_normal_impulse > 0.0 {
             let total_raw_lambda: f64 = contact.points.iter().map(|p| p.lambda).sum();
 
             for pt in &contact.points {
-                if total_raw_lambda <= 1e-15 {
+                if !total_raw_lambda.is_finite() || total_raw_lambda <= 0.0 {
                     break;
                 }
                 let point_bound = total_normal_impulse * (pt.lambda / total_raw_lambda);
-                if point_bound <= 1e-15 {
+                if !point_bound.is_finite() || point_bound <= 0.0 {
                     continue;
                 }
 
@@ -1204,7 +1204,7 @@ impl<const D: usize> PhysicsWorld<D> {
         }
 
         // ─── Post-manifold bookkeeping ───
-        if total_normal_impulse > 1e-15 {
+        if total_normal_impulse.is_finite() && total_normal_impulse > 0.0 {
             // Record friction dissipation for consciousness energy budget
             if total_friction_dissipation > 0.0 {
                 callback.record_dissipation(total_friction_dissipation);
@@ -2560,4 +2560,58 @@ mod transformed_halfspace_tests {
 
         assert!(world.static_tree_dirty);
     }
+    #[test]
+    fn contact_solver_preserves_sub_femto_newton_second_impulses() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.baumgarte = 0.0;
+        world.slop = 0.0;
+
+        let mut fixed = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::<3>::unit()),
+        );
+        fixed.friction = 0.5;
+
+        let mut moving = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::new([0.0, 2.0, 0.0]),
+            1.0,
+            1.0e-30,
+        );
+        moving.linear_velocity = SVector::from([-1.0, -1.0, 0.0]);
+        moving.friction = 0.5;
+
+        let fixed_handle = world.add_body(fixed);
+        let moving_handle = world.add_body(moving);
+        let contact = ContactManifold::<3>::single(
+            fixed_handle,
+            moving_handle,
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            0.0,
+        );
+
+        let mut callback = NoOpCallback;
+        let resolved = world.resolve_contact(contact, 1.0 / 60.0, &mut callback);
+        let actual_normal_impulse = resolved.points[0].lambda;
+
+        assert!(
+            actual_normal_impulse.is_finite()
+                && actual_normal_impulse > 0.0
+                && actual_normal_impulse < 1.0e-15,
+            "fixture must exercise a positive sub-1e-15 N·s impulse, got {actual_normal_impulse:e}"
+        );
+        assert!(
+            world.bodies[1].linear_velocity[1].abs() < 1.0e-12,
+            "normal contact impulse below 1e-15 N·s was not applied: {:?}",
+            world.bodies[1].linear_velocity
+        );
+        assert!(
+            (world.bodies[1].linear_velocity[0] + 0.5).abs() < 1.0e-12,
+            "friction bound derived from a sub-1e-15 N·s normal impulse was not applied: {:?}",
+            world.bodies[1].linear_velocity
+        );
+    }
+
 }
