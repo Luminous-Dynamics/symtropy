@@ -48,7 +48,7 @@ jobs:
     - name: Set up Rust
       uses: dtolnay/rust-toolchain@stable
       with:
-        toolchain: 1.96.0
+        toolchain: 1.97.1
         components: clippy, rustfmt
 
     - name: Cache dependencies
@@ -56,6 +56,19 @@ jobs:
 
     - name: Check Formatting
       run: cargo fmt --all -- --check
+
+    - name: Resolve lockfile when the declared Bevy minor changes
+      run: |
+        set -euo pipefail
+        declared="$(awk -F'"' '/^bevy = /{print $2; exit}' Cargo.toml)"
+        locked="$(awk '
+          $0 == "name = \"bevy\"" { in_bevy = 1; next }
+          in_bevy && /^version = / { gsub(/version = \"|\"/, ""); print; exit }
+        ' Cargo.lock 2>/dev/null || true)"
+        case "$locked" in
+          "$declared"*) echo "Cargo.lock already resolves Bevy $locked" ;;
+          *) echo "Resolving Bevy $declared (current lockfile: ${locked:-missing})"; cargo generate-lockfile ;;
+        esac
 
     # Repo-invariant guards. These scripts existed since at least June but were
     # wired into nothing, so both of them silently failed against the tree for

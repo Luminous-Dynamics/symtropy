@@ -57,8 +57,8 @@ full-stack = [
 # [standalone-stripped -- referenced deps above are stripped] atlas = ["dep:sol-atlas-bevy", "dep:sol-atlas-core", "fep-ai"]
 
 [dependencies]
-naga = { version = "27", default-features = false, features = ["termcolor"] }
-bevy = { version = "0.19", default-features = false, features = [
+naga = { version = "29", default-features = false, features = ["termcolor"] }
+bevy = { version = "0.20", default-features = false, features = [
     "bevy_asset", "bevy_core_pipeline", "bevy_render",
     "bevy_sprite", "bevy_sprite_render",
     "bevy_text", "bevy_ui", "bevy_ui_render",
@@ -100,7 +100,7 @@ rand = "0.8"
 hound = "3.5"
 image = { version = "0.24", features = ["png"] }
 cpal = { version = "0.17", optional = true }
-bevy_egui = { version = "0.40", optional = true }
+bevy_egui = { version = "0.43.1", optional = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 symthaea-core = { version = "0.5.1", optional = true }

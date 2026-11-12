@@ -44,7 +44,19 @@ pub struct NdSlicingSettings {
 
 impl MaterialExtension for NdSlicingExtension {
     fn fragment_shader() -> ShaderRef {
-        "shaders/nd_slicing.wgsl".into()
+        "shaders/nd_slicing.wesl".into()
+    }
+
+    // V0 only qualifies the forward colour pass. The matching depth, normal,
+    // motion-vector, deferred and shadow clipping paths are not implemented yet.
+    // Disable prepass/shadows rather than drawing the unsliced source geometry
+    // into those passes and presenting inconsistent output as a correct slice.
+    fn enable_prepass() -> bool {
+        false
+    }
+
+    fn enable_shadows() -> bool {
+        false
     }
 }
 
@@ -69,7 +81,10 @@ impl Default for NdSlicingExtension {
 /// Type alias for the telemetry visualization material.
 pub type TelemetryMaterial = ExtendedMaterial<StandardMaterial, TelemetryExtension>;
 
-/// Material extension that deforms vertices and tints surfaces using active telemetry buffers.
+/// Material extension that tints surfaces from read-only telemetry buffers.
+///
+/// V0 renders telemetry into the PBR material response. It does not claim
+/// vertex deformation; that requires a separately qualified vertex path.
 #[derive(Asset, AsBindGroup, Debug, Clone, Reflect)]
 pub struct TelemetryExtension {
     #[uniform(100)]
@@ -83,17 +98,17 @@ pub struct TelemetryExtension {
 pub struct TelemetrySettings {
     pub node_index: u32,
     pub time: f32,
-    pub deformation_scale: f32,
+    pub visualization_gain: f32,
     pub noise_frequency: f32,
 }
 
 impl MaterialExtension for TelemetryExtension {
-    fn vertex_shader() -> ShaderRef {
-        "shaders/telemetry_deform.wgsl".into()
+    fn fragment_shader() -> ShaderRef {
+        "shaders/telemetry_visualization.wesl".into()
     }
 
-    fn fragment_shader() -> ShaderRef {
-        "shaders/telemetry_deform.wgsl".into()
+    fn deferred_fragment_shader() -> ShaderRef {
+        "shaders/telemetry_visualization.wesl".into()
     }
 }
 
@@ -102,5 +117,22 @@ pub struct TelemetryMaterialPlugin;
 impl Plugin for TelemetryMaterialPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(MaterialPlugin::<TelemetryMaterial>::default());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn nd_slicing_does_not_claim_unimplemented_prepass_or_shadow_clipping() {
+        assert!(!NdSlicingExtension::enable_prepass());
+        assert!(!NdSlicingExtension::enable_shadows());
+    }
+
+    #[test]
+    fn telemetry_material_keeps_geometry_prepass_and_shadow_support() {
+        assert!(TelemetryExtension::enable_prepass());
+        assert!(TelemetryExtension::enable_shadows());
     }
 }

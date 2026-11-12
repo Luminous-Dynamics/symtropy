@@ -221,7 +221,7 @@ cargo test -p symtropy-math -p symtropy-physics -p symtropy-consciousness-physic
 # Run benchmarks
 cd crates/symtropy-physics && cargo bench
 
-# Build the game (requires Bevy 0.18)
+# Build the game (Bevy 0.20.1 migration candidate)
 cargo build --release
 
 # Build with Mycelix governance integration

@@ -6,7 +6,8 @@ Project `symtropy-physics` N-dimensional physics worlds into Bevy 3D rendering.
 
 - **2D projection** — flatten `PhysicsWorld<2>` to Bevy sprites.
 - **3D projection** — `PhysicsWorld<3>` to Bevy 3D meshes.
-- **4D cross-section slicing** — `PhysicsWorld<4>` projected to 3D via a configurable hyperplane, Miegakure-style. First-class support for ND collider visualisation.
+- **4D cross-section slicing** — `PhysicsWorld<4>` projected to 3D via a configurable hyperplane, Miegakure-style. The Bevy 0.20 branch ports the PBR material shader to WESL.
+- **Telemetry material** — read-only node telemetry rendered through base-colour and emissive response. It does not claim vertex deformation.
 
 ## Licensing
 
@@ -47,10 +48,18 @@ Early — the core projection API is stable; the 4D shader pipeline lands in Pha
 
 - `symtropy-math` — N-dimensional geometry primitives.
 - `symtropy-physics` — `PhysicsWorld<D>` source data.
-- `bevy` 0.18 — target renderer.
+- `bevy` 0.20.1 — current migration target on the `upgrade/bevy-0.20.1-workspace` branch.
 - `nalgebra` 0.34 — vector math.
 
 ## References
 
 - [The Symtropy Book](https://github.com/luminous-dynamics/symtropy/tree/main/book) — overview and tutorials.
 - [ten Bosch, M. (2020). *N-Dimensional Rigid Body Dynamics*, SIGGRAPH](https://marctenbosch.com/) — theoretical foundation for 4D rotation.
+
+### 4D slicing material pass boundary
+
+The current WESL slice material is a **forward-colour-pass V0**. It explicitly disables depth/normal/motion-vector prepasses and shadow casting because slice-aware versions of those passes are not yet implemented. Keep the base StandardMaterial on the forward renderer for this V0. Do not treat the current slice as a complete deferred, shadow-casting engineering visualisation.
+
+The complete pass family is tracked in [ND-SLICE-PASS-001](https://github.com/Luminous-Dynamics/symtropy/issues/4502): colour, depth/normal, motion vectors, deferred G-buffer and shadow-map clipping must agree on the same slice predicate and settings digest.
+
+For soft slice-edge alpha fading, set the base `StandardMaterial.alpha_mode` to `AlphaMode::Blend`. With the default opaque mode, the slice boundary remains a hard clip; do not assume the `edge_fade` field alone changes the base material's alpha mode.

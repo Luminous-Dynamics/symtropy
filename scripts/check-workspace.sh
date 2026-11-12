@@ -58,6 +58,67 @@ elif [[ "$locked" != "$declared"* ]]; then
   note "Cargo.lock has Bevy ${locked} but Cargo.toml declares \"${declared}\""
 fi
 
+
+# The umbrella \`bevy\` package alone is not the whole ECS/render type graph.
+# A plugin can pull an older \`bevy_ecs\` or \`bevy_render\` even when the
+# umbrella package is unique. Check every first-party Bevy crate that appears
+# in Cargo.lock against the exact resolved umbrella version. Third-party
+# integrations (for example bevy_egui and bevy-inspector-egui) are deliberately
+# excluded: their independent release numbers must not be mistaken for Bevy.
+BEVY_LOCKED_VERSION="$locked" python3 - <<'PY'
+import os
+import tomllib
+from collections import defaultdict
+
+core_crates = {
+    "bevy", "bevy_a11y", "bevy_android", "bevy_app", "bevy_asset",
+    "bevy_asset_macros", "bevy_camera", "bevy_color", "bevy_core_pipeline",
+    "bevy_derive", "bevy_diagnostic", "bevy_ecs", "bevy_ecs_macro_logic",
+    "bevy_ecs_macros", "bevy_gizmos", "bevy_gizmos_macros",
+    "bevy_gizmos_render", "bevy_image", "bevy_input", "bevy_input_focus",
+    "bevy_internal", "bevy_light", "bevy_log", "bevy_macro_utils",
+    "bevy_material", "bevy_material_macros", "bevy_math", "bevy_mesh",
+    "bevy_pbr", "bevy_picking", "bevy_platform", "bevy_post_process",
+    "bevy_ptr", "bevy_reflect", "bevy_reflect_derive", "bevy_render",
+    "bevy_render_macros", "bevy_scene", "bevy_scene_macros", "bevy_shader",
+    "bevy_sprite", "bevy_sprite_render", "bevy_state", "bevy_state_macros",
+    "bevy_tasks", "bevy_text", "bevy_time", "bevy_transform", "bevy_ui",
+    "bevy_ui_render", "bevy_utils", "bevy_window", "bevy_winit",
+    "bevy_world_serialization",
+}
+required = {"bevy_app", "bevy_ecs", "bevy_internal", "bevy_reflect", "bevy_render"}
+with open("Cargo.lock", "rb") as lockfile:
+    lock = tomllib.load(lockfile)
+
+versions = defaultdict(set)
+for package in lock.get("package", []):
+    if package.get("name") in core_crates:
+        versions[package["name"]].add(package["version"])
+
+expected = os.environ["BEVY_LOCKED_VERSION"]
+missing = sorted(required - versions.keys())
+if missing:
+    print("FAIL: required Bevy core packages are missing from Cargo.lock:")
+    for name in missing:
+        print(f"  {name}")
+    raise SystemExit(1)
+
+failures = []
+for name in sorted(core_crates):
+    resolved = versions.get(name, set())
+    if resolved and resolved != {expected}:
+        failures.append((name, sorted(resolved)))
+
+if failures:
+    print(f"FAIL: Bevy core crates must all resolve to {expected}:")
+    for name, resolved in failures:
+        print(f"  {name}: {', '.join(resolved)}")
+    raise SystemExit(1)
+
+checked = sum(bool(versions.get(name)) for name in core_crates)
+print(f"Bevy core crate graph passed: {checked} first-party crates resolve to {expected}.")
+PY
+
 # --- 3. No absolute machine-specific path deps -----------------------------
 # NOTE: the old glob was `crates/*/Cargo.toml`, which missed every crate under
 # the crates/{core,domains,bridges,apps,distributions}/ tiers — i.e. almost all
