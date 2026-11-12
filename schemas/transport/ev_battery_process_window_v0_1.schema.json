@@ -101,7 +101,29 @@
               "null"
             ]
           }
-        }
+        },
+        "anyOf": [
+          {
+            "required": [
+              "lower_limit"
+            ],
+            "properties": {
+              "lower_limit": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "required": [
+              "upper_limit"
+            ],
+            "properties": {
+              "upper_limit": {
+                "type": "number"
+              }
+            }
+          }
+        ]
       }
     },
     "evidence": {
