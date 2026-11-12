@@ -1,0 +1,446 @@
+{
+  "campaign_id": "SECOND-LIFE-KNOWN-ANSWER-001",
+  "evaluation_mode": "synthetic_known_answer",
+  "evidence": [
+    {
+      "evidence_id": "E-GATE-0",
+      "source_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-GATE-1",
+      "source_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-GATE-2",
+      "source_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-GATE-3",
+      "source_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-GATE-4",
+      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-GATE-5",
+      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-GATE-6",
+      "source_digest": "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-GATE-7",
+      "source_digest": "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-GATE-8",
+      "source_digest": "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-GATE-9",
+      "source_digest": "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-CAP-SECOND",
+      "source_digest": "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-CAP-THIRD",
+      "source_digest": "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-CAP-UNKNOWN",
+      "source_digest": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic known-answer fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    }
+  ],
+  "cases": [
+    {
+      "case_id": "SECOND-LIFE",
+      "source_pack_id": "PACK-SECOND-LIFE",
+      "pack_revision": "PACK-R3",
+      "passport_ref": "PASSPORT-SECOND-LIFE",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cell_membership_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expected_cell_count": 4,
+      "observed_cell_ids": [
+        "CELL-1",
+        "CELL-2",
+        "CELL-3",
+        "CELL-4"
+      ],
+      "history_coverage": "complete_since_first_commissioning",
+      "incident_history": "no_adverse_events_recorded_in_complete_history",
+      "requested_use": "second_life_stationary",
+      "mission": {
+        "horizon_months": 120,
+        "required_usable_energy_kwh": 80,
+        "required_peak_power_kw": 40,
+        "temperature_min_c": -10,
+        "temperature_max_c": 40,
+        "minimum_availability_percent": 97,
+        "reserve_percent": 10
+      },
+      "capability": {
+        "lower_bound_usable_energy_kwh": 100,
+        "lower_bound_peak_power_kw": 50,
+        "supported_temperature_min_c": -20,
+        "supported_temperature_max_c": 45,
+        "lower_bound_availability_percent": 98,
+        "uncertainty_profile_ref": "UQ-PROFILE-R2",
+        "evidence_id": "E-CAP-SECOND"
+      },
+      "bms": {
+        "strategy": "gateway_interface",
+        "hardware_revision": "BMS-HW-R2",
+        "firmware_revision": "BMS-FW-R7",
+        "compatibility": "verified_for_target_mission",
+        "verification_ref": "BMS-VERIFY-SYNTHETIC"
+      },
+      "thermal_review_status": "accepted_by_competent_authority",
+      "thermal_authority_decision_ref": "SYNTHETIC-AUTHORITY-DECISION",
+      "gates": [
+        {
+          "gate": "pack_identity",
+          "status": "pass",
+          "evidence_id": "E-GATE-0",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "cell_coverage",
+          "status": "pass",
+          "evidence_id": "E-GATE-1",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "history_integrity",
+          "status": "pass",
+          "evidence_id": "E-GATE-2",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "thermal_propagation_approval",
+          "status": "pass",
+          "evidence_id": "E-GATE-3",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "electrical_isolation_and_protection",
+          "status": "pass",
+          "evidence_id": "E-GATE-4",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "bms_compatibility",
+          "status": "pass",
+          "evidence_id": "E-GATE-5",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "mission_capability",
+          "status": "pass",
+          "evidence_id": "E-GATE-6",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "transport_and_handling",
+          "status": "pass",
+          "evidence_id": "E-GATE-7",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "quality_control",
+          "status": "pass",
+          "evidence_id": "E-GATE-8",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "rights_and_provenance",
+          "status": "pass",
+          "evidence_id": "E-GATE-9",
+          "rationale": "synthetic fixture gate"
+        }
+      ]
+    },
+    {
+      "case_id": "THIRD-LIFE",
+      "source_pack_id": "PACK-THIRD-LIFE",
+      "pack_revision": "PACK-R3",
+      "passport_ref": "PASSPORT-THIRD-LIFE",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cell_membership_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expected_cell_count": 4,
+      "observed_cell_ids": [
+        "CELL-1",
+        "CELL-2",
+        "CELL-3",
+        "CELL-4"
+      ],
+      "history_coverage": "complete_since_first_commissioning",
+      "incident_history": "no_adverse_events_recorded_in_complete_history",
+      "requested_use": "third_life_backup",
+      "mission": {
+        "horizon_months": 120,
+        "required_usable_energy_kwh": 80,
+        "required_peak_power_kw": 40,
+        "temperature_min_c": -10,
+        "temperature_max_c": 40,
+        "minimum_availability_percent": 97,
+        "reserve_percent": 10
+      },
+      "capability": {
+        "lower_bound_usable_energy_kwh": 100,
+        "lower_bound_peak_power_kw": 50,
+        "supported_temperature_min_c": -20,
+        "supported_temperature_max_c": 45,
+        "lower_bound_availability_percent": 98,
+        "uncertainty_profile_ref": "UQ-PROFILE-R2",
+        "evidence_id": "E-CAP-THIRD"
+      },
+      "bms": {
+        "strategy": "gateway_interface",
+        "hardware_revision": "BMS-HW-R2",
+        "firmware_revision": "BMS-FW-R7",
+        "compatibility": "verified_for_target_mission",
+        "verification_ref": "BMS-VERIFY-SYNTHETIC"
+      },
+      "thermal_review_status": "accepted_by_competent_authority",
+      "thermal_authority_decision_ref": "SYNTHETIC-AUTHORITY-DECISION",
+      "gates": [
+        {
+          "gate": "pack_identity",
+          "status": "pass",
+          "evidence_id": "E-GATE-0",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "cell_coverage",
+          "status": "pass",
+          "evidence_id": "E-GATE-1",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "history_integrity",
+          "status": "pass",
+          "evidence_id": "E-GATE-2",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "thermal_propagation_approval",
+          "status": "pass",
+          "evidence_id": "E-GATE-3",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "electrical_isolation_and_protection",
+          "status": "pass",
+          "evidence_id": "E-GATE-4",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "bms_compatibility",
+          "status": "pass",
+          "evidence_id": "E-GATE-5",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "mission_capability",
+          "status": "pass",
+          "evidence_id": "E-GATE-6",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "transport_and_handling",
+          "status": "pass",
+          "evidence_id": "E-GATE-7",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "quality_control",
+          "status": "pass",
+          "evidence_id": "E-GATE-8",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "rights_and_provenance",
+          "status": "pass",
+          "evidence_id": "E-GATE-9",
+          "rationale": "synthetic fixture gate"
+        }
+      ]
+    },
+    {
+      "case_id": "UNKNOWN-HISTORY",
+      "source_pack_id": "PACK-UNKNOWN-HISTORY",
+      "pack_revision": "PACK-R3",
+      "passport_ref": "PASSPORT-UNKNOWN-HISTORY",
+      "configuration_digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "cell_membership_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "expected_cell_count": 4,
+      "observed_cell_ids": [
+        "CELL-1",
+        "CELL-2",
+        "CELL-3",
+        "CELL-4"
+      ],
+      "history_coverage": "partial",
+      "incident_history": "unknown",
+      "requested_use": "second_life_stationary",
+      "mission": {
+        "horizon_months": 120,
+        "required_usable_energy_kwh": 80,
+        "required_peak_power_kw": 40,
+        "temperature_min_c": -10,
+        "temperature_max_c": 40,
+        "minimum_availability_percent": 97,
+        "reserve_percent": 10
+      },
+      "capability": {
+        "lower_bound_usable_energy_kwh": 100,
+        "lower_bound_peak_power_kw": 50,
+        "supported_temperature_min_c": -20,
+        "supported_temperature_max_c": 45,
+        "lower_bound_availability_percent": 98,
+        "uncertainty_profile_ref": "UQ-PROFILE-R2",
+        "evidence_id": "E-CAP-UNKNOWN"
+      },
+      "bms": {
+        "strategy": "gateway_interface",
+        "hardware_revision": "BMS-HW-R2",
+        "firmware_revision": "BMS-FW-R7",
+        "compatibility": "verified_for_target_mission",
+        "verification_ref": "BMS-VERIFY-SYNTHETIC"
+      },
+      "thermal_review_status": "candidate_for_human_review",
+      "thermal_authority_decision_ref": "SYNTHETIC-AUTHORITY-DECISION",
+      "gates": [
+        {
+          "gate": "pack_identity",
+          "status": "pass",
+          "evidence_id": "E-GATE-0",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "cell_coverage",
+          "status": "pass",
+          "evidence_id": "E-GATE-1",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "history_integrity",
+          "status": "unknown",
+          "evidence_id": "E-GATE-2",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "thermal_propagation_approval",
+          "status": "unknown",
+          "evidence_id": "E-GATE-3",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "electrical_isolation_and_protection",
+          "status": "pass",
+          "evidence_id": "E-GATE-4",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "bms_compatibility",
+          "status": "pass",
+          "evidence_id": "E-GATE-5",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "mission_capability",
+          "status": "pass",
+          "evidence_id": "E-GATE-6",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "transport_and_handling",
+          "status": "pass",
+          "evidence_id": "E-GATE-7",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "quality_control",
+          "status": "pass",
+          "evidence_id": "E-GATE-8",
+          "rationale": "synthetic fixture gate"
+        },
+        {
+          "gate": "rights_and_provenance",
+          "status": "pass",
+          "evidence_id": "E-GATE-9",
+          "rationale": "synthetic fixture gate"
+        }
+      ]
+    }
+  ]
+}
