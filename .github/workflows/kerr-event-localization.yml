@@ -3,7 +3,7 @@ name: Kerr event localization audit
 on:
   push:
     branches:
-      - research/kerr-horizon-event-localization-v0.1
+      - research/black-hole-physics-program-current
     paths:
       - crates/domains/symtropy-relativity/**
       - .github/workflows/kerr-event-localization.yml
