@@ -1,0 +1,10 @@
+[package]
+name = "pomdar-score-oracle"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+description = "Dependency-free reference implementation of the published POMDAR task score"
+publish = false
+
+# Keep this small reference crate outside Symtropy's application workspace.
+[workspace]
