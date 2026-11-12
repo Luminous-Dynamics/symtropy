@@ -33,12 +33,6 @@ pub struct StepOutcome<F: CoordinateFrame> {
     pub potential_energy: f64,
 }
 
-fn dot(left: &Vector2<impl CoordinateFrame>, right: &Vector2<impl CoordinateFrame>) -> f64 {
-    // Only used with matching frames by the caller; keeping this local helper
-    // on raw components avoids introducing a false cross-frame operation.
-    left.components()[0] * right.components()[0] + left.components()[1] * right.components()[1]
-}
-
 fn add_vectors<F: CoordinateFrame>(
     left: &Vector2<F>,
     right: &Vector2<F>,
@@ -484,7 +478,6 @@ mod tests {
         close(step_q.delassus, step_y.delassus, 5.0e-12);
         close(step_q.external_work, step_y.external_work, 5.0e-12);
 
-        let inverse_rebasis = inverse(&rebasis_matrix).unwrap();
         for action_q in [rotation(0.61), reflection()] {
             let action_y = conjugate_action(&rebasis_matrix, &action_q).unwrap();
             let isometry = multiply(
@@ -513,7 +506,6 @@ mod tests {
                 || (euclidean_defect[1][0]).abs() > 1.0e-3
                 || (euclidean_defect[0][0] - 1.0).abs() > 1.0e-3
         );
-        let _ = inverse_rebasis;
     }
 
     #[test]
