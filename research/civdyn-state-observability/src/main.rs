@@ -208,10 +208,10 @@ fn parse_run(fields: &[&str]) -> Result<Run, String> {
     if !wtv.is_finite() || !(0.0..=1.0).contains(&wtv) {
         return Err(format!("WTV outside [0,1]: {wtv}"));
     }
-    if let Some(value) = mean {
-        if !value.is_finite() {
-            return Err("non-finite policy mean".to_owned());
-        }
+    if let Some(value) = mean
+        && !value.is_finite()
+    {
+        return Err("non-finite policy mean".to_owned());
     }
     Ok(Run {
         experiment_id: fields[1].to_owned(),
