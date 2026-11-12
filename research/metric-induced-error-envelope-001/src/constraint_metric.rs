@@ -205,7 +205,7 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
 /// lambda_new = T^-T lambda_old.
 ///
 /// This is independent of a generalized-coordinate Rebasis.
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy)]
 pub struct ConstraintEquationRebasisV1<
     NewSpace: CoordinateFrame,
     OldSpace: CoordinateFrame,
