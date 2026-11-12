@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/decision-time-action-assurance-result-card-v0.1.schema.json",
+  "title": "Decision-time action assurance benchmark result card v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "run_id",
+    "status",
+    "protocol_id",
+    "track_id",
+    "policy_revision",
+    "evaluator_revision",
+    "hardware",
+    "denominators",
+    "conformance",
+    "latency",
+    "evidence"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "not_run",
+        "running",
+        "complete",
+        "failed",
+        "incomplete",
+        "censored"
+      ]
+    },
+    "protocol_id": {
+      "const": "DECISION-TIME-ACTION-ASSURANCE-001"
+    },
+    "track_id": {
+      "enum": [
+        "T0_conformance",
+        "T1_TOCTOU",
+        "T2_bench2drive_robust",
+        "T3_drivedegrade",
+        "T4_runtime_cost"
+      ]
+    },
+    "policy_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluator_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hardware": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "cpu_id",
+        "os",
+        "rustc",
+        "profile"
+      ],
+      "properties": {
+        "cpu_id": {
+          "type": "string"
+        },
+        "os": {
+          "type": "string"
+        },
+        "rustc": {
+          "type": "string"
+        },
+        "profile": {
+          "type": "string"
+        }
+      }
+    },
+    "denominators": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "expected_cases",
+        "observed_cases",
+        "authorized",
+        "authorized_restricted",
+        "fallback_required",
+        "incomplete",
+        "censored"
+      ],
+      "properties": {
+        "expected_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_cases": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authorized": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "authorized_restricted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fallback_required": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "incomplete": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "censored": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "conformance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "invalid_authorizations",
+        "stale_envelopes_accepted",
+        "bundle_mismatch_accepts",
+        "action_mismatch_accepts",
+        "false_restrictions"
+      ],
+      "properties": {
+        "invalid_authorizations": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "stale_envelopes_accepted": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "bundle_mismatch_accepts": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "action_mismatch_accepts": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "false_restrictions": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "latency": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gate_eval_p50_us",
+        "gate_eval_p95_us",
+        "gate_eval_p99_us",
+        "revalidation_p50_us",
+        "revalidation_p99_us"
+      ],
+      "properties": {
+        "gate_eval_p50_us": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "gate_eval_p95_us": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "gate_eval_p99_us": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "revalidation_p50_us": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "revalidation_p99_us": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "input_manifest_sha256",
+        "raw_artifact_manifest_sha256",
+        "notes"
+      ],
+      "properties": {
+        "input_manifest_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "raw_artifact_manifest_sha256": {
+          "oneOf": [
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "status=not_run requires all metric and conformance values to be null and all denominators zero.",
+    "Every expected case must be observed, explicitly failed, incomplete or censored; no missing denominator entries.",
+    "Driving scores, authorization rates and latency are separate measures and must not be collapsed into one composite score.",
+    "A gate pass does not prove action safety or semantic correctness."
+  ]
+}
