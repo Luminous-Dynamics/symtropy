@@ -179,6 +179,7 @@ pub struct AuditReport {
     pub process_run_count: usize,
     pub in_window_run_count: usize,
     pub out_of_window_run_count: usize,
+    pub incomplete_or_invalid_run_count: usize,
     pub unique_lot_count: usize,
     pub unique_line_count: usize,
     pub physical_cell_pass_count: usize,
@@ -699,6 +700,11 @@ pub fn audit_closed_loop(manifest: &Manifest) -> Result<AuditReport, AuditError>
         .iter()
         .filter(|run| run.disposition == RunDisposition::OutOfWindow)
         .count();
+    let incomplete_or_invalid_run_count = manifest
+        .process_runs
+        .iter()
+        .filter(|run| matches!(run.disposition, RunDisposition::Incomplete | RunDisposition::Invalid))
+        .count();
     let physical_cell_pass_count = manifest
         .cell_tests
         .iter()
@@ -763,6 +769,7 @@ pub fn audit_closed_loop(manifest: &Manifest) -> Result<AuditReport, AuditError>
         process_run_count: manifest.process_runs.len(),
         in_window_run_count,
         out_of_window_run_count,
+        incomplete_or_invalid_run_count,
         unique_lot_count,
         unique_line_count,
         physical_cell_pass_count,
@@ -920,6 +927,7 @@ mod tests {
         assert_eq!(report.process_run_count, 4);
         assert_eq!(report.in_window_run_count, 3);
         assert_eq!(report.out_of_window_run_count, 1);
+        assert_eq!(report.incomplete_or_invalid_run_count, 0);
         assert_eq!(report.unique_lot_count, 3);
         assert_eq!(report.unique_line_count, 2);
         assert_eq!(report.synthetic_cell_outcome_count, 3);
@@ -1005,8 +1013,27 @@ mod tests {
     #[test]
     fn stale_decision_dependency_digest_is_rejected() {
         let mut value = fixture();
-        value.process_runs[0].digest = digest('z');
+        value.process_runs[0].digest = digest('0');
         assert!(audit_closed_loop(&value).is_err());
+    }
+
+    #[test]
+    fn changed_lot_lineage_invalidates_decision_receipt() {
+        let mut value = fixture();
+        value.process_runs[0].lot_lineage_digest = digest('0');
+        value.process_runs[1].lot_lineage_digest = digest('0');
+        assert!(audit_closed_loop(&value).is_err());
+    }
+
+    #[test]
+    fn incomplete_and_invalid_process_runs_are_counted() {
+        let mut value = fixture();
+        value.process_runs[0].disposition = RunDisposition::Incomplete;
+        value.process_runs[1].disposition = RunDisposition::Invalid;
+        value.decision.dependency_digests = expected_dependency_digests(&value);
+        let report = audit_closed_loop(&value).expect("run status remains auditable");
+        assert_eq!(report.incomplete_or_invalid_run_count, 2);
+        assert_eq!(report.process_run_count, 4);
     }
 
     #[test]
