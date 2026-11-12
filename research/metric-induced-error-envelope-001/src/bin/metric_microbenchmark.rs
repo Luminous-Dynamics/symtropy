@@ -11,13 +11,13 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use metric_induced_error_envelope_reference::{
-    Cotangent, CartesianQ, DenseY, Matrix, Metric, MetricProfileV1, Rebasis, Tangent, Vector,
+    Cotangent, CartesianQ, DenseY, Matrix, Metric, MetricProfileV1, Rebasis, Tangent,
     vector_euclidean, vector_inf,
 };
 
 const N: usize = 6;
 const ITERATIONS: usize = 20_000;
-const SAMPLES: usize = 15;
+const SAMPLES: usize = 31;
 const WARMUP: usize = 2_000;
 
 #[derive(Debug)]
@@ -56,7 +56,7 @@ where
 
     let mut timings = Vec::with_capacity(samples);
     let mut checksum = 0.0_f64;
-    for sample in 0..samples {
+    for _sample in 0..samples {
         let start = Instant::now();
         let mut sample_checksum = 0.0_f64;
         for _ in 0..iterations {
