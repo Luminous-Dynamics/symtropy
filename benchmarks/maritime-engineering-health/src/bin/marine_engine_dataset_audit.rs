@@ -267,8 +267,7 @@ fn normalize_header(value: &str) -> String {
     value
         .trim()
         .to_ascii_lowercase()
-        .replace('_', " ")
-        .replace('-', " ")
+        .replace(['_', '-'], " ")
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ")
