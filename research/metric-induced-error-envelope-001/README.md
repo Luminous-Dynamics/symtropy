@@ -40,11 +40,37 @@ These are floating-point numerical checks, not formally verified bounds. The Cho
 
 The dependency-free Rust test suite covers dense non-orthogonal rebasing invariance for tangent and cotangent norms; dual pairing and coordinate-map round trips; equality of tangent mass norm and the dual norm of its Riesz-lowered covector; a deterministic shear family with 17 parameter values; explicit changes in raw Euclidean/infinity component norms while the metric norm stays invariant; wrong tensor-variance and metric-congruence negative controls; singular transforms and invalid metrics; and explicit recording of admitted roundoff asymmetry.
 
+## Constraint-space extension: Delassus metric
+
+The crate now includes a separate typed constraint-space layer. Given an SPD mass metric M and full-row-rank constraint Jacobian J, it builds the Delassus operator
+
+W = J M^-1 J^T
+
+by applying the mass Riesz inverse to each constraint row. It does not form M^-1 explicitly.
+
+For constraint multiplier lambda and constraint residual r, the layer uses the induced dual pair:
+
+- multiplier norm: ||lambda||_W = sqrt(lambda^T W lambda);
+- residual norm: ||r||_(W^-1) = sqrt(r^T W^-1 r).
+
+The mechanical identities exercised by the tests are:
+
+- ||M^-1 J^T lambda||_M = ||lambda||_W;
+- the minimum-kinetic-norm correction satisfying J delta_v = r has norm ||r||_(W^-1).
+
+Under q = S y, the correct Jacobian law is J_y = J_q S and the Delassus operator is invariant: J_y M_y^-1 J_y^T = J_q M_q^-1 J_q^T. Redundant constraint rows are rejected because they make W singular; v0 does not silently regularize them.
+
+A deterministic seven-point example is available at:
+
+    cargo run --release --locked --manifest-path research/metric-induced-error-envelope-001/Cargo.toml --example delassus_coordinate_ladder
+
+The example reports the coordinate-matrix condition estimate, Jacobian component growth, Delassus defect, multiplier/residual norms and minimum kinetic correction norms across dense rebases. It is a bounded algebraic reference, not a contact solver benchmark.
+
 ## Scope and next step
 
-v0.1 is a small dense linear-algebra reference. It does not yet implement a backward/forward error envelope for a general operator, the constrained Delassus solve, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, contact/friction, sparse articulated systems or production solver claims.
+v0.1 is a small dense linear-algebra reference. It does not yet implement a general operator backward/forward error envelope, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, unilateral/frictional contact, sparse articulated systems or production solver claims.
 
-The next step is to connect these frame-typed norms to the mass solve M a = f, constraint-space/Delassus solves, and the physical one-step dumbbell fixture in Symtropy #4730. Every residual must identify its domain/codomain and tensor variance; raw coordinate norms remain diagnostic only.
+The next step is to connect these frame-typed and constraint-space norms to the physical one-step dumbbell fixture in Symtropy #4730 and its conditioning-aware error envelope in #4765. Every residual must identify its domain/codomain and tensor variance; raw coordinate norms remain diagnostic only.
 
 ## Reproducible microbenchmark v0.1
 
