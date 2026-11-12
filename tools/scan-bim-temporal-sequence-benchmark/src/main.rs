@@ -1082,7 +1082,7 @@ mod tests {
 
     #[test]
     fn supersession_known_by_cutoff_invalidates_the_old_scan() {
-        let (mut candidate, mut reference) = parsed_fixture();
+        let (candidate, mut reference) = parsed_fixture();
         let sequence = reference["sequences"]
             .as_array_mut()
             .unwrap()
@@ -1135,7 +1135,7 @@ mod tests {
 
     #[test]
     fn supersession_learned_after_cutoff_preserves_historical_scan() {
-        let (mut candidate, mut reference) = parsed_fixture();
+        let (candidate, mut reference) = parsed_fixture();
         let sequence = reference["sequences"]
             .as_array_mut()
             .unwrap()
@@ -1178,10 +1178,6 @@ mod tests {
             .iter_mut()
             .find(|step| step["step_id"] == "f-02")
             .unwrap();
-        step["decision_evidence_event_ids"]
-            .as_array_mut()
-            .unwrap()
-            .push(json!("ev-scan"));
         let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
         let reference_bytes = serde_json::to_vec(&reference).unwrap();
         let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
