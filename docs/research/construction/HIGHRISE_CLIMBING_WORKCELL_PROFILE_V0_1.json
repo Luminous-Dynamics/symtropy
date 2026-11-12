@@ -1,0 +1,650 @@
+{
+  "profile_id": "HIGHRISE-CLIMBING-WORKCELL-001",
+  "profile_version": "0.1.0",
+  "document_status": "research_template_not_project_qualified",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4914",
+  "created_date": "2026-11-12",
+  "purpose": "Versioned benchmark profile for comparing modular self-climbing construction workcells and complete accepted high-rise floor-production workflows.",
+  "claim_ceiling": {
+    "allowed": [
+      "research question definition",
+      "source-bounded comparison of published or project-reported references",
+      "desk-study architecture comparison",
+      "synthetic or simulated results when explicitly labelled"
+    ],
+    "not_established": [
+      "structural adequacy of any proposed platform",
+      "lifting-system safety or fitness for service",
+      "construction-site safety",
+      "regulatory or standards conformity",
+      "physical productivity superiority",
+      "field reliability or transferability"
+    ]
+  },
+  "evidence_classes": [
+    "manufacturer_declared",
+    "project_reported",
+    "peer_reviewed_study",
+    "bench_measured",
+    "hardware_in_loop",
+    "supervised_field",
+    "independently_adjudicated",
+    "synthetic",
+    "simulated",
+    "unknown"
+  ],
+  "source_register": [
+    {
+      "source_id": "SRC-TIAN-2026",
+      "title": "Key technologies and application of a lightweight intelligent aerial construction machine for sustainable super-high-rise building",
+      "source_type": "peer_reviewed_study",
+      "publication_date": "2026-08-20",
+      "url": "https://www.nature.com/articles/s41598-026-67566-y",
+      "reported_values": [
+        {
+          "metric": "support_column_mass",
+          "baseline": 30,
+          "comparison": 5,
+          "unit": "tonne"
+        },
+        {
+          "metric": "total_platform_equipment_mass",
+          "baseline": 900,
+          "comparison": 230,
+          "unit": "tonne_approx"
+        },
+        {
+          "metric": "steel_platform_consumption",
+          "baseline": 0.5,
+          "comparison": 0.2,
+          "unit": "tonne_per_square_metre"
+        },
+        {
+          "metric": "installation_period",
+          "baseline": 45,
+          "comparison": 25,
+          "unit": "day"
+        },
+        {
+          "metric": "component_turnover_or_reuse",
+          "baseline": 0.3,
+          "comparison": 0.8,
+          "unit": "fraction_approx"
+        }
+      ],
+      "scope_note": "Study-specific reported comparisons; reproduce system boundary, building conditions, load cases, definitions and measurement methods before reuse. The source's reported jacking-duration reduction is greater than 50% in representative floor-cycle records; no normalized absolute duration is supplied here.",
+      "admissibility": "reference_only_not_independent_luminous_measurement"
+    },
+    {
+      "source_id": "SRC-JEDDAH-MEED-2026",
+      "title": "MEED reporting on Jeddah Tower construction progress",
+      "source_type": "project_reported_trade_press",
+      "publication_date": "2026-09-30",
+      "url": "https://www.meed.com/worlds-tallest-tower-anchors-jeddah-economic-city-plans",
+      "reported_values": [
+        {
+          "metric": "reported_height",
+          "value": 466,
+          "unit": "metre_approx"
+        },
+        {
+          "metric": "reported_floor",
+          "value": 116,
+          "unit": "floor_approx"
+        },
+        {
+          "metric": "reported_core_floor_cycle",
+          "value": 5,
+          "unit": "day_per_floor_approx"
+        }
+      ],
+      "scope_note": "Project-specific status snapshot reported in late September 2026. Not a universal floor-cycle target and not directly comparable without work-scope, structure, crew, weather and measurement-boundary normalization.",
+      "admissibility": "contextual_project_reference_not_matched_benchmark"
+    }
+  ],
+  "evaluation_scope": {
+    "project_id": null,
+    "project_name": null,
+    "jurisdiction": null,
+    "building_design_revision": null,
+    "building_geometry_digest": null,
+    "floor_or_zone_ids": [],
+    "site_epoch": null,
+    "work_package_revision": null,
+    "temporary_works_design_revision": null,
+    "baseline_definition": null,
+    "baseline_data_digest": null,
+    "comparison_protocol_revision": null,
+    "independent_assessor": null,
+    "qualified_structural_engineer_reference": null,
+    "safety_case_reference": null,
+    "null_policy": "null_or_empty_means_unbound_or_not_supplied; it must never be interpreted as zero, false, accepted, or not applicable"
+  },
+  "system_boundary": {
+    "included_subsystems": [
+      "temporary_works_and_climbing_structure",
+      "support_and_anchorage_interfaces",
+      "synchronized_lifting_and_mechanical_holding",
+      "robotic_production_modules",
+      "vertical_lifting_and_material_logistics",
+      "workface_material_staging_and_kitting",
+      "survey_metrology_and_independent_inspection",
+      "crew_supervision_training_and_handoffs",
+      "maintenance_recovery_and_reconfiguration",
+      "engineering_data_and_evidence_thread"
+    ],
+    "external_interfaces": [
+      "permanent_building_structure",
+      "tower_cranes_and_hoists",
+      "concrete_and_reinforcement_supply",
+      "power_and_communications",
+      "weather_and_environment",
+      "adjacent_trades_and_shared_work_zones",
+      "site_safety_and_lifting_authorities"
+    ],
+    "lifecycle_phases": [
+      "design_and_engineering",
+      "manufacture_and_commissioning",
+      "transport_and_installation",
+      "floor_production",
+      "climb_or_reposition",
+      "inspection_and_maintenance",
+      "reconfiguration_and_reuse",
+      "decommissioning_and_recovery"
+    ]
+  },
+  "task_families": [
+    {
+      "task_family_id": "TEMPORARY_WORKS",
+      "functional_unit": "project-defined accepted platform configuration or completed climb cycle",
+      "acceptance_owner": "qualified temporary-works engineer and authorized project inspection process",
+      "acceptance_inputs": [
+        "approved configuration revision",
+        "load-case and support-state evidence",
+        "independent geometry and condition measurements",
+        "inspection disposition"
+      ],
+      "never_equate": [
+        "platform positioned",
+        "actuator reports complete",
+        "software simulation passed"
+      ]
+    },
+    {
+      "task_family_id": "SYNCHRONIZED_LIFT",
+      "functional_unit": "one project-defined accepted lift/reposition operation",
+      "acceptance_owner": "authorized lifting process and competent independent verification",
+      "acceptance_inputs": [
+        "approved lift plan",
+        "payload and support configuration",
+        "independent position/load/tilt measurements",
+        "stop and recovery disposition"
+      ],
+      "never_equate": [
+        "command sent",
+        "encoder target reached",
+        "VDA order complete"
+      ]
+    },
+    {
+      "task_family_id": "REINFORCEMENT_INSTALLATION",
+      "functional_unit": "project-defined accepted reinforcement work package",
+      "acceptance_owner": "project engineer and inspection authority",
+      "acceptance_inputs": [
+        "bar/mesh identity and lot",
+        "design revision and placement geometry",
+        "cover, spacing, anchorage and connection evidence as specified",
+        "inspection disposition"
+      ],
+      "never_equate": [
+        "bars counted by robot",
+        "gripper released",
+        "camera classifier confidence"
+      ]
+    },
+    {
+      "task_family_id": "FORMWORK_INSTALLATION",
+      "functional_unit": "project-defined accepted formwork segment",
+      "acceptance_owner": "qualified temporary-works/formwork authority",
+      "acceptance_inputs": [
+        "approved formwork configuration",
+        "independent location and geometry",
+        "connection and support inspection",
+        "readiness disposition"
+      ],
+      "never_equate": [
+        "robot task finished",
+        "position estimate within robot controller"
+      ]
+    },
+    {
+      "task_family_id": "MATERIAL_LOGISTICS",
+      "functional_unit": "correctly identified material lot delivered to accepted destination and condition",
+      "acceptance_owner": "authorized receiving/work-package process",
+      "acceptance_inputs": [
+        "material identity and batch",
+        "origin and destination",
+        "quantity and condition",
+        "custody and delivery evidence"
+      ],
+      "never_equate": [
+        "lift slot granted",
+        "route traversed",
+        "payload released"
+      ]
+    },
+    {
+      "task_family_id": "FACADE_OR_MEP_INSTALLATION",
+      "functional_unit": "project-defined accepted component or assembly",
+      "acceptance_owner": "discipline engineer and authorized inspection process",
+      "acceptance_inputs": [
+        "component identity/revision",
+        "interface and location",
+        "independent installation measurements",
+        "functional test and inspection where required"
+      ],
+      "never_equate": [
+        "component present in BIM",
+        "robot action finished",
+        "visual similarity"
+      ]
+    }
+  ],
+  "benchmark_metrics": [
+    {
+      "metric_id": "accepted_floor_cycle_time",
+      "family": "production",
+      "unit": "hour_or_day",
+      "aggregation": [
+        "per_floor",
+        "p50",
+        "p90",
+        "range"
+      ],
+      "requires": [
+        "frozen_floor_scope",
+        "all_start_stop_events",
+        "accepted_output_disposition",
+        "blocker_reason_codes"
+      ]
+    },
+    {
+      "metric_id": "accepted_output_per_total_workflow_crew_hour",
+      "family": "productivity",
+      "unit": "task_specific_functional_units_per_crew_hour",
+      "aggregation": [
+        "per_task_family",
+        "per_ODD_stratum",
+        "p50",
+        "confidence_interval"
+      ],
+      "requires": [
+        "task_specific_functional_unit",
+        "all_role_time_entries",
+        "final_acceptance_receipts"
+      ]
+    },
+    {
+      "metric_id": "temporary_works_mass",
+      "family": "temporary_works",
+      "unit": "tonne",
+      "aggregation": [
+        "whole_system",
+        "per_supported_floor_area",
+        "per_usable_work_area"
+      ],
+      "requires": [
+        "configuration_revision",
+        "included_component_inventory",
+        "verified_mass_source"
+      ]
+    },
+    {
+      "metric_id": "climb_installation_duration",
+      "family": "production",
+      "unit": "hour",
+      "aggregation": [
+        "per_cycle",
+        "p50",
+        "p90"
+      ],
+      "requires": [
+        "frozen_cycle_definition",
+        "all_holds_and_recovery",
+        "terminal_disposition"
+      ]
+    },
+    {
+      "metric_id": "lift_synchronization_residual",
+      "family": "lifting",
+      "unit": "millimetre_or_project_defined_unit",
+      "aggregation": [
+        "per_lift",
+        "p50",
+        "p95",
+        "p99",
+        "max_observed"
+      ],
+      "requires": [
+        "independent_reference",
+        "calibration",
+        "uncertainty_budget",
+        "approved_decision_margin"
+      ]
+    },
+    {
+      "metric_id": "platform_tilt_and_deformation",
+      "family": "structural_response",
+      "unit": "project_defined",
+      "aggregation": [
+        "time_series",
+        "peak",
+        "residual",
+        "per_load_case"
+      ],
+      "requires": [
+        "engineered_sensor_placement",
+        "independent_reference",
+        "model_revision",
+        "load_case_id"
+      ]
+    },
+    {
+      "metric_id": "crane_hoist_occupied_time",
+      "family": "logistics",
+      "unit": "minute",
+      "aggregation": [
+        "per_floor",
+        "per_work_package",
+        "utilization"
+      ],
+      "requires": [
+        "reservation_and_actual_use_events",
+        "shared_resource_identity",
+        "scope_boundary"
+      ]
+    },
+    {
+      "metric_id": "first_pass_acceptance",
+      "family": "quality",
+      "unit": "fraction",
+      "aggregation": [
+        "per_task_family",
+        "per_ODD_stratum"
+      ],
+      "requires": [
+        "first_pass_inspected_numerator",
+        "first_pass_inspected_denominator",
+        "inspection_method",
+        "exclusions"
+      ]
+    },
+    {
+      "metric_id": "final_acceptance",
+      "family": "quality",
+      "unit": "fraction",
+      "aggregation": [
+        "per_task_family",
+        "per_ODD_stratum"
+      ],
+      "requires": [
+        "final_disposition_numerator",
+        "attempted_unit_denominator",
+        "rework_linkage",
+        "exclusions"
+      ]
+    },
+    {
+      "metric_id": "rework_burden",
+      "family": "quality",
+      "unit": "crew_hour_and_material_quantity",
+      "aggregation": [
+        "per_accepted_functional_unit",
+        "per_task_family"
+      ],
+      "requires": [
+        "defect_identity",
+        "cause_status",
+        "labor_and_material_records",
+        "final_disposition"
+      ]
+    },
+    {
+      "metric_id": "availability",
+      "family": "reliability",
+      "unit": "fraction",
+      "aggregation": [
+        "per_serial_unit",
+        "per_campaign",
+        "per_ODD_stratum"
+      ],
+      "requires": [
+        "scheduled_exposure",
+        "state_intervals",
+        "maintenance_and_fault_events",
+        "censoring_policy"
+      ]
+    },
+    {
+      "metric_id": "maintenance_burden",
+      "family": "reliability",
+      "unit": "crew_hour_and_parts",
+      "aggregation": [
+        "per_100_operating_hours",
+        "per_accepted_unit"
+      ],
+      "requires": [
+        "serialized_asset",
+        "work_order",
+        "parts_identity",
+        "return_to_service_evidence"
+      ]
+    },
+    {
+      "metric_id": "energy_per_accepted_work_package",
+      "family": "environment",
+      "unit": "kWh",
+      "aggregation": [
+        "per_task_family",
+        "per_floor"
+      ],
+      "requires": [
+        "meter_identity",
+        "calibration",
+        "metering_boundary",
+        "accepted_output_denominator"
+      ]
+    },
+    {
+      "metric_id": "embodied_material_and_reuse",
+      "family": "environment",
+      "unit": "kg_or_tonne_by_material",
+      "aggregation": [
+        "whole_system",
+        "per_reuse_cycle"
+      ],
+      "requires": [
+        "verified_bom",
+        "material_factor_source",
+        "reuse_or_disposal_disposition"
+      ]
+    },
+    {
+      "metric_id": "fully_loaded_cost_per_accepted_unit",
+      "family": "economics",
+      "unit": "declared_currency_per_task_specific_unit",
+      "aggregation": [
+        "low_base_high",
+        "sensitivity",
+        "break_even_utilization"
+      ],
+      "requires": [
+        "price_date",
+        "currency",
+        "capital_and_service_scope",
+        "labor_scope",
+        "accepted_output",
+        "assumption_register"
+      ]
+    },
+    {
+      "metric_id": "evidence_completeness",
+      "family": "assurance",
+      "unit": "fraction",
+      "aggregation": [
+        "per_trial",
+        "per_work_package"
+      ],
+      "requires": [
+        "required_evidence_manifest",
+        "present_missing_invalid_states",
+        "claim_ceiling"
+      ]
+    }
+  ],
+  "protocol": {
+    "preregistration_required": true,
+    "freeze_before_trial": [
+      "design_and_work_package_revision",
+      "temporary_works_configuration",
+      "machine_and_tool_configuration",
+      "ODD_and_environmental_stratum",
+      "functional_unit_and_acceptance_predicate",
+      "reference_instruments_and_calibration",
+      "primary_metrics_and_analysis_plan",
+      "exclusion_and_stopping_rules"
+    ],
+    "comparison_designs_preferred": [
+      "randomized_work_package_allocation",
+      "balanced_within_site_crossover",
+      "matched_same_scope_conventional_baseline"
+    ],
+    "required_reporting": [
+      "raw_numerators_and_denominators",
+      "p50_p90_and_relevant_tail_statistics",
+      "uncertainty_and_reference_measurement_budget",
+      "all_attempted_invalid_aborted_and_missing_runs",
+      "site_serial_operator_configuration_and_ODD_strata",
+      "setup_supervision_inspection_rework_and_recovery_labor",
+      "confounders_and_unidentified_effects"
+    ],
+    "independence_rules": [
+      "robot_self_report_is_not_independent_acceptance",
+      "robot_navigation_reference_is_not_referee_ground_truth",
+      "simulator_output_is_not_physical_validation",
+      "shared_sensor_clock_power_network_or_processing_fault_domain_must_be_disclosed",
+      "frames_within_one_encounter_are_not_independent_trials"
+    ]
+  },
+  "staged_validation": [
+    {
+      "stage": "P0",
+      "name": "desk_study_and_requirements",
+      "physical_motion_allowed": false,
+      "required_exit": "source register, system boundary, concept of operations, hazard log, ODD and engineering-review plan"
+    },
+    {
+      "stage": "P1",
+      "name": "model_and_software_in_the_loop",
+      "physical_motion_allowed": false,
+      "required_exit": "model verification/validation plan, deterministic scenarios, uncertainty and fault/recovery coverage"
+    },
+    {
+      "stage": "P2",
+      "name": "instrumented_component_rig",
+      "physical_motion_allowed": "only under an approved isolated test plan",
+      "required_exit": "independent instrumentation, qualified fixture, approved loads, protective systems and test review"
+    },
+    {
+      "stage": "P3",
+      "name": "guarded_partial_scale_workcell",
+      "physical_motion_allowed": "only under approved engineering and safety authorization",
+      "required_exit": "task-specific capability/safety qualification, stop/recovery evidence and independent inspection"
+    },
+    {
+      "stage": "P4",
+      "name": "non_occupied_site_mockup",
+      "physical_motion_allowed": "only under approved site-specific design, permits and competent supervision",
+      "required_exit": "accepted matched work packages, full-workflow cost/labor and as-built reconciliation"
+    },
+    {
+      "stage": "P5",
+      "name": "project_pilot",
+      "physical_motion_allowed": "only after earlier stage approvals",
+      "required_exit": "matched baseline, independent adjudication and transferability study"
+    }
+  ],
+  "non_compensable_gates": [
+    "structural_engineering_approval",
+    "temporary_works_and_anchorage_approval",
+    "lifting_plan_and_authorized_lifting_process",
+    "safety_rated_controls_and_physical_holding",
+    "ODD_and_site_permission",
+    "instrument_calibration_and_measurement_uncertainty",
+    "human_exclusion_and_emergency_procedures",
+    "independent_quality_acceptance"
+  ],
+  "target_ladder": [
+    {
+      "target_id": "T0",
+      "name": "reference_reproduction",
+      "target": "Reconcile published lightweight-platform results with explicit scope and measurement boundaries.",
+      "status": "prospective"
+    },
+    {
+      "target_id": "T1",
+      "name": "system_efficiency",
+      "target": "Demonstrate a Pareto improvement in at least two declared dimensions without regression of any hard gate.",
+      "status": "prospective"
+    },
+    {
+      "target_id": "T2",
+      "name": "workflow_productivity",
+      "target": "Target >=20% fewer total workflow crew-hours per finally accepted matched floor/work package; confirm only with preregistered matched trials.",
+      "status": "prospective"
+    },
+    {
+      "target_id": "T3",
+      "name": "schedule_reliability",
+      "target": "No worse p90 accepted-floor-cycle time than the matched baseline, with all rework and holds included.",
+      "status": "prospective"
+    },
+    {
+      "target_id": "T4",
+      "name": "evidence_reconciliation",
+      "target": "100% of attempted runs, holds, interventions, faults, maintenance, rework and accepted/rejected units have explicit dispositions.",
+      "status": "prospective"
+    },
+    {
+      "target_id": "T5",
+      "name": "independent_replication",
+      "target": "Independent second-site or independent-assessor replication before any general transferability claim.",
+      "status": "prospective"
+    }
+  ],
+  "existing_owner_references": [
+    "https://github.com/Luminous-Dynamics/symtropy/issues/1834",
+    "https://github.com/Luminous-Dynamics/symtropy/issues/3505",
+    "https://github.com/Luminous-Dynamics/symtropy/issues/3521",
+    "https://github.com/Luminous-Dynamics/symtropy/issues/3591",
+    "https://github.com/Luminous-Dynamics/symtropy/issues/3605",
+    "https://github.com/Luminous-Dynamics/symtropy/issues/3628",
+    "https://github.com/Luminous-Dynamics/symtropy/issues/3703",
+    "https://github.com/Luminous-Dynamics/symtropy/issues/3706",
+    "https://github.com/Luminous-Dynamics/symtropy/issues/4043",
+    "https://github.com/Luminous-Dynamics/symthaea/issues/6033",
+    "https://github.com/Luminous-Dynamics/symthaea/issues/6040",
+    "https://github.com/Luminous-Dynamics/mycelix/issues/5149",
+    "https://github.com/Luminous-Dynamics/sol-atlas-leptos/issues/622"
+  ],
+  "unresolved_inputs": [
+    "exact building geometry and jurisdiction",
+    "project engineer-approved load cases and structural limits",
+    "candidate platform design and bill of materials",
+    "candidate lift actuators, sensors and safety-rated controls",
+    "actual vendor quotations, maintenance and financing terms",
+    "matched conventional baseline data",
+    "independent instrument and assessor availability",
+    "physical test facility and site permissions"
+  ]
+}
