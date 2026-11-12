@@ -204,7 +204,9 @@ fn empty(value: &str) -> bool {
 
 fn valid_sha256(value: &str) -> bool {
     value.len() == SHA256_HEX_LENGTH
-        && value.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
         && value.bytes().any(|byte| byte != b'0')
 }
 
@@ -248,8 +250,12 @@ fn expanded_uncertainty(budget: &UncertaintyBudget) -> Result<u64, AbstainReason
             return Err(AbstainReason::DuplicateUncertaintyComponent);
         }
         let value = component.standard_uncertainty_units as u128;
-        let square = value.checked_mul(value).ok_or(AbstainReason::NumericOverflow)?;
-        sum_squares = sum_squares.checked_add(square).ok_or(AbstainReason::NumericOverflow)?;
+        let square = value
+            .checked_mul(value)
+            .ok_or(AbstainReason::NumericOverflow)?;
+        sum_squares = sum_squares
+            .checked_add(square)
+            .ok_or(AbstainReason::NumericOverflow)?;
     }
     let standard_uncertainty = ceil_sqrt(sum_squares);
     let scaled = standard_uncertainty
@@ -262,11 +268,15 @@ fn expanded_uncertainty(budget: &UncertaintyBudget) -> Result<u64, AbstainReason
     u64::try_from(expanded).map_err(|_| AbstainReason::NumericOverflow)
 }
 
-fn validate_profile_and_point_counts(observation: &SurfaceObservation, reasons: &mut Vec<AbstainReason>) {
+fn validate_profile_and_point_counts(
+    observation: &SurfaceObservation,
+    reasons: &mut Vec<AbstainReason>,
+) {
     if observation.expected_profile_count == 0
         || observation.received_profile_count > observation.expected_profile_count
         || observation.dropped_profile_count > observation.expected_profile_count
-        || observation.received_profile_count
+        || observation
+            .received_profile_count
             .checked_add(observation.dropped_profile_count)
             != Some(observation.expected_profile_count)
         || observation.declared_profile_coverage_permille > 1_000
@@ -303,7 +313,8 @@ fn validate_profile_and_point_counts(observation: &SurfaceObservation, reasons: 
     }
 
     if observation.total_point_count == 0
-        || observation.valid_point_count
+        || observation
+            .valid_point_count
             .checked_add(observation.invalid_point_count)
             != Some(observation.total_point_count)
         || observation.maximum_invalid_point_permille > 1_000
@@ -372,7 +383,10 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
     if empty(&evidence.calibration.reference_artifact_id)
         || empty(&evidence.calibration.reference_certificate_id)
     {
-        push_reason(&mut reasons, AbstainReason::MissingReferenceArtifactOrCertificate);
+        push_reason(
+            &mut reasons,
+            AbstainReason::MissingReferenceArtifactOrCertificate,
+        );
     }
     if evidence.acquisition_tick < evidence.calibration.valid_from_tick
         || evidence.acquisition_tick > evidence.calibration.expires_at_tick
@@ -382,10 +396,16 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
     if evidence.acquisition_config_revision != evidence.calibration.calibration_config_revision
         || evidence.acquisition_config_revision != evidence.calibration.acquisition_config_revision
     {
-        push_reason(&mut reasons, AbstainReason::CalibrationConfigurationMismatch);
+        push_reason(
+            &mut reasons,
+            AbstainReason::CalibrationConfigurationMismatch,
+        );
     }
     if !evidence.calibration.environment_in_calibration_envelope {
-        push_reason(&mut reasons, AbstainReason::EnvironmentOutsideCalibrationEnvelope);
+        push_reason(
+            &mut reasons,
+            AbstainReason::EnvironmentOutsideCalibrationEnvelope,
+        );
     }
     if evidence.calibration.reference_length_error_units
         > evidence.calibration.maximum_reference_length_error_units
@@ -397,7 +417,10 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
         push_reason(&mut reasons, AbstainReason::InvalidRegistrationReceipt);
     }
     if evidence.registration.source_scan_sha256 != evidence.source_scan_sha256 {
-        push_reason(&mut reasons, AbstainReason::RegistrationSourceDigestMismatch);
+        push_reason(
+            &mut reasons,
+            AbstainReason::RegistrationSourceDigestMismatch,
+        );
     }
     if evidence.registration.target_frame != evidence.observation.coordinate_frame {
         push_reason(&mut reasons, AbstainReason::CoordinateFrameMismatch);
@@ -406,10 +429,11 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
         push_reason(&mut reasons, AbstainReason::IcpDidNotConverge);
     }
     if evidence
-            .registration
-            .rotation_determinant_milli
-            .abs_diff(DETERMINANT_IDENTITY_MILLI)
-            > 10 {
+        .registration
+        .rotation_determinant_milli
+        .abs_diff(DETERMINANT_IDENTITY_MILLI)
+        > 10
+    {
         push_reason(&mut reasons, AbstainReason::InvalidRigidTransform);
     }
     if evidence.registration.orthogonality_error_units
@@ -424,7 +448,9 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
         push_reason(&mut reasons, AbstainReason::IndependentTargetCountMismatch);
     }
     if evidence.registration.reference_target_rms_residual_units
-        > evidence.registration.maximum_reference_target_rms_residual_units
+        > evidence
+            .registration
+            .maximum_reference_target_rms_residual_units
     {
         push_reason(&mut reasons, AbstainReason::IndependentTargetResidualFailed);
     }
@@ -436,7 +462,10 @@ pub fn evaluate_scan(evidence: &ScanEvidence) -> ScanDecision {
         push_reason(&mut reasons, AbstainReason::SurfacePreparationNotQualified);
     }
     if !valid_sha256(&evidence.observation.occlusion_assessment_receipt_sha256) {
-        push_reason(&mut reasons, AbstainReason::MissingOcclusionAssessmentReceipt);
+        push_reason(
+            &mut reasons,
+            AbstainReason::MissingOcclusionAssessmentReceipt,
+        );
     }
     if evidence.observation.coordinate_unit != "mm" {
         push_reason(&mut reasons, AbstainReason::InvalidCoordinateUnit);
@@ -601,7 +630,10 @@ mod tests {
         let ScanDecision::Abstain(reasons) = evaluate_scan(evidence) else {
             panic!("mutated scan evidence should abstain");
         };
-        assert!(reasons.contains(&reason), "missing reason {reason:?}: {reasons:?}");
+        assert!(
+            reasons.contains(&reason),
+            "missing reason {reason:?}: {reasons:?}"
+        );
     }
 
     #[test]
@@ -611,7 +643,10 @@ mod tests {
         };
         assert_eq!(receipt.expanded_uncertainty_units, 12);
         assert_eq!(receipt.profile_coverage_permille, 990);
-        assert_eq!(receipt.claim_ceiling, "SYNTHETIC_SCAN_MEASUREMENT_CONTRACT_ONLY");
+        assert_eq!(
+            receipt.claim_ceiling,
+            "SYNTHETIC_SCAN_MEASUREMENT_CONTRACT_ONLY"
+        );
     }
 
     #[test]
@@ -653,7 +688,10 @@ mod tests {
     fn environment_outside_calibration_envelope_abstains() {
         let mut evidence = base_evidence();
         evidence.calibration.environment_in_calibration_envelope = false;
-        abstains_with(&evidence, AbstainReason::EnvironmentOutsideCalibrationEnvelope);
+        abstains_with(
+            &evidence,
+            AbstainReason::EnvironmentOutsideCalibrationEnvelope,
+        );
     }
 
     #[test]
@@ -765,7 +803,10 @@ mod tests {
     fn cleaning_and_occlusion_assessment_receipts_are_required() {
         let mut evidence = base_evidence();
         evidence.observation.cleaning_receipt_sha256.clear();
-        evidence.observation.occlusion_assessment_receipt_sha256.clear();
+        evidence
+            .observation
+            .occlusion_assessment_receipt_sha256
+            .clear();
         let ScanDecision::Abstain(reasons) = evaluate_scan(&evidence) else {
             panic!("missing receipts should abstain");
         };
@@ -830,7 +871,10 @@ mod tests {
     fn zero_uncertainty_components_abstains() {
         let mut evidence = base_evidence();
         evidence.uncertainty.components.clear();
-        abstains_with(&evidence, AbstainReason::MissingOrExcessiveUncertaintyComponents);
+        abstains_with(
+            &evidence,
+            AbstainReason::MissingOrExcessiveUncertaintyComponents,
+        );
     }
 
     #[test]
@@ -842,7 +886,10 @@ mod tests {
                 standard_uncertainty_units: 1,
             })
             .collect();
-        abstains_with(&evidence, AbstainReason::MissingOrExcessiveUncertaintyComponents);
+        abstains_with(
+            &evidence,
+            AbstainReason::MissingOrExcessiveUncertaintyComponents,
+        );
     }
 
     #[test]
