@@ -1014,10 +1014,16 @@ mod tests {
             .constraint_violation_fault_ids
             .push("camera-drop".into());
         let errors = episode.validate().unwrap_err();
-        assert!(errors.iter().any(|error| error.contains("unknown fault ID")));
-        assert!(errors.iter().any(|error| {
-            error.contains("without a constraint-violation oracle outcome")
-        }));
+        assert!(
+            errors
+                .iter()
+                .any(|error| error.contains("unknown fault ID"))
+        );
+        assert!(
+            errors
+                .iter()
+                .any(|error| { error.contains("without a constraint-violation oracle outcome") })
+        );
     }
 
     #[test]
