@@ -227,10 +227,10 @@ fn max_identity_assignment(matrix: &[Vec<usize>]) -> Result<usize, String> {
         let mut next = dp.clone();
         for mask in 0..states {
             if let Some(score) = dp[mask] {
-                for column in 0..columns {
+                for (column, overlap_count) in row.iter().enumerate() {
                     let bit = 1usize << column;
                     if mask & bit == 0 {
-                        let candidate = score + row[column];
+                        let candidate = score + overlap_count;
                         let slot = &mut next[mask | bit];
                         let previous = (*slot).unwrap_or(0);
                         *slot = Some(previous.max(candidate));
@@ -522,16 +522,15 @@ fn evaluate_sequence(
         candidate_detection_count += 1;
         if let Some(reference_observation) =
             reference_observations.get(&(*step_id, *observation_id))
+            && reference_observation.visible
         {
-            if reference_observation.visible {
-                let row = *entity_index
-                    .get(reference_observation.ground_truth_entity_id.as_str())
-                    .ok_or_else(|| "visible entity index missing".to_owned())?;
-                let column = *track_index
-                    .get(track_id)
-                    .ok_or_else(|| "candidate track index missing".to_owned())?;
-                overlap[row][column] += 1;
-            }
+            let row = *entity_index
+                .get(reference_observation.ground_truth_entity_id.as_str())
+                .ok_or_else(|| "visible entity index missing".to_owned())?;
+            let column = *track_index
+                .get(track_id)
+                .ok_or_else(|| "candidate track index missing".to_owned())?;
+            overlap[row][column] += 1;
         }
     }
     let id_true_positives = max_identity_assignment(&overlap)?;
@@ -575,10 +574,10 @@ fn evaluate_sequence(
                 ))
                 .copied();
             if let Some(track_id) = current_track {
-                if let Some(previous) = previous_track {
-                    if previous != track_id {
-                        identity_switches += 1;
-                    }
+                if let Some(previous) = previous_track
+                    && previous != track_id
+                {
+                    identity_switches += 1;
                 }
                 if had_detection && missed_after_detection {
                     fragmentations += 1;
