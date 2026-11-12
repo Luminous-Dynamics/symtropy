@@ -35,7 +35,7 @@ Twelve cases are included:
 - calibration revision mismatch;
 - unverified receipt.
 
-The same three equivalence cases use identical candidate evidence records. They must produce identical candidate dispositions and unresolved hypothesis sets.
+The same three equivalence cases use identical candidate evidence records, and the stale-but-authenticated control is a separate fourth case. They must produce identical candidate dispositions and unresolved hypothesis sets.
 
 ## Independence and freshness
 
