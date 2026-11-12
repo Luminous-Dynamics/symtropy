@@ -9,6 +9,8 @@ Dependency-free Rust 1.96 reference for one narrow lifecycle-assurance problem:
 - Exact physical-article, component-instance, configuration-revision and material-lot identity.
 - Revision-checked, append-only condition events.
 - Separate synthetic, model-estimate and measured evidence classes.
+- Separate deterministic derived artifacts (such as cycle-count receipts) from raw measured data and model-estimate outputs.
+- Damage-receipt adapter for the bounded Miner and constant-Delta-K Paris output shapes: binds exact component/material identity, source load history, cycle-record digest/profile, calibration scope, model-profile artifact, model output artifact, applicability and optional uncertainty before creating a condition event.
 - SHA-256 *syntax* validation and explicit evidence-reference binding. This crate does not hash/authenticate source bytes.
 - Mechanism-specific typed quantities for Miner accumulation, crack length, corrosion loss and wear volume.
 - Explicit in-domain / out-of-domain / incomplete / inconclusive dispositions.
