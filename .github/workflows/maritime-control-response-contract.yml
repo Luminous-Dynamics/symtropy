@@ -249,8 +249,9 @@ jobs:
             (.properties.files.minItems == 16) and
             (.properties.files.maxItems == 16) and
             (.properties.archive_md5.pattern == "^[a-f0-9]{32}$") and
-            (.properties.files.items.properties.header_rows.const == 3) and
-            (.properties.files.items.properties.recorded_column_count.enum == [70,73])
+            (.properties.files.items."$ref" == "#/$defs/file") and
+            (.["$defs"].file.properties.header_rows.const == 3) and
+            (.["$defs"].file.properties.recorded_column_count.enum == [70,73])
           ' "$root/external-dataset-file-manifest.schema.json" >/dev/null
 
       - name: Validate Rust formatting
