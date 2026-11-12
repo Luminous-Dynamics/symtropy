@@ -173,7 +173,9 @@ jobs:
           echo "AUDIT_REPORT=$report" >> "$GITHUB_ENV"
           echo "### CSV payload checks" >> "$GITHUB_STEP_SUMMARY"
           jq -r '
-            "- CSV files: \(.csv_file_count)",
+            "- Archive CSV entries including metadata: \(.archive_csv_entry_count)",
+            "- Metadata CSV artifacts: \(.metadata_csv_artifact_count)",
+            "- Recording CSV files: \(.csv_file_count)",
             "- Baseline/scenario files: \(.baseline_file_count)/\(.scenario_file_count)",
             "- Data rows: \(.total_data_rows)",
             "- Event-latency-eligible scenario files: \(.event_latency_eligible_scenario_files | length)",
