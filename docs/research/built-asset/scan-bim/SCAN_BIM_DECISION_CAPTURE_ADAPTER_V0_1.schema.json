@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/built-asset/scan-bim/SCAN_BIM_DECISION_CAPTURE_ADAPTER_V0_1.schema.json",
+  "title": "Scan-to-BIM Decision Capture Adapter v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schema_version",
+    "corpus_id",
+    "claim_ceiling",
+    "required_case_count",
+    "cases"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "corpus_id": {
+      "const": "SCAN-BIM-DECISION-CAPTURE-ADAPTER-001"
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 80
+    },
+    "required_case_count": {
+      "const": 8
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "case_id",
+          "asset_binding",
+          "decision_case",
+          "capture_bindings"
+        ],
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^SPR-V-[0-9]{3}$"
+          },
+          "asset_binding": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "building_id",
+              "scene_id",
+              "model_revision",
+              "survey_revision",
+              "coordinate_frame_id",
+              "requirement_revision",
+              "decision_profile_id",
+              "expected_sensor_profile_id",
+              "expected_sensor_profile_sha256"
+            ],
+            "properties": {
+              "building_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "scene_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "model_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "survey_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "coordinate_frame_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "requirement_revision": {
+                "type": "string",
+                "minLength": 1
+              },
+              "decision_profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expected_sensor_profile_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "expected_sensor_profile_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            }
+          },
+          "decision_case": {
+            "type": "object"
+          },
+          "capture_bindings": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 200,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "action_id",
+                "source_revision",
+                "sensor_profile_id",
+                "sensor_profile_sha256",
+                "pose_revision",
+                "pose_evidence_sha256",
+                "pose_status",
+                "reachable",
+                "frame_id",
+                "frame_revision",
+                "visibility_status",
+                "visibility_receipt_sha256",
+                "measurement_qualification",
+                "model_revision",
+                "requirement_revision",
+                "measurement_receipt_sha256",
+                "task_profile_id"
+              ],
+              "properties": {
+                "action_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "source_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sensor_profile_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "sensor_profile_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "pose_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "pose_evidence_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "pose_status": {
+                  "enum": [
+                    "qualified",
+                    "unqualified",
+                    "unknown"
+                  ]
+                },
+                "reachable": {
+                  "type": "boolean"
+                },
+                "frame_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "frame_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "visibility_status": {
+                  "enum": [
+                    "observable",
+                    "self_occluded",
+                    "externally_occluded",
+                    "outside_sensor_coverage",
+                    "unknown",
+                    "contradictory"
+                  ]
+                },
+                "visibility_receipt_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "measurement_qualification": {
+                  "enum": [
+                    "qualified",
+                    "unresolved",
+                    "rejected"
+                  ]
+                },
+                "task_profile_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "model_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "requirement_revision": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "measurement_receipt_sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
