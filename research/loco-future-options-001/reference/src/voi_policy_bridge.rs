@@ -416,7 +416,14 @@ pub fn build_probe_policy_prefix(
         return Err(VoiPolicyBridgeError::OutcomeCoverageMismatch);
     }
     for (outcome_id, observation) in &observations {
-        if continuations[outcome_id].post_state_set_digest != observation.belief_state_set_digest {
+        // Qualified observations bind an exact outcome-local state set.
+        // Unknown/Invalid observations are intentionally merged across outcomes,
+        // so their class-level state digest is aggregate and cannot equal each
+        // outcome-local digest independently.
+        if observation.disposition == ObservationDisposition::Qualified
+            && continuations[outcome_id].post_state_set_digest
+                != observation.belief_state_set_digest
+        {
             return Err(VoiPolicyBridgeError::ObservationClassConflict(
                 observation.equivalence_class.clone(),
             ));
