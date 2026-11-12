@@ -422,8 +422,15 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
         }
     }
 
-    /// ||alpha||_(M^-1) = sqrt(alpha^T M^-1 alpha), evaluated as ||L^-1 alpha||_2.
-    pub fn cotangent_norm(&self, covector: &Cotangent<F, N>) -> Result<f64, MetricErrorV1> {
+    /// Apply the inverse square-root factor in Cholesky coordinates:
+    /// z = L^-1 alpha, so ||z||_2 = ||alpha||_(M^-1).
+    ///
+    /// This whitening primitive is also used to construct Y = J L^-T
+    /// and the Delassus metric W = Y Y^T without forming M^-1.
+    pub fn whiten_cotangent(
+        &self,
+        covector: &Cotangent<F, N>,
+    ) -> Result<Vector<N>, MetricErrorV1> {
         let mut whitened = [0.0; N];
         for row in 0..N {
             let mut value = covector.components[row];
@@ -435,6 +442,12 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
                 return Err(MetricErrorV1::NonFiniteIntermediate);
             }
         }
+        Ok(whitened)
+    }
+
+    /// ||alpha||_(M^-1) = sqrt(alpha^T M^-1 alpha), evaluated as ||L^-1 alpha||_2.
+    pub fn cotangent_norm(&self, covector: &Cotangent<F, N>) -> Result<f64, MetricErrorV1> {
+        let whitened = self.whiten_cotangent(covector)?;
         let norm = vector_euclidean(&whitened);
         if norm.is_finite() {
             Ok(norm)
