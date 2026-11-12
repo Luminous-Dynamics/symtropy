@@ -90,7 +90,7 @@ fn mar_positive_control() -> Vec<EvaluatorRecord> {
     .collect()
 }
 
-function mixed_mechanism() -> Vec<EvaluatorRecord> {
+fn mixed_mechanism() -> Vec<EvaluatorRecord> {
     vec![
         row("mixed_observation", "u1", "high_need", 90, true, None, Some(5_000), MissingnessMechanism::Mar),
         row("mixed_observation", "u2", "high_need", 10, false, Some(MissingReason::Nonresponse), Some(5_000), MissingnessMechanism::Mar),
