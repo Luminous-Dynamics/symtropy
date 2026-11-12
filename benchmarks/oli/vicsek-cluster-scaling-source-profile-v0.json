@@ -1,0 +1,214 @@
+{
+  "schema_version": "oli-vicsek-cluster-scaling-source-profile-v0.1",
+  "case_id": "OLI-VICSEK-CLUSTER-GEOMETRY-SCALING-001",
+  "status": "SOURCE_PINNED_METHOD_AUDIT_PENDING_FULL_REPRODUCTION",
+  "evidence_class": "SOURCE_CODE_AND_PUBLISHED_RESULTS",
+  "claim_ceiling": "Reproduction specification for one published Vicsek cluster topology/geometry study and a separately labelled OLI periodic-geometry extension; not evidence of biological life or intelligence",
+  "publication": {
+    "title": "Topology and geometry of clusters in the Vicsek model across scales",
+    "authors": [
+      "Ashiqur Rahman",
+      "Michael Napoli",
+      "Ofek Lauber Bonomo",
+      "Maurizio Porfiri",
+      "Nicole Abaid"
+    ],
+    "journal": "Physical Review Research",
+    "volume": 8,
+    "article": "033039",
+    "published": "2026-07-10",
+    "doi": "10.1103/hkrb-wpdr",
+    "url": "https://doi.org/10.1103/hkrb-wpdr",
+    "reported_cluster_observables": [
+      "cluster mass",
+      "average interaction degree",
+      "average path length",
+      "clustering coefficient",
+      "cluster geometric area",
+      "cluster perimeter",
+      "cluster area/perimeter scaling"
+    ]
+  },
+  "erratum": {
+    "title": "Erratum: Topology and geometry of clusters in the Vicsek model across scales",
+    "journal": "Physical Review Research",
+    "volume": 8,
+    "article": "049002(E)",
+    "published": "2026-10-27",
+    "doi": "10.1103/b9yr-8wmv",
+    "url": "https://doi.org/10.1103/b9yr-8wmv",
+    "correction": "The neighbour set for heading at t+dt is measured at t+dt, while the neighbour headings/velocities averaged are from t.",
+    "interpretation": "Corrected equation is indistinguishable from the forward-update implementation; backward-update results have different cluster scaling.",
+    "implementation_mapping": {
+      "next_position_alignment": "Algorithmically equivalent to inspected author forward-update C++ file and erratum-corrected neighbour-time convention.",
+      "current_position_alignment": "OLI current-position comparator; exact source backward code has not yet been pinned."
+    }
+  },
+  "author_repository": {
+    "url": "https://github.com/sqrrahman/Vicsek_interaction_network_critical_noise_geometry_and_topology",
+    "commit": "68dfc94192d3fb7324eb980ef095da373ddf5ec1",
+    "license_file": "NOT_FOUND_AT_PINNED_COMMIT",
+    "rights_rule": "No source code or data are copied or redistributed. Repository files are referenced by URL and Git blob SHA only."
+  },
+  "pinned_source_files": [
+    {
+      "role": "forward update C++ simulation",
+      "path": "scripts_1_simulation_upto_steady_state/sml_template.cpp",
+      "blob_sha": "bb483123de3351f75712877ffcf51c21d3b724ec",
+      "sha_verified": true
+    },
+    {
+      "role": "largest-cluster shape extraction",
+      "path": "scripts_3a_cluster_shapes/shapes.cpp",
+      "blob_sha": "108f1f30152c958b3b682e5651b6755491eb037e",
+      "sha_verified": true
+    },
+    {
+      "role": "rasterized disk-union area",
+      "path": "scripts_3_cluster_analysis/scripts_3c_area/cluster_area_calc.cpp",
+      "blob_sha": "308f753d57f31ef6e61aec436ef5bec54808d80f",
+      "sha_verified": true
+    },
+    {
+      "role": "alpha-shape boundary, area and perimeter",
+      "path": "scripts_3_cluster_analysis/scripts_3d_boundary/boundary.m",
+      "blob_sha": "6edef2b81dc46d48638251f015a9e5490731bbdf",
+      "sha_verified": true
+    },
+    {
+      "role": "per-file and across-file bin aggregation",
+      "path": "scripts_4_post_processing/pp_5_boundary/post_perimeter.cpp",
+      "blob_sha": "08a16ef8ab20e19c3f82a87c98e25340721815dd",
+      "sha_verified": true
+    }
+  ],
+  "update_rule_reference": {
+    "forward_source_semantics": "Move positions using headings at t; build neighbour cells from predicted positions at t+dt; choose neighbours at predicted positions; average their headings at t; add angular noise; retain predicted positions.",
+    "source_interaction_predicate": "minimum-image dx*dx + dy*dy < r*r",
+    "noise_parameterization": "source scalar nu maps to full angular noise interval 2*pi*nu radians",
+    "source_numeric_type": "float32",
+    "source_rng": "std::mt19937 seeded from std::random_device; no exposed deterministic seed in inspected forward template",
+    "oli_numeric_type": "f64",
+    "oli_rng": "explicit seeded xorshift64 continued stream",
+    "parity_boundary": "Algorithmic rule and strict interaction predicate pinned; exact random trajectories and float32 bit patterns are not expected to match."
+  },
+  "source_geometry_methods": {
+    "rasterized_disk_union": {
+      "source_file": "scripts_3_cluster_analysis/scripts_3c_area/cluster_area_calc.cpp",
+      "disk_radius": 1,
+      "pixel_size": 0.05,
+      "raster_rule": "Stamp integer pixel offsets within radius in pixel units around every agent; area is unique stamped pixel count * pixel_size^2.",
+      "clusters_of_size_one_skipped": true,
+      "interpretation": "Dilated point-set union area; not an alpha-shape area."
+    },
+    "alpha_shape_boundary": {
+      "source_file": "scripts_3_cluster_analysis/scripts_3d_boundary/boundary.m",
+      "alpha": 0.5,
+      "functions": [
+        "MATLAB alphaShape",
+        "perimeter",
+        "area",
+        "boundaryFacets",
+        "inShape"
+      ],
+      "cluster_filter": {
+        "minimum_cluster_size": 3,
+        "minimum_x_strictly_greater_than": 1,
+        "minimum_y_strictly_greater_than": 1,
+        "interpretation": "Legacy coordinate-edge filter, not a torus-aware exclusion rule."
+      },
+      "point_partition": {
+        "perimeter_points": "unique coordinates returned by boundaryFacets",
+        "inside_points": "inShape points excluding boundary points",
+        "leaf_points": "points for which inShape is false"
+      },
+      "degree_partition": {
+        "distance_rule": "Euclidean dx,dy; both absolute coordinate differences <= 1; Euclidean distance <= 1; exclude self distance 0",
+        "periodic_minimum_image": false,
+        "caveat": "This source boundary degree calculation is not periodic at the box seam and must be reproduced separately from the OLI torus-aware extension."
+      },
+      "output_metrics": [
+        "cluster_size",
+        "alpha_shape_perimeter",
+        "boundary_point_count",
+        "inside_point_count",
+        "leaf_point_count",
+        "mean_boundary_degree",
+        "mean_inside_degree",
+        "mean_leaf_degree",
+        "alpha_shape_area"
+      ]
+    },
+    "largest_cluster_shape_extraction": {
+      "source_file": "scripts_3a_cluster_shapes/shapes.cpp",
+      "selection": "Largest connected component passing min_x >= 1 and min_y >= 1 in the inspected code; this is not the same as retaining every component.",
+      "output": "cluster size, mean degree, centroid, display box size, agent coordinates and graph edges",
+      "caveat": "Legacy filter and display box selection must not be mistaken for a torus-aware geometric definition."
+    }
+  },
+  "source_aggregation": {
+    "source_file": "scripts_4_post_processing/pp_5_boundary/post_perimeter.cpp",
+    "log_bins": 32,
+    "mass_range_inclusive_lower_exclusive_upper": [
+      1,
+      32768
+    ],
+    "bin_midpoints": "geometric mean of adjacent log-spaced edges",
+    "aggregation_order": [
+      "Within each source file and mass bin, calculate means of geometry and degree metrics over clusters.",
+      "Across files, calculate the mean and population standard deviation of those file-level means."
+    ],
+    "count_semantics": "Total clusters accumulated in each mass bin across source files.",
+    "uncertainty_caveat": "The exported standard deviation is across per-file means, not a cluster-level standard error or a seed-level confidence interval. Preserve file/trajectory hierarchy in independent reanalysis."
+  },
+  "source_reproduction": {
+    "inspected_forward_template_parameters": {
+      "particle_count": 512,
+      "interaction_radius": 1,
+      "box_size": "sqrt(N/rho)",
+      "total_time_steps": 10000,
+      "realizations_per_noise_value": 5,
+      "noise_values": "template placeholder; exact run-script values not yet pinned"
+    },
+    "additional_observed_source_context": "Author README describes 9 density-speed pairs; update-rule comparison outputs include N=32768 post-processed datasets. The exact run configuration and critical-noise grid still need recovery.",
+    "sibling_update_rule_sources": {
+      "forward": "root scripts_1_simulation_upto_steady_state/sml_template.cpp inspected",
+      "backward": "NOT_YET_PINNED",
+      "corrected_prr": "NOT_YET_PINNED",
+      "requirement": "Pin exact sibling file blobs and reproduce the erratum-corrected/forward and backward variants separately."
+    },
+    "data_materialized": false,
+    "source_output_reproduction_status": "NOT_RUN"
+  },
+  "oli_extension": {
+    "label": "PERIODIC_MULTISCALE_CLUSTER_GEOMETRY",
+    "distinction_from_source": "New OLI geometry and topology metrics must be reported beside, never substituted for, source-legacy results.",
+    "design_requirements": [
+      "Periodic seam-aware connected components and unwrapped component coordinates.",
+      "Distinct metrics for point-set area, disk-dilated area and alpha-shape area/perimeter.",
+      "Periodic-aware concave hull or alpha-shape implementation with explicit alpha/mesh/pixel sensitivity.",
+      "Interaction-radius filtration and H0 component merge/persistence profile.",
+      "Per-cluster degree, mean path length, clustering, area, perimeter, mass and orientation; avoid only system-wide averages.",
+      "Finite-size scaling and uncertainty estimated over independent seeds/trajectories, not frames or clusters.",
+      "Translation, rotation and box-seam invariance controls.",
+      "Separate update-rule strata; no pooling of forward/corrected and backward results."
+    ],
+    "proposed_qualification_targets": {
+      "source_profile_reproduction": "Within a pre-registered tolerance on source summary outputs after recovering exact parameter grids, update rule, sampling schedule and source outputs.",
+      "cluster_label_parity": "100% on frozen small graph fixtures.",
+      "periodic_seam_invariance": "No change beyond numeric tolerance when a system is translated across the periodic boundary.",
+      "geometry_convergence": "Publish area/perimeter convergence curves as pixel or mesh resolution changes.",
+      "uncertainty": "Trajectory/seed-level resampling; cluster/frame-level pseudoreplication prohibited.",
+      "scaling_model_selection": "Compare power-law, polylogarithmic and alternative scaling models with uncertainty; do not select a model by visual straightness alone."
+    }
+  },
+  "unresolved": {
+    "critical_noise_grid": true,
+    "nine_density_speed_pairs": true,
+    "exact_sampling_times_for_paper_figures": true,
+    "sibling_backward_and_prr_file_blobs": true,
+    "source_alpha_shape_matlab_version": true,
+    "source_dataset_licensing_and_redistribution_rights": true,
+    "independent_seed_replication_hierarchy": true
+  }
+}
