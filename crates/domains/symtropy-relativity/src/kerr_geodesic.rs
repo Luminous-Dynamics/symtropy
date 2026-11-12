@@ -220,8 +220,7 @@ impl KerrNullConstants {
         let delta_roundoff = virtual_delta - delta_term;
         let p_roundoff = p_squared - virtual_p;
         let subtraction_error = p_roundoff + delta_roundoff;
-        let value = difference
-            + (subtraction_error + p_squared_error - delta_term_error);
+        let value = difference + (subtraction_error + p_squared_error - delta_term_error);
         if !value.is_finite() {
             return Err(KerrGeodesicError::NonFinite("radial_potential"));
         }
