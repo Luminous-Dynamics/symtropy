@@ -2,9 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_active_sensing::{
-    assess_active_sensing, candidate_policy_map, evaluator_prediction_audit, ActiveSensingConfig,
-    CandidatePolicyDecision, DecisionWorld, MissingCause, PolicyOutcome, SensorAction,
-    SensorPrediction,
+    ActiveSensingConfig, CandidatePolicyDecision, DecisionWorld, MissingCause, PolicyOutcome,
+    SensorAction, SensorPrediction, assess_active_sensing, candidate_policy_map,
+    evaluator_prediction_audit,
 };
 
 const SCENARIO_ID: &str = "three-world-sensor-dual-control-v1";
@@ -20,10 +20,18 @@ fn csv_field(value: &str) -> String {
 }
 
 fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "active-sensing receipt schema mismatch");
+    assert_eq!(
+        fields.len(),
+        CSV_COLUMNS,
+        "active-sensing receipt schema mismatch"
+    );
     println!(
         "{}",
-        fields.iter().map(|field| csv_field(field)).collect::<Vec<_>>().join(",")
+        fields
+            .iter()
+            .map(|field| csv_field(field))
+            .collect::<Vec<_>>()
+            .join(",")
     );
 }
 
@@ -33,8 +41,14 @@ fn world(id: &str, defer: f64, repair: f64) -> DecisionWorld {
         world_digest: format!("sha256-{id}"),
         service_floor: 70.0,
         policies: vec![
-            PolicyOutcome { policy_id: "defer".to_owned(), service_units: defer },
-            PolicyOutcome { policy_id: "repair".to_owned(), service_units: repair },
+            PolicyOutcome {
+                policy_id: "defer".to_owned(),
+                service_units: defer,
+            },
+            PolicyOutcome {
+                policy_id: "repair".to_owned(),
+                service_units: repair,
+            },
         ],
     }
 }
@@ -99,8 +113,20 @@ fn fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<SensorAction>) {
             2,
             vec![
                 prediction("remote_telemetry", "healthy", "healthy", None, 1.0),
-                prediction("remote_telemetry", "degraded", "missing", Some(MissingCause::CommonCausePowerLoss), 3.0),
-                prediction("remote_telemetry", "healthy_sensor_fault", "missing", Some(MissingCause::TelemetryNetworkFault), 2.0),
+                prediction(
+                    "remote_telemetry",
+                    "degraded",
+                    "missing",
+                    Some(MissingCause::CommonCausePowerLoss),
+                    3.0,
+                ),
+                prediction(
+                    "remote_telemetry",
+                    "healthy_sensor_fault",
+                    "missing",
+                    Some(MissingCause::TelemetryNetworkFault),
+                    2.0,
+                ),
             ],
         ),
         sensor(
@@ -109,9 +135,27 @@ fn fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<SensorAction>) {
             2.0,
             1,
             vec![
-                prediction("independent_field_inspection", "healthy", "healthy", None, 1.0),
-                prediction("independent_field_inspection", "degraded", "degraded", None, 3.0),
-                prediction("independent_field_inspection", "healthy_sensor_fault", "healthy", None, 1.0),
+                prediction(
+                    "independent_field_inspection",
+                    "healthy",
+                    "healthy",
+                    None,
+                    1.0,
+                ),
+                prediction(
+                    "independent_field_inspection",
+                    "degraded",
+                    "degraded",
+                    None,
+                    3.0,
+                ),
+                prediction(
+                    "independent_field_inspection",
+                    "healthy_sensor_fault",
+                    "healthy",
+                    None,
+                    1.0,
+                ),
             ],
         ),
         sensor(
@@ -120,9 +164,27 @@ fn fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<SensorAction>) {
             2.0,
             0,
             vec![
-                prediction("uninformative_status_check", "healthy", "status_unknown", None, 0.0),
-                prediction("uninformative_status_check", "degraded", "status_unknown", None, 0.0),
-                prediction("uninformative_status_check", "healthy_sensor_fault", "status_unknown", None, 0.0),
+                prediction(
+                    "uninformative_status_check",
+                    "healthy",
+                    "status_unknown",
+                    None,
+                    0.0,
+                ),
+                prediction(
+                    "uninformative_status_check",
+                    "degraded",
+                    "status_unknown",
+                    None,
+                    0.0,
+                ),
+                prediction(
+                    "uninformative_status_check",
+                    "healthy_sensor_fault",
+                    "status_unknown",
+                    None,
+                    0.0,
+                ),
             ],
         ),
         sensor(
@@ -133,7 +195,13 @@ fn fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<SensorAction>) {
             vec![
                 prediction("over_budget_lab_test", "healthy", "healthy", None, 1.0),
                 prediction("over_budget_lab_test", "degraded", "degraded", None, 3.0),
-                prediction("over_budget_lab_test", "healthy_sensor_fault", "healthy", None, 1.0),
+                prediction(
+                    "over_budget_lab_test",
+                    "healthy_sensor_fault",
+                    "healthy",
+                    None,
+                    1.0,
+                ),
             ],
         ),
     ];
@@ -158,8 +226,14 @@ fn feasibility_lift_fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<S
             world_digest: "sha256-world_a".to_owned(),
             service_floor: 70.0,
             policies: vec![
-                PolicyOutcome { policy_id: "repair_a".to_owned(), service_units: 90.0 },
-                PolicyOutcome { policy_id: "repair_b".to_owned(), service_units: 50.0 },
+                PolicyOutcome {
+                    policy_id: "repair_a".to_owned(),
+                    service_units: 90.0,
+                },
+                PolicyOutcome {
+                    policy_id: "repair_b".to_owned(),
+                    service_units: 50.0,
+                },
             ],
         },
         DecisionWorld {
@@ -167,8 +241,14 @@ fn feasibility_lift_fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<S
             world_digest: "sha256-world_b".to_owned(),
             service_floor: 70.0,
             policies: vec![
-                PolicyOutcome { policy_id: "repair_a".to_owned(), service_units: 50.0 },
-                PolicyOutcome { policy_id: "repair_b".to_owned(), service_units: 90.0 },
+                PolicyOutcome {
+                    policy_id: "repair_a".to_owned(),
+                    service_units: 50.0,
+                },
+                PolicyOutcome {
+                    policy_id: "repair_b".to_owned(),
+                    service_units: 90.0,
+                },
             ],
         },
     ];
@@ -179,8 +259,20 @@ fn feasibility_lift_fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<S
             2.0,
             0,
             vec![
-                prediction("decision_separating_inspection", "world_a", "world_a_detected", None, 0.0),
-                prediction("decision_separating_inspection", "world_b", "world_b_detected", None, 0.0),
+                prediction(
+                    "decision_separating_inspection",
+                    "world_a",
+                    "world_a_detected",
+                    None,
+                    0.0,
+                ),
+                prediction(
+                    "decision_separating_inspection",
+                    "world_b",
+                    "world_b_detected",
+                    None,
+                    0.0,
+                ),
             ],
         ),
         sensor(
@@ -189,8 +281,20 @@ fn feasibility_lift_fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<S
             2.0,
             0,
             vec![
-                prediction("uninformative_feasibility_check", "world_a", "unknown", None, 0.0),
-                prediction("uninformative_feasibility_check", "world_b", "unknown", None, 0.0),
+                prediction(
+                    "uninformative_feasibility_check",
+                    "world_a",
+                    "unknown",
+                    None,
+                    0.0,
+                ),
+                prediction(
+                    "uninformative_feasibility_check",
+                    "world_b",
+                    "unknown",
+                    None,
+                    0.0,
+                ),
             ],
         ),
     ];
@@ -207,9 +311,17 @@ fn summary_fields(
         assessment.sensor_id.clone(),
         assessment.status.id().to_owned(),
         assessment.affordable.to_string(),
-        (report.recommended_sensor_id.as_deref() == Some(assessment.sensor_id.as_str())).to_string(),
-        report.baseline.selected_policy_id.clone().unwrap_or_default(),
-        report.baseline.worst_case_regret.map_or_else(String::new, |v| format!("{v:.6}")),
+        (report.recommended_sensor_id.as_deref() == Some(assessment.sensor_id.as_str()))
+            .to_string(),
+        report
+            .baseline
+            .selected_policy_id
+            .clone()
+            .unwrap_or_default(),
+        report
+            .baseline
+            .worst_case_regret
+            .map_or_else(String::new, |v| format!("{v:.6}")),
         assessment.protocol_digest.clone(),
         format!("{:.6}", assessment.energy_cost_kwh),
         format!("{:.6}", assessment.service_units_per_kwh),
@@ -217,10 +329,21 @@ fn summary_fields(
         assessment.latency_ticks.to_string(),
         format!("{:.6}", assessment.maximum_latency_service_loss),
         format!("{:.6}", assessment.maximum_total_penalty_service_units),
-        assessment.worst_case_post_sensing_regret.map_or_else(String::new, |v| format!("{v:.6}")),
-        assessment.worst_case_regret_reduction.map_or_else(String::new, |v| format!("{v:.6}")),
-        String::new(), String::new(), String::new(), String::new(), String::new(),
-        String::new(), String::new(), String::new(), String::new(),
+        assessment
+            .worst_case_post_sensing_regret
+            .map_or_else(String::new, |v| format!("{v:.6}")),
+        assessment
+            .worst_case_regret_reduction
+            .map_or_else(String::new, |v| format!("{v:.6}")),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
+        String::new(),
         assessment.resolves_no_sensing_infeasibility.to_string(),
     ]
 }
@@ -236,7 +359,9 @@ fn partition_fields(
     fields[18] = partition.world_ids.len().to_string();
     fields[19] = partition.world_ids.join(";");
     fields[20] = partition.selected_policy_id.clone().unwrap_or_default();
-    fields[21] = partition.worst_case_regret.map_or_else(String::new, |v| format!("{v:.6}"));
+    fields[21] = partition
+        .worst_case_regret
+        .map_or_else(String::new, |v| format!("{v:.6}"));
     fields
 }
 
@@ -251,10 +376,10 @@ fn audit_fields(
     fields[22] = receipt.world_id.clone();
     fields[23] = receipt.world_digest.clone();
     fields[24] = receipt.prediction_receipt_digest.clone();
-    fields[25] = receipt.missing_cause.as_ref().map_or_else(
-        || "none".to_owned(),
-        |cause| cause.id().to_owned(),
-    );
+    fields[25] = receipt
+        .missing_cause
+        .as_ref()
+        .map_or_else(|| "none".to_owned(), |cause| cause.id().to_owned());
     fields
 }
 
@@ -267,7 +392,11 @@ fn emit_candidate(decision: &CandidatePolicyDecision) {
     ];
     println!(
         "{}",
-        fields.iter().map(|field| csv_field(field)).collect::<Vec<_>>().join(",")
+        fields
+            .iter()
+            .map(|field| csv_field(field))
+            .collect::<Vec<_>>()
+            .join(",")
     );
 }
 
@@ -311,7 +440,9 @@ fn emit_report(
         }
     }
     for receipt in &evaluator_audit {
-        let assessment = report.sensors.iter()
+        let assessment = report
+            .sensors
+            .iter()
             .find(|item| item.sensor_id == receipt.sensor_id)
             .expect("audit refers to declared sensor");
         emit(audit_fields(&report, assessment, receipt));
