@@ -79,15 +79,17 @@ where
     }
 }
 
-fn fixture() -> (
-    Metric<CartesianQ, N>,
-    Rebasis<CartesianQ, DenseY, N>,
-    Tangent<CartesianQ, N>,
-    Cotangent<CartesianQ, N>,
-    Tangent<DenseY, N>,
-    Cotangent<DenseY, N>,
-    Metric<DenseY, N>,
-) {
+struct BenchmarkFixture {
+    metric_q: Metric<CartesianQ, N>,
+    rebasis: Rebasis<CartesianQ, DenseY, N>,
+    vector_q: Tangent<CartesianQ, N>,
+    covector_q: Cotangent<CartesianQ, N>,
+    vector_y: Tangent<DenseY, N>,
+    covector_y: Cotangent<DenseY, N>,
+    metric_y: Metric<DenseY, N>,
+}
+
+fn fixture() -> BenchmarkFixture {
     let profile = MetricProfileV1::default();
     let mass: Matrix<N> = [
         [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -114,9 +116,15 @@ fn fixture() -> (
     let vector_y = rebasis.tangent_to_to(&vector_q).unwrap();
     let covector_y = rebasis.cotangent_to_to(&covector_q).unwrap();
 
-    (
-        metric_q, rebasis, vector_q, covector_q, vector_y, covector_y, metric_y,
-    )
+    BenchmarkFixture {
+        metric_q,
+        rebasis,
+        vector_q,
+        covector_q,
+        vector_y,
+        covector_y,
+        metric_y,
+    }
 }
 
 fn json_number(value: f64) -> String {
@@ -154,14 +162,14 @@ fn rustc_version() -> String {
 }
 
 fn cpu_model() -> String {
-    if let Ok(cpuinfo) = std::fs::read_to_string("/proc/cpuinfo") {
-        if let Some(model) = cpuinfo.lines().find_map(|line| {
+    if let Ok(cpuinfo) = std::fs::read_to_string("/proc/cpuinfo")
+        && let Some(model) = cpuinfo.lines().find_map(|line| {
             line.strip_prefix("model name")
                 .or_else(|| line.strip_prefix("Hardware"))
                 .and_then(|value| value.split_once(':').map(|(_, model)| model.trim()))
-        }) {
-            return model.to_owned();
-        }
+        })
+    {
+        return model.to_owned();
     }
     std::env::var("PROCESSOR_IDENTIFIER").unwrap_or_else(|_| "not-exposed".to_owned())
 }
@@ -231,40 +239,40 @@ fn render_report(measurements: &[Measurement], total_elapsed: Duration) -> Strin
 
 fn main() {
     let start_all = Instant::now();
-    let (metric_q, rebasis, vector_q, covector_q, vector_y, covector_y, metric_y) = fixture();
+    let fixture = fixture();
 
     let measurements = vec![
         measure("raw_euclidean_tangent_q", ITERATIONS, SAMPLES, || {
-            vector_euclidean(black_box(vector_q.components()))
+            vector_euclidean(black_box(fixture.vector_q.components()))
         }),
         measure("raw_infinity_tangent_q", ITERATIONS, SAMPLES, || {
-            vector_inf(black_box(vector_q.components()))
+            vector_inf(black_box(fixture.vector_q.components()))
         }),
         measure("metric_tangent_norm_q", ITERATIONS, SAMPLES, || {
-            metric_q.tangent_norm(black_box(&vector_q)).unwrap()
+            fixture.metric_q.tangent_norm(black_box(&fixture.vector_q)).unwrap()
         }),
         measure("dual_metric_cotangent_norm_q", ITERATIONS, SAMPLES, || {
-            metric_q.cotangent_norm(black_box(&covector_q)).unwrap()
+            fixture.metric_q.cotangent_norm(black_box(&fixture.covector_q)).unwrap()
         }),
         measure("metric_tangent_norm_y", ITERATIONS, SAMPLES, || {
-            metric_y.tangent_norm(black_box(&vector_y)).unwrap()
+            fixture.metric_y.tangent_norm(black_box(&fixture.vector_y)).unwrap()
         }),
         measure("dual_metric_cotangent_norm_y", ITERATIONS, SAMPLES, || {
-            metric_y.cotangent_norm(black_box(&covector_y)).unwrap()
+            fixture.metric_y.cotangent_norm(black_box(&fixture.covector_y)).unwrap()
         }),
         measure("tangent_pushforward_q_to_y", ITERATIONS, SAMPLES, || {
-            let value = rebasis.tangent_to_to(black_box(&vector_q)).unwrap();
+            let value = fixture.rebasis.tangent_to_to(black_box(&fixture.vector_q)).unwrap();
             vector_euclidean(value.components())
         }),
         measure("cotangent_pullback_q_to_y", ITERATIONS, SAMPLES, || {
-            let value = rebasis.cotangent_to_to(black_box(&covector_q)).unwrap();
+            let value = fixture.rebasis.cotangent_to_to(black_box(&fixture.covector_q)).unwrap();
             vector_euclidean(value.components())
         }),
         measure("metric_rebasis_q_to_y", ITERATIONS / 10, SAMPLES, || {
-            let metric = rebasis
-                .metric_to_to(black_box(&metric_q), MetricProfileV1::default())
+            let metric = fixture.rebasis
+                .metric_to_to(black_box(&fixture.metric_q), MetricProfileV1::default())
                 .unwrap();
-            metric.tangent_norm(&vector_y).unwrap()
+            metric.tangent_norm(&fixture.vector_y).unwrap()
         }),
         measure(
             "metric_admission_cholesky_q",
@@ -272,7 +280,7 @@ fn main() {
             SAMPLES,
             || {
                 let admitted = Metric::<CartesianQ, N>::admit(
-                    *black_box(metric_q.matrix()),
+                    *black_box(fixture.metric_q.matrix()),
                     MetricProfileV1::default(),
                 )
                 .unwrap();
@@ -280,17 +288,17 @@ fn main() {
             },
         ),
         measure("metric_and_dual_norms_y_pair", ITERATIONS, SAMPLES, || {
-            metric_y.tangent_norm(black_box(&vector_y)).unwrap()
-                + metric_y.cotangent_norm(black_box(&covector_y)).unwrap()
+            fixture.metric_y.tangent_norm(black_box(&fixture.vector_y)).unwrap()
+                + fixture.metric_y.cotangent_norm(black_box(&fixture.covector_y)).unwrap()
         }),
     ];
 
     let report = render_report(&measurements, start_all.elapsed());
-    if let Some(path) = std::env::args().nth(1) {
-        if let Err(error) = std::fs::write(&path, &report) {
-            eprintln!("failed to write benchmark report to {path}: {error}");
-            std::process::exit(2);
-        }
+    if let Some(path) = std::env::args().nth(1)
+        && let Err(error) = std::fs::write(&path, &report)
+    {
+        eprintln!("failed to write benchmark report to {path}: {error}");
+        std::process::exit(2);
     }
     print!("{report}");
 }
