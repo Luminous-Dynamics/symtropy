@@ -1,0 +1,214 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "SHIPYARD-SCAN-METROLOGY-001",
+  "evidence_class": "synthetic_only",
+  "known_answer_cases": [
+    {
+      "case_id": "SCAN2D-001",
+      "angle_radians": 0,
+      "translation": [
+        0,
+        0
+      ],
+      "correspondences": 6,
+      "expected_disposition": "ACCEPT"
+    },
+    {
+      "case_id": "SCAN2D-002",
+      "angle_radians": 0.37,
+      "translation": [
+        12.5,
+        -8.25
+      ],
+      "correspondences": 6,
+      "expected_disposition": "ACCEPT"
+    },
+    {
+      "case_id": "SCAN2D-003",
+      "angle_radians": -0.82,
+      "translation": [
+        -30,
+        4.75
+      ],
+      "correspondences": 6,
+      "expected_disposition": "ACCEPT"
+    },
+    {
+      "case_id": "SCAN2D-004",
+      "angle_radians": 1.21,
+      "translation": [
+        1000,
+        -500
+      ],
+      "correspondences": 6,
+      "expected_disposition": "ACCEPT"
+    }
+  ],
+  "negative_controls": [
+    {
+      "case_id": "SCAN2D-N001",
+      "mutation": "measured evidence promoted into synthetic-only oracle",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N002",
+      "mutation": "wrong source scan digest",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N003",
+      "mutation": "wrong registration receipt digest",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N004",
+      "mutation": "source frame mismatch",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N005",
+      "mutation": "target frame mismatch",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N006",
+      "mutation": "wrong WID/joint/layer/predecessor identity",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N007",
+      "mutation": "capture timestamp in the future",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N008",
+      "mutation": "stale scan receipt",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N009",
+      "mutation": "too few profile correspondences",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N010",
+      "mutation": "acquired plus occluded count inconsistent with expected count",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N011",
+      "mutation": "matched plus rejected count inconsistent with acquired count",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N012",
+      "mutation": "insufficient matched profile count",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N013",
+      "mutation": "coverage below minimum",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N014",
+      "mutation": "coverage above 1000 permille",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N015",
+      "mutation": "occlusion above policy",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N016",
+      "mutation": "occlusion above 1000 permille",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N017",
+      "mutation": "RMS residual above policy",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N018",
+      "mutation": "P95 residual above policy",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N019",
+      "mutation": "maximum residual above policy",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N020",
+      "mutation": "zero uncertainty",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N021",
+      "mutation": "uncertainty above policy",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N022",
+      "mutation": "confidence below 950 permille",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N023",
+      "mutation": "reflection transform",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N024",
+      "mutation": "scale transform",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N025",
+      "mutation": "shear transform",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N026",
+      "mutation": "non-homogeneous last row",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N027",
+      "mutation": "non-finite transform component",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N028",
+      "mutation": "collinear correspondence geometry",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N029",
+      "mutation": "non-finite point correspondence",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N030",
+      "mutation": "empty calibration identity",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N031",
+      "mutation": "malformed scan digest",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N032",
+      "mutation": "malformed transform receipt digest",
+      "expected_disposition": "BLOCK"
+    },
+    {
+      "case_id": "SCAN2D-N033",
+      "mutation": "empty algorithm revision",
+      "expected_disposition": "BLOCK"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+[package]
+name = "shipyard-scan-metrology"
+version = "0.1.0"
+edition = "2024"
+authors = ["Luminous Dynamics"]
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Synthetic scan receipt and rigid transform qualification contract"
+
+[workspace]
+
+[lints.rust]
+unsafe_code = "forbid"
