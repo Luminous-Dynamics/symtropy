@@ -1,0 +1,246 @@
+{
+  "schema_version": "0.1",
+  "claim_ceiling": "Synthetic pair-contract validation only. This does not establish real causal attribution, survey accuracy or producer-receipt authenticity.",
+  "pairs": [
+    {
+      "pair_id": "CF-001-registration-drift",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-026",
+      "intervention_json_pointers": [
+        "/survey_evidence/registration_stability"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+      "expected_treatment_reason_codes": [
+        "REGISTRATION_DRIFT_OR_COMMON_MODE_SHIFT_UNRESOLVED"
+      ]
+    },
+    {
+      "pair_id": "CF-002-change-estimate-unresolved",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-027",
+      "intervention_json_pointers": [
+        "/survey_evidence/change_estimate/status"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+      "expected_treatment_reason_codes": [
+        "SURVEY_CHANGE_ESTIMATE_UNRESOLVED"
+      ]
+    },
+    {
+      "pair_id": "CF-003-checkpoint-evidence-missing",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-028",
+      "intervention_json_pointers": [
+        "/survey_evidence/independent_checkpoint/receipt_sha256"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "STALE_OR_INVALID_EVIDENCE",
+      "expected_treatment_reason_codes": [
+        "INDEPENDENT_CHECKPOINT_EVIDENCE_MISSING_OR_INVALID"
+      ]
+    },
+    {
+      "pair_id": "CF-004-change-receipt-scope-mismatch",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-035",
+      "intervention_json_pointers": [
+        "/survey_evidence/change_estimate/scope/frame_id"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "STALE_OR_INVALID_EVIDENCE",
+      "expected_treatment_reason_codes": [
+        "CHANGE_ESTIMATE_RECEIPT_SCOPE_MISMATCH"
+      ]
+    },
+    {
+      "pair_id": "CF-005-registration-receipt-scope-mismatch",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-036",
+      "intervention_json_pointers": [
+        "/survey_evidence/registration_stability_receipt/scope/asset_id"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "STALE_OR_INVALID_EVIDENCE",
+      "expected_treatment_reason_codes": [
+        "REGISTRATION_STABILITY_RECEIPT_SCOPE_MISMATCH"
+      ]
+    },
+    {
+      "pair_id": "CF-006-checkpoint-receipt-scope-mismatch",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-037",
+      "intervention_json_pointers": [
+        "/survey_evidence/independent_checkpoint/scope/survey_product_sha256"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "STALE_OR_INVALID_EVIDENCE",
+      "expected_treatment_reason_codes": [
+        "INDEPENDENT_CHECKPOINT_RECEIPT_SCOPE_MISMATCH"
+      ]
+    },
+    {
+      "pair_id": "CF-007-qualified-physical-change-sensitivity",
+      "kind": "physical_change_sensitivity",
+      "control_case_id": "SB-001",
+      "treatment_case_id": "SB-002",
+      "intervention_json_pointers": [
+        "/elements/1/deviation_mm",
+        "/delta/operation",
+        "/delta/target_ids"
+      ],
+      "expected_control_disposition": "NO_CHANGE_SUPPORTED",
+      "expected_control_reason_codes": [
+        "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS"
+      ],
+      "expected_treatment_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_treatment_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ]
+    },
+    {
+      "pair_id": "CF-008-change-receipt-digest-missing",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-031",
+      "intervention_json_pointers": [
+        "/survey_evidence/change_estimate/receipt_sha256"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "STALE_OR_INVALID_EVIDENCE",
+      "expected_treatment_reason_codes": [
+        "CHANGE_ESTIMATE_RECEIPT_MISSING_OR_INVALID"
+      ]
+    },
+    {
+      "pair_id": "CF-009-registration-receipt-digest-missing",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-032",
+      "intervention_json_pointers": [
+        "/survey_evidence/registration_stability_receipt/receipt_sha256"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "STALE_OR_INVALID_EVIDENCE",
+      "expected_treatment_reason_codes": [
+        "REGISTRATION_STABILITY_RECEIPT_MISSING_OR_INVALID"
+      ]
+    },
+    {
+      "pair_id": "CF-010-checkpoint-unresolved",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-033",
+      "intervention_json_pointers": [
+        "/survey_evidence/independent_checkpoint/status"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+      "expected_treatment_reason_codes": [
+        "INDEPENDENT_CHECKPOINT_EVIDENCE_UNRESOLVED"
+      ]
+    },
+    {
+      "pair_id": "CF-011-survey-product-unresolved",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-002",
+      "treatment_case_id": "SB-034",
+      "intervention_json_pointers": [
+        "/survey_evidence/survey_product_status"
+      ],
+      "expected_control_disposition": "ADMIT_CANDIDATE_DELTA",
+      "expected_control_reason_codes": [
+        "CHANGE_OUTSIDE_TOLERANCE_WITH_UNCERTAINTY_MARGIN"
+      ],
+      "expected_treatment_disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+      "expected_treatment_reason_codes": [
+        "SURVEY_PRODUCT_UNRESOLVED"
+      ]
+    },
+    {
+      "pair_id": "CF-012-no-change-registration-drift",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-001",
+      "treatment_case_id": "SB-038",
+      "intervention_json_pointers": [
+        "/survey_evidence/registration_stability"
+      ],
+      "expected_control_disposition": "NO_CHANGE_SUPPORTED",
+      "expected_control_reason_codes": [
+        "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS"
+      ],
+      "expected_treatment_disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+      "expected_treatment_reason_codes": [
+        "REGISTRATION_DRIFT_OR_COMMON_MODE_SHIFT_UNRESOLVED"
+      ]
+    },
+    {
+      "pair_id": "CF-013-no-change-estimate-unresolved",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-001",
+      "treatment_case_id": "SB-039",
+      "intervention_json_pointers": [
+        "/survey_evidence/change_estimate/status"
+      ],
+      "expected_control_disposition": "NO_CHANGE_SUPPORTED",
+      "expected_control_reason_codes": [
+        "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS"
+      ],
+      "expected_treatment_disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+      "expected_treatment_reason_codes": [
+        "SURVEY_CHANGE_ESTIMATE_UNRESOLVED"
+      ]
+    },
+    {
+      "pair_id": "CF-014-no-change-checkpoint-unresolved",
+      "kind": "nuisance_invariance",
+      "control_case_id": "SB-001",
+      "treatment_case_id": "SB-040",
+      "intervention_json_pointers": [
+        "/survey_evidence/independent_checkpoint/status"
+      ],
+      "expected_control_disposition": "NO_CHANGE_SUPPORTED",
+      "expected_control_reason_codes": [
+        "ALL_REQUIRED_ELEMENTS_WITHIN_DECLARED_BOUNDS"
+      ],
+      "expected_treatment_disposition": "REQUEST_ADDITIONAL_OBSERVATION",
+      "expected_treatment_reason_codes": [
+        "INDEPENDENT_CHECKPOINT_EVIDENCE_UNRESOLVED"
+      ]
+    }
+  ]
+}
