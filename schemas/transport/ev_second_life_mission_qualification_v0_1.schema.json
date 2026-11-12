@@ -269,12 +269,14 @@
         "source_pack_id",
         "pack_revision",
         "passport_ref",
+        "passport_evidence_id",
         "configuration_digest",
         "cell_membership_digest",
         "expected_cell_count",
         "observed_cell_ids",
         "history_coverage",
         "incident_history",
+        "incident_adjudication_ref",
         "requested_use",
         "mission",
         "capability",
@@ -371,6 +373,16 @@
           "items": {
             "$ref": "#/$defs/gate"
           }
+        },
+        "passport_evidence_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "incident_adjudication_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     }
