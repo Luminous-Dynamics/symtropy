@@ -1324,6 +1324,36 @@ mod tests {
     }
 
     #[test]
+    fn schwarzschild_radial_screen_jacobian_matches_exact_affine_distance() {
+        // In Schwarzschild, an ingoing radial null congruence launched from
+        // one finite-radius event has D_A(lambda)=lambda in this affine
+        // normalization. The two screen singular values are therefore both
+        // lambda and det(J)=lambda^2 exactly.
+        let black_hole = hole(0.0);
+        let observer = KerrFiniteRadiusObserver::new(
+            black_hole, 10.0, core::f64::consts::FRAC_PI_2,
+        ).unwrap();
+        let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        assert_eq!(seed.coordinate_chart, KerrMinoCoordinateChart::IngoingKerr);
+        let integrator = KerrNullTrajectoryIntegrator::new(
+            black_hole, KerrIntegrationChart::Ingoing, options(),
+        ).unwrap();
+        let affine_interval = 0.1;
+        let bundle = integrator.integrate_observer_tangent_bundle(seed, affine_interval).unwrap();
+        let final_index = bundle.samples.len() - 1;
+        let map = bundle.optical_screen_map_at(final_index, 2e-9).unwrap();
+        close(map.jacobian[0][0], affine_interval, 2e-7);
+        close(map.jacobian[1][1], affine_interval, 2e-7);
+        close(map.jacobian[0][1], 0.0, 2e-7);
+        close(map.jacobian[1][0], 0.0, 2e-7);
+        close(map.singular_values[0], affine_interval, 2e-7);
+        close(map.singular_values[1], affine_interval, 2e-7);
+        close(map.determinant, affine_interval * affine_interval, 4e-7);
+        close(map.condition_number, 1.0, 4e-7);
+    }
+
+    #[test]
     fn source_screen_map_rejects_samples_after_horizon_crossing() {
         let black_hole = hole(0.9);
         let observer = KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
