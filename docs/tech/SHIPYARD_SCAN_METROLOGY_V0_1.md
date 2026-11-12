@@ -30,7 +30,7 @@ A valid receipt binds:
 - a non-zero 95% uncertainty bound and declared confidence;
 - a proper rigid source-to-target homogeneous transform.
 
-The evaluator is fail-closed. It rejects measured/simulated evidence in v0.1, malformed or mismatched digests, frame/identity mismatch, future or stale capture, inconsistent counts, insufficient coverage, excessive occlusion/residual/uncertainty, insufficient confidence, reflection, scale, shear, and invalid homogeneous transforms.
+The evaluator is fail-closed. It validates profile-count additions with checked arithmetic, rejects policy values outside the declared domains, distinguishes identity mismatches from digest mismatches, and rejects mathematically impossible residual summaries (maximum residual below RMS or P95). It rejects measured/simulated evidence in v0.1, malformed or mismatched digests, frame/identity mismatch, future or stale capture, inconsistent counts, insufficient coverage, excessive occlusion/residual/uncertainty, insufficient confidence, reflection, scale, shear, and invalid homogeneous transforms.
 
 Digests in the unit fixtures are synthetic identifiers. The v0.1 code checks format and equality to the independently expected context; it does not claim to hash unavailable BAM bytes or canonicalize a physical transform receipt.
 
@@ -38,7 +38,7 @@ Digests in the unit fixtures are synthetic identifiers. The v0.1 code checks for
 
 - 4 known-answer positive 2D rigid transforms.
 - 33 negative mutation controls.
-- 38 Rust unit tests including transform recovery and fail-closed receipt admission.
+- 41 Rust unit tests including transform recovery and fail-closed receipt admission.
 - Independent cross-language replay is required before merging.
 - The future 3D physical measurement campaign must report calibration traceability, repeatability/reproducibility, registration residual distribution, uncertainty coverage and decision impact by workpiece/layer/scan quality stratum.
 
