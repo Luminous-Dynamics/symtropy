@@ -864,6 +864,36 @@ mod tests {
     }
 
     #[test]
+    fn shadow_receipt_chain_binds_residual_and_all_admission_decisions() {
+        let mut candidate = candidate();
+        candidate.observe(&observation(0)).unwrap();
+        candidate.observe(&observation(1)).unwrap();
+        let receipts = candidate.receipts.clone();
+        assert!(validate_shadow_receipt_chain(&receipts).is_ok());
+
+        let mut changed_residual = receipts.clone();
+        changed_residual[0].standardized_absolute_residual += 0.25;
+        assert_eq!(
+            validate_shadow_receipt_chain(&changed_residual),
+            Err(BaselineAdaptationError::ReceiptDigestMismatch)
+        );
+
+        let mut changed_admission = receipts.clone();
+        changed_admission[1].command_response_timing_causally_valid = false;
+        assert_eq!(
+            validate_shadow_receipt_chain(&changed_admission),
+            Err(BaselineAdaptationError::ReceiptDigestMismatch)
+        );
+
+        let mut broken_parent = receipts;
+        broken_parent[1].previous_receipt_sha256 = None;
+        assert_eq!(
+            validate_shadow_receipt_chain(&broken_parent),
+            Err(BaselineAdaptationError::ReceiptChainBroken)
+        );
+    }
+
+    #[test]
     fn no_automatic_baseline_commit_path_exists_in_the_protocol() {
         let protocol: serde_json::Value =
             serde_json::from_str(include_str!("../startup-adaptation-guard-v0.1.json")).unwrap();
