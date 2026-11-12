@@ -2331,6 +2331,35 @@ impl KerrFiniteRadiusObserver {
         self.theta_rad
     }
 
+    /// Lift local [radial, polar, azimuthal] screen vectors into
+    /// contravariant coordinate vectors in the requested observer chart.
+    ///
+    /// This pointwise chart conversion is not screen parallel transport.
+    pub fn screen_basis_to_chart_coordinates(
+        self,
+        local_screen_basis: [[f64; 3]; 2],
+        coordinate_chart: KerrMinoCoordinateChart,
+    ) -> [[f64; 4]; 2] {
+        let tetrad = self.tetrad;
+        let radius = self.radius_over_m;
+        let spin = self.hole.spin().get();
+        let delta = radius * radius - 2.0 * radius + spin * spin;
+        core::array::from_fn(|screen_index| {
+            let local = local_screen_basis[screen_index];
+            let mut vector = core::array::from_fn(|mu| {
+                local[0] * tetrad.radial[mu]
+                    + local[1] * tetrad.polar[mu]
+                    + local[2] * tetrad.azimuthal[mu]
+            });
+            if coordinate_chart == KerrMinoCoordinateChart::IngoingKerr {
+                let radial_component = vector[1];
+                vector[0] += (radius * radius + spin * spin) / delta * radial_component;
+                vector[3] += spin / delta * radial_component;
+            }
+            vector
+        })
+    }
+
     /// Construct a canonical Kerr state and two local-sky tangent vectors.
     ///
     /// The screen basis is defined deterministically from the local ZAMO
@@ -2773,6 +2802,87 @@ mod tests {
             ),
             momenta: p,
         }
+    }
+
+    #[test]
+    fn radial_schwarzschild_sachs_optical_tidal_matrix_is_zero() {
+        let black_hole = hole(0.0);
+        let observer = KerrFiniteRadiusObserver::new(
+            black_hole,
+            10.0,
+            core::f64::consts::FRAC_PI_2,
+        )
+        .unwrap();
+        let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        let screen_basis = observer.screen_basis_to_chart_coordinates(
+            seed.local_screen_basis,
+            seed.coordinate_chart,
+        );
+        let result = KerrCanonicalHamiltonian::new(black_hole)
+            .optical_tidal_matrix(seed.state, seed.coordinate_chart, screen_basis, 1e-9)
+            .unwrap();
+        assert!(result.null_constraint_residual < 1e-10);
+        assert!(result.screen_orthonormality_residual < 1e-10);
+        assert!(result.screen_transversality_residual < 1e-10);
+        assert!(result.tidal_symmetry_residual < 1e-10);
+        assert!(result.vacuum_trace_residual < 1e-10);
+        for value in result.tidal_matrix.iter().flatten() {
+            assert!(value.abs() < 1e-9, "radial Schwarzschild tidal={value:e}");
+        }
+    }
+
+    #[test]
+    fn nonradial_schwarzschild_sachs_matrix_is_symmetric_and_vacuum_trace_free() {
+        let black_hole = hole(0.0);
+        let observer = KerrFiniteRadiusObserver::new(
+            black_hole,
+            10.0,
+            core::f64::consts::FRAC_PI_2,
+        )
+        .unwrap();
+        let direction = KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        let screen_basis = observer.screen_basis_to_chart_coordinates(
+            seed.local_screen_basis,
+            seed.coordinate_chart,
+        );
+        let result = KerrCanonicalHamiltonian::new(black_hole)
+            .optical_tidal_matrix(seed.state, seed.coordinate_chart, screen_basis, 1e-8)
+            .unwrap();
+        assert!(result.tidal_symmetry_residual < 1e-8);
+        assert!(result.vacuum_trace_residual < 1e-8);
+        assert!(
+            result.tidal_matrix.iter().flatten().any(|value| value.abs() > 1e-10),
+            "nonradial Schwarzschild ray should have nonzero Weyl optical tide"
+        );
+    }
+
+    #[test]
+    fn sachs_optical_tidal_rejects_nontransverse_screen_frame() {
+        let black_hole = hole(0.0);
+        let observer = KerrFiniteRadiusObserver::new(
+            black_hole,
+            10.0,
+            core::f64::consts::FRAC_PI_2,
+        )
+        .unwrap();
+        let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        let mut screen_basis = observer.screen_basis_to_chart_coordinates(
+            seed.local_screen_basis,
+            seed.coordinate_chart,
+        );
+        screen_basis[0] = observer.tetrad().timelike;
+        assert!(matches!(
+            KerrCanonicalHamiltonian::new(black_hole).optical_tidal_matrix(
+                seed.state,
+                seed.coordinate_chart,
+                screen_basis,
+                1e-9,
+            ),
+            Err(KerrGeodesicError::OpticalFrameConstraintViolation { .. })
+        ));
     }
 
     #[test]
