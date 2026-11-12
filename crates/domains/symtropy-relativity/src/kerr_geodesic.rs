@@ -40,6 +40,8 @@ use core::fmt;
 use super::{
     KerrBlackHole, PhysicsDomainError,
     autodiff::{DifferentiatedMetric4, JetError},
+    connection::MetricDerivatives4,
+    curvature::{MetricSecondDerivatives4, RiemannTensor4},
     metric::{MetricComponents4, MetricError},
 };
 
@@ -507,6 +509,30 @@ pub struct KerrCanonicalLinearization {
     pub symplectic_lie_residual: f64,
 }
 
+/**
+ * Local Sachs optical-tidal matrix from the Kerr Riemann tensor.
+ *
+ * Vectors use the same dimensionless contravariant coordinate basis as the
+ * canonical state: [ct/M or v/M, r/M, theta, phi]. The declared Riemann
+ * convention is inherited from curvature::RiemannTensor4.
+ * The tidal convention is
+ * T_AB = R_(mu nu rho sigma) e_A^mu k^nu e_B^rho k^sigma.
+ *
+ * This is a pointwise curvature observable. It is not an integrated Jacobi
+ * matrix, a caustic finder, or a finite-frequency wave-optics calculation.
+ */
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrOpticalTidalEvaluation {
+    pub coordinate_chart: KerrMinoCoordinateChart,
+    pub tidal_matrix: [[f64; 2]; 2],
+    pub null_constraint_residual: f64,
+    pub screen_orthonormality_residual: f64,
+    pub screen_transversality_residual: f64,
+    pub tidal_symmetry_residual: f64,
+    /// For vacuum Kerr, abs(trace(T)) should vanish with the Ricci contraction.
+    pub vacuum_trace_residual: f64,
+}
+
 /// Independent canonical Hamiltonian evaluator for exterior Kerr rays.
 ///
 /// The metric and its first derivatives are generated through the existing
@@ -570,6 +596,16 @@ pub enum KerrGeodesicError {
         tolerance: f64,
     },
     LocalNullResidual {
+        residual: f64,
+        tolerance: f64,
+    },
+    OpticalFrameConstraintViolation {
+        null_residual: f64,
+        orthonormality_residual: f64,
+        transversality_residual: f64,
+        tolerance: f64,
+    },
+    OpticalTidalAsymmetry {
         residual: f64,
         tolerance: f64,
     },
@@ -699,6 +735,19 @@ impl fmt::Display for KerrGeodesicError {
             } => write!(
                 f,
                 "local source momentum is not sufficiently null: unit-direction residual {residual} exceeds {tolerance}"
+            ),
+            Self::OpticalFrameConstraintViolation {
+                null_residual,
+                orthonormality_residual,
+                transversality_residual,
+                tolerance,
+            } => write!(
+                f,
+                "Sachs frame constraints failed: null={null_residual}, orthonormality={orthonormality_residual}, transversality={transversality_residual}, tolerance={tolerance}"
+            ),
+            Self::OpticalTidalAsymmetry { residual, tolerance } => write!(
+                f,
+                "Sachs optical tidal matrix asymmetry {residual} exceeds {tolerance}"
             ),
         }
     }
@@ -1173,6 +1222,167 @@ impl KerrCanonicalHamiltonian {
         let differentiated =
             DifferentiatedMetric4::kerr_ingoing(self.hole, radius_m, state.coordinates.theta_rad)?;
         self.evaluate_differentiated(state, differentiated)
+    }
+
+    /// Evaluate the local Sachs optical-tidal matrix from the independent
+    /// metric-curvature formulation in the requested Kerr coordinate chart.
+    ///
+    /// The null tangent and each screen row are contravariant vectors in the
+    /// dimensionless chart coordinate basis. The screen rows must be
+    /// orthonormal spacelike vectors transverse to the null tangent. Event
+    /// and frame transport between different samples remains the caller's
+    /// responsibility.
+    pub fn optical_tidal_matrix(
+        self,
+        state: KerrCanonicalState,
+        coordinate_chart: KerrMinoCoordinateChart,
+        screen_basis: [[f64; 4]; 2],
+        tolerance: f64,
+    ) -> Result<KerrOpticalTidalEvaluation, KerrGeodesicError> {
+        if !tolerance.is_finite() || tolerance <= 0.0 {
+            return Err(KerrGeodesicError::InvalidProjectionTolerance(tolerance));
+        }
+        let radius_m = state.coordinates.radius_over_m * self.hole.gravitational_radius_m();
+        let differentiated = match coordinate_chart {
+            KerrMinoCoordinateChart::BoyerLindquist => {
+                DifferentiatedMetric4::kerr_exterior(
+                    self.hole,
+                    radius_m,
+                    state.coordinates.theta_rad,
+                )?
+            }
+            KerrMinoCoordinateChart::IngoingKerr => {
+                DifferentiatedMetric4::kerr_ingoing(
+                    self.hole,
+                    radius_m,
+                    state.coordinates.theta_rad,
+                )?
+            }
+        };
+        let evaluation = self.evaluate_differentiated(state, differentiated)?;
+        let null_tangent = evaluation.derivative.coordinates;
+        let mass_length = self.hole.gravitational_radius_m();
+        let factors = [1.0, 1.0, 1.0 / mass_length, 1.0 / mass_length];
+        let source_metric = differentiated.metric.covariant();
+        let source_first = differentiated.first.components();
+        let source_second = differentiated.second.components();
+
+        // Convert the SI-coordinate differentiated metric to the exact
+        // dimensionless canonical chart convention used by the Hamiltonian
+        // flow, including radial/polar derivative scale factors.
+        let mut metric_components = [[0.0; 4]; 4];
+        let mut first_components = [[[0.0; 4]; 4]; 4];
+        let mut second_components = [[[[0.0; 4]; 4]; 4]; 4];
+        for mu in 0..4 {
+            for nu in 0..4 {
+                let scale = factors[mu] * factors[nu];
+                metric_components[mu][nu] = source_metric[mu][nu] * scale;
+                first_components[1][mu][nu] =
+                    source_first[1][mu][nu] * mass_length * scale;
+                first_components[2][mu][nu] = source_first[2][mu][nu] * scale;
+                second_components[1][1][mu][nu] =
+                    source_second[1][1][mu][nu] * mass_length * mass_length * scale;
+                second_components[1][2][mu][nu] =
+                    source_second[1][2][mu][nu] * mass_length * scale;
+                second_components[2][1][mu][nu] =
+                    source_second[2][1][mu][nu] * mass_length * scale;
+                second_components[2][2][mu][nu] =
+                    source_second[2][2][mu][nu] * scale;
+            }
+        }
+        let metric = MetricComponents4::new(metric_components)?;
+        let first = MetricDerivatives4::new(first_components).map_err(JetError::from)?;
+        let second =
+            MetricSecondDerivatives4::new(second_components).map_err(JetError::from)?;
+        let curvature = RiemannTensor4::from_metric_derivatives(&metric, &first, &second)
+            .map_err(JetError::from)?;
+        let riemann_covariant = curvature.fully_covariant(&metric).map_err(JetError::from)?;
+        let g = metric.covariant();
+
+        let metric_inner = |left: [f64; 4], right: [f64; 4]| -> f64 {
+            let mut value = 0.0;
+            for mu in 0..4 {
+                for nu in 0..4 {
+                    value += g[mu][nu] * left[mu] * right[nu];
+                }
+            }
+            value
+        };
+        let null_constraint_residual = metric_inner(null_tangent, null_tangent).abs();
+        let mut screen_orthonormality_residual: f64 = 0.0;
+        let mut screen_transversality_residual: f64 = 0.0;
+        for first_screen in 0..2 {
+            screen_transversality_residual = screen_transversality_residual
+                .max(metric_inner(screen_basis[first_screen], null_tangent).abs());
+            for second_screen in 0..2 {
+                let expected = if first_screen == second_screen { 1.0 } else { 0.0 };
+                screen_orthonormality_residual = screen_orthonormality_residual.max(
+                    (metric_inner(
+                        screen_basis[first_screen],
+                        screen_basis[second_screen],
+                    ) - expected)
+                        .abs(),
+                );
+            }
+        }
+        if !null_constraint_residual.is_finite()
+            || !screen_orthonormality_residual.is_finite()
+            || !screen_transversality_residual.is_finite()
+            || null_constraint_residual > tolerance
+            || screen_orthonormality_residual > tolerance
+            || screen_transversality_residual > tolerance
+        {
+            return Err(KerrGeodesicError::OpticalFrameConstraintViolation {
+                null_residual: null_constraint_residual,
+                orthonormality_residual: screen_orthonormality_residual,
+                transversality_residual: screen_transversality_residual,
+                tolerance,
+            });
+        }
+
+        let mut tidal_matrix = [[0.0; 2]; 2];
+        for first_screen in 0..2 {
+            for second_screen in 0..2 {
+                for mu in 0..4 {
+                    for nu in 0..4 {
+                        for rho in 0..4 {
+                            for sigma in 0..4 {
+                                tidal_matrix[first_screen][second_screen] +=
+                                    riemann_covariant[mu][nu][rho][sigma]
+                                        * screen_basis[first_screen][mu]
+                                        * null_tangent[nu]
+                                        * screen_basis[second_screen][rho]
+                                        * null_tangent[sigma];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if tidal_matrix.iter().flatten().any(|value| !value.is_finite()) {
+            return Err(KerrGeodesicError::NonFinite("optical_tidal_matrix"));
+        }
+        let tidal_symmetry_residual = (tidal_matrix[0][1] - tidal_matrix[1][0]).abs();
+        let tidal_scale = tidal_matrix
+            .iter()
+            .flatten()
+            .fold(0.0_f64, |scale, value| scale.max(value.abs()));
+        if tidal_symmetry_residual > tolerance * (1.0 + tidal_scale) {
+            return Err(KerrGeodesicError::OpticalTidalAsymmetry {
+                residual: tidal_symmetry_residual,
+                tolerance: tolerance * (1.0 + tidal_scale),
+            });
+        }
+
+        Ok(KerrOpticalTidalEvaluation {
+            coordinate_chart,
+            tidal_matrix,
+            null_constraint_residual,
+            screen_orthonormality_residual,
+            screen_transversality_residual,
+            tidal_symmetry_residual,
+            vacuum_trace_residual: (tidal_matrix[0][0] + tidal_matrix[1][1]).abs(),
+        })
     }
 
     /// Linearize the canonical Hamiltonian flow in exterior Boyer-Lindquist
