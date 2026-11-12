@@ -203,21 +203,25 @@
       "requested_use": "second_life_stationary",
       "mission": {
         "horizon_months": 120,
-        "required_usable_energy_kwh": 80,
         "required_peak_power_kw": 40,
         "temperature_min_c": -10,
         "temperature_max_c": 40,
         "minimum_availability_percent": 97,
-        "reserve_percent": 10
+        "reserve_percent": 10,
+        "required_usable_energy_at_commissioning_kwh": 80,
+        "required_usable_energy_at_horizon_kwh": 64,
+        "required_lifetime_delivered_energy_mwh": 450
       },
       "capability": {
-        "lower_bound_usable_energy_kwh": 100,
         "lower_bound_peak_power_kw": 50,
         "supported_temperature_min_c": -20,
         "supported_temperature_max_c": 45,
         "lower_bound_availability_percent": 98,
         "uncertainty_profile_ref": "E-UQ-PROFILE",
-        "evidence_id": "E-CAP-SECOND-LIFE"
+        "evidence_id": "E-CAP-SECOND-LIFE",
+        "lower_bound_usable_energy_at_commissioning_kwh": 100,
+        "lower_bound_usable_energy_at_horizon_kwh": 90,
+        "lower_bound_lifetime_delivered_energy_mwh": 500
       },
       "bms": {
         "strategy": "gateway_interface",
@@ -312,21 +316,25 @@
       "requested_use": "third_life_backup",
       "mission": {
         "horizon_months": 120,
-        "required_usable_energy_kwh": 80,
         "required_peak_power_kw": 40,
         "temperature_min_c": -10,
         "temperature_max_c": 40,
         "minimum_availability_percent": 97,
-        "reserve_percent": 10
+        "reserve_percent": 10,
+        "required_usable_energy_at_commissioning_kwh": 80,
+        "required_usable_energy_at_horizon_kwh": 64,
+        "required_lifetime_delivered_energy_mwh": 450
       },
       "capability": {
-        "lower_bound_usable_energy_kwh": 100,
         "lower_bound_peak_power_kw": 50,
         "supported_temperature_min_c": -20,
         "supported_temperature_max_c": 45,
         "lower_bound_availability_percent": 98,
         "uncertainty_profile_ref": "E-UQ-PROFILE",
-        "evidence_id": "E-CAP-THIRD-LIFE"
+        "evidence_id": "E-CAP-THIRD-LIFE",
+        "lower_bound_usable_energy_at_commissioning_kwh": 100,
+        "lower_bound_usable_energy_at_horizon_kwh": 90,
+        "lower_bound_lifetime_delivered_energy_mwh": 500
       },
       "bms": {
         "strategy": "gateway_interface",
@@ -421,21 +429,25 @@
       "requested_use": "second_life_stationary",
       "mission": {
         "horizon_months": 120,
-        "required_usable_energy_kwh": 80,
         "required_peak_power_kw": 40,
         "temperature_min_c": -10,
         "temperature_max_c": 40,
         "minimum_availability_percent": 97,
-        "reserve_percent": 10
+        "reserve_percent": 10,
+        "required_usable_energy_at_commissioning_kwh": 80,
+        "required_usable_energy_at_horizon_kwh": 64,
+        "required_lifetime_delivered_energy_mwh": 450
       },
       "capability": {
-        "lower_bound_usable_energy_kwh": 100,
         "lower_bound_peak_power_kw": 50,
         "supported_temperature_min_c": -20,
         "supported_temperature_max_c": 45,
         "lower_bound_availability_percent": 98,
         "uncertainty_profile_ref": "E-UQ-PROFILE",
-        "evidence_id": "E-CAP-UNKNOWN-HISTORY"
+        "evidence_id": "E-CAP-UNKNOWN-HISTORY",
+        "lower_bound_usable_energy_at_commissioning_kwh": 100,
+        "lower_bound_usable_energy_at_horizon_kwh": 90,
+        "lower_bound_lifetime_delivered_energy_mwh": 500
       },
       "bms": {
         "strategy": "gateway_interface",
