@@ -135,6 +135,45 @@ fn json_number(value: f64) -> String {
     }
 }
 
+fn json_escape(value: &str) -> String {
+    let mut escaped = String::with_capacity(value.len());
+    for character in value.chars() {
+        match character {
+            '"' => escaped.push_str("\\\""),
+            '\\' => escaped.push_str("\\\\"),
+            '\n' => escaped.push_str("\\n"),
+            '\r' => escaped.push_str("\\r"),
+            '\t' => escaped.push_str("\\t"),
+            control if control.is_control() => escaped.push(' '),
+            ordinary => escaped.push(ordinary),
+        }
+    }
+    escaped
+}
+
+fn rustc_version() -> String {
+    std::process::Command::new("rustc")
+        .arg("--version")
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .map(|output| String::from_utf8_lossy(&output.stdout).trim().to_owned())
+        .unwrap_or_else(|| "unavailable".to_owned())
+}
+
+fn cpu_model() -> String {
+    if let Ok(cpuinfo) = std::fs::read_to_string("/proc/cpuinfo") {
+        if let Some(model) = cpuinfo.lines().find_map(|line| {
+            line.strip_prefix("model name")
+                .or_else(|| line.strip_prefix("Hardware"))
+                .and_then(|value| value.split_once(':').map(|(_, model)| model.trim()))
+        }) {
+            return model.to_owned();
+        }
+    }
+    std::env::var("PROCESSOR_IDENTIFIER").unwrap_or_else(|_| "not-exposed".to_owned())
+}
+
 fn render_report(measurements: &[Measurement], total_elapsed: Duration) -> String {
     let rows = measurements
         .iter()
@@ -165,6 +204,10 @@ fn render_report(measurements: &[Measurement], total_elapsed: Duration) -> Strin
             "  \"crate_version\": \"{}\",\n",
             "  \"target_arch\": \"{}\",\n",
             "  \"target_os\": \"{}\",\n",
+            "  \"cpu_model\": \"{}\",\n",
+            "  \"rustc_version\": \"{}\",\n",
+            "  \"source_commit\": \"{}\",\n",
+            "  \"workflow_run_id\": \"{}\",\n",
             "  \"available_parallelism\": {},\n",
             "  \"iterations_per_sample\": {},\n",
             "  \"samples\": {},\n",
@@ -176,6 +219,10 @@ fn render_report(measurements: &[Measurement], total_elapsed: Duration) -> Strin
         env!("CARGO_PKG_VERSION"),
         std::env::consts::ARCH,
         std::env::consts::OS,
+        json_escape(&cpu_model()),
+        json_escape(&rustc_version()),
+        json_escape(&std::env::var("GITHUB_SHA").unwrap_or_else(|_| "local".to_owned())),
+        json_escape(&std::env::var("GITHUB_RUN_ID").unwrap_or_else(|_| "local".to_owned())),
         std::thread::available_parallelism().map(|v| v.get()).unwrap_or(1),
         ITERATIONS,
         SAMPLES,
@@ -228,8 +275,8 @@ fn main() {
             admitted.admission_receipt().minimum_cholesky_pivot
         }),
         measure("metric_and_dual_norms_y_pair", ITERATIONS, SAMPLES, || {
-            metric_y.tangent_norm(&vector_y).unwrap()
-                + metric_y.cotangent_norm(&covector_y).unwrap()
+            metric_y.tangent_norm(black_box(&vector_y)).unwrap()
+                + metric_y.cotangent_norm(black_box(&covector_y)).unwrap()
         }),
     ];
 
