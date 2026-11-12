@@ -73,6 +73,7 @@ pub struct CausalIdentity {
     pub assurance_event_id: String,
     pub assurance_event_sequence: u64,
     pub command_id: String,
+    pub command_event_sequence: u64,
     pub actuator_application_event_id: String,
     pub actuator_application_event_sequence: u64,
     pub physical_transition_id: String,
@@ -419,6 +420,7 @@ fn validate_identity(
             identity.assurance_event_id.as_str(),
             identity.assurance_event_sequence,
         ),
+        ("command", identity.command_id.as_str(), identity.command_event_sequence),
         (
             "application",
             identity.actuator_application_event_id.as_str(),
@@ -739,7 +741,7 @@ pub fn adapt_joint_trace(trace: &JointTrace) -> Result<AdapterReport, TraceValid
         .into_iter()
         .filter_map(|(name, qualified)| (!qualified).then_some(name))
         .collect();
-    let mission_closure = if unqualified_domains.is_empty() && causal_edges.len() == 6 {
+    let mission_closure = if unqualified_domains.is_empty() && causal_edges.len() == 7 {
         MissionClosure::Closed
     } else {
         MissionClosure::Open {
@@ -758,7 +760,7 @@ pub fn adapt_joint_trace(trace: &JointTrace) -> Result<AdapterReport, TraceValid
         energy,
         sampling,
         terminal_safe_stop: terminal,
-        causal_chain_complete: causal_edges.len() == 6,
+        causal_chain_complete: causal_edges.len() == 7,
         causal_edges,
         mission_closure,
         actuation_authorized: false,
@@ -785,12 +787,13 @@ mod tests {
                 assurance_event_id: "assurance-01".into(),
                 assurance_event_sequence: 4,
                 command_id: "command-01".into(),
+                command_event_sequence: 5,
                 actuator_application_event_id: "application-01".into(),
-                actuator_application_event_sequence: 5,
+                actuator_application_event_sequence: 6,
                 physical_transition_id: "physical-01".into(),
-                physical_transition_event_sequence: 6,
+                physical_transition_event_sequence: 7,
                 terminal_event_id: "terminal-01".into(),
-                terminal_event_sequence: 7,
+                terminal_event_sequence: 8,
                 actuator_id: "actuator-01".into(),
             },
             configuration: ConfigurationEvidence {
@@ -877,7 +880,7 @@ mod tests {
                 upper_ns: 15_000_000,
             })
         );
-        assert_eq!(report.causal_edges.len(), 6);
+        assert_eq!(report.causal_edges.len(), 7);
         assert_eq!(report.mission_closure, MissionClosure::Closed);
         assert!(!report.actuation_authorized);
     }
