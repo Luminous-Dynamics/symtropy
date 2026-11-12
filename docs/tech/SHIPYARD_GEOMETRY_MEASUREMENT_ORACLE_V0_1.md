@@ -28,16 +28,16 @@ Absolute cross-sectional difference area is integrated exactly for a piecewise-l
 
 Each segment area is rounded to the nearest integer µm² using integer arithmetic; ties round upward. The uncertainty-expanded upper-area metric integrates |observed-reference| + reference uncertainty + observed uncertainty at each station.
 
-Coverage is calculated from the declared x-domain and only counts spans no wider than the configured maximum gap. The maximum gap includes domain-end gaps and internal gaps. A scan with a large internal occlusion cannot pass merely because it has a high aggregate point count.
+Coverage is calculated from the declared x-domain and only counts spans no wider than a separate coverage-gap threshold. The maximum gap is evaluated against its own, usually larger, hard limit and includes domain-end gaps and internal gaps. This keeps coverage and worst-gap checks independent: a profile may have no catastrophic gap while still having too little usable coverage.
 
 ## Frozen known answers
 
-The 14-case corpus has 3 positive numeric controls and 11 negative controls:
+The 16-case corpus has 3 positive numeric controls and 13 negative controls:
 - exact match: 0 µm max/mean deviation, 0 µm² observed area, 6,000 µm² uncertainty-expanded upper area;
 - uniform +1,000 µm offset: max/mean deviation 1,000 µm, area 2,000,000 µm², expanded upper area 2,006,000 µm²;
 - sign-crossing profile: max deviation 100 µm, mean 67 µm, area 100,000 µm², expanded upper area 156,000 µm².
 
-Negative controls cover long gaps, wrong frame, scan digest mismatch, transform-receipt mismatch, excessive registration residual, high or missing uncertainty, duplicate/non-monotonic stations, mismatched station grids and invalid domain.
+Negative controls cover long gaps, wrong frame, scan digest mismatch, transform-receipt mismatch, excessive registration residual, high or missing uncertainty, duplicate/non-monotonic stations, mismatched station grids and invalid domain, coverage below threshold without a gap-limit violation, and points outside the declared domain.
 
 ## Relationship to the rest of the programme
 
