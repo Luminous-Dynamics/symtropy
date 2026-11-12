@@ -1,4 +1,3 @@
-pub mod sequential;
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
@@ -7,6 +6,8 @@ pub mod sequential;
 //!
 //! Candidate control is conditioned only on the categorical observation ID.
 //! Missingness causes and model identities remain evaluator-side evidence.
+
+pub mod sequential;
 
 #![forbid(unsafe_code)]
 
