@@ -698,12 +698,13 @@
       "Future-horizon test permits a smaller minimum adaptive step in the regular ingoing chart; finite-observer source-screen test integrates to an affine interval long enough to reach the horizon.",
       "Added exact equatorial prograde photon-orbit helper, near-extremal kappa/chi scaling and leading uniform phase reference; five new Rust known-answer/domain tests authored. Exact-head Rust execution pending."
     ],
-    "status": "formatted branch contains corrected test inputs; exact-head Rust rerun requested after the contract update",
+    "status": "current exact-head Kerr event-localization audit has been triggered; do not claim a pass until job steps show format, Clippy and tests completed successfully",
     "latest_source_test_inventory": {
-      "kerr_geodesic_authored_tests": 35,
+      "kerr_geodesic_authored_tests": 40,
       "kerr_integrator_authored_tests": 16,
       "new_sachs_jacobi_radial_reference": "authored; previously passed in runner before the latest test-input corrections",
-      "latest_confirmed_status": "no passing exact-head result claimed"
+      "latest_confirmed_status": "no passing exact-head result claimed",
+      "near_extremal_photon_orbit_tests": "five authored; exact-head execution pending"
     }
   }
 }
