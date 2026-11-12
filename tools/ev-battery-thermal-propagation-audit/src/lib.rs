@@ -1032,7 +1032,7 @@ mod tests {
             ['1', '2', '3', '4', '5', '6'],
         );
         changed_target.product_revision = "r2".into();
-        changed_target.fingerprints.topology = digest('z');
+        changed_target.fingerprints.topology = digest('7');
         let mut unknown_target = article(
             "EV-REESS-C",
             "r1",
@@ -1040,7 +1040,7 @@ mod tests {
             TestLevel::ReessPack,
             ['1', '2', '3', '4', '5', '6'],
         );
-        unknown_target.fingerprints.exposure = digest('y');
+        unknown_target.fingerprints.exposure = digest('8');
 
         Manifest {
             campaign_id: "TRP-EVIDENCE-CAMPAIGN-001".into(),
