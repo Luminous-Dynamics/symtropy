@@ -70,7 +70,10 @@ struct CandidateSequence {
 struct CandidateStep {
     step_id: String,
     measurement_tick: u64,
+    measurement_clock_id: String,
     decision_cutoff_tick: u64,
+    decision_clock_id: String,
+    decision_clock_precision_ticks: u64,
     decision_purpose: DecisionPurpose,
     reported_event: EventKind,
     disposition: DecisionDisposition,
@@ -107,6 +110,7 @@ struct ReferenceSequence {
 struct ReferenceStep {
     step_id: String,
     measurement_tick: u64,
+    measurement_clock_id: String,
     ground_truth_event: EventKind,
 }
 
@@ -126,6 +130,8 @@ struct ReferenceEvidenceEvent {
     kind: EvidenceKind,
     measurement_tick: u64,
     first_received_tick: u64,
+    clock_id: String,
+    timestamp_precision_ticks: u64,
     valid_from_tick: u64,
     valid_until_tick: Option<u64>,
     revoked_known_at_tick: Option<u64>,
@@ -215,21 +221,25 @@ fn max_identity_assignment(matrix: &[Vec<usize>]) -> Result<usize, String> {
     }
 
     let states = 1usize << columns;
-    let mut dp = vec![0usize; states];
+    let mut dp = vec![None; states];
+    dp[0] = Some(0usize);
     for row in matrix {
         let mut next = dp.clone();
         for mask in 0..states {
-            for column in 0..columns {
-                let bit = 1usize << column;
-                if mask & bit == 0 {
-                    let candidate = dp[mask] + row[column];
-                    next[mask | bit] = next[mask | bit].max(candidate);
+            if let Some(score) = dp[mask] {
+                for column in 0..columns {
+                    let bit = 1usize << column;
+                    if mask & bit == 0 {
+                        let candidate = score + row[column];
+                        let slot = &mut next[mask | bit];
+                        *slot = Some(slot.unwrap_or(0).max(candidate));
+                    }
                 }
             }
         }
         dp = next;
     }
-    Ok(dp.into_iter().max().unwrap_or(0))
+    Ok(dp.into_iter().flatten().max().unwrap_or(0))
 }
 
 fn evaluate_sequence(
@@ -339,13 +349,20 @@ fn evaluate_sequence(
         let reference_step = reference_steps
             .get(step.step_id.as_str())
             .ok_or_else(|| format!("{} has an unknown candidate step", candidate.sequence_id))?;
-        if step.measurement_tick != reference_step.measurement_tick {
+        if step.measurement_tick != reference_step.measurement_tick
+            || step.measurement_clock_id != reference_step.measurement_clock_id
+        {
             return Err(format!(
-                "{} measurement tick differs from the evaluator sequence",
+                "{} measurement time/clock differs from the evaluator sequence",
                 step.step_id
             ));
         }
-        if step.decision_cutoff_tick < step.measurement_tick {
+        if step.measurement_clock_id.trim().is_empty()
+            || step.decision_clock_id.trim().is_empty()
+            || step.decision_clock_precision_ticks == 0
+            || step.measurement_clock_id != step.decision_clock_id
+            || step.decision_cutoff_tick < step.measurement_tick
+        {
             temporal_evidence_violations += 1;
         }
 
@@ -382,7 +399,11 @@ fn evaluate_sequence(
                 continue;
             };
             let cutoff = step.decision_cutoff_tick;
-            let event_is_known = event.measurement_tick <= cutoff
+            let event_is_known = event.clock_id == step.decision_clock_id
+                && event.timestamp_precision_ticks > 0
+                && event.timestamp_precision_ticks <= step.decision_clock_precision_ticks
+                && event.first_received_tick >= event.measurement_tick
+                && event.measurement_tick <= cutoff
                 && event.first_received_tick <= cutoff
                 && event.valid_from_tick <= cutoff
                 && event
@@ -452,7 +473,6 @@ fn evaluate_sequence(
         .collect::<BTreeMap<_, _>>();
 
     let mut candidate_detection_count = 0usize;
-    let mut true_positive_observation_keys = BTreeSet::new();
     for ((step_id, observation_id), track_id) in &candidate_assignment {
         candidate_detection_count += 1;
         if let Some(reference_observation) =
@@ -466,7 +486,6 @@ fn evaluate_sequence(
                     .get(track_id)
                     .ok_or_else(|| "candidate track index missing".to_owned())?;
                 overlap[row][column] += 1;
-                true_positive_observation_keys.insert((*step_id, *observation_id));
             }
         }
     }
