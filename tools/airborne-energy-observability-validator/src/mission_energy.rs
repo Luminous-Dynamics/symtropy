@@ -459,6 +459,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn segment(
         id: &str,
         purpose: SegmentPurpose,
