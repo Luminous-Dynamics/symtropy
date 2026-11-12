@@ -2142,6 +2142,39 @@ mod tests {
             second_portfolio.prior_distribution_sha256,
             hypothesis_prior_sha256(&updated_prior).unwrap()
         );
+        let mut tampered_ledger = first.observation_ledger.clone();
+        tampered_ledger.current_posterior_manifest_sha256 = digest('0');
+        assert_eq!(
+            realize_probe_observation(
+                &updated_prior,
+                &candidates,
+                &second_policy,
+                &second_portfolio,
+                &second_selection,
+                &tampered_ledger,
+                &item,
+                &item.candidate_manifest_sha256,
+                "fuel_signature",
+                &digest('f')
+            ),
+            Err(ProbeError::InvalidObservationLedger)
+        );
+        assert_eq!(
+            realize_probe_observation(
+                &updated_prior,
+                &candidates,
+                &second_policy,
+                &second_portfolio,
+                &second_selection,
+                &first.observation_ledger,
+                &item,
+                &item.candidate_manifest_sha256,
+                "fuel_signature",
+                &digest('e')
+            ),
+            Err(ProbeError::ObservationAlreadyApplied)
+        );
+
         let second = realize_probe_observation(
             &updated_prior,
             &candidates,
