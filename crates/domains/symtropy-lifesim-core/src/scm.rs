@@ -1307,6 +1307,62 @@ mod tests {
     }
 
     #[test]
+    fn communication_topology_baselines_share_exact_objective_evaluation_budgets() {
+        let topologies = [
+            ScmCommunicationTopology::CompleteGraph,
+            ScmCommunicationTopology::Ring,
+            ScmCommunicationTopology::MetricRadius { radius: 0.0 },
+        ];
+        let expected_total_evaluations = small_agents().len() as u64 * 6;
+        let mut final_best_values = Vec::new();
+
+        for topology in topologies {
+            let mut model = ScmModel::new(
+                small_agents(),
+                ScmConfig {
+                    sigma_initial: 0.0,
+                    sigma_limit: 0.0,
+                    omega: 0.0,
+                    tau_steps: 4,
+                    communication_topology: topology,
+                    ..ScmConfig::default()
+                },
+                31337,
+            )
+            .unwrap();
+            let reports = model.run_steps(&Quadratic, 5).unwrap();
+
+            assert_eq!(reports.len(), 5);
+            assert_eq!(
+                reports.last().unwrap().total_function_evaluations,
+                expected_total_evaluations
+            );
+            assert_eq!(
+                model.total_function_evaluations(),
+                expected_total_evaluations
+            );
+            assert!(reports.iter().all(|report| {
+                report.best_agent_fitness.is_finite()
+                    && (0.0..=1.0).contains(&report.best_agent_fitness)
+                    && report.best_fitness_seen.is_finite()
+                    && (0.0..=1.0).contains(&report.best_fitness_seen)
+                    && report.mean_agent_fitness.is_finite()
+                    && (0.0..=1.0).contains(&report.mean_agent_fitness)
+                    && report.agent_fitness_variance.is_finite()
+                    && report.agent_fitness_variance >= 0.0
+            }));
+            assert!(reports.windows(2).all(|pair| {
+                pair[1].best_fitness_seen >= pair[0].best_fitness_seen
+            }));
+            final_best_values.push(reports.last().unwrap().best_fitness_seen);
+        }
+
+        // The baseline comparison is valid at equal observation cost. It does not
+        // presume that more communication must improve objective performance.
+        assert_eq!(final_best_values.len(), topologies.len());
+    }
+
+    #[test]
     fn ring_topology_reports_two_neighbors_per_agent_for_four_agent_ring() {
         let agents = vec![
             ScmAgent {
