@@ -336,40 +336,31 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
         if let Some(group) = text(channel, "independence_group_ref") {
             independence_groups.insert(group.to_owned());
         }
-        let domain = channel.get("domain");
-        if domain.is_none()
-            || (domain.unwrap_or(&Value::Null).get("asset_family_ref").is_some()
-                && ["asset_family_ref", "asset_configuration_ref", "operating_domain_ref", "installation_profile_ref"]
-                    .iter().any(|key| text(domain.unwrap_or(&Value::Null), key).is_none()))
-            || (domain.unwrap_or(&Value::Null).get("asset_family_ref").is_none()
-                && ["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"]
-                    .iter().any(|key| text(domain.unwrap_or(&Value::Null), key).is_none()))
-        {
+        let Some(domain) = channel.get("domain") else {
             push(&mut errors, "INCOMPLETE_CHANNEL_DOMAIN", &format!("{path}.domain"), "channel calibration domain must declare material cohort, path and geometry");
+            continue;
+        };
+        let generic_domain = domain.get("asset_family_ref").is_some();
+        let keys: &[&str] = if generic_domain {
+            &["asset_family_ref", "asset_configuration_ref", "operating_domain_ref", "installation_profile_ref"]
         } else {
-            let domain = domain.unwrap();
-            let generic_domain = domain.get("asset_family_ref").is_some();
-            let keys: &[&str] = if generic_domain {
-                &["asset_family_ref", "asset_configuration_ref", "operating_domain_ref", "installation_profile_ref"]
-            } else {
-                &["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"]
-            };
-            // The legacy excavation profile uses different field names for
-            // the same transport identity: channel.path_configuration_ref maps
-            // to parent_context.transport_configuration_ref. Preserve that
-            // compatibility without comparing unrelated field names.
-            let mismatch = if generic_domain {
-                keys.iter()
-                    .any(|key| text(domain, key) != text(&case["parent_context"], key))
-            } else {
-                text(domain, "material_cohort_ref")
-                    != text(&case["parent_context"], "material_cohort_ref")
-                    || text(domain, "path_configuration_ref")
-                        != text(&case["parent_context"], "transport_configuration_ref")
-            };
-            if mismatch {
-                push(&mut errors, "CHANNEL_PARENT_DOMAIN_MISMATCH", &format!("{path}.domain"), "channel asset/domain identity must match the exact parent configuration and operating domain");
-            }
+            &["material_cohort_ref", "path_configuration_ref", "geometry_profile_ref"]
+        };
+        if keys.iter().any(|key| text(domain, key).is_none()) {
+            push(&mut errors, "INCOMPLETE_CHANNEL_DOMAIN", &format!("{path}.domain"), "channel calibration domain must declare all asset/domain identity fields");
+            continue;
+        }
+        // The legacy excavation profile uses different field names for
+        // the same transport identity: channel.path_configuration_ref maps
+        // to parent_context.transport_configuration_ref.
+        let mismatch = if generic_domain {
+            keys.iter().any(|key| text(domain, key) != text(&case["parent_context"], key))
+        } else {
+            text(domain, "material_cohort_ref") != text(&case["parent_context"], "material_cohort_ref")
+                || text(domain, "path_configuration_ref") != text(&case["parent_context"], "transport_configuration_ref")
+        };
+        if mismatch {
+            push(&mut errors, "CHANNEL_PARENT_DOMAIN_MISMATCH", &format!("{path}.domain"), "channel asset/domain identity must match the exact parent configuration and operating domain");
         }
     }
 
@@ -495,17 +486,16 @@ pub fn validate_case(case: &Value, parent: &Value) -> Vec<Violation> {
                 push(&mut errors, "MISSING_RESPONSE_PROVENANCE", &format!("{path}.{key}"), "measurement window, raw source and adjudication references are required");
             }
         }
-        if let Some(source) = text(response, "source_ref") {
-            if !response_source_refs.insert(source.to_owned()) {
-                push(&mut errors, "DUPLICATE_RESPONSE_SOURCE", &format!("{path}.source_ref"), "each state/channel response requires its own traceable source artifact; reuse needs an explicit paired/derived evidence model");
-            }
+        if let Some(source) = text(response, "source_ref")
+            && !response_source_refs.insert(source.to_owned())
+        {
+            push(&mut errors, "DUPLICATE_RESPONSE_SOURCE", &format!("{path}.source_ref"), "each state/channel response requires its own traceable source artifact; reuse needs an explicit paired/derived evidence model");
         }
-        if let Some(window) = text(response, "measurement_window_ref") {
-            if let Some(previous) = state_window_refs.insert(state_id.to_owned(), window.to_owned()) {
-                if previous != window {
-                    push(&mut errors, "STATE_RESPONSE_WINDOW_MISMATCH", &format!("{path}.measurement_window_ref"), "all channel response records for one state must share the same declared synchronized measurement window");
-                }
-            }
+        if let Some(window) = text(response, "measurement_window_ref")
+            && let Some(previous) = state_window_refs.insert(state_id.to_owned(), window.to_owned())
+            && previous != window
+        {
+            push(&mut errors, "STATE_RESPONSE_WINDOW_MISMATCH", &format!("{path}.measurement_window_ref"), "all channel response records for one state must share the same declared synchronized measurement window");
         }
         let state_record = state_map.get(state_id).copied();
         let faulted_ids: BTreeSet<&str> = state_record
@@ -905,7 +895,7 @@ mod tests {
                             Some((b_lower as f64, b_upper as f64)),
                         );
                         let base = classify_pair_signatures(
-                            &[original.clone()], 1,
+                            std::slice::from_ref(&original), 1,
                             PairEvidenceClass::SyntheticConformanceFixture,
                             &BTreeSet::new(),
                         ).unwrap();
