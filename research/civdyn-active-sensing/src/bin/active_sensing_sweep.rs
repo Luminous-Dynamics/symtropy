@@ -8,7 +8,7 @@ use civdyn_active_sensing::{
 
 const SCENARIO_ID: &str = "three-world-sensor-dual-control-v1";
 const SOURCE_DIGEST: &str = "sha256-three-world-sensor-source-v1";
-const CSV_COLUMNS: usize = 26;
+const CSV_COLUMNS: usize = 27;
 
 fn csv_field(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
@@ -164,6 +164,7 @@ fn summary_fields(
         assessment.worst_case_regret_reduction.map_or_else(String::new, |v| format!("{v:.6}")),
         String::new(), String::new(), String::new(), String::new(), String::new(),
         String::new(), String::new(), String::new(), String::new(),
+        assessment.resolves_no_sensing_infeasibility.to_string(),
     ]
 }
 
