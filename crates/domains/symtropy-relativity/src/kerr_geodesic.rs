@@ -3364,7 +3364,7 @@ mod tests {
 
     #[test]
     fn second_order_mino_system_recovers_schwarzschild_circular_photon_orbit() {
-        let constants = KerrNullConstants::new(1.0, 10.0, 0.0).unwrap();
+        let constants = KerrNullConstants::new(1.0, 3.0 * 3.0_f64.sqrt(), 0.0).unwrap();
         let geodesic = KerrSeparatedNullGeodesic::new(hole(0.0), constants);
         let state = KerrMinoDynamicState::new(
             KerrMinoState::new(0.0, 3.0, core::f64::consts::FRAC_PI_2, 0.0),
@@ -3538,7 +3538,7 @@ mod tests {
         let black_hole = hole(0.0);
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
         let coordinates = KerrMinoState::new(0.0, 2.5, core::f64::consts::FRAC_PI_2, 0.0);
-        let constants = KerrNullConstants::new(1.0, 3.0 * 3.0_f64.sqrt(), 0.0).unwrap();
+        let constants = KerrNullConstants::new(1.0, 10.0, 0.0).unwrap();
         assert!(matches!(
             canonical.state_from_separated(
                 coordinates,
@@ -3564,7 +3564,7 @@ mod tests {
         let config = KerrMinoIntegrationConfig::new(
             1.0e-14,
             [1.0e-14; 6],
-            1.0e-8,
+            2.0e-8,
             1.0e-3,
             1.0e-12,
             2.0e-2,
