@@ -795,6 +795,21 @@ pub fn evaluate_bounded_policy_tree(
                 observed: node.state_ids.len(),
             });
         }
+        for (field, observed) in [
+            ("state_evidence_per_node", node.state_evidence.len()),
+            (
+                "state_action_evidence_per_node",
+                node.state_action_evidence.len(),
+            ),
+        ] {
+            if observed > MAX_POLICY_TREE_STATES_PER_NODE {
+                return Err(PolicyTreeError::InputLimitExceeded {
+                    field,
+                    limit: MAX_POLICY_TREE_STATES_PER_NODE,
+                    observed,
+                });
+            }
+        }
         total_transitions = total_transitions.saturating_add(node.transitions.len());
         if total_transitions > MAX_POLICY_TREE_TRANSITIONS {
             return Err(PolicyTreeError::InputLimitExceeded {
@@ -1301,6 +1316,32 @@ mod tests {
         );
     }
 
+
+
+    #[test]
+    fn oversized_state_receipt_vectors_are_rejected_before_search() {
+        let mut tree = root_two_step_tree();
+        tree.nodes[0].state_evidence =
+            vec![state_receipt("repeated"); MAX_POLICY_TREE_STATES_PER_NODE + 1];
+        assert!(matches!(
+            evaluate_bounded_policy_tree(&tree, 2),
+            Err(PolicyTreeError::InputLimitExceeded {
+                field: "state_evidence_per_node",
+                ..
+            })
+        ));
+
+        let mut admissions = root_two_step_tree();
+        admissions.nodes[0].state_action_evidence =
+            vec![state_actions("s1", &["probe"]); MAX_POLICY_TREE_STATES_PER_NODE + 1];
+        assert!(matches!(
+            evaluate_bounded_policy_tree(&admissions, 2),
+            Err(PolicyTreeError::InputLimitExceeded {
+                field: "state_action_evidence_per_node",
+                ..
+            })
+        ));
+    }
 
     #[test]
     fn policy_tree_input_limits_reject_without_truncating_evidence() {
