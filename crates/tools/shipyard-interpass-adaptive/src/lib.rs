@@ -1761,10 +1761,15 @@ mod tests {
         let mut input = base_input();
         input.candidates[0].collision_free = false;
         input.candidates[1].resource_feasible = false;
-        let Decision::ParetoRecommendations { recommendations, feasible_candidate_count, excluded, .. } =
-            recommend_next_pass(&input) else {
-                panic!("one feasible candidate remains");
-            };
+        let Decision::ParetoRecommendations {
+            recommendations,
+            feasible_candidate_count,
+            excluded,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("one feasible candidate remains");
+        };
         assert_eq!(feasible_candidate_count, 1);
         assert_eq!(recommendations.len(), 1);
         assert_eq!(excluded.len(), 2);
@@ -1774,10 +1779,14 @@ mod tests {
     fn candidate_with_wrong_scan_digest_is_excluded() {
         let mut input = base_input();
         input.candidates[0].source_scan_sha256 = [0x33; 32];
-        let Decision::ParetoRecommendations { excluded, feasible_candidate_count, .. } =
-            recommend_next_pass(&input) else {
-                panic!("remaining candidates should remain feasible");
-            };
+        let Decision::ParetoRecommendations {
+            excluded,
+            feasible_candidate_count,
+            ..
+        } = recommend_next_pass(&input)
+        else {
+            panic!("remaining candidates should remain feasible");
+        };
         assert_eq!(feasible_candidate_count, 2);
         assert_eq!(excluded[0].reason, CandidateExclusion::WrongSourceScan);
     }
@@ -1800,7 +1809,10 @@ mod tests {
         input.observed_state.scan_sha256 = [0; 32];
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ScanDigestMissing, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ScanDigestMissing,
+                ..
+            }
         ));
     }
 
@@ -1810,7 +1822,10 @@ mod tests {
         input.observed_state.registration_receipt_sha256 = [0; 32];
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::RegistrationReceiptMissing, .. }
+            Decision::Abstain {
+                reason: AbstainReason::RegistrationReceiptMissing,
+                ..
+            }
         ));
     }
 
@@ -1822,7 +1837,10 @@ mod tests {
         }
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::NoFeasibleCandidate, .. }
+            Decision::Abstain {
+                reason: AbstainReason::NoFeasibleCandidate,
+                ..
+            }
         ));
     }
 
@@ -1832,7 +1850,10 @@ mod tests {
         input.candidates[1].candidate_id = input.candidates[0].candidate_id.clone();
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::DuplicateCandidateIdentity, .. }
+            Decision::Abstain {
+                reason: AbstainReason::DuplicateCandidateIdentity,
+                ..
+            }
         ));
     }
 
@@ -1841,9 +1862,10 @@ mod tests {
         let mut input = base_input();
         input.observed_state.uncertainty_bound_units = 25;
         let Decision::ParetoRecommendations { recommendations, .. } =
-            recommend_next_pass(&input) else {
-                panic!("valid synthetic input should be admitted");
-            };
+            recommend_next_pass(&input)
+        else {
+            panic!("valid synthetic input should be admitted");
+        };
         let middle = recommendations.iter().find(|r| r.candidate_id == "FILL-MID").unwrap();
         assert_eq!(middle.objectives.robust_geometry_error_units, 25);
     }
@@ -1854,7 +1876,10 @@ mod tests {
         input.procedure.scope = ProcedureScope::UnverifiedPhysicalProcedure;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::ProcedureScopeNotAdmitted, .. }
+            Decision::Abstain {
+                reason: AbstainReason::ProcedureScopeNotAdmitted,
+                ..
+            }
         ));
     }
 
@@ -1864,7 +1889,10 @@ mod tests {
         input.observed_state.uncertainty_bound_units = 0;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::UncertaintyNotBounded, .. }
+            Decision::Abstain {
+                reason: AbstainReason::UncertaintyNotBounded,
+                ..
+            }
         ));
     }
 
@@ -1900,7 +1928,10 @@ mod tests {
         input.observed_state.uncertainty_bound_units = 1;
         assert!(matches!(
             recommend_next_pass(&input),
-            Decision::Abstain { reason: AbstainReason::NumericOverflow, .. }
+            Decision::Abstain {
+                reason: AbstainReason::NumericOverflow,
+                ..
+            }
         ));
     }
 }
