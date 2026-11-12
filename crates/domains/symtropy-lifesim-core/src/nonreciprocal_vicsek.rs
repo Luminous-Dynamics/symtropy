@@ -544,7 +544,7 @@ impl NonreciprocalVicsekModel {
         let count = self.particles.len();
         let mut degrees = vec![0usize; count];
         let mut edges = 0usize;
-        for receiver in 0..count {
+        for (receiver, degree) in degrees.iter_mut().enumerate() {
             for source in 0..count {
                 if receiver == source {
                     continue;
@@ -555,7 +555,7 @@ impl NonreciprocalVicsekModel {
                 if dx.hypot(dy) <= self.config.sensing_radius
                     && self.interaction_weights[receiver * count + source].abs() > 0.0
                 {
-                    degrees[receiver] += 1;
+                    *degree += 1;
                     edges += 1;
                 }
             }
