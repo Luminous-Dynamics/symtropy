@@ -184,7 +184,7 @@ fn validate_source(
     at: &str,
     evidence_class: &str,
     target_taxonomy: &str,
-    target_engine: &str,
+    _target_engine: &str,
 ) -> Check<Source> {
     exact_keys(v, &[
         "source_id",
@@ -272,7 +272,6 @@ fn validate_source(
     if is_duplicate {
         reasons.push("DUPLICATE_COPY_NOT_AN_INDEPENDENT_SOURCE".to_owned());
     }
-    let _ = target_engine;
     Ok(Source {
         source_id,
         logical_source_id,
@@ -557,7 +556,9 @@ fn evaluate(case: &Value, source_commit: &str, case_sha: &str) -> Check<Value> {
         if method != "ENTROPY_WEIGHTED_MULTI_SOURCE" && !field(run, "weighting_rule_id", &at)?.is_null() {
             return Err(format!("{at}: only entropy-weighted method may carry a dynamic weighting rule"));
         }
-        validate_scope(claim_scope, target_engine, &selected)?;
+        if !selected.is_empty() {
+            validate_scope(claim_scope, target_engine, &selected)?;
+        }
         let metrics = metric_run(run, &at)?;
         method_map.insert(method, (run, metrics));
     }
@@ -682,6 +683,15 @@ mod tests {
         assert_eq!(out["method_count"], 4);
         assert_eq!(out["negative_transfer_source_ids"], json!(["src-simulated-adversarial"]));
         assert_eq!(out["source_contributions"].as_array().unwrap().len(), 3);
+    }
+
+    #[test]
+    fn excluded_sources_are_reported_without_becoming_positive_weight_sources() {
+        let out = evaluate(&fixture()).unwrap();
+        assert_eq!(out["source_pool_count"], 6);
+        assert_eq!(out["eligible_source_count"], 3);
+        assert_eq!(out["excluded_sources"].as_array().unwrap().len(), 3);
+        assert_eq!(out["duplicate_logical_source_copy_count"], 1);
     }
 
     #[test]

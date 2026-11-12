@@ -42,7 +42,7 @@ Expected synthetic result:
 - four matched comparator methods;
 - three selected entropy-weighted sources, with weights summing to one;
 - one negative-transfer source, `src-simulated-adversarial`;
-- two excluded source candidates (duplicate copy, incompatible taxonomy and weak labels are reported with separate reasons).
+- three excluded source candidates: one duplicate copy, one incompatible-taxonomy source and one weak-label source. Each exclusion has its own reason code.
 
 All numbers, source digests, labels and domain identities are fabricated known-truth conformance values. No marine engine performance, transfer accuracy, fleet generalization or operational capability is claimed.
 
