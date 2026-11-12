@@ -163,7 +163,7 @@
     {
       "id": "OS-5B",
       "name": "independent Sachs optical-Jacobi equation cross-check",
-      "status": "fixed-step and adaptive step-doubled Sachs/Jacobi source plus radial and nonradial Schwarzschild regressions authored; exact-head Rust validation pending for latest nonradial regression",
+      "status": "fixed-step and adaptive step-doubled Sachs/Jacobi paths plus radial and nonradial Schwarzschild regressions passed exact-head Rust 1.96 validation; canonical-vs-Sachs comparison and generic-Kerr cross-formulation remain pending",
       "model": "parallel-transported two-vector Sachs screen basis along the fiducial null geodesic; D''(lambda) = -T(lambda) D(lambda), T_AB = R_mu_nu_rho_sigma e_A^mu k^nu e_B^rho k^sigma; vertex data D(0)=0 and D'(0)=I under the declared affine normalization",
       "observables": [
         "screen_basis_parallel_transport_residual",
@@ -332,15 +332,17 @@
           },
           "comparison": "endpoint D entries, signed determinant and both singular values",
           "proposed_tolerance": 0.00002,
-          "caveat": "This compares two integrators of the same Sachs/Jacobi equations, not yet the Sachs map against the canonical 8x8 variational projection."
+          "caveat": "This compares two integrators of the same Sachs/Jacobi equations, not yet the Sachs map against the canonical 8x8 variational projection.",
+          "execution_status": "passed_in_rust_1_96_exact_head",
+          "execution_source_head": "1346e1e641772576e7163c9ab68aebfe8b09d180",
+          "execution_result": "143 tests passed, 0 failed, including this cross-solver regression"
         }
       },
       "remaining": [
-        "execute the radial Schwarzschild fixed/adaptive known-answer tests at the exact latest branch head",
-        "execute the nonradial Schwarzschild fixed/adaptive cross-solver regression and record nonzero optical tide",
-        "run N/2N/4N fixed-step refinement and adaptive-vs-fixed comparisons on same initial data",
         "compare curvature-based Sachs Jacobi map against canonical 8x8 variation in the identical transported frame",
-        "add generic Kerr nonradial cross-formulation receipts before caustic qualification"
+        "run independent N/2N/4N convergence and adaptive-vs-fixed comparison for nonradial Schwarzschild and generic Kerr trajectories",
+        "add generic Kerr nonradial cross-formulation receipts",
+        "validate caustic convergence and catastrophe classification without determinant-only classification"
       ],
       "fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json",
       "validation_status": "fixed-step source and radial analytic test authored; prior runner test of the radial Sachs/Jacobi reference passed; rerun required after later test corrections"
@@ -709,7 +711,7 @@
       "fold/cusp classification remains blocked until transported-frame and independent Sachs-Jacobi checks pass"
     ],
     "sachs_pointwise_api": "KerrCanonicalHamiltonian::optical_tidal_matrix",
-    "sachs_transport_status": "fixed-step and adaptive step-doubled RK4 source implemented; Rust execution and independent cross-formulation receipts pending",
+    "sachs_transport_status": "fixed-step and adaptive step-doubled RK4 implementations pass radial and nonradial Schwarzschild tests; canonical-vs-Sachs cross-formulation and generic Kerr convergence pending",
     "sachs_frame_conversion_api": "KerrFiniteRadiusObserver::screen_basis_to_chart_coordinates",
     "sachs_transport_api": "KerrCanonicalHamiltonian::sachs_frame_transport_derivative",
     "sachs_transport_equation": "de_A^mu/dlambda = -Gamma^mu_(alpha beta) k^alpha e_A^beta",
@@ -725,7 +727,8 @@
       "jacobi_derivative"
     ],
     "sachs_jacobi_adaptive_error_estimate": "RK4 step-doubling local estimate (two_half_steps - full_step)/15; accepted state is two-half-step solution",
-    "sachs_jacobi_adaptive_global_bound": false
+    "sachs_jacobi_adaptive_global_bound": false,
+    "nonradial_schwarzschild_cross_solver": "Rust test passed at exact source head 1346e1e641772576e7163c9ab68aebfe8b09d180"
   },
   "caustic_qualification_policy": {
     "status": "future_gate_not_implemented",
