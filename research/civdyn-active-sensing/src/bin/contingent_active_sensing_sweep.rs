@@ -300,10 +300,9 @@ fn emit_candidate_tree(scenario_id: &str, node: &CandidatePolicyNode, history: &
     match node {
         CandidatePolicyNode::StopAndAct { action_id } => {
             println!(
-                "{},{},{},,,{}",
+                "{},{},stop_and_act,,,{}",
                 csv_field(scenario_id),
                 csv_field(&history.join(">")),
-                "stop_and_act",
                 csv_field(action_id)
             );
         }
@@ -312,20 +311,18 @@ fn emit_candidate_tree(scenario_id: &str, node: &CandidatePolicyNode, history: &
             branches,
         } => {
             println!(
-                "{},{},{},{},,",
+                "{},{},request_sensor,{},,",
                 csv_field(scenario_id),
                 csv_field(&history.join(">")),
-                "request_sensor",
                 csv_field(sensor_id)
             );
             for branch in branches {
                 let mut next_history = history.to_vec();
                 next_history.push(branch.observation_id.clone());
                 println!(
-                    "{},{},{},{},{},",
+                    "{},{},observation_branch,{},{}," ,
                     csv_field(scenario_id),
                     csv_field(&next_history.join(">")),
-                    "observation_branch",
                     csv_field(sensor_id),
                     csv_field(&branch.observation_id)
                 );
