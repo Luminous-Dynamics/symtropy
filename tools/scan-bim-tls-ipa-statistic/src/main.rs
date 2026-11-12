@@ -159,17 +159,51 @@ fn is_sha256(value: &str) -> bool {
 
 fn valid_timestamp_utc(value: &str) -> bool {
     let bytes = value.as_bytes();
-    bytes.len() == 20
-        && bytes[4] == b'-'
-        && bytes[7] == b'-'
-        && bytes[10] == b'T'
-        && bytes[13] == b':'
-        && bytes[16] == b':'
-        && bytes[19] == b'Z'
-        && bytes
+    if bytes.len() != 20
+        || bytes[4] != b'-'
+        || bytes[7] != b'-'
+        || bytes[10] != b'T'
+        || bytes[13] != b':'
+        || bytes[16] != b':'
+        || bytes[19] != b'Z'
+        || !bytes
             .iter()
             .enumerate()
             .all(|(index, byte)| matches!(index, 4 | 7 | 10 | 13 | 16 | 19) || byte.is_ascii_digit())
+    {
+        return false;
+    }
+
+    let Ok(year) = value[0..4].parse::<u32>() else {
+        return false;
+    };
+    let Ok(month) = value[5..7].parse::<u32>() else {
+        return false;
+    };
+    let Ok(day) = value[8..10].parse::<u32>() else {
+        return false;
+    };
+    let Ok(hour) = value[11..13].parse::<u32>() else {
+        return false;
+    };
+    let Ok(minute) = value[14..16].parse::<u32>() else {
+        return false;
+    };
+    let Ok(second) = value[17..19].parse::<u32>() else {
+        return false;
+    };
+    if year == 0 || !(1..=12).contains(&month) || hour > 23 || minute > 59 || second > 59 {
+        return false;
+    }
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let month_days = match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if leap => 29,
+        2 => 28,
+        _ => return false,
+    };
+    (1..=month_days).contains(&day)
 }
 
 fn unique_nonempty(values: &[String]) -> bool {
@@ -1030,6 +1064,21 @@ mod tests {
             report.reason_codes,
             vec!["BASELINE_POSITION_MANIFEST_INSUFFICIENT_OR_INVALID"]
         );
+    }
+
+    #[test]
+    fn timestamp_calendar_and_clock_fields_are_validated() {
+        for invalid in [
+            "2026-13-01T09:00:00Z",
+            "2026-02-30T09:00:00Z",
+            "2026-11-12T24:00:00Z",
+            "2026-11-12T09:60:00Z",
+            "2026-11-12T09:00:60Z",
+        ] {
+            assert!(!valid_timestamp_utc(invalid), "{invalid}");
+        }
+        assert!(valid_timestamp_utc("2024-02-29T23:59:59Z"));
+        assert!(!valid_timestamp_utc("2025-02-29T23:59:59Z"));
     }
 
     #[test]
