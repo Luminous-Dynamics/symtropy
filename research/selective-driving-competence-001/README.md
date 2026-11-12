@@ -78,10 +78,13 @@ cargo test --locked --manifest-path research/selective-driving-competence-001/Ca
 cargo clippy --locked --manifest-path research/selective-driving-competence-001/Cargo.toml --all-targets --all-features -- -D warnings
 cargo run --release --locked \
   --manifest-path research/selective-driving-competence-001/Cargo.toml -- \
-  evaluation-input.json evaluation-report.json
+  research/selective-driving-competence-001/examples/selective-driving-demo-v0_1.json \
+  evaluation-report.json
 ```
 
 The CLI accepts one JSON input file and writes a machine-readable report. The input is limited to 256 MiB. Exit code 0 means the declared records passed structural validation and metrics were computed; exit code 2 indicates input/evaluation/invocation failure. It is not an approval to drive.
+
+A six-decision, three-family example with one documented abstention/fallback is provided at `examples/selective-driving-demo-v0_1.json` and parsed/evaluated by the unit suite.
 
 Input schema: `selective-driving-evaluation-v0_1.schema.json`  
 Protocol/comparator manifest: `manifest-v0_1.json`
