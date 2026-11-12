@@ -1084,7 +1084,6 @@ mod tests {
             ),
             Err(ExecutionRejection::Expired)
         );
-        evidence.samples[0].payload_sha256 = "d".repeat(64);
     }
 
     #[test]
