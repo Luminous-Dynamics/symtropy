@@ -1258,7 +1258,10 @@ mod tests {
 
     #[test]
     fn response_mismatch_is_not_promoted_to_an_actuator_fault() {
-        let result = evaluate_command_response(&response_pair(), Some(&threshold())).unwrap();
+        let mut pair = response_pair();
+        pair.model_residual_std = 0.02;
+        pair.measurement_std = 0.02;
+        let result = evaluate_command_response(&pair, Some(&threshold())).unwrap();
         assert_eq!(result.status, ResponseStatus::MismatchOutsideCalibratedEnvelope);
         assert_eq!(result.cause_claim, CauseClaim::NotIsolated);
         assert_eq!(result.prediction_time_seconds, 0.45);
