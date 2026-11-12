@@ -1,7 +1,7 @@
 # Material Damage Reference Benchmark v0.1
 
 **Tracking:** PHYS-DAMAGE-REFERENCE-001  
-**Implementation:** research/material-damage-reference/  
+**Implementation:** `research/material-damage-reference/`  
 **Status:** initial software and analytical qualification contract; no measured validation claimed.
 
 ## 1. Purpose
@@ -30,12 +30,24 @@ The reference computes the constant growth rate and multiplies it by the caller-
 
 This is not a geometry solver. It does not compute Delta-K from stress, crack size, specimen geometry, residual stress or load ratio, and it does not model threshold or instability regions.
 
-## 3. Industry comparison
+## 3. Software qualification
+
+The exact-source workflow runs formatting, known-answer tests, metamorphic tests and strict Clippy. It also runs a mutation-sensitivity audit in disposable source copies.
+
+The 12 November 2026 exact-head mutation campaign killed four selected formula defects:
+- reversed S-N interpolation direction;
+- multiplication instead of division in the Miner increment;
+- omission of the Paris exponent;
+- inverse rather than direct scaling with cycle count.
+
+The unmutated full test suite is checked first. The workflow binds and uploads a deterministic mutation receipt to the exact checked-out commit. This is software test-sensitivity evidence only; it does not establish material validity or prove the absence of all possible defects.
+
+## 4. Industry comparison
 
 | Reference | Publicly documented scope | Appropriate comparison |
 |---|---|---|
 | Ansys nCode DesignLife | Stress-life, strain-life, vibration, thermo-mechanical, weld, material and crack-growth workflows integrated with FEA | Future matched-model comparison; not comparable to this small reference on breadth |
-| SIMULIA fe-safe | Multiaxial fatigue, duty-cycle damage, manufacturing effects, probability-of-failure/warranty curves and FE interfaces | Future fatigue workflow baseline after upstream stresses, cycle counting and material inputs are matched |
+| SIMULIA fe-safe | Multiaxial fatigue, duty-cycle damage, manufacturing effects, probability-of-failure/warranty curves and FE integration | Future fatigue workflow baseline after upstream stresses, cycle counting and material inputs are matched |
 | ASTM E647-24 | Experimental measurement of fatigue crack-growth rate versus Delta-K, including influence of load ratio, temperature/environment, thickness and residual stress | Experimental-method anchor for later crack-growth validation |
 | 2026 computational-fracture review | Reviews GNN, CNN, PINN, neural-operator and generative fracture approaches; identifies generalization, data, scale and uncertainty as challenges | Research frontier for later physics/ML hybrid studies, not a substitute for experimental validation |
 
@@ -44,17 +56,6 @@ Sources:
 - https://www.3ds.com/products/simulia/fe-safe
 - https://store.astm.org/standards/e647
 - https://doi.org/10.1016/j.engfracmech.2025.111778
-
-## 4. Acceptance gates
-
-| Gate | Acceptance |
-|---|---|
-| Input contract | All malformed, non-finite, non-positive, empty and out-of-domain inputs return typed errors |
-| S-N interpolation | Exact endpoints and independent log-log midpoint controls pass |
-| Miner accumulation | Independent block oracle, block-splitting and block-permutation relations pass |
-| Paris law | Constant-Delta-K known answer, cycle and coefficient scaling pass |
-| Domain | No S-N extrapolation and no Paris-regime extrapolation |
-| Build quality | Locked standalone Cargo tests, rustfmt and strict Clippy pass on exact PR head |
 
 ## 5. Future benchmark targets
 
