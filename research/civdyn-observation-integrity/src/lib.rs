@@ -27,6 +27,13 @@ pub enum EvidenceClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReceiptStatus {
+    Verified,
+    Unverified,
+    Invalid,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EvidenceResult {
     Numeric(i64),
     SelfTestPass,
@@ -42,19 +49,26 @@ pub struct EvidenceRecord {
     pub result: EvidenceResult,
     pub unit: String,
     pub event_tick: u64,
+    pub measurement_tick: u64,
     pub ingestion_tick: u64,
+    pub maximum_age_ticks: u64,
     pub source_id: String,
+    pub source_digest: String,
+    pub acquisition_path_id: String,
     pub gateway_id: String,
     pub trust_root_id: String,
+    pub time_root_id: String,
+    pub calibration_authority_id: String,
     pub calibration_revision: String,
     pub configuration_revision: String,
-    pub authenticated: bool,
+    pub receipt_status: ReceiptStatus,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmissionPolicy {
     pub scenario_id: String,
     pub source_digest: String,
+    pub assessment_tick: u64,
     pub expected_unit: String,
     pub expected_calibration_revision: String,
     pub expected_configuration_revision: String,
@@ -119,14 +133,20 @@ fn validate_record(record: &EvidenceRecord) -> Result<(), IntegrityAuditError> {
     if record.evidence_id.trim().is_empty()
         || record.unit.trim().is_empty()
         || record.source_id.trim().is_empty()
+        || record.source_digest.trim().is_empty()
+        || record.acquisition_path_id.trim().is_empty()
         || record.gateway_id.trim().is_empty()
         || record.trust_root_id.trim().is_empty()
+        || record.time_root_id.trim().is_empty()
+        || record.calibration_authority_id.trim().is_empty()
         || record.calibration_revision.trim().is_empty()
         || record.configuration_revision.trim().is_empty()
     {
         return Err(IntegrityAuditError::InvalidEvidenceIdentity);
     }
-    if record.ingestion_tick < record.event_tick {
+    if record.event_tick > record.measurement_tick
+        || record.measurement_tick > record.ingestion_tick
+    {
         return Err(IntegrityAuditError::InvalidClockOrder);
     }
     let shape_ok = matches!(
@@ -145,7 +165,10 @@ fn validate_record(record: &EvidenceRecord) -> Result<(), IntegrityAuditError> {
 }
 
 fn fresh(record: &EvidenceRecord, policy: &AdmissionPolicy) -> bool {
-    record.ingestion_tick.saturating_sub(record.event_tick) <= policy.maximum_age_ticks
+    record.measurement_tick <= policy.assessment_tick
+        && record.ingestion_tick <= policy.assessment_tick
+        && policy.assessment_tick.saturating_sub(record.measurement_tick)
+            <= policy.maximum_age_ticks
 }
 
 fn contract_matches(record: &EvidenceRecord, policy: &AdmissionPolicy) -> bool {
@@ -156,8 +179,11 @@ fn contract_matches(record: &EvidenceRecord, policy: &AdmissionPolicy) -> bool {
 
 fn independent(primary: &EvidenceRecord, side: &EvidenceRecord) -> bool {
     primary.source_id != side.source_id
+        && primary.acquisition_path_id != side.acquisition_path_id
         && primary.gateway_id != side.gateway_id
         && primary.trust_root_id != side.trust_root_id
+        && primary.time_root_id != side.time_root_id
+        && primary.calibration_authority_id != side.calibration_authority_id
 }
 
 fn finish(mut d: CandidateDecision) -> CandidateDecision {
@@ -212,8 +238,8 @@ pub fn triage_observation_integrity(
         })
     };
 
-    if !primary.authenticated {
-        return Ok(reject_primary("primary_not_authenticated"));
+    if primary.receipt_status != ReceiptStatus::Verified {
+        return Ok(reject_primary("primary_receipt_not_verified"));
     }
     if primary.class != EvidenceClass::Measured {
         return Ok(reject_primary("primary_not_direct_measurement"));
@@ -237,9 +263,9 @@ pub fn triage_observation_integrity(
     let mut self_test_failed = false;
 
     for side in evidence.iter().filter(|r| r.evidence_id != primary.evidence_id) {
-        if !side.authenticated {
+        if side.receipt_status != ReceiptStatus::Verified {
             rejected.push(side.evidence_id.clone());
-            reasons.push(format!("{}:not_authenticated", side.evidence_id));
+            reasons.push(format!("{}:receipt_not_verified", side.evidence_id));
             continue;
         }
         if !fresh(side, policy) {
@@ -365,6 +391,7 @@ mod tests {
         AdmissionPolicy {
             scenario_id: "equivalent-value-triage-v1".to_owned(),
             source_digest: "sha256-observation-integrity-source-v1".to_owned(),
+            assessment_tick: 12,
             expected_unit: "service_index".to_owned(),
             expected_calibration_revision: "cal-7".to_owned(),
             expected_configuration_revision: "cfg-3".to_owned(),
@@ -383,12 +410,18 @@ mod tests {
             unit: "service_index".to_owned(),
             event_tick: 10,
             ingestion_tick: 10,
+            measurement_tick: 10,
+            maximum_age_ticks: 2,
             source_id: source.to_owned(),
+            source_digest: format!("sha256-{source}"),
+            acquisition_path_id: format!("path-{source}"),
             gateway_id: gateway.to_owned(),
             trust_root_id: trust.to_owned(),
+            time_root_id: format!("time-{source}"),
+            calibration_authority_id: format!("cal-authority-{source}"),
             calibration_revision: "cal-7".to_owned(),
             configuration_revision: "cfg-3".to_owned(),
-            authenticated: true,
+            receipt_status: ReceiptStatus::Verified,
         }
     }
 
@@ -502,6 +535,7 @@ mod tests {
             IntegrityAuditError::DuplicateEvidenceId
         );
         e = vec![primary()];
+        e[0].measurement_tick = 1;
         e[0].ingestion_tick = 1;
         assert_eq!(
             triage_observation_integrity(&policy(), &e).unwrap_err(),
