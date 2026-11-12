@@ -39,6 +39,7 @@ pub mod harmony_field;
 #[cfg(feature = "consciousness-hdc")]
 pub mod hdc_context;
 pub mod macro_bridge;
+pub mod open_system;
 pub mod phase_transition;
 pub mod prey;
 pub mod proc_gen;
@@ -49,7 +50,6 @@ pub mod sanctuary;
 pub mod simple_field;
 pub mod spatial_hash;
 pub mod thermodynamics;
-pub mod open_system;
 #[cfg(feature = "wasm")]
 pub mod wasm_bindings;
 
@@ -60,6 +60,10 @@ pub use coupling::{ConsciousnessField, EntityConsciousness};
 pub use energy::EnergyBudget;
 pub use harmony_field::HarmonyField;
 pub use macro_bridge::{MacroWorldModifiers, apply_macro_modifiers};
+pub use open_system::{
+    EnergyBalanceError, EnergyBalanceReport, EnergyBalanceStatus, EnergyBalanceTerm,
+    EnergyBalanceTolerance, OpenSystemEnergyBalance,
+};
 pub use phase_transition::{
     BifurcationConfig, BifurcationResult, CriticalityIndicators, TransitionType,
     run_bifurcation_sweep,
@@ -72,7 +76,3 @@ pub use safety::SafetyTier;
 pub use sanctuary::SanctuaryZone;
 pub use simple_field::{SimpleCoupledField, SimpleEntity};
 pub use thermodynamics::{ThermodynamicConstants, ThermodynamicLedger};
-pub use open_system::{
-    EnergyBalanceError, EnergyBalanceReport, EnergyBalanceStatus, EnergyBalanceTerm,
-    EnergyBalanceTolerance, OpenSystemEnergyBalance,
-};
