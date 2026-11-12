@@ -433,7 +433,8 @@
       "required": [
         "unknown_hard_gate_blocks_eligibility",
         "hard_gates_not_compensable",
-        "read_only"
+        "read_only",
+        "minimum_cell_count_per_pack"
       ],
       "properties": {
         "unknown_hard_gate_blocks_eligibility": {
@@ -445,7 +446,7 @@
         "read_only": {
           "const": true
         },
-        "minimum_independent_physical_specimens_per_pack": {
+        "minimum_cell_count_per_pack": {
           "type": "integer",
           "minimum": 1
         }
