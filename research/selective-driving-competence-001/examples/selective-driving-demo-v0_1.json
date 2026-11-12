@@ -205,5 +205,7 @@
       "inference_energy_mj": 5.6,
       "peak_memory_bytes": 134217728
     }
-  ]
+  ],
+  "bootstrap_replicates": 1000,
+  "bootstrap_seed": 20261112
 }
