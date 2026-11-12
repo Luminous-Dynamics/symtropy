@@ -1,9 +1,7 @@
 // Copyright (C) 2024-2026 Tristan Stoltz / Luminous Dynamics
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-use civdyn_closed_loop_policy::{
-    run_reference_portfolio, PolicyOutcome, HORIZON,
-};
+use civdyn_closed_loop_policy::{HORIZON, PolicyOutcome, run_reference_portfolio};
 use std::error::Error;
 
 const CSV_COLUMNS: usize = 36;
