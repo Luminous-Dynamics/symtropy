@@ -845,7 +845,7 @@ mod tests {
 
     #[test]
     fn inverse_propensity_estimator_rejects_missing_propensity_and_zero_support() {
-        let mut row =         let mut row = record(("mar", "u1", "a", 10, true, MissingnessMechanism::Ma));
+        let mut row = record(("mar", "u1", "a", 10, true, MissingnessMechanism::Mar));
         let missing_propensity = vec![row.observation.clone()];
         assert_eq!(
             known_mar_propensity_mean(
@@ -864,7 +864,7 @@ mod tests {
 
     #[test]
     fn duplicate_ids_and_malformed_observation_states_fail_closed() {
-        let row =         let row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Complet));
+        let row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Complete));
         let mut duplicate = row.observation.clone();
         duplicate.observed_outcome = Some(20);
         assert_eq!(
@@ -884,7 +884,7 @@ mod tests {
     #[test]
     fn mixed_evaluator_mechanisms_are_preserved_as_mixed_not_rejected() {
         let rows = vec![
-                        record(("p", "u1", "a", 10, true, MissingnessMechanism::Ma)),
+            record(("p", "u1", "a", 10, true, MissingnessMechanism::Mar)),
             record((
                 "p",
                 "u2",
@@ -906,7 +906,7 @@ mod tests {
 
     #[test]
     fn evaluator_rejects_observed_value_that_disagrees_with_latent_truth() {
-        let mut row =         let mut row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Complet));
+        let mut row =         let mut row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Complete));
         row.observation.observed_outcome = Some(11);
         assert_eq!(
             evaluate_policy(&[row], SUPPORT),
@@ -916,7 +916,7 @@ mod tests {
 
     #[test]
     fn propensity_bounds_must_have_positive_support() {
-        let row =         let row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Ma));
+        let row =         let row = record(("p", "u1", "a", 10, true, MissingnessMechanism::Mar));
         let mut observations = row.observation;
         observations.observation_propensity_bps = Some(10_001);
         assert_eq!(
