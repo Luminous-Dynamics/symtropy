@@ -465,7 +465,8 @@ jobs:
               assert reader.fieldnames is not None and len(reader.fieldnames) == 27
               rows = list(reader)
 
-          summary = {row["sensor_id"]: row for row in rows if row["record_type"] == "sensor_summary"}
+          summary = {row["sensor_id"]: row for row in rows if row["record_type"] == "sensor_summary" and row["scenario_id"] == "three-world-sensor-dual-control-v1"}
+          lift_summary = {row["sensor_id"]: row for row in rows if row["record_type"] == "sensor_summary" and row["scenario_id"] == "two-world-feasibility-lift-v1"}
           assert set(summary) == {
               "remote_telemetry",
               "independent_field_inspection",
@@ -514,8 +515,19 @@ jobs:
           assert all(row["prediction_receipt_digest"] for row in audit)
 
 
-          # A sensing request can be decision-critical even when no single
-          # physical action is feasible before observing. The unit test below
-          # covers the two-world feasibility-lift oracle independently.
+          assert set(lift_summary) == {"decision_separating_inspection", "uninformative_feasibility_check"}
+          lift = lift_summary["decision_separating_inspection"]
+          assert lift["status"] == "evaluated"
+          assert lift["baseline_policy_id"] == ""
+          assert lift["baseline_worst_regret"] == ""
+          assert lift["worst_case_post_sensing_regret"] == "0.000000"
+          assert lift["regret_reduction"] == ""
+          assert lift["resolves_no_sensing_infeasibility"] == "true"
+          assert lift["recommended"] == "true"
+
+          blind = lift_summary["uninformative_feasibility_check"]
+          assert blind["status"] == "no_feasible_policy"
+          assert blind["resolves_no_sensing_infeasibility"] == "false"
+          assert blind["recommended"] == "false"
           print("CIVDYN active-sensing contract passed: minimax baseline, common-cause missingness, world-dependent delay cost, hard service floors, over-budget rejection and deterministic replay.")
           PY
