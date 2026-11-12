@@ -171,6 +171,7 @@ pub enum KerrIntegratorError {
     StepLimitExceeded { affine_parameter: f64, accepted_steps: usize },
     CoordinateChartMismatch { seed: KerrMinoCoordinateChart, integrator: KerrIntegrationChart },
     SampleIndexOutOfRange { index: usize, length: usize },
+    InvalidScreenFrameTransition { orthogonality_residual: f64, orientation_determinant: f64 },
 }
 
 impl From<KerrGeodesicError> for KerrIntegratorError {
@@ -207,6 +208,9 @@ impl fmt::Display for KerrIntegratorError {
             Self::SampleIndexOutOfRange { index, length } => write!(
                 f, "Kerr tangent bundle sample index {index} is outside {length} retained samples"
             ),
+            Self::InvalidScreenFrameTransition { orthogonality_residual, orientation_determinant } => write!(
+                f, "Kerr screen-frame transition is not an orientation-preserving orthogonal map: residual={orthogonality_residual}, determinant={orientation_determinant}"
+            ),
         }
     }
 }
@@ -223,6 +227,136 @@ pub struct KerrNullTrajectoryIntegrator {
     hole: KerrBlackHole,
     chart: KerrIntegrationChart,
     options: KerrIntegratorOptions,
+}
+
+impl KerrOpticalScreenMap {
+    /// Re-express this optical map in a different orthonormal basis of the
+    /// *same source screen at the same source event and photon direction*.
+    ///
+    /// The 2x2 transition is computed from the two 3D screen bases and must
+    /// lie in SO(2). This rejects reflections, non-orthogonal projections and
+    /// bases from a different screen plane. It cannot establish event identity:
+    /// callers must supply a basis from the same event and local null direction.
+    ///
+    /// For an accepted transition R, J_new = R J_old. Therefore the signed
+    /// determinant and singular values are unchanged. Component-wise entries
+    /// may change; they must not be interpolated across a screen-chart seam
+    /// before applying this transition.
+    pub fn reexpress_source_screen(
+        self,
+        target_basis: [[f64; 3]; 2],
+        tolerance: f64,
+    ) -> Result<Self, KerrIntegratorError> {
+        if !tolerance.is_finite() || tolerance <= 0.0 {
+            return Err(KerrIntegratorError::InvalidOption {
+                name: "screen_frame_tolerance",
+                value: tolerance,
+            });
+        }
+        let transition = [
+            [
+                dot3(target_basis[0], self.source_screen_basis[0]),
+                dot3(target_basis[0], self.source_screen_basis[1]),
+            ],
+            [
+                dot3(target_basis[1], self.source_screen_basis[0]),
+                dot3(target_basis[1], self.source_screen_basis[1]),
+            ],
+        ];
+        let mut orthogonality_residual: f64 = 0.0;
+        for row in 0..2 {
+            for column in 0..2 {
+                let product = transition[row][0] * transition[column][0]
+                    + transition[row][1] * transition[column][1];
+                let expected = if row == column { 1.0 } else { 0.0 };
+                orthogonality_residual =
+                    orthogonality_residual.max((product - expected).abs());
+            }
+        }
+        let orientation_determinant =
+            transition[0][0] * transition[1][1]
+                - transition[0][1] * transition[1][0];
+        if !orthogonality_residual.is_finite()
+            || !orientation_determinant.is_finite()
+            || orthogonality_residual > tolerance
+            || (orientation_determinant - 1.0).abs() > tolerance
+        {
+            return Err(KerrIntegratorError::InvalidScreenFrameTransition {
+                orthogonality_residual,
+                orientation_determinant,
+            });
+        }
+
+        let mut transformed = self;
+        for row in 0..2 {
+            for column in 0..2 {
+                transformed.jacobian[row][column] =
+                    transition[row][0] * self.jacobian[0][column]
+                    + transition[row][1] * self.jacobian[1][column];
+            }
+        }
+        let (determinant, small, large) = optical_matrix_invariants(transformed.jacobian)?;
+        transformed.determinant = determinant;
+        transformed.singular_values = [small, large];
+        transformed.condition_number = if small > 0.0 {
+            large / small
+        } else {
+            f64::INFINITY
+        };
+        transformed.source_screen_basis = target_basis;
+        Ok(transformed)
+    }
+}
+
+fn dot3(left: [f64; 3], right: [f64; 3]) -> f64 {
+    left[0] * right[0] + left[1] * right[1] + left[2] * right[2]
+}
+
+/// Return signed determinant and ascending singular values using a scaled
+/// 2x2 calculation that avoids cancellation in the smaller eigenvalue of J^T J.
+fn optical_matrix_invariants(
+    jacobian: [[f64; 2]; 2],
+) -> Result<(f64, f64, f64), KerrIntegratorError> {
+    let matrix_scale = jacobian
+        .iter()
+        .flatten()
+        .fold(0.0_f64, |scale, value| scale.max(value.abs()));
+    let (determinant, small, large) = if matrix_scale == 0.0 {
+        (0.0, 0.0, 0.0)
+    } else {
+        let scaled = [
+            [jacobian[0][0] / matrix_scale, jacobian[0][1] / matrix_scale],
+            [jacobian[1][0] / matrix_scale, jacobian[1][1] / matrix_scale],
+        ];
+        let determinant_scaled =
+            scaled[0][0] * scaled[1][1] - scaled[0][1] * scaled[1][0];
+        let frobenius_squared = scaled
+            .iter()
+            .flatten()
+            .map(|value| value * value)
+            .sum::<f64>();
+        let discriminant = (frobenius_squared * frobenius_squared
+            - 4.0 * determinant_scaled * determinant_scaled)
+            .max(0.0)
+            .sqrt();
+        let large_scaled = (0.5 * (frobenius_squared + discriminant))
+            .max(0.0)
+            .sqrt();
+        let small_scaled = if large_scaled > 0.0 {
+            determinant_scaled.abs() / large_scaled
+        } else {
+            0.0
+        };
+        (
+            determinant_scaled * matrix_scale * matrix_scale,
+            small_scaled * matrix_scale,
+            large_scaled * matrix_scale,
+        )
+    };
+    if !determinant.is_finite() || !small.is_finite() || !large.is_finite() {
+        return Err(KerrIntegratorError::NonFiniteState);
+    }
+    Ok((determinant, small, large))
 }
 
 impl KerrObserverTangentBundleResult {
@@ -265,44 +399,12 @@ impl KerrObserverTangentBundleResult {
             [first.components[0], second.components[0]],
             [first.components[1], second.components[1]],
         ];
-        // Scale before the 2x2 SVD invariants to reduce overflow and use
-        // |det(J)|/sigma_max for sigma_min near a caustic (avoids subtractive
-        // cancellation in the smaller eigenvalue of J^T J).
-        let matrix_scale = jacobian.iter().flatten()
-            .fold(0.0_f64, |scale, value| scale.max(value.abs()));
-        let (determinant, small, large) = if matrix_scale == 0.0 {
-            (0.0, 0.0, 0.0)
-        } else {
-            let scaled = [
-                [jacobian[0][0] / matrix_scale, jacobian[0][1] / matrix_scale],
-                [jacobian[1][0] / matrix_scale, jacobian[1][1] / matrix_scale],
-            ];
-            let determinant_scaled =
-                scaled[0][0] * scaled[1][1] - scaled[0][1] * scaled[1][0];
-            let frobenius_squared = scaled.iter().flatten()
-                .map(|value| value * value).sum::<f64>();
-            let discriminant = (frobenius_squared * frobenius_squared
-                - 4.0 * determinant_scaled * determinant_scaled).max(0.0).sqrt();
-            let large_scaled = (0.5 * (frobenius_squared + discriminant)).max(0.0).sqrt();
-            let small_scaled = if large_scaled > 0.0 {
-                determinant_scaled.abs() / large_scaled
-            } else {
-                0.0
-            };
-            (
-                determinant_scaled * matrix_scale * matrix_scale,
-                small_scaled * matrix_scale,
-                large_scaled * matrix_scale,
-            )
-        };
+        let (determinant, small, large) = optical_matrix_invariants(jacobian)?;
         let condition_number = if small > 0.0 {
             large / small
         } else {
             f64::INFINITY
         };
-        if !determinant.is_finite() || !small.is_finite() || !large.is_finite() {
-            return Err(KerrIntegratorError::NonFiniteState);
-        }
         Ok(KerrOpticalScreenMap {
             affine_parameter: sample.trajectory.affine_parameter,
             jacobian,
@@ -1351,6 +1453,65 @@ mod tests {
         close(map.singular_values[1], affine_interval, 2e-7);
         close(map.determinant, affine_interval * affine_interval, 4e-7);
         close(map.condition_number, 1.0, 4e-7);
+    }
+
+    #[test]
+    fn optical_map_screen_reexpression_preserves_signed_determinant_and_singular_values() {
+        let angle: f64 = 0.37;
+        let (sine, cosine) = angle.sin_cos();
+        let source_basis = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
+        let target_basis = [
+            [cosine, sine, 0.0],
+            [-sine, cosine, 0.0],
+        ];
+        let jacobian = [[1.5, -0.25], [0.75, 2.0]];
+        let (determinant, small, large) =
+            optical_matrix_invariants(jacobian).unwrap();
+        let map = KerrOpticalScreenMap {
+            affine_parameter: 0.75,
+            jacobian,
+            determinant,
+            singular_values: [small, large],
+            condition_number: large / small,
+            source_screen_basis: source_basis,
+            source_direction_norm_residual: 0.0,
+        };
+        let transformed = map
+            .reexpress_source_screen(target_basis, 1e-12)
+            .unwrap();
+        assert!((transformed.determinant - map.determinant).abs() < 1e-12);
+        assert!((transformed.singular_values[0] - map.singular_values[0]).abs() < 1e-12);
+        assert!((transformed.singular_values[1] - map.singular_values[1]).abs() < 1e-12);
+        assert!((transformed.condition_number - map.condition_number).abs() < 1e-12);
+        assert!((transformed.jacobian[0][0]
+            - (cosine * jacobian[0][0] + sine * jacobian[1][0])).abs() < 1e-12);
+    }
+
+    #[test]
+    fn optical_map_screen_reexpression_rejects_reflections_and_nonorthogonal_frames() {
+        let basis = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
+        let map = KerrOpticalScreenMap {
+            affine_parameter: 1.0,
+            jacobian: [[1.0, 0.0], [0.0, 1.0]],
+            determinant: 1.0,
+            singular_values: [1.0, 1.0],
+            condition_number: 1.0,
+            source_screen_basis: basis,
+            source_direction_norm_residual: 0.0,
+        };
+        let reflected = [[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
+        assert!(matches!(
+            map.reexpress_source_screen(reflected, 1e-12),
+            Err(KerrIntegratorError::InvalidScreenFrameTransition {
+                orientation_determinant,
+                ..
+            }) if orientation_determinant < 0.0
+        ));
+        let tilted = [[1.0, 0.0, 0.0], [0.0, 0.8, 0.6]];
+        assert!(matches!(
+            map.reexpress_source_screen(tilted, 1e-12),
+            Err(KerrIntegratorError::InvalidScreenFrameTransition { .. })
+        ));
     }
 
     #[test]
