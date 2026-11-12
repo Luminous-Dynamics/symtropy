@@ -1,0 +1,387 @@
+{
+  "corpus_id": "luminous.symtropy.s124-warning-lifecycle",
+  "corpus_version": "0.1.0",
+  "source_profile": {
+    "product_id": "S-124",
+    "product_edition": "2.0.0",
+    "s100_edition": "5.2.0",
+    "artifact_lock_state": "pending_exact_artifact_lock",
+    "s158_maturity": "implementation_testing_only"
+  },
+  "claim_ceiling": "Synthetic lifecycle and source-currentness contract only. This corpus does not validate native S-124 GML, warning truth, service completeness, vessel receipt, display, acknowledgement, bridge awareness, or safe navigation.",
+  "base_state": {
+    "fixture_kind": "synthetic_fixture",
+    "evaluation_cutoff_utc": "2026-11-10T12:00:00Z",
+    "max_warning_age_s": 3600,
+    "max_bulletin_age_s": 1800,
+    "warnings": [
+      {
+        "producer_id": "SYNTH-PRODUCER-A",
+        "message_series_id": "SYNTH-SERIES-A",
+        "serial_number": "0007",
+        "revision": 2,
+        "lifecycle_state": "active",
+        "issue_time_utc": "2026-11-10T10:00:00Z",
+        "publication_time_utc": "2026-11-10T10:01:00Z",
+        "retrieved_at_utc": "2026-11-10T11:58:00Z",
+        "valid_from_utc": "2026-11-10T10:00:00Z",
+        "valid_to_utc": "2026-11-10T18:00:00Z",
+        "cancellation_time_utc": null,
+        "location_precision": "source_geometry",
+        "location_text": "Synthetic warning polygon as supplied by the source.",
+        "geometry_ref": "urn:synthetic:s124:geometry:warning-a"
+      },
+      {
+        "producer_id": "SYNTH-PRODUCER-B",
+        "message_series_id": "SYNTH-SERIES-B",
+        "serial_number": "0007",
+        "revision": 1,
+        "lifecycle_state": "active",
+        "issue_time_utc": "2026-11-10T09:00:00Z",
+        "publication_time_utc": "2026-11-10T09:01:00Z",
+        "retrieved_at_utc": "2026-11-10T11:58:30Z",
+        "valid_from_utc": "2026-11-10T09:00:00Z",
+        "valid_to_utc": "2026-11-10T17:00:00Z",
+        "cancellation_time_utc": null,
+        "location_precision": "source_geometry",
+        "location_text": "Second synthetic warning polygon from another series.",
+        "geometry_ref": "urn:synthetic:s124:geometry:warning-b"
+      }
+    ],
+    "events": [
+      {
+        "event_id": "S124-A-NEW-1",
+        "producer_id": "SYNTH-PRODUCER-A",
+        "message_series_id": "SYNTH-SERIES-A",
+        "serial_number": "0007",
+        "event_sequence": 1,
+        "event_type": "new",
+        "event_time_utc": "2026-11-10T10:00:00Z",
+        "publication_time_utc": "2026-11-10T10:01:00Z",
+        "retrieved_at_utc": "2026-11-10T11:58:00Z",
+        "target_message_series_id": null,
+        "target_serial_number": null
+      },
+      {
+        "event_id": "S124-B-NEW-1",
+        "producer_id": "SYNTH-PRODUCER-B",
+        "message_series_id": "SYNTH-SERIES-B",
+        "serial_number": "0007",
+        "event_sequence": 1,
+        "event_type": "new",
+        "event_time_utc": "2026-11-10T09:00:00Z",
+        "publication_time_utc": "2026-11-10T09:01:00Z",
+        "retrieved_at_utc": "2026-11-10T11:58:30Z",
+        "target_message_series_id": null,
+        "target_serial_number": null
+      },
+      {
+        "event_id": "S124-A-UPDATE-2",
+        "producer_id": "SYNTH-PRODUCER-A",
+        "message_series_id": "SYNTH-SERIES-A",
+        "serial_number": "0007",
+        "event_sequence": 2,
+        "event_type": "update",
+        "event_time_utc": "2026-11-10T11:00:00Z",
+        "publication_time_utc": "2026-11-10T11:01:00Z",
+        "retrieved_at_utc": "2026-11-10T11:58:00Z",
+        "target_message_series_id": "SYNTH-SERIES-A",
+        "target_serial_number": "0007"
+      }
+    ],
+    "in_force_bulletin": {
+      "bulletin_id": "SYNTH-IN-FORCE-004",
+      "revision": 4,
+      "publication_time_utc": "2026-11-10T11:55:00Z",
+      "retrieved_at_utc": "2026-11-10T11:56:00Z",
+      "complete": true,
+      "member_keys": [
+        "SYNTH-PRODUCER-A|SYNTH-SERIES-A|0007",
+        "SYNTH-PRODUCER-B|SYNTH-SERIES-B|0007"
+      ]
+    },
+    "delivery_evidence": [
+      {
+        "warning_key": "SYNTH-PRODUCER-A|SYNTH-SERIES-A|0007",
+        "status": "unknown",
+        "source_ref": null,
+        "artifact_sha256": null,
+        "received_at_utc": null,
+        "acknowledged_at_utc": null
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "active_warning_without_vessel_receipt",
+      "mutations": [],
+      "expected_code": "ACTIVE_WARNING_RECEIPT_UNKNOWN"
+    },
+    {
+      "id": "same_serial_in_distinct_series_is_not_identity_collision",
+      "mutations": [
+        {
+          "path": "warnings.1.message_series_id",
+          "op": "set",
+          "value": "SYNTH-SERIES-C"
+        },
+        {
+          "path": "warnings.1.producer_id",
+          "op": "set",
+          "value": "SYNTH-PRODUCER-C"
+        },
+        {
+          "path": "events.1.producer_id",
+          "op": "set",
+          "value": "SYNTH-PRODUCER-C"
+        },
+        {
+          "path": "events.1.message_series_id",
+          "op": "set",
+          "value": "SYNTH-SERIES-C"
+        },
+        {
+          "path": "in_force_bulletin.member_keys",
+          "op": "set",
+          "value": [
+            "SYNTH-PRODUCER-A|SYNTH-SERIES-A|0007",
+            "SYNTH-PRODUCER-C|SYNTH-SERIES-C|0007"
+          ]
+        }
+      ],
+      "expected_code": "SERIES_SCOPED_SERIAL_IDENTITY_VALID"
+    },
+    {
+      "id": "cancellation_effective_before_cutoff",
+      "mutations": [
+        {
+          "path": "warnings.0.lifecycle_state",
+          "op": "set",
+          "value": "cancelled"
+        },
+        {
+          "path": "warnings.0.cancellation_time_utc",
+          "op": "set",
+          "value": "2026-11-10T11:45:00Z"
+        },
+        {
+          "path": "events.2.event_type",
+          "op": "set",
+          "value": "cancellation"
+        },
+        {
+          "path": "events.2.event_sequence",
+          "op": "set",
+          "value": 3
+        },
+        {
+          "path": "events.2.event_time_utc",
+          "op": "set",
+          "value": "2026-11-10T11:45:00Z"
+        },
+        {
+          "path": "events.2.publication_time_utc",
+          "op": "set",
+          "value": "2026-11-10T11:46:00Z"
+        },
+        {
+          "path": "events.2.target_message_series_id",
+          "op": "set",
+          "value": "SYNTH-SERIES-A"
+        },
+        {
+          "path": "events.2.target_serial_number",
+          "op": "set",
+          "value": "0007"
+        }
+      ],
+      "expected_code": "WARNING_CANCELLED_AS_OF_CUTOFF"
+    },
+    {
+      "id": "self_cancelling_warning_expired",
+      "mutations": [
+        {
+          "path": "warnings.0.valid_to_utc",
+          "op": "set",
+          "value": "2026-11-10T11:55:00Z"
+        },
+        {
+          "path": "events.2.event_type",
+          "op": "set",
+          "value": "self_cancelling"
+        },
+        {
+          "path": "events.2.target_message_series_id",
+          "op": "set",
+          "value": "SYNTH-SERIES-A"
+        },
+        {
+          "path": "events.2.target_serial_number",
+          "op": "set",
+          "value": "0007"
+        }
+      ],
+      "expected_code": "WARNING_EXPIRED_AS_OF_CUTOFF"
+    },
+    {
+      "id": "future_warning_not_yet_valid",
+      "mutations": [
+        {
+          "path": "warnings.0.valid_from_utc",
+          "op": "set",
+          "value": "2026-11-10T12:30:00Z"
+        }
+      ],
+      "expected_code": "WARNING_NOT_YET_VALID"
+    },
+    {
+      "id": "warning_source_retrieval_stale",
+      "mutations": [
+        {
+          "path": "warnings.0.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T10:00:00Z"
+        }
+      ],
+      "expected_code": "WARNING_SOURCE_STALE"
+    },
+    {
+      "id": "in_force_bulletin_stale",
+      "mutations": [
+        {
+          "path": "in_force_bulletin.retrieved_at_utc",
+          "op": "set",
+          "value": "2026-11-10T10:00:00Z"
+        }
+      ],
+      "expected_code": "IN_FORCE_BULLETIN_STALE_UNKNOWN"
+    },
+    {
+      "id": "in_force_bulletin_incomplete",
+      "mutations": [
+        {
+          "path": "in_force_bulletin.complete",
+          "op": "set",
+          "value": false
+        }
+      ],
+      "expected_code": "IN_FORCE_BULLETIN_INCOMPLETE_UNKNOWN"
+    },
+    {
+      "id": "warning_absent_from_complete_current_bulletin",
+      "mutations": [
+        {
+          "path": "in_force_bulletin.member_keys",
+          "op": "set",
+          "value": [
+            "SYNTH-PRODUCER-B|SYNTH-SERIES-B|0007"
+          ]
+        }
+      ],
+      "expected_code": "WARNING_NOT_IN_FORCE_BULLETIN"
+    },
+    {
+      "id": "duplicate_event_delivery",
+      "mutations": [
+        {
+          "path": "events.1.event_id",
+          "op": "set",
+          "value": "S124-A-NEW-1"
+        }
+      ],
+      "expected_code": "DUPLICATE_EVENT_ID"
+    },
+    {
+      "id": "out_of_order_update_sequence",
+      "mutations": [
+        {
+          "path": "events.2.event_sequence",
+          "op": "set",
+          "value": 1
+        }
+      ],
+      "expected_code": "OUT_OF_ORDER_EVENT_PRESERVED_AS_HISTORY"
+    },
+    {
+      "id": "update_references_wrong_message_series",
+      "mutations": [
+        {
+          "path": "events.2.target_message_series_id",
+          "op": "set",
+          "value": "SYNTH-SERIES-WRONG"
+        }
+      ],
+      "expected_code": "UPDATE_TARGET_NOT_FOUND"
+    },
+    {
+      "id": "same_producer_series_serial_collision",
+      "mutations": [
+        {
+          "path": "warnings.1.message_series_id",
+          "op": "set",
+          "value": "SYNTH-SERIES-A"
+        },
+        {
+          "path": "warnings.1.producer_id",
+          "op": "set",
+          "value": "SYNTH-PRODUCER-A"
+        }
+      ],
+      "expected_code": "WARNING_IDENTITY_COLLISION"
+    },
+    {
+      "id": "qualitative_location_promoted_to_exact_geometry",
+      "mutations": [
+        {
+          "path": "warnings.0.location_text",
+          "op": "set",
+          "value": "Reported approximately 2 NM east of a synthetic waypoint."
+        },
+        {
+          "path": "warnings.0.location_precision",
+          "op": "set",
+          "value": "precise_geometry_inferred_from_text"
+        }
+      ],
+      "expected_code": "GEOMETRY_PRECISION_OVERSTATED"
+    },
+    {
+      "id": "older_revision_resurrected",
+      "mutations": [
+        {
+          "path": "warnings.0.revision",
+          "op": "set",
+          "value": 1
+        }
+      ],
+      "expected_code": "SUPERSEDED_WARNING_REVISION"
+    },
+    {
+      "id": "received_claim_without_receipt_artifact",
+      "mutations": [
+        {
+          "path": "delivery_evidence.0.status",
+          "op": "set",
+          "value": "received"
+        }
+      ],
+      "expected_code": "VESSEL_RECEIPT_EVIDENCE_INCOMPLETE"
+    },
+    {
+      "id": "bulletin_absence_from_missing_bulletin_is_unknown",
+      "mutations": [
+        {
+          "path": "in_force_bulletin.member_keys",
+          "op": "set",
+          "value": []
+        },
+        {
+          "path": "in_force_bulletin.complete",
+          "op": "set",
+          "value": false
+        }
+      ],
+      "expected_code": "IN_FORCE_BULLETIN_INCOMPLETE_UNKNOWN"
+    }
+  ]
+}
