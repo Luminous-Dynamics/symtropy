@@ -589,8 +589,7 @@ mod tests {
 
     #[test]
     fn duplicate_sessions_are_rejected() {
-        let mut input: serde_json::Value =
-            serde_json::from_str(NO_CHANGE).expect("fixture parses");
+        let mut input: serde_json::Value = serde_json::from_str(NO_CHANGE).expect("fixture parses");
         let first = input["baseline_sessions"][0].clone();
         input["current_sessions"][0] = first;
         let bytes = serde_json::to_vec(&input).expect("modified input serializes");
@@ -599,8 +598,7 @@ mod tests {
 
     #[test]
     fn a_missing_target_in_one_session_is_rejected() {
-        let mut input: serde_json::Value =
-            serde_json::from_str(NO_CHANGE).expect("fixture parses");
+        let mut input: serde_json::Value = serde_json::from_str(NO_CHANGE).expect("fixture parses");
         input["current_sessions"][0]["targets"]
             .as_array_mut()
             .unwrap()
@@ -620,23 +618,23 @@ mod tests {
 
     #[test]
     fn insufficient_session_count_is_rejected() {
-        let mut input: serde_json::Value =
-            serde_json::from_str(NO_CHANGE).expect("fixture parses");
-        input["baseline_sessions"].as_array_mut().unwrap().truncate(4);
+        let mut input: serde_json::Value = serde_json::from_str(NO_CHANGE).expect("fixture parses");
+        input["baseline_sessions"]
+            .as_array_mut()
+            .unwrap()
+            .truncate(4);
         let bytes = serde_json::to_vec(&input).expect("modified input serializes");
         assert!(evaluate_bytes(&bytes).is_err());
     }
 
     #[test]
     fn zero_seed_and_excessive_permutation_budget_are_rejected() {
-        let mut input: serde_json::Value =
-            serde_json::from_str(NO_CHANGE).expect("fixture parses");
+        let mut input: serde_json::Value = serde_json::from_str(NO_CHANGE).expect("fixture parses");
         input["seed"] = serde_json::Value::from(0_u64);
         let bytes = serde_json::to_vec(&input).expect("zero seed serializes");
         assert!(evaluate_bytes(&bytes).is_err());
 
-        let mut input: serde_json::Value =
-            serde_json::from_str(NO_CHANGE).expect("fixture parses");
+        let mut input: serde_json::Value = serde_json::from_str(NO_CHANGE).expect("fixture parses");
         input["permutation_count"] = serde_json::Value::from(MAX_PERMUTATIONS + 1);
         let bytes = serde_json::to_vec(&input).expect("large budget serializes");
         assert!(evaluate_bytes(&bytes).is_err());
