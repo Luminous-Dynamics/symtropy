@@ -622,6 +622,7 @@ pub fn build_probe_policy_prefix(
             .collect::<Vec<_>>();
         outcome_ids.sort();
 
+        let disposition = group_disposition[&group];
         let mut common_actions: Option<BTreeSet<String>> = None;
         let mut supporting_receipts = Vec::new();
         let mut local_selected_actions = BTreeSet::new();
@@ -652,7 +653,6 @@ pub fn build_probe_policy_prefix(
         };
         let common_vec = common_actions.iter().cloned().collect::<Vec<_>>();
         let (belief_set_digest, observation_receipt_digest) = group_identity[&group].clone();
-        let disposition = group_disposition[&group];
 
         let local_selection_deployable = local_selected_actions.len() == 1
             && local_selected_actions
