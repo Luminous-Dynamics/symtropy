@@ -57,7 +57,10 @@
     "luminous_basis_free_candidate",
     "ru_et_al_matrix_valued_passivity_indices_lti_scope",
     "single_rate_synchronous_adaptation",
-    "multi_rate_proposal_expiry_local_safety_architecture"
+    "multi_rate_proposal_expiry_local_safety_architecture",
+    "compositional_interaction_envelope_gate",
+    "weighted_composite_risk_score_negative_control",
+    "independent_checks_without_shared_identity_negative_control"
   ],
   "scenarios": [
     {
@@ -406,6 +409,198 @@
         "uncertainty_coverage_reported",
         "no_human_tissue_threshold_claim"
       ]
+    },
+    {
+      "id": "envelope-identity-coherence",
+      "domain": "compositional_admission",
+      "purpose": "A candidate is admitted only when energy, contact, wearer, and actuator evidence share the same sequence, clock, boot, state revision, profile, command, and port-graph digests.",
+      "seeded_faults": [
+        "mixed_command_digest",
+        "mixed_state_revision",
+        "mixed_profile_digest",
+        "mixed_port_graph_digest"
+      ],
+      "required_assertions": [
+        "admission_only_with_exact_identity_agreement",
+        "rejection_reason_vector_preserved",
+        "rejected_attempt_does_not_mutate_gate"
+      ]
+    },
+    {
+      "id": "envelope-cross-domain-compensation",
+      "domain": "compositional_admission",
+      "purpose": "Hold energy within bounds while violating one local contact limit, then reverse the conditions; compare conjunction against a weighted-score negative control.",
+      "seeded_faults": [
+        "energy_surplus_contact_pressure_exceeded",
+        "energy_deficit_contact_within_limits",
+        "high_task_score_with_agency_failure"
+      ],
+      "required_assertions": [
+        "no_cross_domain_compensation",
+        "false_admission_count_reported",
+        "weighted_score_failure_demonstrated"
+      ]
+    },
+    {
+      "id": "envelope-no-implicit-consent",
+      "domain": "compositional_admission",
+      "purpose": "Provide strong tactile contact or inferred-intent evidence without a current explicit wearer authorization.",
+      "seeded_faults": [
+        "tactile_confidence_high_authorization_absent",
+        "stale_authorization_epoch",
+        "authorization_digest_missing"
+      ],
+      "required_assertions": [
+        "no_pressure_or_intent_to_consent_inference",
+        "explicit_authority_required",
+        "no_action_admitted"
+      ]
+    },
+    {
+      "id": "envelope-actuator-authority-revoked",
+      "domain": "compositional_admission",
+      "purpose": "Keep all model-side evidence valid while revoking the independent actuator permit or advancing its authority epoch.",
+      "seeded_faults": [
+        "actuator_permit_revoked",
+        "actuator_epoch_advanced",
+        "authority_receipt_missing"
+      ],
+      "required_assertions": [
+        "actuator_authority_required",
+        "old_authority_epoch_rejected",
+        "no_application_permit_returned"
+      ]
+    },
+    {
+      "id": "envelope-clock-and-boot-skew",
+      "domain": "compositional_admission",
+      "purpose": "Inject clock skew, reboot, and timestamp disagreement across otherwise valid domain evidence.",
+      "seeded_faults": [
+        "clock_domain_mismatch",
+        "boot_epoch_mismatch",
+        "future_sample",
+        "stale_sample"
+      ],
+      "required_assertions": [
+        "cross_domain_clock_identity_required",
+        "future_and_stale_evidence_rejected",
+        "unknown_time_not_zero"
+      ]
+    },
+    {
+      "id": "envelope-delayed-optimizer-supersession",
+      "domain": "compositional_admission",
+      "purpose": "Issue a newer adaptation proposal while an older optimizer result is in flight, then deliver the older result last.",
+      "seeded_faults": [
+        "late_optimizer_result",
+        "proposal_sequence_regression",
+        "state_revision_changed"
+      ],
+      "required_assertions": [
+        "only_latest_issued_proposal_admitted",
+        "old_result_never_overwrites_newer",
+        "state_revision_bound"
+      ]
+    },
+    {
+      "id": "envelope-revocation-and-rearm",
+      "domain": "compositional_admission",
+      "purpose": "Revoke wearer authority between admission and application, then test stale receipts and explicit re-arm under a new epoch.",
+      "seeded_faults": [
+        "stop_during_pending_receipt",
+        "old_epoch_replay",
+        "missing_rearm_action",
+        "rearm_digest_mismatch"
+      ],
+      "required_assertions": [
+        "stop_latches_software_gate",
+        "old_receipt_invalidated",
+        "rearm_requires_explicit_user_action",
+        "physical_stop_latency_measured_separately"
+      ]
+    },
+    {
+      "id": "envelope-local-dose-global-energy-decoupling",
+      "domain": "compositional_admission",
+      "purpose": "Construct equal or lower total energy traces with sharply different peak pressure, patch area, deformation rate, power, and dwell time.",
+      "seeded_faults": [
+        "small_patch_peak_pressure",
+        "long_low_power_contact",
+        "multi_patch_load_redistribution",
+        "equal_energy_different_exposure"
+      ],
+      "required_assertions": [
+        "global_energy_and_local_exposure_scored_separately",
+        "per_patch_peak_and_dose_reported",
+        "no_universal_human_threshold_claim"
+      ]
+    },
+    {
+      "id": "envelope-missing-domain-evidence",
+      "domain": "compositional_admission",
+      "purpose": "Remove, truncate, or mark unknown one domain's evidence while leaving the other domains valid.",
+      "seeded_faults": [
+        "missing_energy_receipt",
+        "missing_contact_calibration",
+        "missing_wearer_authority",
+        "missing_actuator_authority",
+        "unknown_port_boundary"
+      ],
+      "required_assertions": [
+        "missing_or_unknown_blocks_admission",
+        "unknown_is_not_zero",
+        "no_partial_bundle_fallback"
+      ]
+    },
+    {
+      "id": "envelope-revalidation-toctou",
+      "domain": "compositional_admission",
+      "purpose": "Admit using valid evidence, then advance time, state, command, proposal, or authority before the application boundary.",
+      "seeded_faults": [
+        "sample_expires_after_admission",
+        "command_substituted_before_apply",
+        "state_revision_changes",
+        "authority_epoch_changes"
+      ],
+      "required_assertions": [
+        "full_bundle_revalidated_before_application",
+        "time_of_check_to_use_rejected",
+        "receipt_not_latest_or_consumed"
+      ]
+    },
+    {
+      "id": "envelope-evidence-digest-substitution",
+      "domain": "compositional_admission",
+      "purpose": "Change one measurement, authorization, calibration, or actuator receipt digest after admission while retaining nominal scalar metrics.",
+      "seeded_faults": [
+        "energy_digest_changed",
+        "contact_digest_changed",
+        "calibration_digest_changed",
+        "authority_digest_changed"
+      ],
+      "required_assertions": [
+        "receipt_digest_binding_enforced",
+        "substituted_evidence_rejected",
+        "rejected_revalidation_does_not_consume_new_state"
+      ]
+    },
+    {
+      "id": "envelope-joint-fault-matrix",
+      "domain": "compositional_admission",
+      "purpose": "Run all single-domain faults, pairwise combinations, and selected higher-order interactions over a frozen deterministic manifest.",
+      "seeded_faults": [
+        "all_single_domain_faults",
+        "pairwise_fault_interactions",
+        "clock_plus_epoch_fault",
+        "contact_plus_authority_fault",
+        "energy_plus_boundary_fault"
+      ],
+      "required_assertions": [
+        "zero_false_admissions_in_declared_finite_matrix",
+        "domain_wise_false_rejection_reported",
+        "seed_and_case_manifest_persisted",
+        "no_scalar_safety_score"
+      ]
     }
   ],
   "result_requirements": [
@@ -413,7 +608,12 @@
     "record_all_failures_and_exclusions",
     "report_worst_prefix_energy_not_only_final_total",
     "report_p50_p95_p99_max_when_meaningful",
-    "no_composite_score_that_trades_safety_or_agency_against_task_success"
+    "no_composite_score_that_trades_safety_or_agency_against_task_success",
+    "report_joint_admission_and_each_domain_rejection_vector",
+    "report_false_admission_and_false_rejection_separately",
+    "bind_every_domain_receipt_to_the_same_command_and_state_revision",
+    "record_revalidation_and_revocation_race_outcomes",
+    "report_gate_latency_distribution_on_declared_target_hardware"
   ],
   "optimizer_known_answers": [
     {
@@ -789,5 +989,53 @@
     "cross_calibration_revision",
     "aging_and_temperature_drift",
     "held_out_manufacturing_lot"
-  ]
+  ],
+  "compositional_admission_contract": {
+    "status": "protocol_extension_not_executed",
+    "safety_composition": "conjunction_of_non_substitutable_evidence_domains",
+    "required_domains": [
+      "sampled_energy",
+      "local_contact_exposure",
+      "explicit_wearer_authority",
+      "freshness_and_identity",
+      "independent_actuator_authority"
+    ],
+    "shared_identity": [
+      "interaction_sequence",
+      "proposal_sequence",
+      "sample_timestamp",
+      "clock_id",
+      "boot_epoch",
+      "agency_epoch",
+      "state_revision_digest",
+      "profile_digest",
+      "command_digest",
+      "energy_port_graph_digest"
+    ],
+    "admission_metrics": [
+      "false_admission_count",
+      "false_rejection_count",
+      "domain_rejection_vector",
+      "identity_mismatch_count",
+      "receipt_revalidation_failure_count",
+      "post_revocation_application_attempt_count",
+      "revoke_to_admission_block_latency_ns",
+      "p50_gate_latency_ns",
+      "p95_gate_latency_ns",
+      "p99_gate_latency_ns",
+      "maximum_gate_latency_ns"
+    ],
+    "negative_controls": [
+      "weighted_score_can_trade_contact_failure_against_energy_surplus",
+      "independent_checks_can_accept_mixed_command_or_state_identity"
+    ],
+    "generated_fault_campaign": {
+      "seed": 20261112,
+      "target_cases": 30000,
+      "status": "planned_not_executed",
+      "require_zero_false_admissions": true,
+      "report_false_rejection_separately": true
+    },
+    "timing_target": "measure_on_declared_target_hardware; no hard-real-time claim from host unit tests"
+  }
 }
