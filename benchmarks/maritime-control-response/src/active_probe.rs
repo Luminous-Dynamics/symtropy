@@ -2698,11 +2698,17 @@ mod tests {
             protocol["method"]["sequential_update_policy"]["status"],
             "single_point_model_updates_supported_multiscenario_updates_blocked"
         );
-        assert_eq!(protocol["method"]["sequential_update_policy"]["no_silent_fallback"], true);
-        assert!(protocol["method"]["sequential_update_policy"]["required_future_joint_ledger"]
-            .as_array()
-            .unwrap()
-            .len() >= 5);
+        assert_eq!(
+            protocol["method"]["sequential_update_policy"]["no_silent_fallback"],
+            true
+        );
+        assert!(
+            protocol["method"]["sequential_update_policy"]["required_future_joint_ledger"]
+                .as_array()
+                .unwrap()
+                .len()
+                >= 5
+        );
         assert!(
             protocol["method"]["observation_update"]["realized_information"]
                 .as_str()
@@ -2775,11 +2781,13 @@ mod tests {
         let schema: serde_json::Value =
             serde_json::from_str(include_str!("../benchmark-run-manifest.schema.json")).unwrap();
         let active = &schema["properties"]["protocol"]["properties"]["active_evidence_selection"];
-        assert!(active["required"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|field| field == "sequential_update_status"));
+        assert!(
+            active["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|field| field == "sequential_update_status")
+        );
         let conditions = active["allOf"].as_array().unwrap();
         assert_eq!(conditions.len(), 2);
         assert_eq!(
