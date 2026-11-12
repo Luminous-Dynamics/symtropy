@@ -135,8 +135,50 @@ jobs:
           fi
           csv_count="$(find "$root" -type f -iname '*.csv' | wc -l | tr -d ' ')"
           echo "Extracted CSV count: $csv_count"
-          test "$csv_count" = "16"
+          test "$csv_count" = "18"
           echo "DATASET_ROOT=$root" >> "$GITHUB_ENV"
+
+      - name: Capture published header semantics before validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$DATASET_ROOT" <<'PY'
+          import csv
+          import json
+          import pathlib
+          import sys
+
+          root = pathlib.Path(sys.argv[1])
+          names = ["Reference_Data.csv"]
+          names.extend(path.name for path in sorted(root.rglob("*.csv"))
+                       if path.name != "Reference_Data.csv"
+                       and "dataset_index" not in path.name.lower()
+                       and "variable_dictionary" not in path.name.lower()
+                       and "normaliz" not in path.name.lower()
+                       and "normalis" not in path.name.lower())
+          for name in names[:2]:
+              matches = list(root.rglob(name))
+              if not matches:
+                  print(json.dumps({"file": name, "error": "not found"}))
+                  continue
+              with matches[0].open("r", encoding="utf-8-sig", newline="") as handle:
+                  rows = list(csv.reader(handle))[:3]
+              print(json.dumps({
+                  "relative_path": matches[0].relative_to(root).as_posix(),
+                  "header_row_count": len(rows),
+                  "column_counts": [len(row) for row in rows],
+                  "first_three_header_cells": [row[:3] for row in rows],
+                  "first_row_full": rows[0] if rows else [],
+              }, ensure_ascii=False))
+          dictionary = next(iter(root.rglob("*variable_dictionary*")), None)
+          if dictionary and dictionary.suffix.lower() == ".csv":
+              with dictionary.open("r", encoding="utf-8-sig", newline="") as handle:
+                  rows = list(csv.reader(handle))[:6]
+              print(json.dumps({
+                  "metadata_file": dictionary.relative_to(root).as_posix(),
+                  "metadata_preview": rows,
+              }, ensure_ascii=False))
+          PY
 
       - name: Run raw CSV payload audit
         shell: bash
@@ -149,7 +191,7 @@ jobs:
             --bin marine-dataset-audit -- "$DATASET_ROOT" "${{ steps.archive.outputs.archive_sha256 }}" \
             > "$report"
           jq -e '
-            .schema_version == "symtropy-marine-csv-audit-v0.1" and
+            .schema_version == "symtropy-marine-csv-audit-v0.2" and
             .dataset_doi == "10.5281/zenodo.19857425" and
             .archive_sha256 == "${{ steps.archive.outputs.archive_sha256 }}" and
             .csv_file_count == 16 and
@@ -157,7 +199,12 @@ jobs:
             .scenario_file_count == 15 and
             (.total_data_rows > 0) and
             (.files | length == 16) and
-            ([.files[].time_rel_strictly_increasing] | all) and
+            ([.files[].time_strictly_increasing] | all) and
+            ([.files[] | select(.role == "baseline_reference") | .time_column_name] == ["Time"]) and
+            ([.files[] | select(.role == "baseline_reference") | .time_column_index] == [0]) and
+            ([.files[] | select(.role == "fault_scenario") | .time_column_name] | all(. == "Time_rel")) and
+            ([.files[] | select(.role == "fault_scenario") | .time_column_index] | all(. == 1)) and
+            ([.files[].time_column_unit] | all(. == "sec")) and
             (.metadata_artifact_sha256.dataset_index != null) and
             (.metadata_artifact_sha256.variable_dictionary != null) and
             (.metadata_artifact_sha256.normalization_script != null) and
