@@ -49,6 +49,7 @@ leaderboard_eligible = false
 [[framework]]
 id = "mason"
 version = "22.0"
-track = "stable"
+track = "compatibility-target-version-requires-refresh"
+version_status = "22.0 is the existing CIVDYN issue baseline; re-confirm latest maintained version before adapter setup"
 adapter_status = "not-ported"
 release_url = "https://cs.gmu.edu/~eclab/projects/mason/"
