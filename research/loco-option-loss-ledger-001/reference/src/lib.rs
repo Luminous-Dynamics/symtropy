@@ -729,7 +729,7 @@ mod tests {
         if let OptionChangeEvidence::Removed { disposition, .. } = &mut evidence {
             *disposition = EvidenceDisposition::Unknown;
         }
-        let report = audit_transition(&previous, &next, &transition(vec![evidence])).unwrap();
+        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![evidence])).unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
         assert!(report.result_option_ids.is_empty());
     }
@@ -753,7 +753,7 @@ mod tests {
         let previous = snapshot(1, "s0", "s1", &["retreat"]);
         let next = snapshot(2, "unrelated", "s2", &["retreat"]);
         assert_eq!(
-            audit_transition(&previous, &next, &transition(vec![])),
+            audit_transition(&previous, &next, &transition(&previous, &next, vec![])),
             Err(LedgerError::StatePredecessorMismatch)
         );
     }
@@ -764,7 +764,7 @@ mod tests {
         let mut next = snapshot(2, "s1", "s2", &["retreat"]);
         next.scope.branch_manifest_digest = "branches-b".into();
         assert_eq!(
-            audit_transition(&previous, &next, &transition(vec![])),
+            audit_transition(&previous, &next, &transition(&previous, &next, vec![])),
             Err(LedgerError::ScopeMismatch("branch_manifest_digest"))
         );
     }
@@ -775,7 +775,7 @@ mod tests {
         let mut next = snapshot(2, "s1", "s2", &["retreat"]);
         next.action_domain_ids.push("crawl".into());
         assert_eq!(
-            audit_transition(&previous, &next, &transition(vec![])),
+            audit_transition(&previous, &next, &transition(&previous, &next, vec![])),
             Err(LedgerError::ActionDomainMismatch)
         );
     }
@@ -784,8 +784,9 @@ mod tests {
     fn option_outside_domain_is_rejected() {
         let mut previous = snapshot(1, "s0", "s1", &["retreat"]);
         previous.available_option_ids.push("teleport".into());
+        let next = snapshot(2, "s1", "s2", &["retreat"]);
         assert_eq!(
-            audit_transition(&previous, &snapshot(2, "s1", "s2", &["retreat"]), &transition(vec![])),
+            audit_transition(&previous, &next, &transition(&previous, &next, vec![])),
             Err(LedgerError::OptionOutsideActionDomain("teleport".into()))
         );
     }
@@ -798,7 +799,7 @@ mod tests {
         let report = audit_transition(
             &previous,
             &next,
-            &transition(vec![remove("step-left", LossCause::ContactUncertainty, Reversibility::Irreversible)]),
+            &transition(&previous, &next, vec![remove("step-left", LossCause::ContactUncertainty, Reversibility::Irreversible)]),
         )
         .unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
@@ -810,7 +811,7 @@ mod tests {
         let previous = snapshot(4, "s0", "s1", &["retreat"]);
         let next = snapshot(4, "s1", "s2", &["retreat"]);
         assert_eq!(
-            audit_transition(&previous, &next, &transition(vec![])),
+            audit_transition(&previous, &next, &transition(&previous, &next, vec![])),
             Err(LedgerError::EventSequenceNotIncreasing)
         );
     }
@@ -822,7 +823,7 @@ mod tests {
         let report = audit_transition(
             &previous,
             &next,
-            &transition(vec![add("step-left", &previous, &next)]),
+            &transition(&previous, &next, vec![add("step-left", &previous, &next)]),
         )
         .unwrap();
         assert_eq!(report.disposition, AuditDisposition::Qualified);
@@ -840,7 +841,7 @@ mod tests {
             *predecessor_state_digest = "stale-state".into();
         }
         assert!(matches!(
-            audit_transition(&previous, &next, &transition(vec![evidence])),
+            audit_transition(&previous, &next, &transition(&previous, &next, vec![evidence])),
             Err(LedgerError::TransitionReceiptBindingMismatch(_))
         ));
     }
@@ -849,7 +850,7 @@ mod tests {
     fn missing_restoration_receipt_is_unknown() {
         let previous = snapshot(1, "s0", "s1", &["retreat"]);
         let next = snapshot(2, "s1", "s2", &["retreat", "step-left"]);
-        let report = audit_transition(&previous, &next, &transition(vec![])).unwrap();
+        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![])).unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
         assert!(report.result_option_ids.is_empty());
     }
@@ -862,7 +863,7 @@ mod tests {
         if let OptionChangeEvidence::Added { preconditions, .. } = &mut evidence {
             preconditions[0].disposition = EvidenceDisposition::Unknown;
         }
-        let report = audit_transition(&previous, &next, &transition(vec![evidence])).unwrap();
+        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![evidence])).unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
         assert!(report.result_option_ids.is_empty());
     }
@@ -872,7 +873,7 @@ mod tests {
         let previous = snapshot(1, "s0", "s1", &["retreat"]);
         let mut next = snapshot(2, "s1", "s2", &["retreat"]);
         next.observation_partition_digest = "observation-b".into();
-        let report = audit_transition(&previous, &next, &transition(vec![])).unwrap();
+        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![])).unwrap();
         assert_eq!(report.disposition, AuditDisposition::Unknown);
     }
 
@@ -922,7 +923,7 @@ mod tests {
         let first = snapshot(10, "s9", "s10", &["retreat"]);
         let second = snapshot(9, "s8", "s9", &["retreat"]);
         assert!(matches!(
-            audit_transition(&first, &second, &transition(vec![])),
+            audit_transition(&first, &second, &transition(&first, &second, vec![])),
             Err(LedgerError::EventSequenceNotIncreasing)
         ));
     }
@@ -939,7 +940,7 @@ mod tests {
         if let OptionChangeEvidence::Removed { reversibility, .. } = &mut change {
             *reversibility = Reversibility::Irreversible;
         }
-        let report = audit_transition(&previous, &next, &transition(vec![change])).unwrap();
+        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![change])).unwrap();
         assert_eq!(report.losses[0].reversibility, Reversibility::Irreversible);
     }
 
@@ -951,7 +952,7 @@ mod tests {
             audit_transition(
                 &previous,
                 &next,
-                &transition(vec![remove(
+                &transition(&previous, &next, vec![remove(
                     "step-left",
                     LossCause::ThermalDerating,
                     Reversibility::Conditional { required_preconditions: vec![] },
@@ -969,7 +970,7 @@ mod tests {
         if let OptionChangeEvidence::Added { preconditions, .. } = &mut evidence {
             preconditions[0].disposition = EvidenceDisposition::Rejected;
         }
-        let report = audit_transition(&previous, &next, &transition(vec![evidence])).unwrap();
+        let report = audit_transition(&previous, &next, &transition(&previous, &next, vec![evidence])).unwrap();
         assert_eq!(report.disposition, AuditDisposition::Rejected);
         assert!(report.result_option_ids.is_empty());
     }
@@ -981,7 +982,7 @@ mod tests {
         let report = audit_transition(
             &previous,
             &next,
-            &transition(vec![add("step-left", &previous, &next)]),
+            &transition(&previous, &next, vec![add("step-left", &previous, &next)]),
         )
         .unwrap();
         let cost = report.additions[0].cost;
