@@ -1419,20 +1419,16 @@ impl KerrCanonicalHamiltonian {
         }
         let radius_m = state.coordinates.radius_over_m * self.hole.gravitational_radius_m();
         let differentiated = match coordinate_chart {
-            KerrMinoCoordinateChart::BoyerLindquist => {
-                DifferentiatedMetric4::kerr_exterior(
-                    self.hole,
-                    radius_m,
-                    state.coordinates.theta_rad,
-                )?
-            }
-            KerrMinoCoordinateChart::IngoingKerr => {
-                DifferentiatedMetric4::kerr_ingoing(
-                    self.hole,
-                    radius_m,
-                    state.coordinates.theta_rad,
-                )?
-            }
+            KerrMinoCoordinateChart::BoyerLindquist => DifferentiatedMetric4::kerr_exterior(
+                self.hole,
+                radius_m,
+                state.coordinates.theta_rad,
+            )?,
+            KerrMinoCoordinateChart::IngoingKerr => DifferentiatedMetric4::kerr_ingoing(
+                self.hole,
+                radius_m,
+                state.coordinates.theta_rad,
+            )?,
         };
         let evaluation = self.evaluate_differentiated(state, differentiated)?;
         let k = evaluation.derivative.coordinates;
@@ -1446,8 +1442,7 @@ impl KerrCanonicalHamiltonian {
             for nu in 0..4 {
                 let scale = factors[mu] * factors[nu];
                 metric_components[mu][nu] = source_metric[mu][nu] * scale;
-                first_components[1][mu][nu] =
-                    source_first[1][mu][nu] * mass_length * scale;
+                first_components[1][mu][nu] = source_first[1][mu][nu] * mass_length * scale;
                 first_components[2][mu][nu] = source_first[2][mu][nu] * scale;
             }
         }
@@ -1474,12 +1469,14 @@ impl KerrCanonicalHamiltonian {
             screen_transversality_residual = screen_transversality_residual
                 .max(metric_inner(screen_basis[first_screen], k).abs());
             for second_screen in 0..2 {
-                let expected = if first_screen == second_screen { 1.0 } else { 0.0 };
+                let expected = if first_screen == second_screen {
+                    1.0
+                } else {
+                    0.0
+                };
                 screen_orthonormality_residual = screen_orthonormality_residual.max(
-                    (metric_inner(
-                        screen_basis[first_screen],
-                        screen_basis[second_screen],
-                    ) - expected)
+                    (metric_inner(screen_basis[first_screen], screen_basis[second_screen])
+                        - expected)
                         .abs(),
                 );
             }
@@ -1553,35 +1550,32 @@ impl KerrCanonicalHamiltonian {
             for alpha in 0..4 {
                 for mu in 0..4 {
                     for nu in 0..4 {
-                        rate += k[alpha]
-                            * d_g[alpha][mu][nu]
-                            * screen_basis[screen][mu]
-                            * k[nu];
+                        rate += k[alpha] * d_g[alpha][mu][nu] * screen_basis[screen][mu] * k[nu];
                     }
                 }
             }
             for mu in 0..4 {
                 for nu in 0..4 {
-                    rate += g[mu][nu]
-                        * screen_basis_derivative[screen][mu]
-                        * k[nu]
-                        + g[mu][nu]
-                            * screen_basis[screen][mu]
-                            * geodesic_acceleration[nu];
+                    rate += g[mu][nu] * screen_basis_derivative[screen][mu] * k[nu]
+                        + g[mu][nu] * screen_basis[screen][mu] * geodesic_acceleration[nu];
                 }
             }
-            transversality_rate_residual =
-                transversality_rate_residual.max(rate.abs());
+            transversality_rate_residual = transversality_rate_residual.max(rate.abs());
         }
         let metric_compatibility_residual = connection
             .metric_compatibility_relative_residual(&metric, &first)
             .map_err(JetError::from)?;
-        if screen_basis_derivative.iter().flatten().any(|value| !value.is_finite())
+        if screen_basis_derivative
+            .iter()
+            .flatten()
+            .any(|value| !value.is_finite())
             || !orthonormality_rate_residual.is_finite()
             || !transversality_rate_residual.is_finite()
             || !metric_compatibility_residual.is_finite()
         {
-            return Err(KerrGeodesicError::NonFinite("sachs_frame_transport_derivative"));
+            return Err(KerrGeodesicError::NonFinite(
+                "sachs_frame_transport_derivative",
+            ));
         }
         Ok(KerrSachsFrameTransportDerivative {
             coordinate_chart,
@@ -3017,12 +3011,8 @@ mod tests {
     #[test]
     fn sachs_parallel_transport_rhs_preserves_screen_constraints_in_boyer_lindquist_chart() {
         let black_hole = hole(0.0);
-        let observer = KerrFiniteRadiusObserver::new(
-            black_hole,
-            10.0,
-            core::f64::consts::FRAC_PI_2,
-        )
-        .unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let direction = KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
         let screen_basis = observer.screen_basis_to_chart_coordinates(
@@ -3048,26 +3038,15 @@ mod tests {
     #[test]
     fn sachs_parallel_transport_rhs_preserves_screen_constraints_in_ingoing_chart() {
         let black_hole = hole(0.7);
-        let observer = KerrFiniteRadiusObserver::new(
-            black_hole,
-            10.0,
-            core::f64::consts::FRAC_PI_2,
-        )
-        .unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
         assert_eq!(seed.coordinate_chart, KerrMinoCoordinateChart::IngoingKerr);
-        let screen_basis = observer.screen_basis_to_chart_coordinates(
-            seed.local_screen_basis,
-            seed.coordinate_chart,
-        );
+        let screen_basis = observer
+            .screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
         let result = KerrCanonicalHamiltonian::new(black_hole)
-            .sachs_frame_transport_derivative(
-                seed.state,
-                seed.coordinate_chart,
-                screen_basis,
-                1e-8,
-            )
+            .sachs_frame_transport_derivative(seed.state, seed.coordinate_chart, screen_basis, 1e-8)
             .unwrap();
         assert!(result.null_constraint_residual < 1e-9);
         assert!(result.screen_orthonormality_residual < 1e-9);
