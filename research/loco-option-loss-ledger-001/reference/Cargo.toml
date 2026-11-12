@@ -6,14 +6,3 @@ license = "AGPL-3.0-or-later"
 publish = false
 
 [workspace]
-
-[lib]
-path = "src/lib.rs"
-
-[lints.rust]
-unsafe_code = "forbid"
-missing_docs = "warn"
-
-[lints.clippy]
-all = "deny"
-pedantic = "warn"
