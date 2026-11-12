@@ -557,13 +557,13 @@ pub fn assess_contingent_sensing(
                 sensor.sensor.sensor_id
             ));
         }
-        if let Some(required) = &sensor.required_previous_observation {
-            if required.trim().is_empty() {
-                return Err(format!(
-                    "empty sensor prerequisite for {}",
-                    sensor.sensor.sensor_id
-                ));
-            }
+        if let Some(required) = &sensor.required_previous_observation
+            && required.trim().is_empty()
+        {
+            return Err(format!(
+                "empty sensor prerequisite for {}",
+                sensor.sensor.sensor_id
+            ));
         }
         prediction_maps.push(validate_sensor(&sensor.sensor, worlds)?);
     }
