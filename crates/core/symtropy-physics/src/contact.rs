@@ -132,7 +132,7 @@ impl<const D: usize> ContactManifold<D> {
         }
 
         let denom = inv_mass_a + inv_mass_b;
-        if denom < 1e-15 {
+        if !denom.is_finite() || denom <= 0.0 {
             return 0.0;
         }
 
@@ -323,4 +323,23 @@ mod tests {
         cache.begin_frame();
         assert_eq!(cache.pair_count(), 0);
     }
+    #[test]
+    fn impulse_magnitude_preserves_finite_large_mass_response() {
+        let manifold = ContactManifold::<3>::single(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::zeros(),
+            0.0,
+        );
+        let relative_velocity = SVector::from([0.0, -1.0, 0.0]);
+        let expected = 1.0e16;
+        let actual = manifold.impulse_magnitude(&relative_velocity, 0.0, 1.0e-16, 0.0);
+
+        assert!(
+            (actual / expected - 1.0).abs() < 1.0e-12,
+            "finite inverse mass should not be discarded by an absolute cutoff: {actual}"
+        );
+    }
+
 }
