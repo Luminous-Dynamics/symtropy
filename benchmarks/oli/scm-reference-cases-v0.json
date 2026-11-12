@@ -284,5 +284,14 @@
     "task_fitness_metrics_are_reported_separately_from_consensus",
     "best_fitness_seen_is_monotonic_and_includes_initial_observations",
     "communication_topology_baselines_share_exact_objective_evaluation_budgets"
+  ],
+  "topology_controls": [
+    {
+      "id": "NO_COMMUNICATION_EXPLICIT_EMPTY_ADJACENCY",
+      "implementation": "ScmCommunicationTopology::NoCommunication",
+      "purpose": "Independent local-update baseline; must create no adjacency even for duplicate positions",
+      "expected": "mean_communicating_neighbors=0 and isolated_agents=agent_count for every valid population",
+      "test": "no_communication_topology_never_connects_coincident_agents"
+    }
   ]
 }
