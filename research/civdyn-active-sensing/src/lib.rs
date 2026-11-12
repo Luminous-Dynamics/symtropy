@@ -540,6 +540,41 @@ pub fn assess_active_sensing(
     })
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CandidatePolicyDecision {
+    pub scenario_id: String,
+    pub sensor_id: String,
+    pub observation_id: String,
+    pub action_id: String,
+}
+
+/// Export the policy a controller may execute after receiving an observation.
+/// This projection deliberately contains no hidden world IDs, world outcomes,
+/// missingness causes, prediction receipts or evaluator regret rows.
+pub fn candidate_policy_map(report: &ActiveSensingReport) -> Vec<CandidatePolicyDecision> {
+    let Some(sensor_id) = report.recommended_sensor_id.as_deref() else {
+        return Vec::new();
+    };
+    let Some(assessment) = report.sensors.iter().find(|item| {
+        item.sensor_id == sensor_id && item.status == SensorStatus::Evaluated && item.affordable
+    }) else {
+        return Vec::new();
+    };
+
+    let mut decisions: Vec<CandidatePolicyDecision> = assessment.partitions.iter()
+        .filter_map(|partition| {
+            partition.selected_policy_id.as_ref().map(|policy_id| CandidatePolicyDecision {
+                scenario_id: report.scenario_id.clone(),
+                sensor_id: assessment.sensor_id.clone(),
+                observation_id: partition.observation_id.clone(),
+                action_id: policy_id.clone(),
+            })
+        })
+        .collect();
+    decisions.sort_by(|left, right| left.observation_id.cmp(&right.observation_id));
+    decisions
+}
+
 /// Build evaluator-only provenance for the sensor outcome process. This
 /// function is separate from candidate decision assessment; its returned
 /// missingness causes must never be supplied to candidate policies.
@@ -678,6 +713,35 @@ mod tests {
 
     fn close(left: f64, right: f64) {
         assert!((left - right).abs() < 1.0e-8, "{left} != {right}");
+    }
+
+    #[test]
+    fn candidate_policy_export_contains_only_observation_to_action_mapping() {
+        let (config, worlds, sensors) = {
+            let config = config();
+            let worlds = worlds();
+            let sensors = sensors();
+            (config, worlds, sensors)
+        };
+        let report = assess_active_sensing(&config, &worlds, &sensors).unwrap();
+        let decisions = candidate_policy_map(&report);
+        assert_eq!(decisions.len(), 2);
+        assert_eq!(decisions[0].scenario_id, "three-world-sensor-dual-control-v1");
+        assert_eq!(decisions[0].sensor_id, "independent_field_inspection");
+        assert_eq!(decisions[0].observation_id, "degraded");
+        assert_eq!(decisions[0].action_id, "repair");
+        assert_eq!(decisions[1].observation_id, "healthy");
+        assert_eq!(decisions[1].action_id, "defer");
+    }
+
+    #[test]
+    fn candidate_policy_export_is_empty_when_no_sensor_is_recommended() {
+        let mut configuration = config();
+        configuration.maximum_energy_kwh = 0.0;
+        configuration.maximum_penalty_service_units = 0.0;
+        let report = assess_active_sensing(&configuration, &worlds(), &sensors()).unwrap();
+        assert!(report.recommended_sensor_id.is_none());
+        assert!(candidate_policy_map(&report).is_empty());
     }
 
     #[test]
