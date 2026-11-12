@@ -1,0 +1,536 @@
+{
+  "schema_version": "luminous.highrise_reference_floor_disruptions.v0.1",
+  "profile_id": "HIGHRISE-REFERENCE-FLOOR-DISRUPTION-MATRIX-001",
+  "parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4937",
+  "highrise_parent_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4914",
+  "owner_contract": "https://github.com/Luminous-Dynamics/symtropy/issues/1843",
+  "status": "synthetic_scenario_corpus_design_not_executed",
+  "created_date": "2026-11-12",
+  "synthetic_only": true,
+  "claim_ceiling": "disruption_semantics_and_recovery_test_design_only_not_safety_qualification_or_physical_field_evidence",
+  "decision_time_rule": "A planner may use only facts admitted by its decision time; event_time and known_to_planner_when are distinct. No perfect-information hindsight.",
+  "comparison_tracks": [
+    "B0_FIXED_SCHEDULE",
+    "B1_DETERMINISTIC_RULE_RECOVERY",
+    "B2_EVIDENCE_BOUNDED_ADAPTIVE_REPLANNING",
+    "B3_BOUNDED_EXACT_MICRO_ORACLE"
+  ],
+  "state_semantics": [
+    "planned",
+    "released",
+    "attempted",
+    "produced_uninspected",
+    "first_pass_accepted",
+    "rejected",
+    "rework_pending",
+    "reinspection_pending",
+    "finally_accepted",
+    "blocked",
+    "unknown",
+    "safe_aborted",
+    "search_incomplete"
+  ],
+  "non_compensable_invariants": [
+    "safety_and_professional_approval_gates_are_hard_constraints",
+    "unknown_never_means_clear_compatible_safe_or_completed",
+    "executor_or_transport_completion_is_not_physical_acceptance",
+    "stale_design_site_epoch_or_calibration_invalidates_dependent_admissions",
+    "search_budget_exhaustion_is_incomplete_not_infeasible_or_optimal",
+    "rejected_output_gets_no_accepted_output_credit",
+    "independence_is_about_fault_domains_not_number_of_sensors"
+  ],
+  "scenarios": [
+    {
+      "case_id": "HFD01_HOIST_OUTAGE",
+      "category": "shared_resource_failure",
+      "event": {
+        "event_type": "exclusive_hoist_becomes_unavailable",
+        "event_time": "after_reservation_before_delivery",
+        "detected_at": "at_next_admissible_state_reconciliation",
+        "known_to_planner_when": "only_after_admitted_fault_observation"
+      },
+      "affected_task_ids": [
+        "REBAR_INSTALL",
+        "MEP_EMBEDS",
+        "FORMWORK_STRIP"
+      ],
+      "invalidation_scope": [
+        "current_and_future_reservations_for_failed_hoist",
+        "dependent_task_start_admissions"
+      ],
+      "required_preconditions": [
+        "hoist_identity_and_state_current",
+        "alternative_capacity_explicitly_available_and_qualified"
+      ],
+      "allowed_responses": [
+        "hold_affected_work",
+        "replan_around_remaining_admissible_capacity",
+        "request_authorized_recovery"
+      ],
+      "forbidden_inferences": [
+        "assume_reserved_resource_remains_available",
+        "assume_second_hoist_exists",
+        "reinterpret_traffic_reservation_as_lift_authorization"
+      ],
+      "terminal_dispositions": [
+        "blocked_resource_unavailable",
+        "replanned_candidate_not_authorized",
+        "recovered_after_independent_return_to_service"
+      ],
+      "acceptance_effect": "No task receives output credit from a failed or merely reserved lift; material delivery remains unaccepted until destination, identity and condition are verified.",
+      "metrics": [
+        "resource_occupied_time",
+        "queue_and_wait_time",
+        "recovery_time",
+        "accepted_output_delay",
+        "replan_status"
+      ]
+    },
+    {
+      "case_id": "HFD02_LATE_OR_MISIDENTIFIED_MATERIAL",
+      "category": "supply_and_provenance",
+      "event": {
+        "event_type": "required_material_late_damaged_or_wrong_lot",
+        "event_time": "before_task_release",
+        "detected_at": "receiving_or_kitting_check",
+        "known_to_planner_when": "after_receipt_of_authoritative_lot_and_condition_observation"
+      },
+      "affected_task_ids": [
+        "REBAR_INSTALL",
+        "MEP_EMBEDS",
+        "CONCRETE_PLACE"
+      ],
+      "invalidation_scope": [
+        "material_dependent_task_release",
+        "dependent_schedule_forecast"
+      ],
+      "required_preconditions": [
+        "exact_material_identity",
+        "batch_or_lot_provenance",
+        "approved_substitution_if_applicable",
+        "condition_acceptance"
+      ],
+      "allowed_responses": [
+        "hold_dependent_tasks",
+        "reschedule_unaffected_work",
+        "request_qualified_substitution_review"
+      ],
+      "forbidden_inferences": [
+        "treat_missing_lot_as_approved",
+        "substitute_by_similarity_or_stock_availability",
+        "count_delivered_but_unaccepted_material_as_ready"
+      ],
+      "terminal_dispositions": [
+        "blocked_material_unavailable",
+        "blocked_material_not_qualified",
+        "substitution_review_pending",
+        "material_accepted_for_declared_scope"
+      ],
+      "acceptance_effect": "No material-dependent work is released until the exact lot/condition and permitted substitution are accepted by the relevant authority.",
+      "metrics": [
+        "delivery_variance",
+        "material_search_and_rehandling_time",
+        "rejected_material_quantity",
+        "downstream_wait_time",
+        "accepted_output_delay"
+      ]
+    },
+    {
+      "case_id": "HFD03_DESIGN_OR_SITE_EPOCH_STALE",
+      "category": "configuration_and_context_change",
+      "event": {
+        "event_type": "approved_design_revision_or_site_epoch_changes_after_schedule_generation",
+        "event_time": "after_schedule_freeze_before_or_during_execution",
+        "detected_at": "revision_or_epoch_reconciliation",
+        "known_to_planner_when": "new_revision_or_epoch_is_admitted"
+      },
+      "affected_task_ids": [
+        "CONTROL_LAYOUT",
+        "TEMP_WORKS_READY",
+        "REBAR_INSTALL",
+        "MEP_EMBEDS",
+        "FORMWORK_CLOSE"
+      ],
+      "invalidation_scope": [
+        "all_tasks_whose_geometry_material_interface_or_acceptance_dependencies_changed",
+        "downstream_tasks_depending_on_invalidated_outputs"
+      ],
+      "required_preconditions": [
+        "exact_current_design_revision",
+        "exact_site_epoch",
+        "dependency_impact_analysis",
+        "reapproval_where_required"
+      ],
+      "allowed_responses": [
+        "hold_affected_tasks",
+        "recompute_dependency_closure",
+        "reschedule_unaffected_tasks_only_when_independence_is_proven"
+      ],
+      "forbidden_inferences": [
+        "reuse_cached_schedule_as_current",
+        "silently_mix_revisions",
+        "assume_map_version_equals_design_revision"
+      ],
+      "terminal_dispositions": [
+        "blocked_stale_context",
+        "revalidated_for_new_revision",
+        "unaffected_scope_proven"
+      ],
+      "acceptance_effect": "Prior outputs remain linked to their original revision; affected downstream output is not accepted until requalification is complete.",
+      "metrics": [
+        "revision_detection_latency",
+        "affected_task_count",
+        "revalidation_time",
+        "rework_due_to_change",
+        "unaffected_work_preserved"
+      ]
+    },
+    {
+      "case_id": "HFD04_INSPECTION_REJECTS_REBAR_OR_EMBEDS",
+      "category": "quality_rejection_and_rework",
+      "event": {
+        "event_type": "independent_inspection_rejects_first_pass_installation",
+        "event_time": "at_pre_pour_hold_point",
+        "detected_at": "authorized_inspection_disposition",
+        "known_to_planner_when": "signed_or_authoritative_rejection_is_admitted"
+      },
+      "affected_task_ids": [
+        "REBAR_INSTALL",
+        "MEP_EMBEDS",
+        "PREPOUR_INSPECT",
+        "CONCRETE_PLACE"
+      ],
+      "invalidation_scope": [
+        "prepour_release",
+        "concrete_place_start",
+        "downstream_work_depending_on_rejected_installation"
+      ],
+      "required_preconditions": [
+        "typed_defect_record",
+        "approved_corrective_work_scope",
+        "reinspection_criteria_and_authority"
+      ],
+      "allowed_responses": [
+        "preserve_rejected_first_pass",
+        "schedule_corrective_work",
+        "schedule_reinspection",
+        "release_downstream_only_after_acceptance"
+      ],
+      "forbidden_inferences": [
+        "count_rejected_installation_as_accepted",
+        "let_robot_self_check_override_independent_rejection",
+        "allow_concrete_place_while_hold_point_unreleased"
+      ],
+      "terminal_dispositions": [
+        "rework_pending",
+        "reinspection_pending",
+        "accepted_after_reinspection",
+        "final_rejection_or_escalation"
+      ],
+      "acceptance_effect": "The rejected unit earns zero first-pass and final-acceptance credit until corrective work is independently reinspected and accepted.",
+      "metrics": [
+        "first_pass_acceptance",
+        "rework_labor_and_material",
+        "reinspection_latency",
+        "escaped_defect_count",
+        "accepted_output_per_total_crew_hour"
+      ]
+    },
+    {
+      "case_id": "HFD05_TOOL_OR_SENSOR_CALIBRATION_INVALIDATED",
+      "category": "machine_capability_and_calibration",
+      "event": {
+        "event_type": "tool_sensor_or_fixture_calibration_invalidated_after_impact_swap_or_expiry",
+        "event_time": "before_next_task_or_during_task",
+        "detected_at": "calibration_health_or_independent_check",
+        "known_to_planner_when": "current_calibration_state_is_reconciled"
+      },
+      "affected_task_ids": [
+        "CONTROL_LAYOUT",
+        "REBAR_INSTALL",
+        "MEP_EMBEDS",
+        "FORMWORK_CLOSE"
+      ],
+      "invalidation_scope": [
+        "task_capability_admission_relying_on_invalidated_tool_sensor_fixture_or_transform"
+      ],
+      "required_preconditions": [
+        "exact_machine_tool_and_fixture_identity",
+        "current_calibration_record",
+        "task_specific_uncertainty_within_declared_margin",
+        "approved_recommissioning"
+      ],
+      "allowed_responses": [
+        "hold_affected_task",
+        "isolate_tool_or_sensor",
+        "recalibrate_and_reverify",
+        "reassign_only_to_another_qualified_configuration"
+      ],
+      "forbidden_inferences": [
+        "reuse_stale_calibration",
+        "assume_tool_swap_preserves_calibration",
+        "use_robot_pose_estimate_as_independent_reference"
+      ],
+      "terminal_dispositions": [
+        "blocked_calibration_unknown",
+        "recalibration_pending",
+        "requalified_for_declared_task",
+        "configuration_rejected"
+      ],
+      "acceptance_effect": "No affected task is dispatched or credited while decision-critical calibration or measurement uncertainty is unknown or out of bounds.",
+      "metrics": [
+        "calibration_drift",
+        "time_to_detect",
+        "recommissioning_time",
+        "task_abort_rate",
+        "accepted_output_loss"
+      ]
+    },
+    {
+      "case_id": "HFD06_COMMUNICATION_LOSS_OR_STALE_EXECUTOR_STATE",
+      "category": "distributed_state_and_observation",
+      "event": {
+        "event_type": "robot_broker_or_network_link_lost_with_pending_task_state",
+        "event_time": "during_order_or_execution",
+        "detected_at": "heartbeat_timeout_or_connection_event",
+        "known_to_planner_when": "loss_event_or_state_staleness_is_observed"
+      },
+      "affected_task_ids": [
+        "REBAR_INSTALL",
+        "MEP_EMBEDS",
+        "FORMWORK_CLOSE",
+        "MATERIAL_DELIVERY"
+      ],
+      "invalidation_scope": [
+        "current_executor_state_confidence",
+        "resource_reservations_whose_owner_or_expiry_cannot_be_reconciled",
+        "dependent_task_start_until_state_reconciled"
+      ],
+      "required_preconditions": [
+        "session_and_sequence_continuity",
+        "fresh_state_observation",
+        "physical_state_reconciliation",
+        "owner_bound_resource_release"
+      ],
+      "allowed_responses": [
+        "enter_unknown_or_hold",
+        "preserve_original_trace",
+        "reconcile_exact_task_and_executor_state",
+        "request_human_inspection_if_physical_state_cannot_be_observed"
+      ],
+      "forbidden_inferences": [
+        "treat_last_seen_running_as_completed",
+        "treat_disconnect_as_cancel_or_resource_release",
+        "accept_duplicate_or_reordered_state_without_reconciliation"
+      ],
+      "terminal_dispositions": [
+        "state_unknown",
+        "reconciled_in_progress",
+        "reconciled_safe_abort",
+        "reconciled_output_pending_inspection",
+        "reconciled_terminal"
+      ],
+      "acceptance_effect": "No output is accepted from transport completion or stale executor state; independent physical observation and inspection remain required.",
+      "metrics": [
+        "communication_outage_duration",
+        "reconciliation_latency",
+        "duplicate_and_reordered_message_count",
+        "unknown_state_duration",
+        "false_completion_count"
+      ]
+    },
+    {
+      "case_id": "HFD07_WEATHER_OR_OPERATING_DOMAIN_EXIT",
+      "category": "operating_domain_change",
+      "event": {
+        "event_type": "measured_environment_exceeds_declared_task_or_equipment_operating_domain",
+        "event_time": "before_or_during_exposed_work",
+        "detected_at": "environmental_sensor_or_site_observation",
+        "known_to_planner_when": "admissible_measured_condition_is_available"
+      },
+      "affected_task_ids": [
+        "TEMP_WORKS_READY",
+        "TOWER_CRANE_LIFT",
+        "FORMWORK_CLOSE",
+        "FACADE_INSTALL"
+      ],
+      "invalidation_scope": [
+        "task_admissions_conditioned_on_exceeded_environmental_limits",
+        "dependent_lift_or_access_reservations"
+      ],
+      "required_preconditions": [
+        "declared_task_specific_ODD",
+        "current_environment_measurement",
+        "approved_stop_and_restart_procedure",
+        "qualified_authority_review"
+      ],
+      "allowed_responses": [
+        "hold_affected_tasks",
+        "resequence_indoor_or_protected_tasks_when_proven_independent",
+        "request_site_authority_review"
+      ],
+      "forbidden_inferences": [
+        "infer_weather_is_safe_from_missing_sensor_data",
+        "widen_ODD_to_maintain_schedule",
+        "trade_environmental_safety_gate_against_productivity"
+      ],
+      "terminal_dispositions": [
+        "blocked_ODD_exit",
+        "held_pending_authority",
+        "requalified_with_current_measurements"
+      ],
+      "acceptance_effect": "No exposed task is credited or resumed solely to recover schedule; the relevant site and equipment authorities control restart.",
+      "metrics": [
+        "ODD_exit_count",
+        "hold_duration",
+        "safe_resequence_value",
+        "recovery_time",
+        "worker_exposure_added_or_removed"
+      ]
+    },
+    {
+      "case_id": "HFD08_SEARCH_BUDGET_EXHAUSTION",
+      "category": "planner_epistemic_status",
+      "event": {
+        "event_type": "bounded_scheduler_or_recovery_search_reaches_declared_budget",
+        "event_time": "during_planning",
+        "detected_at": "search_budget_counter",
+        "known_to_planner_when": "budget_exhaustion_is_reported"
+      },
+      "affected_task_ids": [
+        "ALL_UNSCHEDULED_TASKS"
+      ],
+      "invalidation_scope": [
+        "optimality_or_infeasibility_claim_for_unresolved_search_space"
+      ],
+      "required_preconditions": [
+        "frozen_input_digest",
+        "declared_search_budget",
+        "independent_validation_of_any_returned_candidate",
+        "explicit_search_completeness_status"
+      ],
+      "allowed_responses": [
+        "return_validated_candidate_not_proven_optimal",
+        "return_incomplete_or_unknown",
+        "request_larger_budget_or_human_review"
+      ],
+      "forbidden_inferences": [
+        "claim_infeasible_after_timeout",
+        "claim_optimal_without_proof",
+        "promote_partial_schedule_to_accepted_physical_work"
+      ],
+      "terminal_dispositions": [
+        "bounded_candidate_feasible_not_proven_optimal",
+        "search_incomplete_unknown",
+        "proven_infeasible_only_with_valid_proof"
+      ],
+      "acceptance_effect": "Search outcome never creates physical acceptance; a partial candidate has no authority to release work.",
+      "metrics": [
+        "search_states_expanded",
+        "budget_utilization",
+        "incomplete_result_rate",
+        "validated_candidate_rate",
+        "optimality_gap_where_known"
+      ]
+    },
+    {
+      "case_id": "HFD09_COMMON_MODE_SURVEY_CONTROL_FAILURE",
+      "category": "measurement_independence",
+      "event": {
+        "event_type": "shared_control_network_or_reference_frame_found_to_have_common_mode_error",
+        "event_time": "during_or_after_site_control_establishment",
+        "detected_at": "independent_check_or_control_network_adjustment",
+        "known_to_planner_when": "referee_dependency_analysis_is_admitted"
+      },
+      "affected_task_ids": [
+        "CONTROL_LAYOUT",
+        "REBAR_INSTALL",
+        "MEP_EMBEDS",
+        "FORMWORK_CLOSE"
+      ],
+      "invalidation_scope": [
+        "measurements_dependent_on_affected_control_network",
+        "claims_of_independent_metrology_using_shared_reference"
+      ],
+      "required_preconditions": [
+        "independent_reference_fault_domain",
+        "control_network_adjustment",
+        "frame_and_transform_provenance",
+        "uncertainty_budget"
+      ],
+      "allowed_responses": [
+        "mark_results_non_independent_or_unknown",
+        "re-establish_control_with_independent_reference",
+        "repeat affected inspection"
+      ],
+      "forbidden_inferences": [
+        "count_two_instruments_as_independent_if_they_share_the_same_bad_datum",
+        "promote_control_residual_as_physical_truth_without_independent_check"
+      ],
+      "terminal_dispositions": [
+        "measurement_claim_not_admissible",
+        "independent_control_reestablished",
+        "reinspection_required"
+      ],
+      "acceptance_effect": "Affected layout/installation outputs cannot be independently accepted until the measurement chain and dependency independence are requalified.",
+      "metrics": [
+        "shared_fault_domain_count",
+        "control_network_residual",
+        "reference_uncertainty",
+        "reinspection_count",
+        "claim_admissibility"
+      ]
+    },
+    {
+      "case_id": "HFD10_AS_BUILT_INTERFACE_CONFLICT",
+      "category": "realized_geometry_and_downstream_fit",
+      "event": {
+        "event_type": "independent_as_built_observation_detects_interface_out_of_tolerance",
+        "event_time": "after_upstream_installation_before_downstream_closure",
+        "detected_at": "survey_or_discipline_inspection",
+        "known_to_planner_when": "admissible_as_built_discrepancy_is_ingested"
+      },
+      "affected_task_ids": [
+        "REBAR_INSTALL",
+        "MEP_EMBEDS",
+        "FORMWORK_CLOSE",
+        "PREPOUR_INSPECT"
+      ],
+      "invalidation_scope": [
+        "downstream_tasks_dependent_on_conflicting_interface",
+        "accepted_status_of_affected_component_until_disposition"
+      ],
+      "required_preconditions": [
+        "exact_as_designed_revision",
+        "independent_as_built_geometry",
+        "task_specific_tolerance_and_uncertainty",
+        "engineer_disposition"
+      ],
+      "allowed_responses": [
+        "hold_dependent_work",
+        "request_engineering_disposition",
+        "schedule_repair_or_approved_design_change",
+        "reinspect_downstream_interface"
+      ],
+      "forbidden_inferences": [
+        "treat_BIM_presence_as_as_built_truth",
+        "hide_discrepancy_in_average_error",
+        "automatically_move_structure_or_service_route_without_approval"
+      ],
+      "terminal_dispositions": [
+        "blocked_interface_discrepancy",
+        "repair_pending",
+        "design_change_requalification_pending",
+        "accepted_after_reinspection"
+      ],
+      "acceptance_effect": "An out-of-tolerance interface remains rejected/unknown until the competent design authority and independent inspection process clear the affected scope.",
+      "metrics": [
+        "interface_residual",
+        "affected_downstream_task_count",
+        "repair_and_reinspection_labor",
+        "schedule_recovery_time",
+        "escaped_defect_count"
+      ]
+    }
+  ]
+}
