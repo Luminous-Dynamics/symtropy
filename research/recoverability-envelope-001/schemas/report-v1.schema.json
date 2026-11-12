@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/recoverability-envelope-report-v1.schema.json",
+  "title": "Recoverability envelope report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "run_id",
+    "model_arm_id",
+    "benchmark_id",
+    "scenario_family",
+    "pair_id",
+    "baseline_run_id",
+    "expected_ticks",
+    "observed_ticks",
+    "fault_event_count",
+    "correlation_group_count",
+    "maximum_concurrent_faults",
+    "detected_fault_count",
+    "fallback_fault_count",
+    "recovered_fault_count",
+    "contract_met_fault_count",
+    "total_constraint_violation_ticks",
+    "deadline_miss_ticks",
+    "outcome_unscored_ticks",
+    "results",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "model_arm_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "benchmark_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "scenario_family": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pair_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseline_run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "observed_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fault_event_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "correlation_group_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "maximum_concurrent_faults": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "detected_fault_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "fallback_fault_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recovered_fault_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "contract_met_fault_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_constraint_violation_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "deadline_miss_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "outcome_unscored_ticks": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/fault_result"
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "nullable_tick": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "fault_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fault_id",
+        "kind",
+        "channel",
+        "onset_tick",
+        "end_tick_exclusive",
+        "duration_ticks",
+        "severity_ppm",
+        "correlation_group",
+        "critical_phase",
+        "onset_in_critical_phase",
+        "critical_phase_overlap_ticks",
+        "critical_phase_fallback_ticks",
+        "critical_phase_deadline_miss_ticks",
+        "critical_phase_constraint_violation_ticks",
+        "detected",
+        "detection_tick",
+        "detection_delay_ticks",
+        "fallback_observed",
+        "fallback_tick",
+        "fallback_delay_ticks",
+        "recovery_tick",
+        "recovery_latency_ticks",
+        "fallback_ticks_until_recovery",
+        "degraded_ticks_during_fault",
+        "deadline_miss_ticks_during_fault",
+        "constraint_violation_ticks",
+        "first_constraint_violation_tick",
+        "contract_met",
+        "unmet_conditions"
+      ],
+      "properties": {
+        "fault_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "enum": [
+            "camera_frame_drop",
+            "camera_partial_observation",
+            "camera_staleness",
+            "camera_calibration_shift",
+            "gps_noise",
+            "speed_bias",
+            "odometry_drift",
+            "inference_delay",
+            "deadline_overrun",
+            "communication_drop"
+          ]
+        },
+        "channel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "onset_tick": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_tick_exclusive": {
+          "type": "integer",
+          "minimum": 2
+        },
+        "duration_ticks": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "severity_ppm": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000000
+        },
+        "correlation_group": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "critical_phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "onset_in_critical_phase": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "critical_phase_overlap_ticks": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "critical_phase_fallback_ticks": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "critical_phase_deadline_miss_ticks": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "critical_phase_constraint_violation_ticks": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "detected": {
+          "type": "boolean"
+        },
+        "detection_tick": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "detection_delay_ticks": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "fallback_observed": {
+          "type": "boolean"
+        },
+        "fallback_tick": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "fallback_delay_ticks": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "recovery_tick": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "recovery_latency_ticks": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "fallback_ticks_until_recovery": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "degraded_ticks_during_fault": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "deadline_miss_ticks_during_fault": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "constraint_violation_ticks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "first_constraint_violation_tick": {
+          "$ref": "#/$defs/nullable_tick"
+        },
+        "contract_met": {
+          "type": "boolean"
+        },
+        "unmet_conditions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "x-invariants": [
+    "No weighted or composite recoverability score is included.",
+    "critical_phase metrics are null only when the event has no declared critical phase.",
+    "critical_phase_overlap_ticks counts event-exposure ticks whose maneuver_phase exactly matches critical_phase.",
+    "phase-conditioned fallback, deadline and violation counts are subsets of the event's phase-overlap ticks.",
+    "The report is a finite-trace evaluator output, not a vehicle safety case."
+  ]
+}
