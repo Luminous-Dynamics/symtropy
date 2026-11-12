@@ -238,3 +238,51 @@ This is the strongest operational-vessel classification comparator currently in 
 6. Compare thermodynamic-only, vibration-only and fused inputs, while preserving the differing acquisition pathways and measurement uncertainty.
 
 The 99.72% result is a **paper-reported reproduction target, not a fleet SOTA ranking**. The programme should aim to match it under the original protocol and materially outperform it under stronger unseen-run, unseen-load, weak-fault, uncertainty and evidence-integrity evaluations.
+
+
+## 12. Deployment-shift and adaptive-sensing benchmark extension (12 November 2026)
+
+Recent reviews indicate that the field needs scenario-aligned evaluation, not another pooled classifier leaderboard. The September 2026 mechanical OOD survey (Lin et al., DOI 10.1007/s10462-026-11722-3) codes 161 primary OOD-related mechanical diagnosis studies and separates condition shift (C-shift), fault-semantic shift (F-shift) and combined C+F settings. It argues that known-class generalization and unknown-fault detection are different requirements; reliable deployment combines both with calibrated OOD detection and an escalation/human-referral route.
+
+The June 2026 zero-shot survey (DOI 10.1049/gtd2.70361) distinguishes four target-semantic/domain-relation scenarios (SD-UFC, SD-CFA, CD-UFC, CD-CFA) and two special data-access settings (zero-target-shot and zero-fault-shot). It explicitly identifies scenario-aligned evaluation/reporting standards as a gap. Therefore, every Symtropy transfer result must declare whether it uses labelled target examples, unlabelled target data, a target fault catalogue/semantic prior, or no target examples at all. “Zero-shot” must never be used as a synonym for ordinary unsupervised domain adaptation.
+
+An October 2026 review of adaptive sensor placement for mechanical digital twins (Li et al., DOI 10.1016/j.jmsy.2026.07.027) describes a lifecycle loop of virtual pre-placement, data/model fusion and calibration, performance evaluation, triggered re-optimization and software-defined adjustment. It also names model generalization, real-time computation and complete-loop integration as open challenges. For maritime engineering, the safe translation is **qualification-aware redesign proposals**: reevaluate diagnosability when configuration, sensor calibration, operating envelope, fault priorities or onboard maintenance constraints change; do not autonomously install, move, enable or disable physical sensors.
+
+### Required benchmark axes
+
+| Axis | Frozen split / access rule | Primary outputs | Must not be conflated with |
+|---|---|---|---|
+| Within-engine condition generalization | Hold out entire loads/cycles/transient regimes within one physical engine | Per-fault macro recall, event recall, calibration, latency | Cross-engine transfer |
+| Run/intervention generalization | Hold out entire fault injections, campaigns or recordings | Event recall, false alarms per valid engine-hour, severity recall | Random window split |
+| Cross-engine transfer | Leave one physical engine/configuration out; disclose target labels and target calibration | Worst-engine performance, negative transfer, calibration | Cross-vessel transfer |
+| Cross-vessel transfer | Leave one vessel out; independent instrumentation/configuration | Worst-vessel performance, failure/unknown rates | Another run on the same vessel |
+| Fault-semantic OOD | Hold out complete fault families or severity mechanisms | False-known rate, unknown-fault recall, risk-coverage, referral precision | Condition-only OOD |
+| Combined C+F shift | Hold out both condition and fault semantics | Joint selective risk and calibration under unseen combinations | A single held-out load |
+| Zero-shot | Freeze catalogue/semantic priors; target data access must be exactly specified | Per-scenario accuracy, false-known, prior sensitivity, abstention | Few-shot or unlabeled-target adaptation |
+| Adaptive sensor layout | Freeze baseline configuration; trigger on a declared change; compare against no-reoptimization and static Pareto layouts | Retained diagnosability, worst-case pair loss, requalification latency, lifecycle burden | Classifier retraining alone |
+
+### SOTA reference scores — separate evidence strata
+
+These are reported values from different papers and must not be ranked as one table:
+
+- **99.72% balanced accuracy:** a seven-class SVM severity classifier on one operational-vessel auxiliary engine, two induced fault mechanisms and three steady load points; the reported 80/20 split and 10-fold CV are not established as intervention- or vessel-grouped. This is the strongest operational-vessel comparator in this registry, not a fleet transfer result.
+- **83.64% average accuracy:** adaptive multi-source transfer on pure real measured scenarios for an instrumented 8V396 testbed and lubrication faults; exact split groupings still need source audit.
+- **82.37% average accuracy:** the same study's real/simulation hybrid scenario; separate from its real-only result.
+- **70.18% accuracy:** zero-shot virtual-to-real transfer in the Xie et al. multi-source thermal dataset; simulation, industrial-noise bench, real-vessel telemetry and virtual-real fused data are distinct evidence subsets.
+- **99.45% accuracy:** a separate simulation-only 2,567-sample GT-Power study with randomized stratified 70/30 split and five-fold CV. It is not physical-vessel accuracy.
+
+Our first target is to reproduce each result on its own protocol and evidence source, including the strongest simple ablation and per-fault results. Our second target is to show which scores survive grouped chronological/intervention splits, leave-one-load-out, leave-one-engine/vessel-out, OOD faults and sensor/common-cause removal. Do not claim “better than SOTA” by comparing 99.45% simulation accuracy with 83.64% measured transfer or 99.72% balanced accuracy on a single vessel.
+
+### Proposed qualification metrics and research aims
+
+Report separate known-class and unknown-class results: macro/balanced recall, per-fault/severity recall, event recall, false alarms per valid engine-hour, detection latency, false-known/OOD rate, unknown-fault recall, Brier/log score or interval coverage where probabilistic semantics are valid, risk-versus-coverage, referral precision, worst-engine/worst-vessel subgroup, and degradation under sensor/timebase/common-cause loss.
+
+Proposed research aims (not achieved results or operational thresholds):
+- +5 percentage points macro/event recall at a matched false-alarm-per-engine-hour budget on an independent run/intervention holdout.
+- ≤5% false-known rate on frozen unknown-fault episodes at a declared coverage level.
+- Prior-domain macro-recall degradation ≤2 percentage points after each adaptation, with calibration independently rechecked.
+- 100% correct abstention/referral on the frozen synthetic C-shift/F-shift/C+F falsification matrix.
+- No accepted future, post-hoc or target-label leakage in the confirmatory split.
+- Re-optimize the sensor-layout Pareto set only after a declared configuration/mission change; report the number of prior diagnoses whose qualification remains valid, the number requiring requalification, and the cost/time of that process.
+
+The benchmark result should therefore be a scenario-by-scenario evidence passport, not one composite score. A hard-gate violation (future leakage, false-known on an unobservable fault, false-independent channel promotion or unauthorized operating action) cannot be averaged away by a high classification score.
