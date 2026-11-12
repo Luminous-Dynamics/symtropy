@@ -428,17 +428,17 @@ mod tests {
                             .find(|world| world.world_id == world_id)
                             .unwrap();
                         SensorPrediction {
-                        world_id: world_id.to_owned(),
-                        world_digest: world.world_digest.clone(),
-                        observation_id: observation_id.to_owned(),
-                        missing_cause: if observation_id == "missing" {
-                            Some(MissingCause::SensorDeviceFailure)
-                        } else {
-                            None
-                        },
-                        latency_service_loss_per_tick: loss,
-                        prediction_receipt_digest: format!("sha256-{id}-{world_id}-receipt"),
-                    }
+                            world_id: world_id.to_owned(),
+                            world_digest: world.world_digest.clone(),
+                            observation_id: observation_id.to_owned(),
+                            missing_cause: if observation_id == "missing" {
+                                Some(MissingCause::SensorDeviceFailure)
+                            } else {
+                                None
+                            },
+                            latency_service_loss_per_tick: loss,
+                            prediction_receipt_digest: format!("sha256-{id}-{world_id}-receipt"),
+                        }
                     })
                     .collect(),
             },
