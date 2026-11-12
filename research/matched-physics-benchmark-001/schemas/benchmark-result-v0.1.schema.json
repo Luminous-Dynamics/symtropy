@@ -1,0 +1,683 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/research/matched-physics-benchmark-001/schemas/benchmark-result-v0.1.schema.json",
+  "title": "Luminous matched physics benchmark result v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "result_id",
+    "result_mode",
+    "case_id",
+    "case_payload_sha256",
+    "execution_status",
+    "implementation",
+    "environment",
+    "semantic_mapping",
+    "metrics",
+    "comparison",
+    "claim_boundary"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "luminous.matched_physics_benchmark_result.v0.1"
+    },
+    "result_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "result_mode": {
+      "enum": [
+        "synthetic_contract_test",
+        "measured_run"
+      ]
+    },
+    "case_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "case_payload_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "execution_status": {
+      "enum": [
+        "NOT_RUN",
+        "COMPLETED",
+        "FAILED",
+        "INCONCLUSIVE"
+      ]
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adapter_id",
+        "implementation_name",
+        "version",
+        "algorithm",
+        "source_commit_sha"
+      ],
+      "properties": {
+        "adapter_id": {
+          "enum": [
+            "symtropy-reference",
+            "independent-high-precision-oracle",
+            "drake",
+            "mujoco",
+            "pinocchio"
+          ]
+        },
+        "implementation_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "algorithm": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_commit_sha": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{40}$"
+            },
+            {
+              "const": "NOT_APPLICABLE"
+            }
+          ]
+        },
+        "adapter_contract_version": {
+          "type": "string"
+        },
+        "binary_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "const": "NOT_APPLICABLE"
+            }
+          ]
+        },
+        "solver_options_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "const": "NOT_APPLICABLE"
+            }
+          ]
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "operating_system",
+        "architecture",
+        "cpu_model",
+        "compiler_or_runtime",
+        "floating_point_mode"
+      ],
+      "properties": {
+        "operating_system": {
+          "type": "string",
+          "minLength": 1
+        },
+        "architecture": {
+          "type": "string",
+          "minLength": 1
+        },
+        "cpu_model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "compiler_or_runtime": {
+          "type": "string",
+          "minLength": 1
+        },
+        "floating_point_mode": {
+          "type": "string",
+          "minLength": 1
+        },
+        "thread_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "warmup_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sample_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repetitions_per_sample": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "semantic_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "case_payload_sha256",
+        "coordinate_convention",
+        "units",
+        "physical_model",
+        "initial_conditions",
+        "force_covector_semantics",
+        "constraints",
+        "integrator_and_timestep",
+        "observable_mapping",
+        "mapping_receipt_sha256"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE",
+            "NOT_RUN"
+          ]
+        },
+        "case_payload_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "coordinate_convention": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE",
+            "NOT_RUN"
+          ]
+        },
+        "units": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE",
+            "NOT_RUN"
+          ]
+        },
+        "physical_model": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE",
+            "NOT_RUN"
+          ]
+        },
+        "initial_conditions": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE",
+            "NOT_RUN"
+          ]
+        },
+        "force_covector_semantics": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE",
+            "NOT_RUN"
+          ]
+        },
+        "constraints": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE",
+            "NOT_RUN"
+          ]
+        },
+        "integrator_and_timestep": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE",
+            "NOT_RUN"
+          ]
+        },
+        "observable_mapping": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "INCONCLUSIVE",
+            "NOT_APPLICABLE",
+            "NOT_RUN"
+          ]
+        },
+        "mapping_receipt_sha256": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "const": "NOT_APPLICABLE"
+            }
+          ]
+        },
+        "mismatch_reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "numerical",
+        "physical",
+        "performance"
+      ],
+      "properties": {
+        "numerical": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tangent_metric_norm_relative_drift",
+            "cotangent_dual_norm_relative_drift",
+            "pairing_relative_drift",
+            "normwise_backward_error",
+            "componentwise_backward_error",
+            "condition_estimate",
+            "high_precision_forward_error",
+            "forward_error_bound"
+          ],
+          "properties": {
+            "tangent_metric_norm_relative_drift": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "cotangent_dual_norm_relative_drift": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "pairing_relative_drift": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "normwise_backward_error": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "componentwise_backward_error": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "condition_estimate": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 1
+            },
+            "high_precision_forward_error": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "forward_error_bound": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "nonlinear_residual": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "constraint_violation": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "physical": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "lifted_position_error",
+            "lifted_velocity_error",
+            "momentum_error",
+            "energy_work_defect",
+            "step_equivariance_defect"
+          ],
+          "properties": {
+            "lifted_position_error": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "lifted_velocity_error": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "momentum_error": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "energy_work_defect": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "step_equivariance_defect": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        },
+        "performance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "median_ns_per_step",
+            "p95_ns_per_step",
+            "p99_ns_per_step",
+            "factorization_ns",
+            "peak_memory_bytes"
+          ],
+          "properties": {
+            "median_ns_per_step": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "p95_ns_per_step": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "p99_ns_per_step": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "factorization_ns": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "peak_memory_bytes": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "basis",
+        "claim_class",
+        "general_sota_superiority"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "NOT_COMPARABLE",
+            "MATCHED"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "NONE",
+            "EXACT_CASE_AND_SEMANTIC_MAPPING"
+          ]
+        },
+        "claim_class": {
+          "enum": [
+            "NONE",
+            "MATCHED_FIXTURE_ONLY"
+          ]
+        },
+        "comparison_group_id": {
+          "type": "string"
+        },
+        "general_sota_superiority": {
+          "const": false
+        },
+        "matched_baseline_adapter": {
+          "enum": [
+            "symtropy-reference",
+            "independent-high-precision-oracle",
+            "drake",
+            "mujoco",
+            "pinocchio"
+          ]
+        }
+      }
+    },
+    "claim_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "production_authority",
+        "limitations"
+      ],
+      "properties": {
+        "production_authority": {
+          "const": false
+        },
+        "limitations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "comparison": {
+            "properties": {
+              "status": {
+                "const": "MATCHED"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "result_mode": {
+            "const": "measured_run"
+          },
+          "execution_status": {
+            "const": "COMPLETED"
+          },
+          "semantic_mapping": {
+            "properties": {
+              "status": {
+                "const": "PASS"
+              },
+              "coordinate_convention": {
+                "const": "PASS"
+              },
+              "units": {
+                "const": "PASS"
+              },
+              "physical_model": {
+                "const": "PASS"
+              },
+              "initial_conditions": {
+                "const": "PASS"
+              },
+              "force_covector_semantics": {
+                "const": "PASS"
+              },
+              "constraints": {
+                "const": "PASS"
+              },
+              "integrator_and_timestep": {
+                "const": "PASS"
+              },
+              "observable_mapping": {
+                "const": "PASS"
+              }
+            }
+          },
+          "comparison": {
+            "properties": {
+              "basis": {
+                "const": "EXACT_CASE_AND_SEMANTIC_MAPPING"
+              },
+              "claim_class": {
+                "const": "MATCHED_FIXTURE_ONLY"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "comparison": {
+            "properties": {
+              "status": {
+                "const": "NOT_COMPARABLE"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "comparison": {
+            "properties": {
+              "basis": {
+                "const": "NONE"
+              },
+              "claim_class": {
+                "const": "NONE"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "result_mode": {
+            "const": "synthetic_contract_test"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "execution_status": {
+            "const": "NOT_RUN"
+          },
+          "comparison": {
+            "properties": {
+              "status": {
+                "const": "NOT_COMPARABLE"
+              },
+              "basis": {
+                "const": "NONE"
+              },
+              "claim_class": {
+                "const": "NONE"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}
