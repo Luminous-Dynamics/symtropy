@@ -563,13 +563,6 @@ pub struct PairedBootstrapSummary {
     pub interval_supports_candidate_advantage: bool,
 }
 
-#[derive(Debug, Clone)]
-struct PairedCluster {
-    family: String,
-    cluster_id: String,
-    differences: Vec<f64>,
-}
-
 fn splitmix64_next(state: &mut u64) -> u64 {
     *state = state.wrapping_add(0x9E37_79B9_7F4A_7C15);
     let mut value = *state;
@@ -1510,7 +1503,7 @@ mod tests {
     #[test]
     fn incomplete_resource_measurement_is_excluded_from_frontier() {
         let complete = card("complete", 90.0, Some(2.0), Some(20.0), Some(1_000));
-        let incomplete = card("incomplete", 99.0, None, Some(10.0), Some(500));
+        let incomplete = card("incomplete", 99.0, None, Some(20.0), Some(500));
         let frontier = pareto_frontier(
             &[complete, incomplete],
             "driving_score",
