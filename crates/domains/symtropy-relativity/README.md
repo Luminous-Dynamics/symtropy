@@ -19,7 +19,12 @@ A bounded Rust research crate for analytic Lorentzian-spacetime reference calcul
 - Kerr equatorial prograde/retrograde circular-null-orbit reference observables: analytic photon-orbit radius and signed frequency, metric null/radial circularity residuals, normalized null radial-potential R/R-prime residuals, impact parameter, and coordinate-time radial Lyapunov exponent. Extremal prograde Boyer-Lindquist horizon limit returns explicit unavailable impact/Lyapunov values rather than a fabricated finite result.
 - A 20-case independently generated Kerr light-ring reference grid spanning zero, positive, negative, near-extremal, and extremal spin.
 - Adaptive canonical-Hamiltonian Kerr null-trajectory integration with step-doubled RK4 in Boyer–Lindquist and horizon-regular ingoing Kerr charts; records accepted/rejected steps and Hamiltonian drift without hidden null renormalization.
-- **115 authored Rust tests** across scalar physics, Kerr limits, metric matrices, connection compatibility, curvature, second-order automatic differentiation, horizon-regular charts, posterior transforms, geodesic integration, separated Kerr null-geodesic formulae, waveform metrics, and light-ring references.
+- Local 8x8 canonical Kerr flow Jacobian from second-order metric AD, with a central-difference test oracle and canonical symplectic Lie residual.
+- Adaptive propagation of the full canonical fundamental matrix under dPhi/dlambda = A(z) Phi, with separate state/tangent step-doubling channels and propagated symplectic-defect diagnostics.
+- Finite-radius ZAMO observer seeds with two orthonormal local-sky angular tangent columns, including the covector transform to ingoing Kerr coordinates for inward rays.
+- Finite source-ZAMO optical screen projection and a 2x2 angular-to-source-screen Jacobian, determinant, singular values and condition number; screen projection fails closed at/inside the horizon.
+- Exact Schwarzschild radial-null screen-map oracle J(lambda) = lambda I_2, with singular values [lambda, lambda] and determinant lambda^2.
+- The current changed Kerr modules contain 30 authored tests in kerr_geodesic.rs and 12 in kerr_integrator.rs; these counts are source inventories, not executed test results.
 
 ## Conventions
 
@@ -60,7 +65,7 @@ The posterior transform preserves each input sample ID, order, and paired mass/s
 
 ## Deliberate limits
 
-The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior charts. It also supports ingoing Eddington-Finkelstein Schwarzschild and ingoing Kerr coordinates, with tests at/inside the horizons and scalar-invariant comparisons across charts. Kerr vacuum-Ricci and analytic Kretschmann tests are authored. The current geodesic engine is Schwarzschild-only. It includes second-order Christoffel RK4, first-order canonical Hamiltonian RK4, and a step-doubling adaptive controller with separate coordinate/tangent tolerances. It is not yet symplectic, and Kerr geodesics/Carter-constant handling remain future work. There is no GRHD/GRMHD solver, waveform generator, or numerical-relativity evolution code.
+The explicit hand-derived second-derivative fixture covers Schwarzschild in the exterior Schwarzschild chart. A separate second-order forward-mode AD path generates first/second derivatives and curvature for Schwarzschild and Kerr exterior and horizon-regular charts. The current Kerr path includes Carter-separated null potentials, an adaptive second-order Mino integrator, an independent canonical Hamiltonian trajectory integrator, a finite-radius ZAMO tetrad, second-order-AD local Hamiltonian-flow linearization, a propagated canonical fundamental matrix, observer-seeded angular tangent columns, and a finite source-ZAMO 2x2 optical screen map. The canonical trajectory and variational integrators use step-doubled classical RK4; they are not symplectic, their local controller estimates are not rigorous global error bounds, and the propagated symplectic defect must remain a separately reported diagnostic. The optical screen map is not yet a qualified caustic catalogue: adaptive caustic-root localization, fold/cusp classification, image-branch identity tracking, and finite-frequency diffraction remain future work. There is no GRHD/GRMHD solver, full numerical-relativity spacetime evolution, or production gravitational-waveform generator.
 
 The generic metric-component constructor does not certify Lorentzian signature. Curvature output is not yet accompanied by automatic conditioning estimates; tolerances must be interpreted for the declared fixture and coordinate chart. No observational-validation or state-of-the-art performance claim is made.
 
@@ -72,8 +77,11 @@ The generic metric-component constructor does not certify Lorentzian signature. 
 - Cross-check the equatorial Kerr light-ring frequency and Lyapunov references against independent closed-form/eikonal calculations and compare to finite-l QNM spectra without conflating the asymptotic eikonal correspondence with exact QNM values.
 - Differential Bianchi identity and higher-derivative consistency checks.
 - More exhaustive horizon-regular coordinate and cross-chart scalar-invariant comparisons.
-- Extend the Schwarzschild geodesics to horizon-regular coordinate charts, then add Kerr equatorial/inclined geodesics, Carter-constant diagnostics, and an independent formulation with its own convergence suite.
-- QNM / waveform and public detector-data replication.
+- Propagate independent error budgets through the observer seed, canonical trajectory, variational tangent map and source-screen projection; qualify both exterior and ingoing chart overlap on common events.
+- Localize screen-map determinant roots with adaptive bracketing and refinement; classify fold and cusp catastrophes, parity changes and magnification scaling; return unresolved near-degenerate roots rather than forcing a classification.
+- Add uniform Airy/Pearcey finite-frequency references and compare selected cases with independent Teukolsky / wave-optics solvers.
+- Cross-check source-screen maps against AART / independent Carter-integrable ray tracing and compare image-plane observables, lensing-band structure and long-baseline visibility at matched physical error.
+- Add exact-head compilation, Clippy, deterministic benchmark receipts, and reproducible hardware/compiler/precision metadata before promoting any performance claim.
 
 ## Versioned benchmark registries
 
@@ -86,6 +94,7 @@ Six versioned machine-readable research manifests are maintained beside the crat
 - `benchmarks/light_ring_reference_cases.json` — independently generated 20-case equatorial Kerr photon-orbit / Lyapunov reference grid.
 
 - `benchmarks/kerr_mino_trajectory_v1.json` — analytic Schwarzschild critical/double-root fixture, (b=6M) scattering trajectory through a turning point, independent Python/SciPy equation-level references, separated-vs-canonical Hamiltonian cross-check, horizon-regular ingoing evaluator and a G0–G8 qualification ladder. It explicitly marks Rust execution as pending.
+- `optical_screen_benchmark_v1.json` — OS-0–OS-8 finite-observer optical-screen qualification ladder: tetrad/screen basis, null-shell seed, AD flow Jacobian, propagated fundamental matrix, exact Schwarzschild screen-map oracle, Kerr neighbouring-ray comparison, future caustic and wave-optics gates, and qualified-throughput comparisons. The manifest records the present authored-but-unexecuted state and claim ceiling.
 
 These files are literature / experiment specifications. They are not benchmark execution results, model certifications, or evidence that the reported paper metrics have been reproduced by Symtropy.
 
@@ -142,3 +151,19 @@ The coordinate formulation also supports step-doubling adaptive integration. Its
 Timelike trajectories use `lambda = c*tau` and target (g(u,u)=-1). Null trajectories use an affine parameter and target (g(u,u)=0). Both formulations expose normalization, Killing energy, axial angular momentum, and Hamiltonian diagnostics. They reject the Schwarzschild horizon and polar-axis chart boundaries rather than crossing a coordinate singularity.
 
 The machine-readable fixtures are in `benchmarks/geodesic_reference_cases.json`. An adaptive separated Kerr Mino stepper is implemented. Adaptive canonical-Hamiltonian integration, finite-radius observer tetrads, variational Jacobi fields and caustic detection remain unimplemented.
+
+
+## Kerr variational and optical-screen path
+
+The observer-seeded optical path is now implemented at source level in kerr_geodesic.rs and kerr_integrator.rs:
+
+1. KerrFiniteRadiusObserver::canonical_seed returns a canonical null ray and two angular tangent directions from a deterministic orthonormal local-sky basis. The basis reference-axis seam is explicit and returned to callers.
+2. The local directions are converted to covariant canonical momentum variations. For inward rays, the covectors are transformed consistently into the horizon-regular ingoing Kerr chart. The variations are tested against the null-shell tangent condition.
+3. KerrCanonicalHamiltonian::linearize / linearize_ingoing produce the local 8x8 canonical flow Jacobian from second-order metric AD, and report max |A^T Omega + Omega A|.
+4. KerrNullTrajectoryIntegrator::integrate_fundamental_matrix propagates Phi under dPhi/dlambda = A Phi with step-doubled RK4, separate state and tangent error channels, and per-sample max |Phi^T Omega Phi - Omega|.
+5. integrate_observer_tangent_bundle applies the propagated fundamental matrix to the two observer-screen seeds.
+6. KerrObserverTangentBundleResult::optical_screen_map_at projects both variations into a finite source ZAMO screen and returns the 2x2 Jacobian, determinant, ascending singular values and condition number. Source projection is rejected inside the event horizon, where the stationary ZAMO observer is not defined.
+
+The current analytic optical known-answer test is a radial inward null bundle in Schwarzschild: for the declared local-energy / affine normalization the source-screen map is J(lambda)=lambda I_2. This gives a strict regression for both singular values, determinant, zero off-diagonals and unit condition number. Independent neighbouring-null-ray integration tests provide a second numerical comparator. The machine-readable OS-0–OS-8 contract records target tolerances and separates current source from future caustic/wave-optics work.
+
+Validation ceiling: the current editing environment has no cargo, rustc or rustfmt. The above Rust tests are authored but not compiled or executed, and current PR CI status must be checked at the exact head. Independent Python calculations of local Jacobians, tangent propagation, observer seed and tetrad projection are equation-level cross-checks only. No caustic location, fold/cusp classification, magnification accuracy or performance superiority is claimed.
