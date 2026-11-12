@@ -957,7 +957,7 @@ mod tests {
     #[test]
     fn terminal_safe_stop_is_a_separate_hard_recovery_requirement() {
         let mut s = scenario(vec![branch("b1", "o1", 1_000_000, &["continue"])]);
-        s.recovery.terminal_safe_stop_reachable = false;
+        s.recovery.branch_receipts[0].terminal_safe_stop_reachable = false;
         let report = evaluate_future_options(&s).unwrap();
         assert_eq!(report.disposition, ScenarioDisposition::Invalid);
         assert!(
