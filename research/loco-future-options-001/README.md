@@ -115,7 +115,7 @@ A standalone, dependency-free Rust 1.96 package now lives at `reference/`:
 
 The evaluator refuses positive option counts when the branch manifest, continuation domain, per-branch viability receipt, observation freshness, thermal predecessor chain, or recovery receipt is incomplete. Physically possible branches remain in the calculation even at zero probability mass. User-facing labels collapse by canonical physical action identity. Thermal nodes are checked individually using conservative upper-temperature bounds; no mean-temperature waiver exists. A qualified recovery receipt must establish a reachable terminal safe-stop.
 
-**Twenty authored Rust tests** cover:
+**Thirty-two authored Rust tests** cover:
 - clairvoyance trap versus observation-constrained intersection;
 - valid observation separation;
 - zero-probability physical branches;
@@ -155,3 +155,19 @@ This is a finite action-domain benchmark, not a continuous viability proof or a 
 The updated seven-case JSON corpus and schema were fetched back and parsed. A separate semantic replay compared each case's expected disposition and continuation sets against the expanded receipts: **7/7 cases matched**. This remains a semantic preflight; no Draft 2020-12 JSON Schema validator has been executed.
 
 The package uses typed Rust receipts and intentionally has no third-party JSON parser/runtime dependency. The JSON corpus is a separate, versioned interchange/known-answer artefact governed by its schema; the Rust tests instantiate the same finite semantics directly. The current workflow validates Rust source only. A separate schema-validator execution / corpus-to-Rust ingestion adapter remains a subsequent qualification step.
+
+### Bounded policy-tree extension
+
+The same package now exposes `policy_tree::evaluate_bounded_policy_tree` for a frozen finite belief-state tree with horizon 1–3. A belief node is one delivered observation history and contains all hidden states still possible under that history. An action is eligible at that node only when the upstream admission receipt includes it for every state in the belief. Each physically possible transition then maps to the exact successor state set associated with its next observation node. Every horizon-zero leaf must carry a qualified terminal recovery / safe-stop receipt.
+
+The evaluator distinguishes four results:
+- `WinningPolicyFound`: at least one complete finite policy witness exists;
+- `NoWinningPolicyInDeclaredDomain`: all evidence is complete, but no policy over the frozen finite domain reaches qualified terminal leaves;
+- `Unknown`: action, transition, observation partition or leaf recovery evidence is incomplete;
+- `Invalid`: a supplied required receipt is explicitly invalid.
+
+The returned witness is a deterministic map from observation-history node to action. The evaluator does not pick one action per hidden state, so a clairvoyant policy cannot be mistaken for a deployable one. It permits a different action only after an evidence-qualified observation creates a new belief node. The test tree includes two indistinguishable successor states after a probe, then a fresh observation splits them so one child can retreat and the other continue; both leaves still require a safe-stop receipt.
+
+The new module contributes 12 tests: bounded two-step winning policy; disjoint hidden-state actions; incomplete transition manifest; unknown/unreachable terminal recovery; observation-partition mismatch; incomplete transition receipt; impossible transition exclusion; incomplete action domain; permutation invariance; missing child node; invalid action identity; and explicit horizon bounds. The original 20 tests remain in the same crate, for 32 authored Rust tests total.
+
+The one-step common-set evaluator and the bounded policy-tree evaluator are separate, intentionally composable reference surfaces. A policy-tree win over this finite graph is not a continuous-time viability proof, arbitrary fault tolerance, or authorization to execute the witness.
