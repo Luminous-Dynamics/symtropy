@@ -479,9 +479,7 @@ fn incomplete_report(
     }
 }
 
-fn validate_tolerance(
-    tolerance: EnergyBalanceTolerance,
-) -> Result<(), EnergyBalanceError> {
+fn validate_tolerance(tolerance: EnergyBalanceTolerance) -> Result<(), EnergyBalanceError> {
     if !tolerance.absolute_j.is_finite() || tolerance.absolute_j < 0.0 {
         return Err(EnergyBalanceError::InvalidTolerance {
             field: "absolute_j",
@@ -554,10 +552,34 @@ mod tests {
             10.0,
             23.0,
             vec![
-                flow("w-in", "motor", EnergyCarrier::Work, FlowDirection::IntoBoundary, 8.0),
-                flow("w-out", "load", EnergyCarrier::Work, FlowDirection::OutOfBoundary, 1.0),
-                flow("q-in", "heater", EnergyCarrier::Heat, FlowDirection::IntoBoundary, 7.0),
-                flow("q-out", "ambient", EnergyCarrier::Heat, FlowDirection::OutOfBoundary, 1.0),
+                flow(
+                    "w-in",
+                    "motor",
+                    EnergyCarrier::Work,
+                    FlowDirection::IntoBoundary,
+                    8.0,
+                ),
+                flow(
+                    "w-out",
+                    "load",
+                    EnergyCarrier::Work,
+                    FlowDirection::OutOfBoundary,
+                    1.0,
+                ),
+                flow(
+                    "q-in",
+                    "heater",
+                    EnergyCarrier::Heat,
+                    FlowDirection::IntoBoundary,
+                    7.0,
+                ),
+                flow(
+                    "q-out",
+                    "ambient",
+                    EnergyCarrier::Heat,
+                    FlowDirection::OutOfBoundary,
+                    1.0,
+                ),
             ],
         )
         .evaluate(zero_tolerance())
@@ -567,12 +589,15 @@ mod tests {
         assert_eq!(report.net_work_j, Some(7.0));
         assert_eq!(report.net_heat_j, Some(6.0));
         assert_eq!(report.net_boundary_energy_j, Some(13.0));
-        assert_eq!(report.reservoir_ids, Some(vec![
-            "ambient".to_string(),
-            "heater".to_string(),
-            "load".to_string(),
-            "motor".to_string(),
-        ]));
+        assert_eq!(
+            report.reservoir_ids,
+            Some(vec![
+                "ambient".to_string(),
+                "heater".to_string(),
+                "load".to_string(),
+                "motor".to_string(),
+            ])
+        );
     }
 
     #[test]
@@ -674,8 +699,20 @@ mod tests {
             0.0,
             2.0,
             vec![
-                flow("same", "source-a", EnergyCarrier::Work, FlowDirection::IntoBoundary, 1.0),
-                flow("same", "source-b", EnergyCarrier::Work, FlowDirection::IntoBoundary, 1.0),
+                flow(
+                    "same",
+                    "source-a",
+                    EnergyCarrier::Work,
+                    FlowDirection::IntoBoundary,
+                    1.0,
+                ),
+                flow(
+                    "same",
+                    "source-b",
+                    EnergyCarrier::Work,
+                    FlowDirection::IntoBoundary,
+                    1.0,
+                ),
             ],
         );
         assert_eq!(
@@ -691,7 +728,13 @@ mod tests {
         let no_flow_id = complete_balance(
             0.0,
             1.0,
-            vec![flow("", "source", EnergyCarrier::Work, FlowDirection::IntoBoundary, 1.0)],
+            vec![flow(
+                "",
+                "source",
+                EnergyCarrier::Work,
+                FlowDirection::IntoBoundary,
+                1.0,
+            )],
         );
         assert_eq!(
             no_flow_id.evaluate(zero_tolerance()),
@@ -701,7 +744,13 @@ mod tests {
         let no_reservoir_id = complete_balance(
             0.0,
             1.0,
-            vec![flow("flow", " ", EnergyCarrier::Work, FlowDirection::IntoBoundary, 1.0)],
+            vec![flow(
+                "flow",
+                " ",
+                EnergyCarrier::Work,
+                FlowDirection::IntoBoundary,
+                1.0,
+            )],
         );
         assert_eq!(
             no_reservoir_id.evaluate(zero_tolerance()),
@@ -717,7 +766,13 @@ mod tests {
             let record = complete_balance(
                 0.0,
                 1.0,
-                vec![flow("bad", "source", EnergyCarrier::Work, FlowDirection::IntoBoundary, energy_j)],
+                vec![flow(
+                    "bad",
+                    "source",
+                    EnergyCarrier::Work,
+                    FlowDirection::IntoBoundary,
+                    energy_j,
+                )],
             );
             assert!(matches!(
                 record.evaluate(zero_tolerance()),
@@ -759,14 +814,26 @@ mod tests {
         let small = complete_balance(
             0.0,
             100.0,
-            vec![flow("in", "source", EnergyCarrier::Work, FlowDirection::IntoBoundary, 100.05)],
+            vec![flow(
+                "in",
+                "source",
+                EnergyCarrier::Work,
+                FlowDirection::IntoBoundary,
+                100.05,
+            )],
         )
         .evaluate(tolerance)
         .unwrap();
         let large = complete_balance(
             0.0,
             100_000.0,
-            vec![flow("in", "source", EnergyCarrier::Work, FlowDirection::IntoBoundary, 100_050.0)],
+            vec![flow(
+                "in",
+                "source",
+                EnergyCarrier::Work,
+                FlowDirection::IntoBoundary,
+                100_050.0,
+            )],
         )
         .evaluate(tolerance)
         .unwrap();
@@ -930,8 +997,20 @@ mod tests {
             0.0,
             0.0,
             vec![
-                flow("a", "source-a", EnergyCarrier::Heat, FlowDirection::IntoBoundary, 0.0),
-                flow("b", "source-b", EnergyCarrier::Heat, FlowDirection::IntoBoundary, 0.0),
+                flow(
+                    "a",
+                    "source-a",
+                    EnergyCarrier::Heat,
+                    FlowDirection::IntoBoundary,
+                    0.0,
+                ),
+                flow(
+                    "b",
+                    "source-b",
+                    EnergyCarrier::Heat,
+                    FlowDirection::IntoBoundary,
+                    0.0,
+                ),
             ],
         );
         for flow in record.boundary_flows.as_mut().unwrap() {
@@ -951,8 +1030,20 @@ mod tests {
             0.0,
             0.0,
             vec![
-                flow("a", "source-a", EnergyCarrier::Heat, FlowDirection::IntoBoundary, f64::MAX),
-                flow("b", "source-b", EnergyCarrier::Heat, FlowDirection::IntoBoundary, f64::MAX),
+                flow(
+                    "a",
+                    "source-a",
+                    EnergyCarrier::Heat,
+                    FlowDirection::IntoBoundary,
+                    f64::MAX,
+                ),
+                flow(
+                    "b",
+                    "source-b",
+                    EnergyCarrier::Heat,
+                    FlowDirection::IntoBoundary,
+                    f64::MAX,
+                ),
             ],
         );
         assert_eq!(
