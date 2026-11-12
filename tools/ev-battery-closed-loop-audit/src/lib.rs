@@ -294,8 +294,12 @@ fn validate_lot_and_line_identity(runs: &[ProcessRun]) -> Result<(usize, usize),
     let mut digest_to_line = BTreeMap::<&str, &str>::new();
 
     for run in runs {
-        match lot_to_digest.insert(&run.lot_id, &run.lot_lineage_digest) {
-            Some(previous) if previous != run.lot_lineage_digest => {
+        let lot_id = run.lot_id.as_str();
+        let lot_digest = run.lot_lineage_digest.as_str();
+        let line_id = run.line_id.as_str();
+        let line_digest = run.line_identity_digest.as_str();
+        match lot_to_digest.insert(lot_id, lot_digest) {
+            Some(previous) if previous != lot_digest => {
                 return Err(AuditError(format!(
                     "lot {} has conflicting lineage digests",
                     run.lot_id
@@ -303,8 +307,8 @@ fn validate_lot_and_line_identity(runs: &[ProcessRun]) -> Result<(usize, usize),
             }
             _ => {}
         }
-        match digest_to_lot.insert(&run.lot_lineage_digest, &run.lot_id) {
-            Some(previous) if previous != run.lot_id => {
+        match digest_to_lot.insert(lot_digest, lot_id) {
+            Some(previous) if previous != lot_id => {
                 return Err(AuditError(format!(
                     "lot lineage digest is aliased by {} and {}",
                     previous, run.lot_id
@@ -312,8 +316,8 @@ fn validate_lot_and_line_identity(runs: &[ProcessRun]) -> Result<(usize, usize),
             }
             _ => {}
         }
-        match line_to_digest.insert(&run.line_id, &run.line_identity_digest) {
-            Some(previous) if previous != run.line_identity_digest => {
+        match line_to_digest.insert(line_id, line_digest) {
+            Some(previous) if previous != line_digest => {
                 return Err(AuditError(format!(
                     "line {} has conflicting identity digests",
                     run.line_id
@@ -321,8 +325,8 @@ fn validate_lot_and_line_identity(runs: &[ProcessRun]) -> Result<(usize, usize),
             }
             _ => {}
         }
-        match digest_to_line.insert(&run.line_identity_digest, &run.line_id) {
-            Some(previous) if previous != run.line_id => {
+        match digest_to_line.insert(line_digest, line_id) {
+            Some(previous) if previous != line_id => {
                 return Err(AuditError(format!(
                     "line identity digest is aliased by {} and {}",
                     previous, run.line_id
@@ -341,6 +345,8 @@ fn expected_dependency_digests(manifest: &Manifest) -> Vec<String> {
     values.insert(manifest.pack.digest.clone());
     for run in &manifest.process_runs {
         values.insert(run.digest.clone());
+        values.insert(run.lot_lineage_digest.clone());
+        values.insert(run.line_identity_digest.clone());
     }
     for test in &manifest.cell_tests {
         values.insert(test.digest.clone());
@@ -807,15 +813,17 @@ mod tests {
             evidence_id: "E-DESIGN".into(),
         };
         let lot_a = digest('1');
+        let lot_b = digest('5');
+        let lot_c = digest('8');
         let line_1 = digest('2');
+        let line_2 = digest('6');
         let mut process_runs = Vec::new();
         for (index, cell, lot, lot_digest, line, line_digest, disposition, run_char) in [
             ("1", "CELL-001", "LOT-A", lot_a.as_str(), "LINE-1", line_1.as_str(), RunDisposition::InWindow, '3'),
             ("2", "CELL-002", "LOT-A", lot_a.as_str(), "LINE-1", line_1.as_str(), RunDisposition::InWindow, '4'),
-            ("3", "CELL-003", "LOT-B", digest('5').leak(), "LINE-2", digest('6').leak(), RunDisposition::OutOfWindow, '7'),
-            ("4", "CELL-004", "LOT-C", digest('8').leak(), "LINE-2", digest('6').leak(), RunDisposition::InWindow, '9'),
+            ("3", "CELL-003", "LOT-B", lot_b.as_str(), "LINE-2", line_2.as_str(), RunDisposition::OutOfWindow, '7'),
+            ("4", "CELL-004", "LOT-C", lot_c.as_str(), "LINE-2", line_2.as_str(), RunDisposition::InWindow, '9'),
         ] {
-            let _ = index;
             process_runs.push(ProcessRun {
                 run_id: format!("RUN-{index}"),
                 cell_id: cell.into(),
