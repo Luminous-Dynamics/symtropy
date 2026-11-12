@@ -1217,7 +1217,7 @@ mod tests {
         let mut value = valid_receipt();
         value["transitions"][0]["claims"][0]["target_artifact_id"] = json!("UNLISTED-OUTPUT");
         let error = audit(&value).expect_err("claim must bind the exact output artifact");
-        assert!(error.contains("target artifact is absent"));
+        assert!(error.contains("target artifact must be a declared geometry/representation output"));
     }
 
     #[test]
@@ -1236,23 +1236,60 @@ mod tests {
         next["transition_id"] = json!("SURFACE-TO-GRAPH-001");
         next["from_representation"] = json!("surface_mesh");
         next["to_representation"] = json!("spatial_graph");
-        next["source_artifacts"] = json!([{
-            "artifact_id": "MESH-001",
-            "sha256": "c".repeat(64),
-            "role": "geometry_output"
-        }]);
+        next["source_artifacts"] = json!([
+            {
+                "artifact_id": "MESH-001",
+                "sha256": "c".repeat(64),
+                "role": "geometry_output"
+            },
+            {
+                "artifact_id": "RELATION-INVENTORY-GRAPH-001",
+                "sha256": "1".repeat(64),
+                "role": "relation_inventory"
+            }
+        ]);
         next["output_artifacts"] = json!([{
             "artifact_id": "GRAPH-001",
             "sha256": "8".repeat(64),
             "role": "geometry_output"
         }]);
-        next["correspondences"] = json!([{
-            "event_id": "CORR-GRAPH-001",
-            "kind": "one_to_one",
-            "source_entity_ids": ["WALL-SURFACE-001"],
-            "target_entity_ids": ["WALL-GRAPH-001"],
-            "identity_receipt_sha256": "e".repeat(64)
-        }]);
+        next["correspondences"] = json!([
+            {
+                "event_id": "CORR-GRAPH-WALL-001",
+                "kind": "one_to_one",
+                "source_entity_ids": ["WALL-SURFACE-001"],
+                "target_entity_ids": ["WALL-GRAPH-001"],
+                "identity_receipt_sha256": "e".repeat(64)
+            },
+            {
+                "event_id": "CORR-GRAPH-OPENING-001",
+                "kind": "one_to_one",
+                "source_entity_ids": ["OPENING-SURFACE-001"],
+                "target_entity_ids": ["OPENING-GRAPH-001"],
+                "identity_receipt_sha256": "f".repeat(64)
+            }
+        ]);
+        next["relation_audit"] = json!({
+            "inventory_artifact_id": "RELATION-INVENTORY-GRAPH-001",
+            "completeness": "complete",
+            "relations": [{
+                "source_relation_id": "REL-MESH-WALL-OPENING-001",
+                "relation_kind": "host_opening",
+                "source_relation_type": "SurfaceGraph.hosts_opening",
+                "source_subject_entity_id": "WALL-SURFACE-001",
+                "source_object_entity_id": "OPENING-SURFACE-001",
+                "directed": true,
+                "disposition": "preserved",
+                "target_relations": [{
+                    "relation_id": "REL-GRAPH-WALL-OPENING-001",
+                    "relation_kind": "host_opening",
+                    "relation_type": "SpatialGraph.hosts_opening",
+                    "subject_entity_id": "WALL-GRAPH-001",
+                    "object_entity_id": "OPENING-GRAPH-001"
+                }],
+                "reason": null
+            }]
+        });
         next["claims"] = json!([]);
         next["uncertainty"]["approximation_error_bound_m"] = json!(0.0);
         next["uncertainty"]["before"]["absolute_bound_m"] = json!(0.0025);
