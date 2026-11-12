@@ -10,6 +10,8 @@ use arrow_array::{Float32Array, UInt32Array};
 use std::fmt;
 use std::ops::Range;
 
+pub mod gray_scott;
+
 #[cfg(feature = "wgpu")]
 pub mod wgpu_backend;
 
