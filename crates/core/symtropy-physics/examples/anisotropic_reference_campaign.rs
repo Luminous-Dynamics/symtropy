@@ -17,15 +17,12 @@
 use nalgebra::{SMatrix, SVector};
 use symtropy_math::{Bivector, Rotor};
 use symtropy_physics::{
-    BivectorInertia, PrincipalInertia3, angular_vector_to_bivector,
-    bivector_to_angular_vector, rotational_kinetic_energy, step_principal_inertia,
-    world_angular_momentum,
+    BivectorInertia, PrincipalInertia3, angular_vector_to_bivector, bivector_to_angular_vector,
+    rotational_kinetic_energy, step_principal_inertia, world_angular_momentum,
 };
 
 fn main() {
-    println!(
-        "case,parameter,observed,reference,absolute_error,symmetric_relative_error,pass"
-    );
+    println!("case,parameter,observed,reference,absolute_error,symmetric_relative_error,pass");
     let mut failures = 0usize;
 
     failures += symmetric_top_precession_campaign();
@@ -69,9 +66,7 @@ fn report(case: &str, parameter: &str, observed: f64, reference: f64, tolerance:
     let error = (observed - reference).abs();
     let relative = symmetric_relative_error(observed, reference);
     let pass = error <= tolerance && observed.is_finite() && reference.is_finite();
-    println!(
-        "{case},{parameter},{observed:.17},{reference:.17},{error:.17},{relative:.17},{pass}"
-    );
+    println!("{case},{parameter},{observed:.17},{reference:.17},{error:.17},{relative:.17},{pass}");
     usize::from(!pass)
 }
 
@@ -94,14 +89,9 @@ fn symmetric_top_precession_error(dt: f64) -> f64 {
     let steps = (duration / dt).round() as usize;
 
     for _ in 0..steps {
-        let step = step_principal_inertia(
-            &rotation,
-            &angular_velocity,
-            inertia,
-            &SVector::zeros(),
-            dt,
-        )
-        .expect("finite symmetric-top step");
+        let step =
+            step_principal_inertia(&rotation, &angular_velocity, inertia, &SVector::zeros(), dt)
+                .expect("finite symmetric-top step");
         rotation = step.rotation;
         angular_velocity = step.angular_velocity;
     }
@@ -119,8 +109,20 @@ fn symmetric_top_precession_campaign() -> usize {
     let coarse = symmetric_top_precession_error(1.0e-3);
     let fine = symmetric_top_precession_error(2.5e-4);
     let mut failures = 0;
-    failures += report("symmetric_top_precession_error", "dt_1e-3", coarse, 0.0, 1.0e-2);
-    failures += report("symmetric_top_precession_error", "dt_2p5e-4", fine, 0.0, 2.0e-4);
+    failures += report(
+        "symmetric_top_precession_error",
+        "dt_1e-3",
+        coarse,
+        0.0,
+        1.0e-2,
+    );
+    failures += report(
+        "symmetric_top_precession_error",
+        "dt_2p5e-4",
+        fine,
+        0.0,
+        2.0e-4,
+    );
     failures += report_minimum(
         "symmetric_top_refinement_ratio",
         "coarse_over_fine",
@@ -142,14 +144,9 @@ fn asymmetric_top_observables(dt: f64) -> (f64, f64) {
     let steps = (duration / dt).round() as usize;
 
     for _ in 0..steps {
-        let step = step_principal_inertia(
-            &rotation,
-            &angular_velocity,
-            inertia,
-            &SVector::zeros(),
-            dt,
-        )
-        .expect("finite asymmetric-top step");
+        let step =
+            step_principal_inertia(&rotation, &angular_velocity, inertia, &SVector::zeros(), dt)
+                .expect("finite asymmetric-top step");
         rotation = step.rotation;
         angular_velocity = step.angular_velocity;
     }
@@ -224,9 +221,7 @@ fn euler_top_body_derivative(
 
 fn skew3(vector: &SVector<f64, 3>) -> SMatrix<f64, 3, 3> {
     SMatrix::new(
-        0.0, -vector[2], vector[1],
-        vector[2], 0.0, -vector[0],
-        -vector[1], vector[0], 0.0,
+        0.0, -vector[2], vector[1], vector[2], 0.0, -vector[0], -vector[1], vector[0], 0.0,
     )
 }
 
@@ -259,11 +254,9 @@ fn rk4_euler_top_body(
         let k4_rotation = rotation_4 * skew3(&omega_4);
         let k4_omega = euler_top_body_derivative(&omega_4, principal_moments);
 
-        rotation += (
-            k1_rotation + k2_rotation * 2.0 + k3_rotation * 2.0 + k4_rotation
-        ) * (dt / 6.0);
-        omega += (k1_omega + k2_omega * 2.0 + k3_omega * 2.0 + k4_omega)
-            * (dt / 6.0);
+        rotation +=
+            (k1_rotation + k2_rotation * 2.0 + k3_rotation * 2.0 + k4_rotation) * (dt / 6.0);
+        omega += (k1_omega + k2_omega * 2.0 + k3_omega * 2.0 + k4_omega) * (dt / 6.0);
     }
     (rotation, omega)
 }
@@ -279,14 +272,9 @@ fn production_top_state_after(
     let mut angular_velocity = angular_vector_to_bivector(&initial_body_omega);
     let steps = (duration / dt).round() as usize;
     for _ in 0..steps {
-        let step = step_principal_inertia(
-            &rotation,
-            &angular_velocity,
-            inertia,
-            &SVector::zeros(),
-            dt,
-        )
-        .expect("finite torque-free top step");
+        let step =
+            step_principal_inertia(&rotation, &angular_velocity, inertia, &SVector::zeros(), dt)
+                .expect("finite torque-free top step");
         rotation = step.rotation;
         angular_velocity = step.angular_velocity;
     }
@@ -301,21 +289,12 @@ fn asymmetric_top_rk4_reference_campaign() -> usize {
     let initial_omega = SVector::from([0.9, -0.6, 0.35]);
     let duration = 1.0;
     // Independent body-frame Euler equations plus Rdot = R*[omega_body]x.
-    let (reference_rotation, reference_omega) = rk4_euler_top_body(
-        initial_omega,
-        principal_moments,
-        duration,
-        1.0e-5,
-    );
-    let (reference_rotation_half, reference_omega_half) = rk4_euler_top_body(
-        initial_omega,
-        principal_moments,
-        duration,
-        5.0e-6,
-    );
-    let reference_self_error =
-        (reference_rotation - reference_rotation_half).norm()
-            + (reference_omega - reference_omega_half).norm();
+    let (reference_rotation, reference_omega) =
+        rk4_euler_top_body(initial_omega, principal_moments, duration, 1.0e-5);
+    let (reference_rotation_half, reference_omega_half) =
+        rk4_euler_top_body(initial_omega, principal_moments, duration, 5.0e-6);
+    let reference_self_error = (reference_rotation - reference_rotation_half).norm()
+        + (reference_omega - reference_omega_half).norm();
     let mut failures = 0;
     failures += report(
         "asymmetric_top_rk4_reference_convergence",
@@ -325,18 +304,10 @@ fn asymmetric_top_rk4_reference_campaign() -> usize {
         1.0e-11,
     );
 
-    let (coarse_rotation, coarse_omega) = production_top_state_after(
-        1.0e-2,
-        initial_omega,
-        principal_moments,
-        duration,
-    );
-    let (fine_rotation, fine_omega) = production_top_state_after(
-        2.5e-3,
-        initial_omega,
-        principal_moments,
-        duration,
-    );
+    let (coarse_rotation, coarse_omega) =
+        production_top_state_after(1.0e-2, initial_omega, principal_moments, duration);
+    let (fine_rotation, fine_omega) =
+        production_top_state_after(2.5e-3, initial_omega, principal_moments, duration);
     let coarse_rotation_error = (coarse_rotation - reference_rotation).norm();
     let fine_rotation_error = (fine_rotation - reference_rotation).norm();
     let coarse_omega_error = (coarse_omega - reference_omega).norm();
@@ -432,11 +403,8 @@ fn intermediate_axis_campaign() -> usize {
 }
 
 fn off_center_impulse_energy_campaign() -> usize {
-    let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
-        2.0,
-        SVector::new(1.4, 0.9, 0.5),
-    )
-    .expect("valid ellipsoid");
+    let inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+        .expect("valid ellipsoid");
     let offset = SVector::new(0.7, -0.25, 0.4);
     let impulse = SVector::new(-0.2, 0.9, 0.35).normalize();
     let angular_impulse = Bivector::from_wedge(&offset, &impulse);
@@ -495,11 +463,9 @@ fn bivector_roundtrip_campaign<const D: usize>(name: &str) -> usize {
 }
 
 fn body_frame_contact_campaign() -> usize {
-    let body_inertia = BivectorInertia::<3>::uniform_solid_ellipsoid(
-        2.0,
-        SVector::new(1.4, 0.9, 0.5),
-    )
-    .expect("valid body-frame ellipsoid");
+    let body_inertia =
+        BivectorInertia::<3>::uniform_solid_ellipsoid(2.0, SVector::new(1.4, 0.9, 0.5))
+            .expect("valid body-frame ellipsoid");
     let mut generator = Bivector::<3>::zero();
     generator.set(0, 1, 0.31);
     generator.set(0, 2, -0.22);
@@ -523,11 +489,7 @@ fn body_frame_contact_campaign() -> usize {
     let explicit_world = body_inertia
         .rotated_by(&body_to_world)
         .expect("validated world inertia")
-        .rotational_inverse_effective_mass(
-            &offset_world,
-            &direction_world,
-            1.0e-12,
-        )
+        .rotational_inverse_effective_mass(&offset_world, &direction_world, 1.0e-12)
         .expect("explicit world-frame contact response");
     let mut failures = 0;
     failures += report(
@@ -608,11 +570,8 @@ fn scale_safe_mass_properties_campaign() -> usize {
 }
 
 fn mass_scaling_campaign() -> usize {
-    let second_moment = SMatrix::<f64, 3, 3>::new(
-        1.4, 0.12, -0.08,
-        0.12, 2.2, 0.17,
-        -0.08, 0.17, 3.1,
-    );
+    let second_moment =
+        SMatrix::<f64, 3, 3>::new(1.4, 0.12, -0.08, 0.12, 2.2, 0.17, -0.08, 0.17, 3.1);
     let base = BivectorInertia::<3>::from_second_moment(second_moment).expect("valid base tensor");
     let mut angular_state = Bivector::<3>::zero();
     angular_state.set(0, 1, 0.3);
@@ -636,8 +595,12 @@ fn mass_scaling_campaign() -> usize {
             0.0,
             2.0e-11,
         );
-        let base_energy = base.kinetic_energy(&angular_state).expect("finite base energy");
-        let scaled_energy = scaled.kinetic_energy(&angular_state).expect("finite scaled energy");
+        let base_energy = base
+            .kinetic_energy(&angular_state)
+            .expect("finite base energy");
+        let scaled_energy = scaled
+            .kinetic_energy(&angular_state)
+            .expect("finite scaled energy");
         failures += report(
             "mass_scale_relative_energy_error",
             if scale < 1.0 { "1e-12" } else { "1e12" },
