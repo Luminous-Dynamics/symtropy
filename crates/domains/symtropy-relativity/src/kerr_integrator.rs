@@ -22,7 +22,7 @@ use super::{
         KerrCanonicalEvaluation, KerrCanonicalHamiltonian, KerrCanonicalLinearization,
         KerrCanonicalState, KerrFiniteRadiusObserver, KerrGeodesicError,
         KerrLocalSkyDirection, KerrMinoCoordinateChart, KerrNullConstants,
-        KerrObserverCanonicalSeed,
+        KerrObserverCanonicalSeed, KerrObserverScreenProjection,
     },
 };
 
@@ -132,6 +132,8 @@ pub struct KerrObserverTangentSample {
 /// Propagated pair of observer-screen angular variations.
 #[derive(Debug, Clone, PartialEq)]
 pub struct KerrObserverTangentBundleResult {
+    pub black_hole: KerrBlackHole,
+    pub coordinate_chart: KerrMinoCoordinateChart,
     pub local_screen_basis: [[f64; 3]; 2],
     pub samples: Vec<KerrObserverTangentSample>,
     pub accepted_steps: usize,
@@ -139,6 +141,23 @@ pub struct KerrObserverTangentBundleResult {
     pub maximum_scaled_local_error: f64,
     pub maximum_fundamental_symplectic_residual: f64,
     pub final_step: f64,
+}
+
+/// Two-dimensional finite-observer screen map at one sampled affine parameter.
+///
+/// Matrix columns are derivatives with respect to the two initial local-sky
+/// angular coordinates (radians); rows are components in the source ZAMO screen
+/// basis. Singular values are returned in ascending order. The map is a local
+/// optical transfer diagnostic, not a complete lensing/caustic catalogue.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrOpticalScreenMap {
+    pub affine_parameter: f64,
+    pub jacobian: [[f64; 2]; 2],
+    pub determinant: f64,
+    pub singular_values: [f64; 2],
+    pub condition_number: f64,
+    pub source_screen_basis: [[f64; 3]; 2],
+    pub source_direction_norm_residual: f64,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -151,6 +170,7 @@ pub enum KerrIntegratorError {
     StepUnderflow { affine_parameter: f64, step: f64 },
     StepLimitExceeded { affine_parameter: f64, accepted_steps: usize },
     CoordinateChartMismatch { seed: KerrMinoCoordinateChart, integrator: KerrIntegrationChart },
+    SampleIndexOutOfRange { index: usize, length: usize },
 }
 
 impl From<KerrGeodesicError> for KerrIntegratorError {
@@ -184,6 +204,9 @@ impl fmt::Display for KerrIntegratorError {
             Self::CoordinateChartMismatch { seed, integrator } => write!(
                 f, "observer seed chart {seed:?} does not match integrator chart {integrator:?}"
             ),
+            Self::SampleIndexOutOfRange { index, length } => write!(
+                f, "Kerr tangent bundle sample index {index} is outside {length} retained samples"
+            ),
         }
     }
 }
@@ -200,6 +223,89 @@ pub struct KerrNullTrajectoryIntegrator {
     hole: KerrBlackHole,
     chart: KerrIntegrationChart,
     options: KerrIntegratorOptions,
+}
+
+impl KerrObserverTangentBundleResult {
+    /// Build the source-screen 2x2 map at one retained affine sample.
+    ///
+    /// Samples after horizon crossing are not projected because a stationary
+    /// ZAMO source observer does not exist inside the outer horizon.
+    pub fn optical_screen_map_at(
+        &self,
+        sample_index: usize,
+        null_tolerance: f64,
+    ) -> Result<KerrOpticalScreenMap, KerrIntegratorError> {
+        let sample = self.samples.get(sample_index).ok_or(
+            KerrIntegratorError::SampleIndexOutOfRange {
+                index: sample_index,
+                length: self.samples.len(),
+            },
+        )?;
+        let state = sample.trajectory.state;
+        let observer = KerrFiniteRadiusObserver::new(
+            self.black_hole,
+            state.coordinates.radius_over_m,
+            state.coordinates.theta_rad,
+        )?;
+        let first: KerrObserverScreenProjection =
+            observer.project_canonical_variation_to_screen(
+                state,
+                sample.first_phase_space_variation,
+                self.coordinate_chart,
+                null_tolerance,
+            )?;
+        let second: KerrObserverScreenProjection =
+            observer.project_canonical_variation_to_screen(
+                state,
+                sample.second_phase_space_variation,
+                self.coordinate_chart,
+                null_tolerance,
+            )?;
+        let jacobian = [
+            [first.components[0], second.components[0]],
+            [first.components[1], second.components[1]],
+        ];
+        let determinant =
+            jacobian[0][0] * jacobian[1][1] - jacobian[0][1] * jacobian[1][0];
+        let frobenius_squared = jacobian.iter().flatten().map(|value| value * value).sum::<f64>();
+        let discriminant = (frobenius_squared * frobenius_squared
+            - 4.0 * determinant * determinant).max(0.0).sqrt();
+        let large_squared = (0.5 * (frobenius_squared + discriminant)).max(0.0);
+        let small_squared = (0.5 * (frobenius_squared - discriminant)).max(0.0);
+        let small = small_squared.sqrt();
+        let large = large_squared.sqrt();
+        let condition_number = if small > 0.0 {
+            large / small
+        } else {
+            f64::INFINITY
+        };
+        if !determinant.is_finite() || !small.is_finite() || !large.is_finite() {
+            return Err(KerrIntegratorError::NonFiniteState);
+        }
+        Ok(KerrOpticalScreenMap {
+            affine_parameter: sample.trajectory.affine_parameter,
+            jacobian,
+            determinant,
+            singular_values: [small, large],
+            condition_number,
+            source_screen_basis: first.local_screen_basis,
+            source_direction_norm_residual: first.direction_norm_residual
+                .max(second.direction_norm_residual),
+        })
+    }
+
+    /// Project every retained sample in the exterior observer domain.
+    ///
+    /// The first horizon-interior or otherwise unprojectable sample is returned
+    /// as an error instead of being assigned a fabricated source screen.
+    pub fn sampled_optical_screen_maps(
+        &self,
+        null_tolerance: f64,
+    ) -> Result<Vec<KerrOpticalScreenMap>, KerrIntegratorError> {
+        (0..self.samples.len())
+            .map(|index| self.optical_screen_map_at(index, null_tolerance))
+            .collect()
+    }
 }
 
 impl KerrNullTrajectoryIntegrator {
@@ -392,6 +498,8 @@ impl KerrNullTrajectoryIntegrator {
             });
         }
         Ok(KerrObserverTangentBundleResult {
+            black_hole: self.hole,
+            coordinate_chart: self.chart,
             local_screen_basis: seed.local_screen_basis,
             samples,
             accepted_steps: transported.accepted_steps,
