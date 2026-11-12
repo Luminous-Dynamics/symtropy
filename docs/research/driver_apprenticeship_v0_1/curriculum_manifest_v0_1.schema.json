@@ -1,0 +1,561 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/research/driver-apprenticeship-contract-v0-1/docs/research/driver_apprenticeship_v0_1/curriculum_manifest_v0_1.schema.json",
+  "title": "Symthaea Driver Apprenticeship Curriculum Manifest",
+  "description": "Structural contract for a research specification. Passing this schema does not establish implementation or driving competence.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "manifest_version",
+    "program_id",
+    "status",
+    "owner",
+    "claim_ceiling",
+    "current_baseline",
+    "environment_contract",
+    "sensor_profiles",
+    "action_profile",
+    "curriculum_stages",
+    "human_instructor_protocol",
+    "model_comparison_arms",
+    "required_ablation_axes",
+    "benchmark_ladder",
+    "required_metrics",
+    "evaluation_controls",
+    "negative_controls",
+    "prospective_targets",
+    "references"
+  ],
+  "properties": {
+    "manifest_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "program_id": {
+      "type": "string",
+      "const": "symthaea-driver-apprenticeship-v0.1"
+    },
+    "status": {
+      "type": "string",
+      "const": "research_specification_not_implemented"
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "symthaea_issue",
+        "symtropy_issue"
+      ],
+      "properties": {
+        "symthaea_issue": {
+          "type": "string",
+          "format": "uri"
+        },
+        "symtropy_issue": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 40
+    },
+    "current_baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "vehicle_crate",
+        "observation_encoder",
+        "temporal_model",
+        "action_head",
+        "dynamics_backend",
+        "training_reference",
+        "raw_camera_observation_supported",
+        "visual_world_model_supported",
+        "hardware_deployment_supported"
+      ],
+      "properties": {
+        "vehicle_crate": {
+          "type": "string"
+        },
+        "observation_encoder": {
+          "type": "string"
+        },
+        "temporal_model": {
+          "type": "string"
+        },
+        "action_head": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "dynamics_backend": {
+          "type": "string"
+        },
+        "training_reference": {
+          "type": "string"
+        },
+        "raw_camera_observation_supported": {
+          "type": "boolean"
+        },
+        "visual_world_model_supported": {
+          "type": "boolean"
+        },
+        "hardware_deployment_supported": {
+          "type": "boolean"
+        }
+      }
+    },
+    "environment_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "hmd_required",
+        "hmd_role",
+        "agent_observations_must_be_receipted",
+        "truth_role",
+        "action_loop",
+        "timing_domains",
+        "missingness",
+        "command_semantics",
+        "command_semantics_require_distinct_experiment_ids"
+      ],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "const": "partially_observed_closed_loop"
+        },
+        "hmd_required": {
+          "type": "boolean"
+        },
+        "hmd_role": {
+          "type": "string"
+        },
+        "agent_observations_must_be_receipted": {
+          "type": "boolean",
+          "const": true
+        },
+        "truth_role": {
+          "type": "string"
+        },
+        "action_loop": {
+          "type": "string"
+        },
+        "timing_domains": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "missingness": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "command_semantics": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "command_semantics_require_distinct_experiment_ids": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "sensor_profiles": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "required",
+          "channels"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "channels": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            }
+          },
+          "policy_visible": {
+            "type": "boolean"
+          },
+          "policy_visible_only_when_enabled": {
+            "type": "boolean"
+          },
+          "calibration_required": {
+            "type": "boolean"
+          },
+          "acquisition_delivery_receipts_required": {
+            "type": "boolean"
+          },
+          "source_role": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "action_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "channels",
+        "units_and_bounds",
+        "required_receipts",
+        "invalid_or_missing_action"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "channels": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "units_and_bounds": {
+          "type": "string"
+        },
+        "required_receipts": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "invalid_or_missing_action": {
+          "type": "string"
+        }
+      }
+    },
+    "curriculum_stages": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "order",
+          "task_families",
+          "environment",
+          "required_capabilities",
+          "promotion_gate"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^stage_[0-6]_"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6
+          },
+          "task_families": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "environment": {
+            "type": "string"
+          },
+          "required_capabilities": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "uniqueItems": true
+          },
+          "promotion_gate": {
+            "type": "string",
+            "minLength": 20
+          }
+        }
+      }
+    },
+    "human_instructor_protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled_for_training",
+        "consent_and_provenance_required",
+        "input_devices",
+        "captured_fields",
+        "separate_from_policy_observation",
+        "teacher_data_not_available_in_frozen_evaluation",
+        "future_outcomes_not_available_to_policy",
+        "teacher_blending_disabled_in_frozen_evaluation",
+        "online_updates_disabled_in_frozen_evaluation",
+        "exploration_noise_disabled_in_frozen_evaluation"
+      ],
+      "properties": {
+        "enabled_for_training": {
+          "type": "boolean"
+        },
+        "consent_and_provenance_required": {
+          "type": "boolean",
+          "const": true
+        },
+        "input_devices": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "captured_fields": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "separate_from_policy_observation": {
+          "type": "boolean",
+          "const": true
+        },
+        "teacher_data_not_available_in_frozen_evaluation": {
+          "type": "boolean",
+          "const": true
+        },
+        "future_outcomes_not_available_to_policy": {
+          "type": "boolean",
+          "const": true
+        },
+        "teacher_blending_disabled_in_frozen_evaluation": {
+          "type": "boolean",
+          "const": true
+        },
+        "online_updates_disabled_in_frozen_evaluation": {
+          "type": "boolean",
+          "const": true
+        },
+        "exploration_noise_disabled_in_frozen_evaluation": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "model_comparison_arms": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 10
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "required_ablation_axes": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "benchmark_ladder": {
+      "type": "array",
+      "minItems": 8,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "role",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "required_metrics": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "evaluation_controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "train_dev_holdout_split_by",
+        "freeze_checkpoint",
+        "freeze_recurrent_state_policy",
+        "disable_teacher_blending",
+        "disable_bptt_teacher_supervision",
+        "disable_online_updates",
+        "disable_exploration_noise",
+        "disable_future_observation_access",
+        "retain_failed_incomplete_censored_episodes",
+        "any_holdout_adaptation_opens_new_generation"
+      ],
+      "properties": {
+        "train_dev_holdout_split_by": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        },
+        "freeze_checkpoint": {
+          "type": "boolean",
+          "const": true
+        },
+        "freeze_recurrent_state_policy": {
+          "type": "boolean",
+          "const": true
+        },
+        "disable_teacher_blending": {
+          "type": "boolean",
+          "const": true
+        },
+        "disable_bptt_teacher_supervision": {
+          "type": "boolean",
+          "const": true
+        },
+        "disable_online_updates": {
+          "type": "boolean",
+          "const": true
+        },
+        "disable_exploration_noise": {
+          "type": "boolean",
+          "const": true
+        },
+        "disable_future_observation_access": {
+          "type": "boolean",
+          "const": true
+        },
+        "retain_failed_incomplete_censored_episodes": {
+          "type": "boolean",
+          "const": true
+        },
+        "any_holdout_adaptation_opens_new_generation": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 10,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "prospective_targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "exact_analytic_fixture_agreement",
+        "hidden_state_or_teacher_leakage",
+        "episode_and_branch_denominator_accounting",
+        "HDC_LTC_advantage",
+        "transfer",
+        "caveat"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "const": "not_measured"
+        },
+        "exact_analytic_fixture_agreement": {
+          "type": "string"
+        },
+        "hidden_state_or_teacher_leakage": {
+          "type": "string"
+        },
+        "episode_and_branch_denominator_accounting": {
+          "type": "string"
+        },
+        "HDC_LTC_advantage": {
+          "type": "string"
+        },
+        "transfer": {
+          "type": "string"
+        },
+        "caveat": {
+          "type": "string"
+        }
+      }
+    },
+    "references": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "uniqueItems": true
+    }
+  }
+}
