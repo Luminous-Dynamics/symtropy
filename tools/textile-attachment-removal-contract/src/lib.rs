@@ -476,14 +476,14 @@ pub fn validate(record: &AttemptRecord) -> ValidationReport {
         }
     }
 
-    if let (Some(maximum), Some(peak)) = (record.task.max_force_mn, record.peak_force_mn) {
-        if peak > maximum {
-            add(
-                &mut findings,
-                "FORCE_LIMIT_EXCEEDED",
-                format!("peak force {peak} mN exceeds declared maximum {maximum} mN"),
-            );
-        }
+    if let (Some(maximum), Some(peak)) = (record.task.max_force_mn, record.peak_force_mn)
+        && peak > maximum
+    {
+        add(
+            &mut findings,
+            "FORCE_LIMIT_EXCEEDED",
+            format!("peak force {peak} mN exceeds declared maximum {maximum} mN"),
+        );
     }
 
     findings.sort_by(|left, right| (&left.code, &left.message).cmp(&(&right.code, &right.message)));
