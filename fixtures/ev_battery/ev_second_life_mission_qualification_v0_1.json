@@ -118,6 +118,69 @@
       "claim_scope": "synthetic known-answer fixture",
       "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
       "metrology_ref": null
+    },
+    {
+      "evidence_id": "BMS-VERIFY-SECOND-LIFE",
+      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic BMS verification fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "AUTH-THERMAL-SECOND-LIFE",
+      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic thermal-authority decision fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "BMS-VERIFY-THIRD-LIFE",
+      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic BMS verification fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "AUTH-THERMAL-THIRD-LIFE",
+      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic thermal-authority decision fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "BMS-VERIFY-UNKNOWN-HISTORY",
+      "source_digest": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic BMS verification fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "AUTH-THERMAL-UNKNOWN-HISTORY",
+      "source_digest": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic thermal-authority decision fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
+    },
+    {
+      "evidence_id": "E-UQ-PROFILE",
+      "source_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence_class": "synthetic",
+      "admission": "admitted_for_evaluation",
+      "claim_scope": "synthetic uncertainty-profile fixture",
+      "rights_ref": "SYNTHETIC-ONLY-NO-PRODUCTION-DATA",
+      "metrology_ref": null
     }
   ],
   "cases": [
@@ -153,18 +216,18 @@
         "supported_temperature_min_c": -20,
         "supported_temperature_max_c": 45,
         "lower_bound_availability_percent": 98,
-        "uncertainty_profile_ref": "UQ-PROFILE-R2",
-        "evidence_id": "E-CAP-SECOND"
+        "uncertainty_profile_ref": "E-UQ-PROFILE",
+        "evidence_id": "E-CAP-SECOND-LIFE"
       },
       "bms": {
         "strategy": "gateway_interface",
         "hardware_revision": "BMS-HW-R2",
         "firmware_revision": "BMS-FW-R7",
         "compatibility": "verified_for_target_mission",
-        "verification_ref": "BMS-VERIFY-SYNTHETIC"
+        "verification_ref": "BMS-VERIFY-SECOND-LIFE"
       },
       "thermal_review_status": "accepted_by_competent_authority",
-      "thermal_authority_decision_ref": "SYNTHETIC-AUTHORITY-DECISION",
+      "thermal_authority_decision_ref": "AUTH-THERMAL-SECOND-LIFE",
       "gates": [
         {
           "gate": "pack_identity",
@@ -187,7 +250,7 @@
         {
           "gate": "thermal_propagation_approval",
           "status": "pass",
-          "evidence_id": "E-GATE-3",
+          "evidence_id": "AUTH-THERMAL-SECOND-LIFE",
           "rationale": "synthetic fixture gate"
         },
         {
@@ -199,13 +262,13 @@
         {
           "gate": "bms_compatibility",
           "status": "pass",
-          "evidence_id": "E-GATE-5",
+          "evidence_id": "BMS-VERIFY-SECOND-LIFE",
           "rationale": "synthetic fixture gate"
         },
         {
           "gate": "mission_capability",
           "status": "pass",
-          "evidence_id": "E-GATE-6",
+          "evidence_id": "E-CAP-SECOND-LIFE",
           "rationale": "synthetic fixture gate"
         },
         {
@@ -226,7 +289,9 @@
           "evidence_id": "E-GATE-9",
           "rationale": "synthetic fixture gate"
         }
-      ]
+      ],
+      "passport_evidence_id": "E-GATE-0",
+      "incident_adjudication_ref": null
     },
     {
       "case_id": "THIRD-LIFE",
@@ -260,18 +325,18 @@
         "supported_temperature_min_c": -20,
         "supported_temperature_max_c": 45,
         "lower_bound_availability_percent": 98,
-        "uncertainty_profile_ref": "UQ-PROFILE-R2",
-        "evidence_id": "E-CAP-THIRD"
+        "uncertainty_profile_ref": "E-UQ-PROFILE",
+        "evidence_id": "E-CAP-THIRD-LIFE"
       },
       "bms": {
         "strategy": "gateway_interface",
         "hardware_revision": "BMS-HW-R2",
         "firmware_revision": "BMS-FW-R7",
         "compatibility": "verified_for_target_mission",
-        "verification_ref": "BMS-VERIFY-SYNTHETIC"
+        "verification_ref": "BMS-VERIFY-THIRD-LIFE"
       },
       "thermal_review_status": "accepted_by_competent_authority",
-      "thermal_authority_decision_ref": "SYNTHETIC-AUTHORITY-DECISION",
+      "thermal_authority_decision_ref": "AUTH-THERMAL-THIRD-LIFE",
       "gates": [
         {
           "gate": "pack_identity",
@@ -294,7 +359,7 @@
         {
           "gate": "thermal_propagation_approval",
           "status": "pass",
-          "evidence_id": "E-GATE-3",
+          "evidence_id": "AUTH-THERMAL-THIRD-LIFE",
           "rationale": "synthetic fixture gate"
         },
         {
@@ -306,13 +371,13 @@
         {
           "gate": "bms_compatibility",
           "status": "pass",
-          "evidence_id": "E-GATE-5",
+          "evidence_id": "BMS-VERIFY-THIRD-LIFE",
           "rationale": "synthetic fixture gate"
         },
         {
           "gate": "mission_capability",
           "status": "pass",
-          "evidence_id": "E-GATE-6",
+          "evidence_id": "E-CAP-THIRD-LIFE",
           "rationale": "synthetic fixture gate"
         },
         {
@@ -333,7 +398,9 @@
           "evidence_id": "E-GATE-9",
           "rationale": "synthetic fixture gate"
         }
-      ]
+      ],
+      "passport_evidence_id": "E-GATE-0",
+      "incident_adjudication_ref": null
     },
     {
       "case_id": "UNKNOWN-HISTORY",
@@ -367,18 +434,18 @@
         "supported_temperature_min_c": -20,
         "supported_temperature_max_c": 45,
         "lower_bound_availability_percent": 98,
-        "uncertainty_profile_ref": "UQ-PROFILE-R2",
-        "evidence_id": "E-CAP-UNKNOWN"
+        "uncertainty_profile_ref": "E-UQ-PROFILE",
+        "evidence_id": "E-CAP-UNKNOWN-HISTORY"
       },
       "bms": {
         "strategy": "gateway_interface",
         "hardware_revision": "BMS-HW-R2",
         "firmware_revision": "BMS-FW-R7",
         "compatibility": "verified_for_target_mission",
-        "verification_ref": "BMS-VERIFY-SYNTHETIC"
+        "verification_ref": "BMS-VERIFY-UNKNOWN-HISTORY"
       },
       "thermal_review_status": "candidate_for_human_review",
-      "thermal_authority_decision_ref": "SYNTHETIC-AUTHORITY-DECISION",
+      "thermal_authority_decision_ref": null,
       "gates": [
         {
           "gate": "pack_identity",
@@ -401,7 +468,7 @@
         {
           "gate": "thermal_propagation_approval",
           "status": "unknown",
-          "evidence_id": "E-GATE-3",
+          "evidence_id": "AUTH-THERMAL-UNKNOWN-HISTORY",
           "rationale": "synthetic fixture gate"
         },
         {
@@ -413,13 +480,13 @@
         {
           "gate": "bms_compatibility",
           "status": "pass",
-          "evidence_id": "E-GATE-5",
+          "evidence_id": "BMS-VERIFY-UNKNOWN-HISTORY",
           "rationale": "synthetic fixture gate"
         },
         {
           "gate": "mission_capability",
           "status": "pass",
-          "evidence_id": "E-GATE-6",
+          "evidence_id": "E-CAP-UNKNOWN-HISTORY",
           "rationale": "synthetic fixture gate"
         },
         {
@@ -440,7 +507,9 @@
           "evidence_id": "E-GATE-9",
           "rationale": "synthetic fixture gate"
         }
-      ]
+      ],
+      "passport_evidence_id": "E-GATE-0",
+      "incident_adjudication_ref": null
     }
   ]
 }
