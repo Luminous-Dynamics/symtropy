@@ -13,9 +13,9 @@
 use std::collections::BTreeSet;
 
 /// Closed interval for an event timestamp in one declared monotonic clock.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TimestampInterval {
-    pub clock_id: &'static str,
+    pub clock_id: String,
     pub boot_epoch: u64,
     pub lower_ns: u64,
     pub upper_ns: u64,
@@ -488,7 +488,7 @@ fn validate_timestamp(
 }
 
 fn apply_mapping(
-    source: TimestampInterval,
+    source: &TimestampInterval,
     target_clock_id: &str,
     mapping: &ClockMapping,
 ) -> Option<TimestampInterval> {
@@ -506,7 +506,7 @@ fn apply_mapping(
         return None;
     }
     Some(TimestampInterval {
-        clock_id: target_clock_id,
+        clock_id: target_clock_id.to_owned(),
         boot_epoch: source.boot_epoch,
         lower_ns: lower as u64,
         upper_ns: upper as u64,
@@ -514,8 +514,8 @@ fn apply_mapping(
 }
 
 fn elapsed_in_one_clock(
-    start: TimestampInterval,
-    end: TimestampInterval,
+    start: &TimestampInterval,
+    end: &TimestampInterval,
 ) -> Evidence<DurationBounds> {
     if start.boot_epoch != end.boot_epoch || start.clock_id != end.clock_id {
         return Evidence::Unknown(UnknownReason::ClockMappingDoesNotCoverTrace);
@@ -536,12 +536,12 @@ fn source_to_application_aoi(trace: &JointTrace) -> Evidence<DurationBounds> {
     match &trace.clock_relation {
         ClockRelation::Unknown => Evidence::Unknown(UnknownReason::ClockRelationUnavailable),
         ClockRelation::SameMonotonicClockVerified => {
-            elapsed_in_one_clock(trace.source_capture, trace.actuator_application)
+            elapsed_in_one_clock(&trace.source_capture, &trace.actuator_application)
         }
         ClockRelation::BoundedMappingVerified(mapping) => {
             let Some(mapped_source) = apply_mapping(
-                trace.source_capture,
-                trace.actuator_application.clock_id,
+                &trace.source_capture,
+                &trace.actuator_application.clock_id,
                 mapping,
             ) else {
                 return Evidence::Unknown(UnknownReason::ClockMappingDoesNotCoverTrace);
@@ -552,7 +552,7 @@ fn source_to_application_aoi(trace: &JointTrace) -> Evidence<DurationBounds> {
 }
 
 fn command_to_motion(trace: &JointTrace) -> Evidence<DurationBounds> {
-    elapsed_in_one_clock(trace.actuator_application, trace.motion_onset)
+    elapsed_in_one_clock(&trace.actuator_application, &trace.motion_onset)
 }
 
 fn decision_status(trace: &JointTrace) -> Evidence<DecisionDisposition> {
@@ -812,7 +812,7 @@ mod tests {
             },
             clock_relation: ClockRelation::SameMonotonicClockVerified,
             source_capture: TimestampInterval {
-                clock_id: "joint-clock",
+                clock_id: "joint-clock".into(),
                 boot_epoch: 7,
                 lower_ns: 100_000_000,
                 upper_ns: 100_000_000,
@@ -941,7 +941,7 @@ mod tests {
     #[test]
     fn bounded_clock_mapping_preserves_interval_uncertainty() {
         let mut trace = reference_trace();
-        trace.source_capture.clock_id = "daq-clock";
+        trace.source_capture.clock_id = "daq-clock".into();
         trace.source_capture.lower_ns = 100;
         trace.source_capture.upper_ns = 102;
         trace.actuator_application.lower_ns = 120;
