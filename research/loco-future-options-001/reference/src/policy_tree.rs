@@ -28,7 +28,11 @@ pub struct StateActionEvidence {
     /// Complete status over the frozen action domain. Omitted actions are not
     /// admitted only when this flag and the receipt digest are qualified.
     pub complete: bool,
+    /// Observation-class receipt identifying the admissibility record.
     pub receipt_digest: String,
+    /// Exact source receipts supporting the common action set. For a merged
+    /// observation class this includes every outcome continuation receipt.
+    pub supporting_receipt_digests: Vec<String>,
     pub admitted_action_ids: Vec<String>,
 }
 
@@ -86,6 +90,8 @@ pub struct BeliefNode {
     pub observation_disposition: ObservationDisposition,
     /// All hidden states that produce this observation history.
     pub state_ids: Vec<String>,
+    /// Exact upstream digest for this full observation-conditioned state set.
+    pub belief_state_set_digest: String,
     pub state_evidence: Vec<BeliefStateReceipt>,
     pub transition_manifest: EvidenceManifest,
     pub state_action_evidence: Vec<StateActionEvidence>,
@@ -247,6 +253,14 @@ fn solve_node(
             winning_action_ids: Vec::new(),
             witness: BTreeMap::new(),
             unknown_reasons: vec![format!("{node_id}:observation-receipt-unknown-or-missing")],
+            invalid_reasons: Vec::new(),
+        }
+    } else if node.belief_state_set_digest.trim().is_empty() {
+        NodeSolution {
+            disposition: PolicyTreeDisposition::Unknown,
+            winning_action_ids: Vec::new(),
+            witness: BTreeMap::new(),
+            unknown_reasons: vec![format!("{node_id}:belief-state-set-digest-missing")],
             invalid_reasons: Vec::new(),
         }
     } else if node.state_ids.is_empty() {
@@ -416,7 +430,14 @@ fn solve_node(
         let evidence_complete = node.state_ids.iter().all(|state_id| {
             evidence_by_state
                 .get(state_id.as_str())
-                .is_some_and(|e| e.complete && !e.receipt_digest.trim().is_empty())
+                .is_some_and(|e| {
+                    e.complete
+                        && !e.receipt_digest.trim().is_empty()
+                        && !e.supporting_receipt_digests.is_empty()
+                        && e.supporting_receipt_digests
+                            .iter()
+                            .all(|digest| !digest.trim().is_empty())
+                })
         });
         if !evidence_complete || evidence_by_state.len() != node.state_ids.len() {
             NodeSolution {
