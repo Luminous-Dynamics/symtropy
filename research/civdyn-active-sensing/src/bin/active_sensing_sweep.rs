@@ -12,11 +12,7 @@ const SOURCE_DIGEST: &str = "sha256-three-world-sensor-source-v1";
 const CSV_COLUMNS: usize = 27;
 
 fn csv_field(value: &str) -> String {
-    if value.contains(',')
-        || value.contains('"')
-        || value.contains('\n')
-        || value.contains('\r')
-    {
+    if value.contains(',') || value.contains('"') || value.contains('\n') || value.contains('\r') {
         format!("\"{}\"", value.replace('"', "\"\""))
     } else {
         value.to_owned()
