@@ -8,7 +8,7 @@ use civdyn_active_sensing::{
     ActiveSensingConfig, DecisionWorld, PolicyOutcome, SensorAction, SensorPrediction,
 };
 
-const CSV_COLUMNS: usize = 24;
+const CSV_COLUMNS: usize = 25;
 
 fn emit(fields: Vec<String>) {
     assert_eq!(fields.len(), CSV_COLUMNS, "sequential-sensing receipt schema mismatch");
@@ -140,6 +140,7 @@ fn summary_fields(
         result.resolves_no_sensing_infeasibility.to_string(),
         String::new(), String::new(), String::new(), String::new(),
         String::new(), String::new(), String::new(), String::new(),
+        String::new(),
     ]
 }
 
@@ -167,7 +168,7 @@ fn main() -> Result<(), String> {
     }
 
     println!(
-        "record_type,scenario_id,plan_id,status,recommended,myopic_stage_one_status,myopic_stage_one_regret,baseline_common_feasible_policy_count,total_energy_kwh,total_energy_cost_service_units,total_latency_ticks,maximum_latency_service_loss,maximum_total_penalty_service_units,worst_case_post_sensing_regret,regret_reduction,resolves_no_sensing_infeasibility,observation_history,selected_policy_id,partition_world_count,world_id,world_regret,world_penalty,world_net_service,oracle_service"
+        "record_type,scenario_id,plan_id,status,recommended,myopic_stage_one_status,myopic_stage_one_regret,baseline_common_feasible_policy_count,total_energy_kwh,total_energy_cost_service_units,total_latency_ticks,maximum_latency_service_loss,maximum_total_penalty_service_units,worst_case_post_sensing_regret,regret_reduction,resolves_no_sensing_infeasibility,observation_history,selected_policy_id,partition_world_count,partition_worst_regret,world_id,world_regret,world_penalty,world_net_service,oracle_service"
     );
     emit(summary_fields(&result));
 
@@ -177,7 +178,7 @@ fn main() -> Result<(), String> {
         row[16] = partition.observation_history.clone();
         row[17] = partition.selected_policy_id.clone().unwrap_or_default();
         row[18] = partition.world_regrets.len().to_string();
-        row[20] = partition.worst_case_regret.map_or_else(String::new, |v| format!("{v:.6}"));
+        row[19] = partition.worst_case_regret.map_or_else(String::new, |v| format!("{v:.6}"));
         emit(row);
         for world in &partition.world_regrets {
             let mut world_row = summary_fields(&result);
@@ -185,11 +186,11 @@ fn main() -> Result<(), String> {
             world_row[16] = partition.observation_history.clone();
             world_row[17] = world.selected_policy_id.clone();
             world_row[18] = partition.world_regrets.len().to_string();
-            world_row[19] = world.world_id.clone();
-            world_row[20] = format!("{:.6}", world.regret_service_units);
-            world_row[21] = format!("{:.6}", world.sensing_penalty_service_units);
-            world_row[22] = format!("{:.6}", world.net_policy_service_units);
-            world_row[23] = format!("{:.6}", world.oracle_service_units);
+            world_row[20] = world.world_id.clone();
+            world_row[21] = format!("{:.6}", world.regret_service_units);
+            world_row[22] = format!("{:.6}", world.sensing_penalty_service_units);
+            world_row[23] = format!("{:.6}", world.net_policy_service_units);
+            world_row[24] = format!("{:.6}", world.oracle_service_units);
             emit(world_row);
         }
     }
