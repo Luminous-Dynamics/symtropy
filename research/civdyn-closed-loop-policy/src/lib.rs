@@ -233,7 +233,10 @@ pub fn advance(
             );
             next.water_maintenance_debt = (next.water_maintenance_debt - 3).max(0);
             next.maintenance_credits -= 1;
-            next.energy_reserve = next.energy_reserve.checked_sub(2).ok_or(BenchmarkError::ArithmeticOverflow)?;
+            next.energy_reserve = next
+                .energy_reserve
+                .checked_sub(2)
+                .ok_or(BenchmarkError::ArithmeticOverflow)?;
         }
         Action::RepairEnergy => {
             next.energy_service = clamp_service(
@@ -243,7 +246,10 @@ pub fn advance(
             );
             next.energy_maintenance_debt = (next.energy_maintenance_debt - 3).max(0);
             next.maintenance_credits -= 1;
-            next.energy_reserve = next.energy_reserve.checked_sub(2).ok_or(BenchmarkError::ArithmeticOverflow)?;
+            next.energy_reserve = next
+                .energy_reserve
+                .checked_sub(2)
+                .ok_or(BenchmarkError::ArithmeticOverflow)?;
         }
     }
 
@@ -274,8 +280,14 @@ pub fn advance(
         .energy_maintenance_debt
         .checked_add(params.energy_decay)
         .ok_or(BenchmarkError::ArithmeticOverflow)?;
-    next.water_reserve = next.water_reserve.checked_sub(2).ok_or(BenchmarkError::ArithmeticOverflow)?;
-    next.energy_reserve = next.energy_reserve.checked_sub(1).ok_or(BenchmarkError::ArithmeticOverflow)?;
+    next.water_reserve = next
+        .water_reserve
+        .checked_sub(2)
+        .ok_or(BenchmarkError::ArithmeticOverflow)?;
+    next.energy_reserve = next
+        .energy_reserve
+        .checked_sub(1)
+        .ok_or(BenchmarkError::ArithmeticOverflow)?;
 
     next.validate()?;
     Ok(next)
@@ -429,18 +441,14 @@ pub struct ForecastErrors {
 
 impl ForecastErrors {
     fn add(&mut self, predicted: &State, actual: &State) {
-        self.water_service_abs +=
-            f64::from((predicted.water_service - actual.water_service).abs());
+        self.water_service_abs += f64::from((predicted.water_service - actual.water_service).abs());
         self.energy_service_abs +=
             f64::from((predicted.energy_service - actual.energy_service).abs());
-        self.water_debt_abs += f64::from(
-            (predicted.water_maintenance_debt - actual.water_maintenance_debt).abs(),
-        );
-        self.energy_debt_abs += f64::from(
-            (predicted.energy_maintenance_debt - actual.energy_maintenance_debt).abs(),
-        );
-        self.water_reserve_abs +=
-            f64::from((predicted.water_reserve - actual.water_reserve).abs());
+        self.water_debt_abs +=
+            f64::from((predicted.water_maintenance_debt - actual.water_maintenance_debt).abs());
+        self.energy_debt_abs +=
+            f64::from((predicted.energy_maintenance_debt - actual.energy_maintenance_debt).abs());
+        self.water_reserve_abs += f64::from((predicted.water_reserve - actual.water_reserve).abs());
         self.energy_reserve_abs +=
             f64::from((predicted.energy_reserve - actual.energy_reserve).abs());
         self.observations += 1;
@@ -554,8 +562,8 @@ pub fn run_policy(
             action_ranking_matches += 1;
         }
 
-        if let Some(model) = candidate_model
-            .filter(|_| policy == PolicyKind::ActionConditionedModel)
+        if let Some(model) =
+            candidate_model.filter(|_| policy == PolicyKind::ActionConditionedModel)
         {
             let predicted = advance(&state, action, model.params)?;
             let actual = advance(&state, action, true_world.params)?;
@@ -571,8 +579,7 @@ pub fn run_policy(
         minimum_energy_service = minimum_energy_service.min(state.energy_service);
         if state.water_service < SERVICE_FLOOR {
             water_floor_violation_ticks += 1;
-            worst_water_shortfall =
-                worst_water_shortfall.max(SERVICE_FLOOR - state.water_service);
+            worst_water_shortfall = worst_water_shortfall.max(SERVICE_FLOOR - state.water_service);
         }
         if state.energy_service < SERVICE_FLOOR {
             energy_floor_violation_ticks += 1;
@@ -695,8 +702,7 @@ mod tests {
         ] {
             let model_outcome =
                 run_policy(world, PolicyKind::ActionConditionedModel, Some(model)).unwrap();
-            let oracle_outcome =
-                run_policy(world, PolicyKind::EvaluatorOnlyOracle, None).unwrap();
+            let oracle_outcome = run_policy(world, PolicyKind::EvaluatorOnlyOracle, None).unwrap();
             assert!(model_outcome.terminal_feasible);
             assert_eq!(model_outcome.cumulative_service_points, 50);
             assert_eq!(model_outcome.actions, oracle_outcome.actions);
@@ -708,8 +714,7 @@ mod tests {
 
     #[test]
     fn reactive_policy_cannot_substitute_current_weakest_service_for_lookahead() {
-        let water =
-            run_policy(WATER_DEGRADATION_WORLD, PolicyKind::ReactiveNoModel, None).unwrap();
+        let water = run_policy(WATER_DEGRADATION_WORLD, PolicyKind::ReactiveNoModel, None).unwrap();
         let energy =
             run_policy(ENERGY_DEGRADATION_WORLD, PolicyKind::ReactiveNoModel, None).unwrap();
         assert!(!water.terminal_feasible);
@@ -720,16 +725,36 @@ mod tests {
 
     #[test]
     fn misspecified_action_model_is_confidently_wrong_on_the_other_world() {
-        let water =
-            run_policy(WATER_DEGRADATION_WORLD, PolicyKind::ActionConditionedModel, Some(ENERGY_CANDIDATE_MODEL)).unwrap();
-        let energy =
-            run_policy(ENERGY_DEGRADATION_WORLD, PolicyKind::ActionConditionedModel, Some(WATER_CANDIDATE_MODEL)).unwrap();
+        let water = run_policy(
+            WATER_DEGRADATION_WORLD,
+            PolicyKind::ActionConditionedModel,
+            Some(ENERGY_CANDIDATE_MODEL),
+        )
+        .unwrap();
+        let energy = run_policy(
+            ENERGY_DEGRADATION_WORLD,
+            PolicyKind::ActionConditionedModel,
+            Some(WATER_CANDIDATE_MODEL),
+        )
+        .unwrap();
         assert!(!water.terminal_feasible);
         assert!(!energy.terminal_feasible);
         assert!(water.worst_water_shortfall > 0);
         assert!(energy.worst_energy_shortfall > 0);
-        assert!(water.forecast_errors.unwrap().iter().any(|value| *value > 0.0));
-        assert!(energy.forecast_errors.unwrap().iter().any(|value| *value > 0.0));
+        assert!(
+            water
+                .forecast_errors
+                .unwrap()
+                .iter()
+                .any(|value| *value > 0.0)
+        );
+        assert!(
+            energy
+                .forecast_errors
+                .unwrap()
+                .iter()
+                .any(|value| *value > 0.0)
+        );
     }
 
     #[test]
@@ -745,8 +770,10 @@ mod tests {
     fn service_floor_is_not_averaged_away_by_raw_utility() {
         let outcomes = run_reference_portfolio().unwrap();
         for world_id in [WATER_DEGRADATION_WORLD.id, ENERGY_DEGRADATION_WORLD.id] {
-            let rows: Vec<&PolicyOutcome> =
-                outcomes.iter().filter(|outcome| outcome.world_id == world_id).collect();
+            let rows: Vec<&PolicyOutcome> = outcomes
+                .iter()
+                .filter(|outcome| outcome.world_id == world_id)
+                .collect();
             let oracle = rows
                 .iter()
                 .find(|outcome| outcome.policy == PolicyKind::EvaluatorOnlyOracle)
@@ -766,12 +793,7 @@ mod tests {
     fn candidate_policy_interface_does_not_accept_the_true_world() {
         // Candidate action choice receives only the observation and candidate
         // model. The true world is confined to run_policy's evaluator harness.
-        let selected = choose_model_action(
-            &INITIAL_STATE,
-            WATER_CANDIDATE_MODEL,
-            HORIZON,
-        )
-        .unwrap();
+        let selected = choose_model_action(&INITIAL_STATE, WATER_CANDIDATE_MODEL, HORIZON).unwrap();
         assert_eq!(selected, Action::NoOp);
     }
 
