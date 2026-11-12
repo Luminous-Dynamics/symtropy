@@ -1,0 +1,115 @@
+{
+  "protocol_id": "SELECTIVE-DRIVING-COMPETENCE-001",
+  "schema_version": "0.1.0",
+  "status": "reference_evaluator_and_protocol_in_progress",
+  "issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4938",
+  "as_of": "2026-11-12",
+  "purpose": "Measure the risk-versus-autonomy-coverage frontier, uncertainty calibration, worst-family outcomes, abstention timeliness, fallback recoverability and compute cost for frozen driving decision records.",
+  "claim_ceiling": "Offline statistics for exact declared records only. Not a safety monitor, action authorization, fallback controller, roadworthiness case or regulatory approval.",
+  "comparator_context": [
+    {
+      "id": "bench2drive-v0.0.3-self-reported-leaderboard",
+      "class": "self_reported_benchmark_leaderboard",
+      "results": [
+        {
+          "method": "BridgeDrive (LEAD)",
+          "driving_score": 96.34,
+          "success_rate_percent": 89.25
+        },
+        {
+          "method": "TFv6",
+          "driving_score": 95.28,
+          "success_rate_percent": 86.81
+        },
+        {
+          "method": "PDM-Lite (privileged)",
+          "driving_score": 97.02,
+          "success_rate_percent": 92.27
+        }
+      ],
+      "caveat": "Bench2Drive leaderboard says results are self-reported, from v0.0.3, and methods vary in data, pretraining, experts, compute, parameters and privileges. PDM-Lite is shown in the privileged section and is not a matched vision-only comparator.",
+      "source": "https://github.com/autonomousvision/Bench2Drive-Leaderboard"
+    },
+    {
+      "id": "navsim-v2-end-to-end-test",
+      "class": "benchmark_leaderboard",
+      "results": [
+        {
+          "method": "NTR (2026.05)",
+          "epdms": 90.9
+        }
+      ],
+      "caveat": "Native NAVSIM v2 EPDMS end-to-end test metric. Do not compare directly to Bench2Drive DS or planning-track metrics.",
+      "source": "https://www.sota2.com/research/sota/end-to-end-driving-on-navsim-v2-test"
+    },
+    {
+      "id": "alpamayo-2-edge-nov-10-2026",
+      "class": "industry_technical_blog",
+      "results": [
+        {
+          "parameter_count_billions": 2,
+          "pixel_to_trajectory_latency_ms_min": 160,
+          "pixel_to_trajectory_latency_ms_max": 190,
+          "closed_loop_rl_reported_relative_improvement_percent": 48.9
+        }
+      ],
+      "caveat": "NVIDIA-reported DRIVE AGX Thor deployment recipe and internal comparison, not an independently reproduced Symtropy measurement.",
+      "source": "https://developer.nvidia.com/blog/running-av-reasoning-models-within-onboard-compute-and-latency-limits/"
+    },
+    {
+      "id": "waymo-safety-impact-through-june-2026",
+      "class": "company_operational_safety_dashboard",
+      "results": [
+        {
+          "rider_only_miles_millions": 271.3,
+          "serious_injury_or_worse_crash_reduction_percent": 95,
+          "any_injury_crash_reduction_percent": 82,
+          "pedestrian_injury_crash_reduction_percent": 93,
+          "cyclist_injury_crash_reduction_percent": 86,
+          "motorcycle_injury_crash_reduction_percent": 82
+        }
+      ],
+      "caveat": "Retrospective company-published operational statistics with location-adjusted human comparisons; distinct from Waymo's formal safety-case process.",
+      "source": "https://waymo.com/safety/impact/"
+    }
+  ],
+  "metrics": [
+    "risk_coverage_curve_failure_rate",
+    "risk_coverage_curve_mean_observed_loss",
+    "right_step_area_under_risk_coverage_failure_rate",
+    "right_step_area_under_risk_coverage_mean_loss",
+    "failure_rate_at_predeclared_coverage",
+    "maximum_coverage_at_predeclared_failure_rate",
+    "actual_policy_autonomy_coverage",
+    "actual_accepted_failure_rate",
+    "brier_score",
+    "log_loss",
+    "fixed_bin_expected_calibration_error",
+    "maximum_fixed_bin_calibration_gap",
+    "worst_scenario_family_risk_and_coverage",
+    "fallback_success_fraction",
+    "late_abstention_count",
+    "fallback_duration",
+    "human_intervention_burden",
+    "inference_latency_energy_and_memory"
+  ],
+  "tie_handling": "All records with identical predicted_failure_probability enter a threshold together. The curve contains one point per unique score. AURC uses a right-continuous step integral over coverage increments.",
+  "prospective_targets": {
+    "status": "not_measured",
+    "evaluator_known_answer_fixtures_percent": 100,
+    "denominator_reconciliation_percent": 100,
+    "future_or_evaluator_only_policy_inputs_allowed": 0,
+    "missing_or_censored_outcomes_in_strict_test_allowed": 0,
+    "negative_controls_required": [
+      "random_scores",
+      "inverted_scores",
+      "future_input_leak",
+      "missing_outcome_omission",
+      "duplicate_decision",
+      "fallback_missing",
+      "late_abstention",
+      "family_aggregate_masking"
+    ],
+    "note": "No driving model has been evaluated by this protocol yet. Targets are protocol acceptance checks, not performance claims."
+  }
+}
