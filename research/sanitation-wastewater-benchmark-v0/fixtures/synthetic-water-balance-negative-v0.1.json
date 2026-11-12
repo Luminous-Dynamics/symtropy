@@ -37,7 +37,8 @@
       "effluent_kg_day": 0.0085,
       "sludge_kg_day": 0.005,
       "other_outputs_kg_day": 0.0265,
-      "expected_closure_kg_day": 0
+      "expected_closure_kg_day": 0,
+      "closure_tolerance_kg_day": 1e-9
     },
     {
       "constituent": "total_phosphorus",
@@ -46,7 +47,8 @@
       "effluent_kg_day": 0.00085,
       "sludge_kg_day": 0.00615,
       "other_outputs_kg_day": 0,
-      "expected_closure_kg_day": 0
+      "expected_closure_kg_day": 0,
+      "closure_tolerance_kg_day": 1e-9
     }
   ],
   "nonconservative_performance_metrics": [
