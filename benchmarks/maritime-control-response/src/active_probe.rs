@@ -2275,10 +2275,10 @@ mod tests {
             .contains("changes whenever evidence changes the posterior"));
         assert_eq!(protocol["comparators"].as_array().unwrap().len(), 6);
         assert_eq!(protocol["candidate_classes"]["controlled_perturbation"]["eligible_when"], false);
-        assert_eq!(protocol["evidence_boundaries"]["authority_status"]
+        assert!(protocol["evidence_boundaries"]["authority_status"]
             .as_str()
             .unwrap()
-            .contains("external mandatory checks"), true);
+            .contains("external mandatory checks"));
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 28);
         assert!(protocol["method"]["observation_update"]["posterior"]
             .as_str()
