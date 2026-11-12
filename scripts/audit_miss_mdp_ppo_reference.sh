@@ -34,9 +34,15 @@ grep -Fq 'function train_PPO_agent(' "$reference_root/src/PPO.jl"
 grep -Fq 'function sample_ppo_hparams(seed::Integer)' "$reference_root/src/PPO.jl"
 
 if git -C "$reference_root" ls-tree -r --name-only "$expected_commit" -- experiments \
-  | grep -Ei '(^|/)[^/]*(PPO.*stack|stack.*PPO)[^/]*\.jl
+  | grep -Ei '(^|/)[^/]*(PPO.*stack|stack.*PPO)[^/]*\.jl$'; then
+  printf 'unexpected dedicated stacked-PPO experiment entrypoint found in pinned source tree\n' >&2
+  exit 1
+fi
+
 mapfile -t paths < <(
-  git -C "$reference_root" ls-tree -r --name-only "$expected_commit" -- experiments/logs_PPO experiments/logs_PPO_stacked     | grep -E '^experiments/logs_PPO(_stacked)?/.+/PPO_[0-9]{3}/results\.json$'     | sort
+  git -C "$reference_root" ls-tree -r --name-only "$expected_commit" -- experiments/logs_PPO experiments/logs_PPO_stacked \
+    | grep -E '^experiments/logs_PPO(_stacked)?/.+/PPO_[0-9]{3}/results\.json$' \
+    | sort
 )
 
 if [[ "${#paths[@]}" -ne 242 ]]; then
