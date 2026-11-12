@@ -2126,7 +2126,14 @@ impl KerrMinoIntegrationConfig {
 pub struct KerrMinoTrajectoryPoint {
     pub mino_parameter: f64,
     pub state: KerrMinoDynamicState,
+    /// Post-projection residuals of the stored state.
     pub constraint_residuals: KerrMinoConstraintResiduals,
+    /// Raw first-integral residuals of the unprojected RK4 candidate.
+    pub unprojected_constraint_residuals: KerrMinoConstraintResiduals,
+    /// Signed changes applied to the radial/polar velocities by the explicit
+    /// first-integral projection. Zero for the initial sample.
+    pub radial_velocity_projection_correction: f64,
+    pub polar_velocity_projection_correction: f64,
 }
 
 /// Completed Kerr null trajectory and numerical diagnostics.
@@ -2139,8 +2146,15 @@ pub struct KerrMinoTrajectory {
     pub accepted_steps: usize,
     pub rejected_steps: usize,
     pub suggested_next_step: f64,
+    /// Maximum post-projection radial/polar invariant residual.
     pub maximum_normalized_radial_constraint_residual: f64,
     pub maximum_normalized_polar_constraint_residual: f64,
+    /// Maximum pre-projection residual across accepted RK4 candidates.
+    pub maximum_unprojected_normalized_radial_constraint_residual: f64,
+    pub maximum_unprojected_normalized_polar_constraint_residual: f64,
+    /// Maximum absolute velocity correction applied at an accepted step.
+    pub maximum_radial_velocity_projection_correction: f64,
+    pub maximum_polar_velocity_projection_correction: f64,
     pub requested_final_parameter: f64,
 }
 
@@ -2182,6 +2196,10 @@ impl KerrMinoTrajectory {
             || maximum_constraint_residual <= 0.0
             || self.maximum_normalized_radial_constraint_residual > maximum_constraint_residual
             || self.maximum_normalized_polar_constraint_residual > maximum_constraint_residual
+            || self.maximum_unprojected_normalized_radial_constraint_residual
+                > maximum_constraint_residual
+            || self.maximum_unprojected_normalized_polar_constraint_residual
+                > maximum_constraint_residual
         {
             return KerrMinoCaptureStatus::ConstraintDriftExceeded;
         }
@@ -2458,6 +2476,9 @@ impl KerrSeparatedNullGeodesic {
             mino_parameter: 0.0,
             state: initial,
             constraint_residuals: initial_residuals,
+            unprojected_constraint_residuals: initial_residuals,
+            radial_velocity_projection_correction: 0.0,
+            polar_velocity_projection_correction: 0.0,
         }];
         if final_parameter == 0.0 {
             return Ok(KerrMinoTrajectory {
@@ -2468,6 +2489,10 @@ impl KerrSeparatedNullGeodesic {
                 suggested_next_step: 0.0,
                 maximum_normalized_radial_constraint_residual: initial_radial_relative,
                 maximum_normalized_polar_constraint_residual: initial_polar_relative,
+                maximum_unprojected_normalized_radial_constraint_residual: initial_radial_relative,
+                maximum_unprojected_normalized_polar_constraint_residual: initial_polar_relative,
+                maximum_radial_velocity_projection_correction: 0.0,
+                maximum_polar_velocity_projection_correction: 0.0,
                 requested_final_parameter: final_parameter,
             });
         }
@@ -2480,6 +2505,10 @@ impl KerrSeparatedNullGeodesic {
         let mut rejected_steps = 0usize;
         let mut max_radial_residual = initial_radial_relative;
         let mut max_polar_residual = initial_polar_relative;
+        let mut max_unprojected_radial_residual = initial_radial_relative;
+        let mut max_unprojected_polar_residual = initial_polar_relative;
+        let mut max_radial_projection_correction = 0.0_f64;
+        let mut max_polar_projection_correction = 0.0_f64;
         let mut last_local_error = 0.0_f64;
         let mut last_constraint_error = 0.0_f64;
 
@@ -2516,38 +2545,109 @@ impl KerrSeparatedNullGeodesic {
                 error_norm = error_norm.max(component_error);
             }
 
-            let candidate = two_half.into_state();
-            let residuals = self.mino_constraint_residuals(candidate)?;
-            let radial_potential = self.radial_potential(candidate.coordinates.radius_over_m)?;
-            let polar_potential = self.polar_potential(candidate.coordinates.theta_rad)?;
-            let radial_relative = normalized_constraint_residual(
-                candidate.radial_velocity_over_m.powi(2),
+            let unprojected_candidate = two_half.into_state();
+            let unprojected_residuals = self.mino_constraint_residuals(unprojected_candidate)?;
+            let radial_potential =
+                self.radial_potential(unprojected_candidate.coordinates.radius_over_m)?;
+            let polar_potential =
+                self.polar_potential(unprojected_candidate.coordinates.theta_rad)?;
+            let unprojected_radial_relative = normalized_constraint_residual(
+                unprojected_candidate.radial_velocity_over_m.powi(2),
                 radial_potential,
-                residuals.radial,
+                unprojected_residuals.radial,
             );
-            let polar_relative = normalized_constraint_residual(
-                candidate.polar_velocity_rad.powi(2),
+            let unprojected_polar_relative = normalized_constraint_residual(
+                unprojected_candidate.polar_velocity_rad.powi(2),
                 polar_potential,
-                residuals.polar,
+                unprojected_residuals.polar,
             );
             if !error_norm.is_finite() {
                 return Err(KerrMinoIntegrationError::NonFiniteErrorEstimate);
             }
 
-            let constraint_error = (radial_relative / config.constraint_tolerance)
-                .max(polar_relative / config.constraint_tolerance);
+            // Constraint-stabilized Mino step:
+            // the smooth second-order RK4 update controls the local truncation
+            // error, while a separately reported velocity projection restores
+            // the exact separated first integrals at accepted endpoints.
+            // The raw pre-projection residual remains an independent acceptance
+            // channel and is never overwritten in the stored receipt.
+            let physical_radial_region = radial_potential.is_finite() && radial_potential >= 0.0;
+            let physical_polar_region = polar_potential.is_finite() && polar_potential >= 0.0;
+            let constraint_error = if physical_radial_region && physical_polar_region {
+                (unprojected_radial_relative / config.constraint_tolerance)
+                    .max(unprojected_polar_relative / config.constraint_tolerance)
+            } else {
+                f64::INFINITY
+            };
             last_local_error = error_norm;
             last_constraint_error = constraint_error;
             if error_norm <= 1.0 && constraint_error <= 1.0 {
+                let radial_acceleration = 0.5
+                    * self.radial_potential_derivative(
+                        unprojected_candidate.coordinates.radius_over_m,
+                    )?;
+                let polar_acceleration = 0.5
+                    * self.constants.polar_potential_derivative(
+                        self.hole.spin().get(),
+                        unprojected_candidate.coordinates.theta_rad,
+                    )?;
+                let radial_sign = if unprojected_candidate.radial_velocity_over_m > 0.0 {
+                    1.0
+                } else if unprojected_candidate.radial_velocity_over_m < 0.0 {
+                    -1.0
+                } else {
+                    radial_acceleration.signum()
+                };
+                let polar_sign = if unprojected_candidate.polar_velocity_rad > 0.0 {
+                    1.0
+                } else if unprojected_candidate.polar_velocity_rad < 0.0 {
+                    -1.0
+                } else {
+                    polar_acceleration.signum()
+                };
+                let projected_radial_velocity = radial_sign * radial_potential.sqrt();
+                let projected_polar_velocity = polar_sign * polar_potential.sqrt();
+                let radial_projection_correction =
+                    projected_radial_velocity - unprojected_candidate.radial_velocity_over_m;
+                let polar_projection_correction =
+                    projected_polar_velocity - unprojected_candidate.polar_velocity_rad;
+                let candidate = KerrMinoDynamicState::new(
+                    unprojected_candidate.coordinates,
+                    projected_radial_velocity,
+                    projected_polar_velocity,
+                );
+                let residuals = self.mino_constraint_residuals(candidate)?;
+                let radial_relative = normalized_constraint_residual(
+                    candidate.radial_velocity_over_m.powi(2),
+                    radial_potential,
+                    residuals.radial,
+                );
+                let polar_relative = normalized_constraint_residual(
+                    candidate.polar_velocity_rad.powi(2),
+                    polar_potential,
+                    residuals.polar,
+                );
+
                 gamma += trial_step;
-                vector = two_half;
+                vector = MinoVector::from_state(candidate);
                 accepted_steps += 1;
                 max_radial_residual = max_radial_residual.max(radial_relative);
                 max_polar_residual = max_polar_residual.max(polar_relative);
+                max_unprojected_radial_residual =
+                    max_unprojected_radial_residual.max(unprojected_radial_relative);
+                max_unprojected_polar_residual =
+                    max_unprojected_polar_residual.max(unprojected_polar_relative);
+                max_radial_projection_correction =
+                    max_radial_projection_correction.max(radial_projection_correction.abs());
+                max_polar_projection_correction =
+                    max_polar_projection_correction.max(polar_projection_correction.abs());
                 points.push(KerrMinoTrajectoryPoint {
                     mino_parameter: gamma,
                     state: candidate,
                     constraint_residuals: residuals,
+                    unprojected_constraint_residuals: unprojected_residuals,
+                    radial_velocity_projection_correction: radial_projection_correction,
+                    polar_velocity_projection_correction: polar_projection_correction,
                 });
                 let factor = if error_norm <= 1.0e-14 {
                     5.0
@@ -2586,6 +2686,12 @@ impl KerrSeparatedNullGeodesic {
             suggested_next_step: step,
             maximum_normalized_radial_constraint_residual: max_radial_residual,
             maximum_normalized_polar_constraint_residual: max_polar_residual,
+            maximum_unprojected_normalized_radial_constraint_residual:
+                max_unprojected_radial_residual,
+            maximum_unprojected_normalized_polar_constraint_residual:
+                max_unprojected_polar_residual,
+            maximum_radial_velocity_projection_correction: max_radial_projection_correction,
+            maximum_polar_velocity_projection_correction: max_polar_projection_correction,
             requested_final_parameter: final_parameter,
         })
     }
