@@ -92,10 +92,6 @@
     {
       "id": "maximum_worst_case_pairwise_chernoff_information",
       "method": "Choose the eligible candidate with the greatest weakest-pairwise Chernoff information across every declared likelihood scenario, using a frozen 100-interval s-grid and the identical hard-eligible candidate catalogue."
-    },
-    {
-      "id": "maximum_worst_case_pairwise_chernoff_information",
-      "method": "Choose the eligible candidate with the greatest minimum pairwise Chernoff information over every positive-prior hypothesis pair and every declared likelihood scenario, with a frozen 100-interval s-grid."
     }
   ],
   "required_metrics": [
@@ -227,16 +223,6 @@
     {
       "id": "posterior_replay",
       "target": "100% of observation receipts reproduce the same posterior from the frozen candidate, prior and likelihood-scenario manifests.",
-      "status": "aspirational"
-    },
-    {
-      "id": "realized_information_gain_fidelity",
-      "target": "Across held-out outcomes, mean realized KL(posterior || prior) matches independently replayed expected information gain within a preregistered numerical tolerance.",
-      "status": "aspirational"
-    },
-    {
-      "id": "posterior_replay",
-      "target": "100% of observation receipts reproduce the same posterior from frozen candidate, prior and likelihood-scenario manifests.",
       "status": "aspirational"
     },
     {
