@@ -9310,6 +9310,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "symtropy-oli-abiotic"
+version = "0.1.0"
+
+[[package]]
 name = "symtropy-persistence"
 version = "0.1.0"
 dependencies = [
