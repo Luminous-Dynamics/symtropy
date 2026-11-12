@@ -178,6 +178,29 @@ Two parity tests are included:
 
 The next qualification step is a pinned-hardware benchmark over population size, density, interaction radius, visual-sector aperture and occupancy skew. Report candidate counts, index build cost, update cost, metrics cost and worst-case regressions separately; do not publish a speedup from a microbenchmark that excludes the fast-metric work performed each tick.
 
+
+## Finite-size, source-reproduction, and structure–order programme
+
+The pre-registered grid is in `benchmarks/oli/vicsek-phase-diagram-v0.json`. It deliberately separates two evidence tracks:
+
+1. **Source reproduction:** recover the Rahman et al. 2026 code/data/parameter grid and reproduce the corrected 27 October erratum convention (`NextPositionAlignment`). The source artifact admission is still pending.
+2. **Independent OLI extension:** a fixed-radius, fixed-speed finite-size/noise grid across N=128/256/512 and densities 0.5/1.0, with 30 independent seeds per point. This is not the paper's original grid.
+
+The OLI sweep reports global and local order, local-order coverage, cluster and interaction structure, and seed-level susceptibility. It does not hard-code a universal critical noise. A transition claim requires stationary-window diagnostics, finite-size behaviour, seed-level confidence intervals, and update-rule sensitivity. A scaling claim requires a reproduced source protocol, disclosed fit ranges and uncertainty.
+
+The 2026 erratum is a model-identity correction, not a cosmetic detail: the corrected focal heading uses the neighbour set at predicted positions t+dt, but headings at t. The published erratum explicitly notes that the corrected and forward-update results are indistinguishable, while the backward update yields different cluster degree/path-length scaling. Therefore, OLI never pools results across the two conventions.
+
+## Spatial-index correctness gate
+
+The periodic cell index is used in both the simulation step and fast trajectory metrics. At bounded density it is intended to reduce candidate checks; in dense-neighbour and fallback cases the worst case remains O(N²). A new property-style test checks that every brute-force radius neighbour is present in the candidate set across:
+- one-, two-, three- and many-cell periodic grids;
+- particles close to periodic wrap boundaries;
+- several radii including radius comparable to or larger than the box;
+- deterministic pseudo-random particle clouds;
+- the all-pairs fallback for pathological grid geometries.
+
+Candidate IDs must be sorted and unique before trigonometric accumulation, preserving the reference summation order. This is a correctness gate, not a measured speedup. The separate pinned-hardware scaling benchmark includes index construction, update, fast metrics and full-topology checkpoint costs.
+
 ## Benchmark design
 
 - Compare local alignment against self-only and independent-particle controls.
