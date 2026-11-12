@@ -72,3 +72,21 @@ Performance results must include index construction, per-step update, fast metri
 ## Claim ceiling
 
 This is a reproducible numerical study of known interaction rules. It does not show biological life, intelligence, agency or consciousness. It does not establish a universal critical noise, universal phase boundary, or natural-animal model.
+
+
+## Angle-mean convention and global-phase branch-cut challenge
+
+A separate source challenge is registered in `benchmarks/oli/vicsek-angle-branchcut-source-profile-v0.json` and summarized in the phase-diagram manifest.
+
+Takahashi et al. (2026), *Physical Review E* 114, 014134, DOI [10.1103/9gcy-ky3z](https://doi.org/10.1103/9gcy-ky3z), show that the principal-value `atan(sum_sin/sum_cos)` rule can depend on the global phase reference because its output is constrained to a principal branch. The source's adaptive operation is `phi(t)=phi_bar - arithmetic_mean(theta_i(t))`, applied to the heading variables before velocities and the next update are computed.
+
+OLI therefore records three separate conventions:
+- **PrincipalValueArctanRatio:** exact branch-sensitive ratio rule in the paper.
+- **QuadrantCorrectAtan2:** OLI's default circular mean, with full quadrant handling.
+- **ArithmeticScalarMean:** the distinct scalar-angle average discussed by the paper; it is not a synonym for atan2 and requires its own implementation before source comparison.
+
+The Rust model now carries the selected convention in its metrics and cluster-geometry report. Its adaptive phase operation preserves unwrapped shifted headings until the next update. The minimal self-only control begins with headings [-2.5, -1, 1, 2.5] radians and shifts to pi: atan2 preserves the polar order (about 0.1304), while the ratio rule folds the angles and raises the order to about 0.6707 without any inter-particle interactions.
+
+The separate metamorphic rotation test rotates a local particle cluster (kept away from periodic boundaries), uses identical noise seeds, and tests both current- and next-position neighbour conventions. This is not a proof of continuous rotational symmetry of the square torus, and the four-particle branch-cut control is not the source paper's N=1600 phase-transition reproduction.
+
+No phase-transition claim is made until the source's exact seed law, initial-state generation, averaging window, and full N=1600 / 10,000-step adaptive phase sweep are reproduced. Never pool results across the three angle conventions or across neighbour-time update rules.
