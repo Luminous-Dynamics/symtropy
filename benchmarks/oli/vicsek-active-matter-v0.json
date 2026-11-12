@@ -557,6 +557,27 @@
       ],
       "complexity": "O(N^2 log N) pair enumeration and edge sort in the current checkpoint reference implementation",
       "claim_scope": "structural robustness across interaction scales only; not cognition, intelligence or causal influence"
+    },
+    "periodic_convex_cluster_geometry": {
+      "method": "weakly connected interaction graph components; BFS unwraps periodic coordinates along a deterministic spanning tree; monotone-chain convex hull over unwrapped coordinates",
+      "metrics": [
+        "component_particle_count",
+        "convex_hull_vertex_count",
+        "convex_hull_area",
+        "convex_hull_perimeter",
+        "unwrapped_span_x",
+        "unwrapped_span_y",
+        "geometry_status"
+      ],
+      "statuses": {
+        "valid": "consistent unwrapping and at least three convex-hull vertices",
+        "degenerate_hull": "one or two unique hull vertices; zero area with degenerate perimeter measure",
+        "periodic_winding_detected": "a graph cycle implies a nonzero periodic winding; planar hull withheld",
+        "periodic_extent_ambiguous": "unwrapped extent exceeds half the periodic box in either dimension; planar hull withheld"
+      },
+      "caveat": "Convex hull is an upper-envelope baseline and overestimates concave cluster area; not the source's rasterized disk union or MATLAB alpha shape.",
+      "complexity": "O(N^2) pair graph construction plus per-component BFS and O(M log M) convex hull at checkpoint; not every frame of a large trajectory",
+      "independent_validation": "Tests added for analytic triangle area/perimeter, seam-crossing pair unwrapping, and torus winding rejection. Rust validation pending."
     }
   },
   "benchmark_tasks": [
@@ -609,6 +630,26 @@
       ],
       "anti_leakage": "Treat each trajectory/seed as one independent system; filtration scales from one snapshot are not independent samples.",
       "status": "IMPLEMENTED_SOURCE_TESTS_ADDED_RUST_VALIDATION_PENDING"
+    },
+    {
+      "id": "PERIODIC_CLUSTER_CONVEX_ENVELOPE",
+      "purpose": "Establish a periodic-safe convex-envelope geometry baseline without conflating it with the source alpha shape",
+      "required_controls": [
+        "analytic triangle area and perimeter",
+        "compact component crossing the periodic seam",
+        "closed component winding around the torus",
+        "extent ambiguity beyond half the box",
+        "translation invariance"
+      ],
+      "metrics": [
+        "convex_hull_area",
+        "convex_hull_perimeter",
+        "hull_vertex_count",
+        "unwrapped_spans",
+        "geometry_status"
+      ],
+      "claim_boundary": "Convex envelope is not alpha shape, not a biologically specific morphology feature, and not evidence of life.",
+      "status": "IMPLEMENTED_TESTS_ADDED_RUST_VALIDATION_PENDING"
     }
   ],
   "anti_leakage": [
@@ -690,6 +731,13 @@
         "periodic translation invariance"
       ],
       "status": "TESTS_ADDED_NOT_EXECUTED"
+    },
+    "periodic_geometry": {
+      "hull_kind": "convex_hull_only",
+      "source_alpha_shape_reproduced": false,
+      "torus_unwrap_required": true,
+      "winding_cycle_must_withhold_planar_hull": true,
+      "extent_ambiguity_must_withhold_planar_hull": true
     }
   },
   "phase_diagram_manifest": "benchmarks/oli/vicsek-phase-diagram-v0.json",
