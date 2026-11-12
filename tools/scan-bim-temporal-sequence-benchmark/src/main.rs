@@ -232,7 +232,8 @@ fn max_identity_assignment(matrix: &[Vec<usize>]) -> Result<usize, String> {
                     if mask & bit == 0 {
                         let candidate = score + row[column];
                         let slot = &mut next[mask | bit];
-                        *slot = Some(slot.unwrap_or(0).max(candidate));
+                        let previous = (*slot).unwrap_or(0);
+                        *slot = Some(previous.max(candidate));
                     }
                 }
             }
@@ -888,6 +889,137 @@ mod tests {
             .expect("purpose leakage is reported");
         assert_eq!(report.temporal_evidence_violations, 1);
         assert!(!report.passed);
+    }
+
+    #[test]
+    fn unknown_clock_domain_is_not_silently_ordered() {
+        let (mut candidate, _) = parsed_fixture();
+        let step = candidate["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-UNCHANGED")
+            .unwrap()["steps"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|step| step["step_id"] == "a-02")
+            .unwrap();
+        step["decision_clock_id"] = json!("unmapped-device-clock");
+        let bytes = serde_json::to_vec(&candidate).unwrap();
+        let report = evaluate_bytes(&bytes, REFERENCE.as_bytes())
+            .expect("unknown clock is reported as a qualification violation");
+        assert_eq!(report.temporal_evidence_violations, 1);
+        assert!(!report.passed);
+    }
+
+    #[test]
+    fn timestamp_precision_coarser_than_decision_resolution_is_rejected() {
+        let (candidate, mut reference) = parsed_fixture();
+        let sequence = reference["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-UNCHANGED")
+            .unwrap();
+        let event = sequence["evidence_events"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|event| event["event_id"] == "ev-scan")
+            .unwrap();
+        event["timestamp_precision_ticks"] = json!(2);
+        let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
+        let reference_bytes = serde_json::to_vec(&reference).unwrap();
+        let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
+            .expect("coarse time precision is reported");
+        assert_eq!(report.temporal_evidence_violations, 3);
+        assert!(!report.passed);
+    }
+
+    #[test]
+    fn revocation_known_by_cutoff_invalidates_historical_evidence() {
+        let (mut candidate, mut reference) = parsed_fixture();
+        let sequence = reference["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
+            .unwrap();
+        let revoked = sequence["evidence_events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|event| event["event_id"] == "ev-scan")
+            .unwrap()
+            .clone();
+        let mut revoked = revoked;
+        revoked["event_id"] = json!("ev-revoked-before-cutoff");
+        revoked["revoked_known_at_tick"] = json!(20);
+        sequence["evidence_events"].as_array_mut().unwrap().push(revoked);
+        let step = candidate["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
+            .unwrap()["steps"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|step| step["step_id"] == "f-02")
+            .unwrap();
+        step["decision_evidence_event_ids"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("ev-revoked-before-cutoff"));
+        let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
+        let reference_bytes = serde_json::to_vec(&reference).unwrap();
+        let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
+            .expect("known revocation is scored");
+        assert_eq!(report.temporal_evidence_violations, 1);
+        assert!(!report.passed);
+    }
+
+    #[test]
+    fn revocation_learned_after_cutoff_does_not_rewrite_past_snapshot() {
+        let (mut candidate, mut reference) = parsed_fixture();
+        let sequence = reference["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
+            .unwrap();
+        let mut revoked = sequence["evidence_events"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|event| event["event_id"] == "ev-scan")
+            .unwrap()
+            .clone();
+        revoked["event_id"] = json!("ev-revoked-after-cutoff");
+        revoked["revoked_known_at_tick"] = json!(25);
+        sequence["evidence_events"].as_array_mut().unwrap().push(revoked);
+        let step = candidate["sequences"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
+            .unwrap()["steps"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .find(|step| step["step_id"] == "f-02")
+            .unwrap();
+        step["decision_evidence_event_ids"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!("ev-revoked-after-cutoff"));
+        let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
+        let reference_bytes = serde_json::to_vec(&reference).unwrap();
+        let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
+            .expect("later revocation preserves the earlier information set");
+        assert_eq!(report.temporal_evidence_violations, 0);
+        assert!(report.passed);
     }
 
     #[test]
