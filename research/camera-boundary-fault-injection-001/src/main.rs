@@ -66,7 +66,7 @@ impl FaultCase {
             Self::CleanControl => None,
             Self::PixelCorruption => Some("UpstreamFrameMismatch"),
             Self::CalibrationShift => Some("UpstreamCalibrationMismatch"),
-            Self::StaleSequenceReplay => Some("UpstreamSequenceMismatch"),
+            Self::StaleSequenceReplay => Some("SequenceRegression"),
             Self::ClockOrderViolation => Some("UpstreamClockOrderInvalid"),
             Self::SensorClockSkew => Some("SensorClockSkewExceeded"),
             Self::DeliveryAgeExceeded => Some("UpstreamDeliveryAgeExceeded"),
@@ -231,12 +231,17 @@ fn prepare_request(
                 json!(different_digest(existing)?);
         }
         FaultCase::StaleSequenceReplay => {
-            let previous = observations[0]["upstream"]["sequence"]
-                .as_u64()
-                .ok_or("first upstream receipt lacks sequence")?;
-            // Keep the outer request sequence unchanged but replay an older
-            // upstream sequence, creating a stale/inconsistent boundary record.
-            observations[1]["upstream"]["sequence"] = json!(previous);
+            // Replay the entire prior accepted observation: RGB path, upstream
+            // receipt, sequence, capture time and vehicle-state clock. The
+            // receipt remains valid, so the persistent bridge sequence guard
+            // (rather than an earlier metadata mismatch) must reject it.
+            observations[1]["sequence"] = observations[0]["sequence"].clone();
+            observations[1]["timestamp_us"] = observations[0]["timestamp_us"].clone();
+            observations[1]["vehicle_state_timestamp_us"] =
+                observations[0]["vehicle_state_timestamp_us"].clone();
+            observations[1]["pixels_file"] = observations[0]["pixels_file"].clone();
+            observations[1]["vehicle_state"] = observations[0]["vehicle_state"].clone();
+            observations[1]["upstream"] = observations[0]["upstream"].clone();
         }
         FaultCase::ClockOrderViolation => {
             let render_completed = observations[0]["upstream"]["render_completed_timestamp_us"]
@@ -659,9 +664,21 @@ mod tests {
 
         let (stale, _, _, _, _) =
             prepare_request(&base, FaultCase::StaleSequenceReplay).unwrap();
-        assert_ne!(
+        assert_eq!(
             stale["observations"][1]["sequence"],
-            stale["observations"][1]["upstream"]["sequence"]
+            stale["observations"][0]["sequence"]
+        );
+        assert_eq!(
+            stale["observations"][1]["upstream"],
+            stale["observations"][0]["upstream"]
+        );
+        assert_eq!(
+            stale["observations"][1]["pixels_file"],
+            stale["observations"][0]["pixels_file"]
+        );
+        assert_eq!(
+            FaultCase::StaleSequenceReplay.expected_error(),
+            Some("SequenceRegression")
         );
     }
 
