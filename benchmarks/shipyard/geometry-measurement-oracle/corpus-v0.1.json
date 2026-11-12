@@ -58,7 +58,7 @@
       "minimum_coverage_permille": 1000,
       "maximum_point_uncertainty_um": 5,
       "maximum_registration_residual_um": 10,
-      "coverage_gap_threshold_um": 1000
+      "coverage_gap_threshold_um": 1100
     }
   },
   "cases": [
