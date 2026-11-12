@@ -554,9 +554,9 @@ mod tests {
         );
         assert_eq!(schema["properties"]["files"]["minItems"], 16);
         assert_eq!(schema["properties"]["files"]["maxItems"], 16);
-        assert_eq!(schema["properties"]["files"]["items"]["properties"]["header_rows"]["const"], 3);
+        assert_eq!(schema["$defs"]["file"]["properties"]["header_rows"]["const"], 3);
         assert_eq!(
-            schema["properties"]["files"]["items"]["properties"]["recorded_column_count"]["enum"],
+            schema["$defs"]["file"]["properties"]["recorded_column_count"]["enum"],
             serde_json::json!([70, 73])
         );
     }
