@@ -385,8 +385,8 @@ mod tests {
             archetype: GarmentArchetype::ModularDecorative,
             use_pattern: UsePattern::Occasional,
             functional_unit: FunctionalUnitBasis::DistinctEvents,
-            intended_service:
-                "distinct styled appearances with detachable decorative modules".into(),
+            intended_service: "distinct styled appearances with detachable decorative modules"
+                .into(),
             value_dimensions: vec![
                 ValueDimension::AestheticExpression,
                 ValueDimension::IdentityOrBelonging,
@@ -427,21 +427,27 @@ mod tests {
     #[test]
     fn production_strategy_distinguishes_one_off_from_forecast_batch() {
         let mut profile = couture_profile();
-        assert!(profile
-            .production_strategies
-            .contains(&ProductionStrategy::OneOffArtisanal));
+        assert!(
+            profile
+                .production_strategies
+                .contains(&ProductionStrategy::OneOffArtisanal)
+        );
         profile.profile_id = "DEADSTOCK-RUNWAY-SAMPLE-01".into();
         profile.archetype = GarmentArchetype::DeadstockOrRunwaySample;
         profile.production_strategies = vec![
             ProductionStrategy::ReuseExistingSample,
             ProductionStrategy::PreorderOrDemandSignal,
         ];
-        profile.circulation_routes.push(CirculationRoute::UnsoldInventoryReallocation);
+        profile
+            .circulation_routes
+            .push(CirculationRoute::UnsoldInventoryReallocation);
 
         assert_eq!(profile.validate(), Ok(()));
-        assert!(!profile
-            .production_strategies
-            .contains(&ProductionStrategy::ForecastDrivenBatch));
+        assert!(
+            !profile
+                .production_strategies
+                .contains(&ProductionStrategy::ForecastDrivenBatch)
+        );
     }
 
     #[test]
@@ -483,9 +489,7 @@ mod tests {
     #[test]
     fn duplicate_care_constraints_are_rejected() {
         let mut profile = couture_profile();
-        profile
-            .care_constraints
-            .push(CareConstraint::SpotCleanOnly);
+        profile.care_constraints.push(CareConstraint::SpotCleanOnly);
         assert_eq!(
             profile.validate(),
             Err(GarmentProfileError::DuplicateCareConstraint(
