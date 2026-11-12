@@ -8,7 +8,7 @@ use civdyn_active_sensing::{
 
 const SCENARIO_ID: &str = "three-world-sensor-dual-control-v1";
 const SOURCE_DIGEST: &str = "sha256-three-world-sensor-source-v1";
-const CSV_COLUMNS: usize = 26;
+const CSV_COLUMNS: usize = 27;
 
 fn csv_field(value: &str) -> String {
     if value.contains([',', '"', '\n', '\r']) {
@@ -140,6 +140,62 @@ fn fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<SensorAction>) {
     (config, worlds, sensors)
 }
 
+fn feasibility_lift_fixture() -> (ActiveSensingConfig, Vec<DecisionWorld>, Vec<SensorAction>) {
+    let config = ActiveSensingConfig {
+        scenario_id: "two-world-feasibility-lift-v1".to_owned(),
+        source_digest: "sha256-two-world-feasibility-lift-source-v1".to_owned(),
+        service_unit: "service_units".to_owned(),
+        energy_unit: "kWh".to_owned(),
+        maximum_energy_kwh: 1.0,
+        maximum_latency_ticks: 1,
+        maximum_penalty_service_units: 2.0,
+        tie_tolerance: 1.0e-9,
+    };
+    let worlds = vec![
+        DecisionWorld {
+            world_id: "world_a".to_owned(),
+            world_digest: "sha256-world_a".to_owned(),
+            service_floor: 70.0,
+            policies: vec![
+                PolicyOutcome { policy_id: "repair_a".to_owned(), service_units: 90.0 },
+                PolicyOutcome { policy_id: "repair_b".to_owned(), service_units: 50.0 },
+            ],
+        },
+        DecisionWorld {
+            world_id: "world_b".to_owned(),
+            world_digest: "sha256-world_b".to_owned(),
+            service_floor: 70.0,
+            policies: vec![
+                PolicyOutcome { policy_id: "repair_a".to_owned(), service_units: 50.0 },
+                PolicyOutcome { policy_id: "repair_b".to_owned(), service_units: 90.0 },
+            ],
+        },
+    ];
+    let sensors = vec![
+        sensor(
+            "decision_separating_inspection",
+            0.25,
+            2.0,
+            0,
+            vec![
+                prediction("decision_separating_inspection", "world_a", "world_a_detected", None, 0.0),
+                prediction("decision_separating_inspection", "world_b", "world_b_detected", None, 0.0),
+            ],
+        ),
+        sensor(
+            "uninformative_feasibility_check",
+            0.0,
+            2.0,
+            0,
+            vec![
+                prediction("uninformative_feasibility_check", "world_a", "unknown", None, 0.0),
+                prediction("uninformative_feasibility_check", "world_b", "unknown", None, 0.0),
+            ],
+        ),
+    ];
+    (config, worlds, sensors)
+}
+
 fn summary_fields(
     report: &civdyn_active_sensing::ActiveSensingReport,
     assessment: &civdyn_active_sensing::SensorAssessment,
@@ -164,6 +220,7 @@ fn summary_fields(
         assessment.worst_case_regret_reduction.map_or_else(String::new, |v| format!("{v:.6}")),
         String::new(), String::new(), String::new(), String::new(), String::new(),
         String::new(), String::new(), String::new(), String::new(),
+        assessment.resolves_no_sensing_infeasibility.to_string(),
     ]
 }
 
@@ -201,27 +258,34 @@ fn audit_fields(
 }
 
 fn main() -> Result<(), String> {
-    let (config, worlds, sensors) = fixture();
-    let report = assess_active_sensing(&config, &worlds, &sensors)?;
-    let evaluator_audit = evaluator_prediction_audit(&sensors)?;
-
     println!(
-        "record_type,scenario_id,sensor_id,status,affordable,recommended,baseline_policy_id,baseline_worst_regret,protocol_digest,energy_cost_kwh,service_units_per_kwh,energy_cost_service_units,latency_ticks,maximum_latency_service_loss,maximum_total_penalty_service_units,worst_case_post_sensing_regret,regret_reduction,observation_id,partition_world_count,world_ids,selected_policy_id,partition_worst_regret,receipt_world_id,world_digest,prediction_receipt_digest,evaluator_missing_cause"
+        "record_type,scenario_id,sensor_id,status,affordable,recommended,baseline_policy_id,baseline_worst_regret,protocol_digest,energy_cost_kwh,service_units_per_kwh,energy_cost_service_units,latency_ticks,maximum_latency_service_loss,maximum_total_penalty_service_units,worst_case_post_sensing_regret,regret_reduction,observation_id,partition_world_count,world_ids,selected_policy_id,partition_worst_regret,receipt_world_id,world_digest,prediction_receipt_digest,evaluator_missing_cause,resolves_no_sensing_infeasibility"
     );
+    let (config, worlds, sensors) = fixture();
+    emit_report(&config, &worlds, &sensors)?;
+    let (lift_config, lift_worlds, lift_sensors) = feasibility_lift_fixture();
+    emit_report(&lift_config, &lift_worlds, &lift_sensors)?;
+    Ok(())
+}
 
+fn emit_report(
+    config: &ActiveSensingConfig,
+    worlds: &[DecisionWorld],
+    sensors: &[SensorAction],
+) -> Result<(), String> {
+    let report = assess_active_sensing(config, worlds, sensors)?;
+    let evaluator_audit = evaluator_prediction_audit(sensors)?;
     for assessment in &report.sensors {
         emit(summary_fields(&report, assessment));
         for partition in &assessment.partitions {
             emit(partition_fields(&report, assessment, partition));
         }
     }
-
     for receipt in &evaluator_audit {
         let assessment = report.sensors.iter()
             .find(|item| item.sensor_id == receipt.sensor_id)
             .expect("audit refers to declared sensor");
         emit(audit_fields(&report, assessment, receipt));
     }
-
     Ok(())
 }
