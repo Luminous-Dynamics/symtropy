@@ -495,7 +495,7 @@ fn apply_mutation(
         "non_monotonic_x_station" => {
             let point = input.observed_points.get_mut(1)
                 .ok_or_else(|| "non-monotonic fixture has no middle point".to_owned())?;
-            point.x_um = input.domain.x_max_um.saturating_add(1);
+            point.x_um = input.domain.x_max_um;
         }
         "station_grid_mismatch" => {
             let point = input.observed_points.get_mut(1)
@@ -516,8 +516,8 @@ fn apply_mutation(
             point.x_um = input.domain.x_min_um.saturating_add(1_150);
         }
         "point_outside_domain" => {
-            let point = input.observed_points.get_mut(1)
-                .ok_or_else(|| "domain fixture has no middle point".to_owned())?;
+            let point = input.observed_points.last_mut()
+                .ok_or_else(|| "domain fixture has no final point".to_owned())?;
             point.x_um = input.domain.x_max_um.saturating_add(1);
         }
         _ => return Err(format!("unknown mutation: {mutation}")),
