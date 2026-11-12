@@ -567,7 +567,7 @@ mod tests {
     fn ordinary_coordinate_norms_change_while_metric_norm_stays_fixed() {
         let metric_q = cartesian_metric();
         let basis = rebasis();
-        let tangent_y = Tangent::<DenseGeneralizedFrame, 3>::new([1.0, 0.0, 0.0]).unwrap();
+        let tangent_y = Tangent::<DenseGeneralizedFrame, 3>::new([0.0, 1.0, 0.0]).unwrap();
         let tangent_q = basis.push_tangent_to_from(&tangent_y).unwrap();
         let metric_y = basis.pull_metric_to_to(&metric_q, profile()).unwrap();
         let euclidean_q = coordinate_inf_tangent(&tangent_q);
