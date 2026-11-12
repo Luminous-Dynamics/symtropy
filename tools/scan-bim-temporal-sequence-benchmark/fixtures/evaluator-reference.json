@@ -1,0 +1,542 @@
+{
+  "schema_version": "0.1",
+  "sequences": [
+    {
+      "sequence_id": "SEQ-UNCHANGED",
+      "building_group_id": "BLDG-A",
+      "steps": [
+        {
+          "step_id": "a-01",
+          "measurement_tick": 10,
+          "ground_truth_event": "unchanged"
+        },
+        {
+          "step_id": "a-02",
+          "measurement_tick": 20,
+          "ground_truth_event": "unchanged"
+        },
+        {
+          "step_id": "a-03",
+          "measurement_tick": 30,
+          "ground_truth_event": "unchanged"
+        }
+      ],
+      "observations": [
+        {
+          "step_id": "a-01",
+          "observation_id": "obs-a1",
+          "ground_truth_entity_id": "component-wall",
+          "visible": true
+        },
+        {
+          "step_id": "a-02",
+          "observation_id": "obs-a2",
+          "ground_truth_entity_id": "component-wall",
+          "visible": true
+        },
+        {
+          "step_id": "a-03",
+          "observation_id": "obs-a3",
+          "ground_truth_entity_id": "component-wall",
+          "visible": true
+        }
+      ],
+      "evidence_events": [
+        {
+          "event_id": "ev-cal",
+          "kind": "calibration",
+          "measurement_tick": 1,
+          "first_received_tick": 1,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-reg",
+          "kind": "registration",
+          "measurement_tick": 2,
+          "first_received_tick": 2,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-scan",
+          "kind": "survey",
+          "measurement_tick": 3,
+          "first_received_tick": 3,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-OCCLUSION",
+      "building_group_id": "BLDG-B",
+      "steps": [
+        {
+          "step_id": "b-01",
+          "measurement_tick": 10,
+          "ground_truth_event": "unchanged"
+        },
+        {
+          "step_id": "b-02",
+          "measurement_tick": 20,
+          "ground_truth_event": "occlusion"
+        },
+        {
+          "step_id": "b-03",
+          "measurement_tick": 30,
+          "ground_truth_event": "unchanged"
+        }
+      ],
+      "observations": [
+        {
+          "step_id": "b-01",
+          "observation_id": "obs-b1",
+          "ground_truth_entity_id": "component-door",
+          "visible": true
+        },
+        {
+          "step_id": "b-03",
+          "observation_id": "obs-b3",
+          "ground_truth_entity_id": "component-door",
+          "visible": true
+        }
+      ],
+      "evidence_events": [
+        {
+          "event_id": "ev-cal",
+          "kind": "calibration",
+          "measurement_tick": 1,
+          "first_received_tick": 1,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-reg",
+          "kind": "registration",
+          "measurement_tick": 2,
+          "first_received_tick": 2,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-scan",
+          "kind": "survey",
+          "measurement_tick": 3,
+          "first_received_tick": 3,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-VIEWPOINT",
+      "building_group_id": "BLDG-C",
+      "steps": [
+        {
+          "step_id": "c-01",
+          "measurement_tick": 10,
+          "ground_truth_event": "unchanged"
+        },
+        {
+          "step_id": "c-02",
+          "measurement_tick": 20,
+          "ground_truth_event": "viewpoint_only"
+        }
+      ],
+      "observations": [
+        {
+          "step_id": "c-01",
+          "observation_id": "obs-c1",
+          "ground_truth_entity_id": "component-window",
+          "visible": true
+        },
+        {
+          "step_id": "c-02",
+          "observation_id": "obs-c2",
+          "ground_truth_entity_id": "component-window",
+          "visible": true
+        }
+      ],
+      "evidence_events": [
+        {
+          "event_id": "ev-cal",
+          "kind": "calibration",
+          "measurement_tick": 1,
+          "first_received_tick": 1,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-reg",
+          "kind": "registration",
+          "measurement_tick": 2,
+          "first_received_tick": 2,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-scan",
+          "kind": "survey",
+          "measurement_tick": 3,
+          "first_received_tick": 3,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-REGISTRATION-DRIFT",
+      "building_group_id": "BLDG-D",
+      "steps": [
+        {
+          "step_id": "d-01",
+          "measurement_tick": 10,
+          "ground_truth_event": "unchanged"
+        },
+        {
+          "step_id": "d-02",
+          "measurement_tick": 20,
+          "ground_truth_event": "registration_drift"
+        }
+      ],
+      "observations": [
+        {
+          "step_id": "d-01",
+          "observation_id": "obs-d1",
+          "ground_truth_entity_id": "component-column",
+          "visible": true
+        },
+        {
+          "step_id": "d-02",
+          "observation_id": "obs-d2",
+          "ground_truth_entity_id": "component-column",
+          "visible": true
+        }
+      ],
+      "evidence_events": [
+        {
+          "event_id": "ev-cal",
+          "kind": "calibration",
+          "measurement_tick": 1,
+          "first_received_tick": 1,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-reg",
+          "kind": "registration",
+          "measurement_tick": 2,
+          "first_received_tick": 2,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-scan",
+          "kind": "survey",
+          "measurement_tick": 3,
+          "first_received_tick": 3,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-PHYSICAL-CHANGE",
+      "building_group_id": "BLDG-E",
+      "steps": [
+        {
+          "step_id": "e-01",
+          "measurement_tick": 10,
+          "ground_truth_event": "unchanged"
+        },
+        {
+          "step_id": "e-02",
+          "measurement_tick": 20,
+          "ground_truth_event": "physical_change"
+        }
+      ],
+      "observations": [
+        {
+          "step_id": "e-01",
+          "observation_id": "obs-e1",
+          "ground_truth_entity_id": "component-wall-e",
+          "visible": true
+        },
+        {
+          "step_id": "e-02",
+          "observation_id": "obs-e2",
+          "ground_truth_entity_id": "component-wall-e",
+          "visible": true
+        }
+      ],
+      "evidence_events": [
+        {
+          "event_id": "ev-cal",
+          "kind": "calibration",
+          "measurement_tick": 1,
+          "first_received_tick": 1,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-reg",
+          "kind": "registration",
+          "measurement_tick": 2,
+          "first_received_tick": 2,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-scan",
+          "kind": "survey",
+          "measurement_tick": 3,
+          "first_received_tick": 3,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-change",
+          "kind": "survey",
+          "measurement_tick": 19,
+          "first_received_tick": 19,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update"
+          ]
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-LATE-ARRIVAL",
+      "building_group_id": "BLDG-F",
+      "steps": [
+        {
+          "step_id": "f-01",
+          "measurement_tick": 10,
+          "ground_truth_event": "unchanged"
+        },
+        {
+          "step_id": "f-02",
+          "measurement_tick": 20,
+          "ground_truth_event": "unchanged"
+        }
+      ],
+      "observations": [
+        {
+          "step_id": "f-01",
+          "observation_id": "obs-f1",
+          "ground_truth_entity_id": "component-wall-f",
+          "visible": true
+        },
+        {
+          "step_id": "f-02",
+          "observation_id": "obs-f2",
+          "ground_truth_entity_id": "component-wall-f",
+          "visible": true
+        }
+      ],
+      "evidence_events": [
+        {
+          "event_id": "ev-cal",
+          "kind": "calibration",
+          "measurement_tick": 1,
+          "first_received_tick": 1,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-reg",
+          "kind": "registration",
+          "measurement_tick": 2,
+          "first_received_tick": 2,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-scan",
+          "kind": "survey",
+          "measurement_tick": 3,
+          "first_received_tick": 3,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-late",
+          "kind": "survey",
+          "measurement_tick": 19,
+          "first_received_tick": 22,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update"
+          ]
+        }
+      ]
+    },
+    {
+      "sequence_id": "SEQ-REPLACEMENT",
+      "building_group_id": "BLDG-G",
+      "steps": [
+        {
+          "step_id": "g-01",
+          "measurement_tick": 10,
+          "ground_truth_event": "unchanged"
+        },
+        {
+          "step_id": "g-02",
+          "measurement_tick": 20,
+          "ground_truth_event": "replacement"
+        }
+      ],
+      "observations": [
+        {
+          "step_id": "g-01",
+          "observation_id": "obs-g1",
+          "ground_truth_entity_id": "component-panel-v1",
+          "visible": true
+        },
+        {
+          "step_id": "g-02",
+          "observation_id": "obs-g2",
+          "ground_truth_entity_id": "component-panel-v2",
+          "visible": true
+        }
+      ],
+      "evidence_events": [
+        {
+          "event_id": "ev-cal",
+          "kind": "calibration",
+          "measurement_tick": 1,
+          "first_received_tick": 1,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-reg",
+          "kind": "registration",
+          "measurement_tick": 2,
+          "first_received_tick": 2,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        },
+        {
+          "event_id": "ev-scan",
+          "kind": "survey",
+          "measurement_tick": 3,
+          "first_received_tick": 3,
+          "valid_from_tick": 0,
+          "valid_until_tick": 100,
+          "revoked_known_at_tick": null,
+          "allowed_purposes": [
+            "medium_building_update",
+            "slow_quality_requalification"
+          ]
+        }
+      ]
+    }
+  ]
+}
