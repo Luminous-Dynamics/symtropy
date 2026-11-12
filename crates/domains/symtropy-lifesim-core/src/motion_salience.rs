@@ -86,15 +86,23 @@ pub enum MotionSalienceError {
     NonFiniteParameter(&'static str),
     NegativeParameter(&'static str),
     NonPositiveSampleInterval,
-    SelfInteraction { agent_id: u32 },
+    SelfInteraction {
+        agent_id: u32,
+    },
     DuplicateAgentId(u32),
     MissingSourceAgent(u32),
     SourceMustRespondAtTimeZero(u32),
     MissingMatchedSham,
     CommonRandomNumbersRequired,
     EmptyPopulation,
-    InvalidObservationValue { agent_id: u32, field: &'static str },
-    DuplicateSweepCoordinate { noise_level_bits: u64, threshold_bits: u64 },
+    InvalidObservationValue {
+        agent_id: u32,
+        field: &'static str,
+    },
+    DuplicateSweepCoordinate {
+        noise_level_bits: u64,
+        threshold_bits: u64,
+    },
     SweepReportConfigurationMismatch,
 }
 
@@ -121,12 +129,18 @@ impl fmt::Display for MotionSalienceError {
             Self::InvalidObservationValue { agent_id, field } => {
                 write!(f, "agent {agent_id} has invalid {field}")
             }
-            Self::DuplicateSweepCoordinate { noise_level_bits, threshold_bits } => write!(
+            Self::DuplicateSweepCoordinate {
+                noise_level_bits,
+                threshold_bits,
+            } => write!(
                 f,
                 "duplicate passability sweep coordinate noise_bits={noise_level_bits:#x}, threshold_bits={threshold_bits:#x}"
             ),
             Self::SweepReportConfigurationMismatch => {
-                write!(f, "sweep point and embedded report configuration do not match")
+                write!(
+                    f,
+                    "sweep point and embedded report configuration do not match"
+                )
             }
         }
     }
@@ -331,9 +345,7 @@ pub fn identify_passability_windows(
                 field: "sweep_noise_level",
             });
         }
-        if !point.threshold_rad_per_second.is_finite()
-            || point.threshold_rad_per_second < 0.0
-        {
+        if !point.threshold_rad_per_second.is_finite() || point.threshold_rad_per_second < 0.0 {
             return Err(MotionSalienceError::InvalidObservationValue {
                 agent_id: u32::MAX,
                 field: "sweep_threshold",
@@ -345,7 +357,10 @@ pub fn identify_passability_windows(
         {
             return Err(MotionSalienceError::SweepReportConfigurationMismatch);
         }
-        let key = (point.noise_level.to_bits(), point.threshold_rad_per_second.to_bits());
+        let key = (
+            point.noise_level.to_bits(),
+            point.threshold_rad_per_second.to_bits(),
+        );
         if !coordinates.insert(key) {
             return Err(MotionSalienceError::DuplicateSweepCoordinate {
                 noise_level_bits: key.0,
@@ -813,7 +828,10 @@ mod tests {
         let windows = identify_passability_windows(&points).unwrap();
         assert_eq!(windows.len(), 2);
         assert_eq!(
-            windows.iter().map(|window| window.noise_level).collect::<Vec<_>>(),
+            windows
+                .iter()
+                .map(|window| window.noise_level)
+                .collect::<Vec<_>>(),
             vec![0.0, 0.1]
         );
         assert!(windows.iter().all(|window| window.is_bounded()));
