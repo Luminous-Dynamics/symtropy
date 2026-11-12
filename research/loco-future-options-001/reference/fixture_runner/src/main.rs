@@ -88,6 +88,8 @@ fn parse_thermal(inputs: &Value) -> Result<ThermalEvidence, String> {
     match status.as_str() {
         "not_applicable" => Ok(ThermalEvidence::NotApplicable),
         "valid" => {
+            let branch_manifest_digest =
+                required_string(chain, "branch_manifest_digest")?;
             let model_digest = required_string(chain, "model_digest")?;
             let node_manifest_digest = required_string(chain, "node_manifest_digest")?;
             let predecessor = required_string(chain, "predecessor_state_digest")?;
@@ -125,6 +127,7 @@ fn parse_thermal(inputs: &Value) -> Result<ThermalEvidence, String> {
                 });
             }
             Ok(ThermalEvidence::Valid {
+                branch_manifest_digest,
                 model_digest,
                 node_manifest_digest,
                 expected_predecessor_digest: predecessor.clone(),
@@ -135,6 +138,7 @@ fn parse_thermal(inputs: &Value) -> Result<ThermalEvidence, String> {
             })
         }
         "mismatched_predecessor" => Ok(ThermalEvidence::Valid {
+            branch_manifest_digest: required_string(chain, "branch_manifest_digest")?,
             model_digest: required_string(chain, "model_digest")?,
             node_manifest_digest: required_string(chain, "node_manifest_digest")?,
             expected_predecessor_digest: required_string(
@@ -176,6 +180,7 @@ fn parse_recovery(inputs: &Value) -> Result<RecoveryEvidence, String> {
     .map(|receipt| {
         Ok(BranchRecoveryReceipt {
             branch_id: required_string(receipt, "branch_id")?,
+            successor_state_digest: required_string(receipt, "successor_state_digest")?,
             reserve_state_digest: required_string(receipt, "reserve_state_digest")?,
             topology_digest: required_string(receipt, "topology_digest")?,
             terminal_safe_stop_reachable: required_bool(
