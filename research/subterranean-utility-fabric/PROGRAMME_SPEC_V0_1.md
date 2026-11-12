@@ -354,3 +354,8 @@ Data-sharing must be authorized, privacy-preserving and purpose-limited. Sensiti
 This programme currently establishes a research direction and benchmark contract only. It does not establish that an underground corridor is safe, permitted, technically feasible, commercially viable, theft-proof or better than overhead infrastructure at any real site. No simulation result authorizes construction, energization, switching, excavation, valve operation, procurement or robot dispatch. Real engineering requires the relevant South African codes, standards, utility-owner requirements, competent specialist solvers, field surveys and independent professional review.
 
 The success criterion is not a spectacular robot demonstration. It is a corridor that delivers a required service at lower risk-adjusted whole-life cost, with independently accepted construction, safe and recoverable maintenance, and measurable local economic benefit.
+
+
+## Cable-duct robotics is a separate benchmark
+
+Sewer-crawler performance is not automatically transferable to utility cable ducts. The programme now defines a dedicated, non-energized duct inspection and draw-tool qualification in [Symtropy #4913](https://github.com/Luminous-Dynamics/symtropy/issues/4913) and [CABLE_DUCT_ROBOT_BENCHMARK_V0_1.md](CABLE_DUCT_ROBOT_BENCHMARK_V0_1.md). It separates inspection, draw-rope insertion / retrieval and inert dummy-cable pull-through; qualifies exact duct profiles, bend and coupling geometry, tether hazards, localization, observation coverage, force limits, damage and safe recovery. No live cable is used.
