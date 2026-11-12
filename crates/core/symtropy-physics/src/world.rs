@@ -2583,12 +2583,12 @@ mod transformed_halfspace_tests {
         );
         dynamic_body.linear_velocity = SVector::from([0.0, -1.0, 0.0]);
 
-        world.bodies.push(static_body);
-        world.bodies.push(dynamic_body);
+        let static_handle = world.add_body(static_body);
+        let dynamic_handle = world.add_body(dynamic_body);
 
         let manifold = ContactManifold::<3>::single(
-            BodyHandle(0),
-            BodyHandle(1),
+            static_handle,
+            dynamic_handle,
             SVector::from([0.0, 1.0, 0.0]),
             SVector::from([0.0, 1.0, 0.0]),
             0.0,
