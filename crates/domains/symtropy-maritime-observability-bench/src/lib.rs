@@ -542,8 +542,8 @@ fn make_parent_and_case(input:&Value,removed_sensors:&BTreeSet<String>,removed_d
         let declared_sensor_fault=faulted.contains(sid);
         let availability=if scenario_removed{"MISSING"}
             else if declared_sensor_fault&&matches!(raw_availability,"MISSING"|"DEGRADED"){raw_availability}
-            else if unaligned_states.contains(r["state_id"].as_str().unwrap_or("")){"UNKNOWN"}
-            else if !ok{"UNKNOWN"}else{raw_availability};
+            else if unaligned_states.contains(r["state_id"].as_str().unwrap_or(""))||!ok{"UNKNOWN"}
+            else{raw_availability};
         let role=txt(sensor,"source_role","$.sensors[]")?;
         let derived=set(sensor,"derived_from_channel_ids","$.sensors[]")?;
         let response_role=txt(r,"evidence_role","$.responses[]")?;
