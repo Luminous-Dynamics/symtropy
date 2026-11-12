@@ -1,0 +1,118 @@
+name: Matched physics benchmark contract
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+    paths:
+      - "research/matched-physics-benchmark-001/**"
+      - ".github/workflows/matched-physics-benchmark-contract.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/matched-physics-benchmark-001/**"
+      - ".github/workflows/matched-physics-benchmark-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: matched-physics-benchmark-contract-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  contract:
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact triggering revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Install pinned JSON Schema validator
+        run: python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+      - name: Validate schemas, canonical fixture digest and authority gates
+        run: |
+          python3 - <<'PY'
+          import copy
+          import hashlib
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+
+          root = Path('research/matched-physics-benchmark-001')
+          case_schema = json.loads((root / 'schemas/benchmark-case-v0.1.schema.json').read_text())
+          result_schema = json.loads((root / 'schemas/benchmark-result-v0.1.schema.json').read_text())
+          case = json.loads((root / 'fixtures/dense-rebase-2d-case-v0.1.json').read_text())
+          result = json.loads((root / 'fixtures/synthetic-not-run-result-v0.1.json').read_text())
+          Draft202012Validator.check_schema(case_schema)
+          Draft202012Validator.check_schema(result_schema)
+          case_validator = Draft202012Validator(case_schema)
+          result_validator = Draft202012Validator(result_schema)
+          case_errors = list(case_validator.iter_errors(case))
+          assert not case_errors, case_errors
+          result_errors = list(result_validator.iter_errors(result))
+          assert not result_errors, result_errors
+
+          canonical = json.dumps(case['payload'], sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
+          digest = hashlib.sha256(canonical).hexdigest()
+          assert digest == case['payload_sha256'], (digest, case['payload_sha256'])
+          assert result['case_id'] == case['case_id']
+          assert result['case_payload_sha256'] == digest
+          assert result['semantic_mapping']['case_payload_sha256'] == digest
+
+          payload = case['payload']
+          n = payload['dimension']
+          for key in ('metric_source', 'rebasis_source_from_target') :
+              assert len(payload[key]) == n and all(len(row) == n for row in payload[key]), key
+          for key in ('tangent_source', 'cotangent_source') :
+              assert len(payload[key]) == n, key
+          expected = payload['expected']
+          assert len(expected['tangent_target']) == n
+          assert len(expected['cotangent_target']) == n
+          assert len(expected['metric_target']) == n and all(len(row) == n for row in expected['metric_target'])
+
+          # Independent exact 2D algebra replay for the frozen synthetic fixture.
+          m = payload['metric_source']
+          s = payload['rebasis_source_from_target']
+          vq = payload['tangent_source']
+          aq = payload['cotangent_source']
+          det = s[0][0] * s[1][1] - s[0][1] * s[1][0]
+          assert det != 0
+          inv = [[s[1][1] / det, -s[0][1] / det], [-s[1][0] / det, s[0][0] / det]]
+          vy = [sum(inv[i][j] * vq[j] for j in range(2)) for i in range(2)]
+          ay = [sum(s[j][i] * aq[j] for j in range(2)) for i in range(2)]
+          mt = [[sum(s[k][i] * m[k][l] * s[l][j] for k in range(2) for l in range(2)) for j in range(2)] for i in range(2)]
+          close = lambda a, b: abs(a - b) <= 1e-12 * max(1.0, abs(a), abs(b))
+          for actual, wanted in zip(vy, expected['tangent_target']): assert close(actual, wanted)
+          for actual, wanted in zip(ay, expected['cotangent_target']): assert close(actual, wanted)
+          for i in range(2):
+              for j in range(2): assert close(mt[i][j], expected['metric_target'][i][j])
+          pairing_q = sum(aq[i] * vq[i] for i in range(2))
+          pairing_y = sum(ay[i] * vy[i] for i in range(2))
+          assert close(pairing_q, expected['canonical_pairing']) and close(pairing_y, pairing_q)
+          tangent_norm_squared = sum(vq[i] * sum(m[i][j] * vq[j] for j in range(2)) for i in range(2))
+          assert close(tangent_norm_squared, expected['tangent_metric_norm_squared'])
+
+          # Schema must reject a claimed MATCHED result while its semantic mapping is inconclusive.
+          forged = copy.deepcopy(result)
+          forged['comparison']['status'] = 'MATCHED'
+          forged['comparison']['basis'] = 'EXACT_CASE_AND_SEMANTIC_MAPPING'
+          forged['comparison']['claim_class'] = 'MATCHED_FIXTURE_ONLY'
+          assert list(result_validator.iter_errors(forged)), 'inconclusive semantic mapping was promoted to MATCHED'
+
+          # A result may be schema-valid but still be stale relative to its case; the cross-file digest gate rejects it.
+          stale = copy.deepcopy(result)
+          stale['case_payload_sha256'] = '0' * 64
+          assert not list(result_validator.iter_errors(stale))
+          assert stale['case_payload_sha256'] != digest, 'stale result digest was not detected'
+
+          # V0 never permits a general SOTA-superiority claim or production authority.
+          forged = copy.deepcopy(result)
+          forged['comparison']['general_sota_superiority'] = True
+          assert list(result_validator.iter_errors(forged)), 'general SOTA claim escaped the v0.1 ceiling'
+          forged = copy.deepcopy(result)
+          forged['claim_boundary']['production_authority'] = True
+          assert list(result_validator.iter_errors(forged)), 'production authority escaped the v0.1 ceiling'
+          PY
