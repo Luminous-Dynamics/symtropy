@@ -180,6 +180,12 @@
         "official_score_percent": 88.01
       },
       "reference_manifest": "published-dx2026-graybox-baseline-v0.1.json"
+    },
+    {
+      "id": "anytime_valid_sequential_likelihood_ratio",
+      "family": "sequential_statistical_test",
+      "role": "Fixed-channel simple-null/simple-alternative likelihood-ratio e-process, with optional stopping and family-wise Bonferroni allocation.",
+      "status": "research_candidate_not_yet_benchmarked"
     }
   ],
   "primary_metrics": [
@@ -336,7 +342,13 @@
     "active-evidence comparator tournament includes a worst-case pairwise Chernoff baseline over the identical eligible candidate set",
     "Chernoff results retain the minimum hypothesis-pair and uncertainty-scenario value and disclose the fixed s-grid",
     "no asymptotic Chernoff error exponent is described as a finite-sample LiU-ICE diagnosis guarantee",
-    "the active evidence baseline tournament includes worst-case pairwise Chernoff separation and reports its asymptotic-independence assumption"
+    "the active evidence baseline tournament includes worst-case pairwise Chernoff separation and reports its asymptotic-independence assumption",
+    "sequential-evidence tests bind one fixed channel, null/alternative likelihood table, calibration review and model per session",
+    "anytime false-alarm control is claimed only when the conditional null likelihood process remains valid under the observed history",
+    "the current stationary likelihood model is not applied to serially dependent or shifted data without a separately validated conditional likelihood model",
+    "multiple simultaneous fault alternatives use a family-wise alpha allocation; no per-test threshold is reused without adjustment",
+    "unsupported outcomes poison the process and are never converted into infinite fault evidence",
+    "an anytime e-process threshold crossing is a statistical model-pair flag, not a physical root-cause or operational authority claim"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -497,6 +509,16 @@
     {
       "id": "published_boundary_unknown_rejection",
       "target": "On the f_pic +8% type boundary, detect the anomaly while refusing unsupported known-cause isolation.",
+      "status": "aspirational"
+    },
+    {
+      "id": "anytime_familywise_false_alarm",
+      "target": "On independent no-fault episodes, the sequential process maintains empirical family-wise false-alarm probability at or below its configured bound within clustered uncertainty across arbitrary preregistered stopping rules.",
+      "status": "aspirational"
+    },
+    {
+      "id": "sequential_time_to_detection",
+      "target": "Reduce median and p95 time-to-detection versus a matched fixed-window likelihood baseline at the same family-wise false-alarm budget.",
       "status": "aspirational"
     }
   ],
@@ -771,5 +793,18 @@
     ],
     "principle": "Diagnosis ambiguity and out-of-support are valid outputs; the classifier must not manufacture a known physical cause merely because detection fired.",
     "claim_ceiling": "synthetic calibrated-envelope counterexamples only; the published DX2026 paper is not reproduced"
+  },
+  "sequential_evidence": {
+    "path": "sequential-evidence-v0.1.json",
+    "schema_version": "symtropy-sequential-evidence-v0.1",
+    "status": "protocol_only_not_executed",
+    "rust_module": "src/sequential_evidence.rs",
+    "comparator": "anytime_valid_sequential_likelihood_ratio",
+    "optional_stopping_claim": "model_conditional_ville_bound",
+    "familywise_control": "bonferroni",
+    "fixed_channel_per_session": true,
+    "changing_channel_within_session_allowed": false,
+    "physical_cause_claim_allowed": false,
+    "claim_ceiling": "fixed-channel synthetic likelihood mechanics; no real engine likelihood calibration"
   }
 }
