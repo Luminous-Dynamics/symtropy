@@ -264,7 +264,7 @@ impl<const D: usize> RigidBody<D> {
 #[cfg(test)]
 mod compound_com_tests {
     use super::*;
-    use symtropy_math::{Rotor, Sphere};
+    use symtropy_math::{HyperBox, Rotor};
 
     fn rotated_body() -> RigidBody<3> {
         let mut generator = Bivector::<3>::zero();
@@ -278,7 +278,7 @@ mod compound_com_tests {
                 translation: Point::new([3.0, -2.0, 5.0]),
                 rotation: Rotor::from_bivector(&generator),
             },
-            Box::new(Sphere::new(Point::origin(), 0.4)),
+            Box::new(HyperBox::<3>::new([0.4, 0.2, 0.3])),
             2.0,
             SVector::from_element(0.4),
         )
@@ -309,6 +309,30 @@ mod compound_com_tests {
         direction: &SVector<f64, 3>,
     ) -> SVector<f64, 3> {
         child_world_support(body, 0, direction)
+    }
+
+    fn fibonacci_directions() -> Vec<SVector<f64, 3>> {
+        let count = 64;
+        let golden_angle = std::f64::consts::PI * (3.0 - 5.0_f64.sqrt());
+        (0..count)
+            .map(|index| {
+                let index = index as f64;
+                let z = 1.0 - 2.0 * (index + 0.5) / count as f64;
+                let radius = (1.0 - z * z).sqrt();
+                let angle = golden_angle * index;
+                SVector::from([radius * angle.cos(), z, radius * angle.sin()])
+            })
+            .collect()
+    }
+
+    fn transformed_shape_world_support(
+        shape: &dyn Shape<3>,
+        transform: &Transform<3>,
+        direction: &SVector<f64, 3>,
+    ) -> SVector<f64, 3> {
+        let local_direction = transform.rotation.reverse().rotate_vector(direction);
+        let local_support = shape.support(&local_direction);
+        transform.transform_point(&Point(local_support)).0
     }
 
     fn assert_child_geometry_preserved(
@@ -378,7 +402,7 @@ mod compound_com_tests {
 
         body.merge_toolhead(
             tool_transform,
-            Box::new(Sphere::new(Point::origin(), 0.2)),
+            Box::new(HyperBox::<3>::new([0.2, 0.1, 0.15])),
             1.0,
         );
 
@@ -389,6 +413,53 @@ mod compound_com_tests {
             "COM translation was not rotated from body frame into world frame"
         );
         assert_original_geometry_preserved(&before, &body);
+    }
+
+    #[test]
+    fn merge_toolhead_preserves_rotated_box_children_over_direction_sweep() {
+        let mut body = rotated_body();
+        let directions = fibonacci_directions();
+        let original_before = directions
+            .iter()
+            .map(|direction| body.world_support(direction))
+            .collect::<Vec<_>>();
+
+        let mut tool_generator = Bivector::<3>::zero();
+        tool_generator.set(0, 1, -0.29);
+        tool_generator.set(0, 2, 0.44);
+        tool_generator.set(1, 2, 0.18);
+        let tool_transform = Transform {
+            translation: Point::new([0.8, -0.6, 0.5]),
+            rotation: Rotor::from_bivector(&tool_generator),
+        };
+        let world_tool_transform_before = body.transform.compose(&tool_transform);
+        let tool_shape: Box<dyn Shape<3>> =
+            Box::new(HyperBox::<3>::new([0.23, 0.11, 0.07]));
+        let tool_before = directions
+            .iter()
+            .map(|direction| {
+                transformed_shape_world_support(
+                    tool_shape.as_ref(),
+                    &world_tool_transform_before,
+                    direction,
+                )
+            })
+            .collect::<Vec<_>>();
+
+        body.merge_toolhead(tool_transform, tool_shape, 0.8);
+
+        for (index, direction) in directions.iter().enumerate() {
+            let original_after = child_world_support(&body, 0, direction);
+            let tool_after = child_world_support(&body, 1, direction);
+            assert!(
+                (original_after - original_before[index]).norm() < 3.0e-10,
+                "original rotated box support changed at direction {index}"
+            );
+            assert!(
+                (tool_after - tool_before[index]).norm() < 3.0e-10,
+                "rotated toolhead support changed at direction {index}"
+            );
+        }
     }
 
     #[test]
@@ -420,7 +491,7 @@ mod compound_com_tests {
 
         body.merge_toolhead(
             tool_transform,
-            Box::new(Sphere::new(Point::origin(), 0.2)),
+            Box::new(HyperBox::<3>::new([0.2, 0.1, 0.15])),
             1.0,
         );
 
@@ -451,7 +522,7 @@ mod compound_com_tests {
 
         body.merge_toolhead(
             Transform::from_translation(Point::new([1.2, -0.7, 0.4])),
-            Box::new(Sphere::new(Point::origin(), 0.2)),
+            Box::new(HyperBox::<3>::new([0.2, 0.1, 0.15])),
             1.0,
         );
 
@@ -490,7 +561,7 @@ mod compound_com_tests {
 
         body.merge_toolhead(
             Transform::from_translation(Point::new([1.0, 0.3, -0.2])),
-            Box::new(Sphere::new(Point::origin(), 0.15)),
+            Box::new(HyperBox::<3>::new([0.15, 0.1, 0.08])),
             0.7,
         );
         assert_original_geometry_preserved(&initial, &body);
@@ -505,7 +576,7 @@ mod compound_com_tests {
             .collect::<Vec<_>>();
         body.merge_toolhead(
             Transform::from_translation(Point::new([-0.4, 1.1, 0.6])),
-            Box::new(Sphere::new(Point::origin(), 0.1)),
+            Box::new(HyperBox::<3>::new([0.1, 0.07, 0.04])),
             0.3,
         );
         assert_child_geometry_preserved(&after_first_original, &body, 0);
