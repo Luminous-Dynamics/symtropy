@@ -362,14 +362,10 @@ impl<const D: usize> PhysicsWorld<D> {
 
         // Preflight the entire batch before mutating the world. A duplicate
         // near the end of the input must not leave earlier bodies inserted.
-        let mut requested_ids = BTreeSet::new();
+        let mut seen_ids: BTreeSet<NetId> = self.net_id_map.keys().copied().collect();
+        seen_ids.extend(self.bodies.iter().filter_map(|body| body.net_id));
         for (net_id, _) in &bodies {
-            let already_in_world = self.net_id_map.contains_key(net_id)
-                || self
-                    .bodies
-                    .iter()
-                    .any(|existing| existing.net_id == Some(*net_id));
-            if already_in_world || !requested_ids.insert(*net_id) {
+            if !seen_ids.insert(*net_id) {
                 return Err(format!("duplicate NetId({})", net_id.0));
             }
         }
