@@ -34,7 +34,7 @@ impl CoordinateFrame for DenseY {}
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Tangent<F: CoordinateFrame, const N: usize> {
     components: Vector<N>,
-    frame: PhantomData<F>,
+    _frame: PhantomData<F>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -46,7 +46,7 @@ pub struct Cotangent<F: CoordinateFrame, const N: usize> {
 impl<F: CoordinateFrame, const N: usize> Tangent<F, N> {
     pub fn new(components: Vector<N>) -> Result<Self, MetricErrorV1> {
         validate_vector(&components)?;
-        Ok(Self { components, frame: PhantomData })
+        Ok(Self { components, _frame: PhantomData })
     }
 
     pub fn components(&self) -> &Vector<N> {
@@ -110,7 +110,7 @@ impl fmt::Display for MetricErrorV1 {
 
 impl std::error::Error for MetricErrorV1 {}
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Metric<F: CoordinateFrame, const N: usize> {
     matrix: Matrix<N>,
     cholesky: Matrix<N>,
@@ -129,7 +129,7 @@ pub struct Rebasis<From: CoordinateFrame, To: CoordinateFrame, const N: usize> {
     /// q-components = S * y-components. S maps To tangent coordinates into From.
     matrix: Matrix<N>,
     factor: LuFactorV1<N>,
-    frame_pair: PhantomData<(From, To)>,
+    _frame_pair: PhantomData<(From, To)>,
 }
 
 fn validate_profile(profile: MetricProfileV1) -> Result<(), MetricErrorV1> {
@@ -175,6 +175,7 @@ fn transpose<const N: usize>(matrix: &Matrix<N>) -> Matrix<N> {
     result
 }
 
+#[cfg(test)]
 fn multiply<const N: usize>(left: &Matrix<N>, right: &Matrix<N>) -> Matrix<N> {
     let mut result = [[0.0; N]; N];
     for row in 0..N {
@@ -373,7 +374,7 @@ impl<F: CoordinateFrame, const N: usize> Metric<F, N> {
                 minimum_cholesky_pivot,
                 matrix_inf_norm: scale,
             },
-            frame: PhantomData,
+            _frame: PhantomData,
         })
     }
 
@@ -472,7 +473,7 @@ impl<From: CoordinateFrame, To: CoordinateFrame, const N: usize> Rebasis<From, T
         Ok(Self {
             matrix,
             factor,
-            frame_pair: PhantomData,
+            _frame_pair: PhantomData,
         })
     }
 
