@@ -1,5 +1,7 @@
 # Construction Floor Production Accounting — v0.1
 
+See [INDUSTRY_AND_BENCHMARK_ALIGNMENT.md](./INDUSTRY_AND_BENCHMARK_ALIGNMENT.md) for the current competitor and benchmark comparison.
+
 **Status:** synthetic Rust integration prototype. Not a construction scheduler, physical inspection system, safety controller, cost estimate or field productivity claim.
 
 - Parent: [HIGHRISE-CLIMBING-WORKCELL-001 #4914](https://github.com/Luminous-Dynamics/symtropy/issues/4914)
@@ -24,15 +26,16 @@ It intentionally does not create another scheduler, resource calendar, fleet pro
 
 - A floor binding pins floor ID, site epoch, design revision digest and target frame.
 - Required functional units bind a task-specific acceptance-contract reference before any attempt.
-- Attempts snapshot the existing `TaskMachine` state and exact task/output/receipt references.
+- Attempts snapshot the existing `TaskMachine` state, robot-configuration digest and exact task/output/receipt references. Each attempt report retains the functional-unit acceptance-contract reference.
 - Rework requires a new task ID, contiguous attempt number and explicit corrective-work authorization.
 - First-pass yield and final acceptance are reported separately.
 - Only `IndependentlyAccepted` from the existing task machine receives accepted-output credit.
-- Person-time slices use half-open intervals and reject overlapping work by the same person.
+- Person-time slices use half-open intervals on a declared floor labour-time axis and reject overlapping work by the same person.
 - Cost entries use integer minor currency units, explicit currency, unique IDs and optional known task IDs.
 - Failed/rejected/rework/setup/inspection costs remain in total cost.
 - Accepted-floor cost is unavailable until every required functional unit is finally accepted.
 - A small adapter function passes floor-bound resource requests to the existing `ReservationBook`; it adds no second calendar.
+- Reports contain a disposition row for every required functional unit, including units with no attempted work.
 - A paired observation comparison reports the cost and crew-time difference between early and deferred detection without assuming early inspection always wins.
 
 ## Local commands
@@ -47,8 +50,9 @@ cargo clippy --manifest-path research/construction-floor-production-v0-1/Cargo.t
 
 - The integration crate is stacked on draft #3644. Its path dependency is not available from main until the base PR is merged or the stack is otherwise integrated.
 - The reference-floor schedule values remain abstract planning ticks. They are not hours, crew rates or cost inputs.
-- The cost and observation examples are synthetic integer arithmetic; they do not encode prices, probabilities, project labour rates or actual savings.
-- The ledger checks references and task states exposed by the local lifecycle oracle. It does not authenticate signatures or authorities, independently inspect physical work, verify receipt cryptography, or determine engineering tolerances.
+- The cost and observation examples are synthetic integer arithmetic; they do not encode prices, probabilities, project labour rates or actual savings. The paired observation experiment compares the same declared hidden-fault scenario without assigning a probability distribution.
+- The acceptance-contract reference is recorded as an intent pointer; the crate does not inspect or authenticate the external acceptance contract or receipt authority. The ledger checks references and task states exposed by the local lifecycle oracle. It does not authenticate signatures or authorities, independently inspect physical work, verify receipt cryptography, or determine engineering tolerances.
+- Currency validation checks a three-letter uppercase code shape only; it does not prove that the code is a currently valid ISO 4217 currency.
 - The resource reservation is not a safety permit, clearance or motion authorization.
 - No physical trial, construction safety qualification, structural assessment, cost saving, field productivity or code-conformity claim is made.
 
