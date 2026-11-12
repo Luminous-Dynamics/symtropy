@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/electric-aviation/mission-card.schema.json",
+  "title": "Electric Aviation Mission Card",
+  "description": "Versioned mission assumptions for reproducible electric-aircraft systems engineering. Unknown values must remain null or explicitly not_defined; do not silently impute them.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "mission_id",
+    "revision",
+    "title",
+    "status",
+    "aircraft_class",
+    "architectures_to_compare",
+    "mission",
+    "flight_profile",
+    "environment",
+    "reserve_policy",
+    "system_boundaries",
+    "open_questions",
+    "provenance",
+    "maturity"
+  ],
+  "properties": {
+    "schema_version": { "const": "mission-card/v1" },
+    "mission_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]{2,79}$"
+    },
+    "revision": { "type": "integer", "minimum": 1 },
+    "title": { "type": "string", "minLength": 8 },
+    "status": { "enum": ["planning_reference", "design_candidate", "frozen_for_analysis", "superseded"] },
+    "aircraft_class": { "enum": ["battery_electric_evtol", "hybrid_electric_fixed_wing", "battery_electric_fixed_wing", "other"] },
+    "architectures_to_compare": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": ["lift_plus_cruise", "tilt_prop", "tilt_wing", "vectored_thrust", "conventional_fixed_wing", "series_hybrid", "parallel_hybrid", "other"]
+      }
+    },
+    "mission": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passengers", "crew", "reference_range", "payload_mass_kg"],
+      "properties": {
+        "passengers": { "type": ["integer", "null"], "minimum": 0 },
+        "crew": { "type": ["integer", "null"], "minimum": 0 },
+        "reference_range": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "unit", "interpretation"],
+          "properties": {
+            "value": { "type": ["number", "null"], "exclusiveMinimum": 0 },
+            "unit": { "enum": ["statute_mile", "nautical_mile", "kilometer"] },
+            "interpretation": { "type": "string", "minLength": 12 }
+          }
+        },
+        "payload_mass_kg": { "type": ["number", "null"], "exclusiveMinimum": 0 }
+      }
+    },
+    "flight_profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["profile_status", "segments"],
+      "properties": {
+        "profile_status": { "enum": ["not_defined", "draft", "reviewed", "qualified"] },
+        "segments": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["segment_id", "phase", "duration_s", "distance_m"],
+            "properties": {
+              "segment_id": { "type": "string", "minLength": 1 },
+              "phase": { "enum": ["vertical_takeoff", "transition_to_cruise", "climb", "cruise", "descent", "transition_to_hover", "vertical_landing", "hold", "diversion", "other"] },
+              "duration_s": { "type": ["number", "null"], "minimum": 0 },
+              "distance_m": { "type": ["number", "null"], "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["temperature_c", "wind_speed_m_s", "wind_direction_deg", "density_altitude_m", "weather_basis"],
+      "properties": {
+        "temperature_c": { "type": ["number", "null"] },
+        "wind_speed_m_s": { "type": ["number", "null"], "minimum": 0 },
+        "wind_direction_deg": { "type": ["number", "null"], "minimum": 0, "maximum": 360 },
+        "density_altitude_m": { "type": ["number", "null"] },
+        "weather_basis": { "enum": ["not_defined", "standard_day", "declared_design_envelope", "measured_dataset"] }
+      }
+    },
+    "reserve_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "authority_or_operating_reference", "diversion_definition"],
+      "properties": {
+        "status": { "enum": ["not_defined", "draft", "authority_reviewed", "approved_for_analysis"] },
+        "authority_or_operating_reference": { "type": ["string", "null"] },
+        "diversion_definition": { "type": ["string", "null"] }
+      }
+    },
+    "system_boundaries": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["energy_metering_boundary", "battery_specific_energy_boundary", "mass_boundary", "thermal_boundary"],
+      "properties": {
+        "energy_metering_boundary": { "enum": ["not_defined", "cell", "pack_dc", "aircraft_dc_bus", "wall_to_aircraft", "full_mission_system"] },
+        "battery_specific_energy_boundary": { "enum": ["not_defined", "cell", "module", "pack", "installed_system"] },
+        "mass_boundary": { "enum": ["not_defined", "cells_only", "pack", "installed_energy_system", "aircraft_empty", "maximum_takeoff_mass"] },
+        "thermal_boundary": { "enum": ["not_defined", "cell", "module", "pack", "installed_system"] }
+      }
+    },
+    "open_questions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 8 }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_name", "source_url", "source_type", "accessed_date", "source_claim"],
+      "properties": {
+        "source_name": { "type": "string", "minLength": 3 },
+        "source_url": { "type": "string", "format": "uri" },
+        "source_type": { "enum": ["regulatory", "government_research", "peer_reviewed", "manufacturer", "measured_test", "internal"] },
+        "accessed_date": { "type": "string", "format": "date" },
+        "source_claim": { "type": "string", "minLength": 12 }
+      }
+    },
+    "maturity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_class", "performance_claims_authorized"],
+      "properties": {
+        "evidence_class": { "enum": ["planning_reference", "analytical_estimate", "simulation", "component_test", "hardware_in_loop", "ground_test", "flight_test", "certification_evidence"] },
+        "performance_claims_authorized": { "const": false }
+      }
+    }
+  }
+}

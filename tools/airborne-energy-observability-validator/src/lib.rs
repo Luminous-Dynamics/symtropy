@@ -7,6 +7,9 @@
 use serde_json::Value;
 use std::collections::BTreeSet;
 
+pub mod mission_energy;
+pub mod fixedwing;
+
 const TOP_KEYS: &[&str] = &[
     "schema_version",
     "case_id",

@@ -1,0 +1,111 @@
+{
+  "schema_version": "aviation-benchmark-observation/v1",
+  "record_id": "v-aerospace-vs210-24s4p-ncm-battery-2026-08-22",
+  "status": "published_research_observation",
+  "published_date": "2026-08-22",
+  "source": {
+    "title": "Design, Fabrication, and In-Flight Demonstration of a 24S NCM Battery System for an eVTOL Aircraft",
+    "journal": "Batteries",
+    "volume": 12,
+    "issue": 9,
+    "article": 317,
+    "doi": "10.3390/batteries12090317",
+    "url": "https://www.mdpi.com/2313-0105/12/9/317",
+    "authors": [
+      "SuHo Yu",
+      "Yu-Jin Jung",
+      "Bum-Dong Cho",
+      "Gee-Soo Lee"
+    ]
+  },
+  "aircraft": {
+    "model": "VS-210",
+    "maximum_takeoff_mass_kg": 210,
+    "category": "small_eVTOL_demonstrator"
+  },
+  "onboard_battery_system": {
+    "configuration": "24S4P",
+    "chemistry": "NCM pouch cells",
+    "nominal_voltage_v": 88.8,
+    "rated_capacity_ah": 88,
+    "nominal_energy_kwh": 7.81,
+    "mass_kg": 43.8,
+    "reported_specific_energy_wh_per_kg": 178.4,
+    "reported_volumetric_energy_wh_per_l": 265.7,
+    "battery_mass_fraction_of_aircraft_mtow": 0.209,
+    "continuous_allowable_current_a": 440,
+    "continuous_current_c_rate": 5.0,
+    "reported_specific_power_at_continuous_current_w_per_kg": 892,
+    "maximum_current_a": {
+      "value": 940,
+      "basis": "calculated_from_four_parallel_24S1P_packs_each_rated_for_235_A",
+      "measured_onboard_system_peak": false
+    }
+  },
+  "ground_test_pack": {
+    "configuration": "24S1P",
+    "nominal_voltage_v": 88.8,
+    "rated_capacity_ah": 22,
+    "nominal_energy_kwh": 1.95,
+    "mass_kg": 13.5,
+    "reported_specific_energy_wh_per_kg": 144.7,
+    "reported_volumetric_energy_wh_per_l": 136.9,
+    "continuous_allowable_current_a": 110,
+    "continuous_current_c_rate": 5.0,
+    "maximum_test_current_a": 235,
+    "maximum_test_current_c_rate": 10.68,
+    "maximum_rate_test_duration_s": 249,
+    "capacity_at_maximum_rate_ah": 16.26,
+    "capacity_retention_vs_1c": 0.742,
+    "maximum_surface_temperature_c": 55.1,
+    "operational_temperature_limit_adopted_by_study_c": 60.0,
+    "thermal_margin_at_maximum_rate_c": 4.9,
+    "temperature_rise_rate_at_maximum_rate_c_per_min": 8.72,
+    "apparent_pack_dcir_ohm": 0.0403,
+    "dcir_method": "estimated_from_initial_voltage_drop_between_different_discharge_rate_tests; not a standard same-soc pulse measurement"
+  },
+  "ground_test_conditions": {
+    "ambient_temperature_range_c": [15, 23],
+    "tested_discharge_c_rates": [0.2, 1, 2, 5, 10.68],
+    "capacity_retention_1c_to_5c_range": [0.975, 1.0],
+    "capacity_retention_10_68c": 0.742,
+    "caution": "The 10.68C test ran for 4 min 9 s and reduced usable capacity to 74.2% of the 1C reference. It is not a demonstrated continuous-service operating point."
+  },
+  "flight_demonstration": {
+    "flight_session_duration_s": 920,
+    "takeoff_hover_landing_cycles": 6,
+    "cumulative_loaded_time_s": 492,
+    "ambient_temperature_c": 5,
+    "wind_speed_m_s_range": [2, 3],
+    "flight_current_directly_measured": false,
+    "flight_pack_temperature_directly_measured": false,
+    "estimated_loaded_current_a_range": [180, 240],
+    "estimated_loaded_power_kw_range": [16, 21],
+    "estimated_load_basis": "indirect voltage-based and propulsion-bench estimates for a 140 kg test mass",
+    "separate_210kg_mtow_test_peak_current_a": 550,
+    "limitations": [
+      "The in-flight current was not directly measured synchronously with pack voltage.",
+      "Pack and cell temperatures were not measured during flight.",
+      "The flight session used about 5 C ambient and 2-3 m/s wind, not a representative hot/high/windy operational envelope.",
+      "Pack-to-pack current sharing could not be inferred from parallel pack voltages.",
+      "The study describes this as an initial in-flight demonstration, not full UAM-envelope validation."
+    ]
+  },
+  "benchmark_interpretation": {
+    "measurement_boundary": "onboard_battery_system_mass_and_nominal_energy_as_reported; not whole-aircraft installed propulsion-system mass",
+    "best_use": [
+      "open published eVTOL pack/system specific-energy reference",
+      "high-C-rate ground-test reference",
+      "thermal and voltage-sag model calibration candidate",
+      "flight-test instrumentation gap analysis"
+    ],
+    "must_not_be_used_as": [
+      "a certified battery design requirement",
+      "a direct passenger aircraft range claim",
+      "a validated hot-day or end-of-life battery capability",
+      "proof that 10.68C is a sustainable continuous operating rate",
+      "a measured in-flight energy-efficiency result"
+    ],
+    "claim_ceiling": "Published pack-level ground-test and initial in-flight demonstrator evidence with stated limitations; no type certification or representative operational-envelope validation is established."
+  }
+}

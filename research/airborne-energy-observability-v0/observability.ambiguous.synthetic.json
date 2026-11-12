@@ -1,0 +1,31 @@
+{
+  "schema_version": "airborne-energy-observability-v0",
+  "case_id": "synthetic-ambiguous-map-v0",
+  "record_state": "FIXTURE",
+  "evidence_class": "SYNTHETIC_ADVERSARIAL",
+  "field": {
+    "modality": "RF_MICROWAVE",
+    "field_id": "synthetic-rf-field-ambiguous",
+    "field_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "field_revision": "synthetic-r1"
+  },
+  "receiver": {
+    "receiver_id": "synthetic-receiver-ambiguous",
+    "receiver_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "sensor_kind": "SEGMENTED_RF_POWER",
+    "calibration_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+  },
+  "observation_contract": {
+    "minimum_translation_separation_mm": 500,
+    "minimum_attitude_separation_mdeg": 5000,
+    "measurement_noise_tolerance": [1, 1]
+  },
+  "pose_samples": [
+    {"pose_id":"pose-a","position_mm":[0,0,1000],"attitude_mdeg":[0,0,0],"observation_signature":[10,10],"support_state":"IN_DOMAIN","received_power_microwatt":100},
+    {"pose_id":"pose-b","position_mm":[2000,0,1000],"attitude_mdeg":[0,0,0],"observation_signature":[10,10],"support_state":"IN_DOMAIN","received_power_microwatt":1000000},
+    {"pose_id":"pose-c","position_mm":[0,2000,1000],"attitude_mdeg":[0,0,0],"observation_signature":[10,10],"support_state":"IN_DOMAIN"},
+    {"pose_id":"pose-out","position_mm":[5000,0,1000],"attitude_mdeg":[0,0,0],"observation_signature":[10,10],"support_state":"OUT_OF_DOMAIN"}
+  ],
+  "expected_disposition": "AMBIGUOUS",
+  "claim_ceiling": "Synthetic adversarial alias witness only; received power cannot substitute for pose identity or establish safe power transfer."
+}
