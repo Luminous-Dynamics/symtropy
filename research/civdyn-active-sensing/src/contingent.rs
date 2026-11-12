@@ -582,7 +582,7 @@ pub fn assess_contingent_sensing(
         });
     };
 
-    let root_is_sensor = matches!(solution.candidate, CandidatePolicyNode::RequestSensor { .. });
+    let root_is_sensor = matches!(&solution.candidate, CandidatePolicyNode::RequestSensor { .. });
     let resolves_no_sensing_infeasibility =
         baseline.common_feasible_policy_count == 0 && root_is_sensor;
     let worst_case_regret_reduction = baseline
@@ -593,6 +593,11 @@ pub fn assess_contingent_sensing(
             || worst_case_regret_reduction
                 .is_some_and(|reduction| reduction > config.tie_tolerance));
 
+    let candidate_policy_tree = if recommended {
+        Some(solution.candidate)
+    } else {
+        None
+    };
     let mut evaluator_node_receipts = solution.node_receipts;
     evaluator_node_receipts.sort_by(|left, right| {
         left.observation_history
@@ -630,11 +635,7 @@ pub fn assess_contingent_sensing(
         maximum_path_energy_kwh: solution.maximum_path_energy_kwh,
         maximum_path_latency_ticks: solution.maximum_path_latency_ticks,
         maximum_path_penalty_service_units: solution.maximum_path_penalty_service_units,
-        candidate_policy_tree: if recommended {
-            Some(solution.candidate)
-        } else {
-            None
-        },
+        candidate_policy_tree,
         evaluator_node_receipts,
         evaluator_prediction_receipts,
         evaluator_leaf_receipts,
