@@ -354,7 +354,7 @@ fn emit(
     let (general_lower, general_upper, general_coverage) =
         find_stratum_interval(evaluation, "general");
     println!(
-        "{scenario_id},{},{},{:.3},{},{},{:.3},{:.3},{truth_contained},{:.3},{},{},{},{},{},{:.3},{},{},{},{:.3},{:.3},{},{},{},{},{},{},{},{},{comparison},{regret},{}",
+        "{scenario_id},{},{},{:.3},{},{},{:.3},{:.3},{truth_contained},{:.3},{},{},{},{},{},{},{},{},{},{},{:.3},{},{},{},{},{},{},{},{},{comparison},{regret},{}",
         evaluation.policy_id,
         evaluation.true_mechanism.id(),
         evaluation.true_mean,
@@ -368,11 +368,11 @@ fn emit(
         find_stratum_mean(evaluation, "high_need"),
         high_lower,
         high_upper,
-        high_coverage,
+        fmt_option(high_coverage),
         find_stratum_mean(evaluation, "general"),
         general_lower,
         general_upper,
-        general_coverage,
+        fmt_option(general_coverage),
         evaluation.true_stratum_gap,
         evaluation
             .estimates
