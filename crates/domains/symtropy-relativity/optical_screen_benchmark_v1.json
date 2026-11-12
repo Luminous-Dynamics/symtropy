@@ -1,8 +1,8 @@
 {
   "schema": "luminous.symtropy.kerr_optical_screen_benchmark.v1",
   "created": "2026-11-12",
-  "programme": "BH-KERR-RAY-BUNDLE-001",
-  "status": "benchmark_contract_authored_not_executed",
+  "programme": "Kerr variational optical geometry, caustic qualification, wave optics and time-domain lensing observables",
+  "status": "active_research_contract",
   "repository": "Luminous-Dynamics/symtropy",
   "owner": "symtropy-relativity",
   "claim_ceiling": "The current implementation supplies a local AD Hamiltonian-flow Jacobian, a propagated canonical fundamental matrix, finite-observer null-shell screen seeds, and a finite source-ZAMO screen map. It does not yet localize caustic roots, classify fold/cusp catastrophes, perform wave-optics diffraction, or establish a global error certificate.",
@@ -11,7 +11,9 @@
     "exact_physics": "Symtropy evaluates Kerr metrics, canonical null geodesics, variational flow and source-screen maps.",
     "independent_verification": "Analytic Schwarzschild identities, separated Carter equations, neighbouring-ray finite differences, chart-overlap checks and external references.",
     "provenance": "Mycelix-ready receipts should bind exact inputs, source SHA, solver options, output digests and qualification tier.",
-    "visualization": "Sol-Atlas consumes qualified trajectories, screen maps, uncertainty and caustic candidates without upgrading evidence status."
+    "visualization": "Sol-Atlas consumes qualified trajectories, screen maps, uncertainty and caustic candidates without upgrading evidence status.",
+    "qualification_output": "Each output is paired with input provenance, coordinate/affine conventions, integration options, invariant residuals, tangent-map and screen-frame diagnostics, conditioning, independent-reference discrepancy, and compute-cost receipt.",
+    "performance_metric": "Cost per physically qualified observable; raw geodesic/screen-map throughput is reported separately and never used to imply physical correctness."
   },
   "current_source": {
     "geodesic_module": "crates/domains/symtropy-relativity/src/kerr_geodesic.rs",
@@ -183,6 +185,27 @@
       "claim_ceiling": "An independent optical-geodesic formulation cross-check, not a caustic catalogue or finite-frequency wave solution."
     },
     {
+      "id": "OS-5C",
+      "name": "matched Kerr geodesic/image comparison with AART",
+      "status": "not_implemented",
+      "model": "Compare asymptotic-observer integrable Kerr geodesics and image/visibility observables against AART for exactly matched spin, inclination, camera orientation, source surface, image branch, and emission convention.",
+      "observables": [
+        "screen_coordinate_discrepancy",
+        "arrival_time_discrepancy",
+        "image_branch_identity",
+        "critical_curve_and_subring_location",
+        "visibility_amplitude_and_phase_discrepancy",
+        "matched_case_runtime_and_memory"
+      ],
+      "acceptance": {
+        "observer_limit": "Only compare regimes where the finite-radius Symtropy observer is taken to the same asymptotic convention as AART",
+        "branch_matching": "Require explicit image/subring branch identity; do not compare pixel colors as a substitute for ray identity",
+        "convergence": "Repeat both codes under independently tightened numerical tolerances",
+        "screen_orientation": "Require an explicit screen-frame handedness and rotation map",
+        "claim_ceiling": "Cross-code implementation consistency for matched Kerr observables, not validation of astrophysical emission assumptions"
+      }
+    },
+    {
       "id": "OS-6",
       "name": "fold caustic localization and catastrophe classification",
       "status": "not_implemented",
@@ -222,44 +245,6 @@
       ]
     },
     {
-      "id": "OS-8",
-      "name": "qualified throughput and portability",
-      "status": "not_implemented",
-      "observables": [
-        "qualified_rays_per_second",
-        "qualified_screen_maps_per_second",
-        "cost_per_qualified_caustic",
-        "peak_memory",
-        "accuracy_per_joule"
-      ],
-      "acceptance": [
-        "compare only at matched physical error and qualification tier",
-        "report hardware/compiler/precision/options",
-        "retain raw FPS as a secondary metric"
-      ]
-    },
-    {
-      "id": "OS-5C",
-      "name": "matched Kerr geodesic/image comparison with AART",
-      "status": "not_implemented",
-      "model": "Compare asymptotic-observer integrable Kerr geodesics and image/visibility observables against AART for exactly matched spin, inclination, camera orientation, source surface, image branch, and emission convention.",
-      "observables": [
-        "screen_coordinate_discrepancy",
-        "arrival_time_discrepancy",
-        "image_branch_identity",
-        "critical_curve_and_subring_location",
-        "visibility_amplitude_and_phase_discrepancy",
-        "matched_case_runtime_and_memory"
-      ],
-      "acceptance": {
-        "observer_limit": "Only compare regimes where the finite-radius Symtropy observer is taken to the same asymptotic convention as AART",
-        "branch_matching": "Require explicit image/subring branch identity; do not compare pixel colors as a substitute for ray identity",
-        "convergence": "Repeat both codes under independently tightened numerical tolerances",
-        "screen_orientation": "Require an explicit screen-frame handedness and rotation map",
-        "claim_ceiling": "Cross-code implementation consistency for matched Kerr observables, not validation of astrophysical emission assumptions"
-      }
-    },
-    {
       "id": "OS-7B",
       "name": "matched strong-field gravitational-wave wave-optics comparison",
       "status": "not_implemented",
@@ -281,6 +266,23 @@
         "uncertainty": "Report truncation, mode-sum, frequency-grid and ray-bundle error separately",
         "claim_ceiling": "A matched wave-optics benchmark; no extension of validity beyond the external solver's approximation domain"
       }
+    },
+    {
+      "id": "OS-8",
+      "name": "qualified throughput and portability",
+      "status": "not_implemented",
+      "observables": [
+        "qualified_rays_per_second",
+        "qualified_screen_maps_per_second",
+        "cost_per_qualified_caustic",
+        "peak_memory",
+        "accuracy_per_joule"
+      ],
+      "acceptance": [
+        "compare only at matched physical error and qualification tier",
+        "report hardware/compiler/precision/options",
+        "retain raw FPS as a secondary metric"
+      ]
     },
     {
       "id": "OS-9",
