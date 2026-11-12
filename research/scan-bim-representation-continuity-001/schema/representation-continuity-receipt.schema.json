@@ -428,6 +428,14 @@
         },
         "relation_audit": {
           "$ref": "#/$defs/relationAudit"
+        },
+        "parent_transition_ids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/id"
+          },
+          "description": "Ordered linear-chain profile: every transition after the root names exactly its immediately preceding transition. Branching/merging is not yet supported by v0.1."
         }
       }
     },
