@@ -6,6 +6,12 @@ on:
     paths:
       - ".github/workflows/maritime-benchmark-normalize.yml"
       - "benchmarks/maritime-control-response/**"
+  pull_request:
+    branches: [research/maritime-control-response-v0-1]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - ".github/workflows/maritime-benchmark-normalize.yml"
+      - "benchmarks/maritime-control-response/**"
   workflow_dispatch:
 
 permissions:
@@ -24,7 +30,7 @@ jobs:
       - name: Checkout exact revision
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
 
       - name: Install pinned Rust toolchain
