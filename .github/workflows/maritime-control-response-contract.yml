@@ -96,7 +96,7 @@ jobs:
             (.external_dataset_track.time_column_mapping.scenario.column == "Time_rel") and
             (.deployability_matrix.schema_version == "symtropy-industrial-diagnostic-deployability-v0.1") and
             (.deployability_matrix.status == "evidence_matrix_defined_not_executed") and
-            (.deployability_matrix.dimensions | length == 9) and
+            (.deployability_matrix.dimensions == 9) and
             (.deployability_matrix.aggregate_readiness_score_allowed == false) and
             (.behavioral_set_diagnosis.schema_version == "symtropy-behavioral-set-diagnosis-v0.1") and
             (.behavioral_set_diagnosis.status == "protocol_only_not_executed") and
