@@ -14,6 +14,7 @@ pub mod behavioral_sets;
 pub mod csv_audit;
 pub mod event_metrics;
 pub mod external_dataset;
+pub mod joint_scenario_posterior;
 pub mod sequential_evidence;
 pub mod startup_adaptation;
 pub mod streaming_contract;
