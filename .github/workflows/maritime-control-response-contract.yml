@@ -212,9 +212,9 @@ jobs:
           jq -e '
             .schema_version == "symtropy-marine-file-manifest-v1" and
             .dataset_doi == "10.5281/zenodo.19857425" and
-            (.files | length == 16) and
-            ([.files[].schema] | index("baseline70") != null) and
-            ([.files[].schema] | index("scenario73") != null) and
+            (.properties.files.minItems == 16) and
+            (.properties.files.maxItems == 16) and
+            (.properties.files.items["$ref"] == "#/$defs/file") and
             (.dataset_license == "CC-BY-4.0")
           ' benchmarks/maritime-control-response/external-dataset-file-manifest.schema.json >/dev/null
 
@@ -226,7 +226,7 @@ jobs:
             .dataset.zenodo_record.file.md5_independently_verified == true and
             .dataset.zenodo_record.file.sha256 == null and
             (.evaluation_tracks | length >= 5) and
-            (.claim_ceiling | contains("not claim"))
+            (.claim_ceiling | contains("no model accuracy") and contains("unaudited"))
           ' benchmarks/maritime-control-response/external-marine-engine-dataset-v0.1.json >/dev/null
 
       - name: Validate isolated package metadata and lockfile
