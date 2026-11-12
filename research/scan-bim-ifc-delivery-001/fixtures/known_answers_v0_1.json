@@ -1,0 +1,909 @@
+{
+  "fixture_version": "0.1",
+  "suite_id": "SCAN-BIM-IFC-DELIVERY-KNOWN-ANSWERS-001",
+  "source_class": "Synthetic",
+  "notes": [
+    "These reports use placeholder artifact digests and do not include a valid IFC model.",
+    "The schema validates report shape; a separate Rust verifier must enforce cross-field and derived-decision invariants."
+  ],
+  "cases": [
+    {
+      "case_id": "all_gates_not_run",
+      "expected": "ACCEPT_UNQUALIFIED",
+      "reason": "A well-shaped receipt with no validator executions remains unqualified.",
+      "report": {
+        "schema_version": "0.1",
+        "delivery_id": "SYNTH-DELIVERY-001",
+        "reported_at": "2026-11-08T21:45:00+02:00",
+        "replay": {
+          "run_id": "SYNTH-REPLAY-001",
+          "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "candidate_source_commit": "4444444444444444444444444444444444444444"
+        },
+        "scene": {
+          "building_group_id": "SYNTH-BUILDING-01",
+          "scene_id": "SYNTH-ROOM-01",
+          "source_model_revision": "SYNTH-REV-A"
+        },
+        "ifc": {
+          "path": "synthetic/room.ifc",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "byte_length": 128
+        },
+        "element_graph": {
+          "path": "synthetic/room.graph.json",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "byte_length": 96
+        },
+        "exchange_profile": {
+          "ifc_schema": "IFC4",
+          "exchange_view": "synthetic-design-transfer",
+          "length_unit": "metre",
+          "coordinate_frame_id": "SYNTH-FRAME-LOCAL-01",
+          "axis_order": "XYZ",
+          "handedness": "right",
+          "placement_convention": "IFC local placement relative to project origin",
+          "crs": null,
+          "vertical_datum": null
+        },
+        "ids_requirements": null,
+        "crosswalk": [
+          {
+            "ifc_global_id": "0123456789ABCDEFGHIJKL",
+            "element_graph_id": "wall-01",
+            "correspondence": "supported",
+            "evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          }
+        ],
+        "required_gate_ids": [
+          "artifact_integrity",
+          "step_parse",
+          "ifc_schema",
+          "ids_xsd_validity",
+          "ids_semantic_support",
+          "ifc_ids_conformance",
+          "semantic_preservation",
+          "geometry_topology",
+          "edit_round_trip"
+        ],
+        "gates": [
+          {
+            "gate_id": "artifact_integrity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "step_parse",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_schema",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_xsd_validity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_semantic_support",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_ids_conformance",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "semantic_preservation",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "geometry_topology",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "edit_round_trip",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          }
+        ],
+        "decision": {
+          "status": "UNQUALIFIED",
+          "reason_codes": [
+            "REQUIRED_GATES_NOT_RUN"
+          ]
+        },
+        "claim_ceiling": "Synthetic receipt-shape fixture. IFC and graph bytes are placeholders; no valid IFC parse, schema validation, IDS checking, geometry/topology comparison, edit or round trip is claimed."
+      }
+    },
+    {
+      "case_id": "forged_qualified_with_not_run",
+      "expected": "REJECT_DECISION_MISMATCH",
+      "reason": "A producer cannot claim qualification while mandatory gates are NOT_RUN.",
+      "report": {
+        "schema_version": "0.1",
+        "delivery_id": "SYNTH-FORGED-QUALIFIED",
+        "reported_at": "2026-11-08T21:45:00+02:00",
+        "replay": {
+          "run_id": "SYNTH-REPLAY-001",
+          "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "candidate_source_commit": "4444444444444444444444444444444444444444"
+        },
+        "scene": {
+          "building_group_id": "SYNTH-BUILDING-01",
+          "scene_id": "SYNTH-ROOM-01",
+          "source_model_revision": "SYNTH-REV-A"
+        },
+        "ifc": {
+          "path": "synthetic/room.ifc",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "byte_length": 128
+        },
+        "element_graph": {
+          "path": "synthetic/room.graph.json",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "byte_length": 96
+        },
+        "exchange_profile": {
+          "ifc_schema": "IFC4",
+          "exchange_view": "synthetic-design-transfer",
+          "length_unit": "metre",
+          "coordinate_frame_id": "SYNTH-FRAME-LOCAL-01",
+          "axis_order": "XYZ",
+          "handedness": "right",
+          "placement_convention": "IFC local placement relative to project origin",
+          "crs": null,
+          "vertical_datum": null
+        },
+        "ids_requirements": null,
+        "crosswalk": [
+          {
+            "ifc_global_id": "0123456789ABCDEFGHIJKL",
+            "element_graph_id": "wall-01",
+            "correspondence": "supported",
+            "evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          }
+        ],
+        "required_gate_ids": [
+          "artifact_integrity",
+          "step_parse",
+          "ifc_schema",
+          "ids_xsd_validity",
+          "ids_semantic_support",
+          "ifc_ids_conformance",
+          "semantic_preservation",
+          "geometry_topology",
+          "edit_round_trip"
+        ],
+        "gates": [
+          {
+            "gate_id": "artifact_integrity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "step_parse",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_schema",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_xsd_validity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_semantic_support",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_ids_conformance",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "semantic_preservation",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "geometry_topology",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "edit_round_trip",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          }
+        ],
+        "decision": {
+          "status": "QUALIFIED",
+          "reason_codes": []
+        },
+        "claim_ceiling": "Synthetic receipt-shape fixture. IFC and graph bytes are placeholders; no valid IFC parse, schema validation, IDS checking, geometry/topology comparison, edit or round trip is claimed."
+      }
+    },
+    {
+      "case_id": "gate_subject_digest_mismatch",
+      "expected": "REJECT_SUBJECT_BINDING_MISMATCH",
+      "reason": "A PASS report must be bound to the exact declared IFC artifact digest and scene.",
+      "report": {
+        "schema_version": "0.1",
+        "delivery_id": "SYNTH-SUBJECT-DIGEST-MISMATCH",
+        "reported_at": "2026-11-08T21:45:00+02:00",
+        "replay": {
+          "run_id": "SYNTH-REPLAY-001",
+          "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "candidate_source_commit": "4444444444444444444444444444444444444444"
+        },
+        "scene": {
+          "building_group_id": "SYNTH-BUILDING-01",
+          "scene_id": "SYNTH-ROOM-01",
+          "source_model_revision": "SYNTH-REV-A"
+        },
+        "ifc": {
+          "path": "synthetic/room.ifc",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "byte_length": 128
+        },
+        "element_graph": {
+          "path": "synthetic/room.graph.json",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "byte_length": 96
+        },
+        "exchange_profile": {
+          "ifc_schema": "IFC4",
+          "exchange_view": "synthetic-design-transfer",
+          "length_unit": "metre",
+          "coordinate_frame_id": "SYNTH-FRAME-LOCAL-01",
+          "axis_order": "XYZ",
+          "handedness": "right",
+          "placement_convention": "IFC local placement relative to project origin",
+          "crs": null,
+          "vertical_datum": null
+        },
+        "ids_requirements": null,
+        "crosswalk": [
+          {
+            "ifc_global_id": "0123456789ABCDEFGHIJKL",
+            "element_graph_id": "wall-01",
+            "correspondence": "supported",
+            "evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          }
+        ],
+        "required_gate_ids": [
+          "artifact_integrity",
+          "step_parse",
+          "ifc_schema",
+          "ids_xsd_validity",
+          "ids_semantic_support",
+          "ifc_ids_conformance",
+          "semantic_preservation",
+          "geometry_topology",
+          "edit_round_trip"
+        ],
+        "gates": [
+          {
+            "gate_id": "artifact_integrity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "step_parse",
+            "status": "PASS",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [
+              {
+                "artifact_id": "ifc-output",
+                "role": "ifc_output",
+                "sha256": "9999999999999999999999999999999999999999999999999999999999999999"
+              }
+            ],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "Synthetic negative control: subject digest intentionally differs from the declared IFC artifact.",
+            "producer": {
+              "tool": "Synthetic Parser",
+              "version": "0.0-fixture",
+              "configuration_sha256": "6666666666666666666666666666666666666666666666666666666666666666"
+            },
+            "evidence": [
+              {
+                "artifact_id": "parse-report",
+                "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+                "media_type": "application/json"
+              }
+            ],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_schema",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_xsd_validity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_semantic_support",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_ids_conformance",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "semantic_preservation",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "geometry_topology",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "edit_round_trip",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          }
+        ],
+        "decision": {
+          "status": "UNQUALIFIED",
+          "reason_codes": [
+            "REQUIRED_GATES_NOT_RUN"
+          ]
+        },
+        "claim_ceiling": "Synthetic receipt-shape fixture. IFC and graph bytes are placeholders; no valid IFC parse, schema validation, IDS checking, geometry/topology comparison, edit or round trip is claimed."
+      }
+    },
+    {
+      "case_id": "duplicate_ifc_global_id",
+      "expected": "REJECT_CROSSWALK_COLLISION",
+      "reason": "One IFC GlobalId cannot silently map to two graph elements.",
+      "report": {
+        "schema_version": "0.1",
+        "delivery_id": "SYNTH-CROSSWALK-COLLISION",
+        "reported_at": "2026-11-08T21:45:00+02:00",
+        "replay": {
+          "run_id": "SYNTH-REPLAY-001",
+          "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "candidate_source_commit": "4444444444444444444444444444444444444444"
+        },
+        "scene": {
+          "building_group_id": "SYNTH-BUILDING-01",
+          "scene_id": "SYNTH-ROOM-01",
+          "source_model_revision": "SYNTH-REV-A"
+        },
+        "ifc": {
+          "path": "synthetic/room.ifc",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "byte_length": 128
+        },
+        "element_graph": {
+          "path": "synthetic/room.graph.json",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "byte_length": 96
+        },
+        "exchange_profile": {
+          "ifc_schema": "IFC4",
+          "exchange_view": "synthetic-design-transfer",
+          "length_unit": "metre",
+          "coordinate_frame_id": "SYNTH-FRAME-LOCAL-01",
+          "axis_order": "XYZ",
+          "handedness": "right",
+          "placement_convention": "IFC local placement relative to project origin",
+          "crs": null,
+          "vertical_datum": null
+        },
+        "ids_requirements": null,
+        "crosswalk": [
+          {
+            "ifc_global_id": "0123456789ABCDEFGHIJKL",
+            "element_graph_id": "wall-01",
+            "correspondence": "supported",
+            "evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          {
+            "ifc_global_id": "0123456789ABCDEFGHIJKL",
+            "element_graph_id": "wall-02",
+            "correspondence": "supported",
+            "evidence_sha256": "8888888888888888888888888888888888888888888888888888888888888888"
+          }
+        ],
+        "required_gate_ids": [
+          "artifact_integrity",
+          "step_parse",
+          "ifc_schema",
+          "ids_xsd_validity",
+          "ids_semantic_support",
+          "ifc_ids_conformance",
+          "semantic_preservation",
+          "geometry_topology",
+          "edit_round_trip"
+        ],
+        "gates": [
+          {
+            "gate_id": "artifact_integrity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "step_parse",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_schema",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_xsd_validity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_semantic_support",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_ids_conformance",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "semantic_preservation",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "geometry_topology",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "edit_round_trip",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          }
+        ],
+        "decision": {
+          "status": "UNQUALIFIED",
+          "reason_codes": [
+            "REQUIRED_GATES_NOT_RUN"
+          ]
+        },
+        "claim_ceiling": "Synthetic receipt-shape fixture. IFC and graph bytes are placeholders; no valid IFC parse, schema validation, IDS checking, geometry/topology comparison, edit or round trip is claimed."
+      }
+    },
+    {
+      "case_id": "missing_required_gate",
+      "expected": "SCHEMA_REJECT",
+      "reason": "All nine gate identities are mandatory in the v0.1 report shape.",
+      "report": {
+        "schema_version": "0.1",
+        "delivery_id": "SYNTH-MISSING-GATE",
+        "reported_at": "2026-11-08T21:45:00+02:00",
+        "replay": {
+          "run_id": "SYNTH-REPLAY-001",
+          "receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "candidate_source_commit": "4444444444444444444444444444444444444444"
+        },
+        "scene": {
+          "building_group_id": "SYNTH-BUILDING-01",
+          "scene_id": "SYNTH-ROOM-01",
+          "source_model_revision": "SYNTH-REV-A"
+        },
+        "ifc": {
+          "path": "synthetic/room.ifc",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "byte_length": 128
+        },
+        "element_graph": {
+          "path": "synthetic/room.graph.json",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "byte_length": 96
+        },
+        "exchange_profile": {
+          "ifc_schema": "IFC4",
+          "exchange_view": "synthetic-design-transfer",
+          "length_unit": "metre",
+          "coordinate_frame_id": "SYNTH-FRAME-LOCAL-01",
+          "axis_order": "XYZ",
+          "handedness": "right",
+          "placement_convention": "IFC local placement relative to project origin",
+          "crs": null,
+          "vertical_datum": null
+        },
+        "ids_requirements": null,
+        "crosswalk": [
+          {
+            "ifc_global_id": "0123456789ABCDEFGHIJKL",
+            "element_graph_id": "wall-01",
+            "correspondence": "supported",
+            "evidence_sha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          }
+        ],
+        "required_gate_ids": [
+          "artifact_integrity",
+          "step_parse",
+          "ifc_schema",
+          "ids_xsd_validity",
+          "ids_semantic_support",
+          "ifc_ids_conformance",
+          "semantic_preservation",
+          "geometry_topology",
+          "edit_round_trip"
+        ],
+        "gates": [
+          {
+            "gate_id": "artifact_integrity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "step_parse",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_schema",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_xsd_validity",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ids_semantic_support",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "ifc_ids_conformance",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "semantic_preservation",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          },
+          {
+            "gate_id": "edit_round_trip",
+            "status": "NOT_RUN",
+            "replay_receipt_sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "scene_id": "SYNTH-ROOM-01",
+            "subject_artifacts": [],
+            "scope": "Synthetic fixture only; no validator executed.",
+            "limitation": "NOT_RUN is not evidence of conformance or editability.",
+            "producer": null,
+            "evidence": [],
+            "diagnostics": []
+          }
+        ],
+        "decision": {
+          "status": "UNQUALIFIED",
+          "reason_codes": [
+            "REQUIRED_GATES_NOT_RUN"
+          ]
+        },
+        "claim_ceiling": "Synthetic receipt-shape fixture. IFC and graph bytes are placeholders; no valid IFC parse, schema validation, IDS checking, geometry/topology comparison, edit or round trip is claimed."
+      }
+    }
+  ]
+}

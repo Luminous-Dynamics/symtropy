@@ -2,9 +2,11 @@ name: Scan-to-BIM Replay Contract
 
 on:
   pull_request:
-    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2"]
+    branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2", "research/scan-bim-ifc-delivery-v0-1", "research/scan-bim-representation-continuity-v0-1-review"]
     paths:
       - "tools/scan-bim-replay-contract/**"
+      - "research/scan-bim-ifc-delivery-001/**"
+      - "research/scan-bim-representation-continuity-001/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
@@ -17,6 +19,8 @@ on:
     branches: ["main", "research/scan-bim-admission-v0-1", "research/scan-bim-replay-p0-v0-2", "research/scan-bim-execution-receipt-v0-2"]
     paths:
       - "tools/scan-bim-replay-contract/**"
+      - "research/scan-bim-ifc-delivery-001/**"
+      - "research/scan-bim-representation-continuity-001/**"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_2.md"
       - "docs/research/built-asset/scan-bim/SCAN_BIM_REPLAY_CONTRACT_V0_3.md"
       - "docs/research/built-asset/scan-bim/ERSOZ_BOSCHE_MATCHING_CONFIDENCE_BASELINE_AUDIT_V0_1.md"
@@ -49,6 +53,22 @@ jobs:
         run: cargo fmt --manifest-path tools/scan-bim-replay-contract/Cargo.toml -- --check
       - name: Run contract tests
         run: cargo test --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml
+      - name: Check IFC delivery schema and fixture JSON
+        run: |
+          jq -e '
+            (.["$schema"] == "https://json-schema.org/draft/2020-12/schema") and
+            (.["$id"] == "https://luminousdynamics.io/schemas/scan-bim-ifc-delivery-receipt-v0.1.json") and
+            ((.properties.required_gate_ids.const | length) == 9) and
+            (.properties.gates.minItems == 9) and
+            (.properties.gates.maxItems == 9) and
+            (.properties.crosswalk.items.properties.ifc_global_id.pattern == "^[0-3][0-9A-Za-z_$]{21}$")
+          ' research/scan-bim-ifc-delivery-001/schema/delivery-receipt.schema.json
+          jq -e '
+            (.fixture_version == "0.1") and
+            ((.cases | map(.case_id) | unique | length) == 5) and
+            (([.cases[] | select(.case_id != "missing_required_gate" and (.report.gates | length) != 9)] | length) == 0) and
+            ((.cases[] | select(.case_id == "missing_required_gate") | .report.gates | length) == 8)
+          ' research/scan-bim-ifc-delivery-001/fixtures/known_answers_v0_1.json
       - name: Run strict Clippy
         run: cargo clippy --locked --manifest-path tools/scan-bim-replay-contract/Cargo.toml --all-targets -- -D warnings
       - name: Audit synthetic fixture
