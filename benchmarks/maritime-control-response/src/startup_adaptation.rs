@@ -495,30 +495,53 @@ impl BaselineShadowCandidate {
 }
 
 /// Recompute the digest over every decision-relevant field in a shadow receipt.
+#[derive(Serialize)]
+struct ShadowObservationDigest<'a> {
+    base_baseline_sha256: &'a str,
+    model_sha256: &'a str,
+    regime_id: &'a str,
+    recording_id: &'a str,
+    sample_index: u64,
+    time_seconds: f64,
+    input_receipt_sha256: &'a str,
+    standardized_absolute_residual: f64,
+    regime_supported_by_frozen_reference: bool,
+    all_required_signals_current: bool,
+    command_history_available: bool,
+    command_response_timing_causally_valid: bool,
+    dependency_health_verified_upstream: bool,
+    dependency_health_verification_sha256: &'a str,
+    known_fault_alarm_present: bool,
+    unknown_fault_alarm_present: bool,
+    ambiguous_hypothesis_set_present: bool,
+    previous_receipt_sha256: &'a Option<String>,
+}
+
+/// Recompute the digest over every decision-relevant field in a shadow receipt.
 pub fn shadow_observation_receipt_sha256(
     receipt: &ShadowObservationReceipt,
 ) -> Result<String, BaselineAdaptationError> {
-    let payload = (
-        receipt.base_baseline_sha256.as_str(),
-        receipt.model_sha256.as_str(),
-        receipt.regime_id.as_str(),
-        receipt.recording_id.as_str(),
-        receipt.sample_index,
-        receipt.time_seconds,
-        receipt.input_receipt_sha256.as_str(),
-        receipt.standardized_absolute_residual,
-        receipt.regime_supported_by_frozen_reference,
-        receipt.all_required_signals_current,
-        receipt.command_history_available,
-        receipt.command_response_timing_causally_valid,
-        receipt.dependency_health_verified_upstream,
-        receipt.dependency_health_verification_sha256.as_str(),
-        receipt.known_fault_alarm_present,
-        receipt.unknown_fault_alarm_present,
-        receipt.ambiguous_hypothesis_set_present,
-        &receipt.previous_receipt_sha256,
-    );
-    sha256_serializable(b"symtropy-baseline-shadow-observation-v2\0", &payload)
+    let payload = ShadowObservationDigest {
+        base_baseline_sha256: &receipt.base_baseline_sha256,
+        model_sha256: &receipt.model_sha256,
+        regime_id: &receipt.regime_id,
+        recording_id: &receipt.recording_id,
+        sample_index: receipt.sample_index,
+        time_seconds: receipt.time_seconds,
+        input_receipt_sha256: &receipt.input_receipt_sha256,
+        standardized_absolute_residual: receipt.standardized_absolute_residual,
+        regime_supported_by_frozen_reference: receipt.regime_supported_by_frozen_reference,
+        all_required_signals_current: receipt.all_required_signals_current,
+        command_history_available: receipt.command_history_available,
+        command_response_timing_causally_valid: receipt.command_response_timing_causally_valid,
+        dependency_health_verified_upstream: receipt.dependency_health_verified_upstream,
+        dependency_health_verification_sha256: &receipt.dependency_health_verification_sha256,
+        known_fault_alarm_present: receipt.known_fault_alarm_present,
+        unknown_fault_alarm_present: receipt.unknown_fault_alarm_present,
+        ambiguous_hypothesis_set_present: receipt.ambiguous_hypothesis_set_present,
+        previous_receipt_sha256: &receipt.previous_receipt_sha256,
+    };
+    sha256_serializable(b"symtropy-baseline-shadow-observation-v3\\0", &payload)
 }
 
 /// Replay the complete shadow receipt chain and reject any content or order change.
@@ -530,8 +553,8 @@ pub fn validate_shadow_receipt_chain(
     }
     let first = &receipts[0];
     let mut previous_receipt: Option<&str> = None;
-    let mut previous_index = None;
-    let mut previous_time = None;
+    let mut previous_index: Option<u64> = None;
+    let mut previous_time: Option<f64> = None;
     for receipt in receipts {
         if receipt.base_baseline_sha256 != first.base_baseline_sha256
             || receipt.model_sha256 != first.model_sha256
