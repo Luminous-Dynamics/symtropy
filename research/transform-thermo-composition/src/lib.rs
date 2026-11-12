@@ -604,14 +604,16 @@ fn overall_disposition(
     energy: EnergyBalanceStatus,
     entropy: EntropyDisposition,
 ) -> OverallDisposition {
-    let material_status = match (material_requirement, material) {
-        (MaterialRequirement::NotApplicable, MaterialDisposition::NotApplicable) => None,
-        (_, MaterialDisposition::Balanced) => None,
+    match (material_requirement, material) {
+        (MaterialRequirement::NotApplicable, MaterialDisposition::NotApplicable)
+        | (MaterialRequirement::Optional, MaterialDisposition::NotApplicable)
+        | (_, MaterialDisposition::Balanced) => {}
         (_, MaterialDisposition::Imbalanced) => return OverallDisposition::Rejected,
-        (_, MaterialDisposition::Incomplete) => return OverallDisposition::Incomplete,
-        (_, MaterialDisposition::NotApplicable) => Some(()),
-    };
-    let _ = material_status;
+        (_, MaterialDisposition::Incomplete)
+        | (MaterialRequirement::Required, MaterialDisposition::NotApplicable) => {
+            return OverallDisposition::Incomplete;
+        }
+    }
 
     match energy {
         EnergyBalanceStatus::Imbalanced => return OverallDisposition::Rejected,
