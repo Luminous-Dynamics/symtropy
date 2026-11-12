@@ -206,7 +206,22 @@ impl KerrNullConstants {
         let delta = r * r - 2.0 * r + a * a;
         let p = energy * (r * r + a * a) - a * angular_momentum;
         let angular_term = carter + (angular_momentum - a * energy).powi(2);
-        let value = p * p - delta * angular_term;
+
+        // Preserve the small radial potential near a turning point. The
+        // leading terms P^2 and Delta*C can nearly cancel; recover their
+        // product roundoff with FMA and use a two-difference compensation.
+        let p_squared = p * p;
+        let p_squared_error = p.mul_add(p, -p_squared);
+        let delta_term = delta * angular_term;
+        let delta_term_error = delta.mul_add(angular_term, -delta_term);
+        let difference = p_squared - delta_term;
+        let virtual_delta = p_squared - difference;
+        let virtual_p = difference + virtual_delta;
+        let delta_roundoff = virtual_delta - delta_term;
+        let p_roundoff = p_squared - virtual_p;
+        let subtraction_error = p_roundoff + delta_roundoff;
+        let value = difference
+            + (subtraction_error + p_squared_error - delta_term_error);
         if !value.is_finite() {
             return Err(KerrGeodesicError::NonFinite("radial_potential"));
         }
