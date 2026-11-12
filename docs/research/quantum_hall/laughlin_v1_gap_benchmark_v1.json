@@ -1,0 +1,472 @@
+{
+  "schema": "luminous.quantum-hall.laughlin-gap-benchmark",
+  "schema_version": "1.0.0",
+  "artifact_id": "symtropy.quantum_hall.laughlin_v1_gap_benchmark",
+  "created_utc": "2026-11-10",
+  "status": "planned_replication_manifest",
+  "objective": "Reproduce and compare exact-rational thermodynamic spectral-gap certificates, formally verified theorem statements, numerical SDP candidate bounds, and finite-size SU(2)-resolved exact-diagonalization spectra for the spherical fermionic Laughlin V1 Hamiltonian.",
+  "claim_ceiling": "This is a benchmark plan and source registry. Luminous has not yet reproduced Gao's certificate, run an independent exact verifier, computed any finite-size spectra, or formalized the improved 1/5 bound in Lean.",
+  "owners": {
+    "numerical_physics": "Symtropy issue #4529",
+    "formal_scope_audit": "Symthaea issue #11407",
+    "improved_certificate_verification": "Symthaea issue #11422",
+    "evidence_lineage": "Mycelix issue #6027"
+  },
+  "model": {
+    "name": "Spherical fermionic Laughlin V1 parent Hamiltonian",
+    "geometry": "round sphere, lowest Landau level",
+    "filling": "nu=1/3",
+    "flux_relation": "Q=3*(N-1)",
+    "one_particle_dimension": "Q+1",
+    "hilbert_space": "antisymmetric N-particle subspace of wedge^N U_Q",
+    "hamiltonian": "H_(N,Q) = sum_{1<=i<j<=N} P^(1)_(ij)",
+    "pair_projector": "orthogonal projector onto relative angular momentum one / pair spin Q-1",
+    "pair_projector_coefficient": 1,
+    "ground_state": "Psi_L = product_{i<j}(u_i*v_j-u_j*v_i)^3",
+    "conventions": [
+      "Every unordered pair projector has coefficient exactly one.",
+      "Do not rescale by N, pair count, flux, sphere area, or magnetic length.",
+      "Record basis ordering, orbital phases, Clebsch-Gordan convention, and total angular momentum labels.",
+      "The Fock-space inequality H_Q^2 >= gamma*H_Q is distinct from the fixed-filling spherical gap statement.",
+      "The thermodynamic threshold in all cited spherical results is existential unless a source provides an explicit N0/Q0."
+    ]
+  },
+  "sources": [
+    {
+      "id": "openai_fock_gap",
+      "title": "A Fock-space inequality and the Laughlin spectral gap",
+      "author": "OpenAI",
+      "date": "2026-09-24",
+      "repository": "openai/math",
+      "commit": "4eaee87548250b2682affda7d05d947c05554bae",
+      "arxiv_or_source": "OpenAI Math preprint",
+      "urls": [
+        "https://github.com/openai/math/tree/4eaee87548250b2682affda7d05d947c05554bae/preprints/A-Fock-space-inequality-and-the-Laughlin-spectral-gap-September-24-2026",
+        "https://github.com/openai/math/blob/4eaee87548250b2682affda7d05d947c05554bae/lean/docs/269.md"
+      ],
+      "exact_claims": {
+        "fock_gamma_star_rational": "4616733319001/100000000000000",
+        "fock_gamma_star_decimal": "0.04616733319001",
+        "spherical_gap_lower_bound": "1/25",
+        "planar": "endpoint inequality at gamma_star on every homogeneous particle sector"
+      },
+      "evidence_type": "Lean formalization and paper",
+      "formalization_scope": "The selected Lean formalization covers the unperturbed Fock-space inequality and related unperturbed statements. Bounded-disorder perturbation stability and perturbed ground-state uniqueness are explicitly outside the selected scope."
+    },
+    {
+      "id": "gao_sdp_improved",
+      "title": "Improving the lower bound on the Laughlin gap: An SDP search",
+      "author": "Qiang Gao",
+      "submitted": "2026-10-08",
+      "manuscript_date": "2026-10-12",
+      "arxiv": "2610.12700",
+      "url": "https://arxiv.org/abs/2610.12700",
+      "exact_claims": {
+        "fock_gamma_star_decimal": "0.2190037845063196...",
+        "fock_theorem": "For every gamma below gamma_star, H_Q^2 >= gamma H_Q for all sufficiently large flux Q, threshold independent of particle number.",
+        "spherical_gap_lower_bound": "1/5",
+        "planar": "positive spectrum bounded below by gamma_star uniformly in particle number and angular momentum"
+      },
+      "certificate": {
+        "file": "certificate.json",
+        "ancillary_directory": "https://arxiv.org/src/2610.12700/anc/",
+        "verifier": "verify.py",
+        "all_certificates_verifier": "verify_all.py",
+        "exact_search_checker": "sdp/exact_verify.py",
+        "checksum_file": "SHA256SUMS.txt",
+        "row_count": 64,
+        "nonzero_integer_coefficients": 14417,
+        "coefficient_scale_P": "10000000000000",
+        "cutoff_tuple": [
+          17,
+          18,
+          18,
+          17
+        ],
+        "local_modes": "0 through 54",
+        "three_body_margins": 33,
+        "minimum_reported_three_body_margin": "1.99999e-8",
+        "four_body_blocks": "D <= 53",
+        "exact_checker_implementations_reported": 4,
+        "checker_languages": [
+          "Python standard library exact arithmetic"
+        ],
+        "mutation_controls_reported": [
+          "Removing any one certificate row makes the verifier fail.",
+          "Perturbing certificate integers by relative 1e-6 makes the verifier fail."
+        ],
+        "local_reproduction_status": "not_run",
+        "upstream_sha256_status": "must_fetch_and_verify_from_SHA256SUMS"
+      },
+      "evidence_type": "Paper theorem with exact rational certificate and distributed exact verifier",
+      "formalization_scope": "No Lean formalization of this improved constant is established by the pinned OpenAI Math Family 269 scope. A separate formal proof obligation remains."
+    },
+    {
+      "id": "scheer_khalaf_sdp",
+      "title": "A hierarchy of exact lower bounds on the Laughlin spectral gap",
+      "authors": [
+        "Michael G. Scheer",
+        "Eslam Khalaf"
+      ],
+      "submitted": "2026-10-13",
+      "version_2_date": "2026-10-27",
+      "arxiv": "2610.18854",
+      "url": "https://arxiv.org/abs/2610.18854",
+      "exact_claims": {
+        "exact_thermodynamic_certificate_lower_bound": "1/100",
+        "exact_certificate_cutoffs": {
+          "r": 22,
+          "r_prime": 15
+        },
+        "numerical_thermodynamic_sdp_bound": "0.0693",
+        "numerical_sdp_cutoffs": {
+          "r": 25,
+          "r_prime": 16
+        },
+        "numerical_Nphi_1000_bound": "0.0591",
+        "Nphi_1000_cutoffs": {
+          "r": 25,
+          "r_prime": 16
+        }
+      },
+      "methods": [
+        "Split H^2 into analytically bounded and SDP-controlled terms.",
+        "Rational reconstruction from numerical SDP candidate.",
+        "Exact interior feasible point.",
+        "Exact rank-stability proof for the constraint matrix as t=1/Nphi tends to zero.",
+        "Exact certificates at fixed rational t are also possible."
+      ],
+      "generalization_notes": [
+        "The authors identify Moore-Read and Read-Rezayi pseudopotentials as possible applications.",
+        "The sphere proof uses SU(2) averaging and a south-pole orbital mapping.",
+        "The authors state that magnetic-translation symmetry on the torus and nonuniform-field/Chern-band settings do not yet have a straightforward analogue."
+      ],
+      "evidence_type": "Independent parametric-SDP exact certificate and numerical optimizer results",
+      "local_reproduction_status": "not_run"
+    },
+    {
+      "id": "diagham",
+      "title": "DiagHam fractional quantum Hall exact diagonalization",
+      "url": "https://nick-ux.org/diagham/index.php/FQHESphereFermionsWithSpin",
+      "role": "Independent finite-size exact diagonalization comparator",
+      "coverage": "Spherical fermions with SU(2), two-body Hamiltonians and Haldane pseudopotentials",
+      "pinning_requirement": "Pin repository/source revision and exact compile/runtime configuration before comparison."
+    },
+    {
+      "id": "julia_fqhe",
+      "title": "FQHE.jl",
+      "url": "https://github.com/tobiasosborne/FQHE",
+      "role": "Independent finite-size Julia implementation",
+      "coverage": "Haldane sphere, monopole harmonics, Fock-space enumeration, Clebsch-Gordan coefficients, pseudopotentials, sparse Hamiltonian construction, Lanczos and Laughlin overlaps",
+      "pinning_requirement": "Pin repository commit, package versions, basis convention and exact model normalization before comparison."
+    }
+  ],
+  "theorem_comparison": [
+    {
+      "id": "openai_formalized_unperturbed",
+      "fock_bound": "gamma_star=0.04616733319001",
+      "spherical_gap_bound": "1/25",
+      "status": "formalized_in_pinned_Lean_release",
+      "claim_scope": "unperturbed only"
+    },
+    {
+      "id": "gao_exact_sdp",
+      "fock_bound": "gamma_star=0.2190037845063196...",
+      "spherical_gap_bound": "1/5",
+      "status": "paper_exact_rational_certificate",
+      "status_not_to_infer": "not_Lean_formalized_by_Family_269"
+    },
+    {
+      "id": "scheer_khalaf_exact_sdp",
+      "fock_bound": "at least 1/100",
+      "spherical_gap_bound": "at least 1/100 for the stated thermodynamic spectral-gap result",
+      "status": "independent_exact_rational_certificate_with_rank_stability"
+    },
+    {
+      "id": "scheer_khalaf_numerical_sdp",
+      "fock_bound": "0.0693",
+      "spherical_gap_bound": null,
+      "status": "numerical_optimizer_candidate_only",
+      "caution": "Not the exact theorem constant; uses r=25,r'=16 while the exact certificate uses r=22,r'=15."
+    },
+    {
+      "id": "finite_size_ED",
+      "fock_bound": null,
+      "spherical_gap_bound": null,
+      "status": "finite_size_numerical_spectrum",
+      "reported_physical_gap_estimate": "near 0.4 in Gao's discussion; pin exact sizes, sectors, solver residuals and source before using as a numerical target",
+      "caution": "Cannot prove a uniform thermodynamic lower bound."
+    }
+  ],
+  "benchmark_ladder": [
+    {
+      "level": "C0",
+      "name": "Source and checksum identity",
+      "metrics": [
+        "source_revision",
+        "ancillary_SHA256",
+        "verifier_source_digest"
+      ],
+      "pass_condition": "Every fetched upstream artifact matches the source SHA256SUMS file."
+    },
+    {
+      "level": "C1",
+      "name": "Upstream exact certificate replay",
+      "metrics": [
+        "exact_gamma",
+        "all_margins",
+        "all_allowances",
+        "all_sign_conditions",
+        "exit_status"
+      ],
+      "pass_condition": "The self-contained upstream verifier exits zero and prints the exact reported rational coefficient."
+    },
+    {
+      "level": "C2",
+      "name": "Independent exact Rust checker",
+      "metrics": [
+        "intermediate_integer_identity",
+        "rational_identity",
+        "PSD_certificate_conditions",
+        "checker_disagreement"
+      ],
+      "pass_condition": "An independently structured Rust checker agrees with upstream on every exact quantity."
+    },
+    {
+      "level": "C3",
+      "name": "Adversarial certificate mutations",
+      "metrics": [
+        "mutation_family",
+        "failure_category",
+        "counterexample_digest"
+      ],
+      "pass_condition": "Every row deletion, coefficient perturbation, allowance mutation and cutoff corruption fails closed."
+    },
+    {
+      "level": "C4",
+      "name": "Lean formalization of improved bound",
+      "metrics": [
+        "theorem_declaration",
+        "kernel_replay",
+        "axiom_report",
+        "dependency_commit"
+      ],
+      "pass_condition": "The 1/5 spherical result is kernel-checked with explicit exact assumptions and dependencies."
+    },
+    {
+      "level": "C5",
+      "name": "Thermodynamic limit qualification",
+      "metrics": [
+        "exact_rank_stability",
+        "interior_feasibility",
+        "finite_flux_transfer",
+        "threshold_quantifiers"
+      ],
+      "pass_condition": "No floating-point rank or optimizer status is used as a theorem premise."
+    },
+    {
+      "level": "C6",
+      "name": "Finite-size spectra",
+      "metrics": [
+        "N",
+        "Q",
+        "total_L_blocks",
+        "lowest_positive_eigenvalue",
+        "ritz_residual",
+        "orthogonality",
+        "basis_dimension"
+      ],
+      "pass_condition": "Independent dense/sparse/matrix-free implementations agree on shared small systems and include every allowed total-angular-momentum sector."
+    },
+    {
+      "level": "C7",
+      "name": "Proof-producing optimization",
+      "metrics": [
+        "SDP_dimension",
+        "auxiliary_row_count",
+        "certificate_nonzero_count",
+        "exact_check_time",
+        "peak_memory",
+        "gamma_certified"
+      ],
+      "pass_condition": "A numerical candidate is converted into an exact rational certificate and independently validated."
+    },
+    {
+      "level": "C8",
+      "name": "New auxiliary family",
+      "metrics": [
+        "new_operator_family",
+        "certified_gamma",
+        "certificate_size",
+        "trusted_code_base",
+        "proof_runtime"
+      ],
+      "pass_condition": "A strictly larger admissible operator family yields a complete exact certificate with a bound above the current Gao coefficient."
+    },
+    {
+      "level": "C9",
+      "name": "New pseudopotential",
+      "metrics": [
+        "model",
+        "geometry",
+        "symmetry",
+        "zero_mode_definition",
+        "exact_certificate",
+        "formal_proof"
+      ],
+      "pass_condition": "A separately normalized and exactly certified bound for Moore-Read, Read-Rezayi or another declared pseudopotential."
+    }
+  ],
+  "finite_size_protocol": {
+    "size_sweep": "Select the largest tractable N values after estimating Hilbert-space dimensions; publish the complete requested set and all failed/unconverged cases.",
+    "methods": [
+      "Dense exact diagonalization for smallest N.",
+      "Sparse Lanczos / Krylov for larger sectors.",
+      "Matrix-free Hamiltonian action as an independent path.",
+      "SU(2) decomposition by total angular momentum L.",
+      "Independent pair-projector constructions from Clebsch-Gordan coefficients and annihilator/pseudopotential representation."
+    ],
+    "required_checks": [
+      "Laughlin polynomial is antisymmetric and lies in the zero-energy kernel.",
+      "Pair projectors are Hermitian, idempotent and positive semidefinite.",
+      "Hamiltonian commutes with total SU(2).",
+      "Every allowed L sector is searched for the lowest positive eigenvalue.",
+      "Dense, sparse and matrix-free actions agree on overlapping test sizes.",
+      "Lanczos Ritz residuals and convergence histories are recorded.",
+      "Coefficient-one projector normalization is verified.",
+      "The global gap is not inferred from only the L=0 sector."
+    ],
+    "disorder_protocol": {
+      "perturbation": "T_Q(phi)=Pi_Q M_phi Pi_Q; V_NQ(phi)=sum_i T_Q(phi)^(i)",
+      "profile_bound": "Use analytic, interval-certified or explicitly numerical-only sup-norm status; a sampled maximum is not a proof of ||phi||_infinity <= 1.",
+      "sweeps": [
+        "spherical harmonics",
+        "smooth non-symmetric profiles",
+        "rotated profiles",
+        "sign-reversed profiles",
+        "lambda sweeps"
+      ],
+      "outputs": [
+        "ground_state_energy",
+        "first_excited_energy",
+        "global_gap",
+        "ground_state_overlap",
+        "linear_response",
+        "profile_bound_status"
+      ],
+      "claim_boundary": "Finite-N sweeps are stress tests and cannot prove an N-independent disorder threshold or the full perturbative theorem."
+    }
+  },
+  "proof_producing_pipeline": {
+    "stages": [
+      "Operator identity and normalization",
+      "Symmetry reduction and exact block data",
+      "Numerical SDP candidate generation",
+      "Candidate interiorization and rational reconstruction",
+      "Independent exact arithmetic verification",
+      "Thermodynamic rank-stability / finite-flux transfer",
+      "Lean proof of exact finite and limiting claims",
+      "Mycelix source/reproduction/review attestations"
+    ],
+    "trust_model": "Optimizer and floating-point solver are untrusted candidate generators. Only exact independent checkers and the Lean kernel may qualify proof-level claims.",
+    "required_receipts": [
+      "source and version digest",
+      "input and configuration digest",
+      "solver version and parameters",
+      "certificate digest",
+      "exact verifier source digest",
+      "exact verifier output",
+      "independent checker output",
+      "Lean theorem and kernel replay",
+      "review/critique attestations"
+    ]
+  },
+  "negative_controls": [
+    {
+      "id": "pair_projector_rescaled",
+      "expected_failure": "NormalizationMismatch"
+    },
+    {
+      "id": "wrong_flux_shift",
+      "expected_failure": "FluxConventionMismatch"
+    },
+    {
+      "id": "missing_antisymmetry",
+      "expected_failure": "HilbertSpaceMismatch"
+    },
+    {
+      "id": "L0_sector_only_gap",
+      "expected_failure": "IncompleteSpectrum"
+    },
+    {
+      "id": "finite_N_claimed_thermodynamic",
+      "expected_failure": "LimitScopeMismatch"
+    },
+    {
+      "id": "Gao_numeric_candidate_claimed_exact",
+      "expected_failure": "EvidenceLevelMismatch"
+    },
+    {
+      "id": "ScheerKhalaf_0_0693_claimed_exact",
+      "expected_failure": "EvidenceLevelMismatch"
+    },
+    {
+      "id": "OpenAI_Lean_status_inherited_by_Gao",
+      "expected_failure": "FormalizationScopeMismatch"
+    },
+    {
+      "id": "one_certificate_row_removed",
+      "expected_failure": "CertificateInfeasible"
+    },
+    {
+      "id": "coefficient_perturbed_1e-6",
+      "expected_failure": "CertificateInfeasible"
+    },
+    {
+      "id": "floating_point_used_in_trusted_predicate",
+      "expected_failure": "NonExactArithmetic"
+    },
+    {
+      "id": "unverified_potential_sup_norm",
+      "expected_failure": "PotentialBoundUnproved"
+    },
+    {
+      "id": "unmatched_ED_basis_or_projector_scale",
+      "expected_failure": "ComparatorUnmatched"
+    }
+  ],
+  "open_research_frontiers": [
+    {
+      "id": "auxiliary_operator_family_growth",
+      "question": "Can a symmetry-complete, adaptive multi-body operator family improve the exact lower bound beyond 0.2190037845?",
+      "near_term_target": "First produce a complete exact certificate above the current coefficient; do not promise to reach the finite-size gap."
+    },
+    {
+      "id": "stability_constant_reuse",
+      "question": "Can the improved unperturbed gamma bound strengthen the October bounded-disorder perturbation theorem, and which constants in the energy-descent/coercivity/bootstrap proof actually depend on it?",
+      "caution": "No perturbation threshold or gap improvement follows automatically from replacing gamma."
+    },
+    {
+      "id": "torus_and_chern_band",
+      "question": "Can derivative/coherent-state orbital operators replace the sphere's south-pole map under magnetic translations or nonuniform Chern-band geometry?",
+      "caution": "The current sphere SU(2) proof does not directly transfer; nonorthogonal Gram matrices and symmetry loss require new exact rank and positivity arguments."
+    },
+    {
+      "id": "moore_read_read_rezayi",
+      "question": "Can exact parametric SDP and rank-stability methods be adapted to higher-body clustering pseudopotentials?"
+    },
+    {
+      "id": "disorder_and_finite_size",
+      "question": "Can symmetry-breaking scalar disorder response be benchmarked against the perturbative theorem with certified profile bounds and posterior uncertainty?"
+    }
+  ],
+  "evidence": {
+    "run_status": "not_run",
+    "exact_certificate_reproduced": false,
+    "independent_rust_checker": false,
+    "lean_improved_bound": false,
+    "finite_size_spectra": false,
+    "disorder_sweeps": false,
+    "note": "The source claims and benchmark goals are recorded; no Luminous reproduction or validation is represented as complete."
+  }
+}
