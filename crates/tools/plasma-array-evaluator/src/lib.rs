@@ -492,16 +492,7 @@ mod tests {
     #[test]
     fn service_total_must_reconcile_with_cells() {
         let mut value = fixture_value();
-        set_scenario_field(
-            &mut value,
-            "scale-n5-linear",
-            "service",
-            {
-                let mut service = value["scenarios"][1]["service"].clone();
-                service["accepted_total"] = serde_json::json!(99.0);
-                service
-            },
-        );
+        value["scenarios"][1]["service"]["accepted_total"] = serde_json::json!(99.0);
         assert_eq!(run(&value).results[1].disposition, "REJECTED");
     }
 
