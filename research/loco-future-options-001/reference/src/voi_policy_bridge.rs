@@ -196,6 +196,7 @@ fn receipt_state_complete(state: &BeliefStateReceipt) -> bool {
     !state.physical_state_digest.trim().is_empty()
         && !state.reserve_state_digest.trim().is_empty()
         && !state.thermal_state_digest.trim().is_empty()
+        && !state.mission_sequence_digest.trim().is_empty()
         && !state.receipt_digest.trim().is_empty()
 }
 
@@ -547,6 +548,11 @@ pub fn build_probe_policy_prefix(
                     .thermal_state_digest
                     .clone(),
                 resulting_thermal_state_digest: successor.state.thermal_state_digest.clone(),
+                predecessor_mission_sequence_digest: context
+                    .initial_state
+                    .mission_sequence_digest
+                    .clone(),
+                resulting_mission_sequence_digest: successor.state.mission_sequence_digest.clone(),
                 next_belief_node_id: format!("{}/observation/{}", context.root_node_id, group),
                 physically_possible: true,
                 evidence_complete,
@@ -735,6 +741,7 @@ mod tests {
             physical_state_digest: format!("physical:{id}"),
             reserve_state_digest: format!("reserve:{id}"),
             thermal_state_digest: format!("thermal:{id}"),
+            mission_sequence_digest: format!("mission-history:{id}"),
             receipt_digest: format!("state-receipt:{id}"),
         }
     }
