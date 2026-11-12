@@ -874,7 +874,9 @@ mod tests {
             .evaluate(EnergyBalanceTolerance::new(0.1, 0.0).unwrap())
             .unwrap();
         assert_eq!(report.status, EnergyBalanceStatus::Balanced);
-        assert_eq!(report.residual_interval_j, Some((0.03, 0.07)));
+        let (lower, upper) = report.residual_interval_j.expect("complete interval");
+        assert!((lower - 0.03).abs() <= 1e-12);
+        assert!((upper - 0.07).abs() <= 1e-12);
     }
 
     #[test]
@@ -1041,7 +1043,7 @@ mod tests {
                     "b",
                     "source-b",
                     EnergyCarrier::Heat,
-                    FlowDirection::IntoBoundary,
+                    FlowDirection::OutOfBoundary,
                     f64::MAX,
                 ),
             ],
