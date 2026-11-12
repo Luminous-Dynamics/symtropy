@@ -48,6 +48,21 @@
       "robust_scenario_rule": "Take the minimum pairwise Chernoff information over every validated scenario; scenario IDs, weights and outcome spaces are checked against the candidate manifest.",
       "relationship_to_eig": "EIG measures average posterior entropy reduction for an observation; pairwise Chernoff information measures the separation of the hardest fault-mode pair under repeated observations.",
       "assumptions": "The asymptotic error-exponent interpretation assumes repeated conditionally independent observations from a stationary likelihood regime. It is not a finite-sample error guarantee or one-shot confidence score."
+    },
+    "sequential_update_policy": {
+      "status": "single_point_model_updates_supported_multiscenario_updates_blocked",
+      "point_likelihood_model": "Sequential updates are supported for one frozen point-likelihood table; the observation receipt is applied once to the current posterior ledger.",
+      "persistent_scenario_model": "Scenario IDs represent persistent epistemic calibration/model uncertainty. Fixed scenario weights cannot be re-used as a fresh draw on every sequential sample.",
+      "current_rule": "Robust multi-scenario candidates may be ranked but sequential posterior update fails closed until the observation ledger carries a joint hypothesis × persistent-scenario posterior.",
+      "required_future_joint_ledger": [
+        "hypothesis-space digest",
+        "scenario-set digest and scenario IDs",
+        "joint posterior over hypothesis × scenario",
+        "receipt and prior-ledger digest per update",
+        "replayable marginal hypothesis posterior and scenario weights"
+      ],
+      "no_silent_fallback": true,
+      "claim_ceiling": "No multi-scenario sequential inference claim until the joint posterior ledger is implemented and replay-tested."
     }
   },
   "candidate_classes": {
