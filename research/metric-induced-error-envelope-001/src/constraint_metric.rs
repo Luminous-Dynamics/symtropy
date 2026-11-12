@@ -838,6 +838,93 @@ mod tests {
     }
 
     #[test]
+    fn constraint_equation_rebasis_preserves_physics_under_row_rescaling() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct ConstraintSpaceScaled;
+        impl CoordinateFrame for ConstraintSpaceScaled {}
+
+        let mass = mass_q();
+        let jacobian_old = jacobian_q();
+        let delassus_old =
+            DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+                &mass,
+                jacobian_old,
+                profile(),
+            )
+            .unwrap();
+        let multiplier_old = ConstraintMultiplierV1::new([0.75, -1.25]).unwrap();
+        let residual_old = ConstraintResidualV1::new([0.25, -0.4]).unwrap();
+
+        for scale in [0.01_f64, 0.1, 0.5, 1.0, 2.0, 10.0, 100.0] {
+            let change =
+                ConstraintEquationRebasisV1::<ConstraintSpaceScaled, ConstraintSpace, 2>::new(
+                    [[scale, 0.0], [0.0, 1.0]],
+                    profile(),
+                )
+                .unwrap();
+            let jacobian_new = change.jacobian_to_new(&jacobian_old).unwrap();
+            let delassus_new =
+                DelassusMetricV1::<CartesianQ, ConstraintSpaceScaled, 3, 2>::from_mass_jacobian(
+                    &mass,
+                    jacobian_new,
+                    profile(),
+                )
+                .unwrap();
+            let multiplier_new = change
+                .multiplier_to_new(&multiplier_old, profile())
+                .unwrap();
+            let residual_new = change.residual_to_new(&residual_old).unwrap();
+
+            close(
+                delassus_old.multiplier_norm(&multiplier_old).unwrap(),
+                delassus_new.multiplier_norm(&multiplier_new).unwrap(),
+                3.0e-10,
+            );
+            close(
+                delassus_old.residual_norm(&residual_old).unwrap(),
+                delassus_new.residual_norm(&residual_new).unwrap(),
+                3.0e-10,
+            );
+            close(
+                constraint_pairing(&multiplier_old, &residual_old).unwrap(),
+                constraint_pairing(&multiplier_new, &residual_new).unwrap(),
+                3.0e-10,
+            );
+
+            let correction_old = delassus_old
+                .minimum_kinetic_correction(&residual_old)
+                .unwrap();
+            let correction_new = delassus_new
+                .minimum_kinetic_correction(&residual_new)
+                .unwrap();
+            for (left, right) in correction_old
+                .components()
+                .iter()
+                .zip(correction_new.components().iter())
+            {
+                close(*left, *right, 3.0e-10);
+            }
+        }
+    }
+
+    #[test]
+    fn near_singular_constraint_equation_scaling_is_rejected_by_profile() {
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        struct ConstraintSpaceNearSingular;
+        impl CoordinateFrame for ConstraintSpaceNearSingular {}
+
+        let result =
+            ConstraintEquationRebasisV1::<ConstraintSpaceNearSingular, ConstraintSpace, 2>::new(
+                [[1.0e-18, 0.0], [0.0, 1.0]],
+                profile(),
+            );
+        assert!(matches!(
+            result,
+            Err(MetricErrorV1::SingularCoordinateTransform { .. })
+        ));
+    }
+
+    #[test]
     fn singular_constraint_equation_rebasis_fails_closed() {
         #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         struct ConstraintSpaceNew;
