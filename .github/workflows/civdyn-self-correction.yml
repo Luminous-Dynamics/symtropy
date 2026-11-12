@@ -462,7 +462,7 @@ jobs:
 
           with Path("/tmp/civdyn-active-sensing.csv").open(newline="", encoding="utf-8") as handle:
               reader = csv.DictReader(handle)
-              assert reader.fieldnames is not None and len(reader.fieldnames) == 26
+              assert reader.fieldnames is not None and len(reader.fieldnames) == 27
               rows = list(reader)
 
           summary = {row["sensor_id"]: row for row in rows if row["record_type"] == "sensor_summary"}
@@ -477,6 +477,7 @@ jobs:
           assert baseline_regrets == {15.0}
           assert {row["baseline_policy_id"] for row in summary.values()} == {"repair"}
           assert {row["recommended"] for row in summary.values() if row["sensor_id"] == "independent_field_inspection"} == {"true"}
+          assert all(row["resolves_no_sensing_infeasibility"] == "false" for row in summary.values())
 
           field = summary["independent_field_inspection"]
           assert field["status"] == "evaluated"
@@ -512,5 +513,9 @@ jobs:
           assert {row["evaluator_missing_cause"] for row in audit} == {"common_cause_power_loss", "telemetry_network_fault"}
           assert all(row["prediction_receipt_digest"] for row in audit)
 
+
+          # A sensing request can be decision-critical even when no single
+          # physical action is feasible before observing. The unit test below
+          # covers the two-world feasibility-lift oracle independently.
           print("CIVDYN active-sensing contract passed: minimax baseline, common-cause missingness, world-dependent delay cost, hard service floors, over-budget rejection and deterministic replay.")
           PY
