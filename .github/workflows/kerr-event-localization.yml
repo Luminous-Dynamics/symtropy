@@ -6,6 +6,8 @@ on:
       - research/kerr-separated-null-geodesics-v0.1
     paths:
       - crates/domains/symtropy-relativity/**
+      - Cargo.toml
+      - Cargo.lock
       - .github/workflows/kerr-event-localization.yml
   pull_request:
     branches:
