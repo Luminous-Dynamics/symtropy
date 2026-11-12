@@ -630,7 +630,7 @@ mod tests {
         second_input.expected_predecessor_pass_id = "PASS-03".to_owned();
         second_input.decision_at_tick = 110;
 
-        let next_actions = [("FILL-45", 45), ("FILL-55", 55), ("FILL-70", 70)];
+        let next_actions = [("FILL-65", 65), ("FILL-75", 75), ("FILL-90", 90)];
         for (candidate, (candidate_id, deposition)) in
             second_input.candidates.iter_mut().zip(next_actions)
         {
