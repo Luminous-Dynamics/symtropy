@@ -234,7 +234,7 @@
       "repository": "https://github.com/leggedrobotics/holistic_fusion",
       "limits": [
         "not_buried_pipe_validated",
-        "no_SU F sensor data claim",
+        "no_luminous_sensor_data_claim",
         "evaluate_on_same_admitted_observations_and_ground_truth"
       ]
     },
