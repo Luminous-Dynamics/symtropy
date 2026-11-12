@@ -91,7 +91,9 @@
     "late_abstention_count",
     "fallback_duration",
     "human_intervention_burden",
-    "inference_latency_energy_and_memory"
+    "inference_latency_energy_and_memory",
+    "episode_cluster_bootstrap_95_percentile_intervals_for_aurc_and_actual_coverage",
+    "bootstrap_valid_replicate_count_for_actual_accepted_failure_rate"
   ],
   "tie_handling": "All records with identical predicted_failure_probability enter a threshold together. The curve contains one point per unique score. AURC uses a right-continuous step integral over coverage increments.",
   "prospective_targets": {
@@ -111,5 +113,16 @@
       "family_aggregate_masking"
     ],
     "note": "No driving model has been evaluated by this protocol yet. Targets are protocol acceptance checks, not performance claims."
+  },
+  "bootstrap_protocol": {
+    "method": "Episode-cluster percentile bootstrap with replacement",
+    "rng": "SplitMix64 deterministic generator",
+    "quantiles": [
+      0.025,
+      0.975
+    ],
+    "minimum_episode_clusters": 2,
+    "replicates": "Input declares bootstrap_replicates in [100,10000] and bootstrap_seed",
+    "note": "This is a percentile bootstrap interval, not a distribution-free safety guarantee. If a replicate contains no accepted decisions, that replicate is excluded from the accepted-failure-rate interval; the interval is emitted only if all declared replicates are valid. If fewer than two episode clusters exist, all intervals are unavailable."
   }
 }
