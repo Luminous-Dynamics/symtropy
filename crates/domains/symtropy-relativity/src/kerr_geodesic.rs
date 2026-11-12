@@ -2392,19 +2392,10 @@ impl KerrSeparatedNullGeodesic {
                 return Err(KerrMinoIntegrationError::NonFiniteErrorEstimate);
             }
 
-            if error_norm <= 1.0 {
-                let candidate_gamma = gamma + trial_step;
-                if radial_relative > config.constraint_tolerance
-                    || polar_relative > config.constraint_tolerance
-                {
-                    return Err(KerrMinoIntegrationError::ConstraintDriftExceeded {
-                        mino_parameter: candidate_gamma,
-                        radial_relative,
-                        polar_relative,
-                        tolerance: config.constraint_tolerance,
-                    });
-                }
-                gamma = candidate_gamma;
+            let constraint_error = (radial_relative / config.constraint_tolerance)
+                .max(polar_relative / config.constraint_tolerance);
+            if error_norm <= 1.0 && constraint_error <= 1.0 {
+                gamma += trial_step;
                 vector = two_half;
                 accepted_steps += 1;
                 max_radial_residual = max_radial_residual.max(radial_relative);
@@ -2421,14 +2412,22 @@ impl KerrSeparatedNullGeodesic {
                 };
                 step = (trial_step * factor).clamp(config.minimum_step, config.maximum_step);
             } else {
+                // Constraint drift is an independent acceptance channel, not
+                // a terminal physics error. Reject the trial and refine it;
+                // only report underflow when the configured minimum step
+                // cannot satisfy both local truncation and physical constraints.
                 rejected_steps += 1;
-                let factor = (0.9 * error_norm.powf(-0.2)).clamp(0.1, 0.5);
+                let factor = if error_norm > 1.0 {
+                    (0.9 * error_norm.powf(-0.2)).clamp(0.1, 0.5)
+                } else {
+                    (0.8 * constraint_error.powf(-0.25)).clamp(0.1, 0.5)
+                };
                 let reduced = trial_step * factor;
                 if reduced < config.minimum_step {
                     return Err(KerrMinoIntegrationError::StepSizeUnderflow {
                         mino_parameter: gamma,
                         attempted_step: reduced,
-                        normalized_error: error_norm,
+                        normalized_error: error_norm.max(constraint_error),
                     });
                 }
                 step = reduced;
