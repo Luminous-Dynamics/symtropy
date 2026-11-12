@@ -124,6 +124,17 @@ struct CounterfactualBranchRecord {
 }
 
 #[derive(Debug, Clone, Serialize)]
+struct BridgeReplayResult {
+    processed_observations: usize,
+    vision_learning_frozen: bool,
+    training_steps_before: u64,
+    training_steps_after: u64,
+    receipt_chain_valid: bool,
+    fresh_process_replay_exact: bool,
+    negative_control_count: usize,
+    negative_controls_fail_closed: bool,
+}
+
 struct EpisodeReport {
     schema_version: u32,
     status: String,
@@ -574,7 +585,7 @@ fn invoke_bridge_process(
     if !status.success() {
         return Err(format!("Symthaea camera-driving-bridge exited with status {status}").into());
     }
-    Ok(read_json(receipts_path)?)
+    read_json(receipts_path)
 }
 
 fn validate_bridge_output(
@@ -1036,7 +1047,7 @@ fn invoke_symthaea_bridge(
     vision_config: Value,
     observations: Vec<Value>,
     bridge_binary: &Path,
-) -> Result<(usize, bool, u64, u64, bool, bool, usize, bool), Box<dyn Error>> {
+) -> Result<BridgeReplayResult, Box<dyn Error>> {
     let request_path = episode_dir.join("episode-request.json");
     let bridge_dir = episode_dir.join("symthaea-bridge");
     let first_receipts = bridge_dir.join("bridge-receipts.json");
@@ -1143,16 +1154,16 @@ fn invoke_symthaea_bridge(
         }),
     )?;
 
-    Ok((
-        receipts.len(),
-        frozen,
-        before,
-        after,
-        receipt_valid && artifact_valid,
-        replay_exact,
+    Ok(BridgeReplayResult {
+        processed_observations: receipts.len(),
+        vision_learning_frozen: frozen,
+        training_steps_before: before,
+        training_steps_after: after,
+        receipt_chain_valid: receipt_valid && artifact_valid,
+        fresh_process_replay_exact: replay_exact,
         negative_control_count,
         negative_controls_fail_closed,
-    ))
+    })
 }
 
 fn evidence_branch(
@@ -1311,88 +1322,120 @@ fn invoke_branch_evidence_auditor(
     Ok((branch_audit_valid, stale_rejected, finding_count))
 }
 
-fn degradation_trace_tick(
+#[derive(Debug, Clone, Copy)]
+struct DegradationTraceTick {
     tick: u64,
-    condition: &str,
+    condition: &'static str,
     accepted: bool,
-    detected_event: Option<&str>,
-    containment_event: Option<&str>,
+    detected_event: Option<&'static str>,
+    containment_event: Option<&'static str>,
     normal_mode: bool,
     degraded_mode: bool,
     fallback_active: bool,
-) -> Value {
-    let capture = world_timestamp(tick);
-    let delivered = if tick == DELAYED_TICK {
-        capture + clocks(tick).delivered_timestamp_us - clocks(tick).capture_timestamp_us
+}
+
+impl DegradationTraceTick {
+    fn clean(tick: u64) -> Self {
+        Self {
+            tick,
+            condition: "clean",
+            accepted: true,
+            detected_event: None,
+            containment_event: None,
+            normal_mode: true,
+            degraded_mode: false,
+            fallback_active: false,
+        }
+    }
+
+    fn delayed_frame(tick: u64) -> Self {
+        Self {
+            tick,
+            condition: "delayed",
+            accepted: true,
+            detected_event: Some("frame-delay-007"),
+            containment_event: Some("frame-delay-007"),
+            normal_mode: false,
+            degraded_mode: true,
+            fallback_active: true,
+        }
+    }
+
+    fn containment(tick: u64, event_id: &'static str) -> Self {
+        Self {
+            tick,
+            condition: "clean",
+            accepted: true,
+            detected_event: None,
+            containment_event: Some(event_id),
+            normal_mode: false,
+            degraded_mode: true,
+            fallback_active: true,
+        }
+    }
+
+    fn missing_frame(tick: u64) -> Self {
+        Self {
+            tick,
+            condition: "missing",
+            accepted: false,
+            detected_event: Some("camera-drop-011"),
+            containment_event: Some("camera-drop-011"),
+            normal_mode: false,
+            degraded_mode: true,
+            fallback_active: true,
+        }
+    }
+}
+
+fn degradation_trace_tick(input: DegradationTraceTick) -> Value {
+    let capture = world_timestamp(input.tick);
+    let delivered = if input.tick == DELAYED_TICK {
+        capture + clocks(input.tick).delivered_timestamp_us
+            - clocks(input.tick).capture_timestamp_us
     } else {
         capture
     };
     json!({
-        "tick": tick,
+        "tick": input.tick,
         "capture_timestamp_us": capture,
         "delivered_timestamp_us": delivered,
-        "conditions": [condition],
-        "policy_input_accepted": accepted,
-        "fault_detection_event_ids": detected_event.into_iter().collect::<Vec<_>>(),
-        "containment_event_ids": containment_event.into_iter().collect::<Vec<_>>(),
-        "degraded_mode": degraded_mode,
-        "fallback_active": fallback_active,
+        "conditions": [input.condition],
+        "policy_input_accepted": input.accepted,
+        "fault_detection_event_ids": input.detected_event.into_iter().collect::<Vec<_>>(),
+        "containment_event_ids": input.containment_event.into_iter().collect::<Vec<_>>(),
+        "degraded_mode": input.degraded_mode,
+        "fallback_active": input.fallback_active,
         "safe_stop_complete": false,
-        "normal_mode": normal_mode,
-        "decision_latency_us": 15_000 + tick * 100,
-        "inference_energy_uj": 50 + tick
+        "normal_mode": input.normal_mode,
+        "decision_latency_us": 15_000 + input.tick * 100,
+        "inference_energy_uj": 50 + input.tick
     })
 }
 
 fn degradation_campaign_value() -> Value {
     let clean_ticks = (1..=EXPECTED_TICKS)
-        .map(|tick| degradation_trace_tick(tick, "clean", true, None, None, true, false, false))
+        .map(|tick| degradation_trace_tick(DegradationTraceTick::clean(tick)))
         .collect::<Vec<_>>();
 
     let faulted_ticks = (1..=EXPECTED_TICKS)
         .map(|tick| match tick {
-            DELAYED_TICK => degradation_trace_tick(
+            DELAYED_TICK => {
+                degradation_trace_tick(DegradationTraceTick::delayed_frame(tick))
+            }
+            8 | 9 => degradation_trace_tick(DegradationTraceTick::containment(
                 tick,
-                "delayed",
-                true,
-                Some("frame-delay-007"),
-                Some("frame-delay-007"),
-                false,
-                true,
-                true,
-            ),
-            8 | 9 => degradation_trace_tick(
+                "frame-delay-007",
+            )),
+            10 => degradation_trace_tick(DegradationTraceTick::clean(tick)),
+            MISSING_TICK => {
+                degradation_trace_tick(DegradationTraceTick::missing_frame(tick))
+            }
+            12 | 13 => degradation_trace_tick(DegradationTraceTick::containment(
                 tick,
-                "clean",
-                true,
-                None,
-                Some("frame-delay-007"),
-                false,
-                true,
-                true,
-            ),
-            10 => degradation_trace_tick(tick, "clean", true, None, None, true, false, false),
-            MISSING_TICK => degradation_trace_tick(
-                tick,
-                "missing",
-                false,
-                Some("camera-drop-011"),
-                Some("camera-drop-011"),
-                false,
-                true,
-                true,
-            ),
-            12 | 13 => degradation_trace_tick(
-                tick,
-                "clean",
-                true,
-                None,
-                Some("camera-drop-011"),
-                false,
-                true,
-                true,
-            ),
-            _ => degradation_trace_tick(tick, "clean", true, None, None, true, false, false),
+                "camera-drop-011",
+            )),
+            _ => degradation_trace_tick(DegradationTraceTick::clean(tick)),
         })
         .collect::<Vec<_>>();
 
@@ -1749,16 +1792,7 @@ fn run_parent(
         }),
     )?;
 
-    let (
-        bridge_count,
-        frozen,
-        training_before,
-        training_after,
-        bridge_chain_valid,
-        bridge_replay_exact,
-        bridge_negative_control_count,
-        bridge_negative_controls_fail_closed,
-    ) = invoke_symthaea_bridge(
+    let bridge_result = invoke_symthaea_bridge(
         &episode_dir,
         bridge_config,
         vision_config,
@@ -1783,8 +1817,8 @@ fn run_parent(
         fresh_observations: fresh_count,
         fresh_process_renderer_replay_exact: replay_exact,
         fresh_process_symthaea_bridge_replay_exact: bridge_replay_exact,
-        bridge_negative_control_count,
-        bridge_negative_controls_fail_closed,
+        bridge_result.negative_control_count,
+        bridge_result.negative_controls_fail_closed,
         branch_evidence_audit_valid: branch_audit_valid,
         stale_actor_replay_negative_control_rejected: stale_actor_rejected,
         branch_evidence_finding_count: branch_audit_findings,
