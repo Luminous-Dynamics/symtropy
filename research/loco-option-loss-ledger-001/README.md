@@ -54,7 +54,7 @@ No cross-unit arithmetic is performed. Incomparable outcomes remain incomparable
 
 ## Current deterministic tests
 
-The source contains 20 authored unit tests covering qualified and missing loss evidence, Unknown preconditions, duplicate evidence, state-reset rejection, branch/action-domain mismatch, incomplete manifests, event-order constraints, restoration binding, changed observation partitions, permutation invariance, irreversible and conditional loss, rejected preconditions, and separate resource accounting.
+The source contains 23 authored unit tests covering qualified and missing loss evidence, Unknown preconditions, duplicate evidence, state-reset rejection, branch/action-domain mismatch, incomplete manifests, event-order constraints, restoration binding, changed observation partitions, permutation invariance, irreversible and conditional loss, rejected preconditions, and separate resource accounting.
 
 These are **authored tests**. Do not describe them as executed until the exact-head dedicated GitHub Actions workflow reports success. This environment does not have a Rust toolchain, so local Rust formatting, compilation, tests and Clippy are not claimed.
 
