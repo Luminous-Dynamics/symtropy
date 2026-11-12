@@ -1053,6 +1053,26 @@ mod tests {
     }
 
     #[test]
+    fn independent_resources_can_be_reserved_in_parallel() {
+        let floor = floor_binding();
+        let mut book = ReservationBook::new("site-epoch-1", "site-clock-1", 0)
+            .expect("reservation book");
+        book.register_resource("HOIST-1", 1).expect("hoist");
+        book.register_resource("PUMP-1", 1).expect("pump");
+
+        assert_eq!(
+            reserve_for_floor(&floor, &mut book, reservation("hoist-r1", "task-1", 10, 20), 0),
+            Ok(ReservationOutcome::Granted)
+        );
+        let mut pump_request = reservation("pump-r1", "task-2", 10, 20);
+        pump_request.resource_id = "PUMP-1".to_owned();
+        assert_eq!(
+            reserve_for_floor(&floor, &mut book, pump_request, 0),
+            Ok(ReservationOutcome::Granted)
+        );
+    }
+
+    #[test]
     fn floor_epoch_mismatch_blocks_resource_reservation_before_owner_call() {
         let floor = floor_binding();
         let mut book = ReservationBook::new("site-epoch-1", "site-clock-1", 0)
@@ -1091,6 +1111,18 @@ mod tests {
         let comparison = compare_observation_arms(&early, &deferred).expect("compare arms");
         assert_eq!(comparison.early_cost_advantage_minor_units, 1_450);
         assert_eq!(comparison.early_crew_minutes_saved, 40);
+
+        let different_fault = ObservationArmOutcome {
+            scenario_id: "different-hidden-fault".to_owned(),
+            ..deferred.clone()
+        };
+        assert_eq!(
+            compare_observation_arms(&early, &different_fault),
+            Err(LedgerError::ScenarioMismatch {
+                early: "hidden-fault-A".to_owned(),
+                deferred: "different-hidden-fault".to_owned(),
+            })
+        );
 
         let expensive_early = ObservationArmOutcome {
             observation_cost_minor_units: 2_000,
