@@ -283,6 +283,18 @@ pub struct RenderedObservation {
     pub policy_receipt: PolicyObservationReceipt,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct MissingObservationInput<'a> {
+    pub episode_id: &'a str,
+    pub agent_id: &'a str,
+    pub clock_id: &'a str,
+    pub tick: u64,
+    pub sequence: u64,
+    pub capture_timestamp_us: u64,
+    pub noticed_timestamp_us: u64,
+    pub reason: MissingFrameReason,
+}
+
 pub struct ObservationStreamGuard {
     timing: TimingPolicy,
     clock_id: Option<String>,
@@ -365,59 +377,52 @@ impl ObservationStreamGuard {
     /// of this sequence cannot be replayed as a fresh frame.
     pub fn record_missing(
         &mut self,
-        episode_id: &str,
-        agent_id: &str,
-        clock_id: &str,
-        tick: u64,
-        sequence: u64,
-        capture_timestamp_us: u64,
-        noticed_timestamp_us: u64,
-        reason: MissingFrameReason,
+        input: MissingObservationInput<'_>,
     ) -> Result<MissingObservationEvent, RenderError> {
-        validate_id(episode_id)?;
-        validate_id(agent_id)?;
-        validate_id(clock_id)?;
-        if sequence == 0 {
+        validate_id(input.episode_id)?;
+        validate_id(input.agent_id)?;
+        validate_id(input.clock_id)?;
+        if input.sequence == 0 {
             return Err(RenderError::InvalidObservationSequence);
         }
         if self
             .clock_id
             .as_deref()
-            .is_some_and(|expected| expected != clock_id)
+            .is_some_and(|expected| expected != input.clock_id)
         {
             return Err(RenderError::ClockIdentityChanged);
         }
-        if self.last_sequence.is_some_and(|last| sequence <= last) {
+        if self.last_sequence.is_some_and(|last| input.sequence <= last) {
             return Err(RenderError::SequenceRegression);
         }
         if self
             .last_capture_timestamp_us
-            .is_some_and(|last| capture_timestamp_us <= last)
+            .is_some_and(|last| input.capture_timestamp_us <= last)
         {
             return Err(RenderError::CaptureClockRegression);
         }
-        if noticed_timestamp_us < capture_timestamp_us {
+        if input.noticed_timestamp_us < input.capture_timestamp_us {
             return Err(RenderError::MissingEventBeforeCapture);
         }
         if self
             .last_delivery_timestamp_us
-            .is_some_and(|last| noticed_timestamp_us < last)
+            .is_some_and(|last| input.noticed_timestamp_us < last)
         {
             return Err(RenderError::DeliveryClockRegression);
         }
-        self.clock_id = Some(clock_id.to_string());
-        self.last_sequence = Some(sequence);
-        self.last_capture_timestamp_us = Some(capture_timestamp_us);
-        self.last_delivery_timestamp_us = Some(noticed_timestamp_us);
+        self.clock_id = Some(input.clock_id.to_string());
+        self.last_sequence = Some(input.sequence);
+        self.last_capture_timestamp_us = Some(input.capture_timestamp_us);
+        self.last_delivery_timestamp_us = Some(input.noticed_timestamp_us);
         Ok(MissingObservationEvent {
-            episode_id: episode_id.to_string(),
-            agent_id: agent_id.to_string(),
-            clock_id: clock_id.to_string(),
-            tick,
-            sequence,
-            capture_timestamp_us,
-            noticed_timestamp_us,
-            reason,
+            episode_id: input.episode_id.to_string(),
+            agent_id: input.agent_id.to_string(),
+            clock_id: input.clock_id.to_string(),
+            tick: input.tick,
+            sequence: input.sequence,
+            capture_timestamp_us: input.capture_timestamp_us,
+            noticed_timestamp_us: input.noticed_timestamp_us,
+            reason: input.reason,
         })
     }
 }
@@ -1019,8 +1024,12 @@ fn clip_projected_segment(
 }
 
 fn draw_road_markings(snapshot: &WorldRenderSnapshot, pixels: &mut [u8], z_buffer: &mut [i64]) {
-    let width = snapshot.camera.width as usize;
-    let height = snapshot.camera.height as usize;
+    let mut surface = RasterSurface::new(
+        pixels,
+        z_buffer,
+        snapshot.camera.width as usize,
+        snapshot.camera.height as usize,
+    );
     let mut roads = snapshot.road_markings.iter().collect::<Vec<_>>();
     roads.sort_by(|left, right| {
         left.road_id
@@ -1035,7 +1044,7 @@ fn draw_road_markings(snapshot: &WorldRenderSnapshot, pixels: &mut [u8], z_buffe
             else {
                 continue;
             };
-            draw_line(pixels, z_buffer, width, height, start, end, color);
+            draw_line(&mut surface, start, end, color);
         }
     }
 }
@@ -1055,8 +1064,12 @@ fn draw_actors(snapshot: &WorldRenderSnapshot, pixels: &mut [u8], z_buffer: &mut
         [5, 7],
         [6, 7],
     ];
-    let width = snapshot.camera.width as usize;
-    let height = snapshot.camera.height as usize;
+    let mut surface = RasterSurface::new(
+        pixels,
+        z_buffer,
+        snapshot.camera.width as usize,
+        snapshot.camera.height as usize,
+    );
     let mut actors = snapshot.actors.iter().collect::<Vec<_>>();
     actors.sort_by(|left, right| left.actor_id.cmp(&right.actor_id));
 
@@ -1079,29 +1092,49 @@ fn draw_actors(snapshot: &WorldRenderSnapshot, pixels: &mut [u8], z_buffer: &mut
             else {
                 continue;
             };
-            draw_line(
-                pixels,
-                z_buffer,
-                width,
-                height,
-                start,
-                end,
-                actor.class.color(),
-            );
+            draw_line(&mut surface, start, end, actor.class.color());
+        }
+    }
+}
+
+struct RasterSurface<'a> {
+    pixels: &'a mut [u8],
+    z_buffer: &'a mut [i64],
+    width: usize,
+    height: usize,
+}
+
+impl<'a> RasterSurface<'a> {
+    fn new(pixels: &'a mut [u8], z_buffer: &'a mut [i64], width: usize, height: usize) -> Self {
+        Self {
+            pixels,
+            z_buffer,
+            width,
+            height,
+        }
+    }
+
+    fn plot_pixel(&mut self, x: i64, y: i64, depth: i64, color: [u8; 3]) {
+        if x < 0 || y < 0 || x >= self.width as i64 || y >= self.height as i64 {
+            return;
+        }
+        let index = y as usize * self.width + x as usize;
+        if depth < self.z_buffer[index] {
+            self.z_buffer[index] = depth;
+            self.pixels[index * 3..index * 3 + 3].copy_from_slice(&color);
         }
     }
 }
 
 fn draw_line(
-    pixels: &mut [u8],
-    z_buffer: &mut [i64],
-    width: usize,
-    height: usize,
+    surface: &mut RasterSurface<'_>,
     start: ProjectedPoint,
     end: ProjectedPoint,
     color: [u8; 3],
 ) {
-    let Some((start, end)) = clip_projected_segment(start, end, width, height) else {
+    let Some((start, end)) =
+        clip_projected_segment(start, end, surface.width, surface.height)
+    else {
         return;
     };
     let mut x0 = start.x;
@@ -1117,14 +1150,14 @@ fn draw_line(
     let steps = dx.max(-dy);
 
     if steps == 0 {
-        plot_pixel(pixels, z_buffer, width, height, x0, y0, start.z_mm, color);
+        surface.plot_pixel(x0, y0, start.z_mm, color);
         return;
     }
 
     let mut index = 0_i64;
     loop {
         let depth = start.z_mm + (end.z_mm - start.z_mm) * index / steps;
-        plot_pixel(pixels, z_buffer, width, height, x0, y0, depth, color);
+        surface.plot_pixel(x0, y0, depth, color);
         if x0 == x1 && y0 == y1 {
             break;
         }
@@ -1139,26 +1172,6 @@ fn draw_line(
             y0 += sy;
         }
         index += 1;
-    }
-}
-
-fn plot_pixel(
-    pixels: &mut [u8],
-    z_buffer: &mut [i64],
-    width: usize,
-    height: usize,
-    x: i64,
-    y: i64,
-    depth: i64,
-    color: [u8; 3],
-) {
-    if x < 0 || y < 0 || x >= width as i64 || y >= height as i64 {
-        return;
-    }
-    let index = y as usize * width + x as usize;
-    if depth < z_buffer[index] {
-        z_buffer[index] = depth;
-        pixels[index * 3..index * 3 + 3].copy_from_slice(&color);
     }
 }
 
@@ -1601,16 +1614,16 @@ mod tests {
     fn missing_frame_event_has_stable_snake_case_json() {
         let mut guard = ObservationStreamGuard::new(timing_policy());
         let event = guard
-            .record_missing(
-                "episode-1",
-                "ego",
-                "clock-1",
-                2,
-                2,
-                40_000,
-                40_500,
-                MissingFrameReason::CameraDrop,
-            )
+            .record_missing(MissingObservationInput {
+                episode_id: "episode-1",
+                agent_id: "ego",
+                clock_id: "clock-1",
+                tick: 2,
+                sequence: 2,
+                capture_timestamp_us: 40_000,
+                noticed_timestamp_us: 40_500,
+                reason: MissingFrameReason::CameraDrop,
+            })
             .unwrap();
         let value = serde_json::to_value(&event).unwrap();
         assert_eq!(value["reason"], "camera_drop");
@@ -1855,7 +1868,7 @@ mod tests {
     fn total_road_point_budget_is_enforced() {
         let mut world = snapshot();
         world.road_markings.clear();
-        let points = vec![[0, 10_000, 0], [0, 11_000, 0]];
+        let points = [[0, 10_000, 0], [0, 11_000, 0]];
         let per_marking = MAX_POINTS_PER_MARKING;
         let mut remaining = MAX_TOTAL_ROAD_POINTS + 2;
         let mut index = 0_u32;
@@ -1919,16 +1932,16 @@ mod tests {
     fn missing_event_sequence_zero_is_rejected_without_consuming_stream() {
         let mut guard = ObservationStreamGuard::new(timing_policy());
         assert_eq!(
-            guard.record_missing(
-                "episode-1",
-                "ego",
-                "clock-1",
-                1,
-                0,
-                20_000,
-                20_500,
-                MissingFrameReason::CameraDrop,
-            ),
+            guard.record_missing(MissingObservationInput {
+                episode_id: "episode-1",
+                agent_id: "ego",
+                clock_id: "clock-1",
+                tick: 1,
+                sequence: 0,
+                capture_timestamp_us: 20_000,
+                noticed_timestamp_us: 20_500,
+                reason: MissingFrameReason::CameraDrop,
+            }),
             Err(RenderError::InvalidObservationSequence)
         );
         assert_eq!(
@@ -2234,16 +2247,16 @@ mod tests {
     fn missing_frame_event_is_explicit_and_consumes_sequence() {
         let mut guard = ObservationStreamGuard::new(timing_policy());
         let event = guard
-            .record_missing(
-                "episode-1",
-                "ego",
-                "clock-1",
-                2,
-                2,
-                40_000,
-                40_500,
-                MissingFrameReason::CameraDrop,
-            )
+            .record_missing(MissingObservationInput {
+                episode_id: "episode-1",
+                agent_id: "ego",
+                clock_id: "clock-1",
+                tick: 2,
+                sequence: 2,
+                capture_timestamp_us: 40_000,
+                noticed_timestamp_us: 40_500,
+                reason: MissingFrameReason::CameraDrop,
+            })
             .unwrap();
         assert_eq!(event.reason, MissingFrameReason::CameraDrop);
         assert_eq!(event.tick, 2);
