@@ -350,7 +350,74 @@
       "source_conclusion": "The checked-in baseline entrypoint as pinned generates no PPO training runs because RUNS is zero; it also does not generate the stacked n_frames=149 artifacts.",
       "stacked_entrypoint_found": false,
       "limitation": "The result JSON files have no generating source commit, raw per-episode returns, or immutable run receipt. They can be audited as artifacts but their exact training execution is not reproducible from the pinned checked-in experiment entrypoint alone."
-    }
+    },
+    "known_artifact_irregularities": [
+      {
+        "path": "experiments/logs_PPO_stacked/icu/mnar-unident",
+        "file_count": 19,
+        "observed_run_ids": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ],
+        "missing_run_ids": [
+          7
+        ],
+        "unique_seed_count": 17,
+        "duplicate_seed_counts": {
+          "421": 2,
+          "422": 2
+        }
+      },
+      {
+        "path": "experiments/logs_PPO_stacked/icu/smar",
+        "file_count": 23,
+        "observed_run_ids": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24
+        ],
+        "missing_run_ids": [
+          11
+        ]
+      }
+    ]
   },
   "policy_value_summary": {
     "formula": "(candidate mean return - random policy mean) / (SARSOP true-M mean - random policy mean)",
