@@ -1196,7 +1196,8 @@ mod tests {
         case["layout_profile"]["state_taxonomy_ref"] = serde_json::json!("taxonomy:marine-diesel-faults-v0.1");
         replace_string(&mut case, "DEVELOPING_BLOCKAGE", "ENGINE_FUEL_INJECTION_FAULT");
 
-        assert!(validate_case(&case, &parent_case).is_empty());
+        let violations = validate_case(&case, &parent_case);
+        assert!(violations.is_empty(), "domain-neutral case violations: {violations:#?}");
         let report = evaluate_case(&case, &parent_case).expect("maritime profile evaluates");
         assert_eq!(report.state_count, 8);
         assert_eq!(report.required_pair_count, 8);
@@ -1231,6 +1232,8 @@ mod tests {
     #[test]
     fn critical_pair_cannot_lower_layout_minimum() {
         let mut case = fixture();
+        case["layout_profile"]["minimum_independent_principles_for_critical_pairs"] =
+            serde_json::json!(2);
         case["required_state_pairs"][0]["minimum_independent_principles"] =
             serde_json::json!(1);
         assert!(has(
