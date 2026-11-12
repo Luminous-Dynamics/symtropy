@@ -781,7 +781,7 @@ mod tests {
     }
 
     #[test]
-    fn invalid_action_identifiers_and_cycles_are_rejected() {
+    fn invalid_action_identifiers_and_missing_child_nodes_are_not_accepted() {
         let mut tree = root_two_step_tree();
         tree.nodes[0].state_action_evidence[0]
             .admitted_action_ids
@@ -791,13 +791,15 @@ mod tests {
             Err(PolicyTreeError::UnknownActionId(_))
         ));
 
-        let mut cycle = root_two_step_tree();
-        cycle.nodes[0].transitions[0].next_belief_node_id = "root".to_owned();
-        cycle.nodes[0].transitions[0].to_state_id = "s1".to_owned();
-        assert!(matches!(
-            evaluate_bounded_policy_tree(&cycle, 2),
-            Err(PolicyTreeError::CyclicPolicyGraph(_))
-        ));
+        let mut missing_child = root_two_step_tree();
+        missing_child.nodes[0].transitions[0].next_belief_node_id =
+            "unprovided-observation-node".to_owned();
+        let report = evaluate_bounded_policy_tree(&missing_child, 2).unwrap();
+        assert_eq!(report.disposition, PolicyTreeDisposition::Unknown);
+        assert!(report
+            .unknown_reasons
+            .iter()
+            .any(|reason| reason.contains("missing-child-node")));
     }
 
     #[test]
