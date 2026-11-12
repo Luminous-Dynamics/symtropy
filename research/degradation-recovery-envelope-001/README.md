@@ -187,7 +187,7 @@ Schemas:
 - `schemas/report-v1.schema.json`
 
 Fixture:
-- `fixtures/camera-drop-paired-v1.json` — eight paired ticks, camera drop on ticks 3–4, event-attributed detection and containment, two healthy observations before normal mode resumes on tick 7.
+- `fixtures/camera-drop-paired-v1.json` — eight paired ticks, camera drop on ticks 3–4, event-attributed detection and containment, two healthy observations before normal mode resumes on tick 8.
 - `fixtures/compound-common-cause-camera-clock-v1.json` — the same paired eight-tick episode with simultaneous camera-drop and clock-drift faults attributed to one declared power/clock-domain common cause; the auditor reports both event latencies independently.
 - `fixtures/severity-sweep.json` — generated schedule only; do not audit it as an observed trace or present it as a fault-injection result.
 
