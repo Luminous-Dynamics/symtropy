@@ -60,3 +60,17 @@ A statistically significant precision shift triggers investigation/re-verificati
 ## 6. Standards boundary
 
 ISO 17123-9 field procedures are useful for repeatability checks for an immediate task, but they are not a comprehensive instrument acceptance or performance evaluation. This monitor is a software-based longitudinal sentinel, not a substitute for the standard's field procedures, calibration, independent metrology or competent survey review.
+
+
+## 7. Statistical method identity and NIST/OSAC comparison
+
+The P0 monitor in `tools/scan-bim-tls-health-monitor/` is a deliberately simple, deterministic session-level permutation sentinel. It uses per-target within-session SD summaries and does **not** reproduce the NIST/OSAC IPA Part II test.
+
+Gregg, Muralikrishnan & Shilling (2026) instead test equality of the full spherical-coordinate covariance matrices for azimuth, elevation and range. They apply O'Brien's robust omnibus transformation to the six unique covariance components and then compare the transformed six-dimensional response vectors with one-way MANOVA; with two timepoints, this reduces to Hotelling's T². They also recommend visualizing covariance changes using data ellipses. The paper's suggested data collection uses 20 checkerboard targets from four scanner positions, although the counts are not absolute and may change with field constraints.
+
+The lightweight sentinel is an operational alert with a different input contract and statistical method. The companion issue #4807 adds a distinct IPA Part II statistical-consumer implementation. It accepts a digest-bound artifact of spherical residuals after the prescribed centralized-frame / composite-coordinate procedure. It does not duplicate #1607's registration/bundle-adjustment work. Until the residual producer itself is independently reproduced and qualified, that package can claim only statistical-consumer reproduction on supplied residual artifacts—not end-to-end IPA field-procedure conformance.
+
+References:
+- Gregg, M., Muralikrishnan, B. & Shilling, M. (2026), *A statistical procedure to assess change in instrument precision*, Journal of Forensic Sciences 71(2), 1023–1031. https://doi.org/10.1111/1556-4029.70256
+- NIST, *Terrestrial Laser Scanner Performance Evaluation and Documentary Standard for Forensic Practice*, project status and interim assessment overview: https://www.nist.gov/programs-projects/terrestrial-laser-scanner-performance-evaluation-and-documentary-standard-forensic
+
