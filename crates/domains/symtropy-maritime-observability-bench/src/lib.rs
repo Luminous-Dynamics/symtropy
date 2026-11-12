@@ -236,7 +236,7 @@ fn validate_input(input:&Value)->Check<()>{
         if !matches!(txt(s,"state_class",&p)?,"PROCESS_STATE"|"SENSOR_FAULT"|"OUT_OF_DOMAIN"){return Err(err("STATE_CLASS",&format!("{p}.state_class"),"unsupported state class"));}
         let faulted=set(s,"faulted_sensor_ids",&p)?;
         if txt(s,"state_class",&p)?=="SENSOR_FAULT"&&faulted.is_empty(){return Err(err("SENSOR_FAULT_WITHOUT_SENSOR",&p,"sensor fault must identify affected sensor"));}
-        if txt(s,"state_class",&p)!="SENSOR_FAULT"&&!faulted.is_empty(){return Err(err("FAULTED_SENSOR_ON_NON_SENSOR_STATE",&p,"only SENSOR_FAULT may name sensor IDs"));}
+        if txt(s,"state_class",&p)?!="SENSOR_FAULT"&&!faulted.is_empty(){return Err(err("FAULTED_SENSOR_ON_NON_SENSOR_STATE",&p,"only SENSOR_FAULT may name sensor IDs"));}
         if faulted.iter().any(|id|!sensor_ids.contains(id)){return Err(err("UNKNOWN_FAULTED_SENSOR",&p,"unknown sensor ID"));}
     }
     let pairs=array(input,"required_fault_pairs","$")?;
@@ -654,6 +654,16 @@ mod tests{
         assert_eq!(r["pair_assessments"].as_array().unwrap().len(),11);
         assert_eq!(r["fault_assessments"].as_array().unwrap().len(),5);
         assert_eq!(r["authority_boundary"]["actuation"],false);
+    }
+    #[test]
+    fn null_evidence_digests_remain_unbound_profile_identity_is_not_a_hash() {
+        let c=fixture();
+        assert!(c["evidence_digests"]["sensor_topology_sha256"].is_null());
+        let (adapted,parent)=make_parent_and_case(&c,&BTreeSet::new(),&BTreeSet::new()).unwrap();
+        let installation=parent["profile"]["installation_profile_ref"].as_str().unwrap();
+        assert!(installation.starts_with("installation-profile:"));
+        assert!(!installation.starts_with("sensor-topology-sha256:"));
+        assert_eq!(adapted["parent_context"]["installation_profile_ref"],parent["profile"]["installation_profile_ref"]);
     }
     #[test]
     fn gateway_loss_recomputes_and_withdraws_pair_isolability(){
