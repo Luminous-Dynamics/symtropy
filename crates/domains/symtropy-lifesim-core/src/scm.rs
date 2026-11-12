@@ -32,7 +32,9 @@ impl ScmInteractionKernel {
 
     pub const fn label(self) -> &'static str {
         match self {
-            Self::PublishedEquationAndMatlabSource => "published_eq10_and_matlab_tstep_sin_pi_over_2",
+            Self::PublishedEquationAndMatlabSource => {
+                "published_eq10_and_matlab_tstep_sin_pi_over_2"
+            }
         }
     }
 }
@@ -1005,8 +1007,7 @@ mod tests {
     #[test]
     fn published_discrete_equation_and_matlab_source_share_pi_over_two_kernel() {
         assert!(
-            (ScmInteractionKernel::PublishedEquationAndMatlabSource.argument_scale()
-                - PI / 2.0)
+            (ScmInteractionKernel::PublishedEquationAndMatlabSource.argument_scale() - PI / 2.0)
                 .abs()
                 < 1.0e-15
         );
@@ -1502,14 +1503,24 @@ mod tests {
         };
         let mut model = ScmModel::new(agents.clone(), config, 101).unwrap();
 
-        let before = agents.iter().map(|agent| agent.position.clone()).collect::<Vec<_>>();
+        let before = agents
+            .iter()
+            .map(|agent| agent.position.clone())
+            .collect::<Vec<_>>();
         model.step(&Flat).unwrap();
 
         assert!(model.agents().iter().all(|agent| {
-            agent.position.iter().all(|coordinate| coordinate.is_finite())
+            agent
+                .position
+                .iter()
+                .all(|coordinate| coordinate.is_finite())
         }));
         assert_ne!(
-            model.agents().iter().map(|agent| agent.position.clone()).collect::<Vec<_>>(),
+            model
+                .agents()
+                .iter()
+                .map(|agent| agent.position.clone())
+                .collect::<Vec<_>>(),
             before
         );
     }
