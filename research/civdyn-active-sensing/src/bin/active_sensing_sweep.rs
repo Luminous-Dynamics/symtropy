@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_active_sensing::{
-    assess_active_sensing, evaluator_prediction_audit, ActiveSensingConfig, DecisionWorld,
-    MissingCause, PolicyOutcome, SensorAction, SensorPrediction,
+    assess_active_sensing, candidate_policy_map, evaluator_prediction_audit, ActiveSensingConfig,
+    CandidatePolicyDecision, DecisionWorld, MissingCause, PolicyOutcome, SensorAction,
+    SensorPrediction,
 };
 
 const SCENARIO_ID: &str = "three-world-sensor-dual-control-v1";
@@ -257,7 +258,35 @@ fn audit_fields(
     fields
 }
 
+fn emit_candidate(decision: &CandidatePolicyDecision) {
+    let fields = [
+        decision.scenario_id.as_str(),
+        decision.sensor_id.as_str(),
+        decision.observation_id.as_str(),
+        decision.action_id.as_str(),
+    ];
+    println!(
+        "{}",
+        fields.iter().map(|field| csv_field(field)).collect::<Vec<_>>().join(",")
+    );
+}
+
 fn main() -> Result<(), String> {
+    let candidate_only = std::env::args().nth(1).as_deref() == Some("--candidate-policy-map");
+    if candidate_only {
+        println!("scenario_id,sensor_id,observation_id,action_id");
+        let (config, worlds, sensors) = fixture();
+        let report = assess_active_sensing(&config, &worlds, &sensors)?;
+        for decision in candidate_policy_map(&report) {
+            emit_candidate(&decision);
+        }
+        let (lift_config, lift_worlds, lift_sensors) = feasibility_lift_fixture();
+        let lift_report = assess_active_sensing(&lift_config, &lift_worlds, &lift_sensors)?;
+        for decision in candidate_policy_map(&lift_report) {
+            emit_candidate(&decision);
+        }
+        return Ok(());
+    }
     println!(
         "record_type,scenario_id,sensor_id,status,affordable,recommended,baseline_policy_id,baseline_worst_regret,protocol_digest,energy_cost_kwh,service_units_per_kwh,energy_cost_service_units,latency_ticks,maximum_latency_service_loss,maximum_total_penalty_service_units,worst_case_post_sensing_regret,regret_reduction,observation_id,partition_world_count,world_ids,selected_policy_id,partition_worst_regret,receipt_world_id,world_digest,prediction_receipt_digest,evaluator_missing_cause,resolves_no_sensing_infeasibility"
     );
