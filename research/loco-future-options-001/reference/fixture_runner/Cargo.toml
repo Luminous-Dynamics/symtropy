@@ -1,0 +1,12 @@
+[package]
+name = "loco-future-options-fixture-runner"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+
+[dependencies]
+loco-future-options-reference = { path = "../" }
+serde_json = "=1.0.150"
+
+[workspace]
