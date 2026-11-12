@@ -658,10 +658,6 @@ pub fn run_reference_portfolio() -> Result<Vec<PolicyOutcome>, BenchmarkError> {
 mod tests {
     use super::*;
 
-    fn actions(outcome: &PolicyOutcome) -> Vec<&'static str> {
-        outcome.actions.iter().map(|action| action.id()).collect()
-    }
-
     #[test]
     fn water_world_oracle_has_exact_known_answer() {
         let plan =
