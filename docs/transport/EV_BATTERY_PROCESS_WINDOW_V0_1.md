@@ -70,6 +70,28 @@ Compare frozen recipe/SPC, DOE/response-surface, physical/statistical, tree/boos
 - cross-lot/line generalization, false acceptance/rejection and abstention;
 - inspection/data/compute burden.
 
+## Public dataset entry points and rights
+
+The following sources offer a concrete retrospective benchmark ladder. Their licence and target boundaries must remain bound to every derived snapshot; none alone establishes multi-line industrial yield.
+
+| Dataset | Scope and useful variables | Rights / permitted path |
+|---|---|---|
+| Warwick frequency-domain ultrasonic electrode dataset, DOI 10.17632/c62yn37d9h.4 (version 4, 15 Dec 2025) | Graphite anode and NMC622 cathode; before/after calendering FFT frequency/magnitude arrays, average thickness across three regions, web speed, roll gap, coat weight, calendering speed and density. Electrode-level NDT/process-to-structure task, not cell yield. | CC BY 4.0; attribution and exact version required. https://data.mendeley.com/datasets/c62yn37d9h/4 |
+| Warwick NMC622 pilot-plant calendering dataset, DOI 10.17632/wwhm2frfmy.1 (version 1, 24 Jul 2023) | Coating/calendering operating conditions, electrode physical properties before/after calendering and related electrochemical cell performance. A useful pilot-scale process/structure/property task. | CC0 1.0 on the dataset record. https://data.mendeley.com/datasets/wwhm2frfmy/1 |
+| Graphite electrode formulation/manufacturing dataset, DOI 10.17632/4dh2h3tsf4.1 (version 1, 10 Jan 2022) | Related paper describes slurry composition/mixing, coating gap, drying temperature, coating speed and calendering, with rheology, adhesion and electrochemical outcomes. Verify exact contents and data dictionary before defining targets. | CC BY 4.0 on the dataset record. https://data.mendeley.com/datasets/4dh2h3tsf4/1 |
+| TRI-AMDD formation/aging dataset, Data.MATR 8 | 186 pouch cells and 62 formation protocols in the associated Joule study; raw formation records and structured ageing cycles. Useful for protocol → early formation signature → cycle-life reproduction, not electrode-line yield. | CC BY-NC 4.0 on the dataset record: research/non-commercial use only unless additional permission is obtained. https://data.matr.io/8/ |
+
+### Recommended reproduction order
+
+1. **Ultrasonic NDT:** compare the published feature pipeline with simple frequency-domain baselines; hold out physical electrode sample IDs and pre/post-calendering pairs together where needed. Predict thickness first, then examine density/porosity transfer only where the measurements support those labels.
+2. **Pilot NMC622 calendering:** reproduce a process → electrode property → half-cell/cell response chain; separate each response boundary and do not pretend half-cell performance is complete-cell EV performance.
+3. **Graphite formulation:** verify the actual file inventory, exact process factors and sample identities before admitting it into a common benchmark.
+4. **Formation:** reproduce the 186-cell/62-protocol study as a distinct non-commercial track; use group-aware splits by protocol and cell, and keep its NC licence out of commercial model training or deployment until separately authorized.
+
+The CC BY and CC0 entries are candidates for admission with their stated attribution/rights, source hashes and exact dataset versions. The CC BY-NC formation data must be separately tagged COMMERCIAL_USE_BLOCKED unless new permission is obtained. No raw dataset has been copied into this repository by this PR.
+
+Do not merge these four datasets into one pooled score: electrode ultrasonic regression, pilot-plant NMC process/property data, graphite process/formulation records, and formation-to-cycle-life are different tasks, physical units and evidence boundaries. They can contribute to a multi-fidelity evidence graph, not a fake common leaderboard.
+
 ## Candidate research targets
 
 - zero recipe/configuration/line/lot/evidence-class pooling without explicit compatibility;
