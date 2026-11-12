@@ -72,21 +72,17 @@ The fixture input now includes a frozen `causal_identity` block with mission, ro
 
 These identifiers are intended to map directly into Symthaea [ROB-CAUSAL-MISSION-REPLAY-001](https://github.com/Luminous-Dynamics/symthaea/tree/research/rob-causal-mission-replay-001). The physical metrology protocol emits observations, decisions, action chunks, assurance records, actuator applications, physical transitions and terminal receipts; it does not invent IDs or rewrite upstream status. The clock relation field selects whether AoI may be computed or must remain Unknown.
 
-## Executable causal replay adapter
+## Two-part causal trace bridge
 
-The typed adapter now lives alongside the authoritative causal replay types in
-[Symthaea ROB-CAUSAL-MISSION-REPLAY-001](https://github.com/Luminous-Dynamics/symthaea/tree/research/rob-causal-mission-replay-001):
-- [joint metrology adapter source](https://github.com/Luminous-Dynamics/symthaea/blob/research/rob-causal-mission-replay-001/src/joint_metrology_adapter.rs)
-- [causal replay draft PR #11664](https://github.com/Luminous-Dynamics/symthaea/pull/11664)
+The research prototype now has two complementary reference components:
 
-It consumes the existing `MissionTrace` rather than defining another mission-event schema. The adapter binds instrument receipts to the decision, action-domain, executed-prefix, actuator-application, physical-transition and terminal digests; validates sampling-spec coverage and thermal predecessor/snapshot identity; and composes the existing offline causal replay.
+1. **Symtropy normalizer:** [`adapter/src/lib.rs`](https://github.com/Luminous-Dynamics/symtropy/blob/research/loco-joint-metrology-001/adapter/src/lib.rs) accepts a typed `JointTrace` with source/application/motion timestamps, clock-map evidence, decision, thermal, first-law, sampling and terminal receipts. It emits an `AdapterReport` with bounded AoI and command-to-motion intervals, reason-coded Qualified/Unknown/Inconclusive/Rejected outcomes, and the eight-event causal edge chain. It has 20 authored Rust tests and is isolated in a dependency-free Rust 1.96 package.
 
-The physical checks keep independent quantities separate:
-- energy closure is computed in integer microjoules as electrical input minus shaft work, heat out and stored-energy change; an incomplete boundary or residual outside the supplied combined uncertainty is not a pass;
-- command-latch-to-motion response is derived from bounded event timestamps, separately from source-to-actuator AoI; overlapping intervals remain Unknown rather than being collapsed to a point estimate;
-- thermal-node completeness, persistent predecessor-state chaining, executed-prefix identity and qualified terminal safe-stop remain independent evidence requirements.
+2. **Symthaea mission join:** [`joint_metrology_adapter.rs`](https://github.com/Luminous-Dynamics/symthaea/blob/research/rob-causal-mission-replay-001/src/joint_metrology_adapter.rs) consumes the authoritative Symthaea `MissionTrace` plus instrument and upstream energy-closure receipts. It verifies that those receipts bind to the exact decision, action-domain, executed-prefix, actuator application, thermal snapshot, predecessor-state and terminal identities; then composes the existing offline causal replay. It contains 16 authored Rust tests. [Symthaea draft PR #11664](https://github.com/Luminous-Dynamics/symthaea/pull/11664).
 
-The adapter always returns `actuation_authorized = false`. Its Rust reference code is in the Symthaea draft PR; exact-head CI qualification is tracked there and is not implied by this protocol document.
+These are complementary references, **not yet a serialized, end-to-end inter-repository wire protocol**. The next integration gate is to freeze a versioned normalized-receipt schema and prove that a captured fixture can pass through the Symtropy normalizer and into the Symthaea mission join with exact identity preservation. No direct runtime dependency is claimed yet.
+
+The Symtropy normalizer consumes the upstream first-law closure result; the Symthaea join checks the receipt identity and disposition. Neither implements another thermal, actuator, controller, viability or first-law model. Both are retrospective and never grant actuation authority.
 
 ## Synthetic known answers
 
