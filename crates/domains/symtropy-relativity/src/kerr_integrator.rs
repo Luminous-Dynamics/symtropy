@@ -1869,17 +1869,13 @@ mod tests {
     #[test]
     fn nonradial_schwarzschild_fixed_and_adaptive_sachs_jacobi_agree() {
         let black_hole = hole(0.0);
-        let observer = KerrFiniteRadiusObserver::new(
-            black_hole,
-            10.0,
-            core::f64::consts::FRAC_PI_2,
-        )
-        .unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let seed = observer
             .canonical_seed(KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap())
             .unwrap();
-        let screen_basis =
-            observer.screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
+        let screen_basis = observer
+            .screen_basis_to_chart_coordinates(seed.local_screen_basis, seed.coordinate_chart);
         let fixed = integrate_kerr_sachs_jacobi_fixed_step(
             black_hole,
             seed.coordinate_chart,
@@ -1916,7 +1912,10 @@ mod tests {
             .map(|value| value * value)
             .sum::<f64>()
             .sqrt();
-        assert!(tidal_norm > 1e-8, "nonradial Schwarzschild tide must be nonzero");
+        assert!(
+            tidal_norm > 1e-8,
+            "nonradial Schwarzschild tide must be nonzero"
+        );
         assert!(fixed.maximum_tidal_symmetry_residual < 1e-7);
         assert!(fixed.maximum_vacuum_trace_residual < 1e-7);
         assert!(adaptive.maximum_tidal_symmetry_residual < 1e-7);
