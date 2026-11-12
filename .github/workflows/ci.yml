@@ -106,3 +106,11 @@ jobs:
         run: cargo test --locked --manifest-path research/loco-future-options-001/reference/Cargo.toml
       - name: Strict reference Clippy
         run: cargo clippy --locked --manifest-path research/loco-future-options-001/reference/Cargo.toml --all-targets -- -D warnings
+      - name: Check JSON fixture runner formatting
+        run: cargo fmt --manifest-path research/loco-future-options-001/reference/fixture_runner/Cargo.toml -- --check
+      - name: Test Rust JSON fixture runner
+        run: cargo test --locked --manifest-path research/loco-future-options-001/reference/fixture_runner/Cargo.toml
+      - name: Strict fixture runner Clippy
+        run: cargo clippy --locked --manifest-path research/loco-future-options-001/reference/fixture_runner/Cargo.toml --all-targets -- -D warnings
+      - name: Execute committed JSON known-answer corpus
+        run: cargo run --locked --manifest-path research/loco-future-options-001/reference/fixture_runner/Cargo.toml -- research/loco-future-options-001/fixtures/known_answers_v0_1.json
