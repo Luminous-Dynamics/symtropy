@@ -2077,4 +2077,7 @@ mod tests {
         too_stale["maximum_observation_delivery_age_us"] = json!(MAX_DELIVERY_AGE_US - 1);
         assert!(validate_bridge_configuration(&too_stale, &vision_config).is_err());
         let mut invalid = bridge_config;
-        invalid["identity"]["camera_id
+        invalid["identity"]["camera_id"] = json!("rear-camera");
+        assert!(validate_bridge_configuration(&invalid, &vision_config).is_err());
+    }
+}
