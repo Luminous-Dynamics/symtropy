@@ -48,6 +48,7 @@ pub struct AttemptSnapshot {
     pub work_unit_id: String,
     pub attempt_number: u32,
     pub task_id: String,
+    pub robot_config_digest: String,
     pub state: TaskState,
     pub output_evidence_ref: Option<String>,
     pub acceptance_receipt_ref: Option<String>,
@@ -109,6 +110,7 @@ pub struct AttemptReport {
     pub acceptance_contract_ref: String,
     pub attempt_number: u32,
     pub task_id: String,
+    pub robot_config_digest: String,
     pub state: TaskState,
     pub output_evidence_ref: Option<String>,
     pub acceptance_receipt_ref: Option<String>,
@@ -171,6 +173,7 @@ pub enum LedgerError {
     MissingReworkAuthorization,
     UnexpectedReworkAuthorization,
     TerminalAttemptMutation(String),
+    AttemptAuthorizationConflict(String),
     InvalidStateProgression { from: TaskState, to: TaskState },
     MissingAcceptanceEvidence,
     DuplicateCostEntry(String),
@@ -279,6 +282,7 @@ impl FloorLedger {
             work_unit_id: work_unit_id.to_owned(),
             attempt_number: 0,
             task_id: task_id.clone(),
+            robot_config_digest: task.binding.robot_config_digest.clone(),
             state: task.state.clone(),
             output_evidence_ref: task.output_evidence_ref.clone(),
             acceptance_receipt_ref: task.acceptance_receipt_ref.clone(),
@@ -298,13 +302,18 @@ impl FloorLedger {
                 .filter(|item| item.attempt_number == *owner_attempt)
                 .ok_or_else(|| LedgerError::TaskIdAlreadyAssigned(task_id.clone()))?;
 
+            if snapshot.rework_authorization_ref.is_some()
+                && previous.rework_authorization_ref != snapshot.rework_authorization_ref
+            {
+                return Err(LedgerError::AttemptAuthorizationConflict(task_id));
+            }
+            if previous.state == snapshot.state
+                && previous.output_evidence_ref == snapshot.output_evidence_ref
+                && previous.acceptance_receipt_ref == snapshot.acceptance_receipt_ref
+            {
+                return Ok(ObserveOutcome::Duplicate);
+            }
             if previous.state.is_terminal() {
-                if previous.state == snapshot.state
-                    && previous.output_evidence_ref == snapshot.output_evidence_ref
-                    && previous.acceptance_receipt_ref == snapshot.acceptance_receipt_ref
-                {
-                    return Ok(ObserveOutcome::Duplicate);
-                }
                 return Err(LedgerError::TerminalAttemptMutation(task_id));
             }
             if !valid_progression(&previous.state, &snapshot.state) {
@@ -467,6 +476,7 @@ impl FloorLedger {
                             acceptance_contract_ref,
                             attempt_number: attempt.attempt_number,
                             task_id: attempt.task_id.clone(),
+                            robot_config_digest: attempt.robot_config_digest.clone(),
                             state: attempt.state.clone(),
                             output_evidence_ref: attempt.output_evidence_ref.clone(),
                             acceptance_receipt_ref: attempt.acceptance_receipt_ref.clone(),
