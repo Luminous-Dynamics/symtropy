@@ -133,6 +133,7 @@ pub struct AdmissionContext {
     /// Must come from a trusted proposal sequencer, not from the proposal.
     pub latest_issued_proposal_sequence: u64,
     pub current_state_revision_digest: Digest,
+    pub current_command_digest: Digest,
     /// Current epoch supplied by the independent actuator-authority service.
     pub current_actuator_authority_epoch: u64,
 }
@@ -158,6 +159,7 @@ pub enum RejectReason {
     ClockMismatch,
     ProfileMismatch,
     StateRevisionMismatch,
+    CommandMismatch,
     ProposalNotLatestIssued,
     ProposalExpired,
     ObservationFromFuture,
@@ -443,6 +445,9 @@ impl InteractionEnvelopeGate {
         if identity.state_revision_digest != context.current_state_revision_digest {
             reasons.push(RejectReason::StateRevisionMismatch);
         }
+        if identity.command_digest != context.current_command_digest {
+            reasons.push(RejectReason::CommandMismatch);
+        }
         if identity.proposal_sequence != context.latest_issued_proposal_sequence {
             reasons.push(RejectReason::ProposalNotLatestIssued);
         }
@@ -599,8 +604,8 @@ mod tests {
         EvidenceIdentity {
             sequence,
             proposal_sequence: sequence,
-            sampled_at_ns: 1_000 + (sequence - 1) * 10,
-            proposal_expires_at_ns: 2_000 + (sequence - 1) * 10,
+            sampled_at_ns: 1_000 + sequence.saturating_sub(1) * 10,
+            proposal_expires_at_ns: 2_000 + sequence.saturating_sub(1) * 10,
             clock: ClockIdentity {
                 clock_id: 7,
                 boot_epoch: 9,
@@ -651,13 +656,14 @@ mod tests {
 
     fn context(sequence: u64) -> AdmissionContext {
         AdmissionContext {
-            now_ns: 1_100 + (sequence - 1) * 10,
+            now_ns: 1_100 + sequence.saturating_sub(1) * 10,
             clock: ClockIdentity {
                 clock_id: 7,
                 boot_epoch: 9,
             },
             latest_issued_proposal_sequence: sequence,
             current_state_revision_digest: STATE_DIGEST,
+            current_command_digest: COMMAND_DIGEST,
             current_actuator_authority_epoch: 4,
         }
     }
@@ -819,6 +825,20 @@ mod tests {
         let mut current = context(1);
         current.current_state_revision_digest[0] ^= 1;
         rejects(bundle(1), current, RejectReason::StateRevisionMismatch);
+    }
+
+    #[test]
+    fn current_command_digest_is_checked_independently() {
+        let mut current = context(1);
+        current.current_command_digest[0] ^= 1;
+        rejects(bundle(1), current, RejectReason::CommandMismatch);
+    }
+
+    #[test]
+    fn zero_interaction_sequence_is_rejected() {
+        let mut evidence = bundle(1);
+        evidence.energy.identity.sequence = 0;
+        rejects(evidence, context(1), RejectReason::ZeroInteractionSequence);
     }
 
     #[test]
