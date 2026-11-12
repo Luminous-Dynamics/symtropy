@@ -148,7 +148,7 @@
     },
     "benchmark_suites": {
       "type": "array",
-      "minItems": 6,
+      "minItems": 8,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -168,8 +168,8 @@
               "B4_THEFT_RESILIENCE",
               "B5_LIFECYCLE_ECONOMICS",
               "B6_ASSURANCE_INTEROPERABILITY",
-              "B8_CABLE_DUCT_ROBOT",
-              "B7_WAYLEAVE_COORDINATION"
+              "B7_WAYLEAVE_COORDINATION",
+              "B8_CABLE_DUCT_ROBOT"
             ]
           },
           "name": {
