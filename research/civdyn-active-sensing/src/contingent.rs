@@ -161,6 +161,18 @@ fn better_solution(candidate: &NodeSolution, current: &NodeSolution, tolerance: 
     {
         return false;
     }
+    if candidate.maximum_path_energy_kwh + tolerance < current.maximum_path_energy_kwh {
+        return true;
+    }
+    if current.maximum_path_energy_kwh + tolerance < candidate.maximum_path_energy_kwh {
+        return false;
+    }
+    if candidate.maximum_path_latency_ticks < current.maximum_path_latency_ticks {
+        return true;
+    }
+    if current.maximum_path_latency_ticks < candidate.maximum_path_latency_ticks {
+        return false;
+    }
     candidate.first_sensor_id.as_deref().unwrap_or("")
         < current.first_sensor_id.as_deref().unwrap_or("")
 }
@@ -197,6 +209,9 @@ fn stop_solution(
                 .copied()
                 .ok_or_else(|| format!("missing cumulative penalty for {}", world.world_id))?;
             let net_service = policy.service_units - penalty;
+            if !net_service.is_finite() {
+                return Err(format!("non-finite post-sensing service in {}", world.world_id));
+            }
             if net_service + TOLERANCE < world.service_floor {
                 feasible = false;
                 break;
@@ -204,6 +219,9 @@ fn stop_solution(
 
             let truth = oracle_for(oracle, &world.world_id)?.oracle_service_units;
             let regret = (truth - net_service).max(0.0);
+            if !regret.is_finite() {
+                return Err(format!("non-finite contingent regret in {}", world.world_id));
+            }
             worst_regret = worst_regret.max(regret);
             leaf_receipts.push(ContingentLeafReceipt {
                 observation_history: history.to_vec(),
@@ -223,7 +241,7 @@ fn stop_solution(
             continue;
         }
 
-        let mut solution = NodeSolution {
+        let solution = NodeSolution {
             candidate: CandidatePolicyNode::StopAndAct {
                 action_id: policy_id.clone(),
             },
@@ -254,8 +272,6 @@ fn stop_solution(
         {
             best = Some(solution.clone());
         }
-        // Avoid an unnecessary mutable binding in downstream adapters.
-        solution.leaf_receipts.clear();
     }
     Ok(best)
 }
@@ -336,10 +352,10 @@ fn solve_node(
             let latency_penalty =
                 f64::from(sensor.latency_ticks) * prediction.latency_service_loss_per_tick;
             let cumulative_penalty = prior_penalty + energy_penalty + latency_penalty;
-            if !cumulative_penalty.is_finite()
-                || cumulative_penalty
-                    > config.maximum_penalty_service_units + config.tie_tolerance
-            {
+            if !cumulative_penalty.is_finite() {
+                return Err(format!("non-finite cumulative sensing penalty in {}", world.world_id));
+            }
+            if cumulative_penalty > config.maximum_penalty_service_units + config.tie_tolerance {
                 within_penalty_budget = false;
                 break;
             }
@@ -477,7 +493,6 @@ fn solve_node(
         {
             best = Some(solution.clone());
         }
-        solution.leaf_receipts.clear();
     }
 
     Ok(best)
@@ -578,6 +593,28 @@ pub fn assess_contingent_sensing(
             || worst_case_regret_reduction
                 .is_some_and(|reduction| reduction > config.tie_tolerance));
 
+    let mut evaluator_node_receipts = solution.node_receipts;
+    evaluator_node_receipts.sort_by(|left, right| {
+        left.observation_history
+            .cmp(&right.observation_history)
+            .then_with(|| left.node_kind.cmp(&right.node_kind))
+            .then_with(|| left.sensor_id.cmp(&right.sensor_id))
+            .then_with(|| left.action_id.cmp(&right.action_id))
+    });
+    let mut evaluator_prediction_receipts = solution.prediction_receipts;
+    evaluator_prediction_receipts.sort_by(|left, right| {
+        left.observation_history
+            .cmp(&right.observation_history)
+            .then_with(|| left.sensor_id.cmp(&right.sensor_id))
+            .then_with(|| left.world_id.cmp(&right.world_id))
+    });
+    let mut evaluator_leaf_receipts = solution.leaf_receipts;
+    evaluator_leaf_receipts.sort_by(|left, right| {
+        left.observation_history
+            .cmp(&right.observation_history)
+            .then_with(|| left.world_id.cmp(&right.world_id))
+    });
+
     Ok(ContingentSensingReport {
         scenario_id: config.scenario_id.clone(),
         source_digest: config.source_digest.clone(),
@@ -598,9 +635,9 @@ pub fn assess_contingent_sensing(
         } else {
             None
         },
-        evaluator_node_receipts: solution.node_receipts,
-        evaluator_prediction_receipts: solution.prediction_receipts,
-        evaluator_leaf_receipts: solution.leaf_receipts,
+        evaluator_node_receipts,
+        evaluator_prediction_receipts,
+        evaluator_leaf_receipts,
     })
 }
 
@@ -714,8 +751,8 @@ mod tests {
                 Some("ambiguous"),
                 vec![
                     ("healthy", "healthy", None, 0.1),
-                    ("degraded", "unclear", Some(MissingCause::SensorDeviceFailure), 0.1),
-                    ("healthy_sensor_fault", "unclear", Some(MissingCause::InspectionNonresponse), 0.1),
+                    ("degraded", "missing", Some(MissingCause::SensorDeviceFailure), 0.1),
+                    ("healthy_sensor_fault", "missing", Some(MissingCause::InspectionNonresponse), 0.1),
                 ],
             ),
             sensor(
@@ -814,6 +851,33 @@ mod tests {
         let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &items).unwrap();
         assert!(!report.recommended);
         assert!(!report.evaluator_node_receipts.iter().any(|receipt| receipt.sensor_id.as_deref() == Some("over_budget_followup")));
+    }
+
+    #[test]
+    fn input_order_does_not_change_the_selected_contingent_policy_or_receipts() {
+        let cfg = config();
+        let sensors_forward = sensors();
+        let mut sensors_reverse = sensors_forward.clone();
+        sensors_reverse.reverse();
+        let worlds_forward = worlds();
+        let mut worlds_reverse = worlds_forward.clone();
+        worlds_reverse.reverse();
+
+        let forward = assess_contingent_sensing(&cfg, &limits(2), &worlds_forward, &sensors_forward).unwrap();
+        let reverse = assess_contingent_sensing(&cfg, &limits(2), &worlds_reverse, &sensors_reverse).unwrap();
+        assert_eq!(forward.candidate_policy_tree, reverse.candidate_policy_tree);
+        assert_eq!(forward.worst_case_post_sensing_regret, reverse.worst_case_post_sensing_regret);
+        assert_eq!(forward.evaluator_node_receipts, reverse.evaluator_node_receipts);
+        assert_eq!(forward.evaluator_prediction_receipts, reverse.evaluator_prediction_receipts);
+        assert_eq!(forward.evaluator_leaf_receipts, reverse.evaluator_leaf_receipts);
+    }
+
+    #[test]
+    fn node_cap_is_enforced_during_recursive_search() {
+        let mut cap = limits(2);
+        cap.maximum_search_nodes = 1;
+        let error = assess_contingent_sensing(&config(), &cap, &worlds(), &sensors()).unwrap_err();
+        assert!(error.contains("SEARCH_SPACE_LIMIT"));
     }
 
     #[test]
