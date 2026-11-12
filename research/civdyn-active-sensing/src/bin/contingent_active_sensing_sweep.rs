@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 use civdyn_active_sensing::contingent::{
-    assess_contingent_sensing, CandidatePolicyBranch, CandidatePolicyNode,
-    ContingentPredictionReceipt, ContingentSearchLimits, ContingentSensor,
+    assess_contingent_sensing, CandidatePolicyNode, ContingentPredictionReceipt,
+    ContingentSearchLimits, ContingentSensor,
 };
 use civdyn_active_sensing::{
     DecisionWorld, MissingCause, PolicyOutcome, SensorAction, SensorPrediction,
