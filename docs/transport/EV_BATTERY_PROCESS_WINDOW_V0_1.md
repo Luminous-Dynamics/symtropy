@@ -61,7 +61,7 @@ Compare frozen recipe/SPC, DOE/response-surface, physical/statistical, tree/boos
 ## Metrics
 
 - strict process-conforming first-pass yield: passes within the declared process window divided by all declared runs (incomplete and out-of-window runs cannot count as passes);
-- per-lot and per-line conforming/nonconforming/incomplete counts;
+- process-window adherence rate and conditional complete-measurement conformance rate;
 - between-lot and between-line variation and worst-group performance;
 - out-of-window process-run frequency;
 - defect, scrap and rework burden;
