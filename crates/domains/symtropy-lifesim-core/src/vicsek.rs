@@ -2253,7 +2253,7 @@ mod tests {
         assert_eq!(metrics.local_order_coverage_fraction, 0.0);
         assert_eq!(metrics.mean_local_polar_order, None);
         assert_eq!(metrics.local_polar_order_variance, None);
-        assert_eq!(metrics.topology_metrics_computed, false);
+        assert!(!metrics.topology_metrics_computed);
         let full_metrics = model.metrics();
         assert_eq!(full_metrics.mean_clustering_coefficient, Some(0.0));
         assert_eq!(full_metrics.mean_shortest_path_length, None);
@@ -2680,7 +2680,7 @@ mod tests {
                 && metrics.mean_cluster_polar_order.is_finite()
                 && (0.0..=1.0).contains(&metrics.mean_cluster_polar_order)
                 && metrics.cluster_polar_order_variance.is_finite()
-                && metrics.topology_metrics_computed == false
+                && !metrics.topology_metrics_computed
                 && metrics.mean_clustering_coefficient.is_none()
                 && metrics.mean_shortest_path_length.is_none()
                 && metrics.connected_pair_fraction.is_none()
@@ -2789,8 +2789,8 @@ mod tests {
                 }
             }
 
-            for focal in 0..count {
-                if degrees[focal] == 0 {
+            for (focal, &degree) in degrees.iter().enumerate() {
+                if degree == 0 {
                     continue;
                 }
                 let a = model.particles[focal];
@@ -2806,8 +2806,9 @@ mod tests {
                         sum_sin += b.heading_rad.sin();
                     }
                 }
-                local_orders
-                    .push((sum_cos.hypot(sum_sin) / (degrees[focal] + 1) as f64).clamp(0.0, 1.0));
+                local_orders.push(
+                    (sum_cos.hypot(sum_sin) / (degree + 1) as f64).clamp(0.0, 1.0),
+                );
             }
             let mean_degree = degrees.iter().sum::<usize>() as f64 / count as f64;
             let degree_variance = degrees
