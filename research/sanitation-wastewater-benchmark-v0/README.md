@@ -247,6 +247,24 @@ An AI recommendation or model prediction has no effect authority. Physical inter
 
 A one-off local sanity pass parsed the schema and both fixtures and recomputed the declared water/constituent balances, BOD5/COD load-removal arithmetic, energy arithmetic and effluent/reuse allocation (25 checks passed). This was **not** execution of a full JSON-Schema validator, a Rust test suite, hosted CI, treatment-process physics, field test, or safety qualification. The numerical values are invented test vectors, not recommended design parameters or real-world observations.
 
+### Standalone Rust arithmetic auditor
+
+The package at `t0-auditor/` provides a JSON-reading CLI and a reusable library. It recomputes water and constituent closures, calculates BOD5/COD removal from flow-weighted loads (not concentration-only changes), checks gross/recovered/net energy and checks produced/allocated/delivered/stored/discharged water arithmetic. It rejects unsupported evidence ceilings and malformed inputs; it does not infer biological treatment performance, pathogen safety, water quality or discharge compliance.
+
+Commands from the repository root:
+
+```bash
+cargo test --manifest-path research/sanitation-wastewater-benchmark-v0/t0-auditor/Cargo.toml
+
+cargo run --manifest-path research/sanitation-wastewater-benchmark-v0/t0-auditor/Cargo.toml -- \
+  research/sanitation-wastewater-benchmark-v0/fixtures/synthetic-accounting-only-v0.1.json
+
+cargo run --manifest-path research/sanitation-wastewater-benchmark-v0/t0-auditor/Cargo.toml -- \
+  research/sanitation-wastewater-benchmark-v0/fixtures/synthetic-water-balance-negative-v0.1.json
+```
+
+Five Rust unit tests are authored, but they have **not** been executed in this environment because a Rust toolchain is unavailable here. A separate one-off JavaScript recomputation of both fixtures matched the expected positive and negative dispositions and all declared arithmetic. That check is not a Cargo test, a full JSON-Schema validation, CI, process-physics validation or a physical test.
+
 ## 11. South African design constraints to retain
 
 The Compulsory National Water and Sanitation Services Standards (Government Gazette 52814, 6 June 2025) are especially relevant:
