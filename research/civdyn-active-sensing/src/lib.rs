@@ -9,8 +9,8 @@
 
 #![forbid(unsafe_code)]
 
-pub mod sequential;
 pub mod contingent;
+pub mod sequential;
 
 use std::collections::{BTreeMap, BTreeSet};
 
