@@ -709,6 +709,22 @@ mod tests {
     }
 
     #[test]
+    fn influence_accumulator_can_restart_after_declared_burn_in() {
+        let mut model = pair(0.0, 0.8, vec![1.0, 2.0, 2.0, 1.0]);
+        model.run_steps(4).unwrap();
+        assert_eq!(model.influence_summary(0, 1).unwrap().frames, 4);
+
+        model.reset_influence_accumulator();
+        let reset = model.influence_summary(0, 1).unwrap();
+        assert_eq!(reset.frames, 0);
+        assert!(reset.mean_absolute_component_rad.is_none());
+        assert!(reset.absolute_mean_signed_component_rad.is_none());
+
+        model.run_steps(3).unwrap();
+        assert_eq!(model.influence_summary(0, 1).unwrap().frames, 3);
+    }
+
+    #[test]
     fn zero_interaction_weight_does_not_create_a_directed_edge() {
         let mut model = pair(0.0, std::f64::consts::FRAC_PI_2, vec![1.0, 0.0, 0.0, 1.0]);
         let before = model.particles().to_vec();
@@ -761,6 +777,7 @@ mod tests {
 
         assert_ne!(treatment.particles()[1].heading_rad, sham.particles()[1].heading_rad);
         assert_eq!(treatment.tick(), sham.tick());
+        assert_eq!(treatment.rng, sham.rng);
     }
 
     #[test]
