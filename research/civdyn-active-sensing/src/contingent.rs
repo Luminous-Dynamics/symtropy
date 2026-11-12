@@ -12,9 +12,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
-    ActiveSensingConfig, DecisionWorld, MissingCause, SensorAction, SensorPrediction,
-    SensorStatus, WorldOracle, TOLERANCE, baseline_no_sensing, find_policy, oracle_for,
-    validate_config, validate_sensor, validate_worlds,
+    ActiveSensingConfig, DecisionWorld, MissingCause, SensorAction, SensorPrediction, SensorStatus,
+    TOLERANCE, WorldOracle, baseline_no_sensing, find_policy, oracle_for, validate_config,
+    validate_sensor, validate_worlds,
 };
 
 const MAX_SENSORS: usize = 8;
@@ -211,7 +211,10 @@ fn stop_solution(
                 .ok_or_else(|| format!("missing cumulative penalty for {}", world.world_id))?;
             let net_service = policy.service_units - penalty;
             if !net_service.is_finite() {
-                return Err(format!("non-finite post-sensing service in {}", world.world_id));
+                return Err(format!(
+                    "non-finite post-sensing service in {}",
+                    world.world_id
+                ));
             }
             if net_service + TOLERANCE < world.service_floor {
                 feasible = false;
@@ -221,7 +224,10 @@ fn stop_solution(
             let truth = oracle_for(oracle, &world.world_id)?.oracle_service_units;
             let regret = (truth - net_service).max(0.0);
             if !regret.is_finite() {
-                return Err(format!("non-finite contingent regret in {}", world.world_id));
+                return Err(format!(
+                    "non-finite contingent regret in {}",
+                    world.world_id
+                ));
             }
             worst_regret = worst_regret.max(regret);
             leaf_receipts.push(ContingentLeafReceipt {
@@ -295,7 +301,10 @@ fn solve_node(
 ) -> Result<Option<NodeSolution>, String> {
     *search_nodes += 1;
     if *search_nodes > maximum_search_nodes {
-        return Err("SEARCH_SPACE_LIMIT: contingent sensor policy search exceeded its declared node cap".to_owned());
+        return Err(
+            "SEARCH_SPACE_LIMIT: contingent sensor policy search exceeded its declared node cap"
+                .to_owned(),
+        );
     }
 
     let mut best = stop_solution(
@@ -335,7 +344,10 @@ fn solve_node(
 
         let energy_penalty = sensor.energy_cost_kwh * sensor.service_units_per_kwh;
         if !energy_penalty.is_finite() {
-            return Err(format!("non-finite energy penalty for {}", sensor.sensor_id));
+            return Err(format!(
+                "non-finite energy penalty for {}",
+                sensor.sensor_id
+            ));
         }
 
         let mut grouped_worlds: BTreeMap<String, Vec<&DecisionWorld>> = BTreeMap::new();
@@ -346,7 +358,12 @@ fn solve_node(
         for world in worlds {
             let prediction = prediction_maps[sensor_index]
                 .get(&world.world_id)
-                .ok_or_else(|| format!("missing {} prediction for {}", sensor.sensor_id, world.world_id))?;
+                .ok_or_else(|| {
+                    format!(
+                        "missing {} prediction for {}",
+                        sensor.sensor_id, world.world_id
+                    )
+                })?;
             let prior_penalty = penalties
                 .get(&world.world_id)
                 .copied()
@@ -355,7 +372,10 @@ fn solve_node(
                 f64::from(sensor.latency_ticks) * prediction.latency_service_loss_per_tick;
             let cumulative_penalty = prior_penalty + energy_penalty + latency_penalty;
             if !cumulative_penalty.is_finite() {
-                return Err(format!("non-finite cumulative sensing penalty in {}", world.world_id));
+                return Err(format!(
+                    "non-finite cumulative sensing penalty in {}",
+                    world.world_id
+                ));
             }
             if cumulative_penalty > config.maximum_penalty_service_units + config.tie_tolerance {
                 within_penalty_budget = false;
@@ -516,7 +536,10 @@ pub fn assess_contingent_sensing(
         || limits.maximum_search_nodes == 0
         || limits.maximum_search_nodes > MAX_SEARCH_NODES
     {
-        return Err("SEARCH_SPACE_LIMIT: contingent depth must be <= 3 and node cap must be in 1..=10000".to_owned());
+        return Err(
+            "SEARCH_SPACE_LIMIT: contingent depth must be <= 3 and node cap must be in 1..=10000"
+                .to_owned(),
+        );
     }
     if sensors.len() > MAX_SENSORS {
         return Err("SEARCH_SPACE_LIMIT: contingent sensor catalogue exceeds 8 sensors".to_owned());
@@ -529,11 +552,17 @@ pub fn assess_contingent_sensing(
 
     for sensor in sensors {
         if !sensor_ids.insert(sensor.sensor.sensor_id.as_str()) {
-            return Err(format!("duplicate contingent sensor {}", sensor.sensor.sensor_id));
+            return Err(format!(
+                "duplicate contingent sensor {}",
+                sensor.sensor.sensor_id
+            ));
         }
         if let Some(required) = &sensor.required_previous_observation {
             if required.trim().is_empty() {
-                return Err(format!("empty sensor prerequisite for {}", sensor.sensor.sensor_id));
+                return Err(format!(
+                    "empty sensor prerequisite for {}",
+                    sensor.sensor.sensor_id
+                ));
             }
         }
         prediction_maps.push(validate_sensor(&sensor.sensor, worlds)?);
@@ -584,7 +613,10 @@ pub fn assess_contingent_sensing(
         });
     };
 
-    let root_is_sensor = matches!(&solution.candidate, CandidatePolicyNode::RequestSensor { .. });
+    let root_is_sensor = matches!(
+        &solution.candidate,
+        CandidatePolicyNode::RequestSensor { .. }
+    );
     let resolves_no_sensing_infeasibility =
         baseline.common_feasible_policy_count == 0 && root_is_sensor;
     let worst_case_regret_reduction = baseline
@@ -673,8 +705,14 @@ mod tests {
             world_digest: format!("sha256-{id}"),
             service_floor: 70.0,
             policies: vec![
-                super::super::PolicyOutcome { policy_id: "defer".to_owned(), service_units: defer },
-                super::super::PolicyOutcome { policy_id: "repair".to_owned(), service_units: repair },
+                super::super::PolicyOutcome {
+                    policy_id: "defer".to_owned(),
+                    service_units: defer,
+                },
+                super::super::PolicyOutcome {
+                    policy_id: "repair".to_owned(),
+                    service_units: repair,
+                },
             ],
         }
     }
@@ -697,14 +735,16 @@ mod tests {
     ) -> ContingentSensor {
         let predictions = outcomes
             .into_iter()
-            .map(|(world_id, observation_id, missing_cause, latency_loss)| SensorPrediction {
-                world_id: world_id.to_owned(),
-                world_digest: format!("sha256-{world_id}"),
-                observation_id: observation_id.to_owned(),
-                missing_cause,
-                latency_service_loss_per_tick: latency_loss,
-                prediction_receipt_digest: format!("sha256-{id}-{world_id}-receipt"),
-            })
+            .map(
+                |(world_id, observation_id, missing_cause, latency_loss)| SensorPrediction {
+                    world_id: world_id.to_owned(),
+                    world_digest: format!("sha256-{world_id}"),
+                    observation_id: observation_id.to_owned(),
+                    missing_cause,
+                    latency_service_loss_per_tick: latency_loss,
+                    prediction_receipt_digest: format!("sha256-{id}-{world_id}-receipt"),
+                },
+            )
             .collect();
         ContingentSensor {
             sensor: SensorAction {
@@ -729,8 +769,18 @@ mod tests {
                 None,
                 vec![
                     ("healthy", "healthy", None, 0.2),
-                    ("degraded", "missing", Some(MissingCause::CommonCausePowerLoss), 0.5),
-                    ("healthy_sensor_fault", "missing", Some(MissingCause::TelemetryNetworkFault), 0.1),
+                    (
+                        "degraded",
+                        "missing",
+                        Some(MissingCause::CommonCausePowerLoss),
+                        0.5,
+                    ),
+                    (
+                        "healthy_sensor_fault",
+                        "missing",
+                        Some(MissingCause::TelemetryNetworkFault),
+                        0.1,
+                    ),
                 ],
             ),
             sensor(
@@ -753,8 +803,18 @@ mod tests {
                 Some("missing"),
                 vec![
                     ("healthy", "healthy", None, 0.1),
-                    ("degraded", "missing", Some(MissingCause::SensorDeviceFailure), 0.1),
-                    ("healthy_sensor_fault", "missing", Some(MissingCause::InspectionNonresponse), 0.1),
+                    (
+                        "degraded",
+                        "missing",
+                        Some(MissingCause::SensorDeviceFailure),
+                        0.1,
+                    ),
+                    (
+                        "healthy_sensor_fault",
+                        "missing",
+                        Some(MissingCause::InspectionNonresponse),
+                        0.1,
+                    ),
                 ],
             ),
             sensor(
@@ -774,7 +834,8 @@ mod tests {
 
     #[test]
     fn contingent_tree_stops_on_easy_branch_and_inspects_only_ambiguous_branch() {
-        let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
+        let report =
+            assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
         assert_eq!(report.status, SensorStatus::Evaluated);
         assert!(report.recommended);
         assert_eq!(report.worst_case_regret_reduction, Some(13.6));
@@ -785,35 +846,64 @@ mod tests {
         assert_eq!(report.maximum_path_penalty_service_units, 1.4);
 
         let root = report.candidate_policy_tree.unwrap();
-        let CandidatePolicyNode::RequestSensor { sensor_id, branches } = root else {
+        let CandidatePolicyNode::RequestSensor {
+            sensor_id,
+            branches,
+        } = root
+        else {
             panic!("root must request the low-cost screen");
         };
         assert_eq!(sensor_id, "screen");
         assert_eq!(branches.len(), 2);
-        let healthy = branches.iter().find(|branch| branch.observation_id == "healthy").unwrap();
+        let healthy = branches
+            .iter()
+            .find(|branch| branch.observation_id == "healthy")
+            .unwrap();
         assert_eq!(
             *healthy.next,
-            CandidatePolicyNode::StopAndAct { action_id: "defer".to_owned() }
+            CandidatePolicyNode::StopAndAct {
+                action_id: "defer".to_owned()
+            }
         );
-        let ambiguous = branches.iter().find(|branch| branch.observation_id == "missing").unwrap();
-        let CandidatePolicyNode::RequestSensor { sensor_id, branches } = ambiguous.next.as_ref() else {
+        let ambiguous = branches
+            .iter()
+            .find(|branch| branch.observation_id == "missing")
+            .unwrap();
+        let CandidatePolicyNode::RequestSensor {
+            sensor_id,
+            branches,
+        } = ambiguous.next.as_ref()
+        else {
             panic!("only the ambiguous branch should request a follow-up");
         };
         assert_eq!(sensor_id, "independent_inspection");
         assert_eq!(branches.len(), 2);
         assert_eq!(
-            *branches.iter().find(|branch| branch.observation_id == "degraded").unwrap().next,
-            CandidatePolicyNode::StopAndAct { action_id: "repair".to_owned() }
+            *branches
+                .iter()
+                .find(|branch| branch.observation_id == "degraded")
+                .unwrap()
+                .next,
+            CandidatePolicyNode::StopAndAct {
+                action_id: "repair".to_owned()
+            }
         );
         assert_eq!(
-            *branches.iter().find(|branch| branch.observation_id == "healthy").unwrap().next,
-            CandidatePolicyNode::StopAndAct { action_id: "defer".to_owned() }
+            *branches
+                .iter()
+                .find(|branch| branch.observation_id == "healthy")
+                .unwrap()
+                .next,
+            CandidatePolicyNode::StopAndAct {
+                action_id: "defer".to_owned()
+            }
         );
     }
 
     #[test]
     fn one_step_greedy_screen_is_not_selected_over_no_sensing() {
-        let report = assess_contingent_sensing(&config(), &limits(1), &worlds(), &sensors()).unwrap();
+        let report =
+            assess_contingent_sensing(&config(), &limits(1), &worlds(), &sensors()).unwrap();
         assert!(!report.recommended);
         assert_eq!(
             report.candidate_policy_tree,
@@ -827,18 +917,33 @@ mod tests {
 
     #[test]
     fn distinct_hidden_missingness_causes_remain_one_public_observation_branch() {
-        let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
-        let screen_receipts: Vec<&ContingentPredictionReceipt> = report.evaluator_prediction_receipts
-            .iter().filter(|receipt| receipt.sensor_id == "screen" && receipt.observation_id == "missing")
+        let report =
+            assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
+        let screen_receipts: Vec<&ContingentPredictionReceipt> = report
+            .evaluator_prediction_receipts
+            .iter()
+            .filter(|receipt| receipt.sensor_id == "screen" && receipt.observation_id == "missing")
             .collect();
         assert_eq!(screen_receipts.len(), 2);
         assert_eq!(
-            screen_receipts.iter().map(|receipt| receipt.missing_cause.as_ref().unwrap()).collect::<BTreeSet<_>>().len(),
+            screen_receipts
+                .iter()
+                .map(|receipt| receipt.missing_cause.as_ref().unwrap())
+                .collect::<BTreeSet<_>>()
+                .len(),
             2
         );
         let root = report.candidate_policy_tree.unwrap();
-        let CandidatePolicyNode::RequestSensor { branches, .. } = root else { unreachable!() };
-        assert_eq!(branches.iter().filter(|branch| branch.observation_id == "missing").count(), 1);
+        let CandidatePolicyNode::RequestSensor { branches, .. } = root else {
+            unreachable!()
+        };
+        assert_eq!(
+            branches
+                .iter()
+                .filter(|branch| branch.observation_id == "missing")
+                .count(),
+            1
+        );
     }
 
     #[test]
@@ -862,7 +967,12 @@ mod tests {
         items.retain(|item| item.sensor.sensor_id != "independent_inspection");
         let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &items).unwrap();
         assert!(!report.recommended);
-        assert!(!report.evaluator_node_receipts.iter().any(|receipt| receipt.sensor_id.as_deref() == Some("over_budget_followup")));
+        assert!(
+            !report
+                .evaluator_node_receipts
+                .iter()
+                .any(|receipt| receipt.sensor_id.as_deref() == Some("over_budget_followup"))
+        );
     }
 
     #[test]
@@ -889,8 +999,18 @@ mod tests {
                 None,
                 vec![
                     ("healthy", "healthy", None, 0.1),
-                    ("degraded", "missing", Some(MissingCause::CommonCausePowerLoss), 0.1),
-                    ("healthy_sensor_fault", "missing", Some(MissingCause::TelemetryNetworkFault), 0.1),
+                    (
+                        "degraded",
+                        "missing",
+                        Some(MissingCause::CommonCausePowerLoss),
+                        0.1,
+                    ),
+                    (
+                        "healthy_sensor_fault",
+                        "missing",
+                        Some(MissingCause::TelemetryNetworkFault),
+                        0.1,
+                    ),
                     ("degraded_stuck_high", "healthy", None, 0.1),
                 ],
             ),
@@ -931,46 +1051,67 @@ mod tests {
         assert_eq!(report.maximum_path_latency_ticks, 2);
         assert_eq!(report.maximum_path_penalty_service_units, 0.6);
 
-        let CandidatePolicyNode::RequestSensor { sensor_id, branches } =
-            report.candidate_policy_tree.unwrap()
+        let CandidatePolicyNode::RequestSensor {
+            sensor_id,
+            branches,
+        } = report.candidate_policy_tree.unwrap()
         else {
             panic!("root must request the screening sensor");
         };
         assert_eq!(sensor_id, "screen");
-        let healthy = branches.iter().find(|branch| branch.observation_id == "healthy").unwrap();
-        let missing = branches.iter().find(|branch| branch.observation_id == "missing").unwrap();
+        let healthy = branches
+            .iter()
+            .find(|branch| branch.observation_id == "healthy")
+            .unwrap();
+        let missing = branches
+            .iter()
+            .find(|branch| branch.observation_id == "missing")
+            .unwrap();
 
-        let CandidatePolicyNode::RequestSensor { sensor_id, branches: healthy_branches } =
-            healthy.next.as_ref()
+        let CandidatePolicyNode::RequestSensor {
+            sensor_id,
+            branches: healthy_branches,
+        } = healthy.next.as_ref()
         else {
             panic!("false-healthy branch must request independent corroboration");
         };
         assert_eq!(sensor_id, "stuck_high_confirmation");
-        let CandidatePolicyNode::RequestSensor { sensor_id, branches: missing_branches } =
-            missing.next.as_ref()
+        let CandidatePolicyNode::RequestSensor {
+            sensor_id,
+            branches: missing_branches,
+        } = missing.next.as_ref()
         else {
             panic!("missing branch must request its own independent inspection");
         };
         assert_eq!(sensor_id, "independent_missing_branch_inspection");
 
         assert_eq!(
-            healthy_branches.iter().map(|branch| branch.observation_id.as_str()).collect::<BTreeSet<_>>(),
+            healthy_branches
+                .iter()
+                .map(|branch| branch.observation_id.as_str())
+                .collect::<BTreeSet<_>>(),
             BTreeSet::from(["verified_degraded", "verified_healthy"])
         );
         assert_eq!(
-            missing_branches.iter().map(|branch| branch.observation_id.as_str()).collect::<BTreeSet<_>>(),
+            missing_branches
+                .iter()
+                .map(|branch| branch.observation_id.as_str())
+                .collect::<BTreeSet<_>>(),
             BTreeSet::from(["verified_degraded", "verified_healthy"])
         );
     }
 
     #[test]
     fn mutually_exclusive_branch_costs_are_not_summed_across_the_whole_tree() {
-        let report = assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
-        let healthy_leaf = report.evaluator_leaf_receipts
+        let report =
+            assess_contingent_sensing(&config(), &limits(2), &worlds(), &sensors()).unwrap();
+        let healthy_leaf = report
+            .evaluator_leaf_receipts
             .iter()
             .find(|receipt| receipt.world_id == "healthy")
             .unwrap();
-        let degraded_leaf = report.evaluator_leaf_receipts
+        let degraded_leaf = report
+            .evaluator_leaf_receipts
             .iter()
             .find(|receipt| receipt.world_id == "degraded")
             .unwrap();
@@ -994,13 +1135,27 @@ mod tests {
         let mut worlds_reverse = worlds_forward.clone();
         worlds_reverse.reverse();
 
-        let forward = assess_contingent_sensing(&cfg, &limits(2), &worlds_forward, &sensors_forward).unwrap();
-        let reverse = assess_contingent_sensing(&cfg, &limits(2), &worlds_reverse, &sensors_reverse).unwrap();
+        let forward =
+            assess_contingent_sensing(&cfg, &limits(2), &worlds_forward, &sensors_forward).unwrap();
+        let reverse =
+            assess_contingent_sensing(&cfg, &limits(2), &worlds_reverse, &sensors_reverse).unwrap();
         assert_eq!(forward.candidate_policy_tree, reverse.candidate_policy_tree);
-        assert_eq!(forward.worst_case_post_sensing_regret, reverse.worst_case_post_sensing_regret);
-        assert_eq!(forward.evaluator_node_receipts, reverse.evaluator_node_receipts);
-        assert_eq!(forward.evaluator_prediction_receipts, reverse.evaluator_prediction_receipts);
-        assert_eq!(forward.evaluator_leaf_receipts, reverse.evaluator_leaf_receipts);
+        assert_eq!(
+            forward.worst_case_post_sensing_regret,
+            reverse.worst_case_post_sensing_regret
+        );
+        assert_eq!(
+            forward.evaluator_node_receipts,
+            reverse.evaluator_node_receipts
+        );
+        assert_eq!(
+            forward.evaluator_prediction_receipts,
+            reverse.evaluator_prediction_receipts
+        );
+        assert_eq!(
+            forward.evaluator_leaf_receipts,
+            reverse.evaluator_leaf_receipts
+        );
     }
 
     #[test]
@@ -1013,8 +1168,30 @@ mod tests {
 
     #[test]
     fn invalid_budget_depth_node_cap_and_duplicate_sensor_fail_closed() {
-        assert!(assess_contingent_sensing(&config(), &ContingentSearchLimits { maximum_sensor_depth: 4, maximum_search_nodes: 10 }, &worlds(), &sensors()).is_err());
-        assert!(assess_contingent_sensing(&config(), &ContingentSearchLimits { maximum_sensor_depth: 2, maximum_search_nodes: 0 }, &worlds(), &sensors()).is_err());
+        assert!(
+            assess_contingent_sensing(
+                &config(),
+                &ContingentSearchLimits {
+                    maximum_sensor_depth: 4,
+                    maximum_search_nodes: 10
+                },
+                &worlds(),
+                &sensors()
+            )
+            .is_err()
+        );
+        assert!(
+            assess_contingent_sensing(
+                &config(),
+                &ContingentSearchLimits {
+                    maximum_sensor_depth: 2,
+                    maximum_search_nodes: 0
+                },
+                &worlds(),
+                &sensors()
+            )
+            .is_err()
+        );
         let mut duplicate = sensors();
         duplicate.push(duplicate[0].clone());
         assert!(assess_contingent_sensing(&config(), &limits(2), &worlds(), &duplicate).is_err());
