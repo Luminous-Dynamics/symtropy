@@ -107,6 +107,110 @@ pub struct KerrNullConstants {
     pub carter_constant_over_m2: f64,
 }
 
+/// Exact equatorial prograde circular-photon-orbit data for a Kerr spin a/M in [0,1].
+///
+/// This helper is also the natural reference scale for the near-extremal
+/// strong-deflection crossover. Let kappa = sqrt(1-a^2). For kappa>0 the
+/// critical impact parameter is b_c/M = a + 2 r_ph sqrt(Delta_ph)/(r_ph-1),
+/// where r_ph/M = 1 + 2 sin^2(delta/2) + sqrt(3) sin(delta) and
+/// delta=(2/3) acos(a). The trigonometric form avoids subtracting two
+/// nearly equal numbers in 2[1+cos(2 acos(a)/3)] near extremality.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct KerrEquatorialProgradePhotonOrbit {
+    pub spin: f64,
+    pub extremality_parameter: f64,
+    pub radius_over_m: f64,
+    pub critical_impact_parameter_over_m: f64,
+}
+
+impl KerrEquatorialProgradePhotonOrbit {
+    pub fn from_spin(spin: f64) -> Result<Self, KerrGeodesicError> {
+        validate_spin(spin)?;
+        if spin < 0.0 {
+            return Err(KerrGeodesicError::InvalidProgradeSpin(spin));
+        }
+        let extremality_parameter = ((1.0 - spin) * (1.0 + spin)).sqrt();
+        if extremality_parameter == 0.0 {
+            return Ok(Self {
+                spin,
+                extremality_parameter,
+                radius_over_m: 1.0,
+                critical_impact_parameter_over_m: 2.0,
+            });
+        }
+
+        let delta_angle = (2.0 / 3.0) * spin.acos();
+        let half_sine = (0.5 * delta_angle).sin();
+        let radius_offset = 2.0 * half_sine * half_sine
+            + 3.0_f64.sqrt() * delta_angle.sin();
+        let radius_over_m = 1.0 + radius_offset;
+        // Delta=(r-1)^2-kappa^2 is better conditioned than r^2-2r+a^2
+        // for the near-horizon prograde photon orbit.
+        let delta_over_m2 = radius_offset.mul_add(radius_offset, -extremality_parameter.powi(2));
+        if !delta_over_m2.is_finite() || delta_over_m2 < 0.0 || radius_offset <= 0.0 {
+            return Err(KerrGeodesicError::NonFinite("prograde_photon_orbit_delta"));
+        }
+        let critical_impact_parameter_over_m = spin
+            + 2.0 * radius_over_m * delta_over_m2.sqrt() / radius_offset;
+        if !radius_over_m.is_finite()
+            || !critical_impact_parameter_over_m.is_finite()
+            || critical_impact_parameter_over_m <= 0.0
+        {
+            return Err(KerrGeodesicError::NonFinite("prograde_critical_impact_parameter"));
+        }
+        Ok(Self {
+            spin,
+            extremality_parameter,
+            radius_over_m,
+            critical_impact_parameter_over_m,
+        })
+    }
+
+    /// Impact parameter on the scattering side of the critical orbit:
+    /// b/M = b_c/M + kappa*chi, where chi must be positive.
+    pub fn impact_parameter_for_scaled_offset(
+        self,
+        scaled_offset_chi: f64,
+    ) -> Result<f64, KerrGeodesicError> {
+        if !scaled_offset_chi.is_finite()
+            || scaled_offset_chi <= 0.0
+            || self.extremality_parameter == 0.0
+        {
+            return Err(KerrGeodesicError::InvalidCriticalOffset(scaled_offset_chi));
+        }
+        Ok(self.critical_impact_parameter_over_m
+            + self.extremality_parameter * scaled_offset_chi)
+    }
+
+    /// Equatorial (Q=0), unit-energy null constants at the scaled critical offset.
+    pub fn null_constants_for_scaled_offset(
+        self,
+        scaled_offset_chi: f64,
+    ) -> Result<KerrNullConstants, KerrGeodesicError> {
+        let impact_parameter = self.impact_parameter_for_scaled_offset(scaled_offset_chi)?;
+        KerrNullConstants::new(1.0, impact_parameter, 0.0)
+    }
+
+    /// Leading uniform asymptotic strong-deflection phase from the
+    /// near-extremal prograde crossover variable chi:
+    /// Phi_LO = kappa^(-1) ln(1 + 2 sqrt(3)/chi).
+    ///
+    /// This is an asymptotic reference, not an exact finite-kappa deflection.
+    pub fn leading_uniform_deflection_phase(
+        self,
+        scaled_offset_chi: f64,
+    ) -> Result<f64, KerrGeodesicError> {
+        if !scaled_offset_chi.is_finite()
+            || scaled_offset_chi <= 0.0
+            || self.extremality_parameter == 0.0
+        {
+            return Err(KerrGeodesicError::InvalidCriticalOffset(scaled_offset_chi));
+        }
+        Ok((1.0 + 2.0 * 3.0_f64.sqrt() / scaled_offset_chi).ln()
+            / self.extremality_parameter)
+    }
+}
+
 impl KerrNullConstants {
     pub fn new(
         energy: f64,
@@ -582,6 +686,8 @@ pub enum KerrGeodesicError {
     NonFinite(&'static str),
     InvalidEnergy(f64),
     InvalidSpin(f64),
+    InvalidProgradeSpin(f64),
+    InvalidCriticalOffset(f64),
     InvalidRadius(f64),
     InvalidInclination(f64),
     InvalidPolarAngle(f64),
@@ -672,6 +778,12 @@ impl fmt::Display for KerrGeodesicError {
             }
             Self::InvalidSpin(value) => {
                 write!(f, "dimensionless Kerr spin {value} is outside [-1, 1]")
+            }
+            Self::InvalidProgradeSpin(value) => {
+                write!(f, "equatorial prograde photon orbit requires spin in [0, 1], got {value}")
+            }
+            Self::InvalidCriticalOffset(value) => {
+                write!(f, "near-extremal critical offset chi must be finite and positive, got {value}")
             }
             Self::InvalidRadius(value) => {
                 write!(
@@ -4011,5 +4123,100 @@ mod tests {
         close(outward.d_radius_over_m, -inward.d_radius_over_m, 2e-14);
         close(outward.d_time_over_m, inward.d_time_over_m, 2e-14);
         close(outward.d_azimuth_rad, inward.d_azimuth_rad, 2e-14);
+    }
+}
+
+
+#[cfg(test)]
+mod near_extremal_prograde_photon_orbit_tests {
+    use super::*;
+
+    fn close(actual: f64, expected: f64, absolute_tolerance: f64) {
+        assert!(
+            (actual - expected).abs() <= absolute_tolerance,
+            "actual={actual:.15e}, expected={expected:.15e}, tolerance={absolute_tolerance:.3e}"
+        );
+    }
+
+    #[test]
+    fn prograde_photon_orbit_matches_schwarzschild_and_spin_point_nine_references() {
+        let schwarzschild = KerrEquatorialProgradePhotonOrbit::from_spin(0.0).unwrap();
+        close(schwarzschild.radius_over_m, 3.0, 2e-14);
+        close(
+            schwarzschild.critical_impact_parameter_over_m,
+            3.0 * 3.0_f64.sqrt(),
+            2e-13,
+        );
+        let spin_nine = KerrEquatorialProgradePhotonOrbit::from_spin(0.9).unwrap();
+        close(spin_nine.radius_over_m, 1.557_854_627_423_382_9, 2e-14);
+        close(
+            spin_nine.critical_impact_parameter_over_m,
+            2.844_421_403_476_169,
+            2e-13,
+        );
+    }
+
+    #[test]
+    fn prograde_photon_orbit_has_the_correct_extremal_limit() {
+        let extremal = KerrEquatorialProgradePhotonOrbit::from_spin(1.0).unwrap();
+        assert_eq!(extremal.extremality_parameter, 0.0);
+        assert_eq!(extremal.radius_over_m, 1.0);
+        assert_eq!(extremal.critical_impact_parameter_over_m, 2.0);
+    }
+
+    #[test]
+    fn near_extremal_critical_impact_parameter_has_sqrt_three_scaling() {
+        let mut previous_error = f64::INFINITY;
+        for kappa in [1e-1, 3e-2, 1e-2, 3e-3, 1e-3] {
+            let spin = (1.0 - kappa * kappa).sqrt();
+            let orbit = KerrEquatorialProgradePhotonOrbit::from_spin(spin).unwrap();
+            let ratio =
+                (orbit.critical_impact_parameter_over_m - 2.0) / orbit.extremality_parameter;
+            let error = (ratio - 3.0_f64.sqrt()).abs();
+            assert!(error < previous_error);
+            previous_error = error;
+        }
+        assert!(previous_error < 4e-4);
+    }
+
+    #[test]
+    fn near_extremal_crossover_offset_constructs_equatorial_null_constants() {
+        let kappa: f64 = 1e-3;
+        let orbit =
+            KerrEquatorialProgradePhotonOrbit::from_spin((1.0 - kappa * kappa).sqrt()).unwrap();
+        let constants = orbit.null_constants_for_scaled_offset(0.5).unwrap();
+        close(constants.energy, 1.0, 0.0);
+        close(
+            constants.angular_momentum_z_over_m,
+            orbit.critical_impact_parameter_over_m + 0.5 * orbit.extremality_parameter,
+            1e-14,
+        );
+        close(constants.carter_constant_over_m2, 0.0, 0.0);
+        let phase = orbit.leading_uniform_deflection_phase(0.5).unwrap();
+        close(
+            phase * orbit.extremality_parameter,
+            (1.0 + 2.0 * 3.0_f64.sqrt() / 0.5).ln(),
+            1e-13,
+        );
+    }
+
+    #[test]
+    fn near_extremal_prograde_helper_rejects_wrong_branch_and_nonpositive_offsets() {
+        assert!(matches!(
+            KerrEquatorialProgradePhotonOrbit::from_spin(-0.5),
+            Err(KerrGeodesicError::InvalidProgradeSpin(-0.5))
+        ));
+        let orbit = KerrEquatorialProgradePhotonOrbit::from_spin(0.9).unwrap();
+        for chi in [0.0, -0.5, f64::NAN, f64::INFINITY] {
+            assert!(matches!(
+                orbit.impact_parameter_for_scaled_offset(chi),
+                Err(KerrGeodesicError::InvalidCriticalOffset(_))
+            ));
+        }
+        let extremal = KerrEquatorialProgradePhotonOrbit::from_spin(1.0).unwrap();
+        assert!(matches!(
+            extremal.leading_uniform_deflection_phase(1.0),
+            Err(KerrGeodesicError::InvalidCriticalOffset(1.0))
+        ));
     }
 }
