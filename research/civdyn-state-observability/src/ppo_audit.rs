@@ -171,7 +171,10 @@ fn expected_group(id: &str) -> Option<ExpectedGroup> {
 }
 
 fn model_matches(group: ExpectedGroup, actual: &str) -> bool {
-    if group.id.starts_with("experiments/logs_PPO_stacked/predator/") {
+    if group
+        .id
+        .starts_with("experiments/logs_PPO_stacked/predator/")
+    {
         matches!(actual, "pred" | "predator")
     } else {
         actual == group.model
@@ -380,11 +383,13 @@ mod tests {
 
     #[test]
     fn stacked_predator_model_alias_is_preserved_and_scoped() {
-        let stacked_predator = expected_group("experiments/logs_PPO_stacked/predator/mcar_search_big").unwrap();
+        let stacked_predator =
+            expected_group("experiments/logs_PPO_stacked/predator/mcar_search_big").unwrap();
         assert!(model_matches(stacked_predator, "pred"));
         assert!(model_matches(stacked_predator, "predator"));
         assert!(!model_matches(stacked_predator, "icu"));
-        let unstacked_predator = expected_group("experiments/logs_PPO/predator/mcar_search_big").unwrap();
+        let unstacked_predator =
+            expected_group("experiments/logs_PPO/predator/mcar_search_big").unwrap();
         assert!(model_matches(unstacked_predator, "predator"));
         assert!(!model_matches(unstacked_predator, "pred"));
     }
