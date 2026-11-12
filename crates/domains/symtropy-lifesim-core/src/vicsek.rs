@@ -611,6 +611,23 @@ impl VicsekModel {
         seed: u64,
         perception: VicsekPerception,
     ) -> Result<Self, VicsekError> {
+        Self::random_uniform_with_options(
+            particle_count,
+            config,
+            seed,
+            perception,
+            VicsekHeadingMean::QuadrantCorrectAtan2,
+        )
+    }
+
+    /// Create a seeded population with explicit perception and heading-mean conventions.
+    pub fn random_uniform_with_options(
+        particle_count: usize,
+        config: VicsekConfig,
+        seed: u64,
+        perception: VicsekPerception,
+        heading_mean: VicsekHeadingMean,
+    ) -> Result<Self, VicsekError> {
         config.validate()?;
         let perception = perception.normalized()?;
         if particle_count == 0 {
@@ -625,13 +642,7 @@ impl VicsekModel {
             })
             .collect();
         // Continue the initialization stream for later angular-noise draws.
-        Self::from_particles_and_rng(
-            particles,
-            config,
-            rng,
-            perception,
-            VicsekHeadingMean::QuadrantCorrectAtan2,
-        )
+        Self::from_particles_and_rng(particles, config, rng, perception, heading_mean)
     }
 
     pub const fn config(&self) -> VicsekConfig {
@@ -761,6 +772,42 @@ impl VicsekModel {
         Ok(CommonFieldIntervention {
             tick: self.tick,
             heading_impulse_rad,
+            affected_particle_count: self.particles.len(),
+        })
+    }
+
+    /// Apply the adaptive global phase shift used by Takahashi et al. (2026).
+    ///
+    /// The population mean is computed after mapping each heading into the principal
+    /// interval (-π, π]. The shift is then applied to those principal-value headings
+    /// without wrapping the shifted values back into [0, 2π). This preserves the
+    /// paper's global phase reference for the immediately following update; callers
+    /// should call this once before every step when reproducing the adaptive protocol.
+    ///
+    /// This is a benchmark intervention, not a physical torque or individual-agent action.
+    pub fn apply_adaptive_global_phase_shift(
+        &mut self,
+        target_phase_rad: f64,
+    ) -> Result<CommonFieldIntervention, VicsekError> {
+        if !target_phase_rad.is_finite() {
+            return Err(VicsekError::NonFiniteCommonFieldImpulse(target_phase_rad));
+        }
+        let population_mean = self
+            .particles
+            .iter()
+            .map(|particle| wrap_signed_angle(particle.heading_rad))
+            .sum::<f64>()
+            / self.particles.len() as f64;
+        let impulse = target_phase_rad - population_mean;
+        if !impulse.is_finite() {
+            return Err(VicsekError::NonFiniteCommonFieldImpulse(impulse));
+        }
+        for particle in &mut self.particles {
+            particle.heading_rad = wrap_signed_angle(particle.heading_rad) + impulse;
+        }
+        Ok(CommonFieldIntervention {
+            tick: self.tick,
+            heading_impulse_rad: impulse,
             affected_particle_count: self.particles.len(),
         })
     }
