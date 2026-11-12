@@ -2480,8 +2480,7 @@ mod tests {
                     positions.push((x, y));
                 }
 
-                let Some(index) = PeriodicNeighborIndex::new(&positions, box_size, radius)
-                else {
+                let Some(index) = PeriodicNeighborIndex::new(&positions, box_size, radius) else {
                     // The documented fallback scans all particles and cannot omit a neighbour.
                     continue;
                 };
@@ -2493,13 +2492,8 @@ mod tests {
                         "candidate indices must be sorted and unique"
                     );
                     for (target_index, &target) in positions.iter().enumerate() {
-                        let (dx, dy) = periodic_displacement(
-                            focal.0,
-                            focal.1,
-                            target.0,
-                            target.1,
-                            box_size,
-                        );
+                        let (dx, dy) =
+                            periodic_displacement(focal.0, focal.1, target.0, target.1, box_size);
                         let is_true_neighbor = dx.hypot(dy) <= radius;
                         if is_true_neighbor {
                             assert!(
