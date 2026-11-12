@@ -9,7 +9,7 @@
 
 This is an independently authored CPU reference for the consensus-coupled adaptive-noise search model described by Nitti et al. (2025). It is deliberately not a port of the MATLAB source. The upstream repository lacks a visible software licence and the Zenodo rights metadata did not expose a licence, so no MATLAB source files are copied or redistributed.
 
-The implementation preserves the source distinction that must be reconciled: the accessible HTML paper equation renders a sine argument of (2/\pi\), while the inspected MATLAB source uses (\pi/2\). The code exposes both as separate `ScmInteractionKernel` variants. It does not silently call either a definitive reproduction.
+The source audit resolves the social-kernel equation: the published discrete update equation and the pinned MATLAB `SCM/tstep.m` both use `sin((π/2) * delta_x)`. The earlier apparent `2/π` alternative was a misreading and has been removed. The Rust reference now has one `ScmInteractionKernel::PublishedEquationAndMatlabSource` variant. This resolves the formula ambiguity only; source reproduction, RNG parity, supplementary-data reproduction and benchmark validation remain pending.
 
 ## Model structure
 
@@ -23,7 +23,7 @@ The update is synchronous and uses an Euler-style drift plus Gaussian increment.
 
 ## Numerical and evidence safeguards
 
-1. **Equation ambiguity remains visible.** `PublishedHtmlEquation` uses sine scale (2/\pi\); `RepositoryMatlabSource` uses (\pi/2\). Their trajectories are explicitly tested to differ.
+1. **Published and MATLAB social kernels agree.** Both use sine scale (π/2); a regression test pins this exact value. No alternate `2/π` kernel is retained.
 2. **Zero gradient:** the source gain (\xi=1/\operatorname{mean}(\|\nabla V\|)\) is singular. The reference uses finite zero gradient gain and records the degeneracy.
 3. **Zero swarm spread:** if (D_{max}=0), the per-agent noise weights are set to zero and the degeneracy is reported.
 4. **Equal fitness:** a zero shifted-weight sum falls back to the unweighted centroid.
@@ -37,7 +37,7 @@ The independent Rust PRNG (xorshift64 + Box-Muller) is not MATLAB's RNG. It supp
 ## Tests added
 
 The source includes seventeen tests for:
-- the two equation variants being distinct and producing different one-step social trajectories;
+- the published and pinned MATLAB social-kernel scale being exactly π/2;
 - paper-style and MATLAB-inclusive consensus-window conventions updating at their separately declared first ticks;
 - trajectory divergence under the two kernels;
 - deterministic Rust replay;
@@ -60,7 +60,7 @@ These are source-level tests. Rust formatting, compilation, unit execution and e
 - Matched PSO and MIPA runs.
 - The moving contaminant field and AUV dynamic simulation.
 - The source MATLAB RNG law and bitwise trajectory values.
-- The correct sine scaling until PDF/SI and source code are reconciled.
+- The source-matched consensus-window indexing and benchmark reproduction.
 
 ## Competitive plan
 
