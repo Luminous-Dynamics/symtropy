@@ -48,6 +48,7 @@ pub mod safety;
 pub mod sanctuary;
 pub mod simple_field;
 pub mod spatial_hash;
+pub mod thermal_entropy;
 pub mod thermodynamics;
 #[cfg(feature = "wasm")]
 pub mod wasm_bindings;
@@ -70,4 +71,9 @@ pub use proc_gen::{
 pub use safety::SafetyTier;
 pub use sanctuary::SanctuaryZone;
 pub use simple_field::{SimpleCoupledField, SimpleEntity};
+pub use thermal_entropy::{
+    SecondLawStatus, ThermalEntropyBalance, ThermalEntropyError,
+    constant_heat_capacity_entropy_change, evaluate_constant_capacity_heat_exchange,
+    fixed_temperature_bath_entropy_change,
+};
 pub use thermodynamics::{ThermodynamicConstants, ThermodynamicLedger};
