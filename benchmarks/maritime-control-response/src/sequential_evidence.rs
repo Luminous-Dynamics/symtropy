@@ -156,22 +156,64 @@ pub enum SequentialEvidenceError {
 impl fmt::Display for SequentialEvidenceError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidModel => write!(formatter, "sequential likelihood model identity or support is invalid"),
-            Self::InvalidConfig => write!(formatter, "sequential evidence alpha allocation is invalid"),
-            Self::InvalidProbability => write!(formatter, "sequential outcome probability is negative, zero, non-finite or above one"),
+            Self::InvalidModel => write!(
+                formatter,
+                "sequential likelihood model identity or support is invalid"
+            ),
+            Self::InvalidConfig => {
+                write!(formatter, "sequential evidence alpha allocation is invalid")
+            }
+            Self::InvalidProbability => write!(
+                formatter,
+                "sequential outcome probability is negative, zero, non-finite or above one"
+            ),
             Self::InvalidIdentity => write!(formatter, "sequential evidence identity is empty"),
-            Self::InvalidDigest => write!(formatter, "sequential evidence digest is not lowercase SHA-256"),
-            Self::DuplicateOutcome(id) => write!(formatter, "duplicate sequential outcome identity: {id}"),
-            Self::InvalidLikelihoodNormalization => write!(formatter, "null and alternative outcome distributions must each sum to one"),
-            Self::ModelBindingMismatch => write!(formatter, "sequential observation belongs to a different model, channel or calibration"),
-            Self::RecordingChanged => write!(formatter, "recording identity changed inside sequential evidence session"),
-            Self::NonMonotonicSample => write!(formatter, "sample index or timestamp did not increase"),
-            Self::SampleSequenceGap => write!(formatter, "sequential evidence stream skipped one or more sample indices"),
-            Self::UnknownOutcome(id) => write!(formatter, "observation is outside the frozen likelihood support: {id}"),
-            Self::SessionPoisoned => write!(formatter, "sequential evidence session is poisoned and requires reconciliation"),
-            Self::ReceiptChainBreak => write!(formatter, "sequential evidence receipt chain is incomplete or out of order"),
-            Self::ReceiptIntegrityFailure => write!(formatter, "sequential evidence receipt digest or log-evidence replay failed"),
-            Self::MixedModelChain => write!(formatter, "sequential evidence receipt chain mixes different frozen models"),
+            Self::InvalidDigest => write!(
+                formatter,
+                "sequential evidence digest is not lowercase SHA-256"
+            ),
+            Self::DuplicateOutcome(id) => {
+                write!(formatter, "duplicate sequential outcome identity: {id}")
+            }
+            Self::InvalidLikelihoodNormalization => write!(
+                formatter,
+                "null and alternative outcome distributions must each sum to one"
+            ),
+            Self::ModelBindingMismatch => write!(
+                formatter,
+                "sequential observation belongs to a different model, channel or calibration"
+            ),
+            Self::RecordingChanged => write!(
+                formatter,
+                "recording identity changed inside sequential evidence session"
+            ),
+            Self::NonMonotonicSample => {
+                write!(formatter, "sample index or timestamp did not increase")
+            }
+            Self::SampleSequenceGap => write!(
+                formatter,
+                "sequential evidence stream skipped one or more sample indices"
+            ),
+            Self::UnknownOutcome(id) => write!(
+                formatter,
+                "observation is outside the frozen likelihood support: {id}"
+            ),
+            Self::SessionPoisoned => write!(
+                formatter,
+                "sequential evidence session is poisoned and requires reconciliation"
+            ),
+            Self::ReceiptChainBreak => write!(
+                formatter,
+                "sequential evidence receipt chain is incomplete or out of order"
+            ),
+            Self::ReceiptIntegrityFailure => write!(
+                formatter,
+                "sequential evidence receipt digest or log-evidence replay failed"
+            ),
+            Self::MixedModelChain => write!(
+                formatter,
+                "sequential evidence receipt chain mixes different frozen models"
+            ),
             Self::Serialization => write!(formatter, "failed to serialize sequential evidence"),
         }
     }
@@ -245,7 +287,9 @@ impl SequentialLikelihoodModel {
     }
 
     fn likelihood(&self, outcome_id: &str) -> Option<&SequentialOutcomeLikelihood> {
-        self.outcomes.iter().find(|outcome| outcome.outcome_id == outcome_id)
+        self.outcomes
+            .iter()
+            .find(|outcome| outcome.outcome_id == outcome_id)
     }
 }
 
@@ -328,7 +372,10 @@ impl SequentialEvidenceSession {
         } else if observation.sample_index != 0 {
             return Err(SequentialEvidenceError::SampleSequenceGap);
         }
-        if self.previous_time_seconds.is_some_and(|time| observation.time_seconds <= time) {
+        if self
+            .previous_time_seconds
+            .is_some_and(|time| observation.time_seconds <= time)
+        {
             return Err(SequentialEvidenceError::NonMonotonicSample);
         }
         let Some(likelihood) = self.model.likelihood(&observation.outcome_id) else {
@@ -340,8 +387,8 @@ impl SequentialEvidenceSession {
 
         // E_t = product_i p_1(x_i) / p_0(x_i); accumulating in log space
         // avoids overflow and makes replay deterministic.
-        let increment = likelihood.probability_under_alternative.ln()
-            - likelihood.probability_under_null.ln();
+        let increment =
+            likelihood.probability_under_alternative.ln() - likelihood.probability_under_null.ln();
         let next_log_evalue = self.log_evalue + increment;
         if !increment.is_finite() || !next_log_evalue.is_finite() {
             self.poisoned = true;
@@ -473,10 +520,12 @@ pub fn validate_sequential_evidence_chain(
             return Err(SequentialEvidenceError::ReceiptIntegrityFailure);
         }
         let Some(likelihood) = model.likelihood(&receipt.outcome_id) else {
-            return Err(SequentialEvidenceError::UnknownOutcome(receipt.outcome_id.clone()));
+            return Err(SequentialEvidenceError::UnknownOutcome(
+                receipt.outcome_id.clone(),
+            ));
         };
-        log_evalue += likelihood.probability_under_alternative.ln()
-            - likelihood.probability_under_null.ln();
+        log_evalue +=
+            likelihood.probability_under_alternative.ln() - likelihood.probability_under_null.ln();
         threshold_crossed |= log_evalue >= expected_threshold;
         if (receipt.log_evalue - log_evalue).abs() > 1e-10
             || receipt.threshold_crossed != threshold_crossed
@@ -620,15 +669,21 @@ mod tests {
     #[test]
     fn repeated_alternative_evidence_crosses_anytime_threshold_and_replays() {
         let model = model();
-        let mut session =
-            SequentialEvidenceSession::new(model.clone(), config(), "run-1").unwrap();
+        let mut session = SequentialEvidenceSession::new(model.clone(), config(), "run-1").unwrap();
         let mut receipts = Vec::new();
         for index in 0..8 {
-            receipts.push(session.append(&observation(index, "fault_signature")).unwrap());
+            receipts.push(
+                session
+                    .append(&observation(index, "fault_signature"))
+                    .unwrap(),
+            );
         }
         assert_eq!(session.status(), SequentialEvidenceStatus::ThresholdCrossed);
         assert!(session.log_evalue() >= config().log_evidence_threshold().unwrap());
-        assert_eq!(receipts.last().unwrap().alternative_hypothesis_id, model.alternative_hypothesis_id);
+        assert_eq!(
+            receipts.last().unwrap().alternative_hypothesis_id,
+            model.alternative_hypothesis_id
+        );
         assert!(validate_sequential_evidence_chain(&model, &config(), &receipts).is_ok());
     }
 
@@ -636,7 +691,9 @@ mod tests {
     fn null_consistent_evidence_does_not_cross_the_fault_threshold() {
         let mut session = SequentialEvidenceSession::new(model(), config(), "run-1").unwrap();
         for index in 0..30 {
-            session.append(&observation(index, "nominal_signature")).unwrap();
+            session
+                .append(&observation(index, "nominal_signature"))
+                .unwrap();
         }
         assert_eq!(session.status(), SequentialEvidenceStatus::BelowThreshold);
         assert!(session.log_evalue() < 0.0);
@@ -700,10 +757,11 @@ mod tests {
         );
 
         let model = model();
-        let mut session =
-            SequentialEvidenceSession::new(model.clone(), config(), "run-1").unwrap();
+        let mut session = SequentialEvidenceSession::new(model.clone(), config(), "run-1").unwrap();
         let first = session.append(&observation(0, "fault_signature")).unwrap();
-        let mut second = session.append(&observation(1, "nominal_signature")).unwrap();
+        let mut second = session
+            .append(&observation(1, "nominal_signature"))
+            .unwrap();
         second.log_evalue += 0.1;
         assert_eq!(
             validate_sequential_evidence_chain(&model, &config(), &[first, second]),
@@ -715,7 +773,10 @@ mod tests {
     fn sequential_protocol_discloses_stationarity_and_optional_stopping_assumptions() {
         let protocol: serde_json::Value =
             serde_json::from_str(include_str!("../sequential-evidence-v0.1.json")).unwrap();
-        assert_eq!(protocol["schema_version"], "symtropy-sequential-evidence-v0.1");
+        assert_eq!(
+            protocol["schema_version"],
+            "symtropy-sequential-evidence-v0.1"
+        );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert_eq!(
             protocol["protocol_constraints"]["one_input_one_receipt"],
@@ -754,22 +815,30 @@ mod tests {
             protocol["familywise_control"]["default"]["alternative_count"],
             4
         );
-        assert!(protocol["validity_conditions"]["observations"]
-            .as_str()
-            .unwrap()
-            .contains("conditionally independent"));
-        assert!(protocol["validity_conditions"]["optional_stopping"]
-            .as_str()
-            .unwrap()
-            .contains("Ville"));
-        assert!(protocol["claim_ceiling"]
-            .as_str()
-            .unwrap()
-            .contains("temporal-dependence assumptions are reviewed"));
-        assert!(protocol["research_targets_not_achieved"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|target| target["status"] == "aspirational"));
+        assert!(
+            protocol["validity_conditions"]["observations"]
+                .as_str()
+                .unwrap()
+                .contains("conditionally independent")
+        );
+        assert!(
+            protocol["validity_conditions"]["optional_stopping"]
+                .as_str()
+                .unwrap()
+                .contains("Ville")
+        );
+        assert!(
+            protocol["claim_ceiling"]
+                .as_str()
+                .unwrap()
+                .contains("temporal-dependence assumptions are reviewed")
+        );
+        assert!(
+            protocol["research_targets_not_achieved"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|target| target["status"] == "aspirational")
+        );
     }
 }
