@@ -26,10 +26,14 @@ pub struct MotionSalienceGateConfig {
 impl MotionSalienceGateConfig {
     pub fn validate(self) -> Result<(), MotionSalienceError> {
         if !self.threshold_rad_per_second.is_finite() {
-            return Err(MotionSalienceError::NonFiniteParameter("threshold_rad_per_second"));
+            return Err(MotionSalienceError::NonFiniteParameter(
+                "threshold_rad_per_second",
+            ));
         }
         if self.threshold_rad_per_second < 0.0 {
-            return Err(MotionSalienceError::NegativeParameter("threshold_rad_per_second"));
+            return Err(MotionSalienceError::NegativeParameter(
+                "threshold_rad_per_second",
+            ));
         }
         Ok(())
     }
@@ -98,14 +102,23 @@ impl fmt::Display for MotionSalienceError {
             Self::NonFiniteParameter(name) => write!(f, "{name} must be finite"),
             Self::NegativeParameter(name) => write!(f, "{name} must be non-negative"),
             Self::NonPositiveSampleInterval => write!(f, "sample interval must be finite and > 0"),
-            Self::SelfInteraction { agent_id } => write!(f, "agent {agent_id} cannot see itself as a distinct neighbour"),
+            Self::SelfInteraction { agent_id } => write!(
+                f,
+                "agent {agent_id} cannot see itself as a distinct neighbour"
+            ),
             Self::DuplicateAgentId(id) => write!(f, "duplicate agent id {id}"),
             Self::MissingSourceAgent(id) => write!(f, "source agent {id} is missing"),
-            Self::SourceMustRespondAtTimeZero(id) => write!(f, "source agent {id} must respond at time zero"),
+            Self::SourceMustRespondAtTimeZero(id) => {
+                write!(f, "source agent {id} must respond at time zero")
+            }
             Self::MissingMatchedSham => write!(f, "a matched sham is required"),
-            Self::CommonRandomNumbersRequired => write!(f, "pulse and sham must use common random numbers"),
+            Self::CommonRandomNumbersRequired => {
+                write!(f, "pulse and sham must use common random numbers")
+            }
             Self::EmptyPopulation => write!(f, "pulse propagation population must not be empty"),
-            Self::InvalidObservationValue { agent_id, field } => write!(f, "agent {agent_id} has invalid {field}"),
+            Self::InvalidObservationValue { agent_id, field } => {
+                write!(f, "agent {agent_id} has invalid {field}")
+            }
         }
     }
 }
@@ -124,7 +137,9 @@ pub fn evaluate_motion_salience(
 ) -> Result<MotionSalienceDecision, MotionSalienceError> {
     config.validate()?;
     if sample.observer_id == sample.target_id {
-        return Err(MotionSalienceError::SelfInteraction { agent_id: sample.observer_id });
+        return Err(MotionSalienceError::SelfInteraction {
+            agent_id: sample.observer_id,
+        });
     }
     if !sample.previous_bearing_rad.is_finite() {
         return Err(MotionSalienceError::InvalidObservationValue {
@@ -199,10 +214,22 @@ impl Default for PassabilityCriteria {
 impl PassabilityCriteria {
     fn validate(self) -> Result<(), MotionSalienceError> {
         for (name, value) in [
-            ("minimum_treatment_response_fraction", self.minimum_treatment_response_fraction),
-            ("maximum_sham_response_fraction", self.maximum_sham_response_fraction),
-            ("minimum_incremental_response_fraction", self.minimum_incremental_response_fraction),
-            ("minimum_outward_order_score", self.minimum_outward_order_score),
+            (
+                "minimum_treatment_response_fraction",
+                self.minimum_treatment_response_fraction,
+            ),
+            (
+                "maximum_sham_response_fraction",
+                self.maximum_sham_response_fraction,
+            ),
+            (
+                "minimum_incremental_response_fraction",
+                self.minimum_incremental_response_fraction,
+            ),
+            (
+                "minimum_outward_order_score",
+                self.minimum_outward_order_score,
+            ),
         ] {
             if !value.is_finite() {
                 return Err(MotionSalienceError::NonFiniteParameter(name));
@@ -286,7 +313,10 @@ pub fn analyze_pulse_propagation(
     }
     for (name, value) in [
         ("noise_level", run.noise_level),
-        ("salience_threshold_rad_per_second", run.salience_threshold_rad_per_second),
+        (
+            "salience_threshold_rad_per_second",
+            run.salience_threshold_rad_per_second,
+        ),
     ] {
         if !value.is_finite() {
             return Err(MotionSalienceError::NonFiniteParameter(name));
@@ -312,15 +342,27 @@ pub fn analyze_pulse_propagation(
                 field: "distance_from_source",
             });
         }
-        validate_response_time(agent.agent_id, "treatment_response_time_seconds", agent.treatment_response_time_seconds)?;
-        validate_response_time(agent.agent_id, "sham_response_time_seconds", agent.sham_response_time_seconds)?;
+        validate_response_time(
+            agent.agent_id,
+            "treatment_response_time_seconds",
+            agent.treatment_response_time_seconds,
+        )?;
+        validate_response_time(
+            agent.agent_id,
+            "sham_response_time_seconds",
+            agent.sham_response_time_seconds,
+        )?;
 
         if agent.agent_id == run.source_agent_id {
             source_found = true;
             if agent.distance_from_source > 1.0e-9
-                || agent.treatment_response_time_seconds.is_none_or(|time| time > 1.0e-9)
+                || agent
+                    .treatment_response_time_seconds
+                    .is_none_or(|time| time > 1.0e-9)
             {
-                return Err(MotionSalienceError::SourceMustRespondAtTimeZero(run.source_agent_id));
+                return Err(MotionSalienceError::SourceMustRespondAtTimeZero(
+                    run.source_agent_id,
+                ));
             }
         } else {
             non_source.push(*agent);
@@ -339,15 +381,24 @@ pub fn analyze_pulse_propagation(
         .iter()
         .filter(|agent| agent.sham_response_time_seconds.is_some())
         .count();
-    let treatment_fraction = if population == 0 { 0.0 } else { treatment.len() as f64 / population as f64 };
-    let sham_fraction = if population == 0 { 0.0 } else { sham_count as f64 / population as f64 };
+    let treatment_fraction = if population == 0 {
+        0.0
+    } else {
+        treatment.len() as f64 / population as f64
+    };
+    let sham_fraction = if population == 0 {
+        0.0
+    } else {
+        sham_count as f64 / population as f64
+    };
     let incremental_fraction = treatment_fraction - sham_fraction;
     let maximum_distance = treatment
         .iter()
         .map(|agent| agent.distance_from_source)
         .fold(0.0, f64::max);
     let median_time = median(
-        treatment.iter()
+        treatment
+            .iter()
             .filter_map(|agent| agent.treatment_response_time_seconds)
             .collect(),
     );
@@ -358,8 +409,12 @@ pub fn analyze_pulse_propagation(
         for right in (left + 1)..treatment.len() {
             let a = treatment[left];
             let b = treatment[right];
-            let time_a = a.treatment_response_time_seconds.expect("filtered responder");
-            let time_b = b.treatment_response_time_seconds.expect("filtered responder");
+            let time_a = a
+                .treatment_response_time_seconds
+                .expect("filtered responder");
+            let time_b = b
+                .treatment_response_time_seconds
+                .expect("filtered responder");
             let distance_delta = a.distance_from_source - b.distance_from_source;
             let time_delta = time_a - time_b;
             if distance_delta * time_delta > 0.0 {
@@ -455,8 +510,11 @@ mod tests {
         };
         let decision = evaluate_motion_salience(
             sample,
-            MotionSalienceGateConfig { threshold_rad_per_second: 0.05 },
-        ).unwrap();
+            MotionSalienceGateConfig {
+                threshold_rad_per_second: 0.05,
+            },
+        )
+        .unwrap();
         assert!((decision.motion_salience_rad_per_second - 4.0_f64.to_radians()).abs() < 1.0e-12);
         assert_eq!(decision.status(true), SalienceGateStatus::Admitted);
     }
@@ -471,10 +529,15 @@ mod tests {
             sample_interval_seconds: 1.0,
             within_interaction_range: true,
         };
-        let config = MotionSalienceGateConfig { threshold_rad_per_second: 0.5 };
+        let config = MotionSalienceGateConfig {
+            threshold_rad_per_second: 0.5,
+        };
         let decision = evaluate_motion_salience(sample, config).unwrap();
         assert_eq!(decision.status(true), SalienceGateStatus::Admitted);
-        assert_eq!(decision.status(false), SalienceGateStatus::OutsideInteractionRange);
+        assert_eq!(
+            decision.status(false),
+            SalienceGateStatus::OutsideInteractionRange
+        );
     }
 
     #[test]
@@ -488,8 +551,11 @@ mod tests {
                 sample_interval_seconds: 0.1,
                 within_interaction_range: true,
             },
-            MotionSalienceGateConfig { threshold_rad_per_second: 1.0 },
-        ).unwrap();
+            MotionSalienceGateConfig {
+                threshold_rad_per_second: 1.0,
+            },
+        )
+        .unwrap();
         assert!(decision.near_angular_sampling_limit);
     }
 
@@ -505,9 +571,14 @@ mod tests {
                     sample_interval_seconds: dt,
                     within_interaction_range: true,
                 },
-                MotionSalienceGateConfig { threshold_rad_per_second: 0.1 },
+                MotionSalienceGateConfig {
+                    threshold_rad_per_second: 0.1,
+                },
             );
-            assert!(matches!(result, Err(MotionSalienceError::NonPositiveSampleInterval)));
+            assert!(matches!(
+                result,
+                Err(MotionSalienceError::NonPositiveSampleInterval)
+            ));
         }
     }
 
@@ -538,17 +609,33 @@ mod tests {
         assert_eq!(report.sham_response_fraction, 1.0);
         assert_eq!(report.incremental_response_fraction, 0.0);
         assert!(!report.passable);
-        assert!(report.failures.contains(&PassabilityFailure::ExcessiveShamActivation));
-        assert!(report.failures.contains(&PassabilityFailure::InsufficientIncrementalResponse));
+        assert!(
+            report
+                .failures
+                .contains(&PassabilityFailure::ExcessiveShamActivation)
+        );
+        assert!(
+            report
+                .failures
+                .contains(&PassabilityFailure::InsufficientIncrementalResponse)
+        );
     }
 
     #[test]
     fn closed_gate_fails_for_insufficient_participation() {
-        let run = response_run(5.0, &[None, None, None, None, None], &[None, None, None, None, None]);
+        let run = response_run(
+            5.0,
+            &[None, None, None, None, None],
+            &[None, None, None, None, None],
+        );
         let report = analyze_pulse_propagation(&run, PassabilityCriteria::default()).unwrap();
         assert!(!report.passable);
         assert_eq!(report.treatment_response_fraction, 0.0);
-        assert!(report.failures.contains(&PassabilityFailure::InsufficientTreatmentParticipation));
+        assert!(
+            report
+                .failures
+                .contains(&PassabilityFailure::InsufficientTreatmentParticipation)
+        );
     }
 
     #[test]
