@@ -451,6 +451,7 @@ fn solve_node(
                     BTreeMap::new();
                 let mut action_unknown = false;
                 let mut action_invalid = false;
+                let mut action_no_policy = false;
 
                 for state_id in &node.state_ids {
                     let state_edges: Vec<&PolicyTransition> = node
@@ -525,6 +526,9 @@ fn solve_node(
                     any_invalid = true;
                     continue;
                 }
+                if action_no_policy {
+                    continue;
+                }
                 if action_unknown {
                     any_unknown = true;
                     continue;
@@ -597,8 +601,9 @@ fn solve_node(
                             invalid_reasons.extend(child_solution.invalid_reasons);
                         }
                         PolicyTreeDisposition::NoWinningPolicyInDeclaredDomain => {
-                            // This action has a known continuation failure in at
-                            // least one possible observation successor.
+                            // AND semantics: one known losing successor makes the
+                            // parent action non-winning, even if other children win.
+                            action_no_policy = true;
                         }
                     }
                     if action_unknown || action_invalid {
