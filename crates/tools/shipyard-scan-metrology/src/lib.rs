@@ -167,9 +167,8 @@ impl RigidTransform2 {
             return false;
         }
         let m = self.matrix;
-        let row3_ok = m[6].abs() <= tolerance
-            && m[7].abs() <= tolerance
-            && (m[8] - 1.0).abs() <= tolerance;
+        let row3_ok =
+            m[6].abs() <= tolerance && m[7].abs() <= tolerance && (m[8] - 1.0).abs() <= tolerance;
         let col0_norm = m[0] * m[0] + m[3] * m[3];
         let col1_norm = m[1] * m[1] + m[4] * m[4];
         let col_dot = m[0] * m[1] + m[3] * m[4];
@@ -389,7 +388,10 @@ pub fn validate_receipt(
     {
         return Err(ReceiptError::ResidualMetricsInconsistent);
     }
-    if !receipt.transform.is_proper_rigid(policy.transform_tolerance_ppb as f64 / 1.0e9) {
+    if !receipt
+        .transform
+        .is_proper_rigid(policy.transform_tolerance_ppb as f64 / 1.0e9)
+    {
         return Err(ReceiptError::InvalidTransform);
     }
     if receipt.uncertainty_95_microunits == 0 {
@@ -506,12 +508,18 @@ mod tests {
     fn assert_receipt_error(mutate: impl FnOnce(&mut ScanReceipt), expected: ReceiptError) {
         let mut receipt = valid_receipt();
         mutate(&mut receipt);
-        assert_eq!(validate_receipt(&receipt, &context(), policy()), Err(expected));
+        assert_eq!(
+            validate_receipt(&receipt, &context(), policy()),
+            Err(expected)
+        );
     }
 
     #[test]
     fn valid_synthetic_receipt_is_admitted() {
-        assert_eq!(validate_receipt(&valid_receipt(), &context(), policy()), Ok(()));
+        assert_eq!(
+            validate_receipt(&valid_receipt(), &context(), policy()),
+            Ok(())
+        );
     }
 
     #[test]
@@ -553,24 +561,42 @@ mod tests {
 
     #[test]
     fn too_few_correspondences_are_rejected() {
-        assert_eq!(fit_rigid_transform_2d(&[]), Err(FitError::TooFewCorrespondences));
+        assert_eq!(
+            fit_rigid_transform_2d(&[]),
+            Err(FitError::TooFewCorrespondences)
+        );
     }
 
     #[test]
     fn collinear_correspondences_are_rejected() {
         let pairs = vec![
-            Correspondence2 { source: [0.0, 0.0], target: [1.0, 1.0] },
-            Correspondence2 { source: [1.0, 1.0], target: [2.0, 2.0] },
-            Correspondence2 { source: [2.0, 2.0], target: [3.0, 3.0] },
+            Correspondence2 {
+                source: [0.0, 0.0],
+                target: [1.0, 1.0],
+            },
+            Correspondence2 {
+                source: [1.0, 1.0],
+                target: [2.0, 2.0],
+            },
+            Correspondence2 {
+                source: [2.0, 2.0],
+                target: [3.0, 3.0],
+            },
         ];
-        assert_eq!(fit_rigid_transform_2d(&pairs), Err(FitError::DegenerateGeometry));
+        assert_eq!(
+            fit_rigid_transform_2d(&pairs),
+            Err(FitError::DegenerateGeometry)
+        );
     }
 
     #[test]
     fn nonfinite_correspondence_is_rejected() {
         let mut pairs = transformed_pairs(0.1, [1.0, 2.0]);
         pairs[0].source[0] = f64::NAN;
-        assert_eq!(fit_rigid_transform_2d(&pairs), Err(FitError::NonFinitePoint));
+        assert_eq!(
+            fit_rigid_transform_2d(&pairs),
+            Err(FitError::NonFinitePoint)
+        );
     }
 
     #[test]
@@ -630,17 +656,26 @@ mod tests {
 
     #[test]
     fn receipt_rejects_profile_count_inconsistency() {
-        assert_receipt_error(|r| r.matched_profile_count = 99, ReceiptError::InvalidProfileCounts);
+        assert_receipt_error(
+            |r| r.matched_profile_count = 99,
+            ReceiptError::InvalidProfileCounts,
+        );
     }
 
     #[test]
     fn receipt_rejects_coverage_below_limit() {
-        assert_receipt_error(|r| r.coverage_permille = 900, ReceiptError::CoverageBelowMinimum);
+        assert_receipt_error(
+            |r| r.coverage_permille = 900,
+            ReceiptError::CoverageBelowMinimum,
+        );
     }
 
     #[test]
     fn receipt_rejects_occlusion_above_limit() {
-        assert_receipt_error(|r| r.occlusion_permille = 100, ReceiptError::OcclusionAboveMaximum);
+        assert_receipt_error(
+            |r| r.occlusion_permille = 100,
+            ReceiptError::OcclusionAboveMaximum,
+        );
     }
 
     #[test]
@@ -735,12 +770,18 @@ mod tests {
 
     #[test]
     fn receipt_rejects_coverage_out_of_range() {
-        assert_receipt_error(|r| r.coverage_permille = 1_001, ReceiptError::CoverageOutOfRange);
+        assert_receipt_error(
+            |r| r.coverage_permille = 1_001,
+            ReceiptError::CoverageOutOfRange,
+        );
     }
 
     #[test]
     fn receipt_rejects_occlusion_out_of_range() {
-        assert_receipt_error(|r| r.occlusion_permille = 1_001, ReceiptError::OcclusionOutOfRange);
+        assert_receipt_error(
+            |r| r.occlusion_permille = 1_001,
+            ReceiptError::OcclusionOutOfRange,
+        );
     }
 
     #[test]
@@ -829,6 +870,9 @@ mod tests {
 
     #[test]
     fn receipt_rejects_rejected_count_inconsistency() {
-        assert_receipt_error(|r| r.rejected_profile_count = 2, ReceiptError::InvalidProfileCounts);
+        assert_receipt_error(
+            |r| r.rejected_profile_count = 2,
+            ReceiptError::InvalidProfileCounts,
+        );
     }
 }
