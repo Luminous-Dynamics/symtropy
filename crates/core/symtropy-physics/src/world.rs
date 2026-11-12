@@ -24,6 +24,34 @@ use crate::manifold_gen;
 /// perpetual micro-bounce. Mirrors Box2D's `b2_velocityThreshold` default.
 const RESTITUTION_VELOCITY_THRESHOLD: f64 = 1.0;
 
+/// Failure to maintain one-to-one NetId assignment within one PhysicsWorld.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum NetIdAssignmentError {
+    MissingBody(BodyHandle),
+    DuplicateNetId {
+        net_id: NetId,
+        existing_handle: BodyHandle,
+    },
+}
+
+impl std::fmt::Display for NetIdAssignmentError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MissingBody(handle) => write!(f, "body {:?} does not exist", handle),
+            Self::DuplicateNetId {
+                net_id,
+                existing_handle,
+            } => write!(
+                f,
+                "NetId({}) is already assigned to body {:?}",
+                net_id.0, existing_handle
+            ),
+        }
+    }
+}
+
+impl std::error::Error for NetIdAssignmentError {}
+
 /// Hard cap on the Baumgarte/TGS position-correction bias velocity, in
 /// units/sec, applied in `resolve_contact`.
 ///
@@ -357,18 +385,60 @@ impl<const D: usize> PhysicsWorld<D> {
         self.body(handle).and_then(|b| b.net_id)
     }
 
-    /// Assign a stable network identifier to a body.
-    pub fn set_net_id(&mut self, handle: BodyHandle, net_id: NetId) {
-        let old_id = self.body(handle).and_then(|b| b.net_id);
+    /// Assign a stable network identifier and report any rejected mutation.
+    ///
+    /// The assignment is rejected without mutation if the handle does not
+    /// exist or the NetId is already associated with another body. The body
+    /// vector is also scanned so a direct mutation through the public
+    /// RigidBody/BodyMut API cannot silently create a duplicate identifier.
+    ///
+    /// Returns the body's previous NetId on success.
+    pub fn try_set_net_id(
+        &mut self,
+        handle: BodyHandle,
+        net_id: NetId,
+    ) -> Result<Option<NetId>, NetIdAssignmentError> {
+        let Some(old_id) = self.body(handle).map(|body| body.net_id) else {
+            return Err(NetIdAssignmentError::MissingBody(handle));
+        };
 
-        if let Some(old) = old_id {
+        let mapped_owner = self.net_id_map.get(&net_id).copied();
+        let body_owner = self
+            .bodies
+            .iter()
+            .find(|body| body.net_id == Some(net_id))
+            .map(|body| body.handle);
+        if let Some(existing_handle) = mapped_owner
+            .into_iter()
+            .chain(body_owner)
+            .find(|existing_handle| *existing_handle != handle)
+        {
+            return Err(NetIdAssignmentError::DuplicateNetId {
+                net_id,
+                existing_handle,
+            });
+        }
+
+        if let Some(old) = old_id
+            && old != net_id
+            && self.net_id_map.get(&old) == Some(&handle)
+        {
             self.net_id_map.remove(&old);
         }
 
-        if let Some(body) = self.body_mut(handle) {
-            body.net_id = Some(net_id);
-            self.net_id_map.insert(net_id, handle);
-        }
+        let body = self
+            .body_mut(handle)
+            .ok_or(NetIdAssignmentError::MissingBody(handle))?;
+        body.net_id = Some(net_id);
+        self.net_id_map.insert(net_id, handle);
+        Ok(old_id)
+    }
+
+    /// Compatibility setter that fails closed on an invalid handle or
+    /// duplicate NetId. Use [Self::try_set_net_id] when the caller needs the
+    /// rejection reason.
+    pub fn set_net_id(&mut self, handle: BodyHandle, net_id: NetId) {
+        let _ = self.try_set_net_id(handle, net_id);
     }
 
     /// Add a constraint between two bodies.
@@ -2561,3 +2631,92 @@ mod transformed_halfspace_tests {
         assert!(world.static_tree_dirty);
     }
 }
+
+#[cfg(test)]
+mod net_id_assignment_tests {
+    use super::*;
+    use symtropy_math::Point;
+
+    fn world_with_two_bodies() -> (PhysicsWorld<2>, BodyHandle, BodyHandle) {
+        let mut world = PhysicsWorld::<2>::new(SVector::zeros());
+        let first = world.add_sphere(Point::new([0.0, 0.0]), 1.0, 1.0);
+        let second = world.add_sphere(Point::new([3.0, 0.0]), 1.0, 1.0);
+        (world, first, second)
+    }
+
+    #[test]
+    fn net_id_assignment_rejects_duplicate_without_mutation() {
+        let (mut world, first, second) = world_with_two_bodies();
+        world.try_set_net_id(first, NetId(9)).expect("first assignment");
+        let result = world.try_set_net_id(second, NetId(9));
+
+        assert_eq!(
+            result,
+            Err(NetIdAssignmentError::DuplicateNetId {
+                net_id: NetId(9),
+                existing_handle: first,
+            })
+        );
+        assert_eq!(world.net_id_for_handle(first), Some(NetId(9)));
+        assert_eq!(world.net_id_for_handle(second), None);
+        assert_eq!(world.handle_for_net_id(NetId(9)), Some(first));
+    }
+
+    #[test]
+    fn net_id_assignment_rejects_missing_handle_without_mutation() {
+        let (mut world, first, _) = world_with_two_bodies();
+        let missing = BodyHandle(usize::MAX);
+        assert_eq!(
+            world.try_set_net_id(missing, NetId(7)),
+            Err(NetIdAssignmentError::MissingBody(missing))
+        );
+        assert_eq!(world.net_id_for_handle(first), None);
+        assert_eq!(world.handle_for_net_id(NetId(7)), None);
+    }
+
+    #[test]
+    fn net_id_assignment_is_idempotent_for_same_body_and_id() {
+        let (mut world, first, _) = world_with_two_bodies();
+        assert_eq!(world.try_set_net_id(first, NetId(7)), Ok(None));
+        assert_eq!(world.try_set_net_id(first, NetId(7)), Ok(Some(NetId(7))));
+        assert_eq!(world.handle_for_net_id(NetId(7)), Some(first));
+        assert_eq!(world.net_id_for_handle(first), Some(NetId(7)));
+    }
+
+    #[test]
+    fn net_id_assignment_releases_old_id_on_reassignment() {
+        let (mut world, first, second) = world_with_two_bodies();
+        world.try_set_net_id(first, NetId(7)).expect("initial assignment");
+        assert_eq!(
+            world.try_set_net_id(first, NetId(8)),
+            Ok(Some(NetId(7)))
+        );
+        world.try_set_net_id(second, NetId(7)).expect("old id released");
+        assert_eq!(world.handle_for_net_id(NetId(7)), Some(second));
+        assert_eq!(world.handle_for_net_id(NetId(8)), Some(first));
+    }
+
+    #[test]
+    fn net_id_assignment_detects_direct_body_field_duplicate() {
+        let (mut world, first, second) = world_with_two_bodies();
+        world.body_mut(first).expect("first").net_id = Some(NetId(5));
+        assert_eq!(
+            world.try_set_net_id(second, NetId(5)),
+            Err(NetIdAssignmentError::DuplicateNetId {
+                net_id: NetId(5),
+                existing_handle: first,
+            })
+        );
+    }
+
+    #[test]
+    fn legacy_net_id_setter_fails_closed_on_duplicate() {
+        let (mut world, first, second) = world_with_two_bodies();
+        world.try_set_net_id(first, NetId(11)).expect("first assignment");
+        world.set_net_id(second, NetId(11));
+        assert_eq!(world.net_id_for_handle(first), Some(NetId(11)));
+        assert_eq!(world.net_id_for_handle(second), None);
+        assert_eq!(world.handle_for_net_id(NetId(11)), Some(first));
+    }
+}
+
