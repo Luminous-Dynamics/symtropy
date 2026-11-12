@@ -360,7 +360,11 @@ impl<const D: usize> PhysicsWorld<D> {
         bodies.sort_by_key(|(id, _)| *id);
         let mut handles = Vec::with_capacity(bodies.len());
         for (net_id, mut body) in bodies {
-            if self.net_id_map.contains_key(&net_id) {
+            let duplicate_in_bodies = self
+                .bodies
+                .iter()
+                .any(|existing| existing.net_id == Some(net_id));
+            if self.net_id_map.contains_key(&net_id) || duplicate_in_bodies {
                 return Err(format!("duplicate NetId({})", net_id.0));
             }
             let handle = self.allocate_handle();
