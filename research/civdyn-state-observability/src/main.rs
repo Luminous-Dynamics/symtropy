@@ -521,6 +521,16 @@ fn run_audit(input: &str) -> Result<String, String> {
     Ok(output)
 }
 
+fn median(values: &mut [f64]) -> f64 {
+    values.sort_by(f64::total_cmp);
+    let middle = values.len() / 2;
+    if values.len().is_multiple_of(2) {
+        (values[middle - 1] + values[middle]) / 2.0
+    } else {
+        values[middle]
+    }
+}
+
 fn normalized_policy_value(value: f64, oracle: f64, random: f64) -> Option<f64> {
     let gap = oracle - random;
     if !value.is_finite() || !oracle.is_finite() || !random.is_finite() || gap <= f64::EPSILON {
