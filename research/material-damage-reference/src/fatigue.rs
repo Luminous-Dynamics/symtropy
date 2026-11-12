@@ -169,11 +169,12 @@ pub fn miner_damage(curve: &SnCurve, load_blocks: &[LoadBlock]) -> DamageResult<
         let cycles_to_failure = curve.cycles_to_failure(block.stress_amplitude_mpa)?;
         let damage_increment = block.cycles as f64 / cycles_to_failure;
         damage_fraction += damage_increment;
-        total_cycles = total_cycles
-            .checked_add(block.cycles)
-            .ok_or(DamageError::ArithmeticOverflow {
-                field: "total cycle count",
-            })?;
+        total_cycles =
+            total_cycles
+                .checked_add(block.cycles)
+                .ok_or(DamageError::ArithmeticOverflow {
+                    field: "total cycle count",
+                })?;
 
         if !damage_increment.is_finite() || !damage_fraction.is_finite() {
             return Err(DamageError::ArithmeticOverflow {
