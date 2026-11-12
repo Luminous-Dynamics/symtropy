@@ -18,7 +18,7 @@ cargo run --manifest-path crates/domains/symtropy-maritime-observability-bench/C
 - Replays every declared sensor/common-cause loss scenario through the generic evaluator.
 - Emits a read-only, source/case-digest-bound report.
 
-The adapter does not compute individual-fault detectability, train a classifier, infer root causes, qualify physical sensor installations or authorize actuation/maintenance/mode transitions. Synthetic fixture metrics are structural only.
+The adapter derives structural detectability against the declared reference state and pairwise fault isolability from the complete, synchronized response matrix. It does not measure empirical event-detection accuracy, train a classifier, infer unique root causes where signatures remain ambiguous, qualify physical sensor installations or authorize actuation/maintenance/mode transitions. Synthetic fixture metrics are structural only.
 
 
 ## P0.2: fault-level ambiguity report
@@ -68,3 +68,8 @@ The case's separate sensor-topology/evaluator/data/split/model digest slots rema
 Every installed sensor now declares a dependency-review state. Synthetic cases may claim only `synthetic_conformance`; they cannot label a fabricated dependency graph independently reviewed. Measured cases may contribute physical evidence only when the dependency graph has an independently reviewed record ID and SHA-256. Unreviewed/unknown dependency state preserves the sensor in the report but excludes it from physical evidence.
 
 Every installed sensor must declare at least one dependency group. The validator counts group membership and requires an explicit outage scenario for every dependency group shared by two or more installed sensors. The synthetic fixture now replays four scenarios: gateway loss, clock loss, combined gateway-plus-clock loss, and individual fuel-pressure sensor loss. These are fabricated topology/outage controls; they do not establish the real engine's acquisition architecture.
+
+
+## Measurement-window coherence
+
+All response channels within one fault-state hypothesis must refer to the same declared synchronized measurement window. The adapter rejects a matrix that combines different windows for different channels of the same state; pairwise interval separation is meaningless if the compared channels do not describe the same operating episode. The window identity is distinct across state hypotheses, so the exact comparison windows remain auditable in the source response manifest.

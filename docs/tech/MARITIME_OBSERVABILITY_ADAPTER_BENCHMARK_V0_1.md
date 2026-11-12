@@ -59,3 +59,8 @@ The passing workflow establishes reproducibility of this synthetic software cont
 A declared dependency map is itself evidence and can be incomplete. The adapter now requires an explicit per-sensor dependency-review state. Synthetic fixtures are marked `synthetic_conformance` and cannot claim independent review. For measured cases, only `independently_reviewed` dependency maps with a separately hashed review record are eligible to support physical evidence; `unreviewed` and `unknown` sensors remain visible but are excluded.
 
 The validator requires explicit outage scenarios for each dependency group shared by multiple installed sensors. The synthetic suite includes gateway-only, clock-only, combined gateway-plus-clock, and single fuel-pressure sensor loss. The combined case verifies that two shared dependencies failing together do not restore evidence merely because they are declared separately. No physical engine topology or dependency review is claimed by this synthetic fixture.
+
+
+## P0.8 — synchronized state-window admission
+
+Each fault-state response matrix now requires one common `measurement_window_ref` across all installed channels. The adapter rejects a state whose channels combine different windows. This prevents pairwise signatures from being compared when they were acquired from different operating episodes, transients or controller modes. This is a deterministic contract over declared window identity; it does not independently validate the physical clock network or prove that the windows are correctly segmented.

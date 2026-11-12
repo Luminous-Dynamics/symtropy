@@ -318,6 +318,7 @@ fn validate_input(input:&Value)->Check<()>{
     let installed_channels:BTreeSet<String>=sensors.iter().filter(|s|s["installed"]==true).filter_map(|s|s["channel_id"].as_str().map(str::to_owned)).collect();
     let mut seen=BTreeSet::new();
     let mut response_ids=BTreeSet::new();
+    let mut measurement_window_by_state:BTreeMap<String,String>=BTreeMap::new();
     for (i,r) in responses.iter().enumerate(){
         let p=format!("$.responses[{i}]");
         allowed_keys(r,&["response_id","state_id","channel_id","availability","value_lower","value_upper","unit","evidence_role","measurement_window_ref","artifact_id","source_sha256","adjudication_ref"],&p)?;
@@ -329,6 +330,15 @@ fn validate_input(input:&Value)->Check<()>{
         let availability=txt(r,"availability",&p)?;
         if !matches!(availability,"VALID"|"DEGRADED"|"MISSING"|"UNKNOWN"){return Err(err("RESPONSE_AVAILABILITY",&p,"unknown availability"));}
         for k in ["unit","evidence_role","measurement_window_ref","artifact_id","adjudication_ref"]{let _=txt(r,k,&p)?;}
+        let window=txt(r,"measurement_window_ref",&p)?;
+        match measurement_window_by_state.get(state) {
+            Some(existing) if existing!=window => {
+                return Err(err("INCOHERENT_STATE_MEASUREMENT_WINDOW",&p,
+                    "all sensor responses for one fault state must refer to the same synchronized measurement window"));
+            }
+            None => { measurement_window_by_state.insert(state.to_owned(),window.to_owned()); }
+            _ => {}
+        }
         if !matches!(txt(r,"evidence_role",&p)?,"INDEPENDENT_MEASUREMENT"|"SYNTHETIC_CONFORMANCE_FIXTURE"|"MODEL_ESTIMATE"|"OPERATOR_REPORTED"){
             return Err(err("RESPONSE_EVIDENCE_ROLE",&p,"unsupported response evidence role"));
         }
@@ -671,7 +681,7 @@ fn make_report(input:&Value,base:&EvaluationReport,scenarios:Vec<Value>)->Value{
             metric("dependency_reviewed_installed_sensor_count",dependency_reviewed_count),
             metric("dependency_unreviewed_installed_sensor_count",installed_count.saturating_sub(dependency_reviewed_count))],
         "authority_boundary":{"read_only":true,"actuation":false,"maintenance_authorization":false,"mode_transition_authorization":false,"restriction_clearance":false},
-        "claim_ceiling":"Pairwise structural diagnosability only for the exact declared asset/configuration, installed sensors, dependency groups, operating domain, response intervals, declared clock/timebase metadata and evidence class. Timebase hashes are bound to declared artifact references but this report does not authenticate the clock qualification process or prove the physical synchronization network. Synthetic timebase evidence remains synthetic only. No individual-fault detectability, trained model accuracy, physical engine validation, shipboard safety, maintenance authorization, ODD clearance or permission to operate."
+        "claim_ceiling":"Structural detectability against the declared reference and pairwise fault isolability for the exact declared asset/configuration, installed sensors, dependency groups, operating domain, synchronized measurement windows, response intervals, declared clock/timebase metadata and evidence class. This does not measure empirical event-detection accuracy or trained-model performance. Timebase hashes bind declared artifact references but do not authenticate the clock qualification process or prove the physical synchronization network. Synthetic timebase evidence remains synthetic only. No physical engine validation, shipboard safety, maintenance authorization, ODD clearance or permission to operate is established."
     })
 }
 
@@ -807,6 +817,13 @@ mod tests{
         duplicate["pair_id"]=json!("reversed-duplicate");
         c["required_fault_pairs"].as_array_mut().unwrap().push(duplicate);
         assert!(eval(&c).is_err());
+    }
+    #[test]
+    fn responses_for_each_fault_state_must_share_one_measurement_window(){
+        let mut c=fixture();
+        c["responses"][1]["measurement_window_ref"]=json!("window:wrong-clock-window");
+        let errors=eval(&c).expect_err("mixed response windows must not be combined");
+        assert!(errors.iter().any(|e|e.code=="INCOHERENT_STATE_MEASUREMENT_WINDOW"));
     }
     #[test]
     fn required_pair_matrix_must_cover_fault_isolation_not_only_normal_detection(){
