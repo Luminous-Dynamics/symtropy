@@ -52,6 +52,7 @@ jobs:
             "$root/tournament-v0.1.json"
             "$root/published-six-solution-baselines-v0.1.json"
             "$root/published-dx2026-graybox-baseline-v0.1.json"
+            "$root/startup-adaptation-guard-v0.1.json"
             "$root/active-evidence-selection-v0.1.json"
             "$root/behavioral-set-diagnosis-v0.1.json"
             "$root/deployability-matrix-v0.1.json"
@@ -91,6 +92,9 @@ jobs:
             (.streaming_contract.one_sample_one_output == true) and
             (.streaming_contract.historical_output_mutation == false) and
             (.streaming_contract.rust_core_direct_submission_compatible == false) and
+            (.startup_adaptation_guard.schema_version == "symtropy-startup-adaptation-guard-v0.1") and
+            (.startup_adaptation_guard.live_baseline_mutation_by_guard == false) and
+            (.startup_adaptation_guard.automatic_baseline_commit == false) and
             (.behavioral_set_diagnosis.schema_version == "symtropy-behavioral-set-diagnosis-v0.1") and
             (.behavioral_set_diagnosis.global_unique_physical_cause_claim_allowed == false) and
             (.deployability_matrix.schema_version == "symtropy-industrial-diagnostic-deployability-v0.1") and
@@ -140,6 +144,20 @@ jobs:
             (.method.likelihood_calibration_review.qualification | contains("not self-authenticating")) and
             (.research_targets_not_achieved | all(.status == "aspirational"))
           ' "$root/active-evidence-selection-v0.1.json" >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-startup-adaptation-guard-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.live_baseline_mutation_by_guard == false) and
+            (.live_reference_detection_during_shadow_collection == true) and
+            (.automatic_baseline_commit == false) and
+            (.minimum_shadow_samples == 1800) and
+            (.minimum_independent_health_attestations == 2) and
+            (.comparators | length == 5) and
+            (.hard_gates | length >= 13) and
+            (.research_targets_not_achieved | all(.status == "aspirational")) and
+            (.evidence_boundary.physical_validation == false)
+          ' "$root/startup-adaptation-guard-v0.1.json" >/dev/null
 
           jq -e '
             .schema_version == "symtropy-behavioral-set-diagnosis-v0.1" and
