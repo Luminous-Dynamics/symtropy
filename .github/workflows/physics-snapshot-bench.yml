@@ -44,7 +44,7 @@ jobs:
             echo "rustc_end"
             echo "runner_os=${RUNNER_OS:-unrecorded}"
             echo "runner_arch=${RUNNER_ARCH:-unrecorded}"
-            echo "cpu_model=$(lscpu | awk -F: '/^Model name:/ { sub(/^[ \\t]+/, "", $2); print $2; exit }')"
+            echo "cpu_model=$(lscpu | awk -F: '/^Model name:/ { sub(/^[[:space:]]+/, "", $2); print $2; exit }')"
             echo "logical_cpus=$(nproc)"
             echo "kernel=$(uname -srmo)"
             echo "os_release=$(grep PRETTY_NAME /etc/os-release | cut -d= -f2- | tr -d '"')"
@@ -68,7 +68,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: physics-snapshot-benchmark-${{ github.sha }}
+          name: physics-snapshot-benchmark-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             target/physics-snapshot-benchmark-environment.txt
             target/criterion/
