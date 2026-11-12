@@ -31,6 +31,39 @@ pub struct EvidenceRef {
     pub class: EvidenceClass,
 }
 
+/// The two fully reversed uniaxial calibration modes used by the bounded
+/// two-point Findley material-parameter calibration.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum FatigueLimitMode {
+    FullyReversedAxial,
+    FullyReversedTorsional,
+}
+
+/// A material fatigue-strength value at a specific target cycle count.
+/// It must be independently sourced; this crate does not fit S-N curves.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FatigueStrengthPoint {
+    pub material_grade_id: String,
+    pub target_cycles: u64,
+    pub strength_mpa_micropa: u64,
+    pub mode: FatigueLimitMode,
+    pub evidence: EvidenceRef,
+}
+
+/// Findley parameters calibrated from fully reversed axial and torsional
+/// fatigue-strength points at one common target cycle count.
+#[derive(Clone, Debug, PartialEq)]
+pub struct FindleyMaterialCalibration {
+    pub material_grade_id: String,
+    pub target_cycles: u64,
+    pub axial_fatigue_strength_mpa: f64,
+    pub torsional_fatigue_strength_mpa: f64,
+    pub normal_stress_sensitivity: f64,
+    pub critical_parameter_limit_mpa: f64,
+    pub axial_source: EvidenceRef,
+    pub torsional_source: EvidenceRef,
+}
+
 /// Symmetric Cauchy stress tensor in megapascals.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct StressTensorMpa {
@@ -205,6 +238,13 @@ pub enum HcfError {
     SearchBudgetExceeded,
     InvalidRotation,
     NoFiniteCandidate,
+    InvalidFatigueStrength,
+    InvalidCalibrationLoadMode,
+    MismatchedCalibrationMaterial,
+    MismatchedCalibrationCycles,
+    InvalidFatigueStrengthRatio,
+    CalibrationEvidenceMustBeMeasuredOrSynthetic,
+    DuplicateCalibrationEvidenceId,
 }
 
 impl fmt::Display for HcfError {
@@ -214,6 +254,94 @@ impl fmt::Display for HcfError {
 }
 
 impl std::error::Error for HcfError {}
+
+/// Calibrate the classical Findley HCF parameters from two independently
+/// supplied fully reversed fatigue-strength values at one common target N.
+///
+/// Let sigma_w be the fully reversed axial fatigue strength and tau_w the
+/// fully reversed torsional fatigue strength at that same N. The calibration
+/// relation is:
+///
+///     r = sigma_w / tau_w
+///     k = (2 - r) / (2 * sqrt(r - 1))
+///     f = sigma_w / 2 * (k + sqrt(1 + k*k))
+///
+/// This bounded implementation accepts 1 < r <= 2, the domain yielding
+/// non-negative k. The two points must have the same material grade and
+/// target cycle count. They must not be model-estimate artifacts. The source
+/// evidence is linked and its digest syntax-checked, not authenticated.
+pub fn calibrate_findley_from_fully_reversed_limits(
+    axial: &FatigueStrengthPoint,
+    torsional: &FatigueStrengthPoint,
+) -> Result<FindleyMaterialCalibration, HcfError> {
+    if axial.mode != FatigueLimitMode::FullyReversedAxial
+        || torsional.mode != FatigueLimitMode::FullyReversedTorsional
+    {
+        return Err(HcfError::InvalidCalibrationLoadMode);
+    }
+    if axial.material_grade_id.trim().is_empty()
+        || torsional.material_grade_id.trim().is_empty()
+    {
+        return Err(HcfError::EmptyIdentity("material_grade_id"));
+    }
+    if axial.material_grade_id != torsional.material_grade_id {
+        return Err(HcfError::MismatchedCalibrationMaterial);
+    }
+    if axial.target_cycles == 0
+        || torsional.target_cycles == 0
+        || axial.target_cycles != torsional.target_cycles
+    {
+        return Err(HcfError::MismatchedCalibrationCycles);
+    }
+    if axial.strength_mpa_micropa == 0 || torsional.strength_mpa_micropa == 0 {
+        return Err(HcfError::InvalidFatigueStrength);
+    }
+    for evidence in [&axial.evidence, &torsional.evidence] {
+        if evidence.evidence_id.trim().is_empty() {
+            return Err(HcfError::EmptyIdentity("calibration_evidence_id"));
+        }
+        validate_digest(&evidence.sha256)?;
+        if !matches!(
+            evidence.class,
+            EvidenceClass::Measured | EvidenceClass::Synthetic
+        ) {
+            return Err(HcfError::CalibrationEvidenceMustBeMeasuredOrSynthetic);
+        }
+    }
+    if axial.evidence.evidence_id == torsional.evidence.evidence_id {
+        return Err(HcfError::DuplicateCalibrationEvidenceId);
+    }
+
+    let axial_strength = axial.strength_mpa_micropa as f64 / 1_000_000.0;
+    let torsional_strength = torsional.strength_mpa_micropa as f64 / 1_000_000.0;
+    let ratio = axial_strength / torsional_strength;
+    if !ratio.is_finite() || ratio <= 1.0 || ratio > 2.0 {
+        return Err(HcfError::InvalidFatigueStrengthRatio);
+    }
+
+    let normal_stress_sensitivity = (2.0 - ratio) / (2.0 * (ratio - 1.0).sqrt());
+    let critical_parameter_limit_mpa = 0.5
+        * axial_strength
+        * (normal_stress_sensitivity + (1.0 + normal_stress_sensitivity.powi(2)).sqrt());
+    if !normal_stress_sensitivity.is_finite()
+        || !critical_parameter_limit_mpa.is_finite()
+        || normal_stress_sensitivity < 0.0
+        || critical_parameter_limit_mpa <= 0.0
+    {
+        return Err(HcfError::InvalidFatigueStrengthRatio);
+    }
+
+    Ok(FindleyMaterialCalibration {
+        material_grade_id: axial.material_grade_id.clone(),
+        target_cycles: axial.target_cycles,
+        axial_fatigue_strength_mpa: axial_strength,
+        torsional_fatigue_strength_mpa: torsional_strength,
+        normal_stress_sensitivity,
+        critical_parameter_limit_mpa,
+        axial_source: axial.evidence.clone(),
+        torsional_source: torsional.evidence.clone(),
+    })
+}
 
 impl StressHistory {
     fn validate(&self, maximum_phase_gap_rad: f64) -> Result<f64, HcfError> {
@@ -604,6 +732,27 @@ mod tests {
         }
     }
 
+    fn calibration_point(
+        material: &str,
+        cycles: u64,
+        strength_mpa: u64,
+        mode: FatigueLimitMode,
+        evidence_id: &str,
+        marker: char,
+    ) -> FatigueStrengthPoint {
+        FatigueStrengthPoint {
+            material_grade_id: material.into(),
+            target_cycles: cycles,
+            strength_mpa_micropa: strength_mpa * 1_000_000,
+            mode,
+            evidence: EvidenceRef {
+                evidence_id: evidence_id.into(),
+                sha256: marker.to_string().repeat(64),
+                class: EvidenceClass::Measured,
+            },
+        }
+    }
+
     fn zero_stress() -> StressTensorMpa {
         StressTensorMpa {
             sigma_xx: 0.0,
@@ -613,6 +762,122 @@ mod tests {
             tau_yz: 0.0,
             tau_zx: 0.0,
         }
+    }
+
+    #[test]
+    fn fully_reversed_axial_and_torsional_limits_calibrate_findley_parameters() {
+        let axial = calibration_point(
+            "42CrMo4+QT",
+            1_000_000,
+            350,
+            FatigueLimitMode::FullyReversedAxial,
+            "axial-fatigue-limit",
+            'a',
+        );
+        let torsional = calibration_point(
+            "42CrMo4+QT",
+            1_000_000,
+            200,
+            FatigueLimitMode::FullyReversedTorsional,
+            "torsional-fatigue-limit",
+            'b',
+        );
+        let calibration =
+            calibrate_findley_from_fully_reversed_limits(&axial, &torsional).unwrap();
+
+        assert!((calibration.normal_stress_sensitivity - 0.1443375673).abs() < 1.0e-9);
+        assert!((calibration.critical_parameter_limit_mpa - 202.0725942).abs() < 1.0e-6);
+        assert_eq!(calibration.target_cycles, 1_000_000);
+        assert_eq!(calibration.material_grade_id, "42CrMo4+QT");
+        assert_eq!(calibration.axial_source.evidence_id, "axial-fatigue-limit");
+        assert_eq!(calibration.torsional_source.evidence_id, "torsional-fatigue-limit");
+    }
+
+    #[test]
+    fn findley_calibration_rejects_material_and_cycle_mismatch() {
+        let axial = calibration_point(
+            "42CrMo4+QT",
+            1_000_000,
+            350,
+            FatigueLimitMode::FullyReversedAxial,
+            "axial-fatigue-limit",
+            'a',
+        );
+        let mut torsional = calibration_point(
+            "42CrMo4+QT",
+            1_000_000,
+            200,
+            FatigueLimitMode::FullyReversedTorsional,
+            "torsional-fatigue-limit",
+            'b',
+        );
+        torsional.material_grade_id = "S355".into();
+        assert_eq!(
+            calibrate_findley_from_fully_reversed_limits(&axial, &torsional),
+            Err(HcfError::MismatchedCalibrationMaterial)
+        );
+
+        torsional.material_grade_id = "42CrMo4+QT".into();
+        torsional.target_cycles = 2_000_000;
+        assert_eq!(
+            calibrate_findley_from_fully_reversed_limits(&axial, &torsional),
+            Err(HcfError::MismatchedCalibrationCycles)
+        );
+    }
+
+    #[test]
+    fn findley_calibration_rejects_unsupported_strength_ratio() {
+        let axial = calibration_point(
+            "42CrMo4+QT",
+            1_000_000,
+            450,
+            FatigueLimitMode::FullyReversedAxial,
+            "axial-fatigue-limit",
+            'a',
+        );
+        let torsional = calibration_point(
+            "42CrMo4+QT",
+            1_000_000,
+            200,
+            FatigueLimitMode::FullyReversedTorsional,
+            "torsional-fatigue-limit",
+            'b',
+        );
+        assert_eq!(
+            calibrate_findley_from_fully_reversed_limits(&axial, &torsional),
+            Err(HcfError::InvalidFatigueStrengthRatio)
+        );
+    }
+
+    #[test]
+    fn findley_calibration_rejects_predicted_or_reused_evidence() {
+        let axial = calibration_point(
+            "42CrMo4+QT",
+            1_000_000,
+            350,
+            FatigueLimitMode::FullyReversedAxial,
+            "same-evidence",
+            'a',
+        );
+        let mut torsional = calibration_point(
+            "42CrMo4+QT",
+            1_000_000,
+            200,
+            FatigueLimitMode::FullyReversedTorsional,
+            "same-evidence",
+            'b',
+        );
+        assert_eq!(
+            calibrate_findley_from_fully_reversed_limits(&axial, &torsional),
+            Err(HcfError::DuplicateCalibrationEvidenceId)
+        );
+
+        torsional.evidence.evidence_id = "model-derived-limit".into();
+        torsional.evidence.class = EvidenceClass::ModelEstimate;
+        assert_eq!(
+            calibrate_findley_from_fully_reversed_limits(&axial, &torsional),
+            Err(HcfError::CalibrationEvidenceMustBeMeasuredOrSynthetic)
+        );
     }
 
     #[test]
