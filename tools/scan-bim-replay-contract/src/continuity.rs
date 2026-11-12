@@ -103,6 +103,9 @@ pub struct RepresentationContinuityReceipt {
 #[serde(deny_unknown_fields)]
 pub struct RepresentationTransition {
     pub transition_id: String,
+    /// v0.1 supports a strict ordered linear chain: empty for the root and
+    /// exactly the immediately preceding transition ID for every later hop.
+    pub parent_transition_ids: Vec<String>,
     pub from_representation: RepresentationKind,
     pub to_representation: RepresentationKind,
     pub source_artifacts: Vec<ArtifactReference>,
@@ -222,6 +225,8 @@ pub struct RepresentationContinuityReport {
     pub schema_version: String,
     pub receipt_id: String,
     pub scene_id: String,
+    pub root_transition_id: String,
+    pub terminal_transition_id: String,
     pub transition_count: usize,
     pub claim_count: usize,
     pub measured_claim_count: usize,
@@ -238,6 +243,114 @@ pub struct RepresentationContinuityReport {
     pub unresolved_relation_count: usize,
     pub incomplete_relation_inventory_count: usize,
     pub continuity_state: String,
+}
+
+fn same_uncertainty_bound(left: &UncertaintyBound, right: &UncertaintyBound) -> bool {
+    left.status == right.status
+        && left.metric_id == right.metric_id
+        && left.absolute_bound_m == right.absolute_bound_m
+}
+
+/// P0 v0.1 treats a receipt as one ordered linear chain. Branches/merges need
+/// an explicit DAG profile and are not inferred from filenames or list order.
+fn validate_transition_chain(transitions: &[RepresentationTransition]) -> Result<(), String> {
+    let Some(root) = transitions.first() else {
+        return Err("continuity receipt must contain at least one transition".to_owned());
+    };
+    if !root.parent_transition_ids.is_empty() {
+        return Err("root transition must not declare parent_transition_ids".to_owned());
+    }
+
+    for (index, transition) in transitions.iter().enumerate().skip(1) {
+        let previous = &transitions[index - 1];
+        if transition.parent_transition_ids.len() != 1
+            || transition.parent_transition_ids.first().map(String::as_str)
+                != Some(previous.transition_id.as_str())
+        {
+            return Err(format!(
+                "transition {} must name exactly the immediately preceding transition {} as its parent",
+                transition.transition_id, previous.transition_id
+            ));
+        }
+        if transition.from_representation != previous.to_representation {
+            return Err(format!(
+                "transition {} from_representation does not match parent {} output representation",
+                transition.transition_id, previous.transition_id
+            ));
+        }
+
+        let consumes_parent_output = transition.source_artifacts.iter().any(|source| {
+            previous.output_artifacts.iter().any(|output| {
+                source.artifact_id == output.artifact_id
+                    && source.sha256 == output.sha256
+                    && source.role == output.role
+            })
+        });
+        if !consumes_parent_output {
+            return Err(format!(
+                "transition {} is disconnected: it must consume an exact output artifact from parent {}",
+                transition.transition_id, previous.transition_id
+            ));
+        }
+
+        let parent_target_entities: BTreeSet<&str> = previous
+            .correspondences
+            .iter()
+            .flat_map(|event| event.target_entity_ids.iter().map(String::as_str))
+            .collect();
+        let current_source_entities: BTreeSet<&str> = transition
+            .correspondences
+            .iter()
+            .flat_map(|event| event.source_entity_ids.iter().map(String::as_str))
+            .collect();
+        if let Some(missing) = parent_target_entities
+            .difference(&current_source_entities)
+            .next()
+        {
+            return Err(format!(
+                "transition {} source correspondence inventory silently drops parent entity {}",
+                transition.transition_id, missing
+            ));
+        }
+
+        let parent_target_relations: BTreeSet<&str> = previous
+            .relation_audit
+            .relations
+            .iter()
+            .flat_map(|relation| {
+                relation
+                    .target_relations
+                    .iter()
+                    .map(|target| target.relation_id.as_str())
+            })
+            .collect();
+        let current_source_relations: BTreeSet<&str> = transition
+            .relation_audit
+            .relations
+            .iter()
+            .map(|relation| relation.source_relation_id.as_str())
+            .collect();
+        if let Some(missing) = parent_target_relations
+            .difference(&current_source_relations)
+            .next()
+        {
+            return Err(format!(
+                "transition {} source relation inventory silently drops parent relation {}",
+                transition.transition_id, missing
+            ));
+        }
+
+        if !same_uncertainty_bound(
+            &previous.uncertainty.after,
+            &transition.uncertainty.before,
+        ) {
+            return Err(format!(
+                "transition {} uncertainty.before does not carry forward parent {} uncertainty.after",
+                transition.transition_id, previous.transition_id
+            ));
+        }
+    }
+    Ok(())
 }
 
 /// Parse and audit the exact receipt bytes. This checks declared receipt
@@ -259,10 +372,7 @@ pub fn audit_representation_continuity(
     for (field, value) in [
         ("receipt_id", receipt.receipt_id.as_str()),
         ("replay.run_id", receipt.replay.run_id.as_str()),
-        (
-            "scene.building_group_id",
-            receipt.scene.building_group_id.as_str(),
-        ),
+        ("scene.building_group_id", receipt.scene.building_group_id.as_str()),
         ("scene.scene_id", receipt.scene.scene_id.as_str()),
         (
             "scene.source_model_revision",
@@ -281,13 +391,12 @@ pub fn audit_representation_continuity(
             .bytes()
             .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
     {
-        return Err(
-            "replay.candidate_source_commit must be a 40-character lowercase SHA".to_owned(),
-        );
+        return Err("replay.candidate_source_commit must be a 40-character lowercase SHA".to_owned());
     }
     if receipt.transitions.is_empty() {
         return Err("continuity receipt must contain at least one transition".to_owned());
     }
+    validate_transition_chain(&receipt.transitions)?;
 
     let mut transition_ids = BTreeSet::new();
     let mut produced_artifacts = BTreeMap::<&str, (&str, EvidenceRole)>::new();
@@ -503,6 +612,18 @@ pub fn audit_representation_continuity(
         schema_version: "0.1".to_owned(),
         receipt_id: receipt.receipt_id,
         scene_id: receipt.scene.scene_id,
+        root_transition_id: receipt
+            .transitions
+            .first()
+            .expect("non-empty transitions were validated")
+            .transition_id
+            .clone(),
+        terminal_transition_id: receipt
+            .transitions
+            .last()
+            .expect("non-empty transitions were validated")
+            .transition_id
+            .clone(),
         transition_count,
         claim_count,
         measured_claim_count: totals.get(&ClaimOrigin::Measured).copied().unwrap_or(0),
@@ -718,10 +839,7 @@ fn validate_relation_audit(
                 ));
             }
         }
-        *counts
-            .by_disposition
-            .entry(relation.disposition)
-            .or_insert(0) += 1;
+        *counts.by_disposition.entry(relation.disposition).or_insert(0) += 1;
     }
 
     Ok(counts)
@@ -738,7 +856,10 @@ fn validate_sha256(field: &str, value: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_artifact_set(label: &str, artifacts: &[ArtifactReference]) -> Result<(), String> {
+fn validate_artifact_set(
+    label: &str,
+    artifacts: &[ArtifactReference],
+) -> Result<(), String> {
     let mut ids = BTreeSet::new();
     for artifact in artifacts {
         if artifact.artifact_id.trim().is_empty() || !ids.insert(artifact.artifact_id.as_str()) {
@@ -836,10 +957,7 @@ fn validate_claim(
                 ));
             }
             if claim.value_sha256.is_none() {
-                return Err(format!(
-                    "measured claim {} requires value_sha256",
-                    claim.claim_id
-                ));
+                return Err(format!("measured claim {} requires value_sha256", claim.claim_id));
             }
             if claim.unknown_reason.is_some() {
                 return Err(format!(
@@ -861,10 +979,7 @@ fn validate_claim(
         }
         ClaimOrigin::Assumed => {
             if claim.assumptions.is_empty()
-                || claim
-                    .assumptions
-                    .iter()
-                    .any(|value| value.trim().is_empty())
+                || claim.assumptions.iter().any(|value| value.trim().is_empty())
                 || claim.value_sha256.is_none()
             {
                 return Err(format!(
@@ -889,10 +1004,7 @@ fn validate_claim(
     }
     if let Some(method) = &claim.derivation_method {
         if method.trim().is_empty() {
-            return Err(format!(
-                "claim {} derivation_method must not be empty",
-                claim.claim_id
-            ));
+            return Err(format!("claim {} derivation_method must not be empty", claim.claim_id));
         }
     }
     Ok(())
@@ -1005,9 +1117,9 @@ fn validate_uncertainty_state(label: &str, state: &UncertaintyBound) -> Result<(
                     "uncertainty.{label} known state must use conservative_absolute_bound_m"
                 ));
             }
-            let bound = state.absolute_bound_m.ok_or_else(|| {
-                format!("uncertainty.{label} known state requires absolute_bound_m")
-            })?;
+            let bound = state
+                .absolute_bound_m
+                .ok_or_else(|| format!("uncertainty.{label} known state requires absolute_bound_m"))?;
             if !bound.is_finite() || bound < 0.0 {
                 return Err(format!(
                     "uncertainty.{label}.absolute_bound_m must be finite and non-negative"
@@ -1039,6 +1151,10 @@ mod tests {
 
     fn valid_receipt() -> Value {
         fixture_value()["canonical_receipt"].clone()
+    }
+
+    fn valid_multi_hop_receipt() -> Value {
+        fixture_value()["multi_hop_receipt"].clone()
     }
 
     fn audit(value: &Value) -> Result<RepresentationContinuityReport, String> {
@@ -1215,7 +1331,8 @@ mod tests {
     #[test]
     fn rejects_claim_not_bound_to_a_transition_output_artifact() {
         let mut value = valid_receipt();
-        value["transitions"][0]["claims"][0]["target_artifact_id"] = json!("UNLISTED-OUTPUT");
+        value["transitions"][0]["claims"][0]["target_artifact_id"] =
+            json!("UNLISTED-OUTPUT");
         let error = audit(&value).expect_err("claim must bind the exact output artifact");
         assert!(error.contains("target artifact must be a declared geometry/representation output"));
     }
@@ -1230,81 +1347,97 @@ mod tests {
     }
 
     #[test]
-    fn rejects_changed_bytes_when_a_later_transition_reuses_an_output_artifact_id() {
-        let mut value = valid_receipt();
-        let mut next = value["transitions"][0].clone();
-        next["transition_id"] = json!("SURFACE-TO-GRAPH-001");
-        next["from_representation"] = json!("surface_mesh");
-        next["to_representation"] = json!("spatial_graph");
-        next["source_artifacts"] = json!([
-            {
-                "artifact_id": "MESH-001",
-                "sha256": "c".repeat(64),
-                "role": "geometry_output"
-            },
-            {
-                "artifact_id": "RELATION-INVENTORY-GRAPH-001",
-                "sha256": "1".repeat(64),
-                "role": "relation_inventory"
-            }
-        ]);
-        next["output_artifacts"] = json!([{
-            "artifact_id": "GRAPH-001",
-            "sha256": "8".repeat(64),
-            "role": "geometry_output"
-        }]);
-        next["correspondences"] = json!([
-            {
-                "event_id": "CORR-GRAPH-WALL-001",
-                "kind": "one_to_one",
-                "source_entity_ids": ["WALL-SURFACE-001"],
-                "target_entity_ids": ["WALL-GRAPH-001"],
-                "identity_receipt_sha256": "e".repeat(64)
-            },
-            {
-                "event_id": "CORR-GRAPH-OPENING-001",
-                "kind": "one_to_one",
-                "source_entity_ids": ["OPENING-SURFACE-001"],
-                "target_entity_ids": ["OPENING-GRAPH-001"],
-                "identity_receipt_sha256": "f".repeat(64)
-            }
-        ]);
-        next["relation_audit"] = json!({
-            "inventory_artifact_id": "RELATION-INVENTORY-GRAPH-001",
-            "completeness": "complete",
-            "relations": [{
-                "source_relation_id": "REL-MESH-WALL-OPENING-001",
-                "relation_kind": "host_opening",
-                "source_relation_type": "SurfaceGraph.hosts_opening",
-                "source_subject_entity_id": "WALL-SURFACE-001",
-                "source_object_entity_id": "OPENING-SURFACE-001",
-                "directed": true,
-                "disposition": "preserved",
-                "target_relations": [{
-                    "relation_id": "REL-GRAPH-WALL-OPENING-001",
-                    "relation_kind": "host_opening",
-                    "relation_type": "SpatialGraph.hosts_opening",
-                    "subject_entity_id": "WALL-GRAPH-001",
-                    "object_entity_id": "OPENING-GRAPH-001"
-                }],
-                "reason": null
-            }]
-        });
-        next["claims"] = json!([]);
-        next["uncertainty"]["approximation_error_bound_m"] = json!(0.0);
-        next["uncertainty"]["before"]["absolute_bound_m"] = json!(0.0025);
-        next["uncertainty"]["after"]["absolute_bound_m"] = json!(0.0025);
-        value["transitions"]
-            .as_array_mut()
-            .expect("transition array")
-            .push(next.clone());
-
-        let report = audit(&value).expect("exact prior output may feed the next transition");
+    fn accepts_connected_multi_hop_representation_chain() {
+        let report = audit(&valid_multi_hop_receipt()).expect("connected two-hop chain");
         assert_eq!(report.transition_count, 2);
+        assert_eq!(report.root_transition_id, "RAW-TO-SURFACE-001");
+        assert_eq!(report.terminal_transition_id, "SURFACE-TO-GRAPH-001");
+        assert_eq!(report.claim_count, 2);
+        assert_eq!(report.measured_claim_count, 1);
+        assert_eq!(report.inferred_claim_count, 1);
+        assert_eq!(report.source_relation_count, 2);
+        assert_eq!(report.preserved_relation_count, 2);
+        assert_eq!(report.continuity_state, "continuity_preserved");
+    }
 
+    #[test]
+    fn rejects_disconnected_second_hop_without_parent_output() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["source_artifacts"][0]["artifact_id"] =
+            json!("UNRELATED-MESH-001");
+        value["transitions"][1]["source_artifacts"][0]["sha256"] = json!("19".repeat(32));
+        let error = audit(&value).expect_err("second hop must consume exact parent output");
+        assert!(error.contains("is disconnected"));
+    }
+
+    #[test]
+    fn rejects_representation_kind_jump_between_hops() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["from_representation"] = json!("parametric_model");
+        let error = audit(&value).expect_err("consumer kind must match parent output");
+        assert!(error.contains("from_representation does not match parent"));
+    }
+
+    #[test]
+    fn rejects_uncertainty_reset_between_hops() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["uncertainty"]["before"]["absolute_bound_m"] = json!(0.001);
+        let error = audit(&value).expect_err("uncertainty state must carry forward exactly");
+        assert!(error.contains("does not carry forward parent"));
+    }
+
+    #[test]
+    fn rejects_missing_upstream_entity_from_complete_chain_inventory() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["correspondences"].as_array_mut().unwrap().pop();
+        let error = audit(&value).expect_err("prior target entity cannot silently disappear");
+        assert!(error.contains("silently drops parent entity"));
+    }
+
+    #[test]
+    fn rejects_missing_upstream_relation_from_complete_chain_inventory() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["relation_audit"]["relations"] = json!([]);
+        let error = audit(&value).expect_err("prior relation cannot silently disappear");
+        assert!(error.contains("silently drops parent relation"));
+    }
+
+    #[test]
+    fn rejects_transition_reordered_away_from_its_parent() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"].as_array_mut().unwrap().reverse();
+        let error = audit(&value).expect_err("transition order must be topological");
+        assert!(error.contains("root transition must not declare parent_transition_ids"));
+    }
+
+    #[test]
+    fn retains_ancestor_measurement_provenance_when_immediate_parent_is_consumed() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["source_artifacts"].as_array_mut().unwrap().push(json!({
+            "artifact_id": "SCAN-001",
+            "sha256": "a".repeat(64),
+            "role": "raw_measurement"
+        }));
+        let report = audit(&value)
+            .expect("a downstream transform may retain original evidence provenance");
+        assert_eq!(report.transition_count, 2);
+        assert_eq!(report.continuity_state, "continuity_preserved");
+    }
+
+    #[test]
+    fn rejects_claim_origin_promotion_from_inferred_to_measured_without_new_measurement() {
+        let mut value = valid_multi_hop_receipt();
+        value["transitions"][1]["claims"][0]["origin"] = json!("measured");
+        let error = audit(&value).expect_err("derived graph evidence is not a direct measurement");
+        assert!(error.contains("requires directly traceable measurement"));
+    }
+
+    #[test]
+    fn rejects_changed_bytes_when_a_later_transition_reuses_an_output_artifact_id() {
+        let mut value = valid_multi_hop_receipt();
         value["transitions"][1]["source_artifacts"][0]["sha256"] = json!("9".repeat(64));
-        let error =
-            audit(&value).expect_err("the same artifact ID cannot silently point at new bytes");
+        let error = audit(&value)
+            .expect_err("the same artifact ID cannot silently point at new bytes");
         assert!(error.contains("does not match its prior output binding"));
     }
 
@@ -1324,7 +1457,8 @@ mod tests {
     #[test]
     fn reports_lost_relation_as_degraded_not_preserved() {
         let mut value = valid_receipt();
-        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] = json!("lost");
+        value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
+            json!("lost");
         value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] = json!([]);
         value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
             json!("opening relation was dropped during mesh export");
@@ -1352,7 +1486,8 @@ mod tests {
         let mut value = valid_receipt();
         value["transitions"][0]["relation_audit"]["relations"][0]["disposition"] =
             json!("unsupported");
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] = json!([]);
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"] =
+            json!([]);
         value["transitions"][0]["relation_audit"]["relations"][0]["reason"] =
             json!("target representation cannot encode host-opening relations");
         let report = audit(&value).expect("unsupported relation is not silently passed");
@@ -1373,8 +1508,8 @@ mod tests {
     #[test]
     fn rejects_relation_endpoint_that_does_not_follow_entity_correspondence() {
         let mut value = valid_receipt();
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["object_entity_id"] =
-            json!("WALL-SURFACE-001");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
+            ["object_entity_id"] = json!("WALL-SURFACE-001");
         let error = audit(&value).expect_err("relation endpoints must follow the entity map");
         assert!(error.contains("does not follow the declared source-entity correspondence"));
     }
@@ -1382,8 +1517,8 @@ mod tests {
     #[test]
     fn rejects_preserved_relation_with_changed_canonical_kind() {
         let mut value = valid_receipt();
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["relation_kind"] =
-            json!("adjacent_to");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
+            ["relation_kind"] = json!("adjacent_to");
         let error = audit(&value).expect_err("preserved relation cannot change semantic kind");
         assert!(error.contains("changes canonical relation kind"));
     }
@@ -1432,8 +1567,7 @@ mod tests {
             .as_object_mut()
             .expect("transition object")
             .remove("relation_audit");
-        let error =
-            audit(&value).expect_err("missing relation inventory is not an empty inventory");
+        let error = audit(&value).expect_err("missing relation inventory is not an empty inventory");
         assert!(error.contains("relation_audit"));
     }
 
@@ -1441,10 +1575,10 @@ mod tests {
     fn undirected_relation_allows_reversed_target_endpoints() {
         let mut value = valid_receipt();
         value["transitions"][0]["relation_audit"]["relations"][0]["directed"] = json!(false);
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["subject_entity_id"] =
-            json!("OPENING-SURFACE-001");
-        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]["object_entity_id"] =
-            json!("WALL-SURFACE-001");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
+            ["subject_entity_id"] = json!("OPENING-SURFACE-001");
+        value["transitions"][0]["relation_audit"]["relations"][0]["target_relations"][0]
+            ["object_entity_id"] = json!("WALL-SURFACE-001");
         let report = audit(&value).expect("undirected target endpoint order can reverse");
         assert_eq!(report.preserved_relation_count, 1);
         assert_eq!(report.continuity_state, "continuity_preserved");
