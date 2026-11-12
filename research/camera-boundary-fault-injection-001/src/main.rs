@@ -112,6 +112,9 @@ struct CaseResult {
     policy_input_directory_exists: bool,
     policy_input_artifact_count: usize,
     no_policy_output_committed: bool,
+    expected_frames_processed_before_rejection: Option<u64>,
+    frames_processed_before_rejection: Option<u64>,
+    rejected_observation_did_not_advance_temporal_state: bool,
     input_observation_count: usize,
     stderr: String,
 }
@@ -130,6 +133,7 @@ struct FaultCampaignReport {
     cases_observed: usize,
     fresh_processes_spawned: usize,
     all_negative_controls_rejected_before_policy_output: bool,
+    all_rejections_preflighted_before_temporal_advance: bool,
     clean_control_accepted: bool,
     controller_invoked: bool,
     vehicle_actuator_invoked: bool,
@@ -560,6 +564,27 @@ fn count_policy_artifacts(path: &Path) -> Result<usize, Box<dyn Error>> {
     Ok(count)
 }
 
+fn expected_frames_processed_before_rejection(case: FaultCase) -> Option<u64> {
+    match case {
+        FaultCase::CleanControl => None,
+        FaultCase::StaleFrameReuse
+        | FaultCase::StaleSequenceReplay
+        | FaultCase::CaptureClockRegression => Some(1),
+        _ => Some(0),
+    }
+}
+
+fn parse_frames_processed_before_rejection(stderr: &str) -> Option<u64> {
+    let marker = "frames_processed_before_rejection=";
+    let suffix = stderr.split(marker).nth(1)?;
+    let digits = suffix.chars().take_while(char::is_ascii_digit).collect::<String>();
+    if digits.is_empty() {
+        None
+    } else {
+        digits.parse().ok()
+    }
+}
+
 fn run_case(
     case: FaultCase,
     source_episode_dir: &Path,
@@ -599,6 +624,11 @@ fn run_case(
     let policy_dir_exists = policy_input_dir.exists();
     let policy_artifact_count = count_policy_artifacts(&policy_input_dir)?;
     let expected_error = case.expected_error();
+    let expected_frames = expected_frames_processed_before_rejection(case);
+    let frames_processed_before_rejection =
+        parse_frames_processed_before_rejection(&stderr);
+    let rejected_observation_did_not_advance_temporal_state =
+        expected_frames.is_some() && frames_processed_before_rejection == expected_frames;
 
     let (accepted, expected_error_observed, no_policy_output_committed) =
         if case == FaultCase::CleanControl {
@@ -637,6 +667,9 @@ fn run_case(
         policy_input_directory_exists: policy_dir_exists,
         policy_input_artifact_count: policy_artifact_count,
         no_policy_output_committed,
+        expected_frames_processed_before_rejection: expected_frames,
+        frames_processed_before_rejection,
+        rejected_observation_did_not_advance_temporal_state,
         input_observation_count: observation_count,
         stderr,
     })
@@ -691,9 +724,14 @@ fn run_campaign(
         .iter()
         .filter(|result| result.expected_error.is_some())
         .all(|result| result.expected_error_observed && result.no_policy_output_committed);
+    let all_rejections_preflighted = results
+        .iter()
+        .filter(|result| result.expected_error.is_some())
+        .all(|result| result.rejected_observation_did_not_advance_temporal_state);
     let fresh_processes = results.iter().filter(|result| result.child_process_spawned).count();
     let all_pass = clean_control_accepted
         && all_negative_controls_pass
+        && all_rejections_preflighted
         && results.len() == FaultCase::ALL.len()
         && fresh_processes == FaultCase::ALL.len();
 
@@ -718,6 +756,7 @@ fn run_campaign(
         cases_observed: results.len(),
         fresh_processes_spawned: fresh_processes,
         all_negative_controls_rejected_before_policy_output: all_negative_controls_pass,
+        all_rejections_preflighted_before_temporal_advance: all_rejections_preflighted,
         clean_control_accepted,
         controller_invoked: false,
         vehicle_actuator_invoked: false,
@@ -1072,6 +1111,60 @@ mod tests {
         assert_ne!(
             wrong_camera["observations"][0]["upstream"]["camera_id"],
             "front-rgb"
+        );
+    }
+
+    #[test]
+    fn later_observation_faults_report_one_prior_frame_and_first_frame_faults_report_zero() {
+        assert_eq!(
+            expected_frames_processed_before_rejection(FaultCase::CleanControl),
+            None
+        );
+        assert_eq!(
+            expected_frames_processed_before_rejection(FaultCase::StaleFrameReuse),
+            Some(1)
+        );
+        assert_eq!(
+            expected_frames_processed_before_rejection(FaultCase::StaleSequenceReplay),
+            Some(1)
+        );
+        assert_eq!(
+            expected_frames_processed_before_rejection(FaultCase::CaptureClockRegression),
+            Some(1)
+        );
+        for case in [
+            FaultCase::PixelCorruption,
+            FaultCase::CalibrationShift,
+            FaultCase::CaptureTimestampMismatch,
+            FaultCase::ZeroSequence,
+            FaultCase::ReceiptCommitmentTamper,
+            FaultCase::CameraIdentityMismatch,
+            FaultCase::ClockOrderViolation,
+            FaultCase::SensorClockSkew,
+            FaultCase::DeliveryAgeExceeded,
+            FaultCase::MissingActionReceipt,
+        ] {
+            assert_eq!(expected_frames_processed_before_rejection(case), Some(0));
+        }
+    }
+
+    #[test]
+    fn parses_temporal_state_count_from_bridge_rejection_diagnostic() {
+        assert_eq!(
+            parse_frames_processed_before_rejection(
+                "camera-driving-bridge: SequenceRegression (frames_processed_before_rejection=1)"
+            ),
+            Some(1)
+        );
+        assert_eq!(
+            parse_frames_processed_before_rejection(
+                "camera-driving-bridge: UpstreamFrameMismatch (frames_processed_before_rejection=0)"
+            ),
+            Some(0)
+        );
+        assert_eq!(
+            parse_frames_processed_before_rejection("camera-driving-bridge: UpstreamFrameMismatch"),
+            None
         );
     }
 
