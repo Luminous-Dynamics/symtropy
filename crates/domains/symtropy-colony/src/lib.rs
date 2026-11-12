@@ -69,6 +69,8 @@ impl Default for ColonyMind {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct ColonyDebugMetrics {
     pub tick: u64,
+    /// Explicit counter-based exploration seed. Zero preserves legacy deterministic jitter.
+    pub seed: u64,
     pub information_mode: ColonyInformationMode,
     pub food_reserve: u32,
     pub trail_entropy: f32,
@@ -84,6 +86,7 @@ pub struct ColonyWorld {
     food_sources: HashMap<(usize, usize), u32>,
     ants: Vec<AntCohort>,
     information_mode: ColonyInformationMode,
+    seed: u64,
     tick: u64,
 }
 
@@ -111,6 +114,30 @@ impl ColonyWorld {
         ant_count: usize,
         information_mode: ColonyInformationMode,
     ) -> Self {
+        Self::new_with_information_mode_and_seed(
+            width,
+            height,
+            nest,
+            ant_count,
+            information_mode,
+            0,
+        )
+    }
+
+    /// Construct a colony with an explicit information boundary and exploration seed.
+    ///
+    /// Seed zero preserves the original deterministic jitter for backwards compatibility.
+    /// Non-zero seeds select a counter-based SplitMix64 jitter field keyed by
+    /// (seed, tick, ant_index, x, y). This provides paired, replayable runs with distinct
+    /// exploration sequences without mutable RNG state in candidate scoring.
+    pub fn new_with_information_mode_and_seed(
+        width: usize,
+        height: usize,
+        nest: (usize, usize),
+        ant_count: usize,
+        information_mode: ColonyInformationMode,
+        seed: u64,
+    ) -> Self {
         let mut fields = FieldGrid::new(width, height);
         fields.set(FieldLayer::HomePheromone, nest.0, nest.1, 500.0);
         let mut ants = Vec::with_capacity(ant_count);
@@ -137,12 +164,17 @@ impl ColonyWorld {
             food_sources: HashMap::new(),
             ants,
             information_mode,
+            seed,
             tick: 0,
         }
     }
 
     pub const fn information_mode(&self) -> ColonyInformationMode {
         self.information_mode
+    }
+
+    pub const fn seed(&self) -> u64 {
+        self.seed
     }
 
     pub fn ants(&self) -> &[AntCohort] {
@@ -156,6 +188,7 @@ impl ColonyWorld {
     pub fn debug_metrics(&self) -> ColonyDebugMetrics {
         ColonyDebugMetrics {
             tick: self.tick,
+            seed: self.seed,
             information_mode: self.information_mode,
             food_reserve: self.mind.food_reserve,
             trail_entropy: self.mind.trail_entropy,
@@ -546,12 +579,27 @@ impl ColonyWorld {
     }
 
     fn deterministic_jitter(&self, x: usize, y: usize, ant_index: usize) -> f32 {
-        let n = (x as u64 * 73_856_093)
+        let key = (x as u64 * 73_856_093)
             ^ (y as u64 * 19_349_663)
             ^ (ant_index as u64 * 83_492_791)
             ^ self.tick;
-        (n % 1_000) as f32 / 1_000.0
+        if self.seed == 0 {
+            // Preserve the historical deterministic jitter for existing callers.
+            return (key % 1_000) as f32 / 1_000.0;
+        }
+
+        // Counter-based SplitMix64: no mutable RNG state is consumed while scoring
+        // candidate cells, so candidate enumeration order cannot perturb future draws.
+        let mixed = splitmix64(key ^ self.seed);
+        (mixed >> 40) as f32 / 16_777_216.0
     }
+}
+
+fn splitmix64(mut value: u64) -> u64 {
+    value = value.wrapping_add(0x9E37_79B9_7F4A_7C15);
+    value = (value ^ (value >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
+    value = (value ^ (value >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
+    value ^ (value >> 31)
 }
 
 #[cfg(test)]
@@ -618,6 +666,55 @@ mod tests {
         assert!(ppm.contains("70 130 255"));
         assert!(ppm.contains("40 220 80"));
         assert!(ppm.contains("12 12 12"));
+    }
+
+    #[test]
+    fn seeded_exploration_is_replayable_and_varies_across_seeds() {
+        let make = |seed| {
+            ColonyWorld::new_with_information_mode_and_seed(
+                16,
+                12,
+                (2, 6),
+                8,
+                ColonyInformationMode::IndependentLocalSearch,
+                seed,
+            )
+        };
+        let left = make(101);
+        let replay = make(101);
+        let other = make(202);
+
+        assert_eq!(left.seed(), 101);
+        assert_eq!(left.debug_metrics().seed, 101);
+        assert_eq!(
+            left.deterministic_jitter(4, 5, 3),
+            replay.deterministic_jitter(4, 5, 3)
+        );
+        assert_ne!(
+            left.deterministic_jitter(4, 5, 3),
+            other.deterministic_jitter(4, 5, 3)
+        );
+    }
+
+    #[test]
+    fn seed_zero_preserves_legacy_jitter_formula() {
+        let world = ColonyWorld::new_with_information_mode(
+            16,
+            12,
+            (2, 6),
+            8,
+            ColonyInformationMode::IndependentLocalSearch,
+        );
+        let x = 4usize;
+        let y = 5usize;
+        let ant_index = 3usize;
+        let expected_key = (x as u64 * 73_856_093)
+            ^ (y as u64 * 19_349_663)
+            ^ (ant_index as u64 * 83_492_791)
+            ^ world.tick();
+        let expected = (expected_key % 1_000) as f32 / 1_000.0;
+        assert_eq!(world.seed(), 0);
+        assert_eq!(world.deterministic_jitter(x, y, ant_index), expected);
     }
 
     #[test]
