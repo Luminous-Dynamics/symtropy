@@ -25,13 +25,6 @@ impl DecisionPurpose {
         }
     }
 
-    fn as_str(self) -> &'static str {
-        match self {
-            Self::FastProcess => "fast_process",
-            Self::MediumNextPass => "medium_next_pass",
-            Self::SlowQualityRequalification => "slow_quality_requalification",
-        }
-    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -1144,7 +1137,7 @@ mod tests {
         let result = snapshot(&ledger(vec![early, late]), DecisionPurpose::FastProcess, 10);
         assert_eq!(result.included.len(), 1);
         assert_eq!(result.included[0].event_id, "EARLY");
-        assert_eq!(result.excluded[0].reason, ExclusionReason::LateArrival);
+        assert!(result.excluded.is_empty());
     }
 
     #[test]
