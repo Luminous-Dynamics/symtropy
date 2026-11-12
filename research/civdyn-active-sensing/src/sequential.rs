@@ -357,6 +357,13 @@ mod tests {
     use super::*;
     use crate::{MissingCause, PolicyOutcome};
 
+    fn assert_close(actual: f64, expected: f64) {
+        assert!(
+            (actual - expected).abs() <= 1.0e-8,
+            "floating-point mismatch: actual={actual:.12}, expected={expected:.12}"
+        );
+    }
+
     fn config() -> ActiveSensingConfig {
         ActiveSensingConfig {
             scenario_id: "nonmyopic-two-stage-sensing-v1".to_owned(),
@@ -489,9 +496,9 @@ mod tests {
         assert_eq!(result.total_energy_kwh, 0.25);
         assert_eq!(result.total_energy_cost_service_units, 0.5);
         assert_eq!(result.total_latency_ticks, 2);
-        assert_eq!(result.maximum_latency_service_loss, 0.7);
-        assert_eq!(result.maximum_total_penalty_service_units, 1.2);
-        assert_eq!(result.worst_case_post_sensing_regret, Some(1.2));
+        assert_close(result.maximum_latency_service_loss, 0.7);
+        assert_close(result.maximum_total_penalty_service_units, 1.2);
+        assert_close(result.worst_case_post_sensing_regret.unwrap(), 1.2);
         assert!(result.worst_case_regret_reduction.is_none());
         assert_eq!(result.candidate_policy.len(), 2);
         assert_eq!(result.candidate_policy[0].action_id, "repair_a");
