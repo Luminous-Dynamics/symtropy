@@ -845,18 +845,36 @@ fn validate_observation_ledger(
 /// receipt must be independently created by the acquisition system and is
 /// content-bound here; its signer, sensor provenance and authority remain
 /// upstream verification duties.
+/// Frozen decision context required to replay one evidence-selection decision.
+/// Grouping this context prevents callers from accidentally passing a portfolio
+/// from one prior or candidate catalogue alongside another ledger.
+pub struct ProbeObservationContext<'a> {
+    pub hypotheses: &'a [HypothesisPrior],
+    pub candidates: &'a [DiagnosticProbeCandidate],
+    pub policy: &'a ProbeSelectionPolicy,
+    pub portfolio: &'a ProbePortfolio,
+    pub selection: &'a ProbeBaselineSelection,
+    pub ledger: &'a ProbeObservationLedger,
+    pub candidate: &'a DiagnosticProbeCandidate,
+    pub expected_candidate_manifest_sha256: &'a str,
+}
+
 pub fn realize_probe_observation(
-    hypotheses: &[HypothesisPrior],
-    candidates: &[DiagnosticProbeCandidate],
-    policy: &ProbeSelectionPolicy,
-    portfolio: &ProbePortfolio,
-    selection: &ProbeBaselineSelection,
-    ledger: &ProbeObservationLedger,
-    candidate: &DiagnosticProbeCandidate,
-    expected_candidate_manifest_sha256: &str,
+    context: ProbeObservationContext<'_>,
     observed_outcome_id: &str,
     observation_receipt_sha256: &str,
 ) -> Result<ProbeObservationUpdate, ProbeError> {
+    let ProbeObservationContext {
+        hypotheses,
+        candidates,
+        policy,
+        portfolio,
+        selection,
+        ledger,
+        candidate,
+        expected_candidate_manifest_sha256,
+    } = context;
+
     if observed_outcome_id.trim().is_empty() {
         return Err(ProbeError::EmptyIdentity);
     }
@@ -1300,6 +1318,36 @@ fn is_sha256_hex(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // Keep test fixtures concise; production API groups the frozen decision context.
+    #[allow(clippy::too_many_arguments)]
+    fn realize_probe_observation(
+        hypotheses: &[HypothesisPrior],
+        candidates: &[DiagnosticProbeCandidate],
+        policy: &ProbeSelectionPolicy,
+        portfolio: &ProbePortfolio,
+        selection: &ProbeBaselineSelection,
+        ledger: &ProbeObservationLedger,
+        candidate: &DiagnosticProbeCandidate,
+        expected_candidate_manifest_sha256: &str,
+        observed_outcome_id: &str,
+        observation_receipt_sha256: &str,
+    ) -> Result<ProbeObservationUpdate, ProbeError> {
+        super::realize_probe_observation(
+            ProbeObservationContext {
+                hypotheses,
+                candidates,
+                policy,
+                portfolio,
+                selection,
+                ledger,
+                candidate,
+                expected_candidate_manifest_sha256,
+            },
+            observed_outcome_id,
+            observation_receipt_sha256,
+        )
+    }
 
     fn digest(byte: char) -> String {
         std::iter::repeat_n(byte, 64).collect()
