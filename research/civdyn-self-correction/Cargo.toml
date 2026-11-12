@@ -45,3 +45,7 @@ path = "src/bin/network_adequacy_sweep.rs"
 [[bin]]
 name = "temporal-network-adequacy-sweep"
 path = "src/bin/temporal_network_adequacy_sweep.rs"
+
+[[bin]]
+name = "network-interference-sweep"
+path = "src/bin/network_interference_sweep.rs"
