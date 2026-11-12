@@ -392,7 +392,10 @@ impl ObservationStreamGuard {
         {
             return Err(RenderError::ClockIdentityChanged);
         }
-        if self.last_sequence.is_some_and(|last| input.sequence <= last) {
+        if self
+            .last_sequence
+            .is_some_and(|last| input.sequence <= last)
+        {
             return Err(RenderError::SequenceRegression);
         }
         if self
@@ -1132,8 +1135,7 @@ fn draw_line(
     end: ProjectedPoint,
     color: [u8; 3],
 ) {
-    let Some((start, end)) =
-        clip_projected_segment(start, end, surface.width, surface.height)
+    let Some((start, end)) = clip_projected_segment(start, end, surface.width, surface.height)
     else {
         return;
     };
