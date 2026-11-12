@@ -50,6 +50,14 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
+      - name: Resolve and preserve the exact Symthaea workspace lock
+        working-directory: symthaea
+        run: |
+          mkdir -p "$GITHUB_WORKSPACE/out"
+          cargo generate-lockfile
+          cp Cargo.lock "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock"
+          sha256sum Cargo.lock | tee "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock.sha256"
+
       - name: Build Symthaea camera bridge and generate fixture configs
         working-directory: symthaea
         run: |
@@ -130,6 +138,11 @@ jobs:
         if: always()
         run: |
           if [ -d "$GITHUB_WORKSPACE/out/fresh-driving-episode" ]; then
+            mkdir -p "$GITHUB_WORKSPACE/out/fresh-driving-episode/build-provenance"
+            if [ -f "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock" ]; then
+              cp "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock" "$GITHUB_WORKSPACE/out/fresh-driving-episode/build-provenance/symthaea-Cargo.lock"
+            fi
+            symthaea_lock_sha="$(sha256sum "$GITHUB_WORKSPACE/out/symthaea-Cargo.lock" 2>/dev/null | cut -d' ' -f1 || true)"
             symthaea_sha="$(git -C symthaea rev-parse HEAD 2>/dev/null || true)"
             branch_auditor_sha="$(git -C symtropy-auditor rev-parse HEAD 2>/dev/null || true)"
             degradation_auditor_sha="$(git -C symtropy-degradation rev-parse HEAD 2>/dev/null || true)"
@@ -139,6 +152,7 @@ jobs:
             jq -n \
               --arg symtropy_commit "$GITHUB_SHA" \
               --arg symthaea_commit "$symthaea_sha" \
+              --arg symthaea_workspace_lock_sha256 "$symthaea_lock_sha" \
               --arg recoverable_auditor_commit "$branch_auditor_sha" \
               --arg degradation_auditor_commit "$degradation_auditor_sha" \
               --arg renderer_git_revision "8f9320647b40e9649209afa89ce373d475d3f305" \
@@ -152,6 +166,7 @@ jobs:
                 claim_ceiling: "Exact source and binary identity for this finite non-learning fixture only; not a model or road-safety result.",
                 symtropy_harness_commit: $symtropy_commit,
                 symthaea_bridge_commit: $symthaea_commit,
+                symthaea_workspace_lock_sha256: $symthaea_workspace_lock_sha256,
                 recoverable_auditor_commit: $recoverable_auditor_commit,
                 degradation_auditor_commit: $degradation_auditor_commit,
                 renderer_git_revision: $renderer_git_revision,
