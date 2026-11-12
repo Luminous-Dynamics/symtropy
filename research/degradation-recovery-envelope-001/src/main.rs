@@ -320,8 +320,7 @@ mod tests {
     #[test]
     fn cli_requires_model_and_runtime_provenance_fields() {
         let mut value: serde_json::Value =
-            serde_json::from_str(include_str!("../fixtures/camera-drop-paired-v1.json"))
-                .unwrap();
+            serde_json::from_str(include_str!("../fixtures/camera-drop-paired-v1.json")).unwrap();
         value.as_object_mut().unwrap().remove("model_id");
         assert!(audit_value(&value.to_string()).is_err());
     }
@@ -335,8 +334,7 @@ mod disposition_tests {
     #[test]
     fn cli_keeps_incomplete_and_censored_run_dispositions_visible() {
         let mut value: serde_json::Value =
-            serde_json::from_str(include_str!("../fixtures/camera-drop-paired-v1.json"))
-                .unwrap();
+            serde_json::from_str(include_str!("../fixtures/camera-drop-paired-v1.json")).unwrap();
         value["clean_control"]["disposition"] = json!("incomplete");
         value["faulted_run"]["disposition"] = json!("censored");
         let report = audit_value(&value.to_string()).unwrap();
