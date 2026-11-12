@@ -455,6 +455,9 @@ jobs:
           cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep > /tmp/civdyn-active-sensing.csv
           cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep > /tmp/civdyn-active-sensing-replay.csv
           cmp /tmp/civdyn-active-sensing.csv /tmp/civdyn-active-sensing-replay.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep -- --candidate-policy-map > /tmp/civdyn-active-sensing-candidate.csv
+          cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin active-sensing-sweep -- --candidate-policy-map > /tmp/civdyn-active-sensing-candidate-replay.csv
+          cmp /tmp/civdyn-active-sensing-candidate.csv /tmp/civdyn-active-sensing-candidate-replay.csv
           python3 - <<'PY'
           import csv
           import math
@@ -529,5 +532,19 @@ jobs:
           assert blind["status"] == "no_feasible_policy"
           assert blind["resolves_no_sensing_infeasibility"] == "false"
           assert blind["recommended"] == "false"
+          with Path("/tmp/civdyn-active-sensing-candidate.csv").open(newline="", encoding="utf-8") as handle:
+              candidate_reader = csv.DictReader(handle)
+              assert candidate_reader.fieldnames == ["scenario_id", "sensor_id", "observation_id", "action_id"]
+              candidate_rows = list(candidate_reader)
+
+          assert len(candidate_rows) == 4
+          assert all(set(row) == {"scenario_id", "sensor_id", "observation_id", "action_id"} for row in candidate_rows)
+          assert not any("world" in key or "missing_cause" in key or "regret" in key for key in candidate_reader.fieldnames)
+          candidate_map = {(row["scenario_id"], row["observation_id"]): (row["sensor_id"], row["action_id"]) for row in candidate_rows}
+          assert candidate_map[("three-world-sensor-dual-control-v1", "healthy")] == ("independent_field_inspection", "defer")
+          assert candidate_map[("three-world-sensor-dual-control-v1", "degraded")] == ("independent_field_inspection", "repair")
+          assert candidate_map[("two-world-feasibility-lift-v1", "world_a_detected")] == ("decision_separating_inspection", "repair_a")
+          assert candidate_map[("two-world-feasibility-lift-v1", "world_b_detected")] == ("decision_separating_inspection", "repair_b")
+
           print("CIVDYN active-sensing contract passed: minimax baseline, common-cause missingness, world-dependent delay cost, hard service floors, over-budget rejection and deterministic replay.")
           PY
