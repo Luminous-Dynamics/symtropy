@@ -703,7 +703,7 @@ pub fn audit_process_window(
 
     let mut lot_counts: BTreeMap<(String, String, RunEvidenceTier), GroupCounts> =
         BTreeMap::new();
-    let mut line_counts: BTreeMap<(String, RunEvidenceTier), GroupCounts> = BTreeMap<>();
+    let mut line_counts: BTreeMap<(String, RunEvidenceTier), GroupCounts> = BTreeMap::new();
     let mut line_lots: BTreeMap<(String, RunEvidenceTier), BTreeSet<String>> =
         BTreeMap::new();
 
