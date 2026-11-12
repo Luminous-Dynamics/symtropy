@@ -194,3 +194,24 @@ These are laboratory qualification gates only. They do not authorize a field pil
 ## 10. Nonclaims
 
 No robot hardware is currently qualified. No sewer robot paper result proves cable-duct performance. A laboratory run does not prove cable integrity, electrical insulation, thermal rating, protection coordination, installation compliance, safety for energization, legal access, utility approval or authority to manipulate an electrical asset.
+
+
+## 11. External baseline and standards alignment
+
+A cable tunnel and a small cable duct are different qualification environments.
+
+- **IEC 63439-1-1:2025** supplies electric-power-robot terminology. **IEC TR 63439-1-2:2026** maps the state of the art and standardization roadmap, including robot classification, sensing, navigation, communications, performance benchmarks, reliability and environmental stress testing. **IEC 63439-3-31** is in development for land cable tunnel inspection robots; it is not yet a published compliance standard and must not be assumed to cover microduct crawlers or cable installation tools.
+- **Cable trench inspection research** already combines LiDAR / IMU navigation, infrared / HD cameras and environmental sensing (gas, temperature, humidity and water levels). A 2022 paper reports a 21% path-planning speed increase in its own test setup. This is a research reference for cable trenches, not an industry-wide robot score or a microduct result.
+- **Commercial sewer crawlers** such as RedZone SOLO report autonomous traversal and return for 200–300 mm pipes and NASSCO / WRc reporting. Use as a sewer-pipe product reference only where the physical profile and task match; do not transfer it to cable ducts.
+- **Fibre microduct cable installation** already uses air-assisted blowing / jetting equipment. The FOA describes microcable jacket and duct requirements; OFS IP-055 calls for a cable-specific slip test before installation and gives a 200 N compressive-force recommendation for OFS microcables only. Treat exact limits as product-specific, not universal.
+
+References:
+- IEC 63439-1-1:2025: https://webstore.iec.ch/en/publication/72749
+- IEC TR 63439-1-2:2026: https://webstore.iec.ch/en/publication/109098
+- IEC 63439-3-31 work item: https://standardsdevelopment.bsigroup.com/projects/9025-12660
+- Cable trench inspection robot: https://www.frontiersin.org/journals/energy-research/articles/10.3389/fenrg.2022.860461/full
+- RedZone SOLO: https://redzone.com/our-technology/solo/
+- Fibre microduct installation practice: https://www.thefoa.org/tech/ref/OSP_Construction/Underground_Installation.html
+- OFS IP-055 microcable installation practice: https://www.ofsoptics.com/wp-content/uploads/IP055-MicroCable-Installation-Oct-2019.pdf
+
+**Benchmark implication:** compare robot-assisted duct inspection and recovery against existing duct proving / draw-rope processes and, for fibre, cable-blowing / jetting equipment. The robot may inspect, prove, localize or recover while a specialized jetting machine performs cable installation. Prefer a hybrid workflow where that is safer or cheaper.
