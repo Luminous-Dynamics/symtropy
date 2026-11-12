@@ -135,7 +135,7 @@ jobs:
           fi
           csv_count="$(find "$root" -type f -iname '*.csv' | wc -l | tr -d ' ')"
           echo "Extracted CSV count: $csv_count"
-          test "$csv_count" = "16"
+          test "$csv_count" = "18"
           echo "DATASET_ROOT=$root" >> "$GITHUB_ENV"
 
       - name: Run raw CSV payload audit
