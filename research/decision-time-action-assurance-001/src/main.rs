@@ -122,8 +122,8 @@ fn main() {
 mod tests {
     use super::*;
     use decision_time_action_assurance::{
-        evidence_bundle_sha256, ActionClass, EvidenceBundle, EvidenceHealth, EvidenceProfile,
-        FallbackDirective, Modality, ModalityRequirement, ObservationDisposition, ObservationSample,
+        ActionClass, EvidenceHealth, EvidenceProfile, FallbackDirective, Modality,
+        ModalityRequirement, ObservationDisposition, ObservationSample,
     };
 
     fn request_json() -> String {
@@ -204,6 +204,20 @@ mod tests {
             "policy": policy
         })
         .to_string()
+    }
+
+    #[test]
+    fn request_report_schemas_and_benchmark_manifest_are_valid_json() {
+        let request_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/gate-request-v1.schema.json")).unwrap();
+        let report_schema: serde_json::Value =
+            serde_json::from_str(include_str!("../schemas/gate-report-v1.schema.json")).unwrap();
+        let manifest: serde_json::Value =
+            serde_json::from_str(include_str!("../benchmark_manifest_v0_1.json")).unwrap();
+        assert_eq!(request_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+        assert_eq!(report_schema["$schema"], "https://json-schema.org/draft/2020-12/schema");
+        assert_eq!(manifest["status"], "specification_and_reference_implementation_only_no_benchmark_runs");
+        assert_eq!(manifest["prospective_targets"]["status"], "not_measured");
     }
 
     #[test]
