@@ -949,13 +949,22 @@ mod tests {
     #[test]
     fn incomplete_and_out_of_window_runs_cannot_inflate_strict_first_pass_yield() {
         let mut manifest = valid_manifest();
-        let extra = run(
+        let mut out_of_window = run(
             "6",
             "LOT-C",
             "LINE-2",
             observed_quality(4.9, 27.0, "QUALITY-SYNTH"),
         );
-        manifest.production_runs.push(extra);
+        out_of_window.process_parameters[0].value = 30.0;
+        let mut incomplete = run(
+            "7",
+            "LOT-C",
+            "LINE-2",
+            observed_quality(4.9, 27.0, "QUALITY-SYNTH"),
+        );
+        incomplete.quality_observations[1].status = MeasurementStatus::NotMeasured;
+        incomplete.quality_observations[1].value = None;
+        manifest.production_runs.extend([out_of_window, incomplete]);
 
         let report = audit_process_window(&manifest).expect("mixed run statuses");
         let lot_c = report
