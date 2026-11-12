@@ -61,6 +61,7 @@ jobs:
             "$root/benchmark-run-manifest.schema.json"
             "$root/shift-matrix-v0.1.json"
             "$root/streaming-contract-v0.1.json"
+            "$root/sequential-evidence-v0.1.json"
           )
           for file in "${files[@]}"; do
             test -s "$file"
@@ -90,8 +91,8 @@ jobs:
             (.active_evidence_selection.comparators | length == 7) and
             (.active_evidence_selection.comparators | index("risk_adjusted_worst_case_eig") != null) and
             (.active_evidence_selection.comparators | index("maximum_worst_case_pairwise_chernoff_information") != null)
-            and (.active_evidence_selection.chernoff.s_grid_intervals == 100)
-            and (.active_evidence_selection.chernoff.assumption | contains("not a finite-sample diagnostic error guarantee"))
+            and (.active_evidence_selection.chernoff.grid_intervals == 100)
+            and (.active_evidence_selection.chernoff.assumption | contains("not a finite-sample diagnostic error guarantee")) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.one_sample_one_output == true) and
             (.streaming_contract.historical_output_mutation == false) and
@@ -148,8 +149,8 @@ jobs:
             (.candidate_classes.controlled_perturbation.eligible_when == false) and
             (.hard_gates | length >= 40) and
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
-            (.method.likelihood_calibration_review.requirement | contains("independent calibration-review receipt")) and
-            (.method.likelihood_calibration_review.qualification | contains("not self-authenticating")) and
+            (.method.calibration.requirement | contains("independent calibration-review receipt")) and
+            (.method.calibration.qualification | contains("not self-authenticating")) and
             (.research_targets_not_achieved | all(.status == "aspirational"))
           ' "$root/active-evidence-selection-v0.1.json" >/dev/null
 
@@ -189,6 +190,20 @@ jobs:
             (.aggregate_readiness_score_allowed == false) and
             ([.dimensions[].research_target] | all(. != null))
           ' "$root/deployability-matrix-v0.1.json" >/dev/null
+
+          jq -e '
+            .schema_version == "symtropy-sequential-evidence-v0.1" and
+            .status == "protocol_only_not_executed" and
+            (.familywise_control.method == "bonferroni") and
+            (.protocol_constraints.one_input_one_receipt == true) and
+            (.protocol_constraints.contiguous_sample_indices == true) and
+            (.protocol_constraints.model_and_calibration_bound_per_session == true) and
+            (.protocol_constraints.receipt_chain_replay == true) and
+            (.protocol_constraints.unknown_outcome_poisons_session == true) and
+            (.validity_conditions.observations | contains("conditionally independent")) and
+            (.validity_conditions.optional_stopping | contains("Ville")) and
+            (.research_targets_not_achieved | all(.status == "aspirational"))
+          ' "$root/sequential-evidence-v0.1.json" >/dev/null
 
           jq -e '
             .schema_version == "liu-ice-streaming-contract-v0.1" and
