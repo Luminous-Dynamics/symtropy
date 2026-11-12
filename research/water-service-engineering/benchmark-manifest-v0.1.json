@@ -80,7 +80,8 @@
       "PS-T0-005-commanded-on-but-no-measured-flow",
       "PS-T0-006-critical-pressure-observation-missing",
       "PS-T0-007-storage-reserve-during-pump-outage",
-      "PS-T0-008-out-of-domain-pump-curve"
+      "PS-T0-008-out-of-domain-pump-curve",
+      "PS-T0-009-vfd-versus-fixed-speed-throttling"
     ],
     "comparison_dimensions": [
       "wire_to_water_efficiency",
