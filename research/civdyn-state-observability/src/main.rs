@@ -117,6 +117,17 @@ fn parse_u64(value: &str, field: &str) -> Result<u64, String> {
         .map_err(|_| format!("invalid {field}: {value}"))
 }
 
+
+fn parse_f64(value: &str, field: &str) -> Result<f64, String> {
+    let parsed = value
+        .parse::<f64>()
+        .map_err(|_| format!("invalid {field}: {value}"))?;
+    if !parsed.is_finite() {
+        return Err(format!("non-finite {field}"));
+    }
+    Ok(parsed)
+}
+
 fn parse_usize(value: &str, field: &str) -> Result<usize, String> {
     value
         .parse::<usize>()
