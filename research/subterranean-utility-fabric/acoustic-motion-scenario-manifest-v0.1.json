@@ -56,7 +56,9 @@
         "within declared speed envelope"
       ],
       "expected_disposition": "Accepted",
-      "oracle_requirement": "Independent chainage and feature truth must agree within frozen task tolerances; report acquisition and motion overhead."
+      "oracle_requirement": "Independent chainage and feature truth must agree within frozen task tolerances; report acquisition and motion overhead.",
+      "expected_action": "CONTINUE_MOVING",
+      "oracle_action_reason": "The moving array is within its calibrated envelope and the oracle predicts an informative observation without a pause."
     },
     {
       "id": "AM-002",
@@ -72,7 +74,9 @@
         "known observation cadence"
       ],
       "expected_disposition": "Accepted",
-      "oracle_requirement": "Preserve each stationary dwell and processing interval in total mission time; no pauses are omitted from the denominator."
+      "oracle_requirement": "Preserve each stationary dwell and processing interval in total mission time; no pauses are omitted from the denominator.",
+      "expected_action": "PAUSE_AND_CHIRP",
+      "oracle_action_reason": "This is the fixed stationary reference workflow; retain its entire dwell and processing cost."
     },
     {
       "id": "AM-003",
@@ -87,7 +91,9 @@
         "known excitation timing"
       ],
       "expected_disposition": "Accepted",
-      "oracle_requirement": "Accept only if phase/motion compensation revision and time alignment are exact and error is independently within tolerance."
+      "oracle_requirement": "Accept only if phase/motion compensation revision and time alignment are exact and error is independently within tolerance.",
+      "expected_action": "CONTINUE_MOVING",
+      "oracle_action_reason": "Motion and phase compensation are within the declared supported envelope."
     },
     {
       "id": "AM-004",
@@ -101,7 +107,9 @@
         "phase drift beyond declared model"
       ],
       "expected_disposition": "Unsupported",
-      "oracle_requirement": "The candidate must abstain or identify unsupported conditions; no high-confidence defect position is allowed."
+      "oracle_requirement": "The candidate must abstain or identify unsupported conditions; no high-confidence defect position is allowed.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "Speed exceeds the calibration envelope; no supported phase correction is available."
     },
     {
       "id": "AM-005",
@@ -116,7 +124,9 @@
         "visual features are sparse"
       ],
       "expected_disposition": "Indeterminate",
-      "oracle_requirement": "Preserve multiple hypotheses; a single confident location is a false acceptance."
+      "oracle_requirement": "Preserve multiple hypotheses; a single confident location is a false acceptance.",
+      "expected_action": "REVERSE_VIEW",
+      "oracle_action_reason": "A safe independent viewpoint is the prescribed disambiguation action; retain multiple hypotheses until then."
     },
     {
       "id": "AM-006",
@@ -131,7 +141,9 @@
         "low signal-to-noise"
       ],
       "expected_disposition": "Indeterminate",
-      "oracle_requirement": "Do not infer a precise absence or feature distance from an inadequate observation."
+      "oracle_requirement": "Do not infer a precise absence or feature distance from an inadequate observation.",
+      "expected_action": "CHANGE_EXCITATION",
+      "oracle_action_reason": "The current excitation is inadequate; select a longer signal only if its declared time and energy budget remains valid."
     },
     {
       "id": "AM-007",
@@ -145,7 +157,9 @@
         "stationary dwell or compute exceeds task budget"
       ],
       "expected_disposition": "Rejected",
-      "oracle_requirement": "Reject an action policy that exceeds frozen time/energy budgets without a sufficient decision-quality gain."
+      "oracle_requirement": "Reject an action policy that exceeds frozen time/energy budgets without a sufficient decision-quality gain.",
+      "expected_action": "CONTINUE_MOVING",
+      "oracle_action_reason": "The longer excitation has negative net decision value under the frozen time budget."
     },
     {
       "id": "AM-008",
@@ -159,7 +173,9 @@
         "array geometry calibration stale"
       ],
       "expected_disposition": "Indeterminate",
-      "oracle_requirement": "Expose channel health and calibration incompatibility; do not claim nominal array observability."
+      "oracle_requirement": "Expose channel health and calibration incompatibility; do not claim nominal array observability.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "Array geometry or channel integrity is not established; no nominal acoustic localization claim is admissible."
     },
     {
       "id": "AM-009",
@@ -174,7 +190,9 @@
         "wheel vibration"
       ],
       "expected_disposition": "Indeterminate",
-      "oracle_requirement": "Flag contamination or adapt only within a prequalified noise model; never silently accept corrupted samples."
+      "oracle_requirement": "Flag contamination or adapt only within a prequalified noise model; never silently accept corrupted samples.",
+      "expected_action": "SLOW_AND_SAMPLE",
+      "oracle_action_reason": "Reduce motion-related contamination and reassess signal quality only within the calibrated speed/noise envelope."
     },
     {
       "id": "AM-010",
@@ -189,7 +207,9 @@
         "attenuation and reverberation shift"
       ],
       "expected_disposition": "Unsupported",
-      "oracle_requirement": "A model trained on a different pipe population cannot claim cable-duct localization without target-profile qualification."
+      "oracle_requirement": "A model trained on a different pipe population cannot claim cable-duct localization without target-profile qualification.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "The cable-duct occupancy and water/debris profile is outside the qualified population."
     },
     {
       "id": "AM-011",
@@ -204,7 +224,9 @@
         "out-of-order samples"
       ],
       "expected_disposition": "Rejected",
-      "oracle_requirement": "Reject incompatible time alignment rather than silently correcting timestamps or fusing invalid observations."
+      "oracle_requirement": "Reject incompatible time alignment rather than silently correcting timestamps or fusing invalid observations.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "Motion and acoustic timebases are incompatible; do not fuse misaligned observations."
     },
     {
       "id": "AM-012",
@@ -219,7 +241,9 @@
         "wrong branch hypothesis"
       ],
       "expected_disposition": "Rejected",
-      "oracle_requirement": "Local feature detection may be retained, but branch/network association must be rejected unless independent anchor evidence supports it."
+      "oracle_requirement": "Local feature detection may be retained, but branch/network association must be rejected unless independent anchor evidence supports it.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "Branch association is unresolved and the available evidence does not establish a safe disambiguating route."
     },
     {
       "id": "AM-013",
@@ -232,7 +256,9 @@
         "expected accuracy gain is smaller than time/energy/disruption cost"
       ],
       "expected_disposition": "Accepted",
-      "oracle_requirement": "Select continue or stop according to the frozen loss/cost policy; no action may be selected solely for higher signal-to-noise ratio."
+      "oracle_requirement": "Select continue or stop according to the frozen loss/cost policy; no action may be selected solely for higher signal-to-noise ratio.",
+      "expected_action": "CONTINUE_MOVING",
+      "oracle_action_reason": "No candidate measurement has positive net value after time, energy and disruption costs."
     },
     {
       "id": "AM-014",
@@ -246,7 +272,9 @@
         "acoustic and visual measurements absent or unusable"
       ],
       "expected_disposition": "Indeterminate",
-      "oracle_requirement": "Preserve unobserved extent and refuse a precise feature or chainage claim across the interval."
+      "oracle_requirement": "Preserve unobserved extent and refuse a precise feature or chainage claim across the interval.",
+      "expected_action": "DEFER_OR_ABSTAIN",
+      "oracle_action_reason": "The interval is unobserved and has no independent reference; preserve Indeterminate."
     }
   ],
   "global_controls": [
