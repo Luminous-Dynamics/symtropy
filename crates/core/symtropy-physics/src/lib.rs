@@ -14,6 +14,7 @@
 //! - `contact::ContactManifold<D>` — collision contact data
 //! - `integrator` — semi-implicit Euler with bivector angular dynamics
 
+pub mod action_horizon;
 pub mod articulation;
 pub mod body;
 pub mod broadphase;
@@ -32,6 +33,12 @@ pub mod replay;
 pub mod support_map;
 pub mod world;
 
+pub use action_horizon::{
+    ActionCommitment, ActionCommitmentError, ActionCommitmentInvalidity,
+    ActionExecutionMode, ActionHorizonRequest, ActionHorizonSelection, HorizonBoundReceipt,
+    HorizonConstraint, HorizonDisposition, HorizonEvidence, HorizonInputError,
+    create_action_commitment, select_action_horizon,
+};
 pub use articulation::{ArticulatedChain, ChainBuilder, LinkSpec};
 pub use body::{BodyHandle, BodyType, NetId, RigidBody};
 pub use broadphase::{Aabb, Lbvh, morton_encode, morton_prefix};
