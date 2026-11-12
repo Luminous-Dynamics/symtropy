@@ -155,21 +155,15 @@ fn inverse<const N: usize>(matrix: Mat<N, N>) -> Mat<N, N> {
             }
             let factor = augmented[row][pivot];
             for column in 0..(2 * N) {
-                augmented[row][column] =
-                    augmented[row][column] - factor * pivot_values[column];
+                augmented[row][column] = augmented[row][column] - factor * pivot_values[column];
             }
         }
     }
 
-    std::array::from_fn(|row| {
-        std::array::from_fn(|column| augmented[row][N + column])
-    })
+    std::array::from_fn(|row| std::array::from_fn(|column| augmented[row][N + column]))
 }
 
-fn multiply_vector<const R: usize, const C: usize>(
-    matrix: Mat<R, C>,
-    vector: VecN<C>,
-) -> VecN<R> {
+fn multiply_vector<const R: usize, const C: usize>(matrix: Mat<R, C>, vector: VecN<C>) -> VecN<R> {
     std::array::from_fn(|row| {
         (0..C)
             .map(|column| matrix[row][column] * vector[column])
@@ -226,31 +220,17 @@ fn exact_rational_oracle_checks_two_independent_rebasing_actions() {
         "exact multiplier/residual dual pairing"
     );
 
-    let multiplier_norm_squared_q = dot(
-        lambda_q,
-        multiply_vector(w_q, lambda_q),
-    );
-    let multiplier_norm_squared_y = dot(
-        lambda_y,
-        multiply_vector(w_y, lambda_y),
-    );
+    let multiplier_norm_squared_q = dot(lambda_q, multiply_vector(w_q, lambda_q));
+    let multiplier_norm_squared_y = dot(lambda_y, multiply_vector(w_y, lambda_y));
     assert_eq!(
-        multiplier_norm_squared_q,
-        multiplier_norm_squared_y,
+        multiplier_norm_squared_q, multiplier_norm_squared_y,
         "exact Delassus multiplier norm"
     );
 
-    let residual_norm_squared_q = dot(
-        residual_q,
-        multiply_vector(inverse(w_q), residual_q),
-    );
-    let residual_norm_squared_y = dot(
-        residual_y,
-        multiply_vector(inverse(w_y), residual_y),
-    );
+    let residual_norm_squared_q = dot(residual_q, multiply_vector(inverse(w_q), residual_q));
+    let residual_norm_squared_y = dot(residual_y, multiply_vector(inverse(w_y), residual_y));
     assert_eq!(
-        residual_norm_squared_q,
-        residual_norm_squared_y,
+        residual_norm_squared_q, residual_norm_squared_y,
         "exact Delassus residual norm"
     );
 
@@ -288,17 +268,14 @@ fn exact_rational_oracle_checks_two_independent_rebasing_actions() {
         "exact minimum-kinetic correction covariance"
     );
 
-    let minimum_residual_norm_squared_q = dot(
-        residual_q,
-        multiply_vector(inverse(w_q), residual_q),
-    );
+    let minimum_residual_norm_squared_q =
+        dot(residual_q, multiply_vector(inverse(w_q), residual_q));
     let minimum_kinetic_norm_squared_q = dot(
         minimum_correction_q,
         multiply_vector(m_q, minimum_correction_q),
     );
     assert_eq!(
-        minimum_residual_norm_squared_q,
-        minimum_kinetic_norm_squared_q,
+        minimum_residual_norm_squared_q, minimum_kinetic_norm_squared_q,
         "exact minimum-kinetic norm identity"
     );
 }
