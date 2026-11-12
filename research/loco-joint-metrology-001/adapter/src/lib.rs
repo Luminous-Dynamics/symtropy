@@ -749,7 +749,7 @@ pub fn adapt_joint_trace(trace: &JointTrace) -> Result<AdapterReport, TraceValid
     let causal_edges = validate_identity(&trace.identity, &trace.configuration)?;
     validate_timestamp(
         "source_capture",
-        trace.source_capture,
+        &trace.source_capture,
         trace.identity.boot_epoch,
     )?;
     validate_timestamp(
@@ -759,7 +759,7 @@ pub fn adapt_joint_trace(trace: &JointTrace) -> Result<AdapterReport, TraceValid
     )?;
     validate_timestamp(
         "motion_onset",
-        trace.motion_onset,
+        &trace.motion_onset,
         trace.identity.boot_epoch,
     )?;
 
