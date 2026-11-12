@@ -980,6 +980,27 @@ mod tests {
     }
 
     #[test]
+    fn every_physically_possible_observation_successor_must_have_a_winning_continuation() {
+        let mut tree = root_two_step_tree();
+        tree.nodes[3].terminal_recovery = Some(TerminalRecoveryEvidence::Qualified {
+            state_receipts: vec![TerminalRecoveryReceipt {
+                state_id: "s1-safe".to_owned(),
+                reserve_state_digest: reserve_digest("s1-safe"),
+                topology_digest: "topology:s1-safe".to_owned(),
+                terminal_safe_stop_reachable: false,
+            }],
+        });
+        // The firm branch remains fully recoverable, but the same root probe
+        // also has a physically possible rough branch with no terminal route.
+        let report = evaluate_bounded_policy_tree(&tree, 2).unwrap();
+        assert_eq!(
+            report.disposition,
+            PolicyTreeDisposition::NoWinningPolicyInDeclaredDomain
+        );
+        assert!(report.policy_witness.is_empty());
+    }
+
+    #[test]
     fn unreachable_terminal_safe_stop_removes_the_policy() {
         let mut tree = root_two_step_tree();
         tree.nodes[3].terminal_recovery = Some(TerminalRecoveryEvidence::Qualified {
