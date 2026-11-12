@@ -25,7 +25,7 @@
   "mission": {
     "planned_length_m": 6,
     "reached_length_m": 5.2,
-    "usable_length_m": 3.8,
+    "usable_length_m": 2,
     "mission_status": "partial",
     "retrieval_status": "retrieved",
     "clock_sync_status": "qualified",
