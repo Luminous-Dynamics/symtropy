@@ -11,7 +11,7 @@ use std::hint::black_box;
 use std::time::{Duration, Instant};
 
 use metric_induced_error_envelope_reference::{
-    CartesianQ, ConstraintSpace, Cotangent, DenseY, DelassusMetricV1, Matrix, Metric,
+    CartesianQ, ConstraintSpace, Cotangent, DelassusMetricV1, DenseY, Matrix, Metric,
     MetricProfileV1, Rebasis, Tangent, pairing, vector_euclidean, vector_inf,
 };
 
@@ -125,12 +125,11 @@ fn fixture() -> BenchmarkFixture {
         [0.0, 1.0, 0.0, 1.0, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0, 1.0, 0.0],
     ];
-    let delassus = DelassusMetricV1::<CartesianQ, ConstraintSpace, N, CONSTRAINTS>::from_mass_jacobian(
-        &metric_q,
-        jacobian,
-        profile,
-    )
-    .unwrap();
+    let delassus =
+        DelassusMetricV1::<CartesianQ, ConstraintSpace, N, CONSTRAINTS>::from_mass_jacobian(
+            &metric_q, jacobian, profile,
+        )
+        .unwrap();
 
     (
         metric_q, rebasis, vector_q, covector_q, vector_y, covector_y, metric_y, delassus, jacobian,
@@ -328,23 +327,33 @@ fn main() {
             metric_y.tangent_norm(black_box(&vector_y)).unwrap()
                 + metric_y.cotangent_norm(black_box(&covector_y)).unwrap()
         }),
-        measure("delassus_whitened_gram_construct", ITERATIONS / 100, SAMPLES, || {
-            DelassusMetricV1::<CartesianQ, ConstraintSpace, N, CONSTRAINTS>::from_mass_jacobian(
-                black_box(&metric_q),
-                *black_box(&jacobian),
-                MetricProfileV1::default(),
-            )
-            .unwrap()
-            .matrix()[0][0]
-        }),
-        measure("delassus_direct_mass_solve_construct", ITERATIONS / 100, SAMPLES, || {
-            direct_delassus(
-                black_box(&metric_q),
-                black_box(&jacobian),
-                MetricProfileV1::default(),
-            )
-            .matrix()[0][0]
-        }),
+        measure(
+            "delassus_whitened_gram_construct",
+            ITERATIONS / 100,
+            SAMPLES,
+            || {
+                DelassusMetricV1::<CartesianQ, ConstraintSpace, N, CONSTRAINTS>::from_mass_jacobian(
+                    black_box(&metric_q),
+                    *black_box(&jacobian),
+                    MetricProfileV1::default(),
+                )
+                .unwrap()
+                .matrix()[0][0]
+            },
+        ),
+        measure(
+            "delassus_direct_mass_solve_construct",
+            ITERATIONS / 100,
+            SAMPLES,
+            || {
+                direct_delassus(
+                    black_box(&metric_q),
+                    black_box(&jacobian),
+                    MetricProfileV1::default(),
+                )
+                .matrix()[0][0]
+            },
+        ),
         measure("delassus_multiplier_metric_norm", ITERATIONS, SAMPLES, || {
             delassus
                 .multiplier_norm(
