@@ -83,10 +83,10 @@ jobs:
             (.active_evidence_selection.comparators | index("risk_adjusted_worst_case_eig") != null) and
             (.active_evidence_selection.identity_contract.hypothesis_space | contains("stable sorted hypothesis IDs")) and
             (.active_evidence_selection.identity_contract.prior_distribution | contains("changes after every posterior update")) and
-            (.active_evidence_selection.identity_contract.candidate_model_binding | contains("not a transient posterior"))
+            (.active_evidence_selection.identity_contract.candidate_model_binding | contains("not a transient posterior")) and
             (.active_evidence_selection.identity_contract.portfolio_binding | contains("prior-distribution digest")) and
             (.active_evidence_selection.required_metrics | index("hypothesis_space_sha256") != null) and
-            (.active_evidence_selection.required_metrics | index("prior_distribution_sha256") != null)
+            (.active_evidence_selection.required_metrics | index("prior_distribution_sha256") != null) and
             (.active_evidence_selection.risk_evidence.risk_score_ppm | contains("not a calibrated probability")) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
             (.streaming_contract.one_sample_one_output == true) and
