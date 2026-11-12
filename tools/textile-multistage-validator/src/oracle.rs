@@ -169,7 +169,7 @@ impl Search<'_> {
                             continue;
                         }
                         if !zero_setup_transitions_valid(
-                            machine,
+                            &machine,
                             &operation,
                             &self.assignments,
                             &self.problem.operations,
