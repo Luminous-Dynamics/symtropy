@@ -261,3 +261,32 @@ This matters because a weakly connected cluster is not a mutually aware collecti
 ## Claim ceiling
 
 This contribution adds a reproducible synthetic collective-order control to OLI's abiotic/active-matter tournament. It does not demonstrate natural flocking, biological intelligence, living plasma, or extraterrestrial collective cognition.
+
+
+## External source reproduction audit (12 November 2026)
+
+The 2026 cluster-topology study has a published erratum (Phys. Rev. Research 8, 049002(E), DOI [10.1103/b9yr-8wmv](https://doi.org/10.1103/b9yr-8wmv)). It corrects the neighbour-set time index: the heading at (t+dt) uses the neighbours at (t+dt), while the neighbour headings/velocities used in the average are at (t). The authors state that the corrected result is indistinguishable from their forward-update implementation, while the backward-update implementation produces different cluster-scaling results.
+
+I inspected the public author repository at commit `68dfc94192d3fb7324eb980ef095da373ddf5ec1`, file `scripts_1_simulation_upto_steady_state/sml_template.cpp` (Git blob `bb483123de3351f75712877ffcf51c21d3b724ec`). Its forward update:
+1. predicts positions using headings at (t);
+2. rebuilds the periodic cell list using those predicted positions;
+3. chooses neighbours at the predicted positions;
+4. averages the neighbours' headings at (t);
+5. adds angular noise and retains the predicted positions.
+
+This is algorithmically equivalent to OLI's `NextPositionAlignment` and matches the erratum-corrected neighbour-time interpretation.
+
+### Exact interaction boundary
+
+The inspected C++ code uses `dx*dx + dy*dy < r*r`, a strict open-radius disk. OLI now uses the same strict predicate. Exact-radius pairs are excluded; the focal particle is included separately for heading alignment. A regression test covers exact-radius pairs and coincident particles when radius is zero.
+
+### Reproduction differences deliberately retained
+
+The source template uses C++ `float` and `std::mt19937` seeded from `std::random_device`, with no exposed seed. OLI uses `f64` and an explicit xorshift64 stream. The source template's scalar noise `nu` maps to full angular interval (2pi
+u); OLI stores the interval directly in radians. Therefore OLI's contribution offers deterministic replay and an algorithmically pinned update rule, but does not claim bitwise trajectory parity with the upstream program.
+
+The inspected template sets (N=2^9=512), (r=1), (L=sqrt{N/ho}), (10^4) time steps and five realizations per noise value. The exact density/speed/noise grids and sibling BW/PRR code files still need source pinning before claiming a complete reproduction of the paper's parameter study.
+
+### Qualification boundary
+
+The 2026 study reports cluster degree, path length, clustering coefficient, area and perimeter scaling. OLI currently implements global/local order, interaction degree/reciprocity, connected components, cluster-size statistics, mean clustering coefficient and mean shortest-path length. It does not yet reproduce the complete cluster-mass scaling analysis or geometric area/perimeter observables. Those are explicit next-step benchmarks, not achieved results.
