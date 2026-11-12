@@ -154,12 +154,12 @@
     {
       "id": "SCM_LOCAL_RADIUS",
       "implementation": "ScmCommunicationTopology::MetricRadius",
-      "purpose": "local geometry-limited communication baseline"
+      "purpose": "geometry-limited communication with an explicit positive radius; keep separate from no-communication control"
     },
     {
       "id": "SCM_NO_COMMUNICATION",
-      "implementation": "ScmCommunicationTopology::MetricRadius { radius: 0.0 }",
-      "purpose": "matched independent-agent/no-inter-agent-message control"
+      "implementation": "ScmCommunicationTopology::NoCommunication",
+      "purpose": "explicit empty adjacency; no inter-agent messages even for coincident agents; local gradient-only update"
     },
     {
       "id": "INDEPENDENT_PARALLEL_GRADIENT",
@@ -273,7 +273,8 @@
     "Keep all time steps within one run in the same statistical unit.",
     "Do not tune topology radius or hyperparameters on the sealed seed/landscape set.",
     "Publish full seed-level outcomes, including failures and outliers.",
-    "Do not combine different SCM sine kernels or consensus-window interpretations into one aggregate."
+    "Do not combine different SCM sine kernels or consensus-window interpretations into one aggregate.",
+    "The independent/no-message arm must use the explicit NoCommunication topology, not MetricRadius(0), because coincident agents are neighbours at zero metric distance."
   ],
   "acceptance": [
     "Each step reports current and best-seen objective fitness separately from consensus.",
@@ -282,7 +283,8 @@
     "Simple regret and success-at-threshold are evaluated against exact optimum.",
     "At least 100 matched seeds are completed on both landscapes.",
     "Any claim of group-level advantage includes paired uncertainty intervals and communication cost.",
-    "High consensus alone never qualifies as collective competence."
+    "High consensus alone never qualifies as collective competence.",
+    "NoCommunication topology produces empty adjacency for all coordinate configurations, including coincident agents."
   ],
   "status_note": "This manifest freezes a benchmark contract. The SCM fitness metrics and topology budget test are implemented, but no benchmark sweep, performance win, or source reproduction has yet been executed."
 }
