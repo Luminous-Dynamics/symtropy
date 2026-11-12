@@ -226,10 +226,10 @@ fn selective_benefit() -> (Vec<EvaluatorRecord>, Vec<EvaluatorRecord>) {
 
 fn mar_positive_control() -> Vec<EvaluatorRecord> {
     [
-        ("u1", "lower", 20, true),
-        ("u2", "lower", 20, false),
-        ("u3", "upper", 80, true),
-        ("u4", "upper", 80, false),
+        ("u1", "high_need", 20, true),
+        ("u2", "high_need", 20, false),
+        ("u3", "general", 80, true),
+        ("u4", "general", 80, false),
     ]
     .into_iter()
     .map(|(unit, stratum, outcome, observed)| {
