@@ -104,8 +104,10 @@ jobs:
             fields = reader.fieldnames
             rows = list(reader)
 
-        assert fields is not None and len(fields) == 36
+        assert fields is not None and len(fields) == 37
+        assert fields[0] == "source_id"
         assert len(rows) == 10
+        assert {row["source_id"] for row in rows} == {"synthetic-civdyn-closed-loop-known-answer-v1"}
         worlds = {"water_degradation", "energy_degradation"}
         assert {row["true_world_id"] for row in rows} == worlds
 
