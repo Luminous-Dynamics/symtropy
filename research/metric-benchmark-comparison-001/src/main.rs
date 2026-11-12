@@ -11,7 +11,6 @@
 #![forbid(unsafe_code)]
 
 use std::error::Error;
-use std::fmt::Write as FmtWrite;
 use std::fs;
 use std::hint::black_box;
 use std::io;
@@ -395,6 +394,7 @@ struct RunMetrics {
     normwise_backward: f64,
     componentwise_backward: f64,
     metric_residual_norm: f64,
+    lifted_acceleration_error: f64,
     wrong_variance_error: f64,
     solve_timing: Timing,
     factor_timing: Timing,
@@ -435,6 +435,10 @@ fn run_metrics(
     let initial_velocity_y = rebasis.tangent_to_to(&initial_velocity_q)?;
 
     let acceleration_y_lifted = rebasis.tangent_to_from(acceleration_y)?;
+    let lifted_acceleration_error = vector_difference_l2(
+        acceleration_q.components(),
+        acceleration_y_lifted.components(),
+    ) / 1.0_f64.max(vector_euclidean(acceleration_q.components()));
     let tangent_norm_q = metric_q.tangent_norm(acceleration_q)?;
     let tangent_norm_y = metric_y.tangent_norm(acceleration_y)?;
     let cotangent_norm_q = metric_q.cotangent_norm(force_q)?;
@@ -561,6 +565,7 @@ fn run_metrics(
         normwise_backward,
         componentwise_backward,
         metric_residual_norm,
+        lifted_acceleration_error,
         wrong_variance_error,
         solve_timing,
         factor_timing,
@@ -622,7 +627,7 @@ fn render_result(
             "  \"metrics\": {{\n",
             "    \"coordinate_invariance\": {{\"tangent_norm_relative_drift\":{},\"cotangent_norm_relative_drift\":{},\"canonical_pairing_relative_drift\":{},\"mass_congruence_relative_defect\":{},\"constraint_jacobian_relative_defect\":null,\"raw_coordinate_inf_norm_change\":{}}},\n",
             "    \"numerical_quality\": {{\"coordinate_condition_2\":{},\"metric_induced_operator_condition\":1.0,\"normwise_backward_error\":{},\"componentwise_backward_error\":{},\"metric_residual_norm\":{},\"forward_error_bound\":null,\"observed_high_precision_forward_error\":null,\"forward_bound_covers_observed\":null}},\n",
-            "    \"physical_fidelity\": {{\"lifted_position_l2_error\":null,\"lifted_velocity_l2_error\":null,\"momentum_l2_error\":null,\"constraint_residual\":null,\"energy_work_defect_j\":null,\"discrete_step_equivariance_defect\":null}},\n",
+            "    \"physical_fidelity\": {{\"lifted_acceleration_relative_error\":{},\"lifted_position_l2_error\":null,\"lifted_velocity_l2_error\":null,\"momentum_l2_error\":null,\"constraint_residual\":null,\"energy_work_defect_j\":null,\"discrete_step_equivariance_defect\":null}},\n",
             "    \"decision_quality\": {{\"negative_controls_run\":1,\"false_accept_count\":null,\"false_reject_count\":null,\"inconclusive_case_count\":1,\"wrong_law_negative_control_relative_error\":{}}},\n",
             "    \"systems_cost\": {{\"solve_median_ns\":{},\"solve_p95_ns\":{},\"solve_p99_ns\":{},\"factorization_median_ns\":{},\"evidence_overhead_median_ns\":{},\"peak_memory_bytes\":null}}\n",
             "  }},\n",
@@ -657,6 +662,7 @@ fn render_result(
         json_number(metrics.normwise_backward),
         json_number(metrics.componentwise_backward),
         json_number(metrics.metric_residual_norm),
+        json_number(metrics.lifted_acceleration_error),
         json_number(metrics.wrong_variance_error),
         json_number(metrics.solve_timing.median_ns),
         json_number(metrics.solve_timing.p95_ns),
