@@ -500,9 +500,18 @@ mod tests {
         lower: f64,
         upper: f64,
     ) -> BehavioralHypothesisEnvelope {
+        envelope_in_regime(hypothesis_id, "wltp_mid_load", lower, upper)
+    }
+
+    fn envelope_in_regime(
+        hypothesis_id: &str,
+        regime_id: &str,
+        lower: f64,
+        upper: f64,
+    ) -> BehavioralHypothesisEnvelope {
         let mut item = BehavioralHypothesisEnvelope {
             hypothesis_id: hypothesis_id.into(),
-            regime_id: "wltp_mid_load".into(),
+            regime_id: regime_id.into(),
             model_sha256: digest('a'),
             training_recordings_manifest_sha256: digest('b'),
             calibration_recordings_manifest_sha256: digest('c'),
@@ -532,11 +541,19 @@ mod tests {
     }
 
     fn observation(pressure: f64, speed: f64) -> BehavioralObservation {
+        observation_in_regime("wltp_mid_load", pressure, speed)
+    }
+
+    fn observation_in_regime(
+        regime_id: &str,
+        pressure: f64,
+        speed: f64,
+    ) -> BehavioralObservation {
         BehavioralObservation {
             recording_id: "run-1".into(),
             sample_index: 10,
             time_seconds: 0.5,
-            regime_id: "wltp_mid_load".into(),
+            regime_id: regime_id.into(),
             signals: BTreeMap::from([
                 (
                     "ypic".into(),
@@ -695,6 +712,112 @@ mod tests {
             ),
             Err(BehavioralSetError::CalibrationNotIndependentlyReviewed(_))
         ));
+    }
+
+    #[test]
+    fn published_ftp75_standard_fpim_minus_ten_remains_ambiguous() {
+        let envelopes = vec![
+            envelope_in_regime("normal", "ftp75_standard_low_load", 1.0, 1.5),
+            envelope_in_regime("fpim_negative_bias", "ftp75_standard_low_load", 1.3, 1.8),
+        ];
+        let result = evaluate_behavioral_hypothesis_set(
+            &envelopes,
+            &observation_in_regime("ftp75_standard_low_load", 1.4, 105.0),
+        )
+        .unwrap();
+        assert_eq!(
+            result.status,
+            BehavioralDiagnosisStatus::AmbiguousHypothesisSet
+        );
+        assert_eq!(
+            result.admissible_hypothesis_ids,
+            vec!["fpim_negative_bias".to_owned(), "normal".to_owned()]
+        );
+        assert_eq!(result.unique_hypothesis_id, None);
+        assert!(!result.global_unique_physical_cause_claim_allowed);
+    }
+
+    #[test]
+    fn published_ftp75_highway_fpim_minus_ten_is_separable_only_in_its_regime() {
+        let envelopes = vec![
+            envelope_in_regime("normal", "ftp75_highway", 1.0, 1.2),
+            envelope_in_regime("fpim_negative_bias", "ftp75_highway", 1.5, 1.8),
+        ];
+        let result = evaluate_behavioral_hypothesis_set(
+            &envelopes,
+            &observation_in_regime("ftp75_highway", 1.65, 105.0),
+        )
+        .unwrap();
+        assert_eq!(
+            result.status,
+            BehavioralDiagnosisStatus::UniqueWithinDeclaredCatalogue
+        );
+        assert_eq!(
+            result.unique_hypothesis_id.as_deref(),
+            Some("fpim_negative_bias")
+        );
+        assert!(!result.global_unique_physical_cause_claim_allowed);
+        let wrong_regime = observation_in_regime("ftp75_standard_low_load", 1.65, 105.0);
+        assert_eq!(
+            evaluate_behavioral_hypothesis_set(&envelopes, &wrong_regime)
+                .unwrap()
+                .status,
+            BehavioralDiagnosisStatus::NotEvaluableUnsupportedRegime
+        );
+    }
+
+    #[test]
+    fn published_wltp_fpic_plus_eight_is_unknown_not_forced_into_a_known_fault() {
+        let envelopes = vec![
+            envelope_in_regime("normal", "wltp", 1.0, 1.2),
+            envelope_in_regime("fpic_positive_bias", "wltp", 1.5, 1.8),
+            envelope_in_regime("fpim_negative_bias", "wltp", 1.9, 2.1),
+        ];
+        let result = evaluate_behavioral_hypothesis_set(
+            &envelopes,
+            &observation_in_regime("wltp", 2.4, 105.0),
+        )
+        .unwrap();
+        assert_eq!(
+            result.status,
+            BehavioralDiagnosisStatus::UnknownOrOutOfSupport
+        );
+        assert!(result.admissible_hypothesis_ids.is_empty());
+        assert_eq!(result.unique_hypothesis_id, None);
+        assert!(!result.global_unique_physical_cause_claim_allowed);
+    }
+
+    #[test]
+    fn published_boundary_fixture_matches_official_reference_cells() {
+        let fixture: serde_json::Value =
+            serde_json::from_str(include_str!("../dx2026-boundary-falsification-v0.1.json"))
+                .unwrap();
+        assert_eq!(
+            fixture["schema_version"],
+            "liu-ice-dx2026-boundary-falsification-v0.1"
+        );
+        let cases = fixture["cases"].as_array().unwrap();
+        assert_eq!(cases.len(), 3);
+        assert_eq!(cases[0]["published"]["tdr_percent"], 21.12);
+        assert_eq!(cases[1]["published"]["score_percent"], 97.05);
+        assert_eq!(cases[2]["published"]["fia_percent"], 0.0);
+        assert_eq!(
+            cases[0]["synthetic_behavioral_set_fixture"]["expected_status"],
+            "ambiguous_hypothesis_set"
+        );
+        assert_eq!(
+            cases[1]["synthetic_behavioral_set_fixture"]["expected_status"],
+            "unique_within_declared_catalogue"
+        );
+        assert_eq!(
+            cases[2]["synthetic_behavioral_set_fixture"]["expected_status"],
+            "unknown_or_out_of_support"
+        );
+        assert!(fixture["research_targets_not_achieved"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|target| target["status"] == "aspirational"));
     }
 
     #[test]
