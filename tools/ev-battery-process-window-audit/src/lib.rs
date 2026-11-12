@@ -732,10 +732,7 @@ pub fn audit_process_window(
             .add(audit);
 
         line_lots
-            .entry((
-                audit.production_line_id.clone(),
-                audit.evidence_tier,
-            ))
+            .entry((audit.production_line_id.clone(), audit.evidence_tier))
             .or_default()
             .insert(audit.lot_id.clone());
     }
