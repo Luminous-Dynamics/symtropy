@@ -24,39 +24,54 @@ const MAX_FRAME_BYTES: u64 = 64 * 1024 * 1024;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum FaultCase {
     CleanControl,
+    StaleFrameReuse,
     PixelCorruption,
     CalibrationShift,
+    CaptureTimestampMismatch,
+    ZeroSequence,
+    ReceiptCommitmentTamper,
     StaleSequenceReplay,
+    CaptureClockRegression,
+    CameraIdentityMismatch,
     ClockOrderViolation,
     SensorClockSkew,
     DeliveryAgeExceeded,
-    CameraIdentityMismatch,
     MissingActionReceipt,
 }
 
 impl FaultCase {
-    const ALL: [Self; 9] = [
+    const ALL: [Self; 14] = [
         Self::CleanControl,
+        Self::StaleFrameReuse,
         Self::PixelCorruption,
         Self::CalibrationShift,
+        Self::CaptureTimestampMismatch,
+        Self::ZeroSequence,
+        Self::ReceiptCommitmentTamper,
         Self::StaleSequenceReplay,
+        Self::CaptureClockRegression,
+        Self::CameraIdentityMismatch,
         Self::ClockOrderViolation,
         Self::SensorClockSkew,
         Self::DeliveryAgeExceeded,
-        Self::CameraIdentityMismatch,
         Self::MissingActionReceipt,
     ];
 
     fn id(self) -> &'static str {
         match self {
             Self::CleanControl => "clean-control",
+            Self::StaleFrameReuse => "stale-frame-reuse",
             Self::PixelCorruption => "pixel-corruption",
             Self::CalibrationShift => "calibration-shift",
+            Self::CaptureTimestampMismatch => "capture-timestamp-mismatch",
+            Self::ZeroSequence => "zero-sequence",
+            Self::ReceiptCommitmentTamper => "receipt-commitment-tamper",
             Self::StaleSequenceReplay => "stale-sequence-replay",
+            Self::CaptureClockRegression => "capture-clock-regression",
+            Self::CameraIdentityMismatch => "camera-identity-mismatch",
             Self::ClockOrderViolation => "clock-order-violation",
             Self::SensorClockSkew => "sensor-clock-skew",
             Self::DeliveryAgeExceeded => "delivery-age-exceeded",
-            Self::CameraIdentityMismatch => "camera-identity-mismatch",
             Self::MissingActionReceipt => "missing-action-receipt",
         }
     }
@@ -64,13 +79,17 @@ impl FaultCase {
     fn expected_error(self) -> Option<&'static str> {
         match self {
             Self::CleanControl => None,
-            Self::PixelCorruption => Some("UpstreamFrameMismatch"),
+            Self::StaleFrameReuse | Self::PixelCorruption => Some("UpstreamFrameMismatch"),
             Self::CalibrationShift => Some("UpstreamCalibrationMismatch"),
+            Self::CaptureTimestampMismatch => Some("UpstreamTimestampMismatch"),
+            Self::ZeroSequence => Some("UpstreamSequenceMismatch"),
+            Self::ReceiptCommitmentTamper => Some("UpstreamReceiptCommitmentMismatch"),
             Self::StaleSequenceReplay => Some("SequenceRegression"),
+            Self::CaptureClockRegression => Some("TimestampRegression"),
+            Self::CameraIdentityMismatch => Some("UpstreamIdentityMismatch"),
             Self::ClockOrderViolation => Some("UpstreamClockOrderInvalid"),
             Self::SensorClockSkew => Some("SensorClockSkewExceeded"),
             Self::DeliveryAgeExceeded => Some("UpstreamDeliveryAgeExceeded"),
-            Self::CameraIdentityMismatch => Some("UpstreamIdentityMismatch"),
             Self::MissingActionReceipt => Some("UpstreamActionReferenceInvalid"),
         }
     }
@@ -167,6 +186,156 @@ fn different_digest(value: &str) -> Result<String, String> {
     Ok(result)
 }
 
+fn append_len_prefixed_string(material: &mut Vec<u8>, value: &str) {
+    material.extend_from_slice(&(value.len() as u64).to_le_bytes());
+    material.extend_from_slice(value.as_bytes());
+}
+
+/// Recompute the renderer's unkeyed policy receipt commitment after a
+/// deliberate metadata mutation. This checks consistency, not authenticity.
+fn recompute_upstream_policy_receipt(upstream: &mut Value) -> Result<(), String> {
+    let mut material = Vec::new();
+    let schema_version = upstream["schema_version"]
+        .as_u64()
+        .ok_or("upstream schema_version missing")?;
+    material.extend_from_slice(&(schema_version as u32).to_le_bytes());
+    append_len_prefixed_string(
+        &mut material,
+        upstream["observation_id"]
+            .as_str()
+            .ok_or("observation_id missing")?,
+    );
+    if upstream["pixel_format"].as_str() != Some("rgb8_srgb") {
+        return Err("only rgb8_srgb is supported by the renderer receipt adapter".into());
+    }
+    material.push(0_u8);
+    for field in ["episode_id", "agent_id", "clock_id"] {
+        append_len_prefixed_string(
+            &mut material,
+            upstream[field]
+                .as_str()
+                .ok_or(format!("{field} missing"))?,
+        );
+    }
+    for field in ["tick", "sequence"] {
+        material.extend_from_slice(
+            &upstream[field]
+                .as_u64()
+                .ok_or(format!("{field} missing"))?
+                .to_le_bytes(),
+        );
+    }
+    for field in [
+        "applied_action_receipt_id",
+        "applied_action_receipt_sha256",
+        "applied_action_command_id",
+        "camera_id",
+        "camera_calibration_sha256",
+        "renderer_revision",
+        "frame_sha256",
+    ] {
+        append_len_prefixed_string(&mut material, upstream[field].as_str().unwrap_or(""));
+    }
+    let action_tick = upstream["applied_action_tick"].as_u64();
+    material.push(u8::from(action_tick.is_some()));
+    material.extend_from_slice(&action_tick.unwrap_or(0).to_le_bytes());
+    for field in [
+        "capture_timestamp_us",
+        "render_completed_timestamp_us",
+        "delivered_timestamp_us",
+        "frame_width",
+        "frame_height",
+        "channels",
+        "frame_byte_len",
+    ] {
+        material.extend_from_slice(
+            &upstream[field]
+                .as_u64()
+                .ok_or(format!("{field} missing"))?
+                .to_le_bytes(),
+        );
+    }
+    upstream["receipt_sha256"] = json!(sha256_hex(&material));
+    Ok(())
+}
+
+fn sha256_hex(input: &[u8]) -> String {
+    const K: [u32; 64] = [
+        0x428a2f98, 0x71374491, 0xb5c0fbcf, 0x3956c25b, 0x59f111f1, 0x923f82a4,
+        0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74,
+        0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6,
+        0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152,
+        0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351,
+        0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+        0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+        0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+        0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+        0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+    ];
+    let mut data = input.to_vec();
+    let bit_len = (data.len() as u64).wrapping_mul(8);
+    data.push(0x80);
+    while data.len() % 64 != 56 {
+        data.push(0);
+    }
+    data.extend_from_slice(&bit_len.to_be_bytes());
+    let mut hash = [
+        0x6a09e667_u32, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+        0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    ];
+    for chunk in data.chunks_exact(64) {
+        let mut schedule = [0_u32; 64];
+        for index in 0..16 {
+            let offset = index * 4;
+            schedule[index] = u32::from_be_bytes([
+                chunk[offset], chunk[offset + 1], chunk[offset + 2], chunk[offset + 3],
+            ]);
+        }
+        for index in 16..64 {
+            let sigma_zero = schedule[index - 15].rotate_right(7)
+                ^ schedule[index - 15].rotate_right(18)
+                ^ (schedule[index - 15] >> 3);
+            let sigma_one = schedule[index - 2].rotate_right(17)
+                ^ schedule[index - 2].rotate_right(19)
+                ^ (schedule[index - 2] >> 10);
+            schedule[index] = schedule[index - 16]
+                .wrapping_add(sigma_zero)
+                .wrapping_add(schedule[index - 7])
+                .wrapping_add(sigma_one);
+        }
+        let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut h] = hash;
+        for index in 0..64 {
+            let upper_sigma_one = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let choose = (e & f) ^ (!e & g);
+            let temp_one = h
+                .wrapping_add(upper_sigma_one)
+                .wrapping_add(choose)
+                .wrapping_add(K[index])
+                .wrapping_add(schedule[index]);
+            let upper_sigma_zero = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let majority = (a & b) ^ (a & c) ^ (b & c);
+            let temp_two = upper_sigma_zero.wrapping_add(majority);
+            h = g; g = f; f = e; e = d.wrapping_add(temp_one);
+            d = c; c = b; b = a; a = temp_one.wrapping_add(temp_two);
+        }
+        hash[0] = hash[0].wrapping_add(a);
+        hash[1] = hash[1].wrapping_add(b);
+        hash[2] = hash[2].wrapping_add(c);
+        hash[3] = hash[3].wrapping_add(d);
+        hash[4] = hash[4].wrapping_add(e);
+        hash[5] = hash[5].wrapping_add(f);
+        hash[6] = hash[6].wrapping_add(g);
+        hash[7] = hash[7].wrapping_add(h);
+    }
+    let mut output = String::with_capacity(64);
+    use std::fmt::Write as _;
+    for word in hash {
+        let _ = write!(&mut output, "{word:08x}");
+    }
+    output
+}
+
 fn prepare_request(
     base_request: &Value,
     fault: FaultCase,
@@ -215,6 +384,9 @@ fn prepare_request(
 
     match fault {
         FaultCase::CleanControl => {}
+        FaultCase::StaleFrameReuse => {
+            observations[1]["pixels_file"] = observations[0]["pixels_file"].clone();
+        }
         FaultCase::PixelCorruption => {
             let path = observations[0]["pixels_file"]
                 .as_str()
@@ -229,6 +401,20 @@ fn prepare_request(
                 .ok_or("first upstream receipt lacks calibration digest")?;
             observations[0]["upstream"]["camera_calibration_sha256"] =
                 json!(different_digest(existing)?);
+            recompute_upstream_policy_receipt(&mut observations[0]["upstream"])?;
+        }
+        FaultCase::CaptureTimestampMismatch => {
+            let capture = observations[0]["timestamp_us"]
+                .as_u64()
+                .ok_or("outer capture timestamp missing")?;
+            observations[0]["timestamp_us"] = json!(capture + 1);
+        }
+        FaultCase::ZeroSequence => {
+            observations[0]["sequence"] = json!(0);
+            observations[0]["upstream"]["sequence"] = json!(0);
+        }
+        FaultCase::ReceiptCommitmentTamper => {
+            observations[0]["upstream"]["receipt_sha256"] = json!("e".repeat(64));
         }
         FaultCase::StaleSequenceReplay => {
             // Replay the entire prior accepted observation: RGB path, upstream
@@ -243,12 +429,32 @@ fn prepare_request(
             observations[1]["vehicle_state"] = observations[0]["vehicle_state"].clone();
             observations[1]["upstream"] = observations[0]["upstream"].clone();
         }
+        FaultCase::CaptureClockRegression => {
+            let previous_capture = observations[0]["upstream"]["capture_timestamp_us"]
+                .as_u64()
+                .ok_or("first capture timestamp missing")?;
+            let regressed_capture = previous_capture.saturating_sub(1);
+            observations[1]["timestamp_us"] = json!(regressed_capture);
+            observations[1]["vehicle_state_timestamp_us"] = json!(regressed_capture);
+            observations[1]["vehicle_state"]["timestamp"] =
+                json!(regressed_capture as f64 / 1_000_000.0);
+            let upstream = &mut observations[1]["upstream"];
+            upstream["capture_timestamp_us"] = json!(regressed_capture);
+            upstream["render_completed_timestamp_us"] = json!(regressed_capture + 800);
+            upstream["delivered_timestamp_us"] = json!(regressed_capture + 1_000);
+            recompute_upstream_policy_receipt(upstream)?;
+        }
+        FaultCase::CameraIdentityMismatch => {
+            observations[0]["upstream"]["camera_id"] = json!("fault-injected-wrong-camera");
+            recompute_upstream_policy_receipt(&mut observations[0]["upstream"])?;
+        }
         FaultCase::ClockOrderViolation => {
             let render_completed = observations[0]["upstream"]["render_completed_timestamp_us"]
                 .as_u64()
                 .ok_or("first receipt lacks render completion timestamp")?;
             observations[0]["upstream"]["delivered_timestamp_us"] =
                 json!(render_completed.saturating_sub(1));
+            recompute_upstream_policy_receipt(&mut observations[0]["upstream"])?;
         }
         FaultCase::SensorClockSkew => {
             let capture = observations[0]["timestamp_us"]
@@ -267,6 +473,7 @@ fn prepare_request(
             let too_late = capture.saturating_add(maximum_delivery_age).saturating_add(1);
             observations[0]["upstream"]["delivered_timestamp_us"] =
                 json!(too_late.max(render_completed));
+            recompute_upstream_policy_receipt(&mut observations[0]["upstream"])?;
         }
         FaultCase::CameraIdentityMismatch => {
             observations[0]["upstream"]["camera_id"] = json!("fault-injected-wrong-camera");
@@ -622,6 +829,48 @@ mod tests {
     }
 
     #[test]
+    fn stale_frame_reuse_preserves_later_receipt_but_changes_selected_frame_path() {
+        let base = base_request();
+        let (request, _, _, _, _) = prepare_request(&base, FaultCase::StaleFrameReuse).unwrap();
+        assert_eq!(
+            request["observations"][1]["pixels_file"],
+            request["observations"][0]["pixels_file"]
+        );
+        assert_ne!(
+            request["observations"][1]["upstream"]["frame_sha256"],
+            request["observations"][0]["upstream"]["frame_sha256"]
+        );
+    }
+
+    #[test]
+    fn receipt_recomputation_preserves_internal_consistency_after_camera_mutation() {
+        let base = base_request();
+        let mut upstream = base["observations"][0]["upstream"].clone();
+        let old_receipt = upstream["receipt_sha256"].clone();
+        upstream["camera_id"] = json!("front-camera-shifted");
+        recompute_upstream_policy_receipt(&mut upstream).unwrap();
+        assert_ne!(upstream["receipt_sha256"], old_receipt);
+        assert_eq!(
+            upstream["observation_id"],
+            base["observations"][0]["upstream"]["observation_id"]
+        );
+    }
+
+    #[test]
+    fn capture_timestamp_mismatch_and_zero_sequence_mutations_are_distinct() {
+        let base = base_request();
+        let (mismatch, _, _, _, _) =
+            prepare_request(&base, FaultCase::CaptureTimestampMismatch).unwrap();
+        assert_ne!(
+            mismatch["observations"][0]["timestamp_us"],
+            mismatch["observations"][0]["upstream"]["capture_timestamp_us"]
+        );
+        let (zero, _, _, _, _) = prepare_request(&base, FaultCase::ZeroSequence).unwrap();
+        assert_eq!(zero["observations"][0]["sequence"], 0);
+        assert_eq!(zero["observations"][0]["upstream"]["sequence"], 0);
+    }
+
+    #[test]
     fn calibration_shift_keeps_a_valid_but_different_digest() {
         let (request, _, pin, _, _) =
             prepare_request(&base_request(), FaultCase::CalibrationShift).unwrap();
@@ -715,12 +964,18 @@ mod tests {
     }
 
     #[test]
-    fn every_negative_control_has_a_distinct_expected_bridge_error() {
-        let mut errors = std::collections::BTreeSet::new();
-        for case in FaultCase::ALL.into_iter().filter(|case| *case != FaultCase::CleanControl) {
-            let error = case.expected_error().unwrap();
-            assert!(errors.insert(error));
-        }
-        assert_eq!(errors.len(), FaultCase::ALL.len() - 1);
+    fn every_negative_control_has_a_declared_expected_bridge_error() {
+        let cases = FaultCase::ALL
+            .into_iter()
+            .filter(|case| *case != FaultCase::CleanControl)
+            .collect::<Vec<_>>();
+        assert_eq!(cases.len(), FaultCase::ALL.len() - 1);
+        assert!(cases.iter().all(|case| case.expected_error().is_some()));
+        assert_eq!(
+            cases.iter()
+                .filter(|case| case.expected_error() == Some("UpstreamFrameMismatch"))
+                .count(),
+            2
+        );
     }
 }
