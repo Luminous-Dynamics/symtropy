@@ -150,6 +150,7 @@ The following are **proposed Luminous research gates**, not regulatory threshold
 | Domain | Required measurement | Initial research gate | Stretch ambition |
 |---|---|---|---|
 | Mission energy | Wh per passenger-km and tonne-km, including all auxiliaries and reserve | Complete segment ledger; no energy-balance violations | Demonstrate a repeatable improvement over a matched aircraft/mission baseline |
+| Accounting implementation | Segment-level DC-bus energy, explicit reserve profile, continuous/peak power, SOC margin | Known-answer tests; empty reserve, non-finite inputs, and power-limit breaches fail closed | Independent reimplementation and agreement with calibrated component data within declared uncertainty |
 | Mass closure | MTOW, empty mass, payload, installed energy system, centre of gravity | Close mass and CG budgets with explicit growth allowance | Reduce installed energy-system mass without reducing reserve or containment |
 | Battery | Cell, module, pack, installed Wh/kg and Wh/L; usable SOC; C-rate; ageing | Evaluate designs at present commercially supported cell data and measured pack overhead | Pack-level 250–300 Wh/kg as an aspirational design range; never infer it from cell data |
 | Propulsion | Continuous/peak kW/kg, efficiency maps, cooling mass, vibration, fault response | Full operating maps and thermally sustainable continuous rating | Compare against NASA HEMM's stated 16 kW/kg and 99% targets at equivalent measurement boundaries |
@@ -177,7 +178,7 @@ The battery and motor targets above must not be treated as a single system-level
 
 ## 5. External state of the art and competitive implications
 
-**Battery energy.** NASA's aerospace battery workshop material lists indicative specific-energy requirements of 300 Wh/kg for a four-passenger, 50-mile urban eVTOL and 400 Wh/kg for a 10+ passenger regional eVTOL. These are planning reference points, not proof that a production pack at those values is available. A 2025 review reports up to 330 Wh/kg for commercial lithium-ion cells and around 400 Wh/kg for experimental solid-state systems; cell-level figures cannot be substituted for installed pack performance.
+**Battery energy.** A slide in Ion Storage Systems' November 2022 vendor presentation included in the NASA Aerospace Battery Workshop deck lists 300 Wh/kg for a four-passenger, 50-mile urban eVTOL and 400 Wh/kg for a 10+ passenger regional eVTOL under “Enabling Battery Specific Energy.” Treat these as vendor-stated planning references, not NASA certification requirements, validated production-pack values, or a disclosed cell/module/pack measurement boundary. A 2025 review reports up to 330 Wh/kg for commercial lithium-ion cells and around 400 Wh/kg for experimental solid-state systems; cell-level figures cannot be substituted for installed pack performance.
 
 **Electric machines.** NASA describes its 1.4 MW High-Efficiency Megawatt Motor (HEMM) as a development programme targeting 16 kW/kg and 99% efficiency. NASA's technical material identifies the 16 kW/kg figure against electromagnetic/active-component mass, not a complete installed motor-plus-cryocooler, inverter, cabling, containment, and aircraft cooling package. Compare at matched mass and thermal boundaries; do not promote a machine-level target into an installed-propulsion-system claim.
 
@@ -283,9 +284,9 @@ Build a requirements-to-evidence matrix against the relevant authority and aircr
 
 ## 8. Decisions requested from the programme
 
-The first reference benchmark should be the four-passenger, 50-mile urban eVTOL mission because it has a traceable NASA planning reference and permits comparison across lift-plus-cruise and tilt configurations. This is a benchmark selection, not a final product commitment.
+The first reference benchmark should be the four-passenger, 50-mile urban eVTOL scenario recorded in [the mission card](electric-aviation/urban-evtol-4p-50mi-reference.mission.json). Its source is an Ion Storage Systems vendor slide in the 2022 NASA workshop deck, not a NASA-prescribed design basis. It allows controlled comparison across lift-plus-cruise and tilt configurations once payload, route, reserve, weather, and energy boundaries are resolved.
 
-The second parallel track should model a regional hybrid-electric fixed-wing mission. NASA's 2026 megawatt-class flight demonstration and STARC-ABL work make this a credible way to test whether hybridization closes a mission that battery-only systems cannot yet serve economically.
+The second parallel track is captured in [the regional hybrid-electric fixed-wing mission template](electric-aviation/regional-hybrid-fixedwing-template.mission.json). NASA's 2026 megawatt-class hybrid-electric flight demonstration and the STARC-ABL work justify researching this path; the route and aircraft mission remain deliberately unspecified until we select a matched reference aircraft and reserve policy.
 
 Wireless charging, supercapacitors, solar generation, and vertiport microgrids should be evaluated as subsystems within these missions—not marketed as independent breakthroughs.
 
