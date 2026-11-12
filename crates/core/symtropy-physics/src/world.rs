@@ -1093,7 +1093,7 @@ impl<const D: usize> PhysicsWorld<D> {
             let actual_delta = new_lambda - pt.lambda;
             pt.lambda = new_lambda;
 
-            if actual_delta.abs() > 1e-15 {
+            if actual_delta.is_finite() && actual_delta != 0.0 {
                 // ═══ CONSCIOUSNESS MODULATION: sanctuary + harmony fields ═══
                 let modulated_delta = callback.modulate_impulse(actual_delta, &pt.position);
 
@@ -2560,4 +2560,52 @@ mod transformed_halfspace_tests {
 
         assert!(world.static_tree_dirty);
     }
+    #[test]
+    fn contact_resolver_applies_finite_subthreshold_normal_impulse() {
+        let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+        world.baumgarte = 0.0;
+        world.slop = 0.0;
+        world.compliance = 0.0;
+
+        let fixed = RigidBody::<3>::static_body(
+            BodyHandle(0),
+            Point::origin(),
+            Box::new(Sphere::unit()),
+        );
+        let mut moving = RigidBody::<3>::dynamic_sphere(
+            BodyHandle(1),
+            Point::new([0.0, 2.0, 0.0]),
+            1.0,
+            1.0e-16,
+        );
+        moving.linear_velocity = SVector::from([0.0, -1.0e-16, 0.0]);
+        moving.friction = 0.0;
+
+        world.add_body(fixed);
+        world.add_body(moving);
+
+        // The lever arm is parallel to the normal, so the analytical angular
+        // contribution is zero. The exact normal impulse is 1e-32 N·s.
+        let manifold = ContactManifold::<3>::single(
+            BodyHandle(0),
+            BodyHandle(1),
+            SVector::from([0.0, 1.0, 0.0]),
+            SVector::from([0.0, 1.0, 0.0]),
+            0.0,
+        );
+        let mut callback = NoOpCallback;
+        let resolved = world.resolve_contact(manifold, 1.0 / 60.0, &mut callback);
+
+        let reported_impulse = resolved.points[0].lambda;
+        assert!(
+            reported_impulse > 0.0 && reported_impulse < 1.0e-15,
+            "fixture must exercise a positive sub-threshold impulse, got {reported_impulse:e}"
+        );
+        assert!(
+            world.bodies[1].linear_velocity[1].abs() < 1.0e-30,
+            "reported contact impulse was not applied to body velocity: {:?}",
+            world.bodies[1].linear_velocity
+        );
+    }
+
 }
