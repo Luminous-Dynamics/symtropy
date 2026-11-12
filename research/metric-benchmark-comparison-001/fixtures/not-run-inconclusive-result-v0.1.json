@@ -75,7 +75,8 @@
       "negative_controls_run": null,
       "false_accept_count": null,
       "false_reject_count": null,
-      "inconclusive_case_count": null
+      "inconclusive_case_count": null,
+      "wrong_law_negative_control_relative_error": null
     },
     "systems_cost": {
       "solve_median_ns": null,
