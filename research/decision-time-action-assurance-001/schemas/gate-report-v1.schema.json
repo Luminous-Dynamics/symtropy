@@ -1,0 +1,164 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://luminousdynamics.org/schemas/decision-time-action-assurance-report-v1.schema.json",
+  "title": "Decision-time action assurance report v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "decision_time_us",
+    "evidence_bundle_sha256",
+    "evaluation",
+    "claim_ceiling"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "status": {
+      "enum": [
+        "authorized",
+        "authorized_restricted",
+        "fallback_required"
+      ]
+    },
+    "decision_time_us": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "evidence_bundle_sha256": {
+      "$ref": "#/$defs/sha256"
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "policy_id",
+        "fallback",
+        "nominal_violations",
+        "restricted_violations",
+        "envelope"
+      ],
+      "properties": {
+        "decision": {
+          "enum": [
+            "authorized",
+            "authorized_restricted",
+            "fallback_required"
+          ]
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fallback": {
+          "enum": [
+            "hold_for_reassessment",
+            "request_independent_fallback",
+            "escalate_to_human_operator"
+          ]
+        },
+        "nominal_violations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "restricted_violations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string"
+          }
+        },
+        "envelope": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/envelope"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "envelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "policy_id",
+        "policy_sha256",
+        "profile_id",
+        "mode",
+        "proposal_id",
+        "proposal_sha256",
+        "action_sha256",
+        "evidence_bundle_sha256",
+        "authorized_at_us",
+        "not_after_us",
+        "envelope_sha256"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "policy_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "policy_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "profile_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "enum": [
+            "nominal",
+            "restricted"
+          ]
+        },
+        "proposal_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "proposal_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "action_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "evidence_bundle_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "authorized_at_us": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "not_after_us": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "envelope_sha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    }
+  }
+}
