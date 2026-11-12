@@ -741,12 +741,20 @@ mod tests {
 
         let correct_pairing = pairing(&correct_covector_y, &correct_vector_y);
         let wrong_pairing = dot(&wrong_covector_y, &wrong_vector_y);
-        assert!((correct_pairing - wrong_pairing).abs() > 1.0e-3);
 
-        let correct_norm = metric_y.tangent_norm(&correct_vector_y).unwrap();
+        // This pair of mutually wrong maps still preserves the scalar pairing.
+        // Pairing-only tests therefore cannot distinguish the tensor variance.
+        close(correct_pairing, wrong_pairing, 2.0e-13);
+
+        let correct_tangent_norm = metric_y.tangent_norm(&correct_vector_y).unwrap();
         let wrong_tangent = Tangent::<DenseY, 3>::new(wrong_vector_y).unwrap();
-        let wrong_norm = metric_y.tangent_norm(&wrong_tangent).unwrap();
-        assert!((correct_norm - wrong_norm).abs() > 1.0e-3);
+        let wrong_tangent_norm = metric_y.tangent_norm(&wrong_tangent).unwrap();
+        assert!((correct_tangent_norm - wrong_tangent_norm).abs() > 1.0e-3);
+
+        let wrong_covector = Cotangent::<DenseY, 3>::new(wrong_covector_y).unwrap();
+        let correct_covector_norm = metric_y.cotangent_norm(&correct_covector_y).unwrap();
+        let wrong_covector_norm = metric_y.cotangent_norm(&wrong_covector).unwrap();
+        assert!((correct_covector_norm - wrong_covector_norm).abs() > 1.0e-3);
     }
 
     #[test]
