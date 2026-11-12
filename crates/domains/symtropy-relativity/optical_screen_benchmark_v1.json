@@ -611,5 +611,14 @@
       "smallest_singular_value_refinement_stability": 0.000001,
       "root_location_change_under_tolerance_refinement_in_M": 0.00001
     }
+  },
+  "validation_notes": {
+    "latest_authored_regression_updates": [
+      "Boyer-Lindquist Sachs transport smoke test uses an outward seed, consistent with the seed's chart selection; ingoing-chart tests use ingoing seeds.",
+      "Forbidden radial-region test now uses a genuinely negative radial potential at r/M=2.5 rather than the critical impact parameter, which admits the interior captured branch.",
+      "Adaptive Schwarzschild scattering regression declares a 1e-8 radial/polar constraint acceptance in the integration config.",
+      "Future-horizon test permits a smaller minimum adaptive step in the regular ingoing chart; finite-observer source-screen test integrates to an affine interval long enough to reach the horizon."
+    ],
+    "status": "test inputs corrected from exact-head Rust failure evidence; rerun pending; no claim of passing tests"
   }
 }
