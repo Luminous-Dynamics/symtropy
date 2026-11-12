@@ -16,7 +16,8 @@
     "effluent_l_day": 850.0,
     "sludge_water_l_day": 100.0,
     "evaporation_l_day": 50.0,
-    "expected_closure_l_day": 0.0
+    "expected_closure_l_day": 0.0,
+    "closure_tolerance_l_day": 0.01
   },
   "conserved_constituent_balances": [
     {
@@ -26,7 +27,8 @@
       "effluent_kg_day": 0.0085,
       "sludge_kg_day": 0.2415,
       "other_outputs_kg_day": 0.0,
-      "expected_closure_kg_day": 0.0
+      "expected_closure_kg_day": 0.0,
+      "closure_tolerance_kg_day": 0.000000001
     },
     {
       "constituent": "total_nitrogen",
@@ -86,6 +88,7 @@
     "reuse_storage_change_l_day": 100.0
   },
   "expected_disposition": "Accepted",
+  "expected_reason_codes": [],
   "notes": [
     "Water closure: 1000 = 850 + 100 + 50 L/day.",
     "TSS, total nitrogen and total phosphorus are explicit conserved-load allocations across declared outputs.",
