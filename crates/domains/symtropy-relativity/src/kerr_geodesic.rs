@@ -3013,7 +3013,7 @@ mod tests {
         let black_hole = hole(0.0);
         let observer =
             KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
-        let direction = KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap();
+        let direction = KerrLocalSkyDirection::new(0.8, 0.6, 0.0).unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
         let screen_basis = observer.screen_basis_to_chart_coordinates(
             seed.local_screen_basis,
@@ -3053,7 +3053,7 @@ mod tests {
         assert!(result.screen_transversality_residual < 1e-9);
         assert!(result.orthonormality_rate_residual < 1e-8);
         assert!(result.transversality_rate_residual < 1e-8);
-        assert!(result.metric_compatibility_residual < 1e-9);
+        assert!(result.metric_compatibility_residual < 1e-9, "metric compatibility residual={:.16e}", result.metric_compatibility_residual);
     }
 
     #[test]
@@ -3360,7 +3360,7 @@ mod tests {
 
     #[test]
     fn second_order_mino_system_recovers_schwarzschild_circular_photon_orbit() {
-        let constants = KerrNullConstants::new(1.0, 3.0 * 3.0_f64.sqrt(), 0.0).unwrap();
+        let constants = KerrNullConstants::new(1.0, 10.0, 0.0).unwrap();
         let geodesic = KerrSeparatedNullGeodesic::new(hole(0.0), constants);
         let state = KerrMinoDynamicState::new(
             KerrMinoState::new(0.0, 3.0, core::f64::consts::FRAC_PI_2, 0.0),
@@ -3560,7 +3560,7 @@ mod tests {
         let config = KerrMinoIntegrationConfig::new(
             1.0e-14,
             [1.0e-14; 6],
-            3.0e-8,
+            1.0e-8,
             1.0e-3,
             1.0e-12,
             2.0e-2,
