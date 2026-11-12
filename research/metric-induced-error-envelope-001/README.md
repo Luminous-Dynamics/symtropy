@@ -106,6 +106,22 @@ cargo run --release --locked --manifest-path research/metric-induced-error-envel
 
 This remains a bounded full-row-rank linear holonomic reference. It does not qualify redundant-row elimination, unilateral/frictional contact, nonlinear constraint-manifold reparameterization, or production solvers.
 
+## Exact-rational two-axis covariance oracle
+
+In addition to floating-point tolerance tests, the constraint-basis branch now includes a dependency-free test-only rational oracle at `src/exact_constraint_oracle.rs`.
+
+It constructs an exact integer mass metric, constraint Jacobian, dense unimodular generalized-coordinate transform (S), and independent constraint-equation transform (T). All derived quantities are represented as normalized integer numerator/denominator pairs. The oracle checks exact equality for:
+
+- (M_y=S^T M_q S) and (J_y=T J_q S);
+- (W_y=T W_q T^T);
+- dual pairing (lambda^T r);
+- Delassus multiplier and residual norms;
+- generalized constraint-force covariance;
+- induced physical acceleration covariance;
+- minimum-kinetic correction covariance and the equality between its kinetic norm and the Delassus residual norm.
+
+This fixture does not establish correctness for arbitrary dimensions or nonlinear manifolds; it provides an exact, independently implemented algebraic reference for one nontrivial 3-DOF / 2-constraint case. The floating-point shear ladders remain necessary for numerical conditioning and rounding behaviour.
+
 ## Scope and next step
 
 v0.1 is a small dense linear-algebra reference. It does not yet implement a general operator backward/forward error envelope, a nonlinear midpoint solver, arbitrary tangent bundles/charts, singular chart transitions, unilateral/frictional contact, sparse articulated systems or production solver claims.
