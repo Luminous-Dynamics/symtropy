@@ -279,7 +279,11 @@ pub fn coordinate_inf_tangent<F, const N: usize>(value: &Tangent<F, N>) -> f64 {
 }
 
 pub fn coordinate_inf_covector<F, const N: usize>(value: &Covector<F, N>) -> f64 {
-    value.components.iter().map(|entry| entry.abs()).fold(0.0, f64::max)
+    value
+        .components
+        .iter()
+        .map(|entry| entry.abs())
+        .fold(0.0, f64::max)
 }
 
 /// A primal/cotangent residual for M a = Q.
