@@ -35,7 +35,11 @@ const fn _assert_dimension_supported<const D: usize>() {
 
 impl<const D: usize> Bivector<D> {
     /// Maximum dimension supported by the currently enabled storage feature.
-    pub const MAX_SUPPORTED_DIMENSION: usize = if cfg!(feature = "nd-bivector-9") { 9 } else { 4 };
+    pub const MAX_SUPPORTED_DIMENSION: usize = if cfg!(feature = "nd-bivector-9") {
+        9
+    } else {
+        4
+    };
 
     /// Number of independent components: D*(D-1)/2.
     pub const fn num_components() -> usize {
@@ -223,8 +227,16 @@ mod tests {
 
     #[test]
     fn storage_capacity_is_explicit_and_feature_gated() {
-        let expected_components = if cfg!(feature = "nd-bivector-9") { 36 } else { 6 };
-        let expected_dimension = if cfg!(feature = "nd-bivector-9") { 9 } else { 4 };
+        let expected_components = if cfg!(feature = "nd-bivector-9") {
+            36
+        } else {
+            6
+        };
+        let expected_dimension = if cfg!(feature = "nd-bivector-9") {
+            9
+        } else {
+            4
+        };
         assert_eq!(Bivector::<3>::MAX_SUPPORTED_DIMENSION, expected_dimension);
         assert_eq!(
             std::mem::size_of::<Bivector<3>>(),
