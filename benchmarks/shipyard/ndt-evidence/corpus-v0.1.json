@@ -1,0 +1,822 @@
+{
+  "corpus_id": "luminous.symtropy.shipyard-ndt-evidence",
+  "corpus_version": "0.1.0",
+  "claim_ceiling": "A synthetic NDT record that passes this contract is not physical POD validation, a flaw detection, qualified examiner disposition, method approval, class approval or weld acceptance.",
+  "base_records": {
+    "valid_paut_record": {
+      "inspection_id": "SYNTH-NDT-INSPECT-001",
+      "fixture_kind": "synthetic_fixture",
+      "corpus_version": "0.1.0",
+      "evaluation_cutoff_utc": "2026-11-10T04:00:00Z",
+      "subject": {
+        "asset_id": "SYNTH-VESSEL-001",
+        "component_id": "SYNTH-BLOCK-017",
+        "serial_id": "SYNTH-SERIAL-017",
+        "parent_assembly_id": "SYNTH-HULL-BLOCK-04",
+        "joint_id": "SYNTH-JOINT-017-A",
+        "weld_region_id": "SYNTH-WELD-REGION-001",
+        "workpiece_revision": "DWG-REV-03"
+      },
+      "material_scope": {
+        "material_family": "low_alloy_fine_grained_steel",
+        "parent_material_family": "low_alloy_fine_grained_steel",
+        "thickness_mm": 12,
+        "full_penetration": true,
+        "geometry": "simple_plate_joint",
+        "object_temperature_c": 20,
+        "ultrasonic_attenuation": "low",
+        "coarse_grained_or_austenitic": false,
+        "additional_standard_ref": null
+      },
+      "method": {
+        "family": "ultrasonic_phased_array",
+        "technique": "PAUT",
+        "automation": "semi_automated",
+        "standard": "ISO 13588",
+        "revision": "2019",
+        "edition": 2,
+        "maturity": "published_current",
+        "effective_from_utc": "2019-01-01T00:00:00Z",
+        "effective_until_utc": null,
+        "testing_level": "B",
+        "acceptance_levels_provided_by_method_standard": false,
+        "method_scope_result": "in_scope"
+      },
+      "provider": {
+        "provider_id": "SYNTH-NDT-SUPPLIER-01",
+        "provider_type": "external_supplier",
+        "approval_ref": "SYNTH-CLASS-SUPPLIER-APPROVAL-01",
+        "approval_standard": "SYNTH-PROJECT-NDT-SERVICE-SPEC",
+        "approval_revision": "SYNTH-REV-01",
+        "approval_maturity": "published_current",
+        "approval_scope": "new-construction-hull-weld-paut",
+        "authorized_method_families": [
+          "ultrasonic_phased_array"
+        ],
+        "approval_status": "current",
+        "valid_from_utc": "2026-01-01T00:00:00Z",
+        "valid_until_utc": "2027-01-01T00:00:00Z",
+        "source_retrieved_at_utc": "2026-11-10T03:45:00Z",
+        "source_revision": "SYNTH-PROVIDER-REGISTER-REV-01",
+        "authority_scope": "synthetic_class_supplier_approval",
+        "source_ref": "fixture:synthetic-provider-approval-01"
+      },
+      "coverage": {
+        "scan_plan_ref": "SYNTH-PAUT-SCAN-PLAN-01",
+        "required_coverage_percent": 100,
+        "actual_coverage_percent": 100,
+        "volume_coverage_complete": true,
+        "access_limitations": null,
+        "coverage_evidence_ref": "SYNTH-COVERAGE-RECORD-01"
+      },
+      "equipment": {
+        "equipment_id": "SYNTH-PAUT-SYSTEM-01",
+        "probe_id": "SYNTH-PAUT-PROBE-01",
+        "wedge_id": "SYNTH-WEDGE-01",
+        "focal_law_revision": "FOCAL-LAWS-REV-04",
+        "software_revision": "PAUT-SW-REV-02",
+        "calibration_state": "current",
+        "calibration_valid_until_utc": "2026-12-01T00:00:00Z",
+        "reference_check_state": "passed_synthetic",
+        "reference_check_ref": "SYNTH-REF-CHECK-01"
+      },
+      "examiner": {
+        "examiner_id": "SYNTH-EXAMINER-01",
+        "qualification_ref": "SYNTH-ISO9712-CERT-01",
+        "qualification_scope": "UT_PAUT_LEVEL_2_STEEL_WELDS",
+        "qualification_status": "current",
+        "qualification_valid_until_utc": "2027-01-01T00:00:00Z",
+        "report_issuer": "SYNTH-INSPECTION-AUTHORITY",
+        "issuer_authority_scope": "ndt_report:paut:level2:new-construction-hull-weld"
+      },
+      "acquisition": {
+        "raw_artifact_ref": "benchmarks/shipyard/ndt-evidence/raw/synthetic-paut-acquisition.json",
+        "raw_artifact_sha256": "635ccce0bd8184026e464d656e2a01624f764389eb924c5ec8c1b9d6c80ec0aa",
+        "artifact_state": "synthetic_manifest_only",
+        "evidence_class": "synthetic_fixture",
+        "source_observation_time_utc": "2026-11-10T03:30:00Z",
+        "acquired_at_utc": "2026-11-10T03:31:00Z",
+        "retrieved_at_utc": "2026-11-10T03:32:00Z",
+        "processing_revision": "SYNTH-PAUT-PROCESSING-REV-01",
+        "derived_artifact_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "parent_raw_digest": "635ccce0bd8184026e464d656e2a01624f764389eb924c5ec8c1b9d6c80ec0aa"
+      },
+      "indication": {
+        "indication_id": "SYNTH-NDT-INDICATION-000",
+        "state": "no_indication_reported",
+        "location_reference": null,
+        "extent_mm": 0,
+        "orientation_deg": 0,
+        "characterization": "Synthetic metadata fixture only; no physical signal or flaw observation exists.",
+        "uncertainty_mm": 0,
+        "reported_by": "SYNTH-EXAMINER-01",
+        "automatic_model_score": 0,
+        "model_score_role": "candidate_prioritization_only"
+      },
+      "acceptance": {
+        "basis_type": "project_specification",
+        "basis_ref": "SYNTH-PROJECT-NDT-ACCEPTANCE-01",
+        "basis_revision": "PROJECT-NDT-REV-03",
+        "basis_owner": "synthetic-project-authority",
+        "decision_issuer": "SYNTH-AUTHORIZED-REVIEWER-01",
+        "issuer_scope": "ndt_disposition:synthetic-project-01",
+        "authorization_state": "authorized_synthetic",
+        "disposition": "accepted_synthetic",
+        "decision_time_utc": "2026-11-10T03:50:00Z",
+        "distinct_from_method_testing_level": true,
+        "maps_quality_level_to_ndt_acceptance": false
+      },
+      "dataset": {
+        "physical_subject_group": "SYNTH-WELD-SUBJECT-001",
+        "specimen_group": "SYNTH-SPECIMEN-001",
+        "production_lot_group": "SYNTH-PROD-LOT-001",
+        "campaign_group": "SYNTH-CAMPAIGN-001",
+        "equipment_group": "SYNTH-PAUT-EQUIPMENT-FAMILY-01",
+        "split": "held_out",
+        "split_group": "SYNTH-HELDOUT-WATERWAY-SHIPYARD-01",
+        "adjacent_scans_same_split": true
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "valid_paut_synthetic_scope_and_separate_acceptance_basis",
+      "base": "valid_paut_record",
+      "mutations": [],
+      "expected_code": "NDT_EVIDENCE_VALID_SYNTHETIC_ONLY"
+    },
+    {
+      "id": "wrong_component_serial",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "subject.serial_id",
+          "value": "SYNTH-SERIAL-OTHER"
+        }
+      ],
+      "expected_code": "SUBJECT_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_joint_identity",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "subject.joint_id",
+          "value": "SYNTH-JOINT-OTHER"
+        }
+      ],
+      "expected_code": "SUBJECT_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "wrong_workpiece_revision",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "subject.workpiece_revision",
+          "value": "DWG-REV-02"
+        }
+      ],
+      "expected_code": "SUBJECT_REVISION_MISMATCH"
+    },
+    {
+      "id": "wrong_weld_region",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "subject.weld_region_id",
+          "value": "SYNTH-WELD-REGION-OTHER"
+        }
+      ],
+      "expected_code": "WELD_REGION_MISMATCH"
+    },
+    {
+      "id": "paut_below_minimum_thickness",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "material_scope.thickness_mm",
+          "value": 5
+        }
+      ],
+      "expected_code": "PAUT_SCOPE_OUT_OF_RANGE_THICKNESS"
+    },
+    {
+      "id": "partial_penetration_outside_paut_scope",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "material_scope.full_penetration",
+          "value": false
+        }
+      ],
+      "expected_code": "PAUT_SCOPE_PENETRATION_MISMATCH"
+    },
+    {
+      "id": "coarse_grained_without_additional_standard",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "material_scope.coarse_grained_or_austenitic",
+          "value": true
+        }
+      ],
+      "expected_code": "ADDITIONAL_MATERIAL_STANDARD_REQUIRED"
+    },
+    {
+      "id": "high_ultrasonic_attenuation",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "material_scope.ultrasonic_attenuation",
+          "value": "high"
+        }
+      ],
+      "expected_code": "PAUT_SCOPE_ATTENUATION_UNQUALIFIED"
+    },
+    {
+      "id": "complex_geometry_outside_paut_scope",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "material_scope.geometry",
+          "value": "complex_curved_multi_axis"
+        }
+      ],
+      "expected_code": "PAUT_SCOPE_GEOMETRY_UNQUALIFIED"
+    },
+    {
+      "id": "future_iso_dis_selected_as_current",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "method.maturity",
+          "value": "draft_dis"
+        }
+      ],
+      "expected_code": "DRAFT_STANDARD_NOT_EFFECTIVE"
+    },
+    {
+      "id": "wrong_manual_ut_family_for_paut_technique",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "method.family",
+          "value": "ultrasonic_manual"
+        }
+      ],
+      "expected_code": "METHOD_TECHNIQUE_MISMATCH"
+    },
+    {
+      "id": "manual_ut_at_seven_mm",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "material_scope.thickness_mm",
+          "value": 7
+        }
+      ],
+      "expected_code": "MANUAL_UT_SCOPE_THICKNESS_MISMATCH"
+    },
+    {
+      "id": "film_rt_mislabeled_digital_rt",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "method.family",
+          "value": "radiography_film"
+        }
+      ],
+      "expected_code": "METHOD_TECHNIQUE_MISMATCH"
+    },
+    {
+      "id": "paut_testing_level_used_as_acceptance",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acceptance.basis_type",
+          "value": "method_testing_level"
+        }
+      ],
+      "expected_code": "TESTING_LEVEL_NOT_ACCEPTANCE_BASIS"
+    },
+    {
+      "id": "iso5817_quality_level_used_as_ndt_acceptance",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acceptance.basis_type",
+          "value": "quality_level_iso5817"
+        }
+      ],
+      "expected_code": "QUALITY_LEVEL_NOT_NDT_ACCEPTANCE"
+    },
+    {
+      "id": "method_claims_acceptance_levels_not_provided",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "method.acceptance_levels_provided_by_method_standard",
+          "value": true
+        }
+      ],
+      "expected_code": "METHOD_ACCEPTANCE_CLAIM_INVALID"
+    },
+    {
+      "id": "method_scope_flagged_in_scope_outside_bounds",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "method.method_scope_result",
+          "value": "in_scope"
+        }
+      ],
+      "expected_code": "FALSE_IN_SCOPE_PROMOTION"
+    },
+    {
+      "id": "provider_approval_missing",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "provider.approval_ref",
+          "value": null
+        }
+      ],
+      "expected_code": "PROVIDER_APPROVAL_MISSING"
+    },
+    {
+      "id": "provider_approval_expired",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "provider.valid_until_utc",
+          "value": "2026-10-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "PROVIDER_APPROVAL_EXPIRED"
+    },
+    {
+      "id": "provider_approval_revoked",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "provider.approval_status",
+          "value": "revoked"
+        }
+      ],
+      "expected_code": "PROVIDER_APPROVAL_REVOKED"
+    },
+    {
+      "id": "provider_scope_does_not_include_paut",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "provider.authorized_method_families",
+          "value": [
+            "penetrant_testing"
+          ]
+        }
+      ],
+      "expected_code": "PROVIDER_METHOD_SCOPE_MISMATCH"
+    },
+    {
+      "id": "internal_department_mislabeled_external",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "provider.provider_type",
+          "value": "internal_shipyard_department"
+        }
+      ],
+      "expected_code": "PROVIDER_TYPE_AUTHORITY_MISMATCH"
+    },
+    {
+      "id": "provider_w35_revision_source_conflict",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "provider.approval_maturity",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "PROVIDER_RULESET_VERSION_CONFLICT"
+    },
+    {
+      "id": "provider_approval_source_retrieved_after_cutoff",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "provider.source_retrieved_at_utc",
+          "value": "2026-11-10T04:30:00Z"
+        }
+      ],
+      "expected_code": "PROVIDER_SOURCE_AFTER_CUTOFF"
+    },
+    {
+      "id": "examiner_certificate_expired",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "examiner.qualification_valid_until_utc",
+          "value": "2026-10-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "EXAMINER_QUALIFICATION_EXPIRED"
+    },
+    {
+      "id": "examiner_wrong_method_scope",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "examiner.qualification_scope",
+          "value": "PT_LEVEL_2"
+        }
+      ],
+      "expected_code": "EXAMINER_METHOD_SCOPE_MISMATCH"
+    },
+    {
+      "id": "examiner_unknown_qualification",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "examiner.qualification_status",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "EXAMINER_QUALIFICATION_UNKNOWN"
+    },
+    {
+      "id": "issuer_authority_scope_mismatch",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "examiner.issuer_authority_scope",
+          "value": "ndt_report:vt:visual_only"
+        }
+      ],
+      "expected_code": "REPORT_ISSUER_SCOPE_MISMATCH"
+    },
+    {
+      "id": "equipment_calibration_expired",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "equipment.calibration_valid_until_utc",
+          "value": "2026-10-01T00:00:00Z"
+        }
+      ],
+      "expected_code": "EQUIPMENT_CALIBRATION_EXPIRED"
+    },
+    {
+      "id": "equipment_reference_check_failed",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "equipment.reference_check_state",
+          "value": "failed"
+        }
+      ],
+      "expected_code": "REFERENCE_CHECK_FAILED"
+    },
+    {
+      "id": "coverage_below_requirement",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "coverage.actual_coverage_percent",
+          "value": 90
+        }
+      ],
+      "expected_code": "INSPECTION_COVERAGE_INCOMPLETE"
+    },
+    {
+      "id": "coverage_volume_not_complete",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "coverage.volume_coverage_complete",
+          "value": false
+        }
+      ],
+      "expected_code": "INSPECTION_COVERAGE_INCOMPLETE"
+    },
+    {
+      "id": "access_limitation_conflicts_with_full_coverage",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "coverage.access_limitations",
+          "value": "unexamined root access zone"
+        }
+      ],
+      "expected_code": "ACCESS_LIMITATION_COVERAGE_CONFLICT"
+    },
+    {
+      "id": "missing_scan_plan",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "coverage.scan_plan_ref",
+          "value": null
+        }
+      ],
+      "expected_code": "SCAN_PLAN_MISSING"
+    },
+    {
+      "id": "missing_coverage_evidence",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "coverage.coverage_evidence_ref",
+          "value": null
+        }
+      ],
+      "expected_code": "COVERAGE_EVIDENCE_MISSING"
+    },
+    {
+      "id": "raw_acquisition_digest_mismatch",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acquisition.raw_artifact_sha256",
+          "value": "0000000000000000000000000000000000000000000000000000000000000000"
+        }
+      ],
+      "expected_code": "RAW_ARTIFACT_DIGEST_MISMATCH"
+    },
+    {
+      "id": "raw_acquisition_path_traversal",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acquisition.raw_artifact_ref",
+          "value": "../../etc/passwd"
+        }
+      ],
+      "expected_code": "UNSAFE_RAW_ARTIFACT_PATH"
+    },
+    {
+      "id": "derived_parent_digest_mismatch",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acquisition.parent_raw_digest",
+          "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+        }
+      ],
+      "expected_code": "DERIVED_PARENT_DIGEST_MISMATCH"
+    },
+    {
+      "id": "synthetic_acquisition_claimed_physical",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acquisition.evidence_class",
+          "value": "measured"
+        }
+      ],
+      "expected_code": "SYNTHETIC_ARTIFACT_MISLABELED_PHYSICAL"
+    },
+    {
+      "id": "retrieval_before_source_observation",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acquisition.retrieved_at_utc",
+          "value": "2026-11-10T03:00:00Z"
+        }
+      ],
+      "expected_code": "TEMPORAL_ROLE_INCONSISTENCY"
+    },
+    {
+      "id": "acquisition_after_decision_cutoff",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acquisition.acquired_at_utc",
+          "value": "2026-11-10T04:30:00Z"
+        }
+      ],
+      "expected_code": "ACQUISITION_AFTER_DECISION_CUTOFF"
+    },
+    {
+      "id": "focal_law_revision_changed_without_processing_revision",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "equipment.focal_law_revision",
+          "value": "FOCAL-LAWS-REV-05"
+        }
+      ],
+      "expected_code": "PROCESSING_LINEAGE_INCOMPLETE"
+    },
+    {
+      "id": "no_indication_but_nonzero_extent",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "indication.extent_mm",
+          "value": 14
+        }
+      ],
+      "expected_code": "INDICATION_STATE_CONFLICT"
+    },
+    {
+      "id": "model_score_used_as_disposition_basis",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acceptance.decision_issuer",
+          "value": null
+        }
+      ],
+      "expected_code": "MODEL_SCORE_NOT_ACCEPTANCE_AUTHORITY"
+    },
+    {
+      "id": "inconclusive_indication_accepted",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "indication.state",
+          "value": "inconclusive"
+        }
+      ],
+      "expected_code": "INDICATION_UNRESOLVED"
+    },
+    {
+      "id": "acceptance_basis_missing",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acceptance.basis_type",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "ACCEPTANCE_BASIS_MISSING"
+    },
+    {
+      "id": "acceptance_issuer_unauthorized",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acceptance.authorization_state",
+          "value": "unauthorized"
+        }
+      ],
+      "expected_code": "ACCEPTANCE_ISSUER_UNAUTHORIZED"
+    },
+    {
+      "id": "acceptance_disposition_rejected",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acceptance.disposition",
+          "value": "rejected_synthetic"
+        }
+      ],
+      "expected_code": "NDT_DISPOSITION_NOT_ACCEPTED"
+    },
+    {
+      "id": "testing_level_collapsed",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acceptance.distinct_from_method_testing_level",
+          "value": false
+        }
+      ],
+      "expected_code": "TESTING_LEVEL_NOT_ACCEPTANCE_BASIS"
+    },
+    {
+      "id": "adjacent_scans_leak_across_splits",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "dataset.adjacent_scans_same_split",
+          "value": false
+        }
+      ],
+      "expected_code": "DATASET_SPLIT_LEAKAGE"
+    },
+    {
+      "id": "dataset_subject_group_mismatch",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "dataset.physical_subject_group",
+          "value": "SYNTH-DIFFERENT-PHYSICAL-SUBJECT"
+        }
+      ],
+      "expected_code": "DATASET_GROUP_IDENTITY_MISMATCH"
+    },
+    {
+      "id": "model_score_outside_probability_range",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "indication.automatic_model_score",
+          "value": 1.5
+        }
+      ],
+      "expected_code": "MODEL_SCORE_INVALID"
+    },
+    {
+      "id": "automatic_model_score_promoted_to_decision",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "indication.model_score_role",
+          "value": "acceptance_disposition"
+        }
+      ],
+      "expected_code": "MODEL_SCORE_NOT_ACCEPTANCE_AUTHORITY"
+    },
+    {
+      "id": "report_issuer_missing",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "examiner.report_issuer",
+          "value": null
+        }
+      ],
+      "expected_code": "REPORT_ISSUER_MISSING"
+    },
+    {
+      "id": "equipment_probe_identity_missing",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "equipment.probe_id",
+          "value": ""
+        }
+      ],
+      "expected_code": "PROBE_IDENTITY_MISSING"
+    },
+    {
+      "id": "source_standard_revision_unknown",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "method.maturity",
+          "value": "unknown"
+        }
+      ],
+      "expected_code": "METHOD_STANDARD_MATURITY_UNKNOWN"
+    },
+    {
+      "id": "future_effectivity_not_yet_active_for_cutoff",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "method.maturity",
+          "value": "future_effective"
+        }
+      ],
+      "expected_code": "METHOD_STANDARD_NOT_YET_EFFECTIVE"
+    },
+    {
+      "id": "indication_data_promoted_to_physical_truth",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acquisition.evidence_class",
+          "value": "inferred"
+        }
+      ],
+      "expected_code": "EVIDENCE_CLASS_NOT_MEASURED"
+    },
+    {
+      "id": "provider_source_revision_missing",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "provider.source_revision",
+          "value": ""
+        }
+      ],
+      "expected_code": "PROVIDER_SOURCE_REVISION_MISSING"
+    },
+    {
+      "id": "coverage_required_zero_percent",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "coverage.required_coverage_percent",
+          "value": 0
+        }
+      ],
+      "expected_code": "COVERAGE_REQUIREMENT_INVALID"
+    },
+    {
+      "id": "acceptance_maps_quality_level_to_ndt",
+      "base": "valid_paut_record",
+      "mutations": [
+        {
+          "path": "acceptance.maps_quality_level_to_ndt_acceptance",
+          "value": true
+        }
+      ],
+      "expected_code": "QUALITY_LEVEL_NOT_NDT_ACCEPTANCE"
+    }
+  ]
+}
