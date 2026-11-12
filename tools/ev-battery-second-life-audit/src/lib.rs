@@ -1017,6 +1017,7 @@ mod tests {
             incident.evidence_id = "E-PHYSICAL".into();
         }
         pack.bms_compatibility_disposition = GateDisposition::Pass;
+        pack.bms_evidence_id = "E-PHYSICAL".into();
         pack.hard_gates[0].disposition = GateDisposition::Pass;
         pack.hard_gates[0].evidence_id = "E-PHYSICAL".into();
         pack.hard_gates[0].requires_physical_evidence = true;
