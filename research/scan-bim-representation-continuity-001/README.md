@@ -43,6 +43,24 @@ The audit consumes exact evidence and identity receipts from those owners. It do
 The Rust module is tools/scan-bim-replay-contract/src/continuity.rs, exported by the existing scan-bim-replay-contract crate. It uses the existing serde/serde_json dependencies; no new runtime dependency is introduced.
 
 The versioned receipt binds:
+- an explicit parent-transition list for every hop (empty on the root);
+
+### Multi-hop composition (P0 extension)
+
+The original single-transition fixture remains a supported root-only receipt. A second frozen two-hop fixture now proves a connected raw-observation → surface-mesh → spatial-graph chain.
+
+For multi-transition v0.1 receipts, transitions form a strict ordered **linear chain**:
+- the root has no parent ID;
+- every later transition declares exactly the immediately preceding transition ID;
+- each hop consumes an exact parent output artifact (ID, digest and role);
+- the representation kind connects parent output to child input;
+- every parent target entity and target relation must be accounted for in the next source inventory;
+- the next uncertainty.before state must exactly equal the previous uncertainty.after state.
+
+Disconnected transitions without an immediate-parent output, missing entities/relations, representation-kind jumps, reordered hops and uncertainty resets are rejected. Earlier raw evidence may remain in a later hop's source artifact list for claim provenance, provided the immediate parent output is also consumed. Branching/merging is not guessed from array order; it remains unsupported until a separate explicit DAG profile is designed.
+
+Reports include root and terminal transition IDs. The synthetic two-hop fixture contains one measured claim at the mesh and one derived/inferred claim at the graph; the claim origin is not silently promoted.
+
 - exact replay and scene identity;
 - source and output representation kinds and artifact digests;
 - tool/version/configuration identity;
@@ -101,7 +119,7 @@ The CLI reads the receipt bytes, rejects unknown JSON fields through the typed `
 
 P0 now additionally binds every claim to the exact transition output artifact that contains its target entity. When a later transition reuses an artifact ID previously emitted by an earlier transition, the SHA-256 and evidence role must match exactly. Reusing an ID with changed bytes or role is rejected.
 
-Current test inventory: 31 representation-continuity tests. Claim target artifacts must also carry the `geometry_output` or `representation_output` role; a transform/calibration artifact cannot satisfy a claim's representation target merely by sharing an ID.
+Current test inventory: 40 representation-continuity tests, including ten multi-hop composition and adversarial controls. Claim target artifacts must also carry the `geometry_output` or `representation_output` role; a transform/calibration artifact cannot satisfy a claim's representation target merely by sharing an ID.
 
 ### Relation and topology continuity (P0 extension)
 
