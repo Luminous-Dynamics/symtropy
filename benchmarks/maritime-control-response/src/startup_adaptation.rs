@@ -926,8 +926,14 @@ mod tests {
             protocol["schema_version"],
             "symtropy-startup-adaptation-guard-v0.1"
         );
-        assert_eq!(protocol["automatic_baseline_commit"], false);
-        assert_eq!(protocol["live_baseline_mutation_by_module"], false);
+        assert!(protocol["architecture"]["update_authority"]
+            .as_str()
+            .unwrap()
+            .contains("no commit or activation function"));
+        assert!(protocol["architecture"]["live_reference"]["mutability"]
+            .as_str()
+            .unwrap()
+            .contains("immutable"));
         assert_eq!(protocol["status"], "protocol_only_not_executed");
         assert!(protocol["research_targets_not_achieved"]
             .as_array()
