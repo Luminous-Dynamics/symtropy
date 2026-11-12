@@ -292,7 +292,8 @@
         "add nonradial Schwarzschild and generic Kerr trajectory cross-formulation receipts",
         "benchmark convergence through a caustic without determinant-only classification"
       ],
-      "fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json"
+      "fixture": "crates/domains/symtropy-relativity/optical_screen_sachs_jacobi_fixture_v1.json",
+      "validation_status": "fixed-step source and radial analytic test authored; prior runner test of the radial Sachs/Jacobi reference passed; rerun required after later test corrections"
     },
     {
       "id": "OS-5C",
@@ -619,6 +620,12 @@
       "Adaptive Schwarzschild scattering regression declares a 1e-8 radial/polar constraint acceptance in the integration config.",
       "Future-horizon test permits a smaller minimum adaptive step in the regular ingoing chart; finite-observer source-screen test integrates to an affine interval long enough to reach the horizon."
     ],
-    "status": "test inputs corrected from exact-head Rust failure evidence; rerun pending; no claim of passing tests"
+    "status": "formatted branch contains corrected test inputs; exact-head Rust rerun requested after the contract update",
+    "latest_source_test_inventory": {
+      "kerr_geodesic_authored_tests": 35,
+      "kerr_integrator_authored_tests": 16,
+      "new_sachs_jacobi_radial_reference": "authored; previously passed in runner before the latest test-input corrections",
+      "latest_confirmed_status": "no passing exact-head result claimed"
+    }
   }
 }
