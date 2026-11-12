@@ -1,6 +1,6 @@
 {
   "schema_version": "symtropy-marine-external-dataset-track-v0.1",
-  "status": "metadata_audited_archive_not_audited",
+  "status": "archive_downloaded_publisher_md5_verified_payload_audit_pending",
   "dataset": {
     "name": "Marine Engine Fault",
     "canonical_record": "https://zenodo.org/records/19857425",
@@ -19,7 +19,10 @@
       "baseline_schema_columns": 70,
       "scenario_schema_columns": 73,
       "header_rows": 3,
-      "encoding": "UTF-8"
+      "encoding": "UTF-8",
+      "archive_csv_entry_count": 18,
+      "metadata_csv_artifact_count": 2,
+      "csv_count_semantics": "16 recording data CSVs (one baseline plus fifteen scenario files) plus two metadata CSV exports (dataset_index and variable_dictionary), pending exact member-name confirmation by the Rust archive audit."
     },
     "labels": {
       "state_column": "Anomaly State",
@@ -53,8 +56,10 @@
         "publisher_reported_size_bytes": 26538633,
         "publisher_reported_md5": "f4d246c1bb46e05b26e56221acc2606c",
         "sha256": null,
-        "download_status": "not_downloaded_or_verified",
-        "md5_independently_verified": false
+        "download_status": "downloaded_publisher_size_and_md5_verified_payload_audit_pending",
+        "md5_independently_verified": true,
+        "sha256_computed_in_github_runner": true,
+        "sha256_receipt_status": "awaiting successful machine-readable CSV audit receipt"
       }
     },
     "aalto_catalogue": {
@@ -132,8 +137,8 @@
   "evaluation_tracks": [
     {
       "id": "archive_and_signal_semantics_audit",
-      "status": "not_executed",
-      "required": "Retrieve ZIP, verify the published CC BY 4.0 record, SHA-256 the archive and each file, audit the index/dictionary/normalization script, validate three-row headers, units and per-file presence, and preserve empty values.",
+      "status": "downloaded_publisher_md5_verified_payload_audit_pending",
+      "required": "GitHub runner retrieved ZIP, matched publisher-reported size and MD5, and computed SHA-256. Audit exact archive member inventory, separate metadata CSV exports from recording CSV payloads, verify per-file SHA-256, inspect index/dictionary/normalization script, validate three-row headers, units and per-file presence, and preserve empty values.",
       "qualification": "No model run before archive and variable-dictionary digest are pinned."
     },
     {
@@ -248,7 +253,7 @@
       "status": "aspirational"
     }
   ],
-  "claim_ceiling": "Zenodo metadata describes a useful second dataset track. Archive bytes, variable dictionary, physical run identities, per-file missingness, splits and model results have not yet been audited; no model accuracy or cross-engine/fleet claim is made.",
+  "claim_ceiling": "The ZIP was downloaded by the exact-head GitHub Actions runner and its publisher-reported size and MD5 matched; a SHA-256 was computed but its value is not yet committed in the receipt. Extracted file inventory, CSV payload, physical run identities, per-file missingness, splits and model results remain unaudited; no model accuracy or cross-engine/fleet claim is made.",
   "source_interpretation": {
     "reported_intervention_label": "The five class names describe the experimental anomaly scenarios reported by the dataset creators.",
     "causal_limit": "A scenario label is not by itself proof that the intervention reproduces the full causal physics, degradation progression or failure envelope of an in-service fault.",
