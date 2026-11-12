@@ -1210,10 +1210,7 @@ mod tests {
             ScmAgent { position: vec![0.1, 0.9] },
             ScmAgent { position: vec![0.9, 0.9] },
         ];
-        let landscape = QuadraticLandscape {
-            center: vec![0.55, 0.55],
-            scale: 0.5,
-        };
+        let landscape = Quadratic;
         let mut model = ScmModel::new(
             positions,
             ScmConfig {
