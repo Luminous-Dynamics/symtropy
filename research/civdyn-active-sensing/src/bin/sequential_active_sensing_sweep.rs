@@ -26,14 +26,6 @@ fn csv_field(value: &str) -> String {
     }
 }
 
-fn emit(fields: Vec<String>) {
-    assert_eq!(fields.len(), CSV_COLUMNS, "sequential-sensing receipt schema mismatch");
-    println!(
-        "{}",
-        fields.iter().map(|field| csv_field(field)).collect::<Vec<_>>().join(",")
-    );
-}
-
 fn config() -> ActiveSensingConfig {
     ActiveSensingConfig {
         scenario_id: "nonmyopic-two-stage-sensing-v1".to_owned(),
