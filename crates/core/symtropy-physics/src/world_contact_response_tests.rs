@@ -65,13 +65,7 @@ fn qualify_case(frame_generator: Bivector<3>, dt: f64) {
     let fixed_handle = world.add_body(fixed);
     let moving_handle = world.add_body(moving);
 
-    let mut contact = ContactManifold::single(
-        fixed_handle,
-        moving_handle,
-        normal,
-        point,
-        0.0,
-    );
+    let mut contact = ContactManifold::single(fixed_handle, moving_handle, normal, point, 0.0);
     contact.points[0].restitution_bias = 0.0;
 
     let before_linear_velocity = world.bodies[1].linear_velocity;
@@ -85,8 +79,7 @@ fn qualify_case(frame_generator: Bivector<3>, dt: f64) {
     let normal_offset = offset.dot(&normal);
     let perpendicular_offset_squared =
         (offset.norm_squared() - normal_offset * normal_offset).max(0.0);
-    let inverse_effective_mass =
-        1.0 / mass + (1.0 / inertia) * perpendicular_offset_squared;
+    let inverse_effective_mass = 1.0 / mass + (1.0 / inertia) * perpendicular_offset_squared;
     let expected_impulse_magnitude = -before_normal_speed / inverse_effective_mass;
 
     let mut callback = NoOpCallback;
@@ -100,8 +93,7 @@ fn qualify_case(frame_generator: Bivector<3>, dt: f64) {
 
     let impulse_scale = expected_impulse_magnitude.abs().max(f64::MIN_POSITIVE);
     assert!(
-        (observed_impulse_magnitude - expected_impulse_magnitude).abs() / impulse_scale
-            < 2.0e-12,
+        (observed_impulse_magnitude - expected_impulse_magnitude).abs() / impulse_scale < 2.0e-12,
         "solver impulse disagrees with independent effective-mass oracle: \\
          observed={observed_impulse_magnitude:e}, expected={expected_impulse_magnitude:e}"
     );
@@ -116,13 +108,11 @@ fn qualify_case(frame_generator: Bivector<3>, dt: f64) {
     // impulse used by the production resolver.
     let linear_momentum_change = (after.linear_velocity - before_linear_velocity) * mass;
     assert!(
-        (linear_momentum_change - impulse).norm() / impulse.norm().max(f64::MIN_POSITIVE)
-            < 2.0e-12,
+        (linear_momentum_change - impulse).norm() / impulse.norm().max(f64::MIN_POSITIVE) < 2.0e-12,
         "linear momentum transfer does not equal the applied contact impulse"
     );
 
-    let expected_angular_impulse =
-        integrator::angular_impulse_from_point(&offset, &impulse);
+    let expected_angular_impulse = integrator::angular_impulse_from_point(&offset, &impulse);
     let angular_momentum_change = after
         .angular_velocity
         .add(&before_angular_velocity.scale(-1.0))
@@ -131,9 +121,7 @@ fn qualify_case(frame_generator: Bivector<3>, dt: f64) {
         angular_momentum_change
             .add(&expected_angular_impulse.scale(-1.0))
             .norm()
-            / expected_angular_impulse
-                .norm()
-                .max(f64::MIN_POSITIVE)
+            / expected_angular_impulse.norm().max(f64::MIN_POSITIVE)
             < 2.0e-12,
         "angular momentum transfer does not equal r wedge J"
     );
@@ -141,8 +129,7 @@ fn qualify_case(frame_generator: Bivector<3>, dt: f64) {
     // For an instantaneous ideal impulse, kinetic-energy change equals
     // impulse dotted with the midpoint contact velocity.
     let after_energy = after.kinetic_energy();
-    let impulse_work =
-        impulse.dot(&((before_point_velocity + after_point_velocity) * 0.5));
+    let impulse_work = impulse.dot(&((before_point_velocity + after_point_velocity) * 0.5));
     let energy_scale = before_energy
         .abs()
         .max(after_energy.abs())
