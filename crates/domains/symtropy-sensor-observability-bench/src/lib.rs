@@ -845,6 +845,121 @@ mod tests {
         ).is_err());
     }
 
+
+    #[test]
+    fn pair_kernel_metamorphic_symmetry_and_time_translation_are_invariant() {
+        for a_lower in -2..=2 {
+            for a_upper in a_lower..=2 {
+                for b_lower in -2..=2 {
+                    for b_upper in b_lower..=2 {
+                        let mut original = pair_signature(
+                            "channel", "principle",
+                            Some((a_lower as f64, a_upper as f64)),
+                            Some((b_lower as f64, b_upper as f64)),
+                        );
+                        let forward = classify_pair_signatures(
+                            &[original.clone()], 1,
+                            PairEvidenceClass::SyntheticConformanceFixture,
+                            &BTreeSet::new(),
+                        ).unwrap();
+                        original.interval_a = Some((b_lower as f64, b_upper as f64));
+                        original.interval_b = Some((a_lower as f64, a_upper as f64));
+                        let reverse = classify_pair_signatures(
+                            &[original.clone()], 1,
+                            PairEvidenceClass::SyntheticConformanceFixture,
+                            &BTreeSet::new(),
+                        ).unwrap();
+                        assert_eq!(forward.status, reverse.status);
+                        assert_eq!(forward.observed_independent_principles, reverse.observed_independent_principles);
+
+                        original.interval_a = Some((a_lower as f64 + 37.25, a_upper as f64 + 37.25));
+                        original.interval_b = Some((b_lower as f64 + 37.25, b_upper as f64 + 37.25));
+                        let translated = classify_pair_signatures(
+                            &[original], 1,
+                            PairEvidenceClass::SyntheticConformanceFixture,
+                            &BTreeSet::new(),
+                        ).unwrap();
+                        assert_eq!(forward.status, translated.status);
+                        assert_eq!(forward.discriminating_channel_ids, translated.discriminating_channel_ids);
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn pair_kernel_interval_widening_never_creates_new_identifiability() {
+        for a_lower in 0..=3 {
+            for a_upper in a_lower..=3 {
+                for b_lower in 0..=3 {
+                    for b_upper in b_lower..=3 {
+                        let original = pair_signature(
+                            "channel", "principle",
+                            Some((a_lower as f64, a_upper as f64)),
+                            Some((b_lower as f64, b_upper as f64)),
+                        );
+                        let base = classify_pair_signatures(
+                            &[original.clone()], 1,
+                            PairEvidenceClass::SyntheticConformanceFixture,
+                            &BTreeSet::new(),
+                        ).unwrap();
+                        let mut widened = original;
+                        widened.interval_a = Some(((a_lower - 1) as f64, (a_upper + 1) as f64));
+                        widened.interval_b = Some(((b_lower - 1) as f64, (b_upper + 1) as f64));
+                        let after = classify_pair_signatures(
+                            &[widened], 1,
+                            PairEvidenceClass::SyntheticConformanceFixture,
+                            &BTreeSet::new(),
+                        ).unwrap();
+                        if base.status != "IDENTIFIABLE" {
+                            assert_ne!(after.status, "IDENTIFIABLE");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn pair_kernel_dependency_cuts_are_monotone_and_permutation_stable() {
+        let mut evidence = Vec::new();
+        for index in 0..4 {
+            let mut item = pair_signature(
+                &format!("channel-{index}"),
+                &format!("principle-{index}"),
+                Some((0.0, 1.0)),
+                Some((3.0 + index as f64, 4.0 + index as f64)),
+            );
+            item.dependency_groups.insert(format!("dependency-{index}"));
+            evidence.push(item);
+        }
+        let all = classify_pair_signatures(
+            &evidence, 3, PairEvidenceClass::SyntheticConformanceFixture, &BTreeSet::new()
+        ).unwrap();
+        assert_eq!(all.status, "IDENTIFIABLE");
+        let reversed = classify_pair_signatures(
+            &evidence.iter().cloned().rev().collect::<Vec<_>>(),
+            3,
+            PairEvidenceClass::SyntheticConformanceFixture,
+            &BTreeSet::new(),
+        ).unwrap();
+        assert_eq!(all, reversed);
+
+        for mask in 0u8..16 {
+            let disabled: BTreeSet<String> = (0..4)
+                .filter(|index| mask & (1 << index) != 0)
+                .map(|index| format!("dependency-{index}"))
+                .collect();
+            let result = classify_pair_signatures(
+                &evidence, 3, PairEvidenceClass::SyntheticConformanceFixture, &disabled
+            ).unwrap();
+            assert!(result.observed_independent_principles <= 4 - disabled.len());
+            if disabled.len() >= 2 {
+                assert_ne!(result.status, "IDENTIFIABLE");
+            }
+        }
+    }
+
     #[test]
     fn synthetic_layout_manifest_is_valid() {
         assert!(validate_case(&fixture(), &parent()).is_empty());
