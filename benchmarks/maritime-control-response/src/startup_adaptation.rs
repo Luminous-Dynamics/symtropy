@@ -174,18 +174,48 @@ impl fmt::Display for BaselineAdaptationError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidPolicy => write!(formatter, "baseline shadow policy is invalid"),
-            Self::EmptyIdentity => write!(formatter, "recording, regime, issuer or dependency-domain identity is empty"),
-            Self::InvalidBaselineDigest => write!(formatter, "baseline digest must be a lowercase SHA-256 digest"),
-            Self::InvalidModelDigest => write!(formatter, "model digest must be a lowercase SHA-256 digest"),
-            Self::CandidateQuarantined(reason) => write!(formatter, "baseline candidate is quarantined: {reason:?}"),
-            Self::CandidateNotReady => write!(formatter, "shadow candidate has not met its sample requirement"),
+            Self::EmptyIdentity => write!(
+                formatter,
+                "recording, regime, issuer or dependency-domain identity is empty"
+            ),
+            Self::InvalidBaselineDigest => write!(
+                formatter,
+                "baseline digest must be a lowercase SHA-256 digest"
+            ),
+            Self::InvalidModelDigest => {
+                write!(formatter, "model digest must be a lowercase SHA-256 digest")
+            }
+            Self::CandidateQuarantined(reason) => {
+                write!(formatter, "baseline candidate is quarantined: {reason:?}")
+            }
+            Self::CandidateNotReady => write!(
+                formatter,
+                "shadow candidate has not met its sample requirement"
+            ),
             Self::InvalidObservation(id) => write!(formatter, "invalid shadow observation: {id}"),
-            Self::ObservationNotAccepted(reason) => write!(formatter, "shadow observation failed closed: {reason:?}"),
-            Self::InvalidAttestation => write!(formatter, "independent health-attestation set is incomplete or invalid"),
-            Self::ReceiptChainBroken => write!(formatter, "shadow observation receipt chain is incomplete or out of order"),
-            Self::ReceiptDigestMismatch => write!(formatter, "shadow observation receipt digest does not match its contents"),
-            Self::MixedReceiptIdentity => write!(formatter, "shadow receipt chain contains mixed baseline, model, recording or regime identities"),
-            Self::Serialization => write!(formatter, "failed to serialize baseline adaptation evidence"),
+            Self::ObservationNotAccepted(reason) => {
+                write!(formatter, "shadow observation failed closed: {reason:?}")
+            }
+            Self::InvalidAttestation => write!(
+                formatter,
+                "independent health-attestation set is incomplete or invalid"
+            ),
+            Self::ReceiptChainBroken => write!(
+                formatter,
+                "shadow observation receipt chain is incomplete or out of order"
+            ),
+            Self::ReceiptDigestMismatch => write!(
+                formatter,
+                "shadow observation receipt digest does not match its contents"
+            ),
+            Self::MixedReceiptIdentity => write!(
+                formatter,
+                "shadow receipt chain contains mixed baseline, model, recording or regime identities"
+            ),
+            Self::Serialization => write!(
+                formatter,
+                "failed to serialize baseline adaptation evidence"
+            ),
         }
     }
 }
@@ -254,8 +284,7 @@ impl BaselineShadowCandidate {
         if recording_id.trim().is_empty() || regime_id.trim().is_empty() {
             return Err(BaselineAdaptationError::EmptyIdentity);
         }
-        let policy_sha256 =
-            sha256_serializable(b"symtropy-baseline-shadow-policy-v1\0", &policy)?;
+        let policy_sha256 = sha256_serializable(b"symtropy-baseline-shadow-policy-v1\0", &policy)?;
         Ok(Self {
             policy,
             policy_sha256,
@@ -283,7 +312,9 @@ impl BaselineShadowCandidate {
         observation: &BaselineShadowObservation,
     ) -> Result<BaselineCandidateStatus, BaselineAdaptationError> {
         if let Some(reason) = &self.quarantine_reason {
-            return Err(BaselineAdaptationError::CandidateQuarantined(reason.clone()));
+            return Err(BaselineAdaptationError::CandidateQuarantined(
+                reason.clone(),
+            ));
         }
         let reason = self.validate_observation(observation);
         if let Some(reason) = reason {
@@ -293,8 +324,10 @@ impl BaselineShadowCandidate {
         }
 
         let receipt = self.make_receipt(observation)?;
-        self.first_sample_index.get_or_insert(observation.sample_index);
-        self.first_time_seconds.get_or_insert(observation.time_seconds);
+        self.first_sample_index
+            .get_or_insert(observation.sample_index);
+        self.first_time_seconds
+            .get_or_insert(observation.time_seconds);
         self.last_sample_index = Some(observation.sample_index);
         self.last_time_seconds = Some(observation.time_seconds);
         self.previous_receipt_sha256 = Some(receipt.receipt_sha256.clone());
@@ -395,9 +428,12 @@ impl BaselineShadowCandidate {
             regime_supported_by_frozen_reference: observation.regime_supported_by_frozen_reference,
             all_required_signals_current: observation.all_required_signals_current,
             command_history_available: observation.command_history_available,
-            command_response_timing_causally_valid: observation.command_response_timing_causally_valid,
+            command_response_timing_causally_valid: observation
+                .command_response_timing_causally_valid,
             dependency_health_verified_upstream: observation.dependency_health_verified_upstream,
-            dependency_health_verification_sha256: observation.dependency_health_verification_sha256.clone(),
+            dependency_health_verification_sha256: observation
+                .dependency_health_verification_sha256
+                .clone(),
             known_fault_alarm_present: observation.known_fault_alarm_present,
             unknown_fault_alarm_present: observation.unknown_fault_alarm_present,
             ambiguous_hypothesis_set_present: observation.ambiguous_hypothesis_set_present,
@@ -451,9 +487,13 @@ impl BaselineShadowCandidate {
             policy_sha256: self.policy_sha256.clone(),
             candidate_manifest_sha256,
             sample_count: self.receipts.len(),
-            first_sample_index: self.first_sample_index.expect("ready candidate has samples"),
+            first_sample_index: self
+                .first_sample_index
+                .expect("ready candidate has samples"),
             last_sample_index: self.last_sample_index.expect("ready candidate has samples"),
-            first_time_seconds: self.first_time_seconds.expect("ready candidate has samples"),
+            first_time_seconds: self
+                .first_time_seconds
+                .expect("ready candidate has samples"),
             last_time_seconds: self.last_time_seconds.expect("ready candidate has samples"),
             shadow_receipt_chain_sha256: self.shadow_receipt_chain_sha256()?,
             independent_health_attestation_receipt_sha256: attestation_receipts,
@@ -722,14 +762,8 @@ mod tests {
     }
 
     fn candidate() -> BaselineShadowCandidate {
-        BaselineShadowCandidate::new(
-            policy(),
-            digest('b'),
-            digest('c'),
-            "startup-run",
-            "wltp",
-        )
-        .unwrap()
+        BaselineShadowCandidate::new(policy(), digest('b'), digest('c'), "startup-run", "wltp")
+            .unwrap()
     }
 
     fn attestations(candidate_sha256: &str) -> Vec<IndependentHealthAttestation> {
@@ -813,11 +847,7 @@ mod tests {
 
     #[test]
     fn unsupported_regime_missing_sensor_and_ambiguous_sets_are_quarantined() {
-        for mutate in [
-            0_u8,
-            1_u8,
-            2_u8,
-        ] {
+        for mutate in [0_u8, 1_u8, 2_u8] {
             let mut candidate = candidate();
             let mut input = observation(0);
             match mutate {
@@ -926,19 +956,25 @@ mod tests {
             protocol["schema_version"],
             "symtropy-startup-adaptation-guard-v0.1"
         );
-        assert!(protocol["architecture"]["update_authority"]
-            .as_str()
-            .unwrap()
-            .contains("no commit or activation function"));
-        assert!(protocol["architecture"]["live_reference"]["mutability"]
-            .as_str()
-            .unwrap()
-            .contains("immutable"));
+        assert!(
+            protocol["architecture"]["update_authority"]
+                .as_str()
+                .unwrap()
+                .contains("no commit or activation function")
+        );
+        assert!(
+            protocol["architecture"]["live_reference"]["mutability"]
+                .as_str()
+                .unwrap()
+                .contains("immutable")
+        );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
-        assert!(protocol["research_targets_not_achieved"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|target| target["status"] == "aspirational"));
+        assert!(
+            protocol["research_targets_not_achieved"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|target| target["status"] == "aspirational")
+        );
     }
 }

@@ -18,9 +18,7 @@ fn main() -> ExitCode {
 fn run() -> Result<(), String> {
     let arguments = std::env::args_os().skip(1).collect::<Vec<_>>();
     if arguments.len() != 2 {
-        return Err(
-            "usage: marine-dataset-audit <extracted-dataset-root> <archive-sha256>".into(),
-        );
+        return Err("usage: marine-dataset-audit <extracted-dataset-root> <archive-sha256>".into());
     }
     let root = PathBuf::from(&arguments[0]);
     let archive_sha256 = arguments[1]

@@ -9,13 +9,13 @@
 //! score, run-level split-conformal calibration, and command-conditioned
 //! residual evaluation. A mismatch is not an actuator-fault diagnosis.
 
-pub mod event_metrics;
 pub mod active_probe;
-pub mod streaming_contract;
-pub mod external_dataset;
-pub mod csv_audit;
 pub mod behavioral_sets;
+pub mod csv_audit;
+pub mod event_metrics;
+pub mod external_dataset;
 pub mod startup_adaptation;
+pub mod streaming_contract;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -62,27 +62,79 @@ pub struct SignalBinding {
 /// position signal.
 pub fn liu_ice_signal_registry() -> Vec<SignalBinding> {
     let entries = [
-        ("umf", "Requested injected fuel mass", SignalRole::ControlIntent, SemanticEvidence::PublicDescriptionNamesRequestedCommand),
-        ("uwg", "Requested wastegate actuator position", SignalRole::ControlIntent, SemanticEvidence::PublicDescriptionNamesRequestedCommand),
-        ("yxpos", "Throttle actuator position", SignalRole::CandidateActuatorFeedback, SemanticEvidence::PublicDescriptionOnlyNeedsInstrumentReview),
-        ("ypic", "Intercooler pressure", SignalRole::PhysicalResponse, SemanticEvidence::PublicDescriptionNamesMeasuredSignal),
-        ("yTic", "Intercooler temperature", SignalRole::PhysicalResponse, SemanticEvidence::PublicDescriptionNamesMeasuredSignal),
-        ("ypim", "Intake manifold pressure", SignalRole::PhysicalResponse, SemanticEvidence::PublicDescriptionNamesMeasuredSignal),
-        ("ywaf", "Mass flow through the air filter", SignalRole::PhysicalResponse, SemanticEvidence::PublicDescriptionNamesMeasuredSignal),
-        ("yomega", "Engine speed", SignalRole::PhysicalResponse, SemanticEvidence::PublicDescriptionNamesMeasuredSignal),
-        ("ypamb", "Ambient pressure", SignalRole::DisturbanceContext, SemanticEvidence::PublicDescriptionNamesMeasuredSignal),
-        ("yTamb", "Ambient temperature", SignalRole::DisturbanceContext, SemanticEvidence::PublicDescriptionNamesMeasuredSignal),
+        (
+            "umf",
+            "Requested injected fuel mass",
+            SignalRole::ControlIntent,
+            SemanticEvidence::PublicDescriptionNamesRequestedCommand,
+        ),
+        (
+            "uwg",
+            "Requested wastegate actuator position",
+            SignalRole::ControlIntent,
+            SemanticEvidence::PublicDescriptionNamesRequestedCommand,
+        ),
+        (
+            "yxpos",
+            "Throttle actuator position",
+            SignalRole::CandidateActuatorFeedback,
+            SemanticEvidence::PublicDescriptionOnlyNeedsInstrumentReview,
+        ),
+        (
+            "ypic",
+            "Intercooler pressure",
+            SignalRole::PhysicalResponse,
+            SemanticEvidence::PublicDescriptionNamesMeasuredSignal,
+        ),
+        (
+            "yTic",
+            "Intercooler temperature",
+            SignalRole::PhysicalResponse,
+            SemanticEvidence::PublicDescriptionNamesMeasuredSignal,
+        ),
+        (
+            "ypim",
+            "Intake manifold pressure",
+            SignalRole::PhysicalResponse,
+            SemanticEvidence::PublicDescriptionNamesMeasuredSignal,
+        ),
+        (
+            "ywaf",
+            "Mass flow through the air filter",
+            SignalRole::PhysicalResponse,
+            SemanticEvidence::PublicDescriptionNamesMeasuredSignal,
+        ),
+        (
+            "yomega",
+            "Engine speed",
+            SignalRole::PhysicalResponse,
+            SemanticEvidence::PublicDescriptionNamesMeasuredSignal,
+        ),
+        (
+            "ypamb",
+            "Ambient pressure",
+            SignalRole::DisturbanceContext,
+            SemanticEvidence::PublicDescriptionNamesMeasuredSignal,
+        ),
+        (
+            "yTamb",
+            "Ambient temperature",
+            SignalRole::DisturbanceContext,
+            SemanticEvidence::PublicDescriptionNamesMeasuredSignal,
+        ),
     ];
 
     entries
         .into_iter()
-        .map(|(signal_id, description, role, semantic_evidence)| SignalBinding {
-            signal_id: signal_id.to_owned(),
-            description: description.to_owned(),
-            role,
-            semantic_evidence,
-            instrument_map_reviewed: false,
-        })
+        .map(
+            |(signal_id, description, role, semantic_evidence)| SignalBinding {
+                signal_id: signal_id.to_owned(),
+                description: description.to_owned(),
+                role,
+                semantic_evidence,
+                instrument_map_reviewed: false,
+            },
+        )
         .collect()
 }
 
@@ -233,7 +285,10 @@ pub fn evaluate_competition_score(
         if label.key.recording_id.trim().is_empty() {
             return Err(EvalError::EmptyIdentity);
         }
-        if truth_by_key.insert(label.key.clone(), label.truth).is_some() {
+        if truth_by_key
+            .insert(label.key.clone(), label.truth)
+            .is_some()
+        {
             return Err(EvalError::DuplicateSampleKey(label.key.clone()));
         }
     }
@@ -309,10 +364,8 @@ pub fn evaluate_competition_score(
     } else {
         0.0
     };
-    let total_score = ((1.0 - false_alarm_rate)
-        + true_detection_rate
-        + fault_isolation_accuracy)
-        / 3.0;
+    let total_score =
+        ((1.0 - false_alarm_rate) + true_detection_rate + fault_isolation_accuracy) / 3.0;
 
     Ok(CompetitionScore {
         samples: labels.len(),
@@ -385,8 +438,16 @@ impl RecordingSplitManifest {
                     assignment.recording_id.clone(),
                 ));
             }
-            train += if assignment.split == DatasetSplit::Train { 1 } else { 0 };
-            test += if assignment.split == DatasetSplit::Test { 1 } else { 0 };
+            train += if assignment.split == DatasetSplit::Train {
+                1
+            } else {
+                0
+            };
+            test += if assignment.split == DatasetSplit::Test {
+                1
+            } else {
+                0
+            };
             if self.mode == SplitMode::HeldOutDrivingCycle {
                 if let Some(previous) = cycle_split.get(&assignment.driving_cycle) {
                     if *previous != assignment.split {
@@ -435,7 +496,10 @@ impl RecordingSplitManifest {
 
     /// Canonical digest of the sorted recording IDs assigned to one split.
     pub fn recording_manifest_digest(&self, split: DatasetSplit) -> Result<String, EvalError> {
-        let ids = self.recording_ids_for(split).into_iter().collect::<Vec<_>>();
+        let ids = self
+            .recording_ids_for(split)
+            .into_iter()
+            .collect::<Vec<_>>();
         sha256_serializable(b"symtropy-liu-ice-recording-members-v1\0", &ids)
     }
 }
@@ -610,8 +674,7 @@ pub fn evaluate_command_response(
         || !is_sha256_hex(&pair.model_sha256)
         || !is_sha256_hex(&pair.training_recordings_manifest_sha256)
         || !is_sha256_hex(&pair.split_manifest_sha256)
-        || pair.training_recordings_manifest_sha256
-            == pair.split_manifest_sha256
+        || pair.training_recordings_manifest_sha256 == pair.split_manifest_sha256
         || !pair.model_residual_std.is_finite()
         || pair.model_residual_std < 0.0
         || !pair.measurement_std.is_finite()
@@ -709,7 +772,10 @@ pub fn evaluate_command_response(
     }
     let scale = pair
         .model_residual_std
-        .mul_add(pair.model_residual_std, pair.measurement_std * pair.measurement_std)
+        .mul_add(
+            pair.model_residual_std,
+            pair.measurement_std * pair.measurement_std,
+        )
         .sqrt();
     if !scale.is_finite() || scale <= f64::EPSILON {
         return Err(EvalError::InvalidCommandResponsePair);
@@ -725,8 +791,7 @@ pub fn evaluate_command_response(
     };
     threshold.validate()?;
     if threshold.model_sha256 != pair.model_sha256
-        || threshold.training_recordings_manifest_sha256
-            != pair.training_recordings_manifest_sha256
+        || threshold.training_recordings_manifest_sha256 != pair.training_recordings_manifest_sha256
         || threshold.split_manifest_sha256 != pair.split_manifest_sha256
         || threshold.regime_id != pair.regime_id
     {
@@ -789,12 +854,22 @@ impl ConformalThreshold {
             || !is_sha256_hex(&self.training_recordings_manifest_sha256)
             || !is_sha256_hex(&self.split_manifest_sha256)
             || !is_sha256_hex(&self.calibration_recordings_manifest_sha256)
-            || self.training_recordings_manifest_sha256 == self.calibration_recordings_manifest_sha256
+            || self.training_recordings_manifest_sha256
+                == self.calibration_recordings_manifest_sha256
             || self.training_recordings_manifest_sha256 == self.split_manifest_sha256
             || !is_sha256_hex(&self.calibration_scores_sha256)
-            || self.calibration_recording_ids.iter().any(|id| id.trim().is_empty())
-            || self.calibration_recording_ids.windows(2).any(|pair| pair[0] >= pair[1])
-            || self.calibration_max_scores.iter().any(|score| !score.is_finite() || *score < 0.0)
+            || self
+                .calibration_recording_ids
+                .iter()
+                .any(|id| id.trim().is_empty())
+            || self
+                .calibration_recording_ids
+                .windows(2)
+                .any(|pair| pair[0] >= pair[1])
+            || self
+                .calibration_max_scores
+                .iter()
+                .any(|score| !score.is_finite() || *score < 0.0)
         {
             return Err(EvalError::InvalidConformalThreshold);
         }
@@ -876,7 +951,10 @@ pub fn fit_episode_conformal_threshold(
             return Err(EvalError::InvalidCalibrationScore);
         }
         if score_by_recording
-            .insert(score.recording_id.clone(), score.maximum_absolute_standardized_residual)
+            .insert(
+                score.recording_id.clone(),
+                score.maximum_absolute_standardized_residual,
+            )
             .is_some()
         {
             return Err(EvalError::DuplicateRecording(score.recording_id.clone()));
@@ -902,7 +980,12 @@ pub fn fit_episode_conformal_threshold(
     )?;
     let digest = sha256_serializable(
         b"symtropy-liu-ice-episode-calibration-scores-v1\0",
-        &(model_sha256, regime_id, &calibration_recording_ids, &calibration_max_scores),
+        &(
+            model_sha256,
+            regime_id,
+            &calibration_recording_ids,
+            &calibration_max_scores,
+        ),
     )?;
     let threshold = ConformalThreshold {
         target_coverage_ppm,
@@ -966,26 +1049,83 @@ impl fmt::Display for EvalError {
             Self::EmptyEvaluation => write!(formatter, "evaluation set is empty"),
             Self::EmptyIdentity => write!(formatter, "recording or sample identity is empty"),
             Self::EmptyRecording => write!(formatter, "recording has no rows"),
-            Self::InvalidSample => write!(formatter, "sample contains invalid identity, time, or signal value"),
-            Self::NonMonotonicSample => write!(formatter, "sample index and timestamp must be strictly increasing"),
-            Self::DuplicateSampleKey(key) => write!(formatter, "duplicate sample key {}:{}", key.recording_id, key.sample_index),
-            Self::MissingPrediction(key) => write!(formatter, "missing prediction {}:{}", key.recording_id, key.sample_index),
-            Self::UnexpectedPrediction(key) => write!(formatter, "prediction has no matching truth {}:{}", key.recording_id, key.sample_index),
+            Self::InvalidSample => write!(
+                formatter,
+                "sample contains invalid identity, time, or signal value"
+            ),
+            Self::NonMonotonicSample => write!(
+                formatter,
+                "sample index and timestamp must be strictly increasing"
+            ),
+            Self::DuplicateSampleKey(key) => write!(
+                formatter,
+                "duplicate sample key {}:{}",
+                key.recording_id, key.sample_index
+            ),
+            Self::MissingPrediction(key) => write!(
+                formatter,
+                "missing prediction {}:{}",
+                key.recording_id, key.sample_index
+            ),
+            Self::UnexpectedPrediction(key) => write!(
+                formatter,
+                "prediction has no matching truth {}:{}",
+                key.recording_id, key.sample_index
+            ),
             Self::InvalidPrediction(message) => write!(formatter, "invalid prediction: {message}"),
-            Self::MissingNoFaultSamples => write!(formatter, "evaluation needs at least one no-fault sample"),
-            Self::MissingFaultSamples => write!(formatter, "evaluation needs at least one fault sample"),
-            Self::InvalidSplitManifest => write!(formatter, "split manifest is empty or lacks train/test recordings"),
+            Self::MissingNoFaultSamples => {
+                write!(formatter, "evaluation needs at least one no-fault sample")
+            }
+            Self::MissingFaultSamples => {
+                write!(formatter, "evaluation needs at least one fault sample")
+            }
+            Self::InvalidSplitManifest => write!(
+                formatter,
+                "split manifest is empty or lacks train/test recordings"
+            ),
             Self::DuplicateRecording(id) => write!(formatter, "duplicate recording identity: {id}"),
-            Self::DrivingCycleSplitLeakage(cycle) => write!(formatter, "driving cycle appears in more than one split: {cycle}"),
-            Self::SplitLeakage => write!(formatter, "train, calibration and test recordings must be disjoint"),
-            Self::InvalidCalibrationScore => write!(formatter, "calibration score is negative, non-finite, or lacks an identity"),
-            Self::InvalidCalibrationProvenance => write!(formatter, "calibration provenance is incomplete or inconsistent"),
-            Self::CalibrationBindingMismatch => write!(formatter, "calibration report belongs to a different model, regime, or split"),
-            Self::InvalidConformalCoverage => write!(formatter, "conformal target coverage must be in 1..999999 ppm"),
-            Self::InvalidConformalThreshold => write!(formatter, "conformal threshold claims are invalid"),
-            Self::InsufficientCalibrationEpisodes { required, available } => write!(formatter, "insufficient independent calibration episodes: need at least {required}, have {available}"),
-            Self::InvalidCommandResponsePair => write!(formatter, "command-response pair contains invalid numerical or timing claims"),
-            Self::Serialization => write!(formatter, "failed to serialize canonical evaluation evidence"),
+            Self::DrivingCycleSplitLeakage(cycle) => write!(
+                formatter,
+                "driving cycle appears in more than one split: {cycle}"
+            ),
+            Self::SplitLeakage => write!(
+                formatter,
+                "train, calibration and test recordings must be disjoint"
+            ),
+            Self::InvalidCalibrationScore => write!(
+                formatter,
+                "calibration score is negative, non-finite, or lacks an identity"
+            ),
+            Self::InvalidCalibrationProvenance => write!(
+                formatter,
+                "calibration provenance is incomplete or inconsistent"
+            ),
+            Self::CalibrationBindingMismatch => write!(
+                formatter,
+                "calibration report belongs to a different model, regime, or split"
+            ),
+            Self::InvalidConformalCoverage => write!(
+                formatter,
+                "conformal target coverage must be in 1..999999 ppm"
+            ),
+            Self::InvalidConformalThreshold => {
+                write!(formatter, "conformal threshold claims are invalid")
+            }
+            Self::InsufficientCalibrationEpisodes {
+                required,
+                available,
+            } => write!(
+                formatter,
+                "insufficient independent calibration episodes: need at least {required}, have {available}"
+            ),
+            Self::InvalidCommandResponsePair => write!(
+                formatter,
+                "command-response pair contains invalid numerical or timing claims"
+            ),
+            Self::Serialization => write!(
+                formatter,
+                "failed to serialize canonical evaluation evidence"
+            ),
         }
     }
 }
@@ -1067,10 +1207,22 @@ mod tests {
     #[test]
     fn official_competition_score_reproduces_the_published_formula() {
         let labels = vec![
-            LabeledSample { key: key("run-a", 0), truth: LiuIceTruth::NoFault },
-            LabeledSample { key: key("run-a", 1), truth: LiuIceTruth::NoFault },
-            LabeledSample { key: key("run-b", 0), truth: LiuIceTruth::KnownFault(FaultClass::FPic) },
-            LabeledSample { key: key("run-b", 1), truth: LiuIceTruth::KnownFault(FaultClass::FPic) },
+            LabeledSample {
+                key: key("run-a", 0),
+                truth: LiuIceTruth::NoFault,
+            },
+            LabeledSample {
+                key: key("run-a", 1),
+                truth: LiuIceTruth::NoFault,
+            },
+            LabeledSample {
+                key: key("run-b", 0),
+                truth: LiuIceTruth::KnownFault(FaultClass::FPic),
+            },
+            LabeledSample {
+                key: key("run-b", 1),
+                truth: LiuIceTruth::KnownFault(FaultClass::FPic),
+            },
         ];
         let predictions = vec![
             prediction("run-a", 0, false, [0.0; 5]),
@@ -1088,8 +1240,14 @@ mod tests {
     #[test]
     fn all_no_alarm_baseline_scores_one_third_and_reports_undefined_fia_denominator() {
         let labels = vec![
-            LabeledSample { key: key("run-a", 0), truth: LiuIceTruth::NoFault },
-            LabeledSample { key: key("run-b", 0), truth: LiuIceTruth::KnownFault(FaultClass::FWaf) },
+            LabeledSample {
+                key: key("run-a", 0),
+                truth: LiuIceTruth::NoFault,
+            },
+            LabeledSample {
+                key: key("run-b", 0),
+                truth: LiuIceTruth::KnownFault(FaultClass::FWaf),
+            },
         ];
         let predictions = vec![
             prediction("run-a", 0, false, [0.0; 5]),
@@ -1103,8 +1261,14 @@ mod tests {
     #[test]
     fn detection_false_requires_zero_isolation_probabilities() {
         let labels = vec![
-            LabeledSample { key: key("run-a", 0), truth: LiuIceTruth::NoFault },
-            LabeledSample { key: key("run-b", 0), truth: LiuIceTruth::KnownFault(FaultClass::FPim) },
+            LabeledSample {
+                key: key("run-a", 0),
+                truth: LiuIceTruth::NoFault,
+            },
+            LabeledSample {
+                key: key("run-b", 0),
+                truth: LiuIceTruth::KnownFault(FaultClass::FPim),
+            },
         ];
         let predictions = vec![
             prediction("run-a", 0, false, [0.0, 0.1, 0.0, 0.0, 0.0]),
@@ -1122,8 +1286,16 @@ mod tests {
             format_version: 1,
             mode: SplitMode::HeldOutDrivingCycle,
             assignments: vec![
-                RecordingAssignment { recording_id: "a".into(), driving_cycle: "WLTP".into(), split: DatasetSplit::Train },
-                RecordingAssignment { recording_id: "b".into(), driving_cycle: "WLTP".into(), split: DatasetSplit::Test },
+                RecordingAssignment {
+                    recording_id: "a".into(),
+                    driving_cycle: "WLTP".into(),
+                    split: DatasetSplit::Train,
+                },
+                RecordingAssignment {
+                    recording_id: "b".into(),
+                    driving_cycle: "WLTP".into(),
+                    split: DatasetSplit::Test,
+                },
             ],
         };
         assert_eq!(
@@ -1161,7 +1333,10 @@ mod tests {
                 &digest('c'),
                 "wltp",
             ),
-            Err(EvalError::InsufficientCalibrationEpisodes { required: 9, available: 8 })
+            Err(EvalError::InsufficientCalibrationEpisodes {
+                required: 9,
+                available: 8
+            })
         );
         assert_eq!(minimum_calibration_episodes(950_000), 19);
         assert_eq!(minimum_calibration_episodes(990_000), 99);
@@ -1262,7 +1437,10 @@ mod tests {
         pair.model_residual_std = 0.02;
         pair.measurement_std = 0.02;
         let result = evaluate_command_response(&pair, Some(&threshold())).unwrap();
-        assert_eq!(result.status, ResponseStatus::MismatchOutsideCalibratedEnvelope);
+        assert_eq!(
+            result.status,
+            ResponseStatus::MismatchOutsideCalibratedEnvelope
+        );
         assert_eq!(result.cause_claim, CauseClaim::NotIsolated);
         assert_eq!(result.prediction_time_seconds, 0.45);
         assert!(result.standardized_absolute_residual.unwrap() > 2.0);
@@ -1282,13 +1460,17 @@ mod tests {
         let mut pair = response_pair();
         pair.response_time_seconds = Some(0.44);
         assert_eq!(
-            evaluate_command_response(&pair, Some(&threshold())).unwrap().status,
+            evaluate_command_response(&pair, Some(&threshold()))
+                .unwrap()
+                .status,
             ResponseStatus::NotEvaluableResponseBeforePrediction
         );
         pair = response_pair();
         pair.response_time_seconds = Some(0.61);
         assert_eq!(
-            evaluate_command_response(&pair, Some(&threshold())).unwrap().status,
+            evaluate_command_response(&pair, Some(&threshold()))
+                .unwrap()
+                .status,
             ResponseStatus::NotEvaluableResponseOutsideHorizon
         );
     }
@@ -1299,7 +1481,9 @@ mod tests {
         missing_command.command_quality = SignalQuality::Missing;
         missing_command.command_value = None;
         assert_eq!(
-            evaluate_command_response(&missing_command, Some(&threshold())).unwrap().status,
+            evaluate_command_response(&missing_command, Some(&threshold()))
+                .unwrap()
+                .status,
             ResponseStatus::NotEvaluableMissingCommand
         );
 
@@ -1307,14 +1491,18 @@ mod tests {
         missing_response.response_quality = SignalQuality::Missing;
         missing_response.response_value = None;
         assert_eq!(
-            evaluate_command_response(&missing_response, Some(&threshold())).unwrap().status,
+            evaluate_command_response(&missing_response, Some(&threshold()))
+                .unwrap()
+                .status,
             ResponseStatus::NotEvaluableMissingResponse
         );
 
         let mut unsupported = response_pair();
         unsupported.regime_supported = false;
         assert_eq!(
-            evaluate_command_response(&unsupported, Some(&threshold())).unwrap().status,
+            evaluate_command_response(&unsupported, Some(&threshold()))
+                .unwrap()
+                .status,
             ResponseStatus::NotEvaluableUnsupportedRegime
         );
     }
@@ -1328,7 +1516,9 @@ mod tests {
         );
         pair.command_time_seconds = Some(0.1);
         assert_eq!(
-            evaluate_command_response(&pair, Some(&threshold())).unwrap().status,
+            evaluate_command_response(&pair, Some(&threshold()))
+                .unwrap()
+                .status,
             ResponseStatus::NotEvaluableStaleCommand
         );
     }
@@ -1370,7 +1560,10 @@ mod tests {
                 &digest('c'),
                 "wltp",
             ),
-            Err(EvalError::InsufficientCalibrationEpisodes { required: 99, available: 98 })
+            Err(EvalError::InsufficientCalibrationEpisodes {
+                required: 99,
+                available: 98
+            })
         );
     }
 
@@ -1391,7 +1584,10 @@ mod tests {
         assert!(validate_recording_rows(&rows).is_ok());
         let mut reversed = rows.clone();
         reversed.swap(0, 1);
-        assert_eq!(validate_recording_rows(&reversed), Err(EvalError::NonMonotonicSample));
+        assert_eq!(
+            validate_recording_rows(&reversed),
+            Err(EvalError::NonMonotonicSample)
+        );
     }
 
     #[test]
@@ -1400,8 +1596,16 @@ mod tests {
             format_version: 1,
             mode: SplitMode::WholeRecording,
             assignments: vec![
-                RecordingAssignment { recording_id: "r1".into(), driving_cycle: "WLTP".into(), split: DatasetSplit::Train },
-                RecordingAssignment { recording_id: "r2".into(), driving_cycle: "Artemis".into(), split: DatasetSplit::Test },
+                RecordingAssignment {
+                    recording_id: "r1".into(),
+                    driving_cycle: "WLTP".into(),
+                    split: DatasetSplit::Train,
+                },
+                RecordingAssignment {
+                    recording_id: "r2".into(),
+                    driving_cycle: "Artemis".into(),
+                    split: DatasetSplit::Test,
+                },
             ],
         };
         assert!(manifest.validate().is_ok());

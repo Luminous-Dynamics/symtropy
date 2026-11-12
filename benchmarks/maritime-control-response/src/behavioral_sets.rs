@@ -14,7 +14,6 @@ use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt;
 
-
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct BehavioralChannelBand {
@@ -135,16 +134,47 @@ impl fmt::Display for BehavioralSetError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyCatalogue => write!(formatter, "behavioral envelope catalogue is empty"),
-            Self::EmptyIdentity => write!(formatter, "behavioral hypothesis, regime, recording or signal identity is empty"),
-            Self::DuplicateHypothesis(id) => write!(formatter, "duplicate behavioral hypothesis: {id}"),
-            Self::DuplicateChannel(id) => write!(formatter, "duplicate channel in behavioral envelope: {id}"),
-            Self::InvalidDigest(id) => write!(formatter, "behavioral envelope provenance digest is invalid: {id}"),
-            Self::EnvelopeDigestMismatch(id) => write!(formatter, "behavioral envelope digest does not match its contents: {id}"),
-            Self::CatalogueMismatch => write!(formatter, "behavioral envelopes do not share the same regime, model, provenance and channel set"),
-            Self::InsufficientCalibrationEpisodes { hypothesis_id, required, available } => write!(formatter, "behavioral envelope {hypothesis_id} needs {required} independent calibration episodes, has {available}"),
-            Self::CalibrationNotIndependentlyReviewed(id) => write!(formatter, "behavioral envelope lacks an independent calibration review: {id}"),
-            Self::InvalidEnvelopeBounds(id) => write!(formatter, "behavioral envelope has invalid bounds or calibration margin: {id}"),
-            Self::InvalidObservation(id) => write!(formatter, "behavioral observation is invalid: {id}"),
+            Self::EmptyIdentity => write!(
+                formatter,
+                "behavioral hypothesis, regime, recording or signal identity is empty"
+            ),
+            Self::DuplicateHypothesis(id) => {
+                write!(formatter, "duplicate behavioral hypothesis: {id}")
+            }
+            Self::DuplicateChannel(id) => {
+                write!(formatter, "duplicate channel in behavioral envelope: {id}")
+            }
+            Self::InvalidDigest(id) => write!(
+                formatter,
+                "behavioral envelope provenance digest is invalid: {id}"
+            ),
+            Self::EnvelopeDigestMismatch(id) => write!(
+                formatter,
+                "behavioral envelope digest does not match its contents: {id}"
+            ),
+            Self::CatalogueMismatch => write!(
+                formatter,
+                "behavioral envelopes do not share the same regime, model, provenance and channel set"
+            ),
+            Self::InsufficientCalibrationEpisodes {
+                hypothesis_id,
+                required,
+                available,
+            } => write!(
+                formatter,
+                "behavioral envelope {hypothesis_id} needs {required} independent calibration episodes, has {available}"
+            ),
+            Self::CalibrationNotIndependentlyReviewed(id) => write!(
+                formatter,
+                "behavioral envelope lacks an independent calibration review: {id}"
+            ),
+            Self::InvalidEnvelopeBounds(id) => write!(
+                formatter,
+                "behavioral envelope has invalid bounds or calibration margin: {id}"
+            ),
+            Self::InvalidObservation(id) => {
+                write!(formatter, "behavioral observation is invalid: {id}")
+            }
             Self::Serialization => write!(formatter, "failed to serialize behavioral-set evidence"),
         }
     }
@@ -198,10 +228,7 @@ pub fn behavioral_envelope_catalogue_sha256(
         })
         .collect::<Vec<_>>();
     ordered.sort_by(|left, right| left.0.cmp(&right.0));
-    sha256_serializable(
-        b"symtropy-behavioral-envelope-catalogue-v1\0",
-        &ordered,
-    )
+    sha256_serializable(b"symtropy-behavioral-envelope-catalogue-v1\0", &ordered)
 }
 
 /// Evaluate whether each declared behavioral envelope intersects the observed
@@ -216,10 +243,8 @@ pub fn evaluate_behavioral_hypothesis_set(
     validate_behavioral_observation(observation)?;
 
     let catalogue_sha256 = behavioral_envelope_catalogue_sha256(envelopes)?;
-    let observation_sha256 = sha256_serializable(
-        b"symtropy-behavioral-observation-v1\0",
-        observation,
-    )?;
+    let observation_sha256 =
+        sha256_serializable(b"symtropy-behavioral-observation-v1\0", observation)?;
     let mut assessments = Vec::with_capacity(envelopes.len());
     let mut unavailable_signal_ids = Vec::new();
 
@@ -263,9 +288,7 @@ pub fn evaluate_behavioral_hypothesis_set(
                 channel_gaps,
             });
         }
-        assessments.sort_by(|left, right| {
-            left.hypothesis_id.cmp(&right.hypothesis_id)
-        });
+        assessments.sort_by(|left, right| left.hypothesis_id.cmp(&right.hypothesis_id));
         let admissible = assessments
             .iter()
             .filter(|assessment| assessment.admissible)
@@ -283,8 +306,7 @@ pub fn evaluate_behavioral_hypothesis_set(
         .filter(|assessment| assessment.admissible)
         .map(|assessment| assessment.hypothesis_id.clone())
         .collect::<Vec<_>>();
-    let unique_hypothesis_id = (status
-        == BehavioralDiagnosisStatus::UniqueWithinDeclaredCatalogue)
+    let unique_hypothesis_id = (status == BehavioralDiagnosisStatus::UniqueWithinDeclaredCatalogue)
         .then(|| admissible_hypothesis_ids[0].clone());
     let mut evaluation = BehavioralSetEvaluation {
         schema_version: "symtropy-behavioral-set-evaluation-v0.1".into(),
@@ -494,11 +516,7 @@ mod tests {
         std::iter::repeat_n(byte, 64).collect()
     }
 
-    fn envelope(
-        hypothesis_id: &str,
-        lower: f64,
-        upper: f64,
-    ) -> BehavioralHypothesisEnvelope {
+    fn envelope(hypothesis_id: &str, lower: f64, upper: f64) -> BehavioralHypothesisEnvelope {
         envelope_in_regime(hypothesis_id, "wltp_mid_load", lower, upper)
     }
 
@@ -543,11 +561,7 @@ mod tests {
         observation_in_regime("wltp_mid_load", pressure, speed)
     }
 
-    fn observation_in_regime(
-        regime_id: &str,
-        pressure: f64,
-        speed: f64,
-    ) -> BehavioralObservation {
+    fn observation_in_regime(regime_id: &str, pressure: f64, speed: f64) -> BehavioralObservation {
         BehavioralObservation {
             recording_id: "run-1".into(),
             sample_index: 10,
@@ -678,10 +692,7 @@ mod tests {
         underpowered.envelope_sha256 = behavioral_envelope_sha256(&underpowered).unwrap();
         let second = envelope("intercooler_fault", 1.5, 1.8);
         assert_eq!(
-            evaluate_behavioral_hypothesis_set(
-                &[underpowered, second],
-                &observation(1.1, 105.0)
-            ),
+            evaluate_behavioral_hypothesis_set(&[underpowered, second], &observation(1.1, 105.0)),
             Err(BehavioralSetError::InsufficientCalibrationEpisodes {
                 hypothesis_id: "normal".into(),
                 required: 19,
@@ -812,26 +823,24 @@ mod tests {
             cases[2]["synthetic_behavioral_set_fixture"]["expected_status"],
             "unknown_or_out_of_support"
         );
-        assert!(fixture["research_targets_not_achieved"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|target| target["status"] == "aspirational"));
+        assert!(
+            fixture["research_targets_not_achieved"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|target| target["status"] == "aspirational")
+        );
     }
 
     #[test]
     fn envelope_catalogue_is_order_invariant_and_digest_bound() {
-        let first = vec![
-            envelope("normal", 1.0, 1.2),
-            envelope("fault", 1.5, 1.8),
-        ];
+        let first = vec![envelope("normal", 1.0, 1.2), envelope("fault", 1.5, 1.8)];
         let second = first.iter().cloned().rev().collect::<Vec<_>>();
         assert_eq!(
             behavioral_envelope_catalogue_sha256(&first).unwrap(),
             behavioral_envelope_catalogue_sha256(&second).unwrap()
         );
-        let result =
-            evaluate_behavioral_hypothesis_set(&first, &observation(1.1, 105.0)).unwrap();
+        let result = evaluate_behavioral_hypothesis_set(&first, &observation(1.1, 105.0)).unwrap();
         assert_eq!(
             result.envelope_catalogue_sha256,
             behavioral_envelope_catalogue_sha256(&first).unwrap()

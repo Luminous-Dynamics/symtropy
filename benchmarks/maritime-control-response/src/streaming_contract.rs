@@ -76,19 +76,56 @@ impl fmt::Display for StreamingError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::EmptyIdentity => write!(formatter, "recording or signal identity is empty"),
-            Self::InvalidModelDigest => write!(formatter, "model identity is not a lowercase SHA-256 digest"),
-            Self::InvalidInputSample => write!(formatter, "streaming input sample has invalid time or signal values"),
-            Self::RecordingChanged => write!(formatter, "recording identity changed inside a streaming session"),
-            Self::NonMonotonicSample => write!(formatter, "sample index or timestamp did not increase"),
-            Self::SampleSequenceGap => write!(formatter, "streaming sample index skipped one or more samples"),
-            Self::SessionPoisoned => write!(formatter, "streaming session is poisoned and must be reconciled or restarted"),
-            Self::ModelRejectedInput(message) => write!(formatter, "diagnoser rejected input after call: {message}"),
-            Self::OutputIdentityMismatch => write!(formatter, "diagnosis output identity does not match the input sample"),
-            Self::InvalidOutputProbability => write!(formatter, "diagnosis output violates the five-slot probability contract"),
-            Self::ReceiptIntegrityFailure => write!(formatter, "streaming receipt digest does not match its contents"),
-            Self::ReceiptChainBreak => write!(formatter, "streaming receipt chain is incomplete or out of order"),
-            Self::MixedModelChain => write!(formatter, "streaming receipt chain contains multiple model identities"),
-            Self::Serialization => write!(formatter, "failed to serialize canonical streaming evidence"),
+            Self::InvalidModelDigest => write!(
+                formatter,
+                "model identity is not a lowercase SHA-256 digest"
+            ),
+            Self::InvalidInputSample => write!(
+                formatter,
+                "streaming input sample has invalid time or signal values"
+            ),
+            Self::RecordingChanged => write!(
+                formatter,
+                "recording identity changed inside a streaming session"
+            ),
+            Self::NonMonotonicSample => {
+                write!(formatter, "sample index or timestamp did not increase")
+            }
+            Self::SampleSequenceGap => write!(
+                formatter,
+                "streaming sample index skipped one or more samples"
+            ),
+            Self::SessionPoisoned => write!(
+                formatter,
+                "streaming session is poisoned and must be reconciled or restarted"
+            ),
+            Self::ModelRejectedInput(message) => {
+                write!(formatter, "diagnoser rejected input after call: {message}")
+            }
+            Self::OutputIdentityMismatch => write!(
+                formatter,
+                "diagnosis output identity does not match the input sample"
+            ),
+            Self::InvalidOutputProbability => write!(
+                formatter,
+                "diagnosis output violates the five-slot probability contract"
+            ),
+            Self::ReceiptIntegrityFailure => write!(
+                formatter,
+                "streaming receipt digest does not match its contents"
+            ),
+            Self::ReceiptChainBreak => write!(
+                formatter,
+                "streaming receipt chain is incomplete or out of order"
+            ),
+            Self::MixedModelChain => write!(
+                formatter,
+                "streaming receipt chain contains multiple model identities"
+            ),
+            Self::Serialization => write!(
+                formatter,
+                "failed to serialize canonical streaming evidence"
+            ),
         }
     }
 }
@@ -99,10 +136,7 @@ impl std::error::Error for StreamingError {}
 /// and return only its current diagnosis. There is intentionally no API for
 /// rewriting an earlier output or receiving future samples.
 pub trait StreamingDiagnoser {
-    fn input(
-        &mut self,
-        sample: &StreamingInputSample,
-    ) -> Result<StreamingDiagnosisOutput, String>;
+    fn input(&mut self, sample: &StreamingInputSample) -> Result<StreamingDiagnosisOutput, String>;
 }
 
 /// A session binds one model and one recording. Any uncertain failure after
@@ -172,10 +206,7 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
             return Err(StreamingError::NonMonotonicSample);
         }
 
-        let input_sha256 = sha256_serializable(
-            b"symtropy-liu-ice-streaming-input-v1\0",
-            sample,
-        )?;
+        let input_sha256 = sha256_serializable(b"symtropy-liu-ice-streaming-input-v1\0", sample)?;
 
         // A model error may have mutated hidden state; poison rather than retry
         // or silently accept a new sample against an unknown internal state.
@@ -186,8 +217,7 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
                 return Err(StreamingError::ModelRejectedInput(message));
             }
         };
-        if output.recording_id != sample.recording_id
-            || output.sample_index != sample.sample_index
+        if output.recording_id != sample.recording_id || output.sample_index != sample.sample_index
         {
             self.poisoned = true;
             return Err(StreamingError::OutputIdentityMismatch);
@@ -197,16 +227,14 @@ impl<D: StreamingDiagnoser> StreamingDiagnosisSession<D> {
             return Err(StreamingError::InvalidOutputProbability);
         }
 
-        let output_sha256 = match sha256_serializable(
-            b"symtropy-liu-ice-streaming-output-v1\0",
-            &output,
-        ) {
-            Ok(digest) => digest,
-            Err(error) => {
-                self.poisoned = true;
-                return Err(error);
-            }
-        };
+        let output_sha256 =
+            match sha256_serializable(b"symtropy-liu-ice-streaming-output-v1\0", &output) {
+                Ok(digest) => digest,
+                Err(error) => {
+                    self.poisoned = true;
+                    return Err(error);
+                }
+            };
         let mut receipt = StreamingDiagnosisReceipt {
             schema_version: STREAMING_RECEIPT_SCHEMA.to_owned(),
             recording_id: sample.recording_id.clone(),
@@ -302,10 +330,8 @@ pub fn validate_receipt_chain(
         {
             return Err(StreamingError::InvalidOutputProbability);
         }
-        let expected_output = sha256_serializable(
-            b"symtropy-liu-ice-streaming-output-v1\0",
-            &receipt.output,
-        )?;
+        let expected_output =
+            sha256_serializable(b"symtropy-liu-ice-streaming-output-v1\0", &receipt.output)?;
         if expected_output != receipt.output_sha256 {
             return Err(StreamingError::ReceiptIntegrityFailure);
         }
@@ -325,9 +351,10 @@ fn validate_input_sample(sample: &StreamingInputSample) -> Result<(), StreamingE
     }
     if !sample.time_seconds.is_finite()
         || sample.time_seconds < 0.0
-        || sample.signals.iter().any(|(name, value)| {
-            name.trim().is_empty() || !value.is_finite()
-        })
+        || sample
+            .signals
+            .iter()
+            .any(|(name, value)| name.trim().is_empty() || !value.is_finite())
     {
         return Err(StreamingError::InvalidInputSample);
     }
@@ -373,10 +400,7 @@ fn receipt_digest(receipt: &StreamingDiagnosisReceipt) -> Result<String, Streami
     sha256_serializable(b"symtropy-liu-ice-streaming-receipt-v1\0", &payload)
 }
 
-fn sha256_serializable<T: Serialize>(
-    domain: &[u8],
-    value: &T,
-) -> Result<String, StreamingError> {
+fn sha256_serializable<T: Serialize>(domain: &[u8], value: &T) -> Result<String, StreamingError> {
     let encoded = serde_json::to_vec(value).map_err(|_| StreamingError::Serialization)?;
     let mut hasher = Sha256::new();
     hasher.update(domain);
@@ -448,7 +472,10 @@ mod tests {
         let second = session.input(&sample(1, 0.05)).unwrap();
         assert_eq!(session.sample_count(), 2);
         assert!(!first.output.detection);
-        assert_eq!(second.previous_receipt_sha256, Some(first.receipt_sha256.clone()));
+        assert_eq!(
+            second.previous_receipt_sha256,
+            Some(first.receipt_sha256.clone())
+        );
         assert!(validate_receipt_chain(&[first, second]).is_ok());
     }
 
@@ -547,7 +574,9 @@ mod tests {
         .unwrap();
         assert_eq!(
             session.input(&sample(0, 0.0)),
-            Err(StreamingError::ModelRejectedInput("internal transition uncertain".into()))
+            Err(StreamingError::ModelRejectedInput(
+                "internal transition uncertain".into()
+            ))
         );
         assert!(session.is_poisoned());
         assert_eq!(
@@ -600,11 +629,11 @@ mod tests {
             "liu-ice-streaming-contract-v0.1"
         );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
+        assert_eq!(protocol["interface"]["historical_output_mutation"], false);
         assert_eq!(
-            protocol["interface"]["historical_output_mutation"],
-            false
+            protocol["implementation"]["rust_module"],
+            "src/streaming_contract.rs"
         );
-        assert_eq!(protocol["implementation"]["rust_module"], "src/streaming_contract.rs");
         assert_eq!(
             protocol["competition_adapter"]["rust_core_direct_submission_compatible"],
             false
@@ -613,22 +642,28 @@ mod tests {
             protocol["competition_adapter"]["adapter_status"],
             "not_implemented"
         );
-        assert!(protocol["competition_adapter"]["official_languages"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|language| language == "Python"));
-        assert!(protocol["competition_adapter"]["official_languages"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|language| language == "MATLAB"));
+        assert!(
+            protocol["competition_adapter"]["official_languages"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|language| language == "Python")
+        );
+        assert!(
+            protocol["competition_adapter"]["official_languages"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|language| language == "MATLAB")
+        );
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 10);
-        assert!(protocol["research_targets_not_achieved"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|target| target["status"] == "aspirational"));
+        assert!(
+            protocol["research_targets_not_achieved"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|target| target["status"] == "aspirational")
+        );
     }
 
     #[test]

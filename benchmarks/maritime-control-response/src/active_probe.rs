@@ -298,34 +298,112 @@ pub enum ProbeError {
 impl fmt::Display for ProbeError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::InvalidHypothesisSet => write!(formatter, "hypotheses need at least two unique IDs and a finite prior distribution summing to one"),
-            Self::InvalidPolicy => write!(formatter, "probe selection policy contains invalid limits or penalty scales"),
+            Self::InvalidHypothesisSet => write!(
+                formatter,
+                "hypotheses need at least two unique IDs and a finite prior distribution summing to one"
+            ),
+            Self::InvalidPolicy => write!(
+                formatter,
+                "probe selection policy contains invalid limits or penalty scales"
+            ),
             Self::EmptyIdentity => write!(formatter, "probe or hypothesis identity is empty"),
-            Self::DuplicateHypothesis(id) => write!(formatter, "duplicate hypothesis identity: {id}"),
-            Self::DuplicateCandidate(id) => write!(formatter, "duplicate probe candidate identity: {id}"),
-            Self::InvalidCandidateDigest(id) => write!(formatter, "candidate manifest digest is invalid: {id}"),
-            Self::HypothesisManifestMismatch(id) => write!(formatter, "candidate likelihood table belongs to a different hypothesis manifest: {id}"),
-            Self::InvalidLikelihoodTable(id) => write!(formatter, "probe likelihood table is empty, incomplete, or has duplicate outcomes: {id}"),
-            Self::InvalidLikelihoodProbability(id) => write!(formatter, "probe likelihood is negative, non-finite, or above one: {id}"),
-            Self::InvalidLikelihoodNormalization(id) => write!(formatter, "conditional outcomes do not sum to one for every hypothesis: {id}"),
-            Self::InvalidScenarioSet(id) => write!(formatter, "likelihood uncertainty scenarios are empty, duplicated, unnormalized, or ambiguous: {id}"),
-            Self::RiskEvidenceNotReviewed => write!(formatter, "risk assessment has not been reviewed by the authority owner"),
-            Self::LikelihoodCalibrationNotReviewed => write!(formatter, "likelihood calibration has not been reviewed by an independent validator"),
-            Self::CandidateCatalogMismatch => write!(formatter, "baseline candidates do not match the scored probe catalogue"),
-            Self::InvalidSeedDigest => write!(formatter, "seed manifest must be a lowercase SHA-256 digest"),
-            Self::InvalidChernoffGrid => write!(formatter, "Chernoff grid must contain at least two intervals"),
-            Self::InvalidChernoffInputs => write!(formatter, "Chernoff inputs need normalized likelihoods and at least two positive-prior hypotheses"),
-            Self::ObservationCandidateMismatch => write!(formatter, "observed result belongs to a different probe candidate manifest"),
-            Self::CandidateNotEligibleOrSelected => write!(formatter, "observation candidate was not eligible and selected by the frozen evidence portfolio"),
-            Self::SelectionReplayMismatch => write!(formatter, "selection portfolio or baseline does not replay from its frozen inputs"),
-            Self::InvalidObservationLedger => write!(formatter, "observation ledger identity, ordering or digest is invalid"),
-            Self::ObservationLedgerPosteriorMismatch => write!(formatter, "observation ledger does not bind the supplied current prior posterior"),
-            Self::ObservationAlreadyApplied => write!(formatter, "observation receipt has already been applied to this posterior chain"),
-            Self::InvalidObservationReceiptDigest => write!(formatter, "observation receipt must be a lowercase SHA-256 digest"),
-            Self::ObservedOutcomeNotFound(id) => write!(formatter, "observed outcome is not declared by the candidate likelihood model: {id}"),
-            Self::ObservedOutcomeImpossible(id) => write!(formatter, "observed outcome has zero probability under the frozen prior and likelihood model: {id}"),
-            Self::InvalidInformationGain(id) => write!(formatter, "expected information gain is numerically invalid: {id}"),
-            Self::Serialization => write!(formatter, "failed to serialize probe evidence for canonical hashing"),
+            Self::DuplicateHypothesis(id) => {
+                write!(formatter, "duplicate hypothesis identity: {id}")
+            }
+            Self::DuplicateCandidate(id) => {
+                write!(formatter, "duplicate probe candidate identity: {id}")
+            }
+            Self::InvalidCandidateDigest(id) => {
+                write!(formatter, "candidate manifest digest is invalid: {id}")
+            }
+            Self::HypothesisManifestMismatch(id) => write!(
+                formatter,
+                "candidate likelihood table belongs to a different hypothesis manifest: {id}"
+            ),
+            Self::InvalidLikelihoodTable(id) => write!(
+                formatter,
+                "probe likelihood table is empty, incomplete, or has duplicate outcomes: {id}"
+            ),
+            Self::InvalidLikelihoodProbability(id) => write!(
+                formatter,
+                "probe likelihood is negative, non-finite, or above one: {id}"
+            ),
+            Self::InvalidLikelihoodNormalization(id) => write!(
+                formatter,
+                "conditional outcomes do not sum to one for every hypothesis: {id}"
+            ),
+            Self::InvalidScenarioSet(id) => write!(
+                formatter,
+                "likelihood uncertainty scenarios are empty, duplicated, unnormalized, or ambiguous: {id}"
+            ),
+            Self::RiskEvidenceNotReviewed => write!(
+                formatter,
+                "risk assessment has not been reviewed by the authority owner"
+            ),
+            Self::LikelihoodCalibrationNotReviewed => write!(
+                formatter,
+                "likelihood calibration has not been reviewed by an independent validator"
+            ),
+            Self::CandidateCatalogMismatch => write!(
+                formatter,
+                "baseline candidates do not match the scored probe catalogue"
+            ),
+            Self::InvalidSeedDigest => write!(
+                formatter,
+                "seed manifest must be a lowercase SHA-256 digest"
+            ),
+            Self::InvalidChernoffGrid => write!(
+                formatter,
+                "Chernoff grid must contain at least two intervals"
+            ),
+            Self::InvalidChernoffInputs => write!(
+                formatter,
+                "Chernoff inputs need normalized likelihoods and at least two positive-prior hypotheses"
+            ),
+            Self::ObservationCandidateMismatch => write!(
+                formatter,
+                "observed result belongs to a different probe candidate manifest"
+            ),
+            Self::CandidateNotEligibleOrSelected => write!(
+                formatter,
+                "observation candidate was not eligible and selected by the frozen evidence portfolio"
+            ),
+            Self::SelectionReplayMismatch => write!(
+                formatter,
+                "selection portfolio or baseline does not replay from its frozen inputs"
+            ),
+            Self::InvalidObservationLedger => write!(
+                formatter,
+                "observation ledger identity, ordering or digest is invalid"
+            ),
+            Self::ObservationLedgerPosteriorMismatch => write!(
+                formatter,
+                "observation ledger does not bind the supplied current prior posterior"
+            ),
+            Self::ObservationAlreadyApplied => write!(
+                formatter,
+                "observation receipt has already been applied to this posterior chain"
+            ),
+            Self::InvalidObservationReceiptDigest => write!(
+                formatter,
+                "observation receipt must be a lowercase SHA-256 digest"
+            ),
+            Self::ObservedOutcomeNotFound(id) => write!(
+                formatter,
+                "observed outcome is not declared by the candidate likelihood model: {id}"
+            ),
+            Self::ObservedOutcomeImpossible(id) => write!(
+                formatter,
+                "observed outcome has zero probability under the frozen prior and likelihood model: {id}"
+            ),
+            Self::InvalidInformationGain(id) => write!(
+                formatter,
+                "expected information gain is numerically invalid: {id}"
+            ),
+            Self::Serialization => write!(
+                formatter,
+                "failed to serialize probe evidence for canonical hashing"
+            ),
         }
     }
 }
@@ -336,9 +414,7 @@ impl std::error::Error for ProbeError {}
 ///
 /// The digest deliberately excludes prior probabilities so one calibrated
 /// candidate likelihood model remains valid as observations update beliefs.
-pub fn hypothesis_manifest_sha256(
-    hypotheses: &[HypothesisPrior],
-) -> Result<String, ProbeError> {
+pub fn hypothesis_manifest_sha256(hypotheses: &[HypothesisPrior]) -> Result<String, ProbeError> {
     let canonical = canonical_hypotheses(hypotheses)?;
     let hypothesis_ids = canonical
         .iter()
@@ -352,14 +428,9 @@ pub fn hypothesis_manifest_sha256(
 
 /// Compute the digest of one exact belief distribution over the stable
 /// hypothesis space. This changes after each sequential observation.
-pub fn hypothesis_prior_sha256(
-    hypotheses: &[HypothesisPrior],
-) -> Result<String, ProbeError> {
+pub fn hypothesis_prior_sha256(hypotheses: &[HypothesisPrior]) -> Result<String, ProbeError> {
     let canonical = canonical_hypotheses(hypotheses)?;
-    sha256_serializable(
-        b"symtropy-diagnostic-prior-distribution-v1\0",
-        &canonical,
-    )
+    sha256_serializable(b"symtropy-diagnostic-prior-distribution-v1\0", &canonical)
 }
 
 /// Compute the digest that must be stored in candidate_manifest_sha256.
@@ -373,7 +444,9 @@ pub fn candidate_manifest_sha256(
         &candidate.authorization_receipt_sha256,
         candidate.likelihood_model_sha256.as_str(),
         candidate.likelihood_calibration_sha256.as_str(),
-        candidate.likelihood_calibration_review_receipt_sha256.as_str(),
+        candidate
+            .likelihood_calibration_review_receipt_sha256
+            .as_str(),
         candidate.likelihood_calibration_reviewed_by_independent_validator,
         candidate.risk_assessment_sha256.as_str(),
         candidate.risk_assessment_reviewed_by_authority_owner,
@@ -411,15 +484,16 @@ pub fn rank_diagnostic_probes(
         .collect::<Vec<_>>();
     let hypothesis_digest = hypothesis_manifest_sha256(&canonical_hypotheses)?;
     let prior_distribution_digest = hypothesis_prior_sha256(&canonical_hypotheses)?;
-    let policy_digest =
-        sha256_serializable(b"symtropy-diagnostic-probe-policy-v1\0", policy)?;
+    let policy_digest = sha256_serializable(b"symtropy-diagnostic-probe-policy-v1\0", policy)?;
     let prior_entropy = entropy(&prior);
     let mut candidate_catalogue = candidates
         .iter()
-        .map(|candidate| (
-            candidate.candidate_id.clone(),
-            candidate.candidate_manifest_sha256.clone(),
-        ))
+        .map(|candidate| {
+            (
+                candidate.candidate_id.clone(),
+                candidate.candidate_manifest_sha256.clone(),
+            )
+        })
         .collect::<Vec<_>>();
     candidate_catalogue.sort_by(|left, right| left.0.cmp(&right.0));
     let candidate_catalogue_sha256 = sha256_serializable(
@@ -428,12 +502,14 @@ pub fn rank_diagnostic_probes(
     )?;
     let mut risk_assessment_catalogue = candidates
         .iter()
-        .map(|candidate| (
-            candidate.candidate_id.clone(),
-            candidate.risk_assessment_sha256.clone(),
-            candidate.risk_assessment_reviewed_by_authority_owner,
-            candidate.risk_score_ppm,
-        ))
+        .map(|candidate| {
+            (
+                candidate.candidate_id.clone(),
+                candidate.risk_assessment_sha256.clone(),
+                candidate.risk_assessment_reviewed_by_authority_owner,
+                candidate.risk_score_ppm,
+            )
+        })
         .collect::<Vec<_>>();
     risk_assessment_catalogue.sort_by(|left, right| left.0.cmp(&right.0));
     let risk_assessment_catalogue_sha256 = sha256_serializable(
@@ -446,12 +522,16 @@ pub fn rank_diagnostic_probes(
             .all(|candidate| candidate.risk_assessment_reviewed_by_authority_owner);
     let mut likelihood_calibration_catalogue = candidates
         .iter()
-        .map(|candidate| (
-            candidate.candidate_id.clone(),
-            candidate.likelihood_calibration_sha256.clone(),
-            candidate.likelihood_calibration_review_receipt_sha256.clone(),
-            candidate.likelihood_calibration_reviewed_by_independent_validator,
-        ))
+        .map(|candidate| {
+            (
+                candidate.candidate_id.clone(),
+                candidate.likelihood_calibration_sha256.clone(),
+                candidate
+                    .likelihood_calibration_review_receipt_sha256
+                    .clone(),
+                candidate.likelihood_calibration_reviewed_by_independent_validator,
+            )
+        })
         .collect::<Vec<_>>();
     likelihood_calibration_catalogue.sort_by(|left, right| left.0.cmp(&right.0));
     let likelihood_calibration_catalogue_sha256 = sha256_serializable(
@@ -459,7 +539,9 @@ pub fn rank_diagnostic_probes(
         &likelihood_calibration_catalogue,
     )?;
     let likelihood_calibration_reviewed_by_independent_validator = !candidates.is_empty()
-        && candidates.iter().all(|candidate| candidate.likelihood_calibration_reviewed_by_independent_validator);
+        && candidates
+            .iter()
+            .all(|candidate| candidate.likelihood_calibration_reviewed_by_independent_validator);
 
     let mut candidate_ids = BTreeSet::new();
     let mut assessments = Vec::with_capacity(candidates.len());
@@ -492,8 +574,13 @@ pub fn rank_diagnostic_probes(
             ));
         }
 
-        let (information_gain, worst_case_information_gain, posterior_entropy, scenario_count, robustness_qualified) =
-            assess_likelihood_uncertainty(candidate, &prior, hypothesis_ids.len())?;
+        let (
+            information_gain,
+            worst_case_information_gain,
+            posterior_entropy,
+            scenario_count,
+            robustness_qualified,
+        ) = assess_likelihood_uncertainty(candidate, &prior, hypothesis_ids.len())?;
 
         let mut rejection_reasons = Vec::new();
         match candidate.probe_class {
@@ -501,8 +588,7 @@ pub fn rank_diagnostic_probes(
                 .push(ProbeRejectionReason::ControlledPerturbationRequiresSeparateSafetyCase),
             ProbeClass::PassiveMeasurement => {
                 if candidate.authorization != ProbeAuthorization::ApprovedReadOnly {
-                    rejection_reasons
-                        .push(ProbeRejectionReason::AuthorizationNotApproved);
+                    rejection_reasons.push(ProbeRejectionReason::AuthorizationNotApproved);
                 }
                 if candidate
                     .authorization_receipt_sha256
@@ -515,12 +601,10 @@ pub fn rank_diagnostic_probes(
             }
             ProbeClass::OperatorInspection => {
                 if !policy.allow_operator_inspection {
-                    rejection_reasons
-                        .push(ProbeRejectionReason::OperatorInspectionDisabled);
+                    rejection_reasons.push(ProbeRejectionReason::OperatorInspectionDisabled);
                 }
                 if candidate.authorization != ProbeAuthorization::HumanAuthorized {
-                    rejection_reasons
-                        .push(ProbeRejectionReason::AuthorizationNotApproved);
+                    rejection_reasons.push(ProbeRejectionReason::AuthorizationNotApproved);
                 }
                 if candidate
                     .authorization_receipt_sha256
@@ -651,7 +735,11 @@ pub fn minimum_pairwise_chernoff_information_nats(
             .iter()
             .any(|probability| !probability.is_finite() || *probability < 0.0 || *probability > 1.0)
         || (prior.iter().sum::<f64>() - 1.0).abs() > PROBABILITY_TOLERANCE
-        || prior.iter().filter(|probability| **probability > 0.0).count() < 2
+        || prior
+            .iter()
+            .filter(|probability| **probability > 0.0)
+            .count()
+            < 2
         || outcomes.len() < 2
     {
         return Err(ProbeError::InvalidChernoffInputs);
@@ -661,12 +749,9 @@ pub fn minimum_pairwise_chernoff_information_nats(
         if outcome.outcome_id.trim().is_empty()
             || !outcome_ids.insert(outcome.outcome_id.clone())
             || outcome.likelihood_by_hypothesis.len() != prior.len()
-            || outcome
-                .likelihood_by_hypothesis
-                .iter()
-                .any(|probability| {
-                    !probability.is_finite() || *probability < 0.0 || *probability > 1.0
-                })
+            || outcome.likelihood_by_hypothesis.iter().any(|probability| {
+                !probability.is_finite() || *probability < 0.0 || *probability > 1.0
+            })
         {
             return Err(ProbeError::InvalidChernoffInputs);
         }
@@ -744,7 +829,9 @@ pub fn worst_case_pairwise_chernoff_information_nats(
         );
     }
     if !candidate.outcomes.is_empty() || candidate.uncertainty_scenarios.is_empty() {
-        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        return Err(ProbeError::InvalidScenarioSet(
+            candidate.candidate_id.clone(),
+        ));
     }
     let mut scenario_ids = BTreeSet::new();
     let mut reference_outcome_ids: Option<BTreeSet<String>> = None;
@@ -757,7 +844,9 @@ pub fn worst_case_pairwise_chernoff_information_nats(
             || scenario.scenario_weight <= 0.0
             || scenario.scenario_weight > 1.0
         {
-            return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+            return Err(ProbeError::InvalidScenarioSet(
+                candidate.candidate_id.clone(),
+            ));
         }
         let outcome_ids = scenario
             .outcomes
@@ -768,22 +857,25 @@ pub fn worst_case_pairwise_chernoff_information_nats(
             .as_ref()
             .is_some_and(|reference| reference != &outcome_ids)
         {
-            return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+            return Err(ProbeError::InvalidScenarioSet(
+                candidate.candidate_id.clone(),
+            ));
         }
         reference_outcome_ids.get_or_insert(outcome_ids);
         scenario_weight_sum += scenario.scenario_weight;
-        let distance = minimum_pairwise_chernoff_information_nats(
-            prior,
-            &scenario.outcomes,
-            grid_intervals,
-        )?;
+        let distance =
+            minimum_pairwise_chernoff_information_nats(prior, &scenario.outcomes, grid_intervals)?;
         worst_case = worst_case.min(distance);
     }
     if (scenario_weight_sum - 1.0).abs() > PROBABILITY_TOLERANCE {
-        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        return Err(ProbeError::InvalidScenarioSet(
+            candidate.candidate_id.clone(),
+        ));
     }
     if !worst_case.is_finite() {
-        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        return Err(ProbeError::InvalidScenarioSet(
+            candidate.candidate_id.clone(),
+        ));
     }
     Ok(worst_case)
 }
@@ -821,7 +913,9 @@ pub fn select_probe_baseline(
         if !is_sha256_hex(&candidate.candidate_manifest_sha256)
             || candidate_manifest_sha256(candidate)? != candidate.candidate_manifest_sha256
         {
-            return Err(ProbeError::InvalidCandidateDigest(candidate.candidate_id.clone()));
+            return Err(ProbeError::InvalidCandidateDigest(
+                candidate.candidate_id.clone(),
+            ));
         }
         catalogue_entries.push((
             candidate.candidate_id.clone(),
@@ -899,11 +993,7 @@ pub fn select_probe_baseline(
                     / (1.0 + candidate.expected_cost_seconds / cost_penalty_scale_seconds);
                 Some((assessment.candidate_id.as_str(), utility))
             })
-            .max_by(|left, right| {
-                left.1
-                    .total_cmp(&right.1)
-                    .then_with(|| right.0.cmp(left.0))
-            })
+            .max_by(|left, right| left.1.total_cmp(&right.1).then_with(|| right.0.cmp(left.0)))
             .map(|(candidate_id, _)| candidate_id.to_owned()),
         ProbeBaseline::SeededRandomEligible => {
             let seed = seed_manifest_sha256.ok_or(ProbeError::InvalidSeedDigest)?;
@@ -950,9 +1040,7 @@ pub fn select_probe_baseline(
             })
             .collect::<Result<Vec<_>, ProbeError>>()?
             .into_iter()
-            .max_by(|left, right| {
-                left.1.total_cmp(&right.1).then_with(|| right.0.cmp(left.0))
-            })
+            .max_by(|left, right| left.1.total_cmp(&right.1).then_with(|| right.0.cmp(left.0)))
             .map(|(candidate_id, _)| candidate_id.to_owned()),
     };
     Ok(ProbeBaselineSelection {
@@ -985,24 +1073,22 @@ pub fn new_probe_observation_ledger(
     Ok(ledger)
 }
 
-fn posterior_manifest_sha256(
-    hypotheses: &[HypothesisPrior],
-) -> Result<String, ProbeError> {
+fn posterior_manifest_sha256(hypotheses: &[HypothesisPrior]) -> Result<String, ProbeError> {
     sha256_serializable(
         b"symtropy-diagnostic-posterior-manifest-v1\0",
         &hypotheses
             .iter()
-            .map(|hypothesis| (
-                hypothesis.hypothesis_id.as_str(),
-                hypothesis.prior_probability,
-            ))
+            .map(|hypothesis| {
+                (
+                    hypothesis.hypothesis_id.as_str(),
+                    hypothesis.prior_probability,
+                )
+            })
             .collect::<Vec<_>>(),
     )
 }
 
-fn observation_ledger_digest(
-    ledger: &ProbeObservationLedger,
-) -> Result<String, ProbeError> {
+fn observation_ledger_digest(ledger: &ProbeObservationLedger) -> Result<String, ProbeError> {
     sha256_serializable(
         b"symtropy-diagnostic-observation-ledger-v1\0",
         &(
@@ -1013,14 +1099,18 @@ fn observation_ledger_digest(
     )
 }
 
-fn validate_observation_ledger(
-    ledger: &ProbeObservationLedger,
-) -> Result<(), ProbeError> {
+fn validate_observation_ledger(ledger: &ProbeObservationLedger) -> Result<(), ProbeError> {
     if ledger.schema_version != "symtropy-probe-observation-ledger-v1"
         || !is_sha256_hex(&ledger.current_posterior_manifest_sha256)
         || !is_sha256_hex(&ledger.ledger_sha256)
-        || ledger.applied_observation_receipt_sha256.iter().any(|receipt| !is_sha256_hex(receipt))
-        || ledger.applied_observation_receipt_sha256.windows(2).any(|pair| pair[0] >= pair[1])
+        || ledger
+            .applied_observation_receipt_sha256
+            .iter()
+            .any(|receipt| !is_sha256_hex(receipt))
+        || ledger
+            .applied_observation_receipt_sha256
+            .windows(2)
+            .any(|pair| pair[0] >= pair[1])
         || observation_ledger_digest(ledger)? != ledger.ledger_sha256
     {
         return Err(ProbeError::InvalidObservationLedger);
@@ -1150,7 +1240,9 @@ pub fn realize_probe_observation(
             .iter()
             .any(|outcome| outcome.outcome_id == observed_outcome_id)
         {
-            return Err(ProbeError::ObservedOutcomeNotFound(observed_outcome_id.to_owned()));
+            return Err(ProbeError::ObservedOutcomeNotFound(
+                observed_outcome_id.to_owned(),
+            ));
         }
         (0..hypothesis_ids.len())
             .map(|hypothesis_index| {
@@ -1260,11 +1352,9 @@ pub fn realize_probe_observation(
             prior_probability: entry.probability,
         })
         .collect::<Vec<_>>();
-    let posterior_manifest_sha256 =
-        posterior_manifest_sha256(&posterior_as_hypotheses)?;
+    let posterior_manifest_sha256 = posterior_manifest_sha256(&posterior_as_hypotheses)?;
     let mut updated_ledger = ledger.clone();
-    updated_ledger.current_posterior_manifest_sha256 =
-        posterior_manifest_sha256.clone();
+    updated_ledger.current_posterior_manifest_sha256 = posterior_manifest_sha256.clone();
     updated_ledger
         .applied_observation_receipt_sha256
         .push(observation_receipt_sha256.to_owned());
@@ -1346,7 +1436,9 @@ fn validate_likelihood_table(
             .iter()
             .any(|value| !value.is_finite() || *value < 0.0 || *value > 1.0)
         {
-            return Err(ProbeError::InvalidLikelihoodProbability(candidate_id.to_owned()));
+            return Err(ProbeError::InvalidLikelihoodProbability(
+                candidate_id.to_owned(),
+            ));
         }
     }
     for hypothesis_index in 0..hypothesis_count {
@@ -1355,7 +1447,9 @@ fn validate_likelihood_table(
             .map(|outcome| outcome.likelihood_by_hypothesis[hypothesis_index])
             .sum::<f64>();
         if !sum.is_finite() || (sum - 1.0).abs() > PROBABILITY_TOLERANCE {
-            return Err(ProbeError::InvalidLikelihoodNormalization(candidate_id.to_owned()));
+            return Err(ProbeError::InvalidLikelihoodNormalization(
+                candidate_id.to_owned(),
+            ));
         }
     }
     Ok(())
@@ -1374,13 +1468,19 @@ fn assess_likelihood_uncertainty(
                 hypothesis_count,
             )?;
             let (gain, posterior_entropy) = expected_information_gain(prior, &candidate.outcomes)
-                .map_err(|_| ProbeError::InvalidInformationGain(candidate.candidate_id.clone()))?;
+                .map_err(|_| {
+                ProbeError::InvalidInformationGain(candidate.candidate_id.clone())
+            })?;
             return Ok((gain, gain, posterior_entropy, 1, false));
         }
-        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        return Err(ProbeError::InvalidScenarioSet(
+            candidate.candidate_id.clone(),
+        ));
     }
     if !candidate.outcomes.is_empty() {
-        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        return Err(ProbeError::InvalidScenarioSet(
+            candidate.candidate_id.clone(),
+        ));
     }
     let mut scenario_ids = BTreeSet::new();
     let mut reference_outcome_ids: Option<BTreeSet<String>> = None;
@@ -1394,7 +1494,9 @@ fn assess_likelihood_uncertainty(
             || scenario.scenario_weight <= 0.0
             || scenario.scenario_weight > 1.0
         {
-            return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+            return Err(ProbeError::InvalidScenarioSet(
+                candidate.candidate_id.clone(),
+            ));
         }
         validate_likelihood_table(
             &candidate.candidate_id,
@@ -1410,7 +1512,9 @@ fn assess_likelihood_uncertainty(
             .as_ref()
             .is_some_and(|reference| reference != &outcome_ids)
         {
-            return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+            return Err(ProbeError::InvalidScenarioSet(
+                candidate.candidate_id.clone(),
+            ));
         }
         reference_outcome_ids.get_or_insert(outcome_ids);
         let (gain, _) = expected_information_gain(prior, &scenario.outcomes)
@@ -1420,7 +1524,9 @@ fn assess_likelihood_uncertainty(
         worst_case_information_gain = worst_case_information_gain.min(gain);
     }
     if (weight_sum - 1.0).abs() > PROBABILITY_TOLERANCE {
-        return Err(ProbeError::InvalidScenarioSet(candidate.candidate_id.clone()));
+        return Err(ProbeError::InvalidScenarioSet(
+            candidate.candidate_id.clone(),
+        ));
     }
     let expected_information_gain = weighted_information_gain / weight_sum;
     let expected_posterior_entropy = entropy(prior) - expected_information_gain;
@@ -1465,9 +1571,7 @@ fn expected_information_gain(
             })
             .collect::<Vec<_>>();
         let posterior_total = posterior.iter().sum::<f64>();
-        if !posterior_total.is_finite()
-            || (posterior_total - 1.0).abs() > 1e-8
-        {
+        if !posterior_total.is_finite() || (posterior_total - 1.0).abs() > 1e-8 {
             return Err(());
         }
         expected_posterior_entropy += outcome_probability * entropy(&posterior);
@@ -1604,7 +1708,11 @@ mod tests {
         let risk_error = ProbeError::RiskEvidenceNotReviewed;
         let calibration_error = ProbeError::LikelihoodCalibrationNotReviewed;
         assert!(risk_error.to_string().contains("authority owner"));
-        assert!(calibration_error.to_string().contains("independent validator"));
+        assert!(
+            calibration_error
+                .to_string()
+                .contains("independent validator")
+        );
         assert_ne!(risk_error, calibration_error);
     }
 
@@ -1632,16 +1740,20 @@ mod tests {
         )
         .unwrap();
         assert_eq!(result.ranked_recommendations.len(), 1);
-        assert_eq!(result.ranked_recommendations[0].candidate_id, "discriminating_probe");
+        assert_eq!(
+            result.ranked_recommendations[0].candidate_id,
+            "discriminating_probe"
+        );
         assert!(result.ranked_recommendations[0].expected_information_gain_nats > 0.0);
         let weak = result
             .assessments
             .iter()
             .find(|assessment| assessment.candidate_id == "weak_probe")
             .unwrap();
-        assert!(weak
-            .rejection_reasons
-            .contains(&ProbeRejectionReason::InformationGainBelowMinimum));
+        assert!(
+            weak.rejection_reasons
+                .contains(&ProbeRejectionReason::InformationGainBelowMinimum)
+        );
         assert!(!result.execution_performed);
         assert!(!result.actuation_authorized);
     }
@@ -1661,9 +1773,11 @@ mod tests {
         )
         .unwrap();
         assert!(result.ranked_recommendations.is_empty());
-        assert!(result.assessments[0]
-            .rejection_reasons
-            .contains(&ProbeRejectionReason::ControlledPerturbationRequiresSeparateSafetyCase));
+        assert!(
+            result.assessments[0]
+                .rejection_reasons
+                .contains(&ProbeRejectionReason::ControlledPerturbationRequiresSeparateSafetyCase)
+        );
     }
 
     #[test]
@@ -1678,9 +1792,11 @@ mod tests {
         policy.allow_operator_inspection = false;
         let result = rank_diagnostic_probes(&hypotheses(), &[candidate], &policy).unwrap();
         assert!(result.ranked_recommendations.is_empty());
-        assert!(result.assessments[0]
-            .rejection_reasons
-            .contains(&ProbeRejectionReason::OperatorInspectionDisabled));
+        assert!(
+            result.assessments[0]
+                .rejection_reasons
+                .contains(&ProbeRejectionReason::OperatorInspectionDisabled)
+        );
     }
 
     #[test]
@@ -1712,7 +1828,12 @@ mod tests {
         .unwrap();
         assert!(result.ranked_recommendations.is_empty());
         assert_eq!(result.assessments.len(), 2);
-        assert!(result.assessments.iter().all(|assessment| !assessment.eligible));
+        assert!(
+            result
+                .assessments
+                .iter()
+                .all(|assessment| !assessment.eligible)
+        );
     }
 
     #[test]
@@ -1753,9 +1874,11 @@ mod tests {
         .unwrap();
         assert!(result.ranked_recommendations.is_empty());
         assert!(!result.likelihood_calibration_reviewed_by_independent_validator);
-        assert!(result.assessments[0]
-            .rejection_reasons
-            .contains(&ProbeRejectionReason::LikelihoodCalibrationNotReviewed));
+        assert!(
+            result.assessments[0]
+                .rejection_reasons
+                .contains(&ProbeRejectionReason::LikelihoodCalibrationNotReviewed)
+        );
     }
 
     #[test]
@@ -1796,9 +1919,11 @@ mod tests {
         .unwrap();
         assert!(result.ranked_recommendations.is_empty());
         assert!(!result.risk_evidence_reviewed_by_authority_owner);
-        assert!(result.assessments[0]
-            .rejection_reasons
-            .contains(&ProbeRejectionReason::RiskEvidenceNotReviewed));
+        assert!(
+            result.assessments[0]
+                .rejection_reasons
+                .contains(&ProbeRejectionReason::RiskEvidenceNotReviewed)
+        );
     }
 
     #[test]
@@ -1980,9 +2105,11 @@ mod tests {
         assert_eq!(assessment.worst_case_information_gain_nats, 0.0);
         assert_eq!(assessment.scenario_count, 2);
         assert!(assessment.multi_scenario_assessed);
-        assert!(assessment
-            .rejection_reasons
-            .contains(&ProbeRejectionReason::InformationGainBelowMinimum));
+        assert!(
+            assessment
+                .rejection_reasons
+                .contains(&ProbeRejectionReason::InformationGainBelowMinimum)
+        );
     }
 
     #[test]
@@ -2023,10 +2150,8 @@ mod tests {
             true,
         );
         invalid.outcomes.clear();
-        invalid.uncertainty_scenarios = vec![
-            scenario("nominal", 0.4, 0.95),
-            scenario("drift", 0.4, 0.90),
-        ];
+        invalid.uncertainty_scenarios =
+            vec![scenario("nominal", 0.4, 0.95), scenario("drift", 0.4, 0.90)];
         invalid.candidate_manifest_sha256 = candidate_manifest_sha256(&invalid).unwrap();
         assert!(matches!(
             rank_diagnostic_probes(
@@ -2070,8 +2195,7 @@ mod tests {
         ];
         candidate.candidate_manifest_sha256 = candidate_manifest_sha256(&candidate).unwrap();
         let worst =
-            worst_case_pairwise_chernoff_information_nats(&candidate, &[0.5, 0.5], 100)
-                .unwrap();
+            worst_case_pairwise_chernoff_information_nats(&candidate, &[0.5, 0.5], 100).unwrap();
         assert!(worst.abs() < 1e-12);
     }
 
@@ -2152,18 +2276,40 @@ mod tests {
         .unwrap();
 
         assert_eq!(no_evidence.selected_candidate_id, None);
-        assert_eq!(cheapest.selected_candidate_id.as_deref(), Some("cheap_low_gain"));
-        assert_eq!(maximum_gain.selected_candidate_id.as_deref(), Some("expensive_high_gain"));
+        assert_eq!(
+            cheapest.selected_candidate_id.as_deref(),
+            Some("cheap_low_gain")
+        );
+        assert_eq!(
+            maximum_gain.selected_candidate_id.as_deref(),
+            Some("expensive_high_gain")
+        );
         assert!(per_cost.selected_candidate_id.is_some());
-        assert_eq!(random_first.selected_candidate_id, random_second.selected_candidate_id);
+        assert_eq!(
+            random_first.selected_candidate_id,
+            random_second.selected_candidate_id
+        );
         assert_eq!(
             robust.selected_candidate_id,
             Some(portfolio.ranked_recommendations[0].candidate_id.clone())
         );
-        assert_eq!(chernoff.selected_candidate_id.as_deref(), Some("expensive_high_gain"));
-        for selection in [&cheapest, &maximum_gain, &per_cost, &random_first, &robust, &chernoff] {
+        assert_eq!(
+            chernoff.selected_candidate_id.as_deref(),
+            Some("expensive_high_gain")
+        );
+        for selection in [
+            &cheapest,
+            &maximum_gain,
+            &per_cost,
+            &random_first,
+            &robust,
+            &chernoff,
+        ] {
             assert_eq!(selection.eligible_candidate_count, 3);
-            assert_eq!(selection.eligible_catalogue_sha256, cheapest.eligible_catalogue_sha256);
+            assert_eq!(
+                selection.eligible_catalogue_sha256,
+                cheapest.eligible_catalogue_sha256
+            );
         }
     }
 
@@ -2260,8 +2406,9 @@ mod tests {
         assert_eq!(update.likelihood_scenario_count, 2);
         assert_eq!(update.possible_likelihood_scenario_count, 2);
         assert_eq!(update.impossible_likelihood_scenario_count, 0);
-        assert!(update.scenario_posterior_entropy_min_nats
-            < update.scenario_posterior_entropy_max_nats);
+        assert!(
+            update.scenario_posterior_entropy_min_nats < update.scenario_posterior_entropy_max_nats
+        );
     }
 
     #[test]
@@ -2304,7 +2451,9 @@ mod tests {
                 "unlisted_outcome",
                 &digest('e')
             ),
-            Err(ProbeError::ObservedOutcomeNotFound("unlisted_outcome".into()))
+            Err(ProbeError::ObservedOutcomeNotFound(
+                "unlisted_outcome".into()
+            ))
         );
 
         let mut impossible = candidate(
@@ -2344,7 +2493,9 @@ mod tests {
                 "impossible_signature",
                 &digest('e')
             ),
-            Err(ProbeError::ObservedOutcomeImpossible("impossible_signature".into()))
+            Err(ProbeError::ObservedOutcomeImpossible(
+                "impossible_signature".into()
+            ))
         );
     }
 
@@ -2475,7 +2626,13 @@ mod tests {
             second.previous_posterior_manifest_sha256,
             first.posterior_manifest_sha256
         );
-        assert_eq!(second.observation_ledger.applied_observation_receipt_sha256.len(), 2);
+        assert_eq!(
+            second
+                .observation_ledger
+                .applied_observation_receipt_sha256
+                .len(),
+            2
+        );
         assert!(second.realized_entropy_reduction_nats < 0.0);
         assert!(second.realized_kl_divergence_nats > 0.0);
     }
@@ -2499,70 +2656,101 @@ mod tests {
             "liu-ice-active-evidence-selection-v0.4"
         );
         assert_eq!(protocol["status"], "protocol_only_not_executed");
-        assert!(protocol["method"]["identity_contract"]["hypothesis_space_digest"]
-            .as_str()
-            .unwrap()
-            .contains("sorted unique hypothesis IDs only"));
-        assert!(protocol["method"]["identity_contract"]["prior_distribution_digest"]
-            .as_str()
-            .unwrap()
-            .contains("changes whenever evidence changes the posterior"));
+        assert!(
+            protocol["method"]["identity_contract"]["hypothesis_space_digest"]
+                .as_str()
+                .unwrap()
+                .contains("sorted unique hypothesis IDs only")
+        );
+        assert!(
+            protocol["method"]["identity_contract"]["prior_distribution_digest"]
+                .as_str()
+                .unwrap()
+                .contains("changes whenever evidence changes the posterior")
+        );
         assert_eq!(protocol["comparators"].as_array().unwrap().len(), 7);
-        assert_eq!(protocol["candidate_classes"]["controlled_perturbation"]["eligible_when"], false);
-        assert!(protocol["evidence_boundaries"]["authority_status"]
-            .as_str()
-            .unwrap()
-            .contains("external mandatory checks"));
+        assert_eq!(
+            protocol["candidate_classes"]["controlled_perturbation"]["eligible_when"],
+            false
+        );
+        assert!(
+            protocol["evidence_boundaries"]["authority_status"]
+                .as_str()
+                .unwrap()
+                .contains("external mandatory checks")
+        );
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 28);
-        assert!(protocol["method"]["observation_update"]["posterior"]
-            .as_str()
-            .unwrap()
-            .contains("sum_s w_s"));
-        assert!(protocol["method"]["observation_update"]["realized_information"]
-            .as_str()
-            .unwrap()
-            .contains("may be negative"));
-        assert!(protocol["method"]["observation_update"]["receipt_binding"]
-            .as_str()
-            .unwrap()
-            .contains("does not authenticate its signer"));
-        assert!(protocol["required_metrics"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|metric| metric == "realized_kl_divergence_nats"));
-        assert!(protocol["method"]["uncertainty_scenarios"]["eligibility"]
-            .as_str()
-            .unwrap()
-            .contains("worst-case"));
-        assert!(protocol["method"]["likelihood_calibration_review"]["requirement"]
-            .as_str()
-            .unwrap()
-            .contains("independent calibration-review receipt"));
-        assert!(protocol["method"]["likelihood_calibration_review"]["qualification"]
-            .as_str()
-            .unwrap()
-            .contains("not self-authenticating"));
-        assert!(protocol["method"]["chernoff_information"]["assumptions"]
-            .as_str()
-            .unwrap()
-            .contains("not a finite-sample error guarantee"));
-        assert!(protocol["comparators"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|item| item["id"] == "maximum_worst_case_pairwise_chernoff_information"));
+        assert!(
+            protocol["method"]["observation_update"]["posterior"]
+                .as_str()
+                .unwrap()
+                .contains("sum_s w_s")
+        );
+        assert!(
+            protocol["method"]["observation_update"]["realized_information"]
+                .as_str()
+                .unwrap()
+                .contains("may be negative")
+        );
+        assert!(
+            protocol["method"]["observation_update"]["receipt_binding"]
+                .as_str()
+                .unwrap()
+                .contains("does not authenticate its signer")
+        );
+        assert!(
+            protocol["required_metrics"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|metric| metric == "realized_kl_divergence_nats")
+        );
+        assert!(
+            protocol["method"]["uncertainty_scenarios"]["eligibility"]
+                .as_str()
+                .unwrap()
+                .contains("worst-case")
+        );
+        assert!(
+            protocol["method"]["likelihood_calibration_review"]["requirement"]
+                .as_str()
+                .unwrap()
+                .contains("independent calibration-review receipt")
+        );
+        assert!(
+            protocol["method"]["likelihood_calibration_review"]["qualification"]
+                .as_str()
+                .unwrap()
+                .contains("not self-authenticating")
+        );
+        assert!(
+            protocol["method"]["chernoff_information"]["assumptions"]
+                .as_str()
+                .unwrap()
+                .contains("not a finite-sample error guarantee")
+        );
+        assert!(
+            protocol["comparators"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["id"] == "maximum_worst_case_pairwise_chernoff_information")
+        );
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 40);
-        assert!(protocol["comparators"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|item| item["id"] == "risk_adjusted_worst_case_eig"));
-        assert!(protocol["research_targets_not_achieved"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|target| target["status"] == "aspirational"));
+        assert!(
+            protocol["comparators"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|item| item["id"] == "risk_adjusted_worst_case_eig")
+        );
+        assert!(
+            protocol["research_targets_not_achieved"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|target| target["status"] == "aspirational")
+        );
     }
 
     #[test]

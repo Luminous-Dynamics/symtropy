@@ -96,22 +96,63 @@ impl fmt::Display for CsvAuditError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(message) => write!(formatter, "dataset I/O failed: {message}"),
-            Self::InvalidArchiveDigest => write!(formatter, "archive SHA-256 must be 64 lowercase hexadecimal characters"),
+            Self::InvalidArchiveDigest => write!(
+                formatter,
+                "archive SHA-256 must be 64 lowercase hexadecimal characters"
+            ),
             Self::InvalidCsvUtf8(path) => write!(formatter, "CSV is not valid UTF-8: {path}"),
-            Self::CsvSyntax(path) => write!(formatter, "CSV quoting or record syntax is invalid: {path}"),
-            Self::EmptyCsv(path) => write!(formatter, "CSV contains no complete data records: {path}"),
-            Self::InvalidHeaderRows(path) => write!(formatter, "CSV does not contain exactly three complete header records: {path}"),
-            Self::InvalidColumnCount(path) => write!(formatter, "CSV column count is not the published 70/73 shape: {path}"),
-            Self::InconsistentRowWidth(path) => write!(formatter, "CSV header or data record width changes within file: {path}"),
-            Self::InvalidHeaderSemantics(path) => write!(formatter, "CSV first-row time/label headers do not match the published schema: {path}"),
-            Self::InvalidTimeValue(path) => write!(formatter, "Time_rel contains a missing, non-numeric or non-finite value: {path}"),
-            Self::NonMonotonicTime(path) => write!(formatter, "Time_rel is not strictly increasing: {path}"),
-            Self::InvalidAnomalyLabel(path) => write!(formatter, "Anomaly State contains a value other than 0 or 1: {path}"),
-            Self::InvalidRelativePath(path) => write!(formatter, "dataset path is empty, absolute or traverses outside the root: {path}"),
-            Self::WrongCsvInventory { expected, actual } => write!(formatter, "expected {expected} recording-data CSV files after metadata-export filtering, found {actual}"),
-            Self::WrongRoleInventory { baseline, scenario } => write!(formatter, "expected one 70-column baseline and fifteen 73-column scenarios; found {baseline} and {scenario}"),
-            Self::MissingMetadataArtifact(name) => write!(formatter, "required metadata artifact was not found: {name}"),
-            Self::DuplicateMetadataArtifact(name) => write!(formatter, "multiple files match metadata artifact: {name}"),
+            Self::CsvSyntax(path) => {
+                write!(formatter, "CSV quoting or record syntax is invalid: {path}")
+            }
+            Self::EmptyCsv(path) => {
+                write!(formatter, "CSV contains no complete data records: {path}")
+            }
+            Self::InvalidHeaderRows(path) => write!(
+                formatter,
+                "CSV does not contain exactly three complete header records: {path}"
+            ),
+            Self::InvalidColumnCount(path) => write!(
+                formatter,
+                "CSV column count is not the published 70/73 shape: {path}"
+            ),
+            Self::InconsistentRowWidth(path) => write!(
+                formatter,
+                "CSV header or data record width changes within file: {path}"
+            ),
+            Self::InvalidHeaderSemantics(path) => write!(
+                formatter,
+                "CSV first-row time/label headers do not match the published schema: {path}"
+            ),
+            Self::InvalidTimeValue(path) => write!(
+                formatter,
+                "Time_rel contains a missing, non-numeric or non-finite value: {path}"
+            ),
+            Self::NonMonotonicTime(path) => {
+                write!(formatter, "Time_rel is not strictly increasing: {path}")
+            }
+            Self::InvalidAnomalyLabel(path) => write!(
+                formatter,
+                "Anomaly State contains a value other than 0 or 1: {path}"
+            ),
+            Self::InvalidRelativePath(path) => write!(
+                formatter,
+                "dataset path is empty, absolute or traverses outside the root: {path}"
+            ),
+            Self::WrongCsvInventory { expected, actual } => write!(
+                formatter,
+                "expected {expected} recording-data CSV files after metadata-export filtering, found {actual}"
+            ),
+            Self::WrongRoleInventory { baseline, scenario } => write!(
+                formatter,
+                "expected one 70-column baseline and fifteen 73-column scenarios; found {baseline} and {scenario}"
+            ),
+            Self::MissingMetadataArtifact(name) => write!(
+                formatter,
+                "required metadata artifact was not found: {name}"
+            ),
+            Self::DuplicateMetadataArtifact(name) => {
+                write!(formatter, "multiple files match metadata artifact: {name}")
+            }
             Self::Serialization => write!(formatter, "failed to serialize audit evidence"),
         }
     }
@@ -259,7 +300,9 @@ pub fn audit_marine_csv_bytes(
         .skip(MARINE_CSV_HEADER_ROWS)
         .any(|record| record.len() != column_count)
     {
-        return Err(CsvAuditError::InconsistentRowWidth(relative_path.to_owned()));
+        return Err(CsvAuditError::InconsistentRowWidth(
+            relative_path.to_owned(),
+        ));
     }
 
     let headers = records[0]
@@ -314,9 +357,7 @@ pub fn audit_marine_csv_bytes(
                 "0" => anomaly_free_rows += 1,
                 "1" => anomaly_rows += 1,
                 _ => {
-                    return Err(CsvAuditError::InvalidAnomalyLabel(
-                        relative_path.to_owned(),
-                    ));
+                    return Err(CsvAuditError::InvalidAnomalyLabel(relative_path.to_owned()));
                 }
             }
         }
@@ -331,8 +372,7 @@ pub fn audit_marine_csv_bytes(
     let missing_channel_columns = fully_missing_columns
         .iter()
         .filter(|name| {
-            name.as_str() == "Compressor Filter Loss"
-                || name.as_str() == "Turbine Back Pressure"
+            name.as_str() == "Compressor Filter Loss" || name.as_str() == "Turbine Back Pressure"
         })
         .cloned()
         .collect::<Vec<_>>();
@@ -345,8 +385,7 @@ pub fn audit_marine_csv_bytes(
         data_rows,
         column_count,
         role,
-        anomaly_free_rows: (role == MarineCsvRole::FaultScenario)
-            .then_some(anomaly_free_rows),
+        anomaly_free_rows: (role == MarineCsvRole::FaultScenario).then_some(anomaly_free_rows),
         anomaly_rows: (role == MarineCsvRole::FaultScenario).then_some(anomaly_rows),
         event_latency_eligible: role == MarineCsvRole::FaultScenario
             && anomaly_free_rows > 0
@@ -358,10 +397,7 @@ pub fn audit_marine_csv_bytes(
     })
 }
 
-fn parse_csv_records(
-    bytes: &[u8],
-    relative_path: &str,
-) -> Result<Vec<Vec<String>>, CsvAuditError> {
+fn parse_csv_records(bytes: &[u8], relative_path: &str) -> Result<Vec<Vec<String>>, CsvAuditError> {
     #[derive(Clone, Copy, PartialEq, Eq)]
     enum State {
         FieldStart,
@@ -468,8 +504,7 @@ fn parse_csv_records(
 
 fn decode_field(field: &mut Vec<u8>, relative_path: &str) -> Result<String, CsvAuditError> {
     let bytes = std::mem::take(field);
-    String::from_utf8(bytes)
-        .map_err(|_| CsvAuditError::InvalidCsvUtf8(relative_path.to_owned()))
+    String::from_utf8(bytes).map_err(|_| CsvAuditError::InvalidCsvUtf8(relative_path.to_owned()))
 }
 
 fn normalize_header(value: &str) -> String {
@@ -517,9 +552,7 @@ fn is_metadata_csv_artifact(path: &Path) -> bool {
         || lower.contains("normalis")
 }
 
-fn audit_metadata_artifacts(
-    paths: &[PathBuf],
-) -> Result<BTreeMap<String, String>, CsvAuditError> {
+fn audit_metadata_artifacts(paths: &[PathBuf]) -> Result<BTreeMap<String, String>, CsvAuditError> {
     let categories = [
         ("dataset_index", &["dataset_index"][..]),
         ("variable_dictionary", &["variable_dictionary"][..]),
@@ -548,8 +581,7 @@ fn audit_metadata_artifacts(
                 artifact_name.to_owned(),
             ));
         }
-        let bytes = fs::read(matches[0])
-            .map_err(|error| CsvAuditError::Io(error.to_string()))?;
+        let bytes = fs::read(matches[0]).map_err(|error| CsvAuditError::Io(error.to_string()))?;
         result.insert(artifact_name.to_owned(), sha256_bytes(&bytes));
     }
     Ok(result)
@@ -562,7 +594,10 @@ fn safe_relative_path(root: &Path, path: &Path) -> Result<String, CsvAuditError>
     if relative.as_os_str().is_empty()
         || relative.is_absolute()
         || relative.components().any(|component| {
-            matches!(component, std::path::Component::ParentDir | std::path::Component::RootDir)
+            matches!(
+                component,
+                std::path::Component::ParentDir | std::path::Component::RootDir
+            )
         })
     {
         return Err(CsvAuditError::InvalidRelativePath(
@@ -577,12 +612,13 @@ fn validate_relative_path(relative_path: &str) -> Result<(), CsvAuditError> {
     if relative_path.trim().is_empty()
         || path.is_absolute()
         || path.components().any(|component| {
-            matches!(component, std::path::Component::ParentDir | std::path::Component::RootDir)
+            matches!(
+                component,
+                std::path::Component::ParentDir | std::path::Component::RootDir
+            )
         })
     {
-        return Err(CsvAuditError::InvalidRelativePath(
-            relative_path.to_owned(),
-        ));
+        return Err(CsvAuditError::InvalidRelativePath(relative_path.to_owned()));
     }
     Ok(())
 }
@@ -616,9 +652,7 @@ mod tests {
         let row_one = (0..columns)
             .map(|index| format!("signal_{index}"))
             .collect::<Vec<_>>();
-        let row_two = (0..columns)
-            .map(|_| "unit".to_owned())
-            .collect::<Vec<_>>();
+        let row_two = (0..columns).map(|_| "unit".to_owned()).collect::<Vec<_>>();
         let mut rows = vec![names, row_one, row_two];
         for (index, time) in ["0.0", "0.05"].iter().enumerate() {
             let mut row = vec!["2026-01-01T00:00:00Z".to_owned(); columns];
@@ -639,8 +673,12 @@ mod tests {
     #[test]
     fn metadata_csv_exports_are_not_misclassified_as_engine_recordings() {
         assert!(is_metadata_csv_artifact(Path::new("dataset_index.csv")));
-        assert!(is_metadata_csv_artifact(Path::new("variable_dictionary.csv")));
-        assert!(is_metadata_csv_artifact(Path::new("normalization_script.csv")));
+        assert!(is_metadata_csv_artifact(Path::new(
+            "variable_dictionary.csv"
+        )));
+        assert!(is_metadata_csv_artifact(Path::new(
+            "normalization_script.csv"
+        )));
         assert!(!is_metadata_csv_artifact(Path::new("scenario_01.csv")));
     }
 

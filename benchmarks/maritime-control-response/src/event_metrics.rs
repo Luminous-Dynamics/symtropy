@@ -166,19 +166,34 @@ pub enum EventMetricError {
 impl fmt::Display for EventMetricError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::EmptyInput => write!(formatter, "event evaluation needs recording windows and observations"),
+            Self::EmptyInput => write!(
+                formatter,
+                "event evaluation needs recording windows and observations"
+            ),
             Self::InvalidConfig => write!(formatter, "event metric configuration is invalid"),
             Self::EmptyIdentity => write!(formatter, "recording or event identity is empty"),
             Self::DuplicateRecording(id) => write!(formatter, "duplicate recording window: {id}"),
-            Self::UnknownRecording(id) => write!(formatter, "event or observation references unknown recording: {id}"),
+            Self::UnknownRecording(id) => write!(
+                formatter,
+                "event or observation references unknown recording: {id}"
+            ),
             Self::InvalidRecordingWindow(id) => write!(formatter, "invalid recording window: {id}"),
             Self::DuplicateEvent(id) => write!(formatter, "duplicate fault event identity: {id}"),
             Self::InvalidFaultEvent(id) => write!(formatter, "invalid fault event: {id}"),
-            Self::OverlappingFaultEvents(id) => write!(formatter, "fault events overlap in recording: {id}"),
-            Self::NonMonotonicObservation(id) => write!(formatter, "sample index or timestamp is not strictly increasing: {id}"),
+            Self::OverlappingFaultEvents(id) => {
+                write!(formatter, "fault events overlap in recording: {id}")
+            }
+            Self::NonMonotonicObservation(id) => write!(
+                formatter,
+                "sample index or timestamp is not strictly increasing: {id}"
+            ),
             Self::DuplicateObservation(id) => write!(formatter, "duplicate sample identity: {id}"),
-            Self::ObservationOutsideWindow(id) => write!(formatter, "observation lies outside recording window: {id}"),
-            Self::InvalidPrediction(id) => write!(formatter, "invalid detection/isolation output: {id}"),
+            Self::ObservationOutsideWindow(id) => {
+                write!(formatter, "observation lies outside recording window: {id}")
+            }
+            Self::InvalidPrediction(id) => {
+                write!(formatter, "invalid detection/isolation output: {id}")
+            }
         }
     }
 }
@@ -282,9 +297,7 @@ pub fn evaluate_event_metrics(
             .push(event.clone());
     }
     for (recording_id, events) in &mut events_by_recording {
-        events.sort_by(|left, right| {
-            left.start_seconds.total_cmp(&right.start_seconds)
-        });
+        events.sort_by(|left, right| left.start_seconds.total_cmp(&right.start_seconds));
         if events
             .windows(2)
             .any(|pair| pair[1].start_seconds < pair[0].end_seconds)
@@ -295,8 +308,7 @@ pub fn evaluate_event_metrics(
         }
     }
 
-    let mut observations_by_recording =
-        BTreeMap::<String, Vec<DetectionObservation>>::new();
+    let mut observations_by_recording = BTreeMap::<String, Vec<DetectionObservation>>::new();
     for observation in observations {
         if observation.recording_id.trim().is_empty() {
             return Err(EventMetricError::EmptyIdentity);
@@ -335,9 +347,7 @@ pub fn evaluate_event_metrics(
             .iter()
             .any(|row| !timestamps.insert(row.time_seconds.to_bits()))
         {
-            return Err(EventMetricError::DuplicateObservation(
-                recording_id.clone(),
-            ));
+            return Err(EventMetricError::DuplicateObservation(recording_id.clone()));
         }
     }
 
@@ -348,9 +358,7 @@ pub fn evaluate_event_metrics(
         for row in rows {
             if !row.detection {
                 if let Some(completed) = current.take() {
-                    if let Some(alarm) =
-                        completed.to_alarm(config.minimum_positive_samples)
-                    {
+                    if let Some(alarm) = completed.to_alarm(config.minimum_positive_samples) {
                         all_alarms.push(alarm);
                     } else {
                         transient_burst_count += 1;
@@ -359,8 +367,8 @@ pub fn evaluate_event_metrics(
                 continue;
             }
             let can_merge = current.as_ref().is_some_and(|run| {
-                let observation_gap = row.time_seconds
-                    - run.samples.last().expect("run has a sample").time_seconds;
+                let observation_gap =
+                    row.time_seconds - run.samples.last().expect("run has a sample").time_seconds;
                 observation_gap <= config.alarm_merge_gap_seconds
                     && observation_gap <= config.maximum_observation_gap_seconds
             });
@@ -373,9 +381,7 @@ pub fn evaluate_event_metrics(
                 continue;
             }
             if let Some(completed) = current.take() {
-                if let Some(alarm) =
-                    completed.to_alarm(config.minimum_positive_samples)
-                {
+                if let Some(alarm) = completed.to_alarm(config.minimum_positive_samples) {
                     all_alarms.push(alarm);
                 } else {
                     transient_burst_count += 1;
@@ -409,8 +415,7 @@ pub fn evaluate_event_metrics(
 
     for (recording_id, events) in &events_by_recording {
         for event in events {
-            let deadline = (event.start_seconds
-                + config.maximum_detection_latency_seconds)
+            let deadline = (event.start_seconds + config.maximum_detection_latency_seconds)
                 .min(event.end_seconds);
             let matching_alarm = all_alarms.iter().enumerate().find(|(index, alarm)| {
                 !used_alarm_indices.contains(index)
@@ -544,9 +549,8 @@ pub fn evaluate_event_metrics(
         transient_burst_count,
         observed_normal_exposure_seconds,
         mean_true_class_probability: mean(&true_class_probabilities),
-        isolation_top1_accuracy: (!true_class_probabilities.is_empty()).then_some(
-            isolation_correct_count as f64 / true_class_probabilities.len() as f64,
-        ),
+        isolation_top1_accuracy: (!true_class_probabilities.is_empty())
+            .then_some(isolation_correct_count as f64 / true_class_probabilities.len() as f64),
         event_outcomes,
         false_alarm_episodes,
     })
@@ -685,13 +689,9 @@ mod tests {
         let observations = stream(&[220, 221, 222], 1);
         let mut short_deadline = config();
         short_deadline.maximum_detection_latency_seconds = 0.5;
-        let summary = evaluate_event_metrics(
-            &[window()],
-            &[event()],
-            &observations,
-            &short_deadline,
-        )
-        .unwrap();
+        let summary =
+            evaluate_event_metrics(&[window()], &[event()], &observations, &short_deadline)
+                .unwrap();
         assert_eq!(summary.detected_event_count, 0);
         assert_eq!(summary.late_alarm_count_during_missed_events, 1);
         assert_eq!(summary.false_alarm_count, 0);
@@ -722,8 +722,7 @@ mod tests {
     #[test]
     fn short_positive_bursts_are_visible_but_not_counted_as_confirmed_alarms() {
         let observations = stream(&[100], 1);
-        let summary =
-            evaluate_event_metrics(&[window()], &[], &observations, &config()).unwrap();
+        let summary = evaluate_event_metrics(&[window()], &[], &observations, &config()).unwrap();
         assert_eq!(summary.transient_burst_count, 1);
         assert_eq!(summary.false_alarm_count, 0);
         assert_eq!(summary.event_recall, None);
@@ -745,12 +744,7 @@ mod tests {
         second.event_id = "fault-2".into();
         second.start_seconds = 11.0;
         assert_eq!(
-            evaluate_event_metrics(
-                &[window()],
-                &[event(), second],
-                &stream(&[], 0),
-                &config()
-            ),
+            evaluate_event_metrics(&[window()], &[event(), second], &stream(&[], 0), &config()),
             Err(EventMetricError::OverlappingFaultEvents("run-1".into()))
         );
     }
@@ -770,13 +764,21 @@ mod tests {
         let matrix: serde_json::Value =
             serde_json::from_str(include_str!("../shift-matrix-v0.1.json")).unwrap();
         let axes = matrix["axes"].as_array().unwrap();
-        let ids = axes.iter().map(|axis| axis["id"].as_str().unwrap()).collect::<BTreeSet<_>>();
+        let ids = axes
+            .iter()
+            .map(|axis| axis["id"].as_str().unwrap())
+            .collect::<BTreeSet<_>>();
         assert_eq!(ids.len(), 6);
         assert!(ids.contains("C_SHIFT_DRIVING_CYCLE"));
         assert!(ids.contains("F_SHIFT_HELD_OUT_FAULT_FAMILY"));
         assert!(ids.contains("C_PLUS_F_SHIFT"));
         assert_eq!(matrix["framing"]["no_row_randomization"], true);
-        assert!(matrix["cross_engine_and_fleet"]["status"].as_str().unwrap().contains("unsupported"));
+        assert!(
+            matrix["cross_engine_and_fleet"]["status"]
+                .as_str()
+                .unwrap()
+                .contains("unsupported")
+        );
         assert_eq!(matrix["status"], "protocol_only_not_executed");
     }
 
@@ -811,20 +813,26 @@ mod tests {
             tournament["event_evaluation"]["alarm_debounce"]["minimum_positive_samples"],
             3
         );
-        assert!(tournament["research_targets_not_achieved"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .all(|target| target["status"] == "aspirational"));
-        assert!(schema["properties"]["protocol"]["required"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|field| field == "event_evaluation"));
-        assert!(schema["properties"]["metrics"]["required"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .any(|field| field == "false_alarms_per_observed_normal_hour"));
+        assert!(
+            tournament["research_targets_not_achieved"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .all(|target| target["status"] == "aspirational")
+        );
+        assert!(
+            schema["properties"]["protocol"]["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|field| field == "event_evaluation")
+        );
+        assert!(
+            schema["properties"]["metrics"]["required"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .any(|field| field == "false_alarms_per_observed_normal_hour")
+        );
     }
 }
