@@ -3,7 +3,7 @@
 
 use civdyn_observation_integrity::{
     AdmissionPolicy, CandidateDecision, EvidenceClass, EvidenceKind, EvidenceRecord,
-    EvidenceResult, ForensicFinding, ReceiptStatus, SelfTestFinding, triage_observation_integrity,
+    EvidenceResult, ReceiptStatus, triage_observation_integrity,
 };
 
 #[derive(Clone)]
@@ -177,12 +177,24 @@ fn csv(value: &str) -> String {
     }
 }
 
+fn action_for(disposition: civdyn_observation_integrity::CandidateDisposition) -> &'static str {
+    use civdyn_observation_integrity::CandidateDisposition;
+    match disposition {
+        CandidateDisposition::UseCorroboratedMeasurement => "use_corroborated_measurement",
+        CandidateDisposition::AbstainObservationalEquivalence => "abstain",
+        CandidateDisposition::RequestIndependentPhysicalMeasurement => "request_independent_physical_measurement",
+        CandidateDisposition::IntegrityInvestigation => "request_forensic_review",
+        CandidateDisposition::EvidenceConflict => "abstain",
+        CandidateDisposition::RejectEvidence => "request_independent_physical_measurement",
+    }
+}
+
 fn candidate_row(scenario_id: &str, decision: &CandidateDecision) -> String {
     format!(
         "{},{},{},{},{}",
         csv(scenario_id),
         decision.disposition.id(),
-        decision.action.id(),
+        action_for(decision.disposition),
         csv(&decision.unresolved_hypotheses.join(";")),
         csv(&decision.reason_codes.join(";"))
     )
@@ -216,7 +228,7 @@ fn main() -> Result<(), String> {
             csv(case.scenario_id),
             csv(case.hidden_cause),
             decision.disposition.id(),
-            decision.action.id(),
+            action_for(decision.disposition),
             value,
             csv(&decision.admitted_evidence_ids.join(";")),
             csv(&decision.rejected_evidence_ids.join(";")),
