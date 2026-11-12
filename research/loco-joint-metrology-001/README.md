@@ -76,7 +76,7 @@ These identifiers are intended to map directly into Symthaea [ROB-CAUSAL-MISSION
 
 The research prototype now has two complementary reference components:
 
-1. **Symtropy normalizer:** [`adapter/src/lib.rs`](https://github.com/Luminous-Dynamics/symtropy/blob/research/loco-joint-metrology-001/adapter/src/lib.rs) accepts a typed `JointTrace` with source/application/motion timestamps, clock-map evidence, decision, thermal, first-law, sampling and terminal receipts. It emits an `AdapterReport` with bounded AoI and command-to-motion intervals, reason-coded Qualified/Unknown/Inconclusive/Rejected outcomes, and the eight-event causal edge chain. It has 20 authored Rust tests and is isolated in a dependency-free Rust 1.96 package.
+1. **Symtropy normalizer:** [`adapter/src/lib.rs`](https://github.com/Luminous-Dynamics/symtropy/blob/research/loco-joint-metrology-001/adapter/src/lib.rs) accepts a typed `JointTrace` with source/application/motion timestamps, clock-map evidence, decision, thermal, first-law, sampling and terminal receipts. It emits an `AdapterReport` with bounded AoI and command-to-motion intervals, reason-coded Qualified/Unknown/Inconclusive/Rejected outcomes, and the eight-event causal edge chain. It has 29 authored Rust tests and is isolated in a dependency-free Rust 1.96 package.
 
 2. **Symthaea mission join:** [`joint_metrology_adapter.rs`](https://github.com/Luminous-Dynamics/symthaea/blob/research/rob-causal-mission-replay-001/src/joint_metrology_adapter.rs) consumes the authoritative Symthaea `MissionTrace` plus instrument and upstream energy-closure receipts. It verifies that those receipts bind to the exact decision, action-domain, executed-prefix, actuator application, thermal snapshot, predecessor-state and terminal identities; then composes the existing offline causal replay. It contains 16 authored Rust tests. [Symthaea draft PR #11664](https://github.com/Luminous-Dynamics/symthaea/pull/11664).
 
@@ -134,3 +134,15 @@ The reference source contains 20 deterministic unit tests covering complete trac
 The adapter accepts typed, normalized upstream receipts. It does not parse raw DAQ files, establish transducer calibration, estimate motor/thermal state, compute first-law closure, generate causal event IDs, or authorize actuation. An energy PASS requires a complete boundary and an upstream balanced receipt. A retrospective report always has `actuation_authorized = false`. Raw traces and calibration artifacts remain separately stored and digest-bound.
 
 A dedicated `LOCO Joint Trace Adapter (Rust 1.96)` workflow job now runs format, tests and strict Clippy directly against this standalone manifest; the main application workspace does not include it.
+
+### Receipt-binding hardening
+
+The normalizer requires exact equality between the observed receipt and the frozen manifest for:
+- actuator-application receipt and the event's application receipt;
+- source sensor calibration and the observation's calibration;
+- decision ID, model digest, action-domain digest and decision-calibration receipt;
+- physical-transition ID and thermal sensor calibration;
+- energy-boundary manifest;
+- sampling-specification digest.
+
+A decision whose regret exceeds its declared epsilon remains a typed *insufficient* result and cannot close the mission. A mismatched receipt is Rejected; missing/overlapping timing or incomplete measurement coverage remains Unknown/Inconclusive as appropriate. This is a source-level contract claim pending the exact-head Rust 1.96 workflow, not yet a passing build claim.
