@@ -1,0 +1,9 @@
+[package]
+name = "gmd-reference-kernel"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0 OR MIT"
+publish = false
+description = "Standalone analytical line-integral and quasi-DC resistive-network reference kernel for GMD research"
+
+[workspace]
