@@ -86,7 +86,9 @@ The `metric-induced-microbenchmark` binary uses one frozen 6-DOF diagonal-mass /
 - tangent and dual-cotangent metric norms in both coordinate frames;
 - tangent pushforward and covector pullback;
 - dense metric rebasing and metric admission / Cholesky factorization;
-- the combined metric/dual norm path.
+- the combined metric/dual norm path;
+- whitened-Jacobian Delassus construction versus direct mass-Riesz solves;
+- Delassus multiplier and residual dual norms.
 
 Run it with:
 
