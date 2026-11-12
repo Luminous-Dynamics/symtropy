@@ -41,11 +41,11 @@ pub enum FatigueLimitMode {
 
 /// A material fatigue-strength value at a specific target cycle count.
 /// It must be independently sourced; this crate does not fit S-N curves.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct FatigueStrengthPoint {
     pub material_grade_id: String,
     pub target_cycles: u64,
-    pub strength_mpa_micropa: u64,
+    pub strength_mpa: f64,
     pub mode: FatigueLimitMode,
     pub evidence: EvidenceRef,
 }
@@ -293,7 +293,11 @@ pub fn calibrate_findley_from_fully_reversed_limits(
     {
         return Err(HcfError::MismatchedCalibrationCycles);
     }
-    if axial.strength_mpa_micropa == 0 || torsional.strength_mpa_micropa == 0 {
+    if !axial.strength_mpa.is_finite()
+        || axial.strength_mpa <= 0.0
+        || !torsional.strength_mpa.is_finite()
+        || torsional.strength_mpa <= 0.0
+    {
         return Err(HcfError::InvalidFatigueStrength);
     }
     for evidence in [&axial.evidence, &torsional.evidence] {
@@ -312,8 +316,8 @@ pub fn calibrate_findley_from_fully_reversed_limits(
         return Err(HcfError::DuplicateCalibrationEvidenceId);
     }
 
-    let axial_strength = axial.strength_mpa_micropa as f64 / 1_000_000.0;
-    let torsional_strength = torsional.strength_mpa_micropa as f64 / 1_000_000.0;
+    let axial_strength = axial.strength_mpa;
+    let torsional_strength = torsional.strength_mpa;
     let ratio = axial_strength / torsional_strength;
     if !ratio.is_finite() || ratio <= 1.0 || ratio > 2.0 {
         return Err(HcfError::InvalidFatigueStrengthRatio);
@@ -743,7 +747,7 @@ mod tests {
         FatigueStrengthPoint {
             material_grade_id: material.into(),
             target_cycles: cycles,
-            strength_mpa_micropa: strength_mpa * 1_000_000,
+            strength_mpa: strength_mpa as f64,
             mode,
             evidence: EvidenceRef {
                 evidence_id: evidence_id.into(),
