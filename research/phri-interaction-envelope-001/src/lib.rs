@@ -134,6 +134,7 @@ pub struct AdmissionContext {
     pub latest_issued_proposal_sequence: u64,
     pub current_state_revision_digest: Digest,
     pub current_command_digest: Digest,
+    pub current_port_graph_digest: Digest,
     /// Current epoch supplied by the independent actuator-authority service.
     pub current_actuator_authority_epoch: u64,
 }
@@ -160,6 +161,7 @@ pub enum RejectReason {
     ProfileMismatch,
     StateRevisionMismatch,
     CommandMismatch,
+    PortGraphMismatch,
     ProposalNotLatestIssued,
     ProposalExpired,
     ObservationFromFuture,
@@ -448,6 +450,9 @@ impl InteractionEnvelopeGate {
         if identity.command_digest != context.current_command_digest {
             reasons.push(RejectReason::CommandMismatch);
         }
+        if identity.port_graph_digest != context.current_port_graph_digest {
+            reasons.push(RejectReason::PortGraphMismatch);
+        }
         if identity.proposal_sequence != context.latest_issued_proposal_sequence {
             reasons.push(RejectReason::ProposalNotLatestIssued);
         }
@@ -664,6 +669,7 @@ mod tests {
             latest_issued_proposal_sequence: sequence,
             current_state_revision_digest: STATE_DIGEST,
             current_command_digest: COMMAND_DIGEST,
+            current_port_graph_digest: PORT_GRAPH_DIGEST,
             current_actuator_authority_epoch: 4,
         }
     }
@@ -842,6 +848,13 @@ mod tests {
     }
 
     #[test]
+    fn current_port_graph_digest_is_checked_against_authoritative_context() {
+        let mut evidence = bundle(1);
+        evidence.energy.identity.port_graph_digest[0] ^= 1;
+        rejects(evidence, context(1), RejectReason::PortGraphMismatch);
+    }
+
+    #[test]
     fn delayed_optimizer_proposal_is_rejected() {
         let mut current = context(1);
         current.latest_issued_proposal_sequence = 2;
@@ -997,6 +1010,80 @@ mod tests {
             .unwrap();
         assert_eq!(permit.receipt_id(), 1);
         assert_eq!(permit.sequence(), 1);
+    }
+
+    #[test]
+    fn fixed_seed_generated_fault_combinations_have_zero_false_admissions() {
+        fn next_u64(state: &mut u64) -> u64 {
+            *state ^= *state << 13;
+            *state ^= *state >> 7;
+            *state ^= *state << 17;
+            *state
+        }
+
+        const FAULTS: usize = 26;
+        const CASES: usize = 30_000;
+        let mut state = 20_261_112_u64;
+        let mut coverage = [0_u32; FAULTS];
+        let mut false_admissions = 0_u32;
+
+        for _case in 0..CASES {
+            let mut mask = (next_u64(&mut state) & ((1_u64 << FAULTS) - 1)) as u32;
+            if mask == 0 {
+                mask = 1_u32 << (next_u64(&mut state) as usize % FAULTS);
+            }
+            let mut evidence = bundle(1);
+            let mut current = context(1);
+
+            for (bit, seen) in coverage.iter_mut().enumerate() {
+                if mask & (1_u32 << bit) == 0 {
+                    continue;
+                }
+                *seen += 1;
+                match bit {
+                    0 => evidence.energy.residual_upper_j = 1.0,
+                    1 => evidence.energy.maximum_prefix_deficit_upper_j = 1.0,
+                    2 => evidence.energy.boundary_complete = false,
+                    3 => evidence.contact.local_pressure_upper_pa = 20_000.0,
+                    4 => evidence.contact.pressure_time_dose_upper_pa_s = 40_000.0,
+                    5 => evidence.contact.deformation_rate_upper_s_inv = 4.0,
+                    6 => evidence.contact.contact_power_upper_w = 80.0,
+                    7 => evidence.contact.identity.command_digest[0] ^= 1,
+                    8 => evidence.agency.explicit_user_authorization_active = false,
+                    9 => evidence.agency.stop_latched = true,
+                    10 => evidence.actuator.permit_active = false,
+                    11 => evidence.actuator.authority_epoch += 1,
+                    12 => evidence.energy.identity.clock.clock_id += 1,
+                    13 => evidence.energy.identity.clock.boot_epoch += 1,
+                    14 => evidence.energy.identity.profile_digest[0] ^= 1,
+                    15 => evidence.energy.identity.state_revision_digest[0] ^= 1,
+                    16 => evidence.energy.identity.port_graph_digest[0] ^= 1,
+                    17 => evidence.energy.identity.proposal_sequence += 1,
+                    18 => evidence.energy.identity.proposal_expires_at_ns = current.now_ns,
+                    19 => {
+                        if next_u64(&mut state) & 1 == 0 {
+                            evidence.energy.identity.sampled_at_ns = current.now_ns + 1;
+                        } else {
+                            evidence.energy.identity.sampled_at_ns = current.now_ns - 501;
+                        }
+                    }
+                    20 => evidence.energy.measurement_digest = [0; 32],
+                    21 => evidence.contact.calibration_digest = [0; 32],
+                    22 => evidence.contact.sensor_profile_digest = [0; 32],
+                    23 => evidence.agency.authorization_digest = [0; 32],
+                    24 => evidence.actuator.authority_digest = [0; 32],
+                    25 => evidence.energy.identity.sequence = 0,
+                    _ => unreachable!(),
+                }
+            }
+
+            if gate().admit(evidence, current).is_ok() {
+                false_admissions += 1;
+            }
+        }
+
+        assert_eq!(coverage.iter().filter(|count| **count > 0).count(), FAULTS);
+        assert_eq!(false_admissions, 0, "one or more generated invalid bundles were admitted");
     }
 
     #[test]
