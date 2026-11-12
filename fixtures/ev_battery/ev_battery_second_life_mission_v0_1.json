@@ -1,0 +1,354 @@
+{
+  "schema_version": "0.1.0",
+  "manifest_id": "SYNTH-EV-SECOND-LIFE-QUAL-001",
+  "missions": [
+    {
+      "mission_id": "MISSION-PV",
+      "application": "pv_self_consumption",
+      "duty_cycle_ref": "SYNTH-PV-DAILY-DUTY",
+      "system_boundary": "pack",
+      "ambient_min_c": 5,
+      "ambient_max_c": 40,
+      "required_energy_kwh": 10,
+      "required_peak_power_kw": 3,
+      "required_calendar_years": 5,
+      "reserve_kwh": 1.5
+    },
+    {
+      "mission_id": "MISSION-UPS",
+      "application": "third_life_ups",
+      "duty_cycle_ref": "SYNTH-UPS-STANDBY-DUTY",
+      "system_boundary": "pack",
+      "ambient_min_c": 10,
+      "ambient_max_c": 35,
+      "required_energy_kwh": 2,
+      "required_peak_power_kw": 5,
+      "required_calendar_years": 3,
+      "reserve_kwh": 0.5
+    }
+  ],
+  "cells": [
+    {
+      "cell_id": "A-CELL-1",
+      "pack_id": "PACK-A",
+      "configuration_ref": "PACK-A-R1",
+      "chemistry": "NMC",
+      "capacity_soh_pct": 78,
+      "dcir_mohm": 1.4,
+      "cell_dispersion_pct": 4,
+      "evidence_id": "E-SYN-HISTORY"
+    },
+    {
+      "cell_id": "A-CELL-2",
+      "pack_id": "PACK-A",
+      "configuration_ref": "PACK-A-R1",
+      "chemistry": "NMC",
+      "capacity_soh_pct": 72,
+      "dcir_mohm": 1.8,
+      "cell_dispersion_pct": 4,
+      "evidence_id": "E-SYN-HISTORY"
+    },
+    {
+      "cell_id": "B-CELL-1",
+      "pack_id": "PACK-B",
+      "configuration_ref": "PACK-B-R2",
+      "chemistry": "LFP",
+      "capacity_soh_pct": 62,
+      "dcir_mohm": 2.2,
+      "cell_dispersion_pct": 3,
+      "evidence_id": "E-SYN-HISTORY"
+    },
+    {
+      "cell_id": "B-CELL-2",
+      "pack_id": "PACK-B",
+      "configuration_ref": "PACK-B-R2",
+      "chemistry": "LFP",
+      "capacity_soh_pct": 60,
+      "dcir_mohm": 2.8,
+      "cell_dispersion_pct": 3,
+      "evidence_id": "E-SYN-HISTORY"
+    },
+    {
+      "cell_id": "C-CELL-1",
+      "pack_id": "PACK-C",
+      "configuration_ref": "PACK-C-R1",
+      "chemistry": "NMC",
+      "capacity_soh_pct": 74,
+      "dcir_mohm": 1.7,
+      "cell_dispersion_pct": 12,
+      "evidence_id": "E-SYN-HISTORY"
+    },
+    {
+      "cell_id": "C-CELL-2",
+      "pack_id": "PACK-C",
+      "configuration_ref": "PACK-C-R1",
+      "chemistry": "NMC",
+      "capacity_soh_pct": 68,
+      "dcir_mohm": 2,
+      "cell_dispersion_pct": 12,
+      "evidence_id": "E-SYN-HISTORY"
+    }
+  ],
+  "packs": [
+    {
+      "pack_id": "PACK-A",
+      "vehicle_id": "VEHICLE-A",
+      "original_configuration_ref": "EV-CONFIG-A-R4",
+      "current_configuration_ref": "PACK-A-R1",
+      "chemistry": "NMC",
+      "cell_ids": [
+        "A-CELL-1",
+        "A-CELL-2"
+      ],
+      "history_completeness": "partial",
+      "incident_history": [
+        {
+          "event_type": "thermal_event",
+          "state": "unknown",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "crash_or_mechanical_abuse",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "water_ingress",
+          "state": "unknown",
+          "evidence_id": "E-SYN-HISTORY"
+        }
+      ],
+      "bms_strategy": "gateway_interface",
+      "bms_compatibility_disposition": "unknown",
+      "bms_evidence_id": "E-SYN-BMS",
+      "capability_envelope_ref": "SYNTHTHAEA-PACK-ENVELOPE-A",
+      "capability_evidence_id": "E-SYN-CAPABILITY",
+      "hard_gates": [
+        {
+          "gate_id": "identity_and_topology",
+          "disposition": "pass",
+          "evidence_id": "E-SYN-IDENTITY",
+          "requires_physical_evidence": false
+        },
+        {
+          "gate_id": "incident_history_review",
+          "disposition": "unknown",
+          "evidence_id": "E-SYN-HISTORY",
+          "requires_physical_evidence": true
+        },
+        {
+          "gate_id": "isolation_and_thermal_safety",
+          "disposition": "unknown",
+          "evidence_id": "E-SYN-SAFETY",
+          "requires_physical_evidence": true
+        },
+        {
+          "gate_id": "bms_protection_compatibility",
+          "disposition": "unknown",
+          "evidence_id": "E-SYN-BMS",
+          "requires_physical_evidence": true
+        }
+      ]
+    },
+    {
+      "pack_id": "PACK-B",
+      "vehicle_id": "VEHICLE-B",
+      "original_configuration_ref": "EV-CONFIG-B-R2",
+      "current_configuration_ref": "PACK-B-R2",
+      "chemistry": "LFP",
+      "cell_ids": [
+        "B-CELL-1",
+        "B-CELL-2"
+      ],
+      "history_completeness": "complete",
+      "incident_history": [
+        {
+          "event_type": "thermal_event",
+          "state": "event_recorded",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "isolation_fault",
+          "state": "event_recorded",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "water_ingress",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
+        }
+      ],
+      "bms_strategy": "replace_bms",
+      "bms_compatibility_disposition": "fail",
+      "bms_evidence_id": "E-SYN-BMS",
+      "capability_envelope_ref": "SYNTHTHAEA-PACK-ENVELOPE-B",
+      "capability_evidence_id": "E-SYN-CAPABILITY",
+      "hard_gates": [
+        {
+          "gate_id": "identity_and_topology",
+          "disposition": "pass",
+          "evidence_id": "E-SYN-IDENTITY",
+          "requires_physical_evidence": false
+        },
+        {
+          "gate_id": "thermal_incident_disposition",
+          "disposition": "fail",
+          "evidence_id": "E-SYN-SAFETY",
+          "requires_physical_evidence": false
+        },
+        {
+          "gate_id": "isolation_and_thermal_safety",
+          "disposition": "fail",
+          "evidence_id": "E-SYN-SAFETY",
+          "requires_physical_evidence": false
+        },
+        {
+          "gate_id": "bms_protection_compatibility",
+          "disposition": "fail",
+          "evidence_id": "E-SYN-BMS",
+          "requires_physical_evidence": false
+        }
+      ]
+    },
+    {
+      "pack_id": "PACK-C",
+      "vehicle_id": "VEHICLE-C",
+      "original_configuration_ref": "EV-CONFIG-C-R1",
+      "current_configuration_ref": "PACK-C-R1",
+      "chemistry": "NMC",
+      "cell_ids": [
+        "C-CELL-1",
+        "C-CELL-2"
+      ],
+      "history_completeness": "complete",
+      "incident_history": [
+        {
+          "event_type": "thermal_event",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "overcharge",
+          "state": "verified_absent",
+          "evidence_id": "E-SYN-HISTORY"
+        },
+        {
+          "event_type": "service_or_repair",
+          "state": "event_recorded",
+          "evidence_id": "E-SYN-HISTORY"
+        }
+      ],
+      "bms_strategy": "authorized_firmware_update",
+      "bms_compatibility_disposition": "unknown",
+      "bms_evidence_id": "E-SYN-BMS",
+      "capability_envelope_ref": "SYNTHTHAEA-PACK-ENVELOPE-C",
+      "capability_evidence_id": "E-SYN-CAPABILITY",
+      "hard_gates": [
+        {
+          "gate_id": "identity_and_topology",
+          "disposition": "pass",
+          "evidence_id": "E-SYN-IDENTITY",
+          "requires_physical_evidence": false
+        },
+        {
+          "gate_id": "cell_matching",
+          "disposition": "fail",
+          "evidence_id": "E-SYN-HISTORY",
+          "requires_physical_evidence": false
+        },
+        {
+          "gate_id": "bms_protection_compatibility",
+          "disposition": "unknown",
+          "evidence_id": "E-SYN-BMS",
+          "requires_physical_evidence": true
+        }
+      ]
+    }
+  ],
+  "routing_decisions": [
+    {
+      "decision_id": "DECISION-A",
+      "pack_id": "PACK-A",
+      "target_mission_id": "MISSION-PV",
+      "route": "abstain_insufficient_evidence",
+      "rationale_evidence_id": "E-SYN-ROUTE",
+      "mission_feasibility": "unknown",
+      "lower_bound_usable_energy_kwh": 8,
+      "lower_bound_peak_power_kw": 2,
+      "lower_bound_reserve_kwh": 1,
+      "worst_case_thermal_margin_c": 5
+    },
+    {
+      "decision_id": "DECISION-B",
+      "pack_id": "PACK-B",
+      "target_mission_id": null,
+      "route": "recycle_or_recover",
+      "rationale_evidence_id": "E-SYN-ROUTE",
+      "mission_feasibility": "infeasible"
+    },
+    {
+      "decision_id": "DECISION-C",
+      "pack_id": "PACK-C",
+      "target_mission_id": "MISSION-UPS",
+      "route": "repair_and_reassess",
+      "rationale_evidence_id": "E-SYN-ROUTE",
+      "mission_feasibility": "unknown"
+    }
+  ],
+  "evidence_registry": [
+    {
+      "evidence_id": "E-SYN-IDENTITY",
+      "evidence_class": "synthetic_fixture",
+      "source_digest": "1111111111111111111111111111111111111111111111111111111111111111",
+      "claim_scope": "synthetic known-truth routing fixture only",
+      "validity_domain": "schema and reference-audit tests",
+      "rights_state": "evaluation_only"
+    },
+    {
+      "evidence_id": "E-SYN-HISTORY",
+      "evidence_class": "synthetic_fixture",
+      "source_digest": "2222222222222222222222222222222222222222222222222222222222222222",
+      "claim_scope": "synthetic known-truth routing fixture only",
+      "validity_domain": "schema and reference-audit tests",
+      "rights_state": "evaluation_only"
+    },
+    {
+      "evidence_id": "E-SYN-SAFETY",
+      "evidence_class": "synthetic_fixture",
+      "source_digest": "3333333333333333333333333333333333333333333333333333333333333333",
+      "claim_scope": "synthetic known-truth routing fixture only",
+      "validity_domain": "schema and reference-audit tests",
+      "rights_state": "evaluation_only"
+    },
+    {
+      "evidence_id": "E-SYN-BMS",
+      "evidence_class": "synthetic_fixture",
+      "source_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+      "claim_scope": "synthetic known-truth routing fixture only",
+      "validity_domain": "schema and reference-audit tests",
+      "rights_state": "evaluation_only"
+    },
+    {
+      "evidence_id": "E-SYN-CAPABILITY",
+      "evidence_class": "synthetic_fixture",
+      "source_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "claim_scope": "synthetic known-truth routing fixture only",
+      "validity_domain": "schema and reference-audit tests",
+      "rights_state": "evaluation_only"
+    },
+    {
+      "evidence_id": "E-SYN-ROUTE",
+      "evidence_class": "synthetic_fixture",
+      "source_digest": "6666666666666666666666666666666666666666666666666666666666666666",
+      "claim_scope": "synthetic known-truth routing fixture only",
+      "validity_domain": "schema and reference-audit tests",
+      "rights_state": "evaluation_only"
+    }
+  ],
+  "decision_policy": {
+    "unknown_hard_gate_blocks_eligibility": true,
+    "hard_gates_not_compensable": true,
+    "read_only": true,
+    "minimum_independent_physical_specimens_per_pack": 2
+  }
+}
