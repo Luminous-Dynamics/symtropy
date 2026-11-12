@@ -868,6 +868,144 @@
         "Evaluate the paper's modality contributions: display-extracted thermodynamics only, vibration only, and fused inputs; preserve each signal's acquisition fidelity/uncertainty and dependency topology.",
         "Symtropy differentiator is not to claim >99.72% classification. It is to reproduce the strong score under the original protocol, then qualify whether it survives harder grouped splits, rare-fault conditions, calibration, ambiguity, sensor/common-cause loss and configuration changes."
       ]
+    },
+    {
+      "id": "mechanical-fdd-ood-survey-2026",
+      "title": "Out-of-distribution challenges in intelligent fault diagnosis: a survey of generalization and detection",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-09-28",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.1007/s10462-026-11722-3",
+      "data_domain": "161 primary mechanical OOD-related fault-diagnosis studies coded by shift type and deployment role, including operating-condition, equipment, sensing-environment and fault-semantic changes.",
+      "task": "Survey deployment-relative known-class generalization and unknown-fault/OOD detection, distinguishing condition shift (C-shift), fault-semantic shift (F-shift) and combined C+F settings.",
+      "reported_metrics": [
+        {
+          "metric": "primary_mechanical_ood_studies",
+          "value": 161,
+          "unit": "studies",
+          "context": "Primary mechanical OOD-related studies included and coded after screening.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "deduplicated_records",
+          "value": 181,
+          "unit": "records",
+          "context": "Records remaining after deduplication from 280 database search records.",
+          "source_location": "Abstract and search methodology"
+        },
+        {
+          "metric": "database_search_records",
+          "value": 280,
+          "unit": "records",
+          "context": "Records retrieved from IEEE Xplore, Web of Science and Scopus for 1 January 2020 through 16 July 2026.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Reproducible literature search and coding; not a diagnostic model experiment. The survey operationalizes deployment settings by effective training support, training label space and declared deployment envelope.",
+      "reported_limitations": [
+        "A literature survey, not a trained model or a quantitative leaderboard result.",
+        "Its scope focuses on mechanical OOD-related diagnosis and does not claim exhaustive coverage of all closed-set domain adaptation, general anomaly detection or non-mechanical process monitoring.",
+        "Survey-reported methods and scores are not directly comparable without reproducing their specific data, task and split protocols."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Make C-shift, F-shift and C+F separate benchmark axes; a held-out load is not equivalent to an unseen fault semantic.",
+        "Evaluate known-class generalization separately from unknown-fault detection, then evaluate their integrated selective/escalation policy.",
+        "Require calibrated OOD disposition and explicit human-referral/unknown outputs rather than treating closed-set classifier confidence as diagnostic certainty."
+      ]
+    },
+    {
+      "id": "zero-shot-fdd-scenarios-survey-2026",
+      "title": "Zero-Shot-Motivated Intelligent Fault Diagnosis: A Survey of Methods, Applications, and Future Directions",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-06-23",
+      "publication_date_precision": "day",
+      "source_url": "https://doi.org/10.1049/gtd2.70361",
+      "data_domain": "Industrial fault-diagnosis zero-shot literature spanning target-semantic and domain-relation scenarios, priors, semantic alignment and unseen fault recognition.",
+      "task": "Survey zero-shot-motivated fault diagnosis scenarios, methods, priors, evaluation goals and deployment limitations.",
+      "reported_metrics": [
+        {
+          "metric": "application_scenario_taxonomy",
+          "value": 4,
+          "unit": "scenarios",
+          "context": "Four scenarios distinguished by target semantics and domain relations: SD-UFC, SD-CFA, CD-UFC and CD-CFA.",
+          "source_location": "Abstract and conclusions"
+        },
+        {
+          "metric": "special_zero_shot_settings",
+          "value": 2,
+          "unit": "settings",
+          "context": "Zero-target-shot and zero-fault-shot settings are distinguished as separate cases.",
+          "source_location": "Conclusions"
+        },
+        {
+          "metric": "scenario_aligned_evaluation_standard_gap",
+          "value": "identified",
+          "unit": "qualitative",
+          "context": "The review identifies a lack of scenario-aligned evaluation and reporting standards as a field limitation.",
+          "source_location": "Abstract"
+        }
+      ],
+      "split_protocol": "Literature survey based primarily on Google Scholar with forward/backward citation chasing and venue-based checks; no common dataset, model split or leaderboard is reported.",
+      "reported_limitations": [
+        "The survey's literature collection is structured but not claimed to be an exhaustive systematic database review.",
+        "It does not provide a directly comparable marine-engine accuracy result.",
+        "Zero-shot claims depend on precisely defining target-domain data access, target fault semantics and the priors available at prediction time."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Use its scenario taxonomy to distinguish zero target labels, zero target data, unseen fault classes and cross-domain unseen-fault cases.",
+        "Require a declared prior/catalogue version, prior provenance, known/unknown label spaces, target-domain access rules and threshold-calibration scope for every zero-shot benchmark.",
+        "Do not call ordinary unsupervised domain adaptation zero-shot; disclose whether unlabeled target data or fault descriptions are available."
+      ]
+    },
+    {
+      "id": "adaptive-digital-twin-sensor-placement-review-2026",
+      "title": "Towards adaptive closed-loop optimization: A review of sensor placement for digital twins in mechanical systems",
+      "source_type": "peer_reviewed_article",
+      "publication_date": "2026-10",
+      "publication_date_precision": "month",
+      "source_url": "https://doi.org/10.1016/j.jmsy.2026.07.027",
+      "data_domain": "Review of optimal sensor placement for mechanical-system digital twins across lifecycle stages and multi-objective instrumentation requirements.",
+      "task": "Review adaptive digital-twin-driven sensor placement, including virtual pre-placement, online performance evaluation and triggered re-optimization.",
+      "reported_metrics": [
+        {
+          "metric": "closed_loop_framework_components",
+          "value": 5,
+          "unit": "components",
+          "context": "Virtual-space pre-placement; data-model fusion and calibration; performance evaluation; triggered re-optimization; software-defined adaptive placement adjustment.",
+          "source_location": "Abstract and highlights"
+        },
+        {
+          "metric": "lifecycle_placement_paradigm",
+          "value": "adaptive closed-loop",
+          "unit": "qualitative",
+          "context": "The review contrasts lifecycle-adaptive sensor placement with static one-time open-loop design.",
+          "source_location": "Abstract"
+        },
+        {
+          "metric": "identified_open_challenge_count",
+          "value": 3,
+          "unit": "challenge families",
+          "context": "Model generalization, real-time computational performance and completeness of the closed loop are highlighted as challenges.",
+          "source_location": "Abstract and highlights"
+        }
+      ],
+      "split_protocol": "Review article; it proposes a methodological framework and does not report a common physical engine diagnostic dataset, held-out validation split or comparative fleet performance result.",
+      "reported_limitations": [
+        "A review/framework source, not an empirical improvement measurement.",
+        "The authors identify unresolved real-time, model-generalization and full-loop integration challenges.",
+        "Dynamic sensor redesign must remain constrained by physical installation, calibration, safety and engineering authorization; the review does not validate autonomous maritime sensor reconfiguration."
+      ],
+      "reproducibility_status": "reported_not_reproduced",
+      "direct_comparison_to_aalto": "not_comparable",
+      "audit_notes": [
+        "Use for the next programme stage: configuration-bound sensor-layout requalification when assets, faults, operating regimes or diagnostics change.",
+        "Treat layout updates as engineering proposals requiring review, not automatic installation or activation.",
+        "Benchmark trigger quality, re-optimization latency, Pareto-front stability, calibration burden and retained diagnosability separately."
+      ]
     }
   ]
 }
