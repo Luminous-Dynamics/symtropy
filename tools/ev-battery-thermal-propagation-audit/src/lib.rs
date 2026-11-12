@@ -397,6 +397,18 @@ fn validate_test<'e>(
                 test.test_id
             )));
         }
+        for required_scope in [
+            criteria_id,
+            test.standard_id.as_str(),
+            test.standard_revision.as_str(),
+        ] {
+            if !criteria_evidence.claim_scope.contains(required_scope) {
+                return Err(AuditError(format!(
+                    "test {} acceptance-criteria evidence does not bind {}",
+                    test.test_id, required_scope
+                )));
+            }
+        }
     }
 
     match test.result {
@@ -869,7 +881,11 @@ mod tests {
                 result,
                 TestResult::Pass | TestResult::Fail | TestResult::NoPropagationWithinWindow
             ) {
-                Some("CRITERIA-REPORTED-TEST-001".into())
+                Some(if cls == "bess" {
+                    "UL-9540A-6th-edition-acceptance-criteria".into()
+                } else {
+                    "UN-R100-6.15-Annex-9K-05-series-criteria".into()
+                })
             } else {
                 None
             },
@@ -877,7 +893,11 @@ mod tests {
                 result,
                 TestResult::Pass | TestResult::Fail | TestResult::NoPropagationWithinWindow
             ) {
-                Some("E-CRITERIA".into())
+                Some(if cls == "bess" {
+                    "E-CRITERIA-UL9540A".into()
+                } else {
+                    "E-CRITERIA-UNR100".into()
+                })
             } else {
                 None
             },
@@ -998,7 +1018,24 @@ mod tests {
                 evidence("E-BESS", 'f', EvidenceClass::PhysicalTest, Some("MET-BESS")),
                 evidence("E-RISK", 'a', EvidenceClass::RiskAnalysis, None),
                 evidence("E-COMPARISON", 'b', EvidenceClass::IndependentLaboratoryTest, Some("MET-COMP")),
-                evidence("E-CRITERIA", 'c', EvidenceClass::Literature, None),
+                EvidenceRecord {
+                    evidence_id: "E-CRITERIA-UNR100".into(),
+                    source_digest: digest('c'),
+                    evidence_class: EvidenceClass::Literature,
+                    admission: Admission::AdmittedForEvaluation,
+                    claim_scope: "UN-R100-2026 UN-R100-6.15-Annex-9K-05-series-criteria 05-series".into(),
+                    authority_or_lab_ref: "SYNTHETIC-UN-R100-REFERENCE".into(),
+                    metrology_ref: None,
+                },
+                EvidenceRecord {
+                    evidence_id: "E-CRITERIA-UL9540A".into(),
+                    source_digest: digest('d'),
+                    evidence_class: EvidenceClass::Literature,
+                    admission: Admission::AdmittedForEvaluation,
+                    claim_scope: "UL-9540A UL-9540A-6th-edition-acceptance-criteria 6th-edition".into(),
+                    authority_or_lab_ref: "SYNTHETIC-UL-9540A-REFERENCE".into(),
+                    metrology_ref: None,
+                },
             ],
             tests,
             claims: vec![
@@ -1178,7 +1215,20 @@ mod tests {
     #[test]
     fn acceptance_criteria_cannot_be_backed_by_a_synthetic_record() {
         let mut value = fixture();
-        value.evidence[5].evidence_class = EvidenceClass::Synthetic;
+        value
+            .evidence
+            .iter_mut()
+            .find(|record| record.evidence_id == "E-CRITERIA-UNR100")
+            .expect("criteria record exists")
+            .evidence_class = EvidenceClass::Synthetic;
+        assert!(audit_manifest(&value).is_err());
+    }
+
+    #[test]
+    fn acceptance_criteria_must_match_exact_standard_and_revision() {
+        let mut value = fixture();
+        value.tests[0].acceptance_criteria_evidence_id =
+            Some("E-CRITERIA-UL9540A".into());
         assert!(audit_manifest(&value).is_err());
     }
 
