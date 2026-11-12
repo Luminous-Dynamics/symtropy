@@ -17,7 +17,7 @@ The latest research spans materially different tasks:
 
 These are not directly comparable. They differ in state dimension, motion model, geometry, sensors, infrastructure assumptions, ground truth and intended task. A single average localization score would be technically misleading.
 
-This matrix separates four populations and a fifth cross-cutting assurance track. Every future Luminous result must identify its population and must not pool metrics across populations without an explicit, justified normalization.
+This matrix separates four application/assurance tracks from a fifth general factor-graph framework track. The framework is a reusable algorithmic comparator, not a buried-environment experiment. Every future Luminous result must identify its population and must not pool metrics across populations without an explicit, justified normalization.
 
 ## 2. Current research baselines
 
