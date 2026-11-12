@@ -165,10 +165,10 @@ fn validate_record(record: &EvidenceRecord) -> Result<(), IntegrityAuditError> {
 }
 
 fn fresh(record: &EvidenceRecord, policy: &AdmissionPolicy) -> bool {
+    let allowed_age = policy.maximum_age_ticks.min(record.maximum_age_ticks);
     record.measurement_tick <= policy.assessment_tick
         && record.ingestion_tick <= policy.assessment_tick
-        && policy.assessment_tick.saturating_sub(record.measurement_tick)
-            <= policy.maximum_age_ticks
+        && policy.assessment_tick.saturating_sub(record.measurement_tick) <= allowed_age
 }
 
 fn contract_matches(record: &EvidenceRecord, policy: &AdmissionPolicy) -> bool {
@@ -480,6 +480,8 @@ mod tests {
     fn stale_or_mismatched_primary_is_rejected() {
         let mut stale = primary();
         stale.event_tick = 1;
+        stale.measurement_tick = 1;
+        stale.ingestion_tick = 1;
         assert_eq!(
             triage_observation_integrity(&policy(), &[stale]).unwrap().disposition,
             CandidateDisposition::RejectEvidence
@@ -525,6 +527,54 @@ mod tests {
         let d = triage_observation_integrity(&policy(), &e).unwrap();
         assert_eq!(d.disposition, CandidateDisposition::RequestIndependentPhysicalMeasurement);
         assert_eq!(d.unresolved_hypotheses.len(), 3);
+    }
+
+    #[test]
+    fn independence_rejects_shared_path_time_root_or_calibration_authority() {
+        let p = primary();
+        for field in ["path", "time", "calibration_authority"] {
+            let mut side = record(
+                "side", EvidenceKind::IndependentPhysicalMeasurement, EvidenceClass::Measured,
+                EvidenceResult::Numeric(50), "sensor-b", "gw-b", "root-b",
+            );
+            match field {
+                "path" => side.acquisition_path_id = p.acquisition_path_id.clone(),
+                "time" => side.time_root_id = p.time_root_id.clone(),
+                "calibration_authority" => side.calibration_authority_id = p.calibration_authority_id.clone(),
+                _ => unreachable!(),
+            }
+            assert!(!independent(&p, &side), "shared {field} must preserve dependence");
+            let d = triage_observation_integrity(&policy(), &[p.clone(), side]).unwrap();
+            assert_eq!(d.disposition, CandidateDisposition::AbstainObservationalEquivalence);
+        }
+    }
+
+    #[test]
+    fn unverified_and_invalid_side_receipts_do_not_count_as_corroboration() {
+        for status in [ReceiptStatus::Unverified, ReceiptStatus::Invalid] {
+            let mut side = record(
+                "side", EvidenceKind::IndependentPhysicalMeasurement, EvidenceClass::Measured,
+                EvidenceResult::Numeric(50), "sensor-b", "gw-b", "root-b",
+            );
+            side.receipt_status = status;
+            let d = triage_observation_integrity(&policy(), &[primary(), side]).unwrap();
+            assert_eq!(d.disposition, CandidateDisposition::AbstainObservationalEquivalence);
+        }
+    }
+
+    #[test]
+    fn source_record_ttl_and_assessment_time_both_constrain_freshness() {
+        let mut record = primary();
+        record.maximum_age_ticks = 1;
+        let d = triage_observation_integrity(&policy(), &[record]).unwrap();
+        assert_eq!(d.disposition, CandidateDisposition::RejectEvidence);
+
+        let mut future = primary();
+        future.measurement_tick = 13;
+        future.ingestion_tick = 13;
+        future.event_tick = 12;
+        let d = triage_observation_integrity(&policy(), &[future]).unwrap();
+        assert_eq!(d.disposition, CandidateDisposition::RejectEvidence);
     }
 
     #[test]
