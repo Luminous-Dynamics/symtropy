@@ -77,6 +77,8 @@ pub enum NonreciprocalVicsekError {
     InvalidParameter { name: &'static str, value: f64 },
     InvalidConfiguration,
     InteractionMatrixSize { expected: usize, actual: usize },
+    NoiseProfileSize { expected: usize, actual: usize },
+    InvalidNoiseWidth { particle: usize, value: f64 },
     NonFiniteInteractionWeight { index: usize, value: f64 },
     NonFiniteParticlePosition { particle: usize },
     ParticlePositionOutOfBounds { particle: usize },
@@ -97,6 +99,14 @@ impl fmt::Display for NonreciprocalVicsekError {
             Self::InteractionMatrixSize { expected, actual } => write!(
                 f,
                 "interaction matrix must contain {expected} values, got {actual}"
+            ),
+            Self::NoiseProfileSize { expected, actual } => write!(
+                f,
+                "noise profile must contain {expected} per-particle widths, got {actual}"
+            ),
+            Self::InvalidNoiseWidth { particle, value } => write!(
+                f,
+                "noise width for particle {particle} must be finite and in [0, 2π], got {value}"
             ),
             Self::NonFiniteInteractionWeight { index, value } => write!(
                 f,
@@ -193,6 +203,8 @@ pub struct NonreciprocalVicsekModel {
     particles: Vec<VicsekParticle>,
     /// Row-major matrix: row = receiver, column = source.
     interaction_weights: Vec<f64>,
+    /// Per-particle full-width angular-noise intervals; source-faithful constructors fill this with the scalar config value.
+    noise_widths_rad: Vec<f64>,
     rng: XorShift64,
     tick: u64,
     last_influence_components: Vec<f64>,
@@ -204,14 +216,50 @@ pub struct NonreciprocalVicsekModel {
 impl NonreciprocalVicsekModel {
     /// Construct from explicit particle state, interaction matrix, and seed.
     pub fn new(
+        particles: Vec<VicsekParticle>,
+        interaction_weights: Vec<f64>,
+        config: NonreciprocalVicsekConfig,
+        seed: u64,
+    ) -> Result<Self, NonreciprocalVicsekError> {
+        let noise_widths_rad = vec![config.angular_noise_width_rad; particles.len()];
+        Self::new_with_noise_profile(
+            particles,
+            interaction_weights,
+            config,
+            noise_widths_rad,
+            seed,
+        )
+    }
+
+    /// Construct with an explicit per-particle angular-noise profile.
+    ///
+    /// This is an OLI extension for separating influencer and follower noise.
+    /// The source-faithful scalar profile remains available through new() and
+    /// random_uniform().
+    pub fn new_with_noise_profile(
         mut particles: Vec<VicsekParticle>,
         interaction_weights: Vec<f64>,
         config: NonreciprocalVicsekConfig,
+        noise_widths_rad: Vec<f64>,
         seed: u64,
     ) -> Result<Self, NonreciprocalVicsekError> {
         config.validate()?;
         if particles.is_empty() {
             return Err(NonreciprocalVicsekError::EmptyParticleSet);
+        }
+        if noise_widths_rad.len() != particles.len() {
+            return Err(NonreciprocalVicsekError::NoiseProfileSize {
+                expected: particles.len(),
+                actual: noise_widths_rad.len(),
+            });
+        }
+        for (particle, width) in noise_widths_rad.iter().copied().enumerate() {
+            if !width.is_finite() || !(0.0..=TAU).contains(&width) {
+                return Err(NonreciprocalVicsekError::InvalidNoiseWidth {
+                    particle,
+                    value: width,
+                });
+            }
         }
         let matrix_len = particles
             .len()
@@ -259,6 +307,7 @@ impl NonreciprocalVicsekModel {
             influence_frames: 0,
             particles,
             interaction_weights,
+            noise_widths_rad,
             rng: XorShift64::new(seed),
             tick: 0,
         })
@@ -302,6 +351,11 @@ impl NonreciprocalVicsekModel {
 
     pub fn interaction_weights(&self) -> &[f64] {
         &self.interaction_weights
+    }
+
+    /// Per-particle full-width angular-noise intervals used by subsequent updates.
+    pub fn noise_widths_rad(&self) -> &[f64] {
+        &self.noise_widths_rad
     }
 
     pub fn last_influence_components(&self) -> &[f64] {
@@ -433,7 +487,7 @@ impl NonreciprocalVicsekModel {
                 }
             }
 
-            let noise = self.config.angular_noise_width_rad * (self.rng.next_unit() - 0.5);
+            let noise = self.noise_widths_rad[receiver] * (self.rng.next_unit() - 0.5);
             let heading = wrap_angle(focal.heading_rad + normalized_sum + noise);
             let distance = self.config.speed * self.config.dt;
             next.push(VicsekParticle {
@@ -778,6 +832,58 @@ mod tests {
         assert_ne!(treatment.particles()[1].heading_rad, sham.particles()[1].heading_rad);
         assert_eq!(treatment.tick(), sham.tick());
         assert_eq!(treatment.rng, sham.rng);
+    }
+
+    #[test]
+    fn per_particle_noise_profile_is_distinct_from_source_scalar_mode() {
+        let particles = vec![
+            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle { x: 2.0, y: 1.0, heading_rad: 0.0 },
+        ];
+        let weights = vec![1.0, 1.0, 4.0, 1.0];
+        let mut model = NonreciprocalVicsekModel::new_with_noise_profile(
+            particles,
+            weights,
+            pair_config(),
+            vec![0.0, std::f64::consts::PI],
+            123,
+        )
+        .unwrap();
+
+        assert_eq!(model.noise_widths_rad(), &[0.0, std::f64::consts::PI]);
+        let before = model.particles().to_vec();
+        model.step().unwrap();
+        assert_eq!(model.particles()[0].heading_rad, before[0].heading_rad);
+        assert_ne!(model.particles()[1].heading_rad, before[1].heading_rad);
+    }
+
+    #[test]
+    fn per_particle_noise_profile_rejects_wrong_length_and_invalid_values() {
+        let particles = vec![
+            VicsekParticle { x: 1.0, y: 1.0, heading_rad: 0.0 },
+            VicsekParticle { x: 2.0, y: 1.0, heading_rad: 0.0 },
+        ];
+        let weights = vec![1.0, 1.0, 4.0, 1.0];
+        assert!(matches!(
+            NonreciprocalVicsekModel::new_with_noise_profile(
+                particles.clone(),
+                weights.clone(),
+                pair_config(),
+                vec![0.1],
+                1,
+            ),
+            Err(NonreciprocalVicsekError::NoiseProfileSize { .. })
+        ));
+        assert!(matches!(
+            NonreciprocalVicsekModel::new_with_noise_profile(
+                particles,
+                weights,
+                pair_config(),
+                vec![0.1, f64::NAN],
+                1,
+            ),
+            Err(NonreciprocalVicsekError::InvalidNoiseWidth { .. })
+        ));
     }
 
     #[test]
