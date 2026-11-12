@@ -332,7 +332,10 @@
     "the published WLTP f_pic +8% case may trigger detection but must remain unknown/out-of-support if no declared known envelope matches",
     "published comparator metrics are references only; synthetic envelope tests do not reproduce the underlying waveforms or establish Symtropy superiority",
     "a singleton behavioral hypothesis is unique only within the frozen declared catalogue; global physical uniqueness is never inferred from local envelope disjointness",
-    "deployability dimensions remain non-compensatory and no aggregate readiness score may convert a failed dimension into a pass"
+    "deployability dimensions remain non-compensatory and no aggregate readiness score may convert a failed dimension into a pass",
+    "active-evidence comparator tournament includes a worst-case pairwise Chernoff baseline over the identical eligible candidate set",
+    "Chernoff results retain the minimum hypothesis-pair and uncertainty-scenario value and disclose the fixed s-grid",
+    "no asymptotic Chernoff error exponent is described as a finite-sample LiU-ICE diagnosis guarantee"
   ],
   "calibration": {
     "unit": "one maximum residual score per independent recording/episode",
@@ -594,7 +597,8 @@
       "maximum_eig_only",
       "eig_per_cost",
       "seeded_random_eligible",
-      "risk_adjusted_worst_case_eig"
+      "risk_adjusted_worst_case_eig",
+      "maximum_worst_case_pairwise_chernoff_information"
     ],
     "eligibility": "Hard authority and safety eligibility first; require worst-case EIG above the frozen policy floor.",
     "epistemic_rule": "Multiple scenario likelihoods are required for multi_scenario_assessed; independently reviewed likelihood calibration and worst-case EIG are both required for eligibility. Signer identity and calibration validity remain upstream trust duties.",
@@ -616,6 +620,11 @@
       "prior_distribution": "separate digest over sorted IDs and exact probabilities; changes after every posterior update",
       "candidate_model_binding": "candidate likelihood tables bind the stable hypothesis-space digest, not a transient posterior",
       "sequential_update": "recompute portfolio with updated posterior and same stable hypothesis-space identity; append the external observation receipt to the ledger"
+    },
+    "chernoff": {
+      "definition": "Minimum pairwise Chernoff information over every positive-prior hypothesis pair, then minimum over every declared likelihood-uncertainty scenario.",
+      "s_grid_intervals": 100,
+      "claim_ceiling": "Asymptotic repeated-observation separation metric under conditional independence, not a finite-sample error guarantee."
     }
   },
   "streaming_contract": {
