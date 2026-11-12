@@ -358,15 +358,15 @@ pub fn validate_adapter_bytes(corpus_bytes: &[u8], schema_bytes: &[u8]) -> Adapt
         };
         let mut actions_by_id = BTreeMap::new();
         for action in actions {
-            if let Some(id) = string_at(action, "action_id") {
-                if actions_by_id.insert(id.to_owned(), action).is_some() {
-                    fail(
-                        &mut failures,
-                        "DECISION_ACTION_ID_DUPLICATE",
-                        format!("{case_path}.decision_case.actions"),
-                        format!("Duplicate decision action {id:?}."),
-                    );
-                }
+            if let Some(id) = string_at(action, "action_id")
+                && actions_by_id.insert(id.to_owned(), action).is_some()
+            {
+                fail(
+                    &mut failures,
+                    "DECISION_ACTION_ID_DUPLICATE",
+                    format!("{case_path}.decision_case.actions"),
+                    format!("Duplicate decision action {id:?}."),
+                );
             }
         }
 
