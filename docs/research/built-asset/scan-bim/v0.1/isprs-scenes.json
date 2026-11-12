@@ -1,0 +1,188 @@
+{
+  "schema_version": "0.1",
+  "dataset_id": "ISPRS-INDOOR-MODELLING",
+  "dataset_uri": "https://www.isprs.org/resources/datasets/benchmarks/IndoorModeling/dataset.aspx",
+  "benchmark_status": "official_submission_closed",
+  "use_conditions": {
+    "research_only": true,
+    "redistribute_source_data": false,
+    "acknowledge": "ISPRS WG IV/5",
+    "citation": "Khoshelham et al. (2017), The ISPRS Benchmark on Indoor Modelling, DOI 10.5194/isprs-archives-XLII-2-W7-367-2017"
+  },
+  "acquisition_notes": "Public six-scene dataset; all local filenames, digests, paired BIM references and license/access receipts must be added only after obtaining the package under the official research-use conditions. Do not commit the source point clouds or restricted BIM package.",
+  "official_metric_scope": {
+    "elements": [
+      "wall"
+    ],
+    "completeness": "area(intersection(source,reference))/area(reference)",
+    "correctness": "area(intersection(source,reference))/area(source)",
+    "accuracy": "median_absolute_distance(reference_surface_sample_points, closest_source_model_surface)",
+    "buffer_b_cm": 10,
+    "cutoff_r_cm": 10
+  },
+  "scenes": [
+    {
+      "scene_id": "TUB1",
+      "building_group_id": "TUB-BUILDING-01",
+      "acquisition": {
+        "system": "Viametris iMS3D",
+        "mode": "mobile_mapping",
+        "trajectory_available": true,
+        "timestamps_available": true
+      },
+      "scene": {
+        "floors": 1,
+        "rooms": 10,
+        "doors": 23,
+        "windows_visible": 7,
+        "clutter": "low",
+        "furniture": false
+      },
+      "stressors": [
+        "open_and_closed_doors",
+        "variable_wall_thickness",
+        "people_in_capture"
+      ],
+      "negative_controls": [
+        "do_not_confuse_people_with_building_structure"
+      ]
+    },
+    {
+      "scene_id": "TUB2",
+      "building_group_id": "TUB-BUILDING-01",
+      "acquisition": {
+        "system": "Zeb-Revo",
+        "mode": "mobile_mapping",
+        "trajectory_available": true,
+        "timestamps_available": true
+      },
+      "scene": {
+        "floors": 2,
+        "rooms": 24,
+        "doors": 51,
+        "windows_visible": 21,
+        "clutter": "low",
+        "stairs_between_floors": true,
+        "variable_wall_thickness": true,
+        "variable_ceiling_heights": true
+      },
+      "stressors": [
+        "multi_floor_connectivity",
+        "staircase",
+        "different_sensor_from_TUB1"
+      ],
+      "negative_controls": [
+        "same_physical_building_as_TUB1_not_unseen_building_holdout"
+      ]
+    },
+    {
+      "scene_id": "FIRE-BRIGADE",
+      "building_group_id": "FIRE-BRIGADE-BUILDING",
+      "acquisition": {
+        "system": "Leica C10",
+        "mode": "static_terrestrial_laser_scanner",
+        "trajectory_available": false,
+        "timestamps_available": null
+      },
+      "scene": {
+        "floors": 1,
+        "rooms": 9,
+        "doors": 10,
+        "windows_visible": 53,
+        "clutter": "high",
+        "furniture": true
+      },
+      "stressors": [
+        "static_scan_occlusion_gaps",
+        "curtain_walls",
+        "furniture_clutter"
+      ],
+      "negative_controls": [
+        "occluded_surfaces_remain_unobserved"
+      ]
+    },
+    {
+      "scene_id": "UVIGO",
+      "building_group_id": "UVIGO-BUILDING",
+      "acquisition": {
+        "system": "prototype backpack-based mobile mapping",
+        "mode": "mobile_mapping",
+        "trajectory_available": true,
+        "timestamps_available": true
+      },
+      "scene": {
+        "rooms": "one_room_plus_entrance_hall",
+        "doors": 7,
+        "windows_visible": 20,
+        "clutter": "moderate",
+        "stairs_to_second_floor": true,
+        "circular_columns": true,
+        "variable_ceiling_heights": true,
+        "curtain_wall": true
+      },
+      "stressors": [
+        "mobile_mapping",
+        "stairs",
+        "circular_columns",
+        "elevator_doors",
+        "curtain_wall",
+        "variable_ceiling_heights"
+      ],
+      "negative_controls": []
+    },
+    {
+      "scene_id": "UOM",
+      "building_group_id": "UOM-BUILDING",
+      "acquisition": {
+        "system": "Zeb-1",
+        "mode": "mobile_mapping",
+        "trajectory_available": null,
+        "timestamps_available": null
+      },
+      "scene": {
+        "floors": 1,
+        "rooms": 7,
+        "doors": 14,
+        "windows_visible": 0,
+        "windows_observability": "hidden_by_window_blinds",
+        "clutter": "moderate",
+        "stairs_to_lower_level": true
+      },
+      "stressors": [
+        "furniture_clutter",
+        "different_wall_thickness",
+        "stairs"
+      ],
+      "negative_controls": [
+        "windows_behind_blinds_are_not_observed",
+        "do_not_infer_absence_or_geometry_from_missing_visibility"
+      ]
+    },
+    {
+      "scene_id": "GRAINGER-MUSEUM",
+      "building_group_id": "GRAINGER-MUSEUM-BUILDING",
+      "acquisition": {
+        "system": "Zeb Revo RT",
+        "mode": "indoor_and_outdoor_capture",
+        "trajectory_available": null,
+        "timestamps_available": null
+      },
+      "scene": {
+        "floors": 1,
+        "rooms": 18,
+        "doors": 13,
+        "windows_visible": 41,
+        "clutter": "high",
+        "non_manhattan": true
+      },
+      "stressors": [
+        "non_manhattan_geometry",
+        "high_artifact_clutter",
+        "mixed_indoor_outdoor_acquisition"
+      ],
+      "negative_controls": [
+        "do_not_assume_orthogonal_wall_prior"
+      ]
+    }
+  ]
+}
