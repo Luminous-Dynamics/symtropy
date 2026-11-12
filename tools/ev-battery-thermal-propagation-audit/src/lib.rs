@@ -331,7 +331,7 @@ fn evidence_registry(
 }
 
 fn admitted_evidence<'a>(
-    registry: &'a BTreeMap<&str, &EvidenceRecord>,
+    registry: &'a BTreeMap<&'a str, &'a EvidenceRecord>,
     evidence_id: &str,
     owner: &str,
 ) -> Result<&'a EvidenceRecord, AuditError> {
@@ -348,10 +348,10 @@ fn admitted_evidence<'a>(
     Ok(record)
 }
 
-fn validate_test(
+fn validate_test<'a>(
     test: &TestRecord,
-    registry: &BTreeMap<&str, &EvidenceRecord>,
-) -> Result<&EvidenceRecord, AuditError> {
+    registry: &'a BTreeMap<&'a str, &'a EvidenceRecord>,
+) -> Result<&'a EvidenceRecord, AuditError> {
     require_nonempty(&test.test_id, "test ID")?;
     require_nonempty(&test.standard_id, "standard ID")?;
     require_nonempty(&test.standard_revision, "standard revision")?;
@@ -392,6 +392,12 @@ fn validate_test(
             }
         }
         TestResult::TriggerNotAchieved => {
+            if !evidence.evidence_class.is_physical() {
+                return Err(AuditError(format!(
+                    "trigger-not-achieved result for {} requires physical-test evidence",
+                    test.test_id
+                )));
+            }
             if test.trigger_achieved {
                 return Err(AuditError(format!(
                     "test {} is marked trigger-not-achieved but trigger_achieved is true",
@@ -415,13 +421,13 @@ fn validate_test(
     Ok(evidence)
 }
 
-fn validate_equivalence(
-    comparisons: &[EquivalenceAssessment],
+fn validate_equivalence<'c>(
+    comparisons: &'c [EquivalenceAssessment],
     source: &ArticleDescriptor,
     target: &ArticleDescriptor,
     registry: &BTreeMap<&str, &EvidenceRecord>,
     claim_id: &str,
-) -> Result<BTreeMap<EquivalenceDomain, &EquivalenceAssessment>, AuditError> {
+) -> Result<BTreeMap<EquivalenceDomain, &'c EquivalenceAssessment>, AuditError> {
     if comparisons.len() != EquivalenceDomain::ALL.len() {
         return Err(AuditError(format!(
             "claim {claim_id} must declare all six equivalence domains"
@@ -476,10 +482,18 @@ fn validate_equivalence(
             EquivalenceStatus::Different
             | EquivalenceStatus::Unknown
             | EquivalenceStatus::NotApplicableWithRationale => {
-                if comparison.evidence_id.as_deref().is_some_and(str::is_empty) {
-                    return Err(AuditError(format!(
-                        "claim {claim_id} has an empty equivalence evidence ID"
-                    )));
+                if let Some(evidence_id) = comparison.evidence_id.as_deref() {
+                    require_nonempty(evidence_id, "equivalence evidence ID")?;
+                    let evidence = admitted_evidence(
+                        registry,
+                        evidence_id,
+                        &format!("claim {claim_id} equivalence {:?}", comparison.domain),
+                    )?;
+                    if !evidence.evidence_class.is_admissible_review_source() {
+                        return Err(AuditError(format!(
+                            "claim {claim_id} equivalence evidence {evidence_id} is not an admissible review source"
+                        )));
+                    }
                 }
             }
         }
@@ -839,7 +853,7 @@ mod tests {
         );
         let mut risk_test = physical_test(
             "RISK-001",
-            risk_article,
+            risk_article.clone(),
             "E-RISK",
             TestResult::RiskAnalysisSubmitted,
             false,
