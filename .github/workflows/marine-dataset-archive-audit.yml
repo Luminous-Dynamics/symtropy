@@ -139,7 +139,7 @@ jobs:
           {
             echo "### Extracted CSV member names"
             echo ""
-            find "$root" -type f -iname '*.csv' -printf '%P\\n' | sort | sed 's/^/- /'
+            find "$root" -type f -iname '*.csv' -print | sort | sed "s#^$root/#- #"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "DATASET_ROOT=$root" >> "$GITHUB_ENV"
 
