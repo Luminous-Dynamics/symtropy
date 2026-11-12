@@ -27,32 +27,6 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
-      - name: Export canonical rustfmt output from temporary copies
-        if: always()
-        run: |
-          mkdir -p /tmp/recoverability-format-export
-          cp research/recoverability-envelope-001/src/lib.rs /tmp/recoverability-format-export/lib.rs
-          cp research/recoverability-envelope-001/src/main.rs /tmp/recoverability-format-export/main.rs
-          rustfmt --edition 2024 /tmp/recoverability-format-export/lib.rs /tmp/recoverability-format-export/main.rs
-          for name in lib main; do
-            echo "__FORMAT_EXPORT_BEGIN_RECOVERABILITY_${name^^}__"
-            base64 -w0 "/tmp/recoverability-format-export/${name}.rs" | fold -w 4000
-            echo "__FORMAT_EXPORT_END_RECOVERABILITY_${name^^}__"
-          done
-
-      - name: Export canonical Rust formatter output from temporary copies
-        if: always()
-        run: |
-          mkdir -p /tmp/recoverability-format-export
-          cp research/recoverability-envelope-001/src/lib.rs /tmp/recoverability-format-export/lib.rs
-          cp research/recoverability-envelope-001/src/main.rs /tmp/recoverability-format-export/main.rs
-          rustfmt --edition 2024 /tmp/recoverability-format-export/lib.rs /tmp/recoverability-format-export/main.rs
-          for name in lib main; do
-            echo "__FORMAT_EXPORT_BEGIN_RECOVERABILITY_${name^^}__"
-            base64 -w0 "/tmp/recoverability-format-export/${name}.rs" | fold -w 4000
-            echo "__FORMAT_EXPORT_END_RECOVERABILITY_${name^^}__"
-          done
-
       - name: Check formatting
         run: cargo fmt --manifest-path research/recoverability-envelope-001/Cargo.toml -- --check
 
