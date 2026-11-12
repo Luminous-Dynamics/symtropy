@@ -135,6 +135,7 @@ struct BridgeReplayResult {
     negative_controls_fail_closed: bool,
 }
 
+#[derive(Debug, Clone, Serialize)]
 struct EpisodeReport {
     schema_version: u32,
     status: String,
