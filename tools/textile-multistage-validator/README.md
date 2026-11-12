@@ -56,10 +56,16 @@ This crate does not:
 - command machines or act as an ERP/MES/plant controller;
 - prove that a schedule was executed or that output passed inspection.
 
-The next benchmark increment should add time-indexed utility envelopes and a
-separate independent tiny-instance optimality oracle only after this
-feasibility judge is compiled, tested and reviewed. Observed production
-receipts and worker-approved constraints remain independent evidence gates.
+The bounded exhaustive oracle in `src/oracle.rs` independently searches tiny
+integer-time instances for the minimum makespan. It does not call the validator
+while searching and returns no result when its node budget is exhausted. Its
+v0.1 scope is deliberately limited to explicit zero-duration setup transitions;
+nonzero setup models are rejected as unsupported. It is an oracle for small
+instances, not a production scheduler.
+
+The next benchmark increment should add time-indexed utility envelopes and
+setup-labor reservations. Observed production receipts and worker-approved
+constraints remain independent evidence gates.
 
 ## Claim ceiling
 
