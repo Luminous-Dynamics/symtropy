@@ -92,3 +92,51 @@ All references accessed 12 November 2026. Vendor statements are labelled as such
 ## Claim ceiling
 
 This crosswalk is a desk-research baseline. It does not independently verify vendor performance, prove a competitive advantage, constitute a procurement recommendation, or qualify any Luminous machine, platform, structure, robot, building or worksite.
+
+## Independent benchmark-method refresh — 12 November 2026
+
+Two external measurement frameworks should shape our comparison.
+
+### Cambridge Framework for Construction Productivity
+
+The University of Cambridge Laing O'Rourke Centre published the **Measure · Benchmark · Improve** framework on 30 September 2026, drawing on data from more than 25 UK construction projects. It organizes performance at three levels:
+- project / delivery;
+- work package;
+- activity.
+
+Its measurement vocabulary includes production rates, labour productivity, production flow, variability, cost-effectiveness and blockers. The research programme explicitly aims to move from retrospective measurement toward live/predictive production intelligence using digital data capture, automation, computer vision, VLMs and AI.
+
+Luminous should align to this industry framework rather than invent a competing generic construction-productivity ontology. Our additional proposed contribution is to bind robot execution, machine/run provenance, task-specific acceptance, inspection, defect/rework, exact resource occupancy, evidence and downstream usability to the same work-package result.
+
+Sources:
+- Cambridge news, 30 September 2026: https://www.construction.cam.ac.uk/news/new-cambridge-framework-aims-to-transform-how-construction-productivity-measured-and-improved
+- Framework research programme: https://www.construction.cam.ac.uk/research-and-innovation/performance-productivity
+
+### NIST Performance Assessment Framework for Robotic Systems
+
+NIST's framework treats robotic assembly as a task-driven system whose constituent capabilities include perception, mobility, dexterity and safety. It calls out the difficulty of predicting integrated performance because of interactions between these subsystems and unmodelled operating conditions.
+
+We should use those component-specific methods as diagnostics and compatibility evidence, but not confuse component scores with a successfully delivered and accepted construction work package.
+
+Source: https://www.nist.gov/programs-projects/performance-assessment-framework-robotic-systems
+
+### Construction-robotics deployment maturity
+
+Two 2026 systematic reviews provide a useful research-maturity baseline:
+- Yu & Park's ISARC review analyzed 134 intelligent-construction-robotics papers and reported only two at TRL 9 field validation. The statistic describes that reviewed corpus, not all commercial deployments. It points to multi-condition field evaluation and deployment integration as gaps.
+- A June 2026 review analyzed 375 construction-robotics studies and developed a taxonomy across robot types, task applications and human-robot collaboration modes. It documents why research demonstrations do not automatically translate into site deployment.
+
+Sources:
+- https://doi.org/10.22260/ISARC2026/0325
+- https://doi.org/10.1016/j.rineng.2026.110406
+
+### Consequence for Luminous benchmark design
+
+The benchmark should publish four separate layers:
+
+1. **Component capability:** perception, localization, mobility, manipulation/dexterity, tooling, safety subsystem interfaces and reliability.
+2. **Task execution:** task-specific cycle, intervention, resource use, setup, safe-abort and disturbance recovery.
+3. **Accepted work package:** independently accepted functional units, first-pass/final acceptance, defects, omissions, rework and downstream fit.
+4. **Project delivery:** total workflow labour, elapsed time, p50/p90 floor-cycle, crane/hoist occupancy, cost, material/energy, maintenance and schedule reliability.
+
+Do not sum them into one productivity score. Safety and professional approvals are non-compensatory; output acceptance is a separate decision from executor completion; economic comparison must include utilization, financing, service and rework.
