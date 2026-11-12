@@ -2894,6 +2894,77 @@ mod tests {
         close(screen.beta_over_m / 100_000.0, 0.006, 2.0e-4);
     }
 
+    fn normalize_sky(vector: [f64; 3]) -> [f64; 3] {
+        let norm = (vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]).sqrt();
+        [vector[0] / norm, vector[1] / norm, vector[2] / norm]
+    }
+
+    #[test]
+    fn finite_observer_canonical_screen_seed_is_null_and_tangent_to_null_shell() {
+        for (spin, direction) in [
+            (0.7, KerrLocalSkyDirection::new(
+                -(1.0_f64 - 0.006_f64.powi(2) - 0.008_f64.powi(2)).sqrt(),
+                0.006, -0.008,
+            ).unwrap()),
+            (0.9, KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap()),
+        ] {
+            let observer = KerrFiniteRadiusObserver::new(hole(spin), 10.0, 1.0).unwrap();
+            let seed = observer.canonical_seed(direction).unwrap();
+            assert_eq!(seed.coordinate_chart, KerrMinoCoordinateChart::IngoingKerr);
+            let evaluation = KerrCanonicalHamiltonian::new(hole(spin))
+                .evaluate_ingoing(seed.state).unwrap();
+            close(evaluation.hamiltonian, 0.0, 2e-11);
+
+            let n = [direction.radial, direction.polar, direction.azimuthal];
+            let basis = seed.local_screen_basis;
+            for i in 0..2 {
+                close(basis[i].iter().zip(n).map(|(a,b)|a*b).sum(), 0.0, 2e-14);
+                close(basis[i].iter().map(|x|x*x).sum(), 1.0, 2e-14);
+            }
+            close(basis[0].iter().zip(basis[1]).map(|(a,b)|a*b).sum(), 0.0, 2e-14);
+
+            for variation in [seed.first_phase_space_variation, seed.second_phase_space_variation] {
+                let shell_tangent = evaluation.derivative.coordinates
+                    .iter().zip(&variation[4..])
+                    .map(|(qdot, dp)| qdot * dp)
+                    .sum::<f64>();
+                assert!(shell_tangent.abs() < 2e-11, "null-shell tangent residual={shell_tangent:.4e}");
+            }
+
+            // Central finite difference of the exact local-tetrad seed map.
+            let epsilon = 1e-6;
+            for index in 0..2 {
+                let tangent = basis[index];
+                let plus = normalize_sky([
+                    n[0] + epsilon * tangent[0],
+                    n[1] + epsilon * tangent[1],
+                    n[2] + epsilon * tangent[2],
+                ]);
+                let minus = normalize_sky([
+                    n[0] - epsilon * tangent[0],
+                    n[1] - epsilon * tangent[1],
+                    n[2] - epsilon * tangent[2],
+                ]);
+                let plus_seed = observer.canonical_seed(
+                    KerrLocalSkyDirection::new(plus[0], plus[1], plus[2]).unwrap()
+                ).unwrap();
+                let minus_seed = observer.canonical_seed(
+                    KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap()
+                ).unwrap();
+                let analytic = if index == 0 {
+                    seed.first_phase_space_variation
+                } else {
+                    seed.second_phase_space_variation
+                };
+                for slot in 4..8 {
+                    let numerical = (plus_seed.state.momenta[slot - 4]
+                        - minus_seed.state.momenta[slot - 4]) / (2.0 * epsilon);
+                    close(analytic[slot], numerical, 2e-7);
+                }
+            }
+        }
+    }
+
     #[test]
     fn finite_radius_observer_rejects_nonunit_sky_directions_and_axis() {
         assert!(matches!(
