@@ -223,10 +223,6 @@ pub fn build_probe_policy_prefix(
         ("probe_action_id", &context.probe_action_id),
         ("probe_receipt_digest", &context.probe_receipt_digest),
         (
-            "initial_observation_receipt_digest",
-            &context.initial_observation_receipt_digest,
-        ),
-        (
             "initial_belief_state_set_digest",
             &context.initial_belief_state_set_digest,
         ),
@@ -402,6 +398,15 @@ pub fn build_probe_policy_prefix(
         || decisions.keys().any(|outcome| !observations.contains_key(outcome))
     {
         return Err(VoiPolicyBridgeError::OutcomeCoverageMismatch);
+    }
+    for (outcome_id, observation) in &observations {
+        if continuations[outcome_id].post_state_set_digest
+            != observation.belief_state_set_digest
+        {
+            return Err(VoiPolicyBridgeError::ObservationClassConflict(
+                observation.equivalence_class.clone(),
+            ));
+        }
     }
 
     let mut grouped_observations: BTreeMap<String, Vec<&ProbeObservationClassView>> =
