@@ -1324,6 +1324,28 @@ mod tests {
     }
 
     #[test]
+    fn source_screen_map_rejects_samples_after_horizon_crossing() {
+        let black_hole = hole(0.9);
+        let observer = KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
+        let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        let integrator = KerrNullTrajectoryIntegrator::new(
+            black_hole, KerrIntegrationChart::Ingoing, options(),
+        ).unwrap();
+        let bundle = integrator.integrate_observer_tangent_bundle(seed, 2.0).unwrap();
+        let interior_index = bundle.samples.iter().position(|sample|
+            sample.trajectory.state.coordinates.radius_over_m
+                <= 1.0 + (1.0 - 0.9_f64.powi(2)).sqrt()
+        ).unwrap();
+        assert!(matches!(
+            bundle.optical_screen_map_at(interior_index, 1e-7),
+            Err(KerrIntegratorError::Geodesic(
+                KerrGeodesicError::RadiusAtOrInsideHorizon { .. }
+            ))
+        ));
+    }
+
+    #[test]
     fn observer_tangent_bundle_rejects_chart_mismatch() {
         let black_hole = hole(0.7);
         let observer = KerrFiniteRadiusObserver::new(black_hole, 10.0, 1.0).unwrap();
