@@ -1849,4 +1849,3 @@ mod tests {
         assert!(has(&report, "normal_mode_with_containment_active"));
     }
 }
-}
