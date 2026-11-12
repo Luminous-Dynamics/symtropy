@@ -1,0 +1,171 @@
+{
+  "schema_version": "luminous.black-hole.schwarzschild-scalar-trapping.v1",
+  "artifact_id": "BH-SCHW-SCALAR-TRAPPING-001",
+  "status": "analytic_reference_fixture_not_a_PDE_run",
+  "created_utc": "2026-11-10",
+  "claim_ceiling": "This artifact freezes analytic equation-level controls and derived potential-peak reference values. It contains no numerical wave evolution, convergence result, Price-law measurement, or reproduction of a black-hole decay theorem.",
+  "owner": {
+    "research_issue": "https://github.com/Luminous-Dynamics/symtropy/issues/4465",
+    "physics_owner": "Symtropy Schwarzschild scalar wave-packet campaign",
+    "evidence_owner": "Mycelix #5903"
+  },
+  "conventions": {
+    "units": "G=c=1",
+    "mass_normalization": "M=1 in dimensionless fixture values; dimensional formulas retain M",
+    "metric": "Schwarzschild exterior with f(r)=1-2M/r",
+    "tortoise_coordinate": "r_star = r + 2M*ln(r/(2M)-1), up to an additive constant",
+    "field_decomposition": "Phi(t,r,theta,phi)=sum_{ell,m} (psi_ellm(t,r)/r) Y_ellm(theta,phi)",
+    "master_equation": "(d_t^2 - d_rstar^2 + V_ell(r)) psi_ellm = 0",
+    "scalar_potential": "V_ell(r)=f(r)*(ell*(ell+1)/r^2 + 2M/r^3)",
+    "frequency_convention": "Use exp(-i*omega*t); report dimensionless M*omega",
+    "radial_domain": "r>2M; r_star is monotone and ranges over the exterior"
+  },
+  "analytic_controls": {
+    "photon_sphere": {
+      "areal_radius_over_M": 3,
+      "critical_impact_parameter_over_M": "3*sqrt(3)",
+      "orbital_angular_frequency_M_times_Omega": "1/(3*sqrt(3))",
+      "radial_lyapunov_exponent_M_times_lambda": "1/(3*sqrt(3))",
+      "status": "analytic_null_geodesic_identity"
+    },
+    "scalar_effective_potential_peak": {
+      "derivative_equation_for_all_ell": "L*r^2 - 3*(L-1)*r - 8 = 0, where L=ell*(ell+1), M=1",
+      "ell_zero_special_case": "r_peak=8/3",
+      "positive_root_for_ell_ge_1": "r_peak=(3*(L-1)+sqrt(9*(L-1)^2+32*L))/(2*L)",
+      "qualification_note": "The null photon sphere is at r=3M, but the finite-ell scalar potential maximum is not exactly there. These are different objects. The peak approaches 3M in the eikonal limit.",
+      "values": [
+        {
+          "ell": 0,
+          "L": 0,
+          "r_peak_over_M": 2.6666666666666665,
+          "Vmax_times_M2": 0.0263671875,
+          "M_omega_barrier_scale": 0.16237976320958225
+        },
+        {
+          "ell": 1,
+          "L": 2,
+          "r_peak_over_M": 2.8860009363293826,
+          "Vmax_times_M2": 0.09926158524991222,
+          "M_omega_barrier_scale": 0.3150580664733284
+        },
+        {
+          "ell": 2,
+          "L": 6,
+          "r_peak_over_M": 2.9517148213885114,
+          "Vmax_times_M2": 0.24711678166965048,
+          "M_omega_barrier_scale": 0.497108420437283
+        },
+        {
+          "ell": 4,
+          "L": 20,
+          "r_peak_over_M": 2.9840461827668863,
+          "Vmax_times_M2": 0.7654982260154521,
+          "M_omega_barrier_scale": 0.8749275547240767
+        },
+        {
+          "ell": 8,
+          "L": 72,
+          "r_peak_over_M": 2.9954269144107304,
+          "Vmax_times_M2": 2.691376882413734,
+          "M_omega_barrier_scale": 1.640541642998962
+        },
+        {
+          "ell": 16,
+          "L": 272,
+          "r_peak_over_M": 2.9987785032493615,
+          "Vmax_times_M2": 10.09877046156693,
+          "M_omega_barrier_scale": 3.177856268236015
+        }
+      ],
+      "value_kind": "double_precision_evaluation_of_closed_form_peak_and_potential",
+      "frequency_scale_warning": "sqrt(Vmax) is a barrier frequency scale for packet design, not a quasinormal-mode frequency or an exact spectral oracle."
+    }
+  },
+  "benchmark_design": {
+    "multipoles": [
+      0,
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "packet_frequency_factors_of_sqrt_Vmax": [
+      0.7,
+      0.9,
+      1,
+      1.1,
+      1.3
+    ],
+    "packet_families": [
+      "near-barrier wave packets centered at r_star(r_peak), with controlled bandwidth and normalized initial energy",
+      "radial / low-angular-momentum control packets",
+      "sub-barrier, near-barrier and above-barrier central-frequency groups",
+      "ingoing and outgoing packet controls"
+    ],
+    "observables": [
+      "local energy in a fixed, declared r_star window around the potential peak",
+      "dwell time and group delay with source-duration deconvolution",
+      "transmitted horizon flux and reflected infinity flux",
+      "waveform amplitude and phase at a fixed extraction radius",
+      "integrated-local-energy quantity using the exact weight and regularity stated by the selected theorem",
+      "late-time tail fits separated by fixed-radius, horizon and null-infinity observation surface"
+    ],
+    "refinements": [
+      "radial grid spacing",
+      "time step",
+      "inner and outer domain extent",
+      "source envelope and bandwidth",
+      "observation / fitting window"
+    ],
+    "negative_controls": [
+      "Minkowski / zero-potential limit",
+      "wrong tortoise map",
+      "wrong potential sign",
+      "wrong ell index",
+      "reflected outer-boundary contamination",
+      "under-resolved near-barrier packet",
+      "apparent dwell time caused only by source duration",
+      "late-time fit using the wrong observation surface or initial-data falloff"
+    ],
+    "error_budget": [
+      "spatial discretization",
+      "time integration",
+      "finite-domain and boundary reflection",
+      "source representation and bandwidth",
+      "observation interpolation",
+      "finite-time truncation",
+      "frequency quadrature / spectral truncation",
+      "floating-point and cancellation"
+    ],
+    "qualification_rule": "No trapping or decay claim is promoted until at least three independently refined levels are available, the declared flux/energy balance is within its pre-registered budget, boundary reflections are excluded, and the near-trapping result differs from radial controls by more than the combined uncertainty."
+  },
+  "comparison_targets": {
+    "bhpt": {
+      "role": "later convention-matched frequency-domain radial-solution and amplitude comparator, not a direct replacement for the time-domain solver",
+      "url": "https://bhptoolkit.org/modules/teukolsky/",
+      "supported_references": "homogeneous In/Up radial solutions, amplitudes and fluxes with retarded horizon/infinity boundary conditions"
+    },
+    "kerr_decay_theorem": {
+      "role": "later theorem-native estimate comparison after exact norm and foliation definitions are transcribed",
+      "doi": "10.1007/s00205-026-02173-9",
+      "url": "https://link.springer.com/article/10.1007/s00205-026-02173-9",
+      "scope": "spin ±1 and ±2 Teukolsky perturbations across subextremal |a|<M; scalar wave case s=0 is also included; integrated local energy estimate degenerates at trapping by one derivative relative to the stated energy norm"
+    },
+    "numerical_relativity": {
+      "role": "later independent nonlinear waveform validation, not the scalar Schwarzschild toy-model oracle",
+      "grace_accepted_paper": "https://doi.org/10.1103/yq78-m749",
+      "einstein_toolkit_carpetx_manual": "https://www.einsteintoolkit.org/thornguide/CarpetX/CarpetX/documentation.html",
+      "sxs_catalog": "https://data.black-holes.org/waveforms/index.html"
+    }
+  },
+  "execution": {
+    "analytic_formula_review": "completed_in_this_research_pass",
+    "peak_values": "independently_evaluated_from_closed_form_in_double_precision",
+    "code_implemented": false,
+    "PDE_evolved": false,
+    "rust_compiled": false,
+    "CI_run": false,
+    "theorem_reproduced": false
+  }
+}
