@@ -1,12 +1,12 @@
 {
-  "schema_version": "liu-ice-active-evidence-selection-v0.3",
+  "schema_version": "liu-ice-active-evidence-selection-v0.4",
   "status": "protocol_only_not_executed",
   "purpose": "Rank additional passive observations and explicitly authorized operator inspections by expected reduction in diagnostic hypothesis uncertainty, subject to declared cost, delay, risk and authority gates. This module is a read-only selector.",
   "method": {
     "objective": "Expected information gain in nats: I(H;O) = H(H) - sum_o P(o) H(H|o).",
     "utility": "EIG / (1 + expected_cost_seconds/cost_penalty_scale_seconds + expected_delay_seconds/delay_penalty_scale_seconds + risk_score_ppm/risk_penalty_scale_ppm).",
-    "likelihood_contract": "For every hypothesis, conditional probabilities across all declared outcomes sum to one; each likelihood table binds the exact sorted hypothesis/prior manifest.",
-    "prior_contract": "Prior probabilities are finite, non-negative and sum to one; priors and the hypothesis label space are content-addressed.",
+    "likelihood_contract": "For every hypothesis, conditional probabilities across all declared outcomes sum to one; each likelihood table binds the stable sorted hypothesis-space digest, independent of the current prior.",
+    "prior_contract": "Prior probabilities are finite, non-negative and sum to one. The stable hypothesis-space digest excludes probabilities; the prior-distribution digest includes them. Both are content-addressed separately.",
     "calibration_contract": "Likelihood model and calibration digests must be present. Their statistical calibration and signer/source trust are established upstream; digest shape alone does not prove model validity.",
     "uncertainty_scenarios": {
       "description": "Represent calibrated likelihood uncertainty as a frozen finite set of plausible scenarios. Each scenario supplies a normalized outcome likelihood table for the same hypothesis manifest.",
@@ -34,6 +34,13 @@
       "receipt_binding": "The candidate manifest and calibration catalogue bind the likelihood-model SHA, calibration SHA, reviewer receipt SHA and review state.",
       "qualification": "A caller-supplied boolean and digest are not self-authenticating. The reviewer identity, competence, independence, report contents, signature, scope and revocation state must be verified by the upstream trust service.",
       "point_estimate_rule": "A point-estimate likelihood table may be scored as a provisional diagnostic hypothesis, but it is not multi-scenario assessed and cannot qualify the robust evidence-selection track."
+    },
+    "identity_contract": {
+      "hypothesis_space_digest": "SHA-256 over the sorted unique hypothesis IDs only. It is immutable across sequential posterior updates and binds every candidate likelihood table.",
+      "prior_distribution_digest": "SHA-256 over the sorted hypothesis IDs and exact current probabilities. It changes whenever evidence changes the posterior and is separately bound into each selection portfolio.",
+      "candidate_binding": "Candidate likelihood models bind the stable hypothesis-space digest, never a transient prior distribution.",
+      "portfolio_binding": "Every ranking portfolio binds both the stable hypothesis-space digest and the exact prior-distribution digest used for that decision.",
+      "sequential_update": "After applying an externally acquired observation, carry the returned posterior and observation ledger into a new selection round. Reuse of a candidate likelihood model is permitted only when the stable hypothesis-space digest still matches; every new round has a new prior-distribution digest."
     }
   },
   "candidate_classes": {
@@ -93,14 +100,6 @@
     "false_unique_root_cause_rate",
     "worst_case_expected_information_gain_nats",
     "likelihood_scenario_count",
-    "realized_entropy_reduction_nats",
-    "realized_kl_divergence_nats",
-    "posterior_entropy_nats",
-    "scenario_posterior_entropy_min_nats",
-    "scenario_posterior_entropy_max_nats",
-    "possible_likelihood_scenario_count",
-    "impossible_likelihood_scenario_count",
-    "observation_candidate_manifest_match",
     "realized_entropy_reduction_nats",
     "realized_kl_divergence_nats",
     "posterior_entropy_nats",
