@@ -11,10 +11,10 @@
     {
       "case_id": "PS-T0-001-single-pump-known-answer",
       "inputs": {
-        "water_density_kg_m3": 1000.0,
+        "water_density_kg_m3": 1000,
         "gravity_m_s2": 9.81,
         "flow_m3_s": 0.01,
-        "total_dynamic_head_m": 25.0,
+        "total_dynamic_head_m": 25,
         "electrical_input_power_w": 3503.5714285714284
       },
       "expected": {
@@ -34,8 +34,8 @@
       },
       "expected": {
         "flow_m3_s": 0.01,
-        "head_m": 12.0,
-        "residual_m": 0.0
+        "head_m": 12,
+        "residual_m": 0
       },
       "oracle": "Solve H_p(Q) = H_s(Q); both curves must return the same duty head"
     },
@@ -51,16 +51,16 @@
       "expected": {
         "total_flow_m3_s": 0.0158113883008419,
         "flow_per_pump_m3_s": 0.00790569415042095,
-        "common_head_m": 15.0,
-        "flow_split_residual_m3_s": 0.0
+        "common_head_m": 15,
+        "flow_split_residual_m3_s": 0
       },
       "oracle": "H_parallel(Q) = H_single(Q/2); intersect with system curve"
     },
     {
       "case_id": "PS-T0-004-minimum-service-pressure-not-met",
       "inputs": {
-        "measured_head_m": 12.0,
-        "minimum_service_head_m": 15.0,
+        "measured_head_m": 12,
+        "minimum_service_head_m": 15,
         "measured_flow_m3_s": 0.01,
         "minimum_service_flow_m3_s": 0.009
       },
@@ -75,8 +75,8 @@
       "case_id": "PS-T0-005-commanded-on-but-no-measured-flow",
       "inputs": {
         "pump_command": "ON",
-        "measured_flow_m3_s": 0.0,
-        "electrical_input_power_w": 300.0
+        "measured_flow_m3_s": 0,
+        "electrical_input_power_w": 300
       },
       "expected": {
         "delivery_disposition": "NO_DELIVERY",
@@ -89,13 +89,44 @@
       "inputs": {
         "measured_flow_m3_s": 0.01,
         "measured_delivery_pressure": null,
-        "minimum_service_pressure": 150000.0
+        "minimum_service_pressure": 150000
       },
       "expected": {
         "service_disposition": "INDETERMINATE",
         "schedule_feasible": false
       },
       "oracle": "Missing critical service evidence never becomes zero, a pass, or a feasible schedule"
+    },
+    {
+      "case_id": "PS-T0-007-storage-reserve-during-pump-outage",
+      "inputs": {
+        "usable_storage_start_m3": 1,
+        "demand_m3_s": 0.005,
+        "outage_duration_s": 120,
+        "minimum_reserve_m3": 0.2
+      },
+      "expected": {
+        "demand_volume_m3": 0.6,
+        "storage_end_m3": 0.4,
+        "service_disposition": "SERVICE_MAINTAINED_WITHIN_DECLARED_RESERVE"
+      },
+      "oracle": "Storage balance is start volume minus integrated demand; declare service maintained only when demand is supplied and end storage remains above the profile reserve"
+    },
+    {
+      "case_id": "PS-T0-008-out-of-domain-pump-curve",
+      "inputs": {
+        "curve_flow_domain_m3_s": [
+          0.005,
+          0.015
+        ],
+        "requested_flow_m3_s": 0.02,
+        "extrapolation_allowed": false
+      },
+      "expected": {
+        "calculation_disposition": "UNSUPPORTED",
+        "schedule_feasible": false
+      },
+      "oracle": "Do not extrapolate a pump curve outside its declared test/map domain"
     }
   ],
   "potable_treatment_cases": [
@@ -103,26 +134,26 @@
       "case_id": "PW-T0-001-complete-water-and-marker-mass-boundary",
       "synthetic_marker": "marker_alpha",
       "inputs": {
-        "feed_water_l": 1000.0,
-        "feed_marker_concentration_mg_l": 2.0,
-        "product_water_l": 850.0,
+        "feed_water_l": 1000,
+        "feed_marker_concentration_mg_l": 2,
+        "product_water_l": 850,
         "product_marker_concentration_mg_l": 0.2,
-        "reject_water_l": 120.0,
-        "reject_marker_concentration_mg_l": 14.0,
-        "backwash_water_l": 20.0,
-        "backwash_marker_concentration_mg_l": 2.0,
-        "sludge_liquor_water_l": 5.0,
-        "sludge_liquor_marker_concentration_mg_l": 12.0,
-        "evaporation_or_other_water_loss_l": 5.0,
-        "captured_dry_residual_marker_mg": 50.0
+        "reject_water_l": 120,
+        "reject_marker_concentration_mg_l": 14,
+        "backwash_water_l": 20,
+        "backwash_marker_concentration_mg_l": 2,
+        "sludge_liquor_water_l": 5,
+        "sludge_liquor_marker_concentration_mg_l": 12,
+        "evaporation_or_other_water_loss_l": 5,
+        "captured_dry_residual_marker_mg": 50
       },
       "expected": {
-        "water_in_l": 1000.0,
-        "water_out_l": 1000.0,
-        "water_balance_residual_l": 0.0,
-        "marker_in_mg": 2000.0,
-        "marker_accounted_mg": 2000.0,
-        "marker_balance_residual_mg": 0.0,
+        "water_in_l": 1000,
+        "water_out_l": 1000,
+        "water_balance_residual_l": 0,
+        "marker_in_mg": 2000,
+        "marker_accounted_mg": 2000,
+        "marker_balance_residual_mg": 0,
         "evidence_disposition": "SYNTHETIC_ARITHMETIC_ONLY"
       },
       "oracle": "sum(output water streams) = feed water; sum(marker mass in output liquid and captured residual solids) = feed marker mass"
@@ -130,8 +161,13 @@
     {
       "case_id": "PW-T0-002-missing-required-analyte",
       "inputs": {
-        "profile_required_analytes": ["marker_alpha", "marker_beta"],
-        "observed_analytes": ["marker_alpha"]
+        "profile_required_analytes": [
+          "marker_alpha",
+          "marker_beta"
+        ],
+        "observed_analytes": [
+          "marker_alpha"
+        ]
       },
       "expected": {
         "assessment_disposition": "INDETERMINATE",
@@ -156,7 +192,7 @@
       "case_id": "PW-T0-004-breakthrough-at-end-of-life",
       "inputs": {
         "profile_is_synthetic": true,
-        "synthetic_upper_limit_mg_l": 1.0,
+        "synthetic_upper_limit_mg_l": 1,
         "measured_marker_alpha_mg_l": 1.2,
         "absolute_uncertainty_mg_l": 0.05
       },
@@ -189,6 +225,36 @@
         "release_allowed": false
       },
       "oracle": "Stale method/calibration on decisive measurements prevents a current positive assessment"
+    },
+    {
+      "case_id": "PW-T0-007-storage-recontamination",
+      "inputs": {
+        "synthetic_profile_requires_storage_outlet_sample": true,
+        "treatment_outlet_disposition": "SYNTHETIC_PASS",
+        "storage_outlet_disposition": "SYNTHETIC_NONCOMPLIANT"
+      },
+      "expected": {
+        "point_of_use_service_disposition": "SYNTHETIC_NONCOMPLIANT",
+        "release_allowed": false
+      },
+      "oracle": "A passing treatment outlet cannot override a failed downstream storage/point-of-use result"
+    },
+    {
+      "case_id": "PW-T0-008-reject-backwash-residual-omission",
+      "inputs": {
+        "declared_feed_water_l": 1000,
+        "declared_product_water_l": 850,
+        "declared_reject_water_l": 120,
+        "declared_backwash_water_l": 20,
+        "declared_sludge_liquor_water_l": 5,
+        "evaporation_or_other_water_loss_l": 5,
+        "residual_stream_measured": false
+      },
+      "expected": {
+        "volume_closure_disposition": "INCOMPLETE",
+        "recovery_claim_allowed": false
+      },
+      "oracle": "An unmeasured or omitted declared residual stream prevents complete-cycle closure and recovery claims"
     }
   ]
 }
