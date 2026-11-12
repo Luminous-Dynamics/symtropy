@@ -1194,7 +1194,11 @@ mod tests {
                     expected_losses
                 );
                 assert_eq!(
-                    report.additions.iter().map(|entry| entry.action_id.clone()).collect::<Vec<_>>(),
+                    report
+                        .additions
+                        .iter()
+                        .map(|entry| entry.action_id.clone())
+                        .collect::<Vec<_>>(),
                     expected_additions
                 );
                 assert_eq!(report.result_option_ids, expected_result);
