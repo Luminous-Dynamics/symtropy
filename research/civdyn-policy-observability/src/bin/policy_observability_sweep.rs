@@ -368,11 +368,11 @@ fn emit(
         find_stratum_mean(evaluation, "high_need"),
         high_lower,
         high_upper,
-        fmt_option(high_coverage),
+        high_coverage,
         find_stratum_mean(evaluation, "general"),
         general_lower,
         general_upper,
-        fmt_option(general_coverage),
+        general_coverage,
         evaluation.true_stratum_gap,
         evaluation
             .estimates
