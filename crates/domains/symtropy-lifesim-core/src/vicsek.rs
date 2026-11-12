@@ -3423,6 +3423,117 @@ mod tests {
     }
 
     #[test]
+    fn quadrant_correct_atan2_preserves_a_half_turn_global_phase_shift() {
+        let config = VicsekConfig {
+            box_size: 10.0,
+            interaction_radius: 0.0,
+            speed: 0.0,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let phase = 0.4;
+        let original = vec![VicsekParticle {
+            x: 5.0,
+            y: 5.0,
+            heading_rad: phase,
+        }];
+        let rotated = vec![VicsekParticle {
+            x: 5.0,
+            y: 5.0,
+            heading_rad: phase + std::f64::consts::PI,
+        }];
+
+        let mut left = VicsekModel::new_with_options(
+            original.clone(),
+            config,
+            7,
+            VicsekPerception::MetricRadius,
+            VicsekHeadingMean::QuadrantCorrectAtan2,
+        )
+        .unwrap();
+        let mut right = VicsekModel::new_with_options(
+            rotated,
+            config,
+            7,
+            VicsekPerception::MetricRadius,
+            VicsekHeadingMean::QuadrantCorrectAtan2,
+        )
+        .unwrap();
+        left.step().unwrap();
+        right.step().unwrap();
+
+        assert!(
+            wrapped_angular_difference(
+                right.particles()[0].heading_rad,
+                left.particles()[0].heading_rad + std::f64::consts::PI,
+            )
+            .abs()
+                < 1.0e-12
+        );
+    }
+
+    #[test]
+    fn principal_value_arctan_ratio_exposes_the_pi_branch_cut_alias() {
+        let config = VicsekConfig {
+            box_size: 10.0,
+            interaction_radius: 0.0,
+            speed: 0.0,
+            dt: 1.0,
+            angular_noise_width_rad: 0.0,
+            update_rule: VicsekUpdateRule::CurrentPositionAlignment,
+        };
+        let initial_heading = 0.4;
+        let mut left = VicsekModel::new_with_options(
+            vec![VicsekParticle {
+                x: 5.0,
+                y: 5.0,
+                heading_rad: initial_heading,
+            }],
+            config,
+            7,
+            VicsekPerception::MetricRadius,
+            VicsekHeadingMean::PrincipalValueArctanRatio,
+        )
+        .unwrap();
+        let mut right = VicsekModel::new_with_options(
+            vec![VicsekParticle {
+                x: 5.0,
+                y: 5.0,
+                heading_rad: initial_heading + std::f64::consts::PI,
+            }],
+            config,
+            7,
+            VicsekPerception::MetricRadius,
+            VicsekHeadingMean::PrincipalValueArctanRatio,
+        )
+        .unwrap();
+
+        left.step().unwrap();
+        right.step().unwrap();
+
+        // atan(sin(theta)/cos(theta)) identifies theta and theta+pi. The
+        // legacy principal-value formula therefore loses a half-turn after a
+        // global phase shift, unlike the quadrant-correct atan2 convention.
+        assert!(
+            wrapped_angular_difference(
+                right.particles()[0].heading_rad,
+                left.particles()[0].heading_rad,
+            )
+            .abs()
+                < 1.0e-12
+        );
+        assert_eq!(
+            left.heading_mean(),
+            VicsekHeadingMean::PrincipalValueArctanRatio
+        );
+        assert_eq!(
+            right.fast_metrics().heading_mean,
+            VicsekHeadingMean::PrincipalValueArctanRatio
+        );
+    }
+
+    #[test]
     fn global_rotation_equivariance_holds_for_both_update_conventions() {
         let center = (50.0, 50.0);
         let phases = [
