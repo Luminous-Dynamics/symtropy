@@ -27,6 +27,16 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
+      - name: Export canonical Rust 1.96 formatting for changed evaluator
+        if: always()
+        run: |
+          mkdir -p /tmp/recoverability-format-export
+          cp research/recoverability-envelope-001/src/lib.rs /tmp/recoverability-format-export/lib.rs
+          rustfmt --edition 2024 /tmp/recoverability-format-export/lib.rs
+          echo "__FORMAT_EXPORT_BEGIN_RECOVERABILITY_LIB__"
+          base64 -w0 /tmp/recoverability-format-export/lib.rs | fold -w 4000
+          echo "__FORMAT_EXPORT_END_RECOVERABILITY_LIB__"
+
       - name: Check formatting
         run: cargo fmt --manifest-path research/recoverability-envelope-001/Cargo.toml -- --check
 
