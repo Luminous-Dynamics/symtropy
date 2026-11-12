@@ -2465,7 +2465,7 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("changes whenever evidence changes the posterior"));
-        assert_eq!(protocol["comparators"].as_array().unwrap().len(), 6);
+        assert_eq!(protocol["comparators"].as_array().unwrap().len(), 7);
         assert_eq!(protocol["candidate_classes"]["controlled_perturbation"]["eligible_when"], false);
         assert!(protocol["evidence_boundaries"]["authority_status"]
             .as_str()
@@ -2501,6 +2501,15 @@ mod tests {
             .as_str()
             .unwrap()
             .contains("not self-authenticating"));
+        assert!(protocol["method"]["chernoff_information"]["assumptions"]
+            .as_str()
+            .unwrap()
+            .contains("not a finite-sample classification error guarantee"));
+        assert!(protocol["comparators"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["id"] == "maximum_worst_case_pairwise_chernoff_information"));
         assert!(protocol["hard_gates"].as_array().unwrap().len() >= 40);
         assert!(protocol["comparators"]
             .as_array()
