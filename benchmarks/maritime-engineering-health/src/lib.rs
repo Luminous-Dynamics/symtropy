@@ -301,13 +301,13 @@ pub fn validate_case(case: &Case) -> Result<(), EvalError> {
                 observation.observation_id, case.case_id
             )));
         }
-        if let Some(prior) = previous {
-            if observation.after_ms < prior {
-                return Err(EvalError::Invalid(format!(
-                    "non-monotonic observation offsets in {}",
-                    case.case_id
-                )));
-            }
+        if let Some(prior) = previous
+            && observation.after_ms < prior
+        {
+            return Err(EvalError::Invalid(format!(
+                "non-monotonic observation offsets in {}",
+                case.case_id
+            )));
         }
         previous = Some(observation.after_ms);
     }
