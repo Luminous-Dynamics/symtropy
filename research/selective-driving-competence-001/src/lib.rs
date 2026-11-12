@@ -621,7 +621,14 @@ impl SplitMix64 {
     }
 
     fn index(&mut self, upper_exclusive: usize) -> usize {
-        (self.next_u64() % upper_exclusive as u64) as usize
+        let bound = upper_exclusive as u64;
+        let rejection_threshold = bound.wrapping_neg() % bound;
+        loop {
+            let value = self.next_u64();
+            if value >= rejection_threshold {
+                return (value % bound) as usize;
+            }
+        }
     }
 }
 
@@ -1130,6 +1137,43 @@ mod tests {
         let coverage = first.actual_autonomy_coverage.unwrap();
         assert!(coverage.lower_95_percent <= coverage.upper_95_percent);
         assert!((0.0..=1.0).contains(&coverage.lower_95_percent));
+    }
+
+    #[test]
+    fn cluster_bootstrap_resampling_is_reproducible_for_the_same_seed() {
+        let mut value = input(vec![
+            record("a", "urban", 0.01, false, 0.0),
+            record("b", "urban", 0.1, false, 0.0),
+            record("c", "night", 0.8, true, 1.0),
+            record("d", "night", 0.9, true, 1.0),
+        ]);
+        value.bootstrap_replicates = 400;
+        value.bootstrap_seed = 0x5eed_cafe;
+        let first = value.evaluate().unwrap().bootstrap;
+        let second = value.evaluate().unwrap().bootstrap;
+        assert_eq!(
+            serde_json::to_string(&first).unwrap(),
+            serde_json::to_string(&second).unwrap()
+        );
+    }
+
+    #[test]
+    fn accepted_risk_interval_is_unavailable_when_any_replicate_has_no_accepted_decisions() {
+        let mut first = record("a", "all-abstain", 0.1, false, 0.0);
+        first.abstained = true;
+        first.abstention_timestamp_us = Some(1_100);
+        first.decision_deadline_us = Some(1_200);
+        first.fallback_succeeded = Some(true);
+        first.fallback_duration_ms = Some(100.0);
+        let second = record("b", "accepted", 0.2, false, 0.0);
+        let mut value = input(vec![first, second]);
+        value.bootstrap_replicates = 100;
+        value.bootstrap_seed = 17;
+        let result = value.evaluate().unwrap();
+        assert!(result.bootstrap.accepted_risk_valid_replicates <= 100);
+        if result.bootstrap.accepted_risk_valid_replicates < 100 {
+            assert_eq!(result.bootstrap.actual_accepted_failure_rate, None);
+        }
     }
 
     #[test]
