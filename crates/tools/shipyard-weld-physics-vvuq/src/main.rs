@@ -256,12 +256,12 @@ fn validate_manifest(schema_text: &str, corpus_text: &str) -> Result<Summary, Ve
             );
         }
 
-        if let Some(source_id) = case.get("source_id").and_then(Value::as_str) {
-            if !source_ids.contains(source_id) {
-                errors.push(format!(
-                    "{context} references unknown source_id {source_id}"
-                ));
-            }
+        if let Some(source_id) = case.get("source_id").and_then(Value::as_str)
+            && !source_ids.contains(source_id)
+        {
+            errors.push(format!(
+                "{context} references unknown source_id {source_id}"
+            ));
         }
         if class == Some("positive_contract_control")
             && string_at(case, "expected_disposition") != Some("METADATA_ONLY_RETAINED")
