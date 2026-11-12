@@ -526,9 +526,6 @@ fn solve_node(
                     any_invalid = true;
                     continue;
                 }
-                if action_no_policy {
-                    continue;
-                }
                 if action_unknown {
                     any_unknown = true;
                     continue;
@@ -617,6 +614,9 @@ fn solve_node(
                 }
                 if action_invalid {
                     any_invalid = true;
+                    continue;
+                }
+                if action_no_policy {
                     continue;
                 }
 
