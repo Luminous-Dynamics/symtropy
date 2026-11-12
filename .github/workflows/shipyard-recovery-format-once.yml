@@ -29,6 +29,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          cargo metadata --manifest-path Cargo.toml --no-deps --format-version 1 > /dev/null
           for manifest in \
             crates/tools/shipyard-weld-physics-vvuq/Cargo.toml \
             crates/tools/shipyard-distortion-co-design/Cargo.toml \
@@ -36,6 +37,7 @@ jobs:
             crates/tools/shipyard-interpass-adaptive/Cargo.toml \
             crates/tools/shipyard-profile-geometry-oracle/Cargo.toml
           do
+            cargo metadata --manifest-path "$manifest" --no-deps --format-version 1 > /dev/null
             cargo fmt --manifest-path "$manifest" --all
           done
 
