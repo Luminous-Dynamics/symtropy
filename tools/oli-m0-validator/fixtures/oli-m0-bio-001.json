@@ -1,0 +1,61 @@
+{
+  "schema_version": "oli-m0-fixture-v0.1",
+  "fixture_id": "OLI-M0-BIO-001",
+  "scenario_family": "KNOWN_BIOLOGICAL_REFERENCE",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "physical_substrate": "terrestrial_cellular_biochemistry_reference",
+  "system_boundary": {
+    "status": "DECLARED",
+    "description": "Synthetic bounded cellular reference with explicit membrane, internal state, resource exchange, and lineage."
+  },
+  "measurement": {
+    "modality": "synthetic_state_trace",
+    "units": ["s", "m", "joule", "arbitrary_state_unit"],
+    "unit_status": "DECLARED",
+    "calibration_status": "QUALIFIED_SYNTHETIC_REFERENCE",
+    "temporal": {
+      "window_seconds": 1000.0,
+      "sampling_interval_seconds": 1.0,
+      "target_process_timescale_seconds": 5.0,
+      "coverage_fraction": 1.0
+    },
+    "spatial": {
+      "coordinate_frame": "synthetic_local_cartesian",
+      "footprint_fraction": 1.0,
+      "resolution_m": 0.000001
+    }
+  },
+  "property_assessments": {
+    "organization": "SUPPORTED_WITHIN_SCOPE",
+    "boundary": "SUPPORTED_WITHIN_SCOPE",
+    "energy_matter_throughput": "SUPPORTED_WITHIN_SCOPE",
+    "persistence": "SUPPORTED_WITHIN_SCOPE",
+    "homeostasis_regulation": "SUPPORTED_WITHIN_SCOPE",
+    "self_maintenance": "SUPPORTED_WITHIN_SCOPE",
+    "information_retention": "SUPPORTED_WITHIN_SCOPE",
+    "information_transfer": "SUPPORTED_WITHIN_SCOPE",
+    "reproduction": "SUPPORTED_WITHIN_SCOPE",
+    "heredity": "SUPPORTED_WITHIN_SCOPE",
+    "adaptation": "SUPPORTED_WITHIN_SCOPE",
+    "learning": "NOT_TESTED",
+    "agency": "NOT_TESTED",
+    "intelligence": "NOT_TESTED",
+    "collective_intelligence": "NOT_TESTED",
+    "sentience_consciousness": "NOT_TESTED"
+  },
+  "expected_result": {
+    "disposition": "KNOWN_BIOLOGICAL_REFERENCE",
+    "absence_inference_allowed": false,
+    "reason": "Synthetic known-truth positive control. Property-level labels validate the benchmark pipeline only; no natural sample is represented."
+  },
+  "source": {
+    "reference": "synthetic://oli-m0/biological-reference-v1",
+    "data_status": "SYNTHETIC_FIXTURE_ONLY",
+    "note": "No real biological measurements or participant data are included."
+  },
+  "limitations": [
+    "Synthetic ground truth is not a natural biosignature detection result.",
+    "The fixture does not test consciousness or subjective experience.",
+    "Property labels are scoped to the declared synthetic generator."
+  ]
+}

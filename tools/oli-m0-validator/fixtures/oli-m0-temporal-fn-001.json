@@ -1,0 +1,61 @@
+{
+  "schema_version": "oli-m0-fixture-v0.1",
+  "fixture_id": "OLI-M0-TEMPORAL-FN-001",
+  "scenario_family": "TEMPORAL_UNDERSAMPLING_FALSE_NEGATIVE",
+  "evidence_class": "SYNTHETIC_KNOWN_TRUTH",
+  "physical_substrate": "synthetic_biological_reference_with_rare_activity",
+  "system_boundary": {
+    "status": "DECLARED",
+    "description": "Synthetic known-truth biological reference whose activity occurs in short bursts between sparse observations."
+  },
+  "measurement": {
+    "modality": "sparse_temporal_sensor_sample",
+    "units": ["s", "arbitrary_signal_unit"],
+    "unit_status": "DECLARED",
+    "calibration_status": "QUALIFIED_SYNTHETIC_REFERENCE",
+    "temporal": {
+      "window_seconds": 1000.0,
+      "sampling_interval_seconds": 120.0,
+      "target_process_timescale_seconds": 2.0,
+      "coverage_fraction": 0.05
+    },
+    "spatial": {
+      "coordinate_frame": "synthetic_local_cartesian",
+      "footprint_fraction": 1.0,
+      "resolution_m": 0.0001
+    }
+  },
+  "property_assessments": {
+    "organization": "INSUFFICIENT_EVIDENCE",
+    "boundary": "SUPPORTED_WITHIN_SCOPE",
+    "energy_matter_throughput": "INSUFFICIENT_EVIDENCE",
+    "persistence": "INSUFFICIENT_EVIDENCE",
+    "homeostasis_regulation": "NOT_OBSERVABLE_WITH_CURRENT_INSTRUMENT",
+    "self_maintenance": "NOT_OBSERVABLE_WITH_CURRENT_INSTRUMENT",
+    "information_retention": "NOT_TESTED",
+    "information_transfer": "NOT_TESTED",
+    "reproduction": "NOT_TESTED",
+    "heredity": "NOT_TESTED",
+    "adaptation": "NOT_TESTED",
+    "learning": "NOT_TESTED",
+    "agency": "NOT_TESTED",
+    "intelligence": "NOT_TESTED",
+    "collective_intelligence": "NOT_TESTED",
+    "sentience_consciousness": "NOT_TESTED"
+  },
+  "expected_result": {
+    "disposition": "NON_DETECTION_INCONCLUSIVE",
+    "absence_inference_allowed": false,
+    "reason": "Sparse sampling is much slower than the target process timescale. A non-detection in sampled frames is an observation about the sampled windows, not evidence of absence during the full interval."
+  },
+  "source": {
+    "reference": "synthetic://oli-m0/temporal-aliasing-v1",
+    "data_status": "SYNTHETIC_FIXTURE_ONLY",
+    "note": "The full synthetic generator contains short-lived events between acquired samples; this public fixture freezes the sampling envelope."
+  },
+  "limitations": [
+    "The fixture tests temporal aliasing only; spatial gaps are covered by a separate Sol-Atlas benchmark.",
+    "The temporal coverage fraction is a synthetic ground-truth property, not an instrument performance result.",
+    "No life-presence posterior may be updated from the non-detection."
+  ]
+}

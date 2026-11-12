@@ -124,6 +124,7 @@ exclude = [
 ]
 members = [
     ".",
+    "tools/oli-m0-validator",
     "crates/apps/symtropy-cli",
     "crates/bridges/symtropy-bevy",
     "crates/core/symtropy-bevy-core",
