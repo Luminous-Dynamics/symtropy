@@ -426,7 +426,7 @@ impl<const D: usize> PhysicsWorld<D> {
         handle: BodyHandle,
         net_id: NetId,
     ) -> Result<Option<NetId>, NetIdAssignmentError> {
-        self.try_set_net_ids_atomic(vec![(handle, net_id)])?
+        self.try_set_net_ids_atomic(&[(handle, net_id)])?
             .into_iter()
             .next()
             .ok_or(NetIdAssignmentError::MissingBody(handle))
@@ -443,7 +443,7 @@ impl<const D: usize> PhysicsWorld<D> {
     /// The returned previous IDs follow the same order as the input slice.
     pub fn try_set_net_ids_atomic(
         &mut self,
-        assignments: Vec<(BodyHandle, NetId)>,
+        assignments: &[(BodyHandle, NetId)],
     ) -> Result<Vec<Option<NetId>>, NetIdAssignmentError> {
         let mut target_handles = HashSet::with_capacity(assignments.len());
         let mut resolved = Vec::with_capacity(assignments.len());
@@ -2824,7 +2824,7 @@ mod net_id_assignment_tests {
         world.set_net_id(first, NetId(1));
 
         assert_eq!(
-            world.try_set_net_ids_atomic(vec![(first, NetId(2)), (second, NetId(3))]),
+            world.try_set_net_ids_atomic(&[(first, NetId(2)), (second, NetId(3))]),
             Ok(vec![Some(NetId(1)), None])
         );
         assert_eq!(world.handle_for_net_id(NetId(1)), None);
@@ -2839,7 +2839,7 @@ mod net_id_assignment_tests {
         world.set_net_id(second, NetId(20));
 
         assert_eq!(
-            world.try_set_net_ids_atomic(vec![(first, NetId(20)), (second, NetId(10))]),
+            world.try_set_net_ids_atomic(&[(first, NetId(20)), (second, NetId(10))]),
             Ok(vec![Some(NetId(10)), Some(NetId(20))])
         );
         assert_eq!(world.handle_for_net_id(NetId(10)), Some(second));
@@ -2851,7 +2851,7 @@ mod net_id_assignment_tests {
         let (mut world, first, second) = world_with_two_bodies();
         world.set_net_id(first, NetId(1));
         assert_eq!(
-            world.try_set_net_ids_atomic(vec![(first, NetId(9)), (second, NetId(9))]),
+            world.try_set_net_ids_atomic(&[(first, NetId(9)), (second, NetId(9))]),
             Err(NetIdAssignmentError::DuplicateNetId {
                 net_id: NetId(9),
                 existing_handle: first,
@@ -2867,7 +2867,7 @@ mod net_id_assignment_tests {
     fn atomic_batch_duplicate_handle_rejects_without_any_mutation() {
         let (mut world, first, _) = world_with_two_bodies();
         assert_eq!(
-            world.try_set_net_ids_atomic(vec![(first, NetId(9)), (first, NetId(10))]),
+            world.try_set_net_ids_atomic(&[(first, NetId(9)), (first, NetId(10))]),
             Err(NetIdAssignmentError::DuplicateBodyAssignment(first))
         );
         assert_eq!(world.net_id_for_handle(first), None);
