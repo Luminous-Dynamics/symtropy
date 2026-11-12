@@ -73,6 +73,8 @@ mod tests {
             "calibration_bin_count": 5,
             "fixed_coverage_target": 0.5,
             "fixed_risk_limit": 0.1,
+            "bootstrap_replicates": 200,
+            "bootstrap_seed": 7,
             "decisions": [{
                 "decision_id": "decision-1",
                 "episode_id": "episode-1",
