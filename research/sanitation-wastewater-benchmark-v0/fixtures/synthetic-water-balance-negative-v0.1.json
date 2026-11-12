@@ -94,7 +94,7 @@
     "WATER_BALANCE_EXCEEDS_TOLERANCE"
   ],
   "notes": [
-    "Water closure: 1000 = 850 + 100 + 50 L/day.",
+    "Water closure check: 1000 - 850 - 100 - 45 = 5 L/day unexplained residual.",
     "TSS, total nitrogen and total phosphorus are explicit conserved-load allocations across declared outputs.",
     "BOD5/COD are load-based performance metrics, not conserved species; their calculated removal does not prove process kinetics or effluent compliance.",
     "Effluent allocation: 850 = 800 allocated for reuse + 50 discharged; reuse allocation is split into 700 delivered + 100 stored.",
