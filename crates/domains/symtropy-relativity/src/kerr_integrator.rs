@@ -265,15 +265,36 @@ impl KerrObserverTangentBundleResult {
             [first.components[0], second.components[0]],
             [first.components[1], second.components[1]],
         ];
-        let determinant =
-            jacobian[0][0] * jacobian[1][1] - jacobian[0][1] * jacobian[1][0];
-        let frobenius_squared = jacobian.iter().flatten().map(|value| value * value).sum::<f64>();
-        let discriminant = (frobenius_squared * frobenius_squared
-            - 4.0 * determinant * determinant).max(0.0).sqrt();
-        let large_squared = (0.5 * (frobenius_squared + discriminant)).max(0.0);
-        let small_squared = (0.5 * (frobenius_squared - discriminant)).max(0.0);
-        let small = small_squared.sqrt();
-        let large = large_squared.sqrt();
+        // Scale before the 2x2 SVD invariants to reduce overflow and use
+        // |det(J)|/sigma_max for sigma_min near a caustic (avoids subtractive
+        // cancellation in the smaller eigenvalue of J^T J).
+        let matrix_scale = jacobian.iter().flatten()
+            .fold(0.0_f64, |scale, value| scale.max(value.abs()));
+        let (determinant, small, large) = if matrix_scale == 0.0 {
+            (0.0, 0.0, 0.0)
+        } else {
+            let scaled = [
+                [jacobian[0][0] / matrix_scale, jacobian[0][1] / matrix_scale],
+                [jacobian[1][0] / matrix_scale, jacobian[1][1] / matrix_scale],
+            ];
+            let determinant_scaled =
+                scaled[0][0] * scaled[1][1] - scaled[0][1] * scaled[1][0];
+            let frobenius_squared = scaled.iter().flatten()
+                .map(|value| value * value).sum::<f64>();
+            let discriminant = (frobenius_squared * frobenius_squared
+                - 4.0 * determinant_scaled * determinant_scaled).max(0.0).sqrt();
+            let large_scaled = (0.5 * (frobenius_squared + discriminant)).max(0.0).sqrt();
+            let small_scaled = if large_scaled > 0.0 {
+                determinant_scaled.abs() / large_scaled
+            } else {
+                0.0
+            };
+            (
+                determinant_scaled * matrix_scale * matrix_scale,
+                small_scaled * matrix_scale,
+                large_scaled * matrix_scale,
+            )
+        };
         let condition_number = if small > 0.0 {
             large / small
         } else {
@@ -1219,6 +1240,84 @@ mod tests {
                         <= 5e-4 * (1.0 + finite_difference.abs()),
                     "screen={index}, component={component}, fd={finite_difference:.8e}, tangent={:.8e}",
                     transported[component]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn observer_tangent_bundle_projects_to_source_screen_and_matches_neighbour_rays() {
+        let black_hole = hole(0.7);
+        let observer = KerrFiniteRadiusObserver::new(black_hole, 10.0, 1.0).unwrap();
+        let direction = KerrLocalSkyDirection::new(
+            -(1.0_f64 - 0.006_f64.powi(2) - 0.008_f64.powi(2)).sqrt(),
+            0.006, -0.008,
+        ).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        let integrator = KerrNullTrajectoryIntegrator::new(
+            black_hole, KerrIntegrationChart::Ingoing, options(),
+        ).unwrap();
+        let interval = 0.05;
+        let bundle = integrator.integrate_observer_tangent_bundle(seed, interval).unwrap();
+        let maps = bundle.sampled_optical_screen_maps(2e-8).unwrap();
+        assert_eq!(maps.len(), bundle.samples.len());
+        assert!(maps[0].determinant.abs() < 1e-20);
+        let final_map = maps.last().unwrap();
+        assert!(final_map.singular_values[0] > 0.0);
+        assert!(final_map.singular_values[1] >= final_map.singular_values[0]);
+        assert!(final_map.condition_number.is_finite());
+        assert!(final_map.source_direction_norm_residual < 2e-8);
+
+        let central_state = bundle.samples.last().unwrap().trajectory.state;
+        let source_observer = KerrFiniteRadiusObserver::new(
+            black_hole,
+            central_state.coordinates.radius_over_m,
+            central_state.coordinates.theta_rad,
+        ).unwrap();
+        let n = [direction.radial, direction.polar, direction.azimuthal];
+        let epsilon = 2e-5;
+        for column in 0..2 {
+            let e = seed.local_screen_basis[column];
+            let plus = normalized_direction([
+                n[0] + epsilon * e[0],
+                n[1] + epsilon * e[1],
+                n[2] + epsilon * e[2],
+            ]);
+            let minus = normalized_direction([
+                n[0] - epsilon * e[0],
+                n[1] - epsilon * e[1],
+                n[2] - epsilon * e[2],
+            ]);
+            let plus_seed = observer.canonical_seed(
+                KerrLocalSkyDirection::new(plus[0], plus[1], plus[2]).unwrap(),
+            ).unwrap();
+            let minus_seed = observer.canonical_seed(
+                KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap(),
+            ).unwrap();
+            let plus_state = integrator.integrate(plus_seed.state, interval).unwrap()
+                .samples.last().unwrap().state;
+            let minus_state = integrator.integrate(minus_seed.state, interval).unwrap()
+                .samples.last().unwrap().state;
+            let plus_flat = flatten(plus_state);
+            let minus_flat = flatten(minus_state);
+            let mut finite_difference = [0.0; 8];
+            for index in 0..8 {
+                finite_difference[index] =
+                    (plus_flat[index] - minus_flat[index]) / (2.0 * epsilon);
+            }
+            let projected = source_observer.project_canonical_variation_to_screen(
+                central_state,
+                finite_difference,
+                KerrMinoCoordinateChart::IngoingKerr,
+                2e-8,
+            ).unwrap();
+            for row in 0..2 {
+                assert!(
+                    (projected.components[row] - final_map.jacobian[row][column]).abs()
+                        <= 7e-4 * (1.0 + projected.components[row].abs()),
+                    "row={row}, column={column}, fd={}, variational={}",
+                    projected.components[row],
+                    final_map.jacobian[row][column]
                 );
             }
         }
