@@ -4171,7 +4171,7 @@ mod near_extremal_prograde_photon_orbit_tests {
     #[test]
     fn near_extremal_critical_impact_parameter_has_sqrt_three_scaling() {
         let mut previous_error = f64::INFINITY;
-        for kappa in [1e-1, 3e-2, 1e-2, 3e-3, 1e-3] {
+        for kappa in [1e-1_f64, 3e-2, 1e-2, 3e-3, 1e-3] {
             let spin = (1.0 - kappa * kappa).sqrt();
             let orbit = KerrEquatorialProgradePhotonOrbit::from_spin(spin).unwrap();
             let ratio =
