@@ -26,8 +26,8 @@
     },
     "cases": {
       "type": "array",
-      "minItems": 14,
-      "maxItems": 14,
+      "minItems": 16,
+      "maxItems": 16,
       "items": {
         "$ref": "#/$defs/case"
       }
@@ -162,7 +162,8 @@
             "maximum_point_gap_um",
             "minimum_coverage_permille",
             "maximum_point_uncertainty_um",
-            "maximum_registration_residual_um"
+            "maximum_registration_residual_um",
+            "coverage_gap_threshold_um"
           ],
           "properties": {
             "maximum_point_gap_um": {
@@ -181,6 +182,10 @@
             "maximum_registration_residual_um": {
               "type": "integer",
               "minimum": 0
+            },
+            "coverage_gap_threshold_um": {
+              "type": "integer",
+              "minimum": 1
             }
           }
         }
@@ -214,7 +219,9 @@
             "non_monotonic_x_station",
             "station_grid_mismatch",
             "zero_point_uncertainty",
-            "invalid_domain"
+            "invalid_domain",
+            "coverage_below_minimum",
+            "point_outside_domain"
           ]
         },
         "expected_disposition": {
