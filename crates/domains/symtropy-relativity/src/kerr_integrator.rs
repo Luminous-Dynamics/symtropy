@@ -20,7 +20,9 @@ use super::{
     KerrBlackHole,
     kerr_geodesic::{
         KerrCanonicalEvaluation, KerrCanonicalHamiltonian, KerrCanonicalLinearization,
-        KerrCanonicalState, KerrGeodesicError, KerrNullConstants,
+        KerrCanonicalState, KerrFiniteRadiusObserver, KerrGeodesicError,
+        KerrLocalSkyDirection, KerrMinoCoordinateChart, KerrNullConstants,
+        KerrObserverCanonicalSeed,
     },
 };
 
@@ -114,6 +116,31 @@ pub struct KerrVariationalTrajectoryResult {
     pub final_step: f64,
 }
 
+/// A propagated angular perturbation of a finite-observer Kerr ray.
+///
+/// Variations are derivatives with respect to the two returned orthonormal
+/// local-sky angular coordinates (radians), represented in canonical
+/// phase-space ordering. They are not yet projected source-screen distances.
+#[derive(Debug, Clone, PartialEq)]
+pub struct KerrObserverTangentSample {
+    pub trajectory: KerrTrajectorySample,
+    pub first_phase_space_variation: [f64; 8],
+    pub second_phase_space_variation: [f64; 8],
+    pub fundamental_symplectic_residual: f64,
+}
+
+/// Propagated pair of observer-screen angular variations.
+#[derive(Debug, Clone, PartialEq)]
+pub struct KerrObserverTangentBundleResult {
+    pub local_screen_basis: [[f64; 3]; 2],
+    pub samples: Vec<KerrObserverTangentSample>,
+    pub accepted_steps: usize,
+    pub rejected_steps: usize,
+    pub maximum_scaled_local_error: f64,
+    pub maximum_fundamental_symplectic_residual: f64,
+    pub final_step: f64,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KerrIntegratorError {
     Geodesic(KerrGeodesicError),
@@ -123,6 +150,7 @@ pub enum KerrIntegratorError {
     NonFiniteState,
     StepUnderflow { affine_parameter: f64, step: f64 },
     StepLimitExceeded { affine_parameter: f64, accepted_steps: usize },
+    CoordinateChartMismatch { seed: KerrMinoCoordinateChart, integrator: KerrIntegrationChart },
 }
 
 impl From<KerrGeodesicError> for KerrIntegratorError {
@@ -152,6 +180,9 @@ impl fmt::Display for KerrIntegratorError {
             Self::StepLimitExceeded { affine_parameter, accepted_steps } => write!(
                 f,
                 "Kerr integration exceeded its step budget at affine parameter {affine_parameter} after {accepted_steps} accepted steps"
+            ),
+            Self::CoordinateChartMismatch { seed, integrator } => write!(
+                f, "observer seed chart {seed:?} does not match integrator chart {integrator:?}"
             ),
         }
     }
@@ -322,6 +353,53 @@ impl KerrNullTrajectoryIntegrator {
             maximum_normalized_polar_first_integral_residual,
             maximum_scaled_local_error,
             final_step: step,
+        })
+    }
+
+    /// Propagate the two angular tangent directions supplied by a finite
+    /// ZAMO observer seed. The full fundamental matrix is integrated and then
+    /// applied to each null-shell tangent seed. The returned variations remain
+    /// canonical phase-space derivatives; source-screen projection is separate.
+    pub fn integrate_observer_tangent_bundle(
+        self,
+        seed: KerrObserverCanonicalSeed,
+        affine_interval: f64,
+    ) -> Result<KerrObserverTangentBundleResult, KerrIntegratorError> {
+        let expected_chart = match self.chart {
+            KerrIntegrationChart::BoyerLindquist => KerrMinoCoordinateChart::BoyerLindquist,
+            KerrIntegrationChart::Ingoing => KerrMinoCoordinateChart::IngoingKerr,
+        };
+        if seed.coordinate_chart != expected_chart {
+            return Err(KerrIntegratorError::CoordinateChartMismatch {
+                seed: seed.coordinate_chart,
+                integrator: self.chart,
+            });
+        }
+        let transported = self.integrate_fundamental_matrix(seed.state, affine_interval)?;
+        let mut samples = Vec::with_capacity(transported.samples.len());
+        for sample in transported.samples {
+            let first = matrix_vector_product(
+                &sample.fundamental_matrix, &seed.first_phase_space_variation,
+            );
+            let second = matrix_vector_product(
+                &sample.fundamental_matrix, &seed.second_phase_space_variation,
+            );
+            samples.push(KerrObserverTangentSample {
+                trajectory: sample.trajectory,
+                first_phase_space_variation: first,
+                second_phase_space_variation: second,
+                fundamental_symplectic_residual: sample.fundamental_symplectic_residual,
+            });
+        }
+        Ok(KerrObserverTangentBundleResult {
+            local_screen_basis: seed.local_screen_basis,
+            samples,
+            accepted_steps: transported.accepted_steps,
+            rejected_steps: transported.rejected_steps,
+            maximum_scaled_local_error: transported.maximum_scaled_local_error,
+            maximum_fundamental_symplectic_residual:
+                transported.maximum_fundamental_symplectic_residual,
+            final_step: transported.final_step,
         })
     }
 
@@ -667,6 +745,16 @@ impl KerrNullTrajectoryIntegrator {
     }
 }
 
+fn matrix_vector_product(matrix: &[[f64; 8]; 8], vector: &[f64; 8]) -> [f64; 8] {
+    let mut result = [0.0; 8];
+    for row in 0..8 {
+        for column in 0..8 {
+            result[row] += matrix[row][column] * vector[column];
+        }
+    }
+    result
+}
+
 fn flatten_derivative(derivative: super::kerr_geodesic::KerrCanonicalDerivative) -> [f64; 8] {
     [
         derivative.coordinates[0],
@@ -955,6 +1043,92 @@ mod tests {
                 "row={row}, finite_difference={finite_difference:.12e}, tangent={expected:.12e}"
             );
         }
+    }
+
+    fn normalized_direction(vector: [f64; 3]) -> [f64; 3] {
+        let norm = (vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]).sqrt();
+        [vector[0] / norm, vector[1] / norm, vector[2] / norm]
+    }
+
+    #[test]
+    fn finite_observer_tangent_bundle_matches_two_neighbouring_null_rays() {
+        let black_hole = hole(0.7);
+        let observer = KerrFiniteRadiusObserver::new(black_hole, 10.0, 1.0).unwrap();
+        let direction = KerrLocalSkyDirection::new(
+            -(1.0_f64 - 0.006_f64.powi(2) - 0.008_f64.powi(2)).sqrt(),
+            0.006, -0.008,
+        ).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        let integrator = KerrNullTrajectoryIntegrator::new(
+            black_hole, KerrIntegrationChart::Ingoing, options(),
+        ).unwrap();
+        let interval = 0.05;
+        let bundle = integrator.integrate_observer_tangent_bundle(seed, interval).unwrap();
+        let final_sample = bundle.samples.last().unwrap();
+        assert!(bundle.samples.len() > 1);
+        assert!(bundle.maximum_fundamental_symplectic_residual < 1e-5);
+        assert!(bundle.samples.iter().all(|sample|
+            sample.fundamental_symplectic_residual.is_finite()));
+
+        // Perturb each local unit-sky direction and independently integrate
+        // the resulting null ray. Compare the full phase-space derivatives.
+        let n = [direction.radial, direction.polar, direction.azimuthal];
+        let epsilon = 2e-5;
+        for index in 0..2 {
+            let basis = seed.local_screen_basis[index];
+            let plus = normalized_direction([
+                n[0] + epsilon * basis[0],
+                n[1] + epsilon * basis[1],
+                n[2] + epsilon * basis[2],
+            ]);
+            let minus = normalized_direction([
+                n[0] - epsilon * basis[0],
+                n[1] - epsilon * basis[1],
+                n[2] - epsilon * basis[2],
+            ]);
+            let plus_seed = observer.canonical_seed(
+                KerrLocalSkyDirection::new(plus[0], plus[1], plus[2]).unwrap(),
+            ).unwrap();
+            let minus_seed = observer.canonical_seed(
+                KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap(),
+            ).unwrap();
+            let plus_final = flatten(
+                integrator.integrate(plus_seed.state, interval).unwrap().samples.last().unwrap().state,
+            );
+            let minus_final = flatten(
+                integrator.integrate(minus_seed.state, interval).unwrap().samples.last().unwrap().state,
+            );
+            let transported = if index == 0 {
+                final_sample.first_phase_space_variation
+            } else {
+                final_sample.second_phase_space_variation
+            };
+            for component in 0..8 {
+                let finite_difference = (plus_final[component] - minus_final[component])
+                    / (2.0 * epsilon);
+                assert!(
+                    (finite_difference - transported[component]).abs()
+                        <= 5e-4 * (1.0 + finite_difference.abs()),
+                    "screen={index}, component={component}, fd={finite_difference:.8e}, tangent={:.8e}",
+                    transported[component]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn observer_tangent_bundle_rejects_chart_mismatch() {
+        let black_hole = hole(0.7);
+        let observer = KerrFiniteRadiusObserver::new(black_hole, 10.0, 1.0).unwrap();
+        let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        let wrong_chart = KerrNullTrajectoryIntegrator::new(
+            black_hole, KerrIntegrationChart::BoyerLindquist, options(),
+        ).unwrap();
+        assert!(matches!(
+            wrong_chart.integrate_observer_tangent_bundle(seed, 0.01),
+            Err(KerrIntegratorError::CoordinateChartMismatch { .. })
+        ));
     }
 
     #[test]
