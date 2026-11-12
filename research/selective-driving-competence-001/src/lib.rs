@@ -167,6 +167,7 @@ pub struct BootstrapMetrics {
     pub risk_coverage_area_failure_rate: Option<BootstrapInterval>,
     pub actual_autonomy_coverage: Option<BootstrapInterval>,
     pub actual_accepted_failure_rate: Option<BootstrapInterval>,
+    pub accepted_risk_valid_replicates: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -550,6 +551,7 @@ fn selective_summary(decisions: &[&DecisionRecord]) -> SelectiveSummary {
             risk_coverage_area_failure_rate: 0.0,
             actual_autonomy_coverage: 0.0,
             actual_accepted_failure_rate: None,
+            accepted_risk_valid_replicates: 0,
         };
     }
     let mut ranked = decisions.to_vec();
@@ -679,11 +681,12 @@ fn bootstrap_metrics(input: &EvaluationInput) -> BootstrapMetrics {
         seed: input.bootstrap_seed,
         risk_coverage_area_failure_rate: Some(percentile_interval(aurc_samples)),
         actual_autonomy_coverage: Some(percentile_interval(coverage_samples)),
-        actual_accepted_failure_rate: if accepted_risk_samples.is_empty() {
-            None
-        } else {
+        actual_accepted_failure_rate: if accepted_risk_samples.len() == input.bootstrap_replicates {
             Some(percentile_interval(accepted_risk_samples))
+        } else {
+            None
         },
+        accepted_risk_valid_replicates: accepted_risk_samples.len(),
     }
 }
 
