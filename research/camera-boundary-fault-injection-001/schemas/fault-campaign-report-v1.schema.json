@@ -17,6 +17,7 @@
     "cases_observed",
     "fresh_processes_spawned",
     "all_negative_controls_rejected_before_policy_output",
+    "all_rejections_preflighted_before_temporal_advance",
     "clean_control_accepted",
     "controller_invoked",
     "vehicle_actuator_invoked",
@@ -90,6 +91,9 @@
     "claim_ceiling": {
       "type": "string",
       "minLength": 1
+    },
+    "all_rejections_preflighted_before_temporal_advance": {
+      "type": "boolean"
     }
   },
   "$defs": {
@@ -107,6 +111,9 @@
         "policy_input_directory_exists",
         "policy_input_artifact_count",
         "no_policy_output_committed",
+        "expected_frames_processed_before_rejection",
+        "frames_processed_before_rejection",
+        "rejected_observation_did_not_advance_temporal_state",
         "input_observation_count",
         "stderr"
       ],
@@ -155,6 +162,23 @@
         },
         "stderr": {
           "type": "string"
+        },
+        "expected_frames_processed_before_rejection": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "frames_processed_before_rejection": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "rejected_observation_did_not_advance_temporal_state": {
+          "type": "boolean"
         }
       }
     }
@@ -164,6 +188,7 @@
     "The clean control must be accepted and produce one receipt and one HDC artifact per input observation.",
     "Every negative control must match its exact expected BridgeError variant, produce no receipt output file, and leave no policy-input artifact.",
     "A structurally valid unkeyed calibration pin is loaded from the clean renderer receipt into the BridgeConfig before mutations are generated.",
-    "This report validates software bridge input rejection only; it is not a trained policy or vehicle safety result."
+    "This report validates software bridge input rejection only; it is not a trained policy or vehicle safety result.",
+    "For each negative control, frames_processed_before_rejection equals the number of preceding accepted observations; the rejected observation itself must not advance the Vision Manifold."
   ]
 }
