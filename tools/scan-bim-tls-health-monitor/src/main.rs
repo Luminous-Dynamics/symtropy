@@ -111,6 +111,7 @@ struct HealthReport {
 #[derive(Debug, Clone)]
 struct CanonicalSession {
     session_id: String,
+    is_baseline: bool,
     values_mm: Vec<f64>,
 }
 
@@ -197,9 +198,9 @@ fn validate_input(input: &Input) -> Result<(Vec<String>, Vec<CanonicalSession>, 
         input.baseline_sessions.len() + input.current_sessions.len(),
     );
 
-    for (sessions, label) in [
-        (input.baseline_sessions.as_slice(), "baseline"),
-        (input.current_sessions.as_slice(), "current"),
+    for (sessions, label, is_baseline) in [
+        (input.baseline_sessions.as_slice(), "baseline", true),
+        (input.current_sessions.as_slice(), "current", false),
     ] {
         for session in sessions {
             validate_non_empty(&session.session_id, "session_id")?;
@@ -240,7 +241,7 @@ fn validate_input(input: &Input) -> Result<(Vec<String>, Vec<CanonicalSession>, 
                 }
                 target_ids.insert(target.target_id.clone());
             }
-            canonical.push((session.session_id.clone(), per_session));
+            canonical.push((session.session_id.clone(), per_session, is_baseline));
         }
     }
 
@@ -251,7 +252,7 @@ fn validate_input(input: &Input) -> Result<(Vec<String>, Vec<CanonicalSession>, 
     let expected: BTreeSet<&str> = target_ids.iter().map(String::as_str).collect();
     let mut sessions = Vec::with_capacity(canonical.len());
 
-    for (session_id, values) in canonical {
+    for (session_id, values, is_baseline) in canonical {
         let observed: BTreeSet<&str> = values.keys().copied().collect();
         if observed != expected {
             return Err(format!(
@@ -264,6 +265,7 @@ fn validate_input(input: &Input) -> Result<(Vec<String>, Vec<CanonicalSession>, 
             .collect();
         sessions.push(CanonicalSession {
             session_id,
+            is_baseline,
             values_mm,
         });
     }
@@ -372,8 +374,16 @@ fn evaluate_bytes(bytes: &[u8]) -> Result<HealthReport, Box<dyn Error>> {
     let input: Input = serde_json::from_slice(bytes)?;
     let (target_ids, sessions, baseline_count) = validate_input(&input)?;
     let current_count = sessions.len() - baseline_count;
-    let baseline_indices: Vec<usize> = (0..baseline_count).collect();
-    let current_indices: Vec<usize> = (baseline_count..sessions.len()).collect();
+    let baseline_indices: Vec<usize> = sessions
+        .iter()
+        .enumerate()
+        .filter_map(|(index, session)| session.is_baseline.then_some(index))
+        .collect();
+    let current_indices: Vec<usize> = sessions
+        .iter()
+        .enumerate()
+        .filter_map(|(index, session)| (!session.is_baseline).then_some(index))
+        .collect();
     let (observed_statistic, summaries) = max_log_ratio(
         &sessions,
         &baseline_indices,
