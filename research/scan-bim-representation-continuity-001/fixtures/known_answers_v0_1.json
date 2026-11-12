@@ -134,7 +134,8 @@
               "reason": null
             }
           ]
-        }
+        },
+        "parent_transition_ids": []
       }
     ]
   },
@@ -270,7 +271,8 @@
               "reason": null
             }
           ]
-        }
+        },
+        "parent_transition_ids": []
       },
       {
         "transition_id": "SURFACE-TO-GRAPH-001",
