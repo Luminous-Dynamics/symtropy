@@ -79,6 +79,7 @@ pub struct DelassusMetricV1<
 > {
     mass: Metric<Frame, N>,
     jacobian: [[f64; N]; K],
+    whitened_jacobian: [[f64; N]; K],
     metric: Metric<Space, K>,
     _spaces: PhantomData<(Frame, Space)>,
 }
@@ -97,13 +98,25 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
             return Err(MetricErrorV1::ZeroDimension);
         }
 
+        // Whiten each constraint covector with L^-1 for M = L L^T.
+        // The resulting rows are Y = J L^-T and W = Y Y^T.
+        // This is equivalent to J M^-1 J^T but avoids a full mass solve
+        // for each pair of constraint rows and never forms M^-1.
+        let mut whitened_jacobian = [[0.0; N]; K];
+        for (row, components) in jacobian.iter().enumerate() {
+            let constraint_covector = Cotangent::<Frame, N>::new(*components)?;
+            whitened_jacobian[row] = mass.whiten_cotangent(&constraint_covector)?;
+        }
+
         let mut delassus = [[0.0; K]; K];
-        for column in 0..K {
-            let row_covector = Cotangent::<Frame, N>::new(jacobian[column])?;
-            let raised_row = mass.raise(&row_covector)?;
-            for row in 0..K {
-                let constraint_covector = Cotangent::<Frame, N>::new(jacobian[row])?;
-                delassus[row][column] = pairing(&constraint_covector, &raised_row);
+        for row in 0..K {
+            for column in row..K {
+                let value = crate::dot(&whitened_jacobian[row], &whitened_jacobian[column]);
+                if !value.is_finite() {
+                    return Err(MetricErrorV1::NonFiniteIntermediate);
+                }
+                delassus[row][column] = value;
+                delassus[column][row] = value;
             }
         }
 
@@ -111,6 +124,7 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
         Ok(Self {
             mass: *mass,
             jacobian,
+            whitened_jacobian,
             metric,
             _spaces: PhantomData,
         })
@@ -126,6 +140,12 @@ impl<Frame: CoordinateFrame, Space: CoordinateFrame, const N: usize, const K: us
 
     pub fn jacobian(&self) -> &[[f64; N]; K] {
         &self.jacobian
+    }
+
+    /// Whitened constraint rows Y = J L^-T for M = L L^T.
+    /// The Delassus operator is the row Gram matrix W = Y Y^T.
+    pub fn whitened_jacobian(&self) -> &[[f64; N]; K] {
+        &self.whitened_jacobian
     }
 
     /// ||lambda||_W = sqrt(lambda^T W lambda).
@@ -292,6 +312,42 @@ mod tests {
                     delassus_q.matrix()[row][column],
                     delassus_y.matrix()[row][column],
                     2.0e-12,
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn whitened_jacobian_reconstructs_delassus_and_exact_diagonal() {
+        let mass = mass_q();
+        let jacobian = jacobian_q();
+        let delassus = DelassusMetricV1::<CartesianQ, ConstraintSpace, 3, 2>::from_mass_jacobian(
+            &mass,
+            jacobian,
+            profile(),
+        )
+        .unwrap();
+
+        for row in 0..2 {
+            for column in 0..2 {
+                let gram = crate::dot(
+                    &delassus.whitened_jacobian()[row],
+                    &delassus.whitened_jacobian()[column],
+                );
+                close(gram, delassus.matrix()[row][column], 2.0e-13);
+            }
+        }
+
+        // Independent formulation: solve M x = J_j^T, then evaluate J_i x.
+        for row in 0..2 {
+            for column in 0..2 {
+                let column_covector = Cotangent::<CartesianQ, 3>::new(jacobian[column]).unwrap();
+                let raised_column = mass.raise(&column_covector).unwrap();
+                let row_covector = Cotangent::<CartesianQ, 3>::new(jacobian[row]).unwrap();
+                close(
+                    delassus.matrix()[row][column],
+                    crate::pairing(&row_covector, &raised_column),
+                    2.0e-13,
                 );
             }
         }
