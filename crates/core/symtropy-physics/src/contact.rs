@@ -341,5 +341,4 @@ mod tests {
             "finite inverse mass should not be discarded by an absolute cutoff: {actual}"
         );
     }
-
 }
