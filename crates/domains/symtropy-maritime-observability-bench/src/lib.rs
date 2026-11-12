@@ -210,7 +210,7 @@ fn validate_input(input:&Value)->Check<()>{
             return Err(err("TIMEBASE_QUALIFICATION_SHA256",&format!("{p}.timebase_qualification_sha256"),"digest must be null or lowercase SHA-256"));
         }
         if !s["timebase_qualification_artifact_id"].is_null()
-            && !s["timebase_qualification_artifact_id"].as_str().is_some_and(|x|!x.trim().is_empty()){
+            && s["timebase_qualification_artifact_id"].as_str().is_none_or(|x|x.trim().is_empty()){
             return Err(err("TIMEBASE_QUALIFICATION_ARTIFACT",&format!("{p}.timebase_qualification_artifact_id"),"artifact ID must be null or non-empty"));
         }
         if matches!(txt(s,"timebase_qualification_state",&p)?,"qualified"|"synthetic_conformance")
