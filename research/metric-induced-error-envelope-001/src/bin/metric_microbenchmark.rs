@@ -249,27 +249,46 @@ fn main() {
             vector_inf(black_box(fixture.vector_q.components()))
         }),
         measure("metric_tangent_norm_q", ITERATIONS, SAMPLES, || {
-            fixture.metric_q.tangent_norm(black_box(&fixture.vector_q)).unwrap()
+            fixture
+                .metric_q
+                .tangent_norm(black_box(&fixture.vector_q))
+                .unwrap()
         }),
         measure("dual_metric_cotangent_norm_q", ITERATIONS, SAMPLES, || {
-            fixture.metric_q.cotangent_norm(black_box(&fixture.covector_q)).unwrap()
+            fixture
+                .metric_q
+                .cotangent_norm(black_box(&fixture.covector_q))
+                .unwrap()
         }),
         measure("metric_tangent_norm_y", ITERATIONS, SAMPLES, || {
-            fixture.metric_y.tangent_norm(black_box(&fixture.vector_y)).unwrap()
+            fixture
+                .metric_y
+                .tangent_norm(black_box(&fixture.vector_y))
+                .unwrap()
         }),
         measure("dual_metric_cotangent_norm_y", ITERATIONS, SAMPLES, || {
-            fixture.metric_y.cotangent_norm(black_box(&fixture.covector_y)).unwrap()
+            fixture
+                .metric_y
+                .cotangent_norm(black_box(&fixture.covector_y))
+                .unwrap()
         }),
         measure("tangent_pushforward_q_to_y", ITERATIONS, SAMPLES, || {
-            let value = fixture.rebasis.tangent_to_to(black_box(&fixture.vector_q)).unwrap();
+            let value = fixture
+                .rebasis
+                .tangent_to_to(black_box(&fixture.vector_q))
+                .unwrap();
             vector_euclidean(value.components())
         }),
         measure("cotangent_pullback_q_to_y", ITERATIONS, SAMPLES, || {
-            let value = fixture.rebasis.cotangent_to_to(black_box(&fixture.covector_q)).unwrap();
+            let value = fixture
+                .rebasis
+                .cotangent_to_to(black_box(&fixture.covector_q))
+                .unwrap();
             vector_euclidean(value.components())
         }),
         measure("metric_rebasis_q_to_y", ITERATIONS / 10, SAMPLES, || {
-            let metric = fixture.rebasis
+            let metric = fixture
+                .rebasis
                 .metric_to_to(black_box(&fixture.metric_q), MetricProfileV1::default())
                 .unwrap();
             metric.tangent_norm(&fixture.vector_y).unwrap()
@@ -288,8 +307,14 @@ fn main() {
             },
         ),
         measure("metric_and_dual_norms_y_pair", ITERATIONS, SAMPLES, || {
-            fixture.metric_y.tangent_norm(black_box(&fixture.vector_y)).unwrap()
-                + fixture.metric_y.cotangent_norm(black_box(&fixture.covector_y)).unwrap()
+            fixture
+                .metric_y
+                .tangent_norm(black_box(&fixture.vector_y))
+                .unwrap()
+                + fixture
+                    .metric_y
+                    .cotangent_norm(black_box(&fixture.covector_y))
+                    .unwrap()
         }),
     ];
 
