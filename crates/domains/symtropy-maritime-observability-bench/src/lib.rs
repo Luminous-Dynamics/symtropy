@@ -115,22 +115,29 @@ fn validate_clock_qualification(input:&Value,clock:&Value,clock_sha256:&str)->Ch
         if sensor["installed"]!=true{continue;}
         installed+=1;
         let at=format!("$.sensors[{i}]");
-        if txt(sensor,"timebase_id",&at)?!=tb_id||txt(sensor,"timebase_qualification_artifact_id",&at)?!=qual_id
-            ||txt(sensor,"timebase_qualification_sha256",&at)?!=clock_sha256
-            ||txt(sensor,"timestamp_uncertainty_source",&at)?!=uncertainty_source{
-            return Err(err("CLOCK_ARTIFACT_SENSOR_BINDING",&at,"sensor does not bind the exact clock qualification artifact"));
-        }
         let state=txt(sensor,"timebase_qualification_state",&at)?;
+        // An installed sensor can be present while its own clock mapping is
+        // unavailable. Preserve it in the report, but never let it contribute
+        // physical evidence until independently qualified.
+        if state=="unqualified"||state=="unknown"{
+            continue;
+        }
         if (synthetic&&state!="synthetic_conformance")||(!synthetic&&state!="qualified"){
             return Err(err("CLOCK_SENSOR_QUALIFICATION_STATE",&at,"sensor qualification state differs from artifact class"));
         }
+        if txt(sensor,"timebase_id",&at)?!=tb_id
+            ||txt(sensor,"timebase_qualification_artifact_id",&at)?!=qual_id
+            ||txt(sensor,"timebase_qualification_sha256",&at)?!=clock_sha256
+            ||txt(sensor,"timestamp_uncertainty_source",&at)?!=uncertainty_source{
+            return Err(err("CLOCK_ARTIFACT_SENSOR_BINDING",&at,"qualified sensor does not bind the exact clock qualification artifact"));
+        }
         let uncertainty=sensor["timestamp_uncertainty_ms"].as_f64().filter(|x|x.is_finite()&&*x>=0.0)
-            .ok_or_else(||err("CLOCK_SENSOR_UNCERTAINTY",&at,"installed sensor needs finite timestamp uncertainty"))?;
-        if uncertainty+1e-9<declared||uncertainty-profile_max>1e-9{
-            return Err(err("CLOCK_SENSOR_UNCERTAINTY_RANGE",&at,"sensor uncertainty must be between common-timebase uncertainty and layout maximum"));
+            .ok_or_else(||err("CLOCK_SENSOR_UNCERTAINTY",&at,"qualified installed sensor needs finite timestamp uncertainty"))?;
+        if uncertainty+1e-9<declared{
+            return Err(err("CLOCK_SENSOR_UNCERTAINTY_UNDERSTATED",&at,"sensor uncertainty cannot understate the common-timebase artifact bound"));
         }
         if txt(sensor,"clock_domain",&at)?!=clock_domain{
-            return Err(err("CLOCK_DOMAIN_MISMATCH",&at,"v0.1 clock artifact declares one source domain; every installed sensor must bind that exact domain"));
+            return Err(err("CLOCK_DOMAIN_MISMATCH",&at,"v0.1 clock artifact declares one source domain; every qualified sensor must bind that exact domain"));
         }
     }
     if installed==0{return Err(err("NO_INSTALLED_CLOCKED_SENSORS","$.sensors","at least one installed sensor must bind the common timebase"));}
@@ -672,11 +679,14 @@ mod tests{
         assert!(!r["sensor_loss_scenarios"][0]["lost_isolability_pairs"].as_array().unwrap().is_empty());
     }
     #[test]
-    fn expired_exhaust_temperature_calibration_removes_only_its_supported_pair(){
+    fn expired_exhaust_temperature_calibration_removes_that_channel_but_other_principles_preserve_isolation(){
         let mut c=fixture();c["sensors"][2]["calibration_state"]=json!("expired");
         let r=eval(&c).expect("abstention is a valid report");
         let p=r["pair_assessments"].as_array().unwrap().iter().find(|p|p["fault_a"]=="ENGINE_NORMAL_STEADY"&&p["fault_b"]=="ENGINE_COOLING_RESTRICTION").unwrap();
-        assert_ne!(p["state"],"isolable");
+        // Speed, rack-position and vibration remain independent evidence.
+        assert_eq!(p["state"],"isolable");
+        assert!(!p["evidence_refs"].as_array().unwrap().iter().any(|e|
+            e["channel_ids"].as_array().unwrap().contains(&json!("exhaust-temperature"))));
     }
     #[test]
     fn derived_signal_is_not_promoted_to_independent_measurement(){
@@ -751,6 +761,7 @@ mod tests{
         c["sensors"][0]["timebase_qualification_sha256"]=Value::Null;
         c["sensors"][0]["timebase_qualification_artifact_id"]=Value::Null;
         c["sensors"][0]["timestamp_uncertainty_ms"]=Value::Null;
+        c["sensors"][0]["timebase_id"]=json!("unmapped-clock-domain");
         let r=eval(&c).unwrap();
         assert_eq!(r["metrics"].as_array().unwrap().iter()
             .find(|m|m["metric_id"]=="timebase_unqualified_installed_sensor_count").unwrap()["value"],1);
@@ -783,9 +794,13 @@ mod tests{
     #[test]
     fn model_estimate_role_is_preserved_in_report_not_renamed_simulation(){
         let mut c=fixture();
-        c["responses"][0]["evidence_role"]=json!("MODEL_ESTIMATE");
+        for response in c["responses"].as_array_mut().unwrap().iter_mut()
+            .filter(|r|r["state_id"]=="ENGINE_FUEL_INJECTION_FAULT"){
+            response["evidence_role"]=json!("MODEL_ESTIMATE");
+        }
         let r=eval(&c).unwrap();
-        let fault=r["fault_assessments"].as_array().unwrap().iter().find(|f|f["fault_id"]=="ENGINE_NORMAL_STEADY").unwrap();
+        let fault=r["fault_assessments"].as_array().unwrap().iter()
+            .find(|f|f["fault_id"]=="ENGINE_FUEL_INJECTION_FAULT").unwrap();
         assert!(fault["signature_evidence"].as_array().unwrap()
             .iter().any(|e|e["evidence_role"]=="model_estimate"));
     }

@@ -48,3 +48,10 @@ The CLI requires the separate clock-qualification JSON and its byte-level SHA-25
 Fault ambiguity is represented by maximal pairwise-indistinguishable sets (maximal cliques), not graph connected components. Interval overlap is not transitive: A can overlap B, B overlap C, while A and C remain disjoint. A fault may belong to more than one ambiguity set; the report carries all `ambiguity_class_ids` and an explicit top-level list of ambiguity classes and pairwise non-isolable pairs. It does not collapse a chain into a false equivalence class.
 
 The embedded sensor-topology, fault-model, evaluator, dataset, split and model SHA fields are null in P0 because no separate artifact bytes are supplied for those objects. The execution receipt binds the exact case-file SHA-256 and exact source commit; the clock artifact receives its own separately computed byte digest.
+
+
+### Per-sensor clock qualification and graceful degradation
+
+The common timebase artifact and each sensor's clock qualification are separate evidence objects. An installed sensor may be present but have UNQUALIFIED/UNKNOWN timebase state; it remains in the report and unqualified-sensor count, but its responses are treated as UNKNOWN and cannot contribute to pairwise physical evidence. Missing per-sensor clock artifact ID/SHA and timestamp-uncertainty values are permitted only for those unqualified states.
+
+A qualified sensor must bind the exact common timebase artifact ID/SHA and declared clock domain. Its uncertainty bound may not understate the common artifact's declared uncertainty. An uncertainty bound above the layout maximum withdraws that sensor's evidence rather than invalidating the whole assessment. This preserves valid independent channels when one sensor's clock is not qualified.
