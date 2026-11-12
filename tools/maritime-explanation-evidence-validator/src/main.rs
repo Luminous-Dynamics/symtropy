@@ -95,9 +95,6 @@ fn case_result(
         cited.extend(strings(claim,"supporting_feature_ids","claims[]")?);
     }
     let feature_refs:Vec<&Value>=cited.iter().map(|fid|features.get(fid).copied().ok_or_else(||format!("{id}: unknown feature {fid}"))).collect::<Check<_>>()?;
-    if obs=="UNSUPPORTED_REGIME"||obs=="NOT_EVALUATED"{
-        return Ok((id,json!({"disposition":"NOT_EVALUATED","reason_codes":["DIAGNOSIS_NOT_QUALIFIED"],"accepted_feature_ids":[],"claim_results":[]}),top));
-    }
     // If the same explanation signature persists despite losing one of its
     // cited supporting signals, reject it rather than presenting stale certainty.
     let overrides=case["evidence_overrides"].as_array().ok_or_else(||format!("{id}: evidence_overrides must be array"))?;
@@ -117,6 +114,9 @@ fn case_result(
             &&other["explanation"]["claims"].as_array().is_some_and(|a|!a.is_empty())
     }){
         return Ok((id,json!({"disposition":"INVALID_UNRESPONSIVE_EXPLANATION","reason_codes":["SUPPORT_WITHDRAWN_SIGNATURE_UNCHANGED"],"accepted_feature_ids":[],"claim_results":[]}),top));
+    }
+    if obs=="UNSUPPORTED_REGIME"||obs=="NOT_EVALUATED"{
+        return Ok((id,json!({"disposition":"NOT_EVALUATED","reason_codes":["DIAGNOSIS_NOT_QUALIFIED"],"accepted_feature_ids":[],"claim_results":[]}),top));
     }
     for f in &feature_refs{
         let fid=text(f,"feature_id","features[]")?;
