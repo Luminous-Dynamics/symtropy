@@ -2,7 +2,7 @@
 
 Dependency-free Rust 1.96 read-only evidence-transfer auditor.
 
-It checks exact test article and configuration identity, application/test-level scope, physical-vs-risk-analysis evidence classes, trigger and result semantics, source digests, metrology references, six product-change equivalence domains and deterministic reports.
+It checks exact test article and configuration identity, application/test-level scope, physical-vs-risk-analysis evidence classes, trigger and result semantics, source digests, metrology references, six product-change equivalence domains bound to exact source/target fingerprints, and deterministic reports.
 
 ## Commands
 
