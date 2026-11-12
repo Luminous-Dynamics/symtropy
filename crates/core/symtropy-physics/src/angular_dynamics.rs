@@ -680,7 +680,7 @@ mod tests {
     }
 
     fn skew3(vector: &SVector<f64, 3>) -> SMatrix<f64, 3, 3> {
-        SMatrix::new(
+        SMatrix::<f64, 3, 3>::new(
             0.0, -vector[2], vector[1], vector[2], 0.0, -vector[0], -vector[1], vector[0], 0.0,
         )
     }
@@ -745,7 +745,7 @@ mod tests {
         let omega_body = rotation
             .reverse()
             .rotate_vector(&bivector_to_angular_vector(&angular_velocity));
-        (rotation.to_matrix(), omega_body)
+        (*rotation.to_matrix(), omega_body)
     }
 
     #[test]
