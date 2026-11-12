@@ -1,0 +1,20 @@
+[package]
+name = "symtropy-maritime-observability-adapter"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+publish = false
+description = "Maritime asset/sensor adapter over the reusable Symtropy fault-pair observability evaluator"
+
+[dependencies]
+serde_json = "1.0"
+symtropy-sensor-observability-bench = { path = "../symtropy-sensor-observability-bench" }
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+name = "maritime-observability-adapter"
+path = "src/main.rs"
+
+[workspace]
