@@ -58,6 +58,12 @@ pub struct CycleCountArtifact {
     pub algorithm_profile_id: String,
     pub total_cycles: u64,
     pub canonical_blocks_sha256: String,
+    /// Exact source load-history artifact from which this cycle record was derived.
+    pub source_load_history_evidence_id: String,
+    pub source_load_history_sha256: String,
+    /// Source condition profiles carried by the load-history / conditioning receipt.
+    pub environment_profile_id: String,
+    pub stress_ratio_profile_id: String,
     /// Minimum and maximum stress amplitudes represented by the block payload.
     /// These are relevant only to the linear Miner profile.
     pub minimum_stress_amplitude_mpa: Option<f64>,
@@ -74,6 +80,16 @@ pub struct MaterialCalibrationArtifact {
     pub calibrated_material_lot_id: Option<String>,
     pub environment_profile_id: String,
     pub stress_ratio_profile_id: String,
+}
+
+/// Delta-K/geometry-driving input bound to one exact component and load history.
+#[derive(Clone, Debug, PartialEq)]
+pub struct DeltaKInputArtifact {
+    pub artifact: EvidenceRef,
+    pub subject: ComponentIdentity,
+    pub source_load_history_evidence_id: String,
+    pub source_load_history_sha256: String,
+    pub delta_k_mpa_sqrt_m: f64,
 }
 
 /// Damage output copied from the bounded reference result. These values are
@@ -105,6 +121,8 @@ pub enum MinerModelAssessment {
 pub struct DamageReceipt {
     pub claim_id: String,
     pub subject: ComponentIdentity,
+    /// Material grade asserted for this exact component, bound to calibration scope.
+    pub material_grade_id: String,
     pub load_history: EvidenceRef,
     pub cycle_count: CycleCountArtifact,
     pub calibration: MaterialCalibrationArtifact,
@@ -112,7 +130,7 @@ pub struct DamageReceipt {
     /// Digest of the exact canonical block payload supplied to the damage model.
     pub model_input_blocks_sha256: String,
     /// For Paris outputs, the upstream evidence used to establish Delta-K.
-    pub delta_k_input: Option<EvidenceRef>,
+    pub delta_k_input: Option<DeltaKInputArtifact>,
     /// Output artifact, required to be ModelEstimate.
     pub output: EvidenceRef,
     pub output_value: DamageModelOutput,
@@ -150,6 +168,11 @@ pub enum DamageReceiptError {
     DeltaKOutsideApplicability,
     ParisClosureMismatch,
     InvalidUncertainty,
+    LoadHistoryBindingMismatch,
+    ConditionProfileMismatch,
+    MaterialGradeMismatch,
+    DeltaKBindingMismatch,
+    DeltaKValueMismatch,
     EmptyEventId,
 }
 
@@ -221,8 +244,21 @@ impl DamageReceipt {
         if self.cycle_count.algorithm_profile_id.trim().is_empty() {
             return Err(DamageReceiptError::EmptyCycleCountProfile);
         }
-        if self.calibration.material_grade_id.trim().is_empty() {
+        if self.material_grade_id.trim().is_empty() || self.calibration.material_grade_id.trim().is_empty() {
             return Err(DamageReceiptError::EmptyMaterialGrade);
+        }
+        if self.material_grade_id != self.calibration.material_grade_id {
+            return Err(DamageReceiptError::MaterialGradeMismatch);
+        }
+        if self.cycle_count.environment_profile_id.trim().is_empty()
+            || self.cycle_count.stress_ratio_profile_id.trim().is_empty()
+        {
+            return Err(DamageReceiptError::ConditionProfileMismatch);
+        }
+        if self.cycle_count.environment_profile_id != self.calibration.environment_profile_id
+            || self.cycle_count.stress_ratio_profile_id != self.calibration.stress_ratio_profile_id
+        {
+            return Err(DamageReceiptError::ConditionProfileMismatch);
         }
         if self.calibration.environment_profile_id.trim().is_empty() {
             return Err(DamageReceiptError::EmptyEnvironmentProfile);
@@ -239,9 +275,15 @@ impl DamageReceipt {
             return Err(DamageReceiptError::CalibrationLotMismatch);
         }
 
+        if self.cycle_count.source_load_history_evidence_id != self.load_history.evidence_id
+            || self.cycle_count.source_load_history_sha256 != self.load_history.sha256
+        {
+            return Err(DamageReceiptError::LoadHistoryBindingMismatch);
+        }
         if self.cycle_count.total_cycles == 0 {
             return Err(DamageReceiptError::InvalidCycleCount);
         }
+        validate_digest(&self.cycle_count.source_load_history_sha256)?;
         validate_digest(&self.cycle_count.canonical_blocks_sha256)?;
         validate_digest(&self.model_input_blocks_sha256)?;
         if self.cycle_count.canonical_blocks_sha256 != self.model_input_blocks_sha256 {
@@ -257,8 +299,8 @@ impl DamageReceipt {
             self.output.clone(),
         ];
         if let Some(delta_k) = &self.delta_k_input {
-            validate_evidence(delta_k, "Delta-K input")?;
-            sources.push(delta_k.clone());
+            validate_evidence(&delta_k.artifact, "Delta-K input")?;
+            sources.push(delta_k.artifact.clone());
         }
         for source in &sources {
             if !evidence_ids.insert(source.evidence_id.as_str()) {
@@ -337,8 +379,23 @@ impl DamageReceipt {
                     _ => return Err(DamageReceiptError::ApplicabilityMismatch),
                 };
                 validate_positive_range(minimum, maximum)?;
-                if self.delta_k_input.is_none() {
-                    return Err(DamageReceiptError::MissingDeltaKInput);
+                let delta_k_source = self
+                    .delta_k_input
+                    .as_ref()
+                    .ok_or(DamageReceiptError::MissingDeltaKInput)?;
+                if delta_k_source.subject != self.subject
+                    || delta_k_source.source_load_history_evidence_id != self.load_history.evidence_id
+                    || delta_k_source.source_load_history_sha256 != self.load_history.sha256
+                {
+                    return Err(DamageReceiptError::DeltaKBindingMismatch);
+                }
+                if !delta_k_source.delta_k_mpa_sqrt_m.is_finite()
+                    || delta_k_source.delta_k_mpa_sqrt_m <= 0.0
+                {
+                    return Err(DamageReceiptError::InvalidDamageQuantity);
+                }
+                if !values_close(delta_k_source.delta_k_mpa_sqrt_m, delta_k_mpa_sqrt_m) {
+                    return Err(DamageReceiptError::DeltaKValueMismatch);
                 }
                 if cycles == 0 {
                     return Err(DamageReceiptError::InvalidCycleCount);
@@ -435,6 +492,14 @@ fn validate_digest(value: &str) -> Result<(), DamageReceiptError> {
     Ok(())
 }
 
+fn values_close(left: f64, right: f64) -> bool {
+    if !left.is_finite() || !right.is_finite() {
+        return false;
+    }
+    let scale = left.abs().max(right.abs()).max(1.0e-12);
+    (left - right).abs() <= PARIS_CLOSURE_RELATIVE_TOLERANCE * scale
+}
+
 fn validate_positive_range(minimum: f64, maximum: f64) -> Result<(), DamageReceiptError> {
     if !minimum.is_finite()
         || !maximum.is_finite()
@@ -476,12 +541,17 @@ mod tests {
         DamageReceipt {
             claim_id: "claim-miner-001".into(),
             subject: subject(),
+            material_grade_id: "S355".into(),
             load_history: evidence("load-history-001", EvidenceClass::Measured, 'a'),
             cycle_count: CycleCountArtifact {
                 artifact: evidence("cycle-record-001", EvidenceClass::Derived, 'b'),
                 algorithm_profile_id: "rainflow-profile-v1".into(),
                 total_cycles: 1000,
                 canonical_blocks_sha256: digest('c'),
+                source_load_history_evidence_id: "load-history-001".into(),
+                source_load_history_sha256: digest('a'),
+                environment_profile_id: "air-20c".into(),
+                stress_ratio_profile_id: "r-0.1".into(),
                 minimum_stress_amplitude_mpa: Some(80.0),
                 maximum_stress_amplitude_mpa: Some(160.0),
             },
@@ -533,7 +603,13 @@ mod tests {
             },
         };
         receipt.model_input_blocks_sha256 = digest('3');
-        receipt.delta_k_input = Some(evidence("delta-k-001", EvidenceClass::Derived, '4'));
+        receipt.delta_k_input = Some(DeltaKInputArtifact {
+            artifact: evidence("delta-k-001", EvidenceClass::Derived, '4'),
+            subject: subject(),
+            source_load_history_evidence_id: "load-history-001".into(),
+            source_load_history_sha256: digest('a'),
+            delta_k_mpa_sqrt_m: 12.0,
+        });
         receipt.output = evidence("paris-output-001", EvidenceClass::ModelEstimate, '5');
         receipt.output_value = DamageModelOutput::Paris {
             initial_crack_length_m: 0.010,
