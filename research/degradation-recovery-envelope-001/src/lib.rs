@@ -366,11 +366,14 @@ fn containment_active(tick: &TickTrace) -> bool {
 fn is_healthy_tick(tick: &TickTrace, policy_deadline_us: u64) -> bool {
     tick.conditions.as_slice() == [ObservationCondition::Clean]
         && tick.policy_input_accepted
+        && !tick.degraded_mode
+        && !tick.fallback_active
         && !tick.safe_stop_complete
         && tick
             .decision_latency_us
             .is_some_and(|latency| latency <= policy_deadline_us)
         && tick.fault_detection_event_ids.is_empty()
+        && tick.containment_event_ids.is_empty()
         && !contains_any(
             &tick.conditions,
             &[
@@ -1389,6 +1392,28 @@ mod tests {
         input.faulted_run.ticks[2].conditions = vec![ObservationCondition::Clean];
         let report = audit_campaign(&input);
         assert!(has(&report, "expected_fault_condition_missing"));
+    }
+
+    #[test]
+    fn degraded_or_fallback_ticks_do_not_advance_healthy_recovery_quorum() {
+        let mut input = campaign();
+        input.faulted_run.ticks[4].conditions = vec![ObservationCondition::Clean];
+        input.faulted_run.ticks[4].policy_input_accepted = true;
+        input.faulted_run.ticks[4].fault_detection_event_ids.clear();
+        input.faulted_run.ticks[4].containment_event_ids.clear();
+        input.faulted_run.ticks[4].degraded_mode = true;
+        input.faulted_run.ticks[4].fallback_active = true;
+
+        input.faulted_run.ticks[5].conditions = vec![ObservationCondition::Clean];
+        input.faulted_run.ticks[5].policy_input_accepted = true;
+        input.faulted_run.ticks[5].fault_detection_event_ids.clear();
+        input.faulted_run.ticks[5].containment_event_ids.clear();
+        input.faulted_run.ticks[5].degraded_mode = false;
+        input.faulted_run.ticks[5].fallback_active = false;
+
+        let report = audit_campaign(&input);
+        assert_eq!(report.events[0].recovery_tick, Some(8));
+        assert!(!has(&report, "premature_recovery"));
     }
 
     #[test]
