@@ -190,9 +190,7 @@ struct SequenceReport {
 
 fn expected_disposition(event: EventKind) -> DecisionDisposition {
     match event {
-        EventKind::Unchanged | EventKind::ViewpointOnly => {
-            DecisionDisposition::NoChangeSupported
-        }
+        EventKind::Unchanged | EventKind::ViewpointOnly => DecisionDisposition::NoChangeSupported,
         EventKind::Occlusion => DecisionDisposition::PartialWithUnknown,
         EventKind::RegistrationDrift | EventKind::Unresolved => {
             DecisionDisposition::RequestAdditionalObservation
@@ -271,7 +269,9 @@ fn evaluate_sequence(
     let mut reference_steps = BTreeMap::new();
     for step in &reference.steps {
         if step.step_id.trim().is_empty()
-            || reference_steps.insert(step.step_id.as_str(), step).is_some()
+            || reference_steps
+                .insert(step.step_id.as_str(), step)
+                .is_some()
         {
             return Err(format!(
                 "{} has an empty or duplicate reference step ID",
@@ -285,7 +285,9 @@ fn evaluate_sequence(
             || event
                 .valid_until_tick
                 .is_some_and(|until| until <= event.valid_from_tick)
-            || evidence_events.insert(event.event_id.as_str(), event).is_some()
+            || evidence_events
+                .insert(event.event_id.as_str(), event)
+                .is_some()
         {
             return Err(format!(
                 "{} has an invalid or duplicate evidence-event identity/validity interval",
@@ -329,8 +331,7 @@ fn evaluate_sequence(
         }
     }
 
-    let mut reference_observations: BTreeMap<(&str, &str), &ReferenceObservation> =
-        BTreeMap::new();
+    let mut reference_observations: BTreeMap<(&str, &str), &ReferenceObservation> = BTreeMap::new();
     let mut entity_ids = BTreeSet::new();
     let mut total_ground_truth_visible = 0usize;
     for observation in &reference.observations {
@@ -339,7 +340,10 @@ fn evaluate_sequence(
             || observation.ground_truth_entity_id.trim().is_empty()
             || reference_observations
                 .insert(
-                    (observation.step_id.as_str(), observation.observation_id.as_str()),
+                    (
+                        observation.step_id.as_str(),
+                        observation.observation_id.as_str(),
+                    ),
                     observation,
                 )
                 .is_some()
@@ -533,8 +537,7 @@ fn evaluate_sequence(
     let id_true_positives = max_identity_assignment(&overlap)?;
     let id_false_positives = candidate_detection_count.saturating_sub(id_true_positives);
     let id_false_negatives = total_ground_truth_visible.saturating_sub(id_true_positives);
-    let idf1_denominator =
-        2 * id_true_positives + id_false_positives + id_false_negatives;
+    let idf1_denominator = 2 * id_true_positives + id_false_positives + id_false_negatives;
     let idf1 = if idf1_denominator == 0 {
         1.0
     } else {
@@ -566,7 +569,10 @@ fn evaluate_sequence(
         let mut missed_after_detection = false;
         for observation in entity_observations.iter() {
             let current_track = candidate_assignment
-                .get(&(observation.step_id.as_str(), observation.observation_id.as_str()))
+                .get(&(
+                    observation.step_id.as_str(),
+                    observation.observation_id.as_str(),
+                ))
                 .copied();
             if let Some(track_id) = current_track {
                 if let Some(previous) = previous_track {
@@ -637,7 +643,9 @@ fn evaluate_bytes(
         || candidate.sequences.len() > MAX_SEQUENCES
         || reference.sequences.len() > MAX_SEQUENCES
     {
-        return Err(format!("sequence corpus must contain 1..={MAX_SEQUENCES} sequences"));
+        return Err(format!(
+            "sequence corpus must contain 1..={MAX_SEQUENCES} sequences"
+        ));
     }
 
     let mut reference_sequences = BTreeMap::new();
@@ -681,16 +689,13 @@ fn evaluate_bytes(
         .map(|sequence| sequence.building_group_id.as_str())
         .collect::<BTreeSet<_>>()
         .len();
-    let sum = |select: fn(&SequenceResult) -> usize| {
-        sequences.iter().map(select).sum::<usize>()
-    };
+    let sum = |select: fn(&SequenceResult) -> usize| sequences.iter().map(select).sum::<usize>();
     let ground_truth_visible_detections = sum(|sequence| sequence.ground_truth_visible_detections);
     let candidate_detections = sum(|sequence| sequence.candidate_detections);
     let id_true_positives = sum(|sequence| sequence.id_true_positives);
     let id_false_positives = sum(|sequence| sequence.id_false_positives);
     let id_false_negatives = sum(|sequence| sequence.id_false_negatives);
-    let idf1_denominator =
-        2 * id_true_positives + id_false_positives + id_false_negatives;
+    let idf1_denominator = 2 * id_true_positives + id_false_positives + id_false_negatives;
     let idf1 = if idf1_denominator == 0 {
         1.0
     } else {
@@ -701,10 +706,8 @@ fn evaluate_bytes(
     let false_physical_change_events = sum(|sequence| sequence.false_physical_change_events);
     let ground_truth_physical_change_events =
         sum(|sequence| sequence.ground_truth_physical_change_events);
-    let detected_physical_change_events =
-        sum(|sequence| sequence.detected_physical_change_events);
-    let temporal_evidence_violations =
-        sum(|sequence| sequence.temporal_evidence_violations);
+    let detected_physical_change_events = sum(|sequence| sequence.detected_physical_change_events);
+    let temporal_evidence_violations = sum(|sequence| sequence.temporal_evidence_violations);
     let identity_switches = sum(|sequence| sequence.identity_switches);
     let fragmentations = sum(|sequence| sequence.fragmentations);
     let passed = sequences.iter().all(|sequence| sequence.passed);
@@ -797,10 +800,8 @@ mod tests {
     use super::*;
     use serde_json::{Value, json};
 
-    const CANDIDATE: &str =
-        include_str!("../fixtures/candidate-sequences.json");
-    const REFERENCE: &str =
-        include_str!("../fixtures/evaluator-reference.json");
+    const CANDIDATE: &str = include_str!("../fixtures/candidate-sequences.json");
+    const REFERENCE: &str = include_str!("../fixtures/evaluator-reference.json");
 
     fn parsed_fixture() -> (Value, Value) {
         (
@@ -815,7 +816,10 @@ mod tests {
             .expect("frozen sequence corpus evaluates");
         assert_eq!(report.sequence_count, 7);
         assert_eq!(report.building_group_count, 7);
-        assert_eq!(report.id_true_positives, report.ground_truth_visible_detections);
+        assert_eq!(
+            report.id_true_positives,
+            report.ground_truth_visible_detections
+        );
         assert_eq!(report.id_false_positives, 0);
         assert_eq!(report.id_false_negatives, 0);
         assert_eq!(report.idf1, 1.0);
@@ -844,7 +848,10 @@ mod tests {
         for sequence in reference["sequences"].as_array_mut().unwrap() {
             sequence["steps"].as_array_mut().unwrap().reverse();
             sequence["observations"].as_array_mut().unwrap().reverse();
-            sequence["evidence_events"].as_array_mut().unwrap().reverse();
+            sequence["evidence_events"]
+                .as_array_mut()
+                .unwrap()
+                .reverse();
         }
         let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
         let reference_bytes = serde_json::to_vec(&reference).unwrap();
@@ -898,18 +905,21 @@ mod tests {
             .iter_mut()
             .find(|sequence| sequence["sequence_id"] == "SEQ-LATE-ARRIVAL")
             .unwrap();
-        sequence["evidence_events"].as_array_mut().unwrap().push(json!({
-            "event_id":"ev-ndt",
-            "kind":"ndt",
-            "measurement_tick":19,
-            "first_received_tick":19,
-            "clock_id":"synthetic-global-tick-v0",
-            "timestamp_precision_ticks":1,
-            "valid_from_tick":0,
-            "valid_until_tick":100,
-            "revoked_known_at_tick":null,
-            "allowed_purposes":["slow_quality_requalification"]
-        }));
+        sequence["evidence_events"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "event_id":"ev-ndt",
+                "kind":"ndt",
+                "measurement_tick":19,
+                "first_received_tick":19,
+                "clock_id":"synthetic-global-tick-v0",
+                "timestamp_precision_ticks":1,
+                "valid_from_tick":0,
+                "valid_until_tick":100,
+                "revoked_known_at_tick":null,
+                "allowed_purposes":["slow_quality_requalification"]
+            }));
         let step = candidate["sequences"]
             .as_array_mut()
             .unwrap()
@@ -998,7 +1008,10 @@ mod tests {
         let mut revoked = revoked;
         revoked["event_id"] = json!("ev-revoked-before-cutoff");
         revoked["revoked_known_at_tick"] = json!(20);
-        sequence["evidence_events"].as_array_mut().unwrap().push(revoked);
+        sequence["evidence_events"]
+            .as_array_mut()
+            .unwrap()
+            .push(revoked);
         let step = candidate["sequences"]
             .as_array_mut()
             .unwrap()
@@ -1016,8 +1029,8 @@ mod tests {
             .push(json!("ev-revoked-before-cutoff"));
         let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
         let reference_bytes = serde_json::to_vec(&reference).unwrap();
-        let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
-            .expect("known revocation is scored");
+        let report =
+            evaluate_bytes(&candidate_bytes, &reference_bytes).expect("known revocation is scored");
         assert_eq!(report.temporal_evidence_violations, 1);
         assert!(!report.passed);
     }
@@ -1040,7 +1053,10 @@ mod tests {
             .clone();
         revoked["event_id"] = json!("ev-revoked-after-cutoff");
         revoked["revoked_known_at_tick"] = json!(25);
-        sequence["evidence_events"].as_array_mut().unwrap().push(revoked);
+        sequence["evidence_events"]
+            .as_array_mut()
+            .unwrap()
+            .push(revoked);
         let step = candidate["sequences"]
             .as_array_mut()
             .unwrap()
@@ -1081,20 +1097,23 @@ mod tests {
             .unwrap();
         old_scan["superseded_by_event_id"] = json!("ev-scan-v2");
         old_scan["supersession_known_at_tick"] = json!(20);
-        sequence["evidence_events"].as_array_mut().unwrap().push(json!({
-            "event_id":"ev-scan-v2",
-            "kind":"survey",
-            "measurement_tick":19,
-            "first_received_tick":20,
-            "clock_id":"synthetic-global-tick-v0",
-            "timestamp_precision_ticks":1,
-            "valid_from_tick":0,
-            "valid_until_tick":100,
-            "revoked_known_at_tick":null,
-            "superseded_by_event_id":null,
-            "supersession_known_at_tick":null,
-            "allowed_purposes":["medium_building_update","slow_quality_requalification"]
-        }));
+        sequence["evidence_events"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "event_id":"ev-scan-v2",
+                "kind":"survey",
+                "measurement_tick":19,
+                "first_received_tick":20,
+                "clock_id":"synthetic-global-tick-v0",
+                "timestamp_precision_ticks":1,
+                "valid_from_tick":0,
+                "valid_until_tick":100,
+                "revoked_known_at_tick":null,
+                "superseded_by_event_id":null,
+                "supersession_known_at_tick":null,
+                "allowed_purposes":["medium_building_update","slow_quality_requalification"]
+            }));
         let step = candidate["sequences"]
             .as_array_mut()
             .unwrap()
@@ -1135,20 +1154,23 @@ mod tests {
             .unwrap();
         old_scan["superseded_by_event_id"] = json!("ev-scan-v2");
         old_scan["supersession_known_at_tick"] = json!(25);
-        sequence["evidence_events"].as_array_mut().unwrap().push(json!({
-            "event_id":"ev-scan-v2",
-            "kind":"survey",
-            "measurement_tick":19,
-            "first_received_tick":25,
-            "clock_id":"synthetic-global-tick-v0",
-            "timestamp_precision_ticks":1,
-            "valid_from_tick":0,
-            "valid_until_tick":100,
-            "revoked_known_at_tick":null,
-            "superseded_by_event_id":null,
-            "supersession_known_at_tick":null,
-            "allowed_purposes":["medium_building_update","slow_quality_requalification"]
-        }));
+        sequence["evidence_events"]
+            .as_array_mut()
+            .unwrap()
+            .push(json!({
+                "event_id":"ev-scan-v2",
+                "kind":"survey",
+                "measurement_tick":19,
+                "first_received_tick":25,
+                "clock_id":"synthetic-global-tick-v0",
+                "timestamp_precision_ticks":1,
+                "valid_from_tick":0,
+                "valid_until_tick":100,
+                "revoked_known_at_tick":null,
+                "superseded_by_event_id":null,
+                "supersession_known_at_tick":null,
+                "allowed_purposes":["medium_building_update","slow_quality_requalification"]
+            }));
         let step = candidate["sequences"]
             .as_array_mut()
             .unwrap()
@@ -1187,8 +1209,7 @@ mod tests {
             .iter_mut()
             .find(|step| step["step_id"] == "a-02")
             .unwrap();
-        step["observations"][0]["candidate_track_id"] =
-            Value::String("track-wall-new".to_owned());
+        step["observations"][0]["candidate_track_id"] = Value::String("track-wall-new".to_owned());
         let bytes = serde_json::to_vec(&candidate).unwrap();
         let report =
             evaluate_bytes(&bytes, REFERENCE.as_bytes()).expect("identity switch is scored");
@@ -1276,8 +1297,7 @@ mod tests {
         step["reported_event"] = json!("physical_change");
         step["disposition"] = json!("admit_candidate_delta");
         let bytes = serde_json::to_vec(&candidate).unwrap();
-        let report =
-            evaluate_bytes(&bytes, REFERENCE.as_bytes()).expect("false event is scored");
+        let report = evaluate_bytes(&bytes, REFERENCE.as_bytes()).expect("false event is scored");
         assert_eq!(report.false_physical_change_events, 1);
         assert!(!report.passed);
     }
@@ -1342,8 +1362,7 @@ mod tests {
             .unwrap();
         step["decision_cutoff_tick"] = json!(19);
         let bytes = serde_json::to_vec(&candidate).unwrap();
-        let report =
-            evaluate_bytes(&bytes, REFERENCE.as_bytes()).expect("early cutoff is scored");
+        let report = evaluate_bytes(&bytes, REFERENCE.as_bytes()).expect("early cutoff is scored");
         assert_eq!(report.temporal_evidence_violations, 1);
         assert!(!report.passed);
     }
