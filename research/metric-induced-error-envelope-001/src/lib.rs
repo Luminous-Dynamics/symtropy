@@ -60,7 +60,10 @@ impl<F: CoordinateFrame, const N: usize> Tangent<F, N> {
 impl<F: CoordinateFrame, const N: usize> Cotangent<F, N> {
     pub fn new(components: Vector<N>) -> Result<Self, MetricErrorV1> {
         validate_vector(&components)?;
-        Ok(Self { components, _frame: PhantomData })
+        Ok(Self {
+            components,
+            _frame: PhantomData,
+        })
     }
 
     pub fn components(&self) -> &Vector<N> {
