@@ -1,0 +1,33 @@
+name: EV battery closed-loop audit v0.1
+
+on:
+  pull_request:
+    paths:
+      - "docs/transport/EV_BATTERY_CLOSED_LOOP_QUAL_V0_1.md"
+      - "schemas/transport/ev_battery_closed_loop_qual_v0_1.schema.json"
+      - "fixtures/ev_battery/ev_battery_closed_loop_qual_v0_1.json"
+      - "tools/ev-battery-closed-loop-audit/**"
+      - ".github/workflows/ev-battery-closed-loop-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Check locked package metadata
+        run: cargo metadata --manifest-path tools/ev-battery-closed-loop-audit/Cargo.toml --locked --no-deps
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-battery-closed-loop-audit/Cargo.toml -- --check
+      - name: Run evidence-closure tests
+        run: cargo test --manifest-path tools/ev-battery-closed-loop-audit/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/ev-battery-closed-loop-audit/Cargo.toml --all-targets --locked -- -D warnings
