@@ -21,25 +21,46 @@
     "expected_reason_codes"
   ],
   "properties": {
-    "schema_version": { "const": "0.1.0" },
+    "schema_version": {
+      "const": "0.1.0"
+    },
     "case_id": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9._-]{2,95}$"
     },
-    "case_class": { "const": "synthetic_accounting_only" },
+    "case_class": {
+      "const": "synthetic_accounting_only"
+    },
     "evidence_ceiling": {
       "const": "arithmetic_conformance_only_no_physical_or_safety_claim"
     },
-    "description": { "type": "string", "minLength": 1, "maxLength": 1024 },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
     "model_scope": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["process_kinetics", "pathogen_model", "physical_measurements", "purpose"],
+      "required": [
+        "process_kinetics",
+        "pathogen_model",
+        "physical_measurements",
+        "purpose"
+      ],
       "properties": {
-        "process_kinetics": { "const": "not_modelled" },
-        "pathogen_model": { "const": "not_modelled" },
-        "physical_measurements": { "const": "none_synthetic_values_only" },
-        "purpose": { "const": "check_declared_arithmetic_and_units" }
+        "process_kinetics": {
+          "const": "not_modelled"
+        },
+        "pathogen_model": {
+          "const": "not_modelled"
+        },
+        "physical_measurements": {
+          "const": "none_synthetic_values_only"
+        },
+        "purpose": {
+          "const": "check_declared_arithmetic_and_units"
+        }
       }
     },
     "water_balance": {
@@ -55,13 +76,32 @@
         "closure_tolerance_l_day"
       ],
       "properties": {
-        "unit": { "const": "L/day" },
-        "influent_l_day": { "type": "number", "minimum": 0 },
-        "effluent_l_day": { "type": "number", "minimum": 0 },
-        "sludge_water_l_day": { "type": "number", "minimum": 0 },
-        "evaporation_l_day": { "type": "number", "minimum": 0 },
-        "expected_closure_l_day": { "type": "number" },
-        "closure_tolerance_l_day": { "type": "number", "minimum": 0 }
+        "unit": {
+          "const": "L/day"
+        },
+        "influent_l_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "effluent_l_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "sludge_water_l_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evaporation_l_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "expected_closure_l_day": {
+          "type": "number"
+        },
+        "closure_tolerance_l_day": {
+          "type": "number",
+          "minimum": 0
+        }
       }
     },
     "conserved_constituent_balances": {
@@ -82,15 +122,38 @@
         ],
         "properties": {
           "constituent": {
-            "enum": ["TSS", "total_nitrogen", "total_phosphorus"]
+            "enum": [
+              "TSS",
+              "total_nitrogen",
+              "total_phosphorus"
+            ]
           },
-          "unit": { "const": "kg/day" },
-          "influent_kg_day": { "type": "number", "minimum": 0 },
-          "effluent_kg_day": { "type": "number", "minimum": 0 },
-          "sludge_kg_day": { "type": "number", "minimum": 0 },
-          "other_outputs_kg_day": { "type": "number", "minimum": 0 },
-          "expected_closure_kg_day": { "type": "number" },
-          "closure_tolerance_kg_day": { "type": "number", "minimum": 0 }
+          "unit": {
+            "const": "kg/day"
+          },
+          "influent_kg_day": {
+            "type": "number",
+            "minimum": 0
+          },
+          "effluent_kg_day": {
+            "type": "number",
+            "minimum": 0
+          },
+          "sludge_kg_day": {
+            "type": "number",
+            "minimum": 0
+          },
+          "other_outputs_kg_day": {
+            "type": "number",
+            "minimum": 0
+          },
+          "expected_closure_kg_day": {
+            "type": "number"
+          },
+          "closure_tolerance_kg_day": {
+            "type": "number",
+            "minimum": 0
+          }
         }
       }
     },
@@ -111,16 +174,33 @@
           "interpretation"
         ],
         "properties": {
-          "parameter": { "enum": ["BOD5", "COD"] },
-          "unit": { "const": "mg/L" },
-          "influent_mg_l": { "type": "number", "minimum": 0 },
-          "effluent_mg_l": { "type": "number", "minimum": 0 },
-          "influent_flow_l_day": { "type": "number", "exclusiveMinimum": 0 },
-          "effluent_flow_l_day": { "type": "number", "minimum": 0 },
-          "expected_load_removal_percent": {
+          "parameter": {
+            "enum": [
+              "BOD5",
+              "COD"
+            ]
+          },
+          "unit": {
+            "const": "mg/L"
+          },
+          "influent_mg_l": {
             "type": "number",
-            "minimum": 0,
-            "maximum": 100
+            "minimum": 0
+          },
+          "effluent_mg_l": {
+            "type": "number",
+            "minimum": 0
+          },
+          "influent_flow_l_day": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "effluent_flow_l_day": {
+            "type": "number",
+            "minimum": 0
+          },
+          "expected_load_removal_percent": {
+            "type": "number"
           },
           "interpretation": {
             "const": "calculated_metric_not_a_conserved_species_or_compliance_result"
@@ -140,12 +220,29 @@
         "status"
       ],
       "properties": {
-        "unit": { "const": "kWh/day" },
-        "gross_import_kwh_day": { "type": "number", "minimum": 0 },
-        "recovered_kwh_day": { "type": "number", "minimum": 0 },
-        "net_import_kwh_day": { "type": "number", "minimum": 0 },
-        "meter_boundary": { "type": "string", "minLength": 1, "maxLength": 256 },
-        "status": { "const": "synthetic_arithmetic_only_not_an_energy_performance_claim" }
+        "unit": {
+          "const": "kWh/day"
+        },
+        "gross_import_kwh_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "recovered_kwh_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "net_import_kwh_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "meter_boundary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "status": {
+          "const": "synthetic_arithmetic_only_not_an_energy_performance_claim"
+        }
       }
     },
     "effluent_disposition": {
@@ -160,15 +257,38 @@
         "reuse_storage_change_l_day"
       ],
       "properties": {
-        "unit": { "const": "L/day" },
-        "effluent_produced_l_day": { "type": "number", "minimum": 0 },
-        "allocated_for_reuse_l_day": { "type": "number", "minimum": 0 },
-        "discharged_l_day": { "type": "number", "minimum": 0 },
-        "reuse_delivered_l_day": { "type": "number", "minimum": 0 },
-        "reuse_storage_change_l_day": { "type": "number" }
+        "unit": {
+          "const": "L/day"
+        },
+        "effluent_produced_l_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "allocated_for_reuse_l_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "discharged_l_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reuse_delivered_l_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "reuse_storage_change_l_day": {
+          "type": "number"
+        }
       }
     },
-    "expected_disposition": { "enum": ["Accepted", "Rejected", "Indeterminate", "Unsupported"] },
+    "expected_disposition": {
+      "enum": [
+        "Accepted",
+        "Rejected",
+        "Indeterminate",
+        "Unsupported"
+      ]
+    },
     "expected_reason_codes": {
       "type": "array",
       "uniqueItems": true,
@@ -181,6 +301,12 @@
         ]
       }
     },
-    "notes": { "type": "array", "items": { "type": "string", "maxLength": 512 } }
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "maxLength": 512
+      }
+    }
   }
 }
