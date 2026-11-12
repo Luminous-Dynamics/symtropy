@@ -452,9 +452,8 @@ pub fn equivalent_reversed_axial_stress_mpa(
     {
         return Err(HcfError::InvalidFatigueParameter);
     }
-    let factor = 0.5
-        * (normal_stress_sensitivity
-            + (1.0 + normal_stress_sensitivity.powi(2)).sqrt());
+    let factor =
+        0.5 * (normal_stress_sensitivity + (1.0 + normal_stress_sensitivity.powi(2)).sqrt());
     let equivalent_stress = findley_parameter_mpa / factor;
     if !equivalent_stress.is_finite() {
         return Err(HcfError::InvalidFatigueParameter);
