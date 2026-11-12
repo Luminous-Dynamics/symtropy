@@ -2,7 +2,7 @@
 
 Dependency-free Rust 1.96 read-only evaluator for second/third-life mission evidence and hard-gate consistency.
 
-Checks exact pack/configuration identity, complete cell membership, first-life history coverage, incident-history adjudication, competent-authority thermal decision, BMS target-mission verification, admitted evidence for all ten hard gates, lower-bound mission capability plus reserve, rights and deterministic reports.
+Checks exact pack/configuration identity, complete cell membership, first-life history coverage, incident-history adjudication, competent-authority thermal decision, BMS target-mission verification, exact cross-reference joins between source artifacts and hard-gate evidence, admitted evidence for all ten hard gates, lower-bound mission capability plus reserve, rights and deterministic reports.
 
 Synthetic known-answer fixtures can only return `synthetic_fixture_only`; they can never return a real eligible disposition.
 
