@@ -1220,6 +1220,14 @@ mod tests {
             .as_u64()
             .unwrap();
         assert_eq!(state - camera, max_skew + 1);
+        assert!(
+            (skewed["observations"][0]["vehicle_state"]["timestamp"]
+                .as_f64()
+                .unwrap()
+                - state as f64 / 1_000_000.0)
+                .abs()
+                < 1e-9
+        );
 
         let (stale, _, _, _, _) =
             prepare_request(&base, FaultCase::StaleSequenceReplay).unwrap();
@@ -1265,6 +1273,14 @@ mod tests {
         let (missing_action, _, _, _, _) =
             prepare_request(&base, FaultCase::MissingActionReceipt).unwrap();
         assert!(missing_action["observations"][0]["upstream"]["applied_action_receipt_id"].is_null());
+        assert_ne!(
+            missing_action["observations"][0]["upstream"]["receipt_sha256"],
+            base["observations"][0]["upstream"]["receipt_sha256"]
+        );
+        let mut recommit = missing_action["observations"][0]["upstream"].clone();
+        let expected_commitment = recommit["receipt_sha256"].clone();
+        recompute_upstream_policy_receipt(&mut recommit).unwrap();
+        assert_eq!(recommit["receipt_sha256"], expected_commitment);
 
         let (wrong_camera, _, _, _, _) =
             prepare_request(&base, FaultCase::CameraIdentityMismatch).unwrap();
@@ -1306,6 +1322,131 @@ mod tests {
         ] {
             assert_eq!(expected_frames_processed_before_rejection(case), Some(0));
         }
+    }
+
+    #[test]
+    fn source_episode_gate_requires_passing_replay_receipts_and_byte_digests() {
+        let base = std::env::temp_dir().join(format!(
+            "camera-boundary-source-episode-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(base.join("frames")).unwrap();
+        fs::create_dir_all(base.join("policy-receipts")).unwrap();
+
+        let pixels = vec![17_u8; 16 * 16 * 3];
+        let frame_sha = sha256_hex(&pixels);
+        fs::write(base.join("frames/frame_0001.rgb"), &pixels).unwrap();
+        let upstream = json!({
+            "sequence": 1,
+            "frame_sha256": frame_sha,
+            "observation_id": "b".repeat(64),
+            "receipt_sha256": "c".repeat(64)
+        });
+        write_json(
+            &base.join("policy-receipts/policy_receipt_0001.json"),
+            &upstream,
+        )
+        .unwrap();
+        let request = json!({
+            "bridge_config": {
+                "identity": {
+                    "episode_id": "source-episode-test"
+                }
+            },
+            "observations": [{
+                "sequence": 1,
+                "pixels_file": "frames/frame_0001.rgb",
+                "upstream": upstream
+            }]
+        });
+        let report = json!({
+            "status": "complete_for_declared_non_learning_fixture",
+            "episode_id": "source-episode-test",
+            "expected_ticks": 1,
+            "delivered_observations": 1,
+            "missing_observations": 0,
+            "fresh_process_renderer_replay_exact": true,
+            "fresh_process_symthaea_bridge_replay_exact": true,
+            "branch_evidence_audit_valid": true,
+            "stale_actor_replay_negative_control_rejected": true,
+            "symthaea_receipt_chain_valid": true,
+            "policy_input_artifacts_valid": true
+        });
+        write_json(&base.join(REQUEST_FILE), &request).unwrap();
+        write_json(&base.join("episode-report.json"), &report).unwrap();
+
+        assert!(validate_source_episode(&base, &request).is_ok());
+
+        let mut invalid_report = report;
+        invalid_report["fresh_process_symthaea_bridge_replay_exact"] = json!(false);
+        write_json(&base.join("episode-report.json"), &invalid_report).unwrap();
+        assert!(validate_source_episode(&base, &request).is_err());
+
+        let _ = fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn source_episode_gate_rejects_modified_frame_bytes_and_receipt_mismatch() {
+        let base = std::env::temp_dir().join(format!(
+            "camera-boundary-source-integrity-{}",
+            std::process::id()
+        ));
+        let _ = fs::remove_dir_all(&base);
+        fs::create_dir_all(base.join("frames")).unwrap();
+        fs::create_dir_all(base.join("policy-receipts")).unwrap();
+        let pixels = vec![29_u8; 16 * 16 * 3];
+        let frame_sha = sha256_hex(&pixels);
+        fs::write(base.join("frames/frame_0001.rgb"), &pixels).unwrap();
+        let upstream = json!({
+            "sequence": 1,
+            "frame_sha256": frame_sha,
+            "observation_id": "b".repeat(64),
+            "receipt_sha256": "c".repeat(64)
+        });
+        write_json(
+            &base.join("policy-receipts/policy_receipt_0001.json"),
+            &upstream,
+        )
+        .unwrap();
+        let request = json!({
+            "bridge_config": {"identity":{"episode_id":"source-episode-test"}},
+            "observations":[{
+                "sequence":1,
+                "pixels_file":"frames/frame_0001.rgb",
+                "upstream":upstream
+            }]
+        });
+        let report = json!({
+            "status":"complete_for_declared_non_learning_fixture",
+            "episode_id":"source-episode-test",
+            "expected_ticks":1,
+            "delivered_observations":1,
+            "missing_observations":0,
+            "fresh_process_renderer_replay_exact":true,
+            "fresh_process_symthaea_bridge_replay_exact":true,
+            "branch_evidence_audit_valid":true,
+            "stale_actor_replay_negative_control_rejected":true,
+            "symthaea_receipt_chain_valid":true,
+            "policy_input_artifacts_valid":true
+        });
+        write_json(&base.join(REQUEST_FILE), &request).unwrap();
+        write_json(&base.join("episode-report.json"), &report).unwrap();
+
+        let mut changed_pixels = pixels.clone();
+        changed_pixels[0] ^= 1;
+        fs::write(base.join("frames/frame_0001.rgb"), &changed_pixels).unwrap();
+        assert!(validate_source_episode(&base, &request).is_err());
+
+        fs::write(base.join("frames/frame_0001.rgb"), pixels).unwrap();
+        write_json(
+            &base.join("policy-receipts/policy_receipt_0001.json"),
+            &json!({"not":"the request receipt"}),
+        )
+        .unwrap();
+        assert!(validate_source_episode(&base, &request).is_err());
+
+        let _ = fs::remove_dir_all(&base);
     }
 
     #[test]
