@@ -215,7 +215,8 @@
               "temperature_c",
               "hard_limit_c",
               "source_class",
-              "uncertainty_c"
+              "uncertainty_c",
+              "evidence_digest"
             ],
             "properties": {
               "node_id": {
@@ -239,6 +240,9 @@
               "uncertainty_c": {
                 "type": "number",
                 "minimum": 0
+              },
+              "evidence_digest": {
+                "$ref": "#/$defs/digest"
               }
             }
           }
