@@ -104,11 +104,11 @@ jobs:
         cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin sequential_active_sensing_sweep -- --candidate-policy-map > /tmp/civdyn-sequential-sensing-candidate.csv
         cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin sequential_active_sensing_sweep -- --candidate-policy-map > /tmp/civdyn-sequential-sensing-candidate-replay.csv
         cmp /tmp/civdyn-sequential-sensing-candidate.csv /tmp/civdyn-sequential-sensing-candidate-replay.csv
-        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent_active_sensing_sweep > /tmp/civdyn-contingent-sensing.csv
-        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent_active_sensing_sweep > /tmp/civdyn-contingent-sensing-replay.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep > /tmp/civdyn-contingent-sensing.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep > /tmp/civdyn-contingent-sensing-replay.csv
         cmp /tmp/civdyn-contingent-sensing.csv /tmp/civdyn-contingent-sensing-replay.csv
-        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent_active_sensing_sweep -- --candidate-policy-tree > /tmp/civdyn-contingent-candidate.csv
-        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent_active_sensing_sweep -- --candidate-policy-tree > /tmp/civdyn-contingent-candidate-replay.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep -- --candidate-policy-tree > /tmp/civdyn-contingent-candidate.csv
+        cargo run --quiet --locked --manifest-path research/civdyn-active-sensing/Cargo.toml --bin contingent-active-sensing-sweep -- --candidate-policy-tree > /tmp/civdyn-contingent-candidate-replay.csv
         cmp /tmp/civdyn-contingent-candidate.csv /tmp/civdyn-contingent-candidate-replay.csv
         python3 - <<'PY'
         import csv
