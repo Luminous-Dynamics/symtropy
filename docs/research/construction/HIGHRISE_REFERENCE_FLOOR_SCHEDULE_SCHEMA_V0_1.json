@@ -1,0 +1,744 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Luminous-Dynamics/symtropy/blob/main/docs/research/construction/HIGHRISE_REFERENCE_FLOOR_SCHEDULE_SCHEMA_V0_1.json",
+  "title": "High-rise reference-floor schedule profile v0.1",
+  "description": "Closed document-shape schema. Passing it does not establish schedule optimality, construction feasibility, safety, structural adequacy or physical productivity.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "profile_id",
+    "parent_issue",
+    "implementation_issue",
+    "status",
+    "created_date",
+    "synthetic_only",
+    "claim_ceiling",
+    "time_convention",
+    "scope",
+    "workflow_summary",
+    "functional_output_contracts",
+    "resource_profile",
+    "cases",
+    "case_extensions",
+    "route_comparison",
+    "benchmark_alignment",
+    "unresolved_inputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "luminous.highrise_reference_floor_schedule.v0.1"
+    },
+    "profile_id": {
+      "const": "HIGHRISE-REFERENCE-FLOOR-ADAPTER-001"
+    },
+    "parent_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "implementation_issue": {
+      "type": "string",
+      "format": "uri"
+    },
+    "status": {
+      "const": "synthetic_reference_scenarios_not_project_schedule"
+    },
+    "created_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "synthetic_only": {
+      "const": true
+    },
+    "claim_ceiling": {
+      "type": "string",
+      "minLength": 1
+    },
+    "time_convention": {
+      "$ref": "#/$defs/timeConvention"
+    },
+    "scope": {
+      "$ref": "#/$defs/scope"
+    },
+    "workflow_summary": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "functional_output_contracts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/outputContract"
+      }
+    },
+    "resource_profile": {
+      "$ref": "#/$defs/resourceProfile"
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/scheduleCase"
+      }
+    },
+    "case_extensions": {
+      "$ref": "#/$defs/caseExtensions"
+    },
+    "route_comparison": {
+      "$ref": "#/$defs/routeComparison"
+    },
+    "benchmark_alignment": {
+      "$ref": "#/$defs/benchmarkAlignment"
+    },
+    "unresolved_inputs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "$defs": {
+    "timeConvention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "time_origin",
+        "time_unit",
+        "intervals",
+        "task_execution",
+        "precedence",
+        "objective",
+        "resource_semantics",
+        "duration_uncertainty",
+        "acceptance"
+      ],
+      "properties": {
+        "time_origin": {
+          "const": 0
+        },
+        "time_unit": {
+          "const": "abstract_integer_planning_ticks_not_hours_or_days"
+        },
+        "intervals": {
+          "const": "half_open_start_inclusive_finish_exclusive"
+        },
+        "task_execution": {
+          "const": "nonpreemptive"
+        },
+        "precedence": {
+          "const": "finish(before) <= start(after)"
+        },
+        "objective": {
+          "const": "minimize makespan over required scheduled tasks"
+        },
+        "resource_semantics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "duration_uncertainty": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "nullableString": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reference_object",
+        "building_geometry",
+        "floor_area",
+        "structural_system",
+        "jurisdiction",
+        "code_basis",
+        "temporary_works_design",
+        "lift_plan",
+        "actual_crew_productivity_data",
+        "measured_equipment_capacity",
+        "null_policy"
+      ],
+      "properties": {
+        "reference_object": {
+          "type": "string",
+          "minLength": 1
+        },
+        "building_geometry": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "floor_area": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "structural_system": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "jurisdiction": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "code_basis": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "temporary_works_design": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "lift_plan": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "actual_crew_productivity_data": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "measured_equipment_capacity": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "null_policy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "outputContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "functional_unit",
+        "acceptance_predicate",
+        "acceptance_authority",
+        "credit_rule"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "functional_unit": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_predicate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_authority": {
+          "type": "string",
+          "minLength": 1
+        },
+        "credit_rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "resourceProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capacities_are",
+        "resource_definitions",
+        "omitted_costs_and_constraints"
+      ],
+      "properties": {
+        "capacities_are": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource_definitions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/resourceDefinition"
+          }
+        },
+        "omitted_costs_and_constraints": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "resourceDefinition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "capacity",
+        "meaning"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capacity": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "meaning": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "nominal_duration",
+        "upper_duration",
+        "resource_demands",
+        "required_gates",
+        "earliest_start",
+        "latest_start",
+        "latest_finish"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nominal_duration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "upper_duration": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "resource_demands": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required_gates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "earliest_start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "latest_start": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "latest_finish": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "precedence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "before",
+        "after"
+      ],
+      "properties": {
+        "before": {
+          "type": "string",
+          "minLength": 1
+        },
+        "after": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "scheduleResource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "capacity"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "capacity": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "witness": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "task_id",
+        "start",
+        "finish"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "start": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "finish": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "feasible",
+        "nominal_optimal_makespan",
+        "upper_scenario_optimal_makespan",
+        "robust_feasible",
+        "canonical_witness",
+        "rejection_reason"
+      ],
+      "properties": {
+        "feasible": {
+          "type": "boolean"
+        },
+        "nominal_optimal_makespan": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "upper_scenario_optimal_makespan": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "robust_feasible": {
+          "type": "boolean"
+        },
+        "canonical_witness": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/witness"
+          }
+        },
+        "rejection_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "scheduleCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "purpose",
+        "tasks",
+        "precedence",
+        "resources",
+        "declared_gates",
+        "available_gates",
+        "hard_deadline",
+        "expected"
+      ],
+      "properties": {
+        "case_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "purpose": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tasks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "$ref": "#/$defs/task"
+          }
+        },
+        "precedence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/precedence"
+          }
+        },
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/scheduleResource"
+          }
+        },
+        "declared_gates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "available_gates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "hard_deadline": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "expected": {
+          "$ref": "#/$defs/expected"
+        }
+      }
+    },
+    "disturbance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "affected_work_package",
+        "required_recovery"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "affected_work_package": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_recovery": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "comparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "baseline_case",
+        "comparison_case",
+        "baseline_makespan",
+        "comparison_makespan",
+        "absolute_change",
+        "relative_reduction"
+      ],
+      "properties": {
+        "baseline_case": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comparison_case": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseline_makespan": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "comparison_makespan": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "absolute_change": {
+          "type": "integer"
+        },
+        "relative_reduction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "caseExtension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "output_state",
+        "interpretation"
+      ],
+      "properties": {
+        "output_state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "interpretation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expected_resource_bottleneck": {
+          "type": "string",
+          "minLength": 1
+        },
+        "comparison": {
+          "$ref": "#/$defs/comparison"
+        },
+        "disturbance": {
+          "$ref": "#/$defs/disturbance"
+        }
+      }
+    },
+    "caseExtensions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "HF01_ONE_HOIST_NOMINAL",
+        "HF02_TWO_HOIST_CAPACITY_SENSITIVITY",
+        "HF03_MISSING_PREPOUR_HOLD_POINT",
+        "HF04_REJECT_REWORK_REINSPECT"
+      ],
+      "properties": {
+        "HF01_ONE_HOIST_NOMINAL": {
+          "$ref": "#/$defs/caseExtension"
+        },
+        "HF02_TWO_HOIST_CAPACITY_SENSITIVITY": {
+          "$ref": "#/$defs/caseExtension"
+        },
+        "HF03_MISSING_PREPOUR_HOLD_POINT": {
+          "$ref": "#/$defs/caseExtension"
+        },
+        "HF04_REJECT_REWORK_REINSPECT": {
+          "$ref": "#/$defs/caseExtension"
+        }
+      }
+    },
+    "strategyProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "status",
+        "duration_profile_ref",
+        "measured_labor_ref",
+        "acceptance_ref"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "status": {
+          "const": "not_parameterized"
+        },
+        "duration_profile_ref": {
+          "type": "null"
+        },
+        "measured_labor_ref": {
+          "type": "null"
+        },
+        "acceptance_ref": {
+          "type": "null"
+        }
+      }
+    },
+    "routeComparison": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "strategy_profiles",
+        "rule"
+      ],
+      "properties": {
+        "strategy_profiles": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "$ref": "#/$defs/strategyProfile"
+          }
+        },
+        "rule": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "benchmarkAlignment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "construction_productivity",
+        "robotics_component_assessment",
+        "scheduler_owner",
+        "recovery_owner",
+        "accepted_output_owner",
+        "industry_sources"
+      ],
+      "properties": {
+        "construction_productivity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "robotics_component_assessment": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scheduler_owner": {
+          "type": "string",
+          "format": "uri"
+        },
+        "recovery_owner": {
+          "type": "string",
+          "format": "uri"
+        },
+        "accepted_output_owner": {
+          "type": "string",
+          "format": "uri"
+        },
+        "industry_sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "format": "uri"
+          }
+        }
+      }
+    }
+  }
+}
