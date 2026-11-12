@@ -4,6 +4,7 @@ An isolated Rust package for two separate research contracts:
 
 1. **Receiver-pose observability** — finite synthetic field/receiver pose maps, alias detection, and explicit claim ceilings.
 2. **Mission energy ledger** — deterministic battery-electric segment energy accounting, explicit reserve segments, and continuous/peak DC-bus power screening.
+3. **Fixed-wing cruise estimator** — tropospheric ISA atmosphere plus a supplied steady-level drag polar to estimate lift, drag, useful thrust power, and propulsor shaft power.
 
 The modules are intentionally separate. A uniquely observable synthetic receiver map does not qualify a wireless-power-transfer aircraft system; a mission energy ledger does not validate an RF/optical link or an aircraft.
 
@@ -14,6 +15,14 @@ cargo fmt --all -- --check
 cargo test --locked -p airborne-energy-observability-validator
 cargo clippy --locked -p airborne-energy-observability-validator --all-targets -- -D warnings
 ```
+
+## Fixed-wing cruise model boundary
+
+`fixedwing::standard_atmosphere` implements the tropospheric ISA approximation from 0 to 11,000 m. `fixedwing::estimate_steady_level_cruise` uses declared aircraft mass, wing area, aspect ratio, Oswald efficiency, zero-lift drag coefficient, maximum lift coefficient, propulsive efficiency, altitude, and true airspeed.
+
+The estimator assumes steady, level, unaccelerated flight and computes lift coefficient, induced drag, total drag, useful thrust power, and shaft power. It uses a simplified parabolic drag polar. Polar values and propulsive efficiency must be sourced from measured data or a qualified reference. This is a low-fidelity analytic estimate, not a validated aero model.
+
+It does not model climb/descent, manoeuvres, takeoff, stall dynamics, VTOL hover, transition, trim drag, compressibility, Reynolds effects, propwash, aeroelasticity, structural margins, or certification criteria. It is not valid as a stand-alone design release calculation.
 
 ## Mission-energy model boundary
 
