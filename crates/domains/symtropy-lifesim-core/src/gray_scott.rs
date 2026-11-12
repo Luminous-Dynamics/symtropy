@@ -647,7 +647,8 @@ mod tests {
             for x in 0..field.width {
                 let xf = x as f64;
                 let yf = y as f64;
-                field.u[field.index(x, y)] = xf * xf + yf * yf;
+                let index = field.index(x, y);
+                field.u[index] = xf * xf + yf * yf;
             }
         }
 
