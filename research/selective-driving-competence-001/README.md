@@ -47,6 +47,8 @@ Each decision record has:
 - actual abstention state and, when abstained, a decision deadline and observed fallback outcome/duration;
 - measured latency, energy and memory where available.
 
+The input requires `bootstrap_replicates` in [100, 10000] and a fixed `bootstrap_seed`. Bootstrap resamples whole episodes with replacement; it does not treat adjacent decisions from the same episode as independent.
+
 The evaluator rejects:
 - missing or censored outcomes (no zero imputation or silent exclusion);
 - duplicate or unexpected decision IDs and missing expected episodes;
@@ -65,7 +67,7 @@ The policy-input availability check is a declared-record integrity test. It does
 4. **Calibration:** Brier score, log loss, fixed-width-bin ECE and maximum bin gap.
 5. **Worst-family exposure:** per-family accepted coverage and accepted failure/loss metrics; an overall average cannot hide a weak family.
 6. **Actual abstention:** actual autonomy coverage, accepted failure/loss, fallback success/failure, late abstentions, fallback duration and human interventions.
-7. **Resources:** average measured latency/energy/memory and the number of observations available for each. Missing measurements remain null, never zero.
+5. **Resources:** average measured latency/energy/memory and the number of observations available for each. Missing measurements remain null, never zero.
 
 AURC is a ranking metric, not a deployment-risk guarantee. ECE depends on binning. A favourable point estimate without episode-level uncertainty intervals is not evidence of statistical superiority. This tool does not implement bootstrap confidence intervals; the analysis protocol requires episode-level resampling before research claims.
 
