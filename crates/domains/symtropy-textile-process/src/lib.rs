@@ -113,22 +113,61 @@ pub enum ComparisonError {
     EmptyComparisonId,
     TooFewObjectives,
     EmptyObjectiveId,
-    EmptyObjectiveUnit { objective_id: String },
-    ZeroObjectiveScale { objective_id: String },
-    DuplicateObjectiveId { objective_id: String },
+    EmptyObjectiveUnit {
+        objective_id: String,
+    },
+    ZeroObjectiveScale {
+        objective_id: String,
+    },
+    DuplicateObjectiveId {
+        objective_id: String,
+    },
     EmptyCandidateId,
-    DuplicateCandidateId { candidate_id: String },
-    NoHardGates { candidate_id: String },
-    EmptyGateId { candidate_id: String },
-    DuplicateGateId { candidate_id: String, gate_id: String },
-    MissingGateEvidence { candidate_id: String, gate_id: String },
-    EmptyUnknownReason { candidate_id: String, gate_id: String },
-    EmptyValueEvidence { candidate_id: String, objective_id: String },
-    UnknownObjective { candidate_id: String, objective_id: String },
-    DuplicateObjectiveValue { candidate_id: String, objective_id: String },
-    ObjectiveUnitMismatch { candidate_id: String, objective_id: String },
-    ObjectiveScaleMismatch { candidate_id: String, objective_id: String },
-    MissingObjectiveValue { candidate_id: String, objective_id: String },
+    DuplicateCandidateId {
+        candidate_id: String,
+    },
+    NoHardGates {
+        candidate_id: String,
+    },
+    EmptyGateId {
+        candidate_id: String,
+    },
+    DuplicateGateId {
+        candidate_id: String,
+        gate_id: String,
+    },
+    MissingGateEvidence {
+        candidate_id: String,
+        gate_id: String,
+    },
+    EmptyUnknownReason {
+        candidate_id: String,
+        gate_id: String,
+    },
+    EmptyValueEvidence {
+        candidate_id: String,
+        objective_id: String,
+    },
+    UnknownObjective {
+        candidate_id: String,
+        objective_id: String,
+    },
+    DuplicateObjectiveValue {
+        candidate_id: String,
+        objective_id: String,
+    },
+    ObjectiveUnitMismatch {
+        candidate_id: String,
+        objective_id: String,
+    },
+    ObjectiveScaleMismatch {
+        candidate_id: String,
+        objective_id: String,
+    },
+    MissingObjectiveValue {
+        candidate_id: String,
+        objective_id: String,
+    },
 }
 
 impl fmt::Display for ComparisonError {
@@ -136,7 +175,10 @@ impl fmt::Display for ComparisonError {
         match self {
             Self::EmptyComparisonId => write!(f, "comparison ID must not be empty"),
             Self::TooFewObjectives => {
-                write!(f, "at least two objectives are required for Pareto comparison")
+                write!(
+                    f,
+                    "at least two objectives are required for Pareto comparison"
+                )
             }
             Self::EmptyObjectiveId => write!(f, "objective ID must not be empty"),
             Self::EmptyObjectiveUnit { objective_id } => {
@@ -158,38 +200,83 @@ impl fmt::Display for ComparisonError {
             Self::EmptyGateId { candidate_id } => {
                 write!(f, "candidate '{candidate_id}' has an empty gate ID")
             }
-            Self::DuplicateGateId { candidate_id, gate_id } => {
+            Self::DuplicateGateId {
+                candidate_id,
+                gate_id,
+            } => {
                 write!(f, "candidate '{candidate_id}' repeats gate '{gate_id}'")
             }
-            Self::MissingGateEvidence { candidate_id, gate_id } => {
-                write!(f, "candidate '{candidate_id}' gate '{gate_id}' lacks evidence")
+            Self::MissingGateEvidence {
+                candidate_id,
+                gate_id,
+            } => {
+                write!(
+                    f,
+                    "candidate '{candidate_id}' gate '{gate_id}' lacks evidence"
+                )
             }
-            Self::EmptyUnknownReason { candidate_id, gate_id } => {
-                write!(f, "candidate '{candidate_id}' unknown gate '{gate_id}' lacks a reason")
+            Self::EmptyUnknownReason {
+                candidate_id,
+                gate_id,
+            } => {
+                write!(
+                    f,
+                    "candidate '{candidate_id}' unknown gate '{gate_id}' lacks a reason"
+                )
             }
-            Self::EmptyValueEvidence { candidate_id, objective_id } => {
-                write!(f, "candidate '{candidate_id}' objective '{objective_id}' lacks evidence")
+            Self::EmptyValueEvidence {
+                candidate_id,
+                objective_id,
+            } => {
+                write!(
+                    f,
+                    "candidate '{candidate_id}' objective '{objective_id}' lacks evidence"
+                )
             }
-            Self::UnknownObjective { candidate_id, objective_id } => {
-                write!(f, "candidate '{candidate_id}' uses undeclared objective '{objective_id}'")
+            Self::UnknownObjective {
+                candidate_id,
+                objective_id,
+            } => {
+                write!(
+                    f,
+                    "candidate '{candidate_id}' uses undeclared objective '{objective_id}'"
+                )
             }
-            Self::DuplicateObjectiveValue { candidate_id, objective_id } => {
-                write!(f, "candidate '{candidate_id}' repeats objective '{objective_id}'")
+            Self::DuplicateObjectiveValue {
+                candidate_id,
+                objective_id,
+            } => {
+                write!(
+                    f,
+                    "candidate '{candidate_id}' repeats objective '{objective_id}'"
+                )
             }
-            Self::ObjectiveUnitMismatch { candidate_id, objective_id } => {
+            Self::ObjectiveUnitMismatch {
+                candidate_id,
+                objective_id,
+            } => {
                 write!(
                     f,
                     "candidate '{candidate_id}' unit disagrees for objective '{objective_id}'"
                 )
             }
-            Self::ObjectiveScaleMismatch { candidate_id, objective_id } => {
+            Self::ObjectiveScaleMismatch {
+                candidate_id,
+                objective_id,
+            } => {
                 write!(
                     f,
                     "candidate '{candidate_id}' scale disagrees for objective '{objective_id}'"
                 )
             }
-            Self::MissingObjectiveValue { candidate_id, objective_id } => {
-                write!(f, "feasible candidate '{candidate_id}' lacks objective '{objective_id}'")
+            Self::MissingObjectiveValue {
+                candidate_id,
+                objective_id,
+            } => {
+                write!(
+                    f,
+                    "feasible candidate '{candidate_id}' lacks objective '{objective_id}'"
+                )
             }
         }
     }
@@ -230,7 +317,10 @@ pub fn compare_candidates(
                 objective_id: objective.id.clone(),
             });
         }
-        if objective_by_id.insert(objective.id.as_str(), objective).is_some() {
+        if objective_by_id
+            .insert(objective.id.as_str(), objective)
+            .is_some()
+        {
             return Err(ComparisonError::DuplicateObjectiveId {
                 objective_id: objective.id.clone(),
             });
@@ -467,8 +557,14 @@ impl fmt::Display for MassBalanceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ArithmeticOverflow => write!(f, "mass-balance arithmetic overflow"),
-            Self::Unbalanced { input_mg, accounted_mg } => {
-                write!(f, "mass balance mismatch: {input_mg} mg input, {accounted_mg} mg accounted")
+            Self::Unbalanced {
+                input_mg,
+                accounted_mg,
+            } => {
+                write!(
+                    f,
+                    "mass balance mismatch: {input_mg} mg input, {accounted_mg} mg accounted"
+                )
             }
         }
     }
@@ -614,8 +710,7 @@ mod tests {
                 reason: "meter calibration evidence missing".into(),
             },
         });
-        let report =
-            compare_candidates("fixture-3", &objectives(), &[candidate]).unwrap();
+        let report = compare_candidates("fixture-3", &objectives(), &[candidate]).unwrap();
 
         assert!(report.frontier.is_empty());
         assert_eq!(
@@ -662,7 +757,7 @@ mod tests {
             &objectives(),
             &[a.clone(), b.clone(), c.clone()],
         )
-            .unwrap();
+        .unwrap();
         let right = compare_candidates("fixture-6", &objectives(), &[c, a, b]).unwrap();
         assert_eq!(left, right);
     }
@@ -702,7 +797,10 @@ mod tests {
             scrap_mg: 0,
             measured_process_loss_mg: 0,
         };
-        assert_eq!(overflowing.verify(), Err(MassBalanceError::ArithmeticOverflow));
+        assert_eq!(
+            overflowing.verify(),
+            Err(MassBalanceError::ArithmeticOverflow)
+        );
     }
 
     #[test]
