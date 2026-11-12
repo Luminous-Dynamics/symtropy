@@ -131,9 +131,10 @@ impl fmt::Display for CsvAuditError {
                 formatter,
                 "selected time column contains a missing, non-numeric or non-finite value: {path}"
             ),
-            Self::NonMonotonicTime(path) => {
-                write!(formatter, "selected time column is not strictly increasing: {path}")
-            }
+            Self::NonMonotonicTime(path) => write!(
+                formatter,
+                "selected time column is not strictly increasing: {path}"
+            ),
             Self::InvalidAnomalyLabel(path) => write!(
                 formatter,
                 "Anomaly State contains a value other than 0 or 1: {path}"
@@ -688,10 +689,10 @@ mod tests {
         let mut rows = vec![names, row_one, row_two];
         for (index, time) in ["0.0", "0.05"].iter().enumerate() {
             let mut row = vec!["2026-01-01T00:00:00Z".to_owned(); columns];
-            if labels.is_some() {
+            if let Some(label_values) = labels {
                 row[0] = "2026-01-01T00:00:00Z".into();
                 row[1] = (*time).into();
-                row[2] = labels.unwrap()[index].into();
+                row[2] = label_values[index].into();
             } else {
                 row[0] = (*time).into();
             }
@@ -758,7 +759,9 @@ mod tests {
         wrong_baseline = rows.join("\n").into_bytes();
         assert_eq!(
             audit_marine_csv_bytes("wrong-baseline.csv", &wrong_baseline),
-            Err(CsvAuditError::InvalidHeaderSemantics("wrong-baseline.csv".into()))
+            Err(CsvAuditError::InvalidHeaderSemantics(
+                "wrong-baseline.csv".into()
+            ))
         );
 
         let mut wrong_units = fixture_csv(73, Some(["0", "1"]));
@@ -770,7 +773,9 @@ mod tests {
         wrong_units = rows.join("\n").into_bytes();
         assert_eq!(
             audit_marine_csv_bytes("wrong-units.csv", &wrong_units),
-            Err(CsvAuditError::InvalidHeaderSemantics("wrong-units.csv".into()))
+            Err(CsvAuditError::InvalidHeaderSemantics(
+                "wrong-units.csv".into()
+            ))
         );
     }
 
