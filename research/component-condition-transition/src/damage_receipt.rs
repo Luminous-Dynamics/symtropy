@@ -38,12 +38,13 @@ pub enum ModelApplicability {
 }
 
 /// Exact model/profile identity and its source artifact.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ModelProfileArtifact {
     pub family: DamageModelFamily,
     pub profile_id: String,
     pub version: String,
     pub artifact: EvidenceRef,
+    pub applicability: ModelApplicability,
 }
 
 /// A cycle-count artifact produced upstream from a source load history.
