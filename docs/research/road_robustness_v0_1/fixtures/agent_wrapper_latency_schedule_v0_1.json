@@ -1,0 +1,186 @@
+{
+  "fixture_version": "0.1.0",
+  "fixture_id": "bench2drive-robust-agent-wrapper-schedule-oracle-v0.1",
+  "status": "analytic_source_semantics_fixture_not_runtime_execution",
+  "source": {
+    "repository": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust",
+    "commit": "ae1b5867324710bf0574cba797062280d9d97105",
+    "file": "leaderboard/leaderboard/autoagents/agent_wrapper.py",
+    "url": "https://github.com/Thinklab-SJTU/Bench2Drive-Robust/blob/ae1b5867324710bf0574cba797062280d9d97105/leaderboard/leaderboard/autoagents/agent_wrapper.py"
+  },
+  "assumptions": [
+    "SIM_RATE is exactly 20 ticks per second.",
+    "WARMUP_STEPS is not overridden and equals its source default of 20.",
+    "Critical sensor readiness becomes true at the first eligible tick (tick 21).",
+    "The fixture models the fixed-delay branch only; it does not reproduce CARLA or the agent runtime."
+  ],
+  "source_logic": {
+    "warmup_steps_default": 20,
+    "default_control": {
+      "steer": 0,
+      "throttle": 0,
+      "brake": 0
+    },
+    "fixed_delay_ticks_formula": "int(latency_ms * SIM_RATE / 1000.0)",
+    "first_policy_invocation_tick": 21,
+    "release_rule": "At scheduled tick, next_control becomes current_control, a new policy output is generated, and next release is scheduled delay_ticks ticks later.",
+    "between_release_rule": "Hold current_control; no policy invocation on intervening ticks."
+  },
+  "cases": [
+    {
+      "latency_ms": 100,
+      "sim_rate_hz": 20,
+      "delay_ticks": 2,
+      "first_release_tick": 23,
+      "command_age_ticks_cycle": [
+        2,
+        3
+      ],
+      "mean_age_ticks": 2.5,
+      "mean_age_ms": 125,
+      "invocation_ticks": [
+        21,
+        23,
+        25,
+        27,
+        29,
+        31
+      ],
+      "application_ticks": [
+        23,
+        25,
+        27,
+        29,
+        31
+      ],
+      "tick_trace": [
+        {
+          "tick": 21,
+          "policy_invoked": true,
+          "command_generated": "u0",
+          "command_applied": "default",
+          "command_age_ticks": null
+        },
+        {
+          "tick": 22,
+          "policy_invoked": false,
+          "command_generated": null,
+          "command_applied": "default",
+          "command_age_ticks": null
+        },
+        {
+          "tick": 23,
+          "policy_invoked": true,
+          "command_generated": "u1",
+          "command_applied": "u0",
+          "command_age_ticks": 2
+        },
+        {
+          "tick": 24,
+          "policy_invoked": false,
+          "command_generated": null,
+          "command_applied": "u0",
+          "command_age_ticks": 3
+        },
+        {
+          "tick": 25,
+          "policy_invoked": true,
+          "command_generated": "u2",
+          "command_applied": "u1",
+          "command_age_ticks": 2
+        },
+        {
+          "tick": 26,
+          "policy_invoked": false,
+          "command_generated": null,
+          "command_applied": "u1",
+          "command_age_ticks": 3
+        }
+      ]
+    },
+    {
+      "latency_ms": 200,
+      "sim_rate_hz": 20,
+      "delay_ticks": 4,
+      "first_release_tick": 25,
+      "command_age_ticks_cycle": [
+        4,
+        5,
+        6,
+        7
+      ],
+      "mean_age_ticks": 5.5,
+      "mean_age_ms": 275,
+      "invocation_ticks": [
+        21,
+        25,
+        29,
+        33,
+        37,
+        41
+      ],
+      "application_ticks": [
+        25,
+        29,
+        33,
+        37,
+        41
+      ]
+    },
+    {
+      "latency_ms": 500,
+      "sim_rate_hz": 20,
+      "delay_ticks": 10,
+      "first_release_tick": 31,
+      "command_age_ticks_cycle": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "mean_age_ticks": 14.5,
+      "mean_age_ms": 725,
+      "invocation_ticks": [
+        21,
+        31,
+        41,
+        51,
+        61
+      ],
+      "application_ticks": [
+        31,
+        41,
+        51,
+        61
+      ]
+    }
+  ],
+  "contrasting_reference": {
+    "id": "sam-true-per-tick-fifo",
+    "status": "separate_reference_protocol_not_upstream_implementation",
+    "rule": "Generate one command every simulation tick. After initial fill, apply command generated exactly d ticks earlier on every tick.",
+    "steady_state_command_age_ticks": "exactly d",
+    "must_use_distinct_experiment_id": true
+  },
+  "measured_mode_edge_case": {
+    "latency_ticks_formula": "int(measured_inference_seconds * SIM_RATE)",
+    "equality_condition": "current_step == next_inference_step",
+    "zero_tick_condition": "measured_inference_seconds * SIM_RATE < 1",
+    "expected_failure_mode": "At first inference, next_inference_step equals the current step. The following simulation tick increments past it, so the equality-triggered release is never reached; current_control can remain unset (default control persists) or an existing current command can remain held.",
+    "status": "source_logic_counterexample_not_runtime_observed",
+    "threshold_at_20_hz_ms": 50
+  },
+  "invariants": [
+    "For fixed delay d>0, policy invocation interval is d ticks in this wrapper.",
+    "After first release, the held-command age cycle is d through 2*d-1 ticks under the stated tick convention.",
+    "A true per-tick FIFO has constant d-tick command age after queue fill and is not semantically equivalent.",
+    "No runtime or CARLA observation is asserted by this fixture."
+  ],
+  "claim_ceiling": "This fixture tests an analytical reading of the pinned wrapper control flow. It does not prove the published table used this exact source, that runtime behaves identically under CARLA scheduling, or that any driving outcome or safety property is established."
+}
