@@ -173,6 +173,12 @@ pub struct PolicyTreeReport {
     pub actuation_authorized: bool,
 }
 
+/// Exact physical, reserve, thermal and mission-sequence identity emitted
+/// by one transition for a successor state.
+type SuccessorStateIdentity = (String, String, String, String);
+type SuccessorStateReceipts = BTreeMap<String, SuccessorStateIdentity>;
+type ChildObservationSuccessors = BTreeMap<String, SuccessorStateReceipts>;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct NodeSolution {
     disposition: PolicyTreeDisposition,
@@ -505,10 +511,7 @@ fn solve_node(
             let mut invalid_reasons = Vec::new();
 
             for action_id in candidate_actions {
-                let mut children: BTreeMap<
-                    String,
-                    BTreeMap<String, (String, String, String, String)>,
-                > = BTreeMap::new();
+                let mut children: ChildObservationSuccessors = BTreeMap::new();
                 let mut action_unknown = false;
                 let mut action_invalid = false;
                 let mut action_no_policy = false;
