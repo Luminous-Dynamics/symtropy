@@ -137,6 +137,8 @@ jobs:
         assert adverse["missing_policy_suppressed_units"] == "2"
         assert adverse["high_need_identified_lower"] == "50.000"
         assert adverse["high_need_identified_upper"] == "100.000"
+        print("DEBUG adverse row:", adverse)
+        print("DEBUG high_need coverage repr:", repr(adverse["high_need_observation_coverage"]))
         assert adverse["high_need_observation_coverage"] == "0.500"
         assert transparent["true_mean"] == "60.000"
         assert transparent["complete_case_mean"] == "60.000"
