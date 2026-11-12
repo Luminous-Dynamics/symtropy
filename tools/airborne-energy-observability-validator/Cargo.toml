@@ -5,9 +5,7 @@ edition = "2024"
 rust-version = "1.94"
 license = "AGPL-3.0-or-later"
 publish = false
-description = "Deterministic battery-electric aircraft mission energy ledger and initial reserve/power-envelope validator"
+description = "Finite-sample aerial observability and deterministic electric-aircraft mission energy validation"
 
-[lib]
-path = "src/lib.rs"
-
-[workspace]
+[dependencies]
+serde_json = "1.0"
