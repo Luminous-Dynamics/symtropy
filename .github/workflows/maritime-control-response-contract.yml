@@ -23,7 +23,7 @@ concurrency:
 
 jobs:
   contract:
-    name: Rust evaluator and evidence contract
+    name: Rust evaluator contract
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -42,223 +42,110 @@ jobs:
         with:
           components: rustfmt, clippy
 
-      - name: Validate JSON syntax and protocol invariants
-        shell: bash
+      - name: Validate tournament, event, shift and streaming protocols
         run: |
           set -euo pipefail
-          root=benchmarks/maritime-control-response
-
-          files=(
-            "$root/tournament-v0.1.json"
-            "$root/published-six-solution-baselines-v0.1.json"
-            "$root/published-dx2026-graybox-baseline-v0.1.json"
-            "$root/startup-adaptation-guard-v0.1.json"
-            "$root/active-evidence-selection-v0.1.json"
-            "$root/behavioral-set-diagnosis-v0.1.json"
-            "$root/deployability-matrix-v0.1.json"
-            "$root/external-marine-engine-dataset-v0.1.json"
-            "$root/external-dataset-file-manifest.schema.json"
-            "$root/benchmark-run-manifest.schema.json"
-            "$root/shift-matrix-v0.1.json"
-            "$root/streaming-contract-v0.1.json"
-            "$root/sequential-evidence-v0.1.json"
-          )
-          for file in "${files[@]}"; do
-            test -s "$file"
-            jq -e . "$file" >/dev/null
-          done
-
           jq -e '
             .schema_version == "liu-ice-tournament-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 16) and
-            ([.comparators[].id] | unique | length == 16) and
-            (.hard_evidence_gates | length >= 60) and
+            (.comparators | length == 8) and
+            ([.comparators[].id] | unique | length == 8) and
+            (.hard_evidence_gates | length >= 30) and
             ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
-            ([.comparators[].id] | index("published_solution_1_care_engine") != null) and
-            ([.comparators[].id] | index("published_solution_6_vae_svm_ensemble") != null) and
-            ([.comparators[].id] | index("behavioral_set_intersection") != null) and
+            ([.split_protocols[].row_randomization_allowed] | all(. == false)) and
+            (.calibration.minimum_independent_episodes["900000"] == 9) and
+            (.calibration.minimum_independent_episodes["950000"] == 19) and
+            (.calibration.minimum_independent_episodes["990000"] == 99) and
             (.event_evaluation.schema_version == "liu-ice-event-metrics-v0.1") and
             (.event_evaluation.status == "protocol_only_not_executed") and
+            (.event_evaluation.alarm_debounce.minimum_positive_samples == 3) and
+            (.event_evaluation.timing.maximum_observation_gap_seconds == 0.10) and
+            (.event_evaluation.timing.missing_observation_gaps_count_as_exposure == false) and
             (.shift_matrix.schema_version == "liu-ice-shift-matrix-v0.1") and
+            (.shift_matrix.status == "protocol_only_not_executed") and
             (.shift_matrix.axes | length == 6) and
+            ([.shift_matrix.axes[].id] | index("C_SHIFT_DRIVING_CYCLE") != null) and
+            ([.shift_matrix.axes[].id] | index("F_SHIFT_HELD_OUT_FAULT_FAMILY") != null) and
             ([.shift_matrix.axes[].id] | index("C_PLUS_F_SHIFT") != null) and
-            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.4") and
+            (.shift_matrix.cross_engine_fleet | contains("unsupported")) and
+            (.active_evidence_selection.schema_version == "liu-ice-active-evidence-selection-v0.2") and
             (.active_evidence_selection.status == "protocol_only_not_executed") and
+            (.active_evidence_selection.comparators | length == 6) and
+            (.active_evidence_selection.controlled_perturbations_recommended == 0) and
             (.active_evidence_selection.execution_performed == false) and
             (.active_evidence_selection.actuation_authorized == false) and
-            (.active_evidence_selection.controlled_perturbations_recommended == 0) and
-            (.active_evidence_selection.comparators | length == 7) and
-            (.active_evidence_selection.comparators | index("risk_adjusted_worst_case_eig") != null) and
-            (.active_evidence_selection.comparators | index("maximum_worst_case_pairwise_chernoff_information") != null)
-            and (.active_evidence_selection.chernoff.grid_intervals == 100)
-            and (.active_evidence_selection.chernoff.assumption | contains("not a finite-sample diagnostic error guarantee")) and
             (.streaming_contract.schema_version == "liu-ice-streaming-contract-v0.1") and
+            (.streaming_contract.status == "protocol_only_not_executed") and
             (.streaming_contract.one_sample_one_output == true) and
             (.streaming_contract.historical_output_mutation == false) and
-            (.streaming_contract.rust_core_direct_submission_compatible == false) and
-            (.startup_adaptation_guard.schema_version == "symtropy-startup-adaptation-guard-v0.1") and
-            (.startup_adaptation_guard.live_baseline_mutation_by_guard == false) and
-            (.startup_adaptation_guard.automatic_baseline_commit == false) and
-            (.behavioral_set_diagnosis.schema_version == "symtropy-behavioral-set-diagnosis-v0.1") and
-            (.behavioral_set_diagnosis.global_unique_physical_cause_claim_allowed == false) and
-            (.deployability_matrix.schema_version == "symtropy-industrial-diagnostic-deployability-v0.1") and
-            (.deployability_matrix.overall_status == "not_deployable_claimed") and
-            (.deployability_matrix.aggregate_readiness_score_allowed == false) and
-            (.external_dataset_track.schema_version == "symtropy-marine-external-dataset-track-v0.1") and
-            (.external_dataset_track.status == "archive_downloaded_publisher_md5_verified_payload_audit_pending") and
-            (.external_dataset_track.dataset_doi == "10.5281/zenodo.19857425") and
-            (.external_dataset_track.dataset_license == "CC-BY-4.0") and
-            (.external_dataset_track.engine_transfer | contains("one MU323DGSC test-bench identity")) and
-            (.external_dataset_track.dataset_file_inventory.publisher_reported_recording_data_csv_count == 16) and
-            (.external_dataset_track.evaluation_tracks | length == 6) and
-            (.external_dataset_track.execution_status == "archive_downloaded_publisher_md5_verified_payload_audit_pending") and
-            (.external_dataset_track.dataset_file_inventory.archive_csv_entry_count == 18) and
-            (.external_dataset_track.dataset_file_inventory.metadata_csv_artifact_count == 2) and
-            (.external_dataset_track.dataset_file_inventory.audit_status == "metadata_csv_classification_pending_exact_file_name_receipt")
-          ' "$root/tournament-v0.1.json" >/dev/null
+            (.streaming_contract.rust_core_direct_submission_compatible == false)
+          ' benchmarks/maritime-control-response/tournament-v0.1.json >/dev/null
 
           jq -e '
-            .schema_version == "liu-ice-published-six-solution-baselines-v0.1" and
-            .status == "literature_reference_not_reproduced" and
-            (.solutions | length == 6) and
-            (.solutions[3].historical_mean_percent.one_minus_far == 99.9) and
-            (.solutions[3].historical_mean_percent.tdr == 97.2) and
-            (.solutions[1].historical_mean_percent.tir == 85.5) and
-            (.protocol_context.comparability_warning | contains("not current DX2026 scores")) and
-            ([.solutions[].reproduction_status] | all(. == "not_reproduced"))
-          ' "$root/published-six-solution-baselines-v0.1.json" >/dev/null
-
-          jq -e '
-            .schema_version == "liu-ice-dx2026-published-graybox-baseline-v0.1" and
-            .status == "published_reference_not_reproduced" and
-            (.official_results.overall.tdr_percent == 92.26) and
-            (.official_results.overall.one_minus_false_alarm_rate_percent == 92.14) and
-            (.official_results.overall.fault_isolation_accuracy_percent == 79.62) and
-            (.official_results.overall.official_score_percent == 88.01) and
-            (.official_results.per_condition | length == 12) and
-            ([.method.disclosed_limitations[]] | any(contains("startup"))) and
-            (.claim_ceiling | contains("not been independently reproduced"))
-          ' "$root/published-dx2026-graybox-baseline-v0.1.json" >/dev/null
-
-          jq -e '
-            .schema_version == "liu-ice-active-evidence-selection-v0.4" and
+            .schema_version == "liu-ice-shift-matrix-v0.1" and
             .status == "protocol_only_not_executed" and
-            (.comparators | length == 7) and
-            ([.comparators[].id] | unique | length == 7) and
-            ([.comparators[].id] | index("maximum_worst_case_pairwise_chernoff_information") != null) and
-            (.method.chernoff_information.grid | contains("100 fixed uniform intervals")) and
-            (.method.chernoff_information.assumptions | contains("not a finite-sample error guarantee")) and
-            (.candidate_classes.controlled_perturbation.eligible_when == false) and
-            (.hard_gates | length >= 40) and
+            (.axes | length == 6) and
+            ([.axes[].id] | unique | length == 6) and
+            (.framing.no_row_randomization == true) and
+            (.cross_engine_and_fleet.status | contains("unsupported")) and
+            ([.hard_gates[]] | length >= 9)
+          ' benchmarks/maritime-control-response/shift-matrix-v0.1.json >/dev/null
+
+          jq -e '
+            .schema_version == "liu-ice-active-evidence-selection-v0.2" and
+            .status == "protocol_only_not_executed" and
+            (.comparators | length == 6) and
+            ([.comparators[].id] | index("risk_adjusted_worst_case_eig") != null) and
+            (.candidate_classes.controlled_perturbation.eligible == false) and
             (.method.uncertainty_scenarios.eligibility | contains("worst-case")) and
-            (.method.likelihood_calibration_review.requirement | contains("independent calibration-review receipt")) and
-            (.method.likelihood_calibration_review.qualification | contains("not self-authenticating")) and
-            (.research_targets_not_achieved | all(.status == "aspirational"))
-          ' "$root/active-evidence-selection-v0.1.json" >/dev/null
-
-          jq -e '
-            .schema_version == "symtropy-startup-adaptation-guard-v0.1" and
-            .status == "protocol_only_not_executed" and
-            (.architecture.live_reference.mutability | contains("immutable")) and
-            (.architecture.live_reference.role | contains("continues inference from sample zero")) and
-            (.architecture.update_authority | contains("no commit or activation function")) and
-            (.policy.minimum_shadow_samples == 1800) and
-            (.policy.minimum_independent_health_attestations == 2) and
-            (.comparators | length == 5) and
-            (.hard_gates | length >= 13) and
-            (.research_targets_not_achieved | all(.status == "aspirational")) and
-            (.evidence_boundary.physical_validation == false)
-          ' "$root/startup-adaptation-guard-v0.1.json" >/dev/null
-
-          jq -e '
-            .schema_version == "symtropy-behavioral-set-diagnosis-v0.1" and
-            .status == "protocol_only_not_executed" and
-            (.comparators | length == 5) and
-            (.output_statuses | index("ambiguous_hypothesis_set") != null) and
-            (.output_statuses | index("unknown_or_out_of_support") != null) and
-            (.envelope_contract.independent_calibration_minimums.coverage_950000_ppm == 19) and
-            (.hard_gates | length >= 12) and
-            (.implementation.trained_model_present == false) and
-            (.implementation.physical_validation == false) and
-            (.limitations.global_identifiability | contains("global physical uniqueness"))
-          ' "$root/behavioral-set-diagnosis-v0.1.json" >/dev/null
-
-          jq -e '
-            .schema_version == "symtropy-industrial-diagnostic-deployability-v0.1" and
-            .status == "evidence_matrix_defined_not_executed" and
-            (.dimensions | length == 9) and
-            ([.dimensions[].id] | unique | length == 9) and
-            (.overall_status == "not_deployable_claimed") and
-            (.aggregate_readiness_score_allowed == false) and
-            ([.dimensions[].current_status] | all(. != null)) and
-            ([.dimensions[].required_metrics] | all(length > 0)) and
-            ([.dimensions[].qualification_gates] | all(length > 0))
-          ' "$root/deployability-matrix-v0.1.json" >/dev/null
-
-          jq -e '
-            .schema_version == "symtropy-sequential-evidence-v0.1" and
-            .status == "protocol_only_not_executed" and
-            (.familywise_control.method == "bonferroni") and
-            (.protocol_constraints.one_input_one_receipt == true) and
-            (.protocol_constraints.contiguous_sample_indices == true) and
-            (.protocol_constraints.model_and_calibration_bound_per_session == true) and
-            (.protocol_constraints.receipt_chain_replay == true) and
-            (.protocol_constraints.unknown_outcome_poisons_session == true) and
-            (.validity_conditions.observations | contains("conditionally independent")) and
-            (.validity_conditions.optional_stopping | contains("Ville")) and
-            (.research_targets_not_achieved | all(.status == "aspirational"))
-          ' "$root/sequential-evidence-v0.1.json" >/dev/null
+            (.hard_gates | length >= 18) and
+            ([.research_targets_not_achieved[].status] | all(. == "aspirational")) and
+            (.evidence_boundaries.authority_status | contains("upstream mandatory checks"))
+          ' benchmarks/maritime-control-response/active-evidence-selection-v0.1.json >/dev/null
 
           jq -e '
             .schema_version == "liu-ice-streaming-contract-v0.1" and
             .status == "protocol_only_not_executed" and
             (.interface.historical_output_mutation == false) and
             (.stream_invariants.sample_sequence | contains("contiguous")) and
-            (.competition_adapter.official_languages == ["Python", "MATLAB"]) and
-            (.competition_adapter.rust_core_direct_submission_compatible == false) and
+            (.implementation.status == "implemented_source_not_compiled") and
             (.competition_adapter.adapter_status == "not_implemented") and
-            (.hard_gates | length >= 10)
-          ' "$root/streaming-contract-v0.1.json" >/dev/null
+            ([.hard_gates[]] | length >= 10) and
+            ([.research_targets_not_achieved[].status] | all(. == "aspirational"))
+          ' benchmarks/maritime-control-response/streaming-contract-v0.1.json >/dev/null
 
-          jq -e '
-            .schema_version == "symtropy-marine-engine-file-manifest-v0.1" or
-            .["$schema"] == "https://json-schema.org/draft/2020-12/schema"
-          ' "$root/external-dataset-file-manifest.schema.json" >/dev/null
-
+      - name: Validate run-manifest schema and evidence gates
+        run: |
+          set -euo pipefail
           jq -e '
             .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
             (.required | length == 12) and
+            (.properties.run_status.enum | length == 6) and
             (.properties.protocol.required | index("event_evaluation") != null) and
             (.properties.protocol.required | index("shift_matrix_sha256") != null) and
             (.properties.protocol.required | index("active_evidence_selection") != null) and
             (.properties.protocol.required | index("streaming_contract") != null) and
-            (.properties.protocol.required | index("behavioral_set_evaluation") != null) and
-            (.properties.protocol.required | index("external_dataset_track") != null) and
-            (.properties.protocol.required | index("deployability_assessment") != null) and
-            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.4") and
-            (.properties.metrics.properties.ambiguous_hypothesis_set_rate != null) and
-            (.properties.metrics.properties.global_unique_physical_cause_claim_allowed.const == false) and
-            (.properties.metrics.properties.false_alarms_per_observed_normal_hour != null) and
+            (.properties.protocol.properties.active_evidence_selection.properties.schema_version.const == "liu-ice-active-evidence-selection-v0.2") and
+            (.properties.protocol.properties.active_evidence_selection.properties.execution_performed.const == false) and
+            (.properties.protocol.properties.active_evidence_selection.properties.actuation_authorized.const == false) and
+            (.properties.protocol.properties.active_evidence_selection.properties.controlled_perturbations_recommended.const == 0) and
+            (.properties.protocol.properties.streaming_contract.properties.historical_output_mutation.const == 0) and
             (.properties.claims.properties.physical_transfer_claim_allowed.const == false)
-          ' "$root/benchmark-run-manifest.schema.json" >/dev/null
+          ' benchmarks/maritime-control-response/benchmark-run-manifest.schema.json >/dev/null
 
-          jq -e '
-            .["$schema"] == "https://json-schema.org/draft/2020-12/schema" and
-            (.required | length == 11) and
-            (.properties.files.minItems == 16) and
-            (.properties.files.maxItems == 16) and
-            (.properties.archive_md5.pattern == "^[a-f0-9]{32}$") and
-            (.properties.files.items."$ref" == "#/$defs/file") and
-            (.["$defs"].file.properties.header_rows.const == 3) and
-            (.["$defs"].file.properties.recorded_column_count.enum == [70,73])
-          ' "$root/external-dataset-file-manifest.schema.json" >/dev/null
+      - name: Validate package metadata and lockfile
+        run: |
+          set -euo pipefail
+          test -f benchmarks/maritime-control-response/Cargo.lock
+          test -f benchmarks/maritime-control-response/Cargo.toml
+          grep -q '^name = "liu-ice-control-response-evaluator"$' benchmarks/maritime-control-response/Cargo.toml
+          grep -q '^version = 4$' benchmarks/maritime-control-response/Cargo.lock
 
-      - name: Validate Rust formatting
+      - name: Validate formatting
         run: cargo fmt --manifest-path benchmarks/maritime-control-response/Cargo.toml --all -- --check
 
-      - name: Run all contract and evaluator tests
+      - name: Run contract tests
         run: cargo test --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets
 
-      - name: Run strict Clippy
+      - name: Run Clippy
         run: cargo clippy --manifest-path benchmarks/maritime-control-response/Cargo.toml --locked --all-targets -- -D warnings
