@@ -56,8 +56,12 @@ engineering identity or an authority credential. Prefer the typed setter so a
 rejected assignment is observable:
 
 ```rust
+use nalgebra::SVector;
+use symtropy_math::Point;
 use symtropy_physics::{NetId, PhysicsWorld};
 
+let mut world = PhysicsWorld::<3>::new(SVector::zeros());
+let handle = world.add_sphere(Point::new([0.0, 0.0, 0.0]), 0.5, 1.0);
 let result = world.try_set_net_id(handle, NetId(42));
 match result {
     Ok(previous) => {
