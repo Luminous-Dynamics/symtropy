@@ -175,14 +175,13 @@ impl KerrNullConstants {
         let xi = self.angular_momentum_z_over_m / self.energy;
         let eta = self.carter_constant_over_m2 / (self.energy * self.energy);
         let alpha = -xi / sin_i;
-        let beta_squared = eta + spin * spin * cos_i * cos_i - xi * xi * cos_i * cos_i / (sin_i * sin_i);
+        let beta_squared =
+            eta + spin * spin * cos_i * cos_i - xi * xi * cos_i * cos_i / (sin_i * sin_i);
         if !beta_squared.is_finite() {
             return Err(KerrGeodesicError::NonFinite("screen_beta_squared"));
         }
         if beta_squared < 0.0 {
-            return Err(KerrGeodesicError::NoRealAsymptoticScreen {
-                beta_squared,
-            });
+            return Err(KerrGeodesicError::NoRealAsymptoticScreen { beta_squared });
         }
         let beta = beta_direction.sign() * beta_squared.sqrt();
         KerrObserverScreen::new(alpha, beta, inclination_rad)
@@ -227,8 +226,7 @@ impl KerrNullConstants {
         let energy = self.energy;
         let angular_momentum = self.angular_momentum_z_over_m;
         let p = energy * (r * r + a * a) - a * angular_momentum;
-        let angular_term =
-            self.carter_constant_over_m2 + (angular_momentum - a * energy).powi(2);
+        let angular_term = self.carter_constant_over_m2 + (angular_momentum - a * energy).powi(2);
         let delta_derivative = 2.0 * (r - 1.0);
         let value = 4.0 * energy * r * p - delta_derivative * angular_term;
         if !value.is_finite() {
@@ -238,11 +236,7 @@ impl KerrNullConstants {
     }
 
     /// Separated polar potential Theta(theta_bar).
-    pub fn polar_potential(
-        self,
-        spin: f64,
-        theta_rad: f64,
-    ) -> Result<f64, KerrGeodesicError> {
+    pub fn polar_potential(self, spin: f64, theta_rad: f64) -> Result<f64, KerrGeodesicError> {
         validate_spin(spin)?;
         validate_polar_angle(theta_rad)?;
         let sin_theta = theta_rad.sin();
@@ -315,8 +309,6 @@ pub struct KerrMinoDerivative {
     pub d_azimuth_rad: f64,
 }
 
-
-
 /// Unit photon propagation direction in a local orthonormal observer frame.
 ///
 /// Components are resolved along the ZAMO radial, increasing-theta, and
@@ -330,11 +322,7 @@ pub struct KerrLocalSkyDirection {
 }
 
 impl KerrLocalSkyDirection {
-    pub fn new(
-        radial: f64,
-        polar: f64,
-        azimuthal: f64,
-    ) -> Result<Self, KerrGeodesicError> {
+    pub fn new(radial: f64, polar: f64, azimuthal: f64) -> Result<Self, KerrGeodesicError> {
         let norm_squared = radial * radial + polar * polar + azimuthal * azimuthal;
         if !radial.is_finite() || !polar.is_finite() || !azimuthal.is_finite() {
             return Err(KerrGeodesicError::InvalidSkyDirection {
@@ -352,7 +340,11 @@ impl KerrLocalSkyDirection {
                 norm_squared,
             });
         }
-        Ok(Self { radial, polar, azimuthal })
+        Ok(Self {
+            radial,
+            polar,
+            azimuthal,
+        })
     }
 }
 
@@ -423,7 +415,6 @@ pub struct KerrObserverCanonicalSeed {
     pub infinity_energy_per_unit_local_energy: f64,
 }
 
-
 /// Second-order state for turning-point-regular Mino evolution.
 ///
 /// The first integrals impose
@@ -472,7 +463,6 @@ pub struct KerrMinoConstraintResiduals {
     pub radial: f64,
     pub polar: f64,
 }
-
 
 /// Canonical state for Kerr Hamiltonian evolution in dimensionless variables.
 ///
@@ -611,43 +601,75 @@ impl fmt::Display for KerrGeodesicError {
             Self::Autodiff(error) => write!(f, "{error}"),
             Self::NonFinite(name) => write!(f, "derived Kerr geodesic {name} is non-finite"),
             Self::InvalidEnergy(value) => {
-                write!(f, "Kerr null-ray energy must be finite and positive, got {value}")
+                write!(
+                    f,
+                    "Kerr null-ray energy must be finite and positive, got {value}"
+                )
             }
             Self::InvalidSpin(value) => {
                 write!(f, "dimensionless Kerr spin {value} is outside [-1, 1]")
             }
             Self::InvalidRadius(value) => {
-                write!(f, "dimensionless Kerr radius {value} must be finite and positive")
+                write!(
+                    f,
+                    "dimensionless Kerr radius {value} must be finite and positive"
+                )
             }
             Self::InvalidInclination(value) => {
-                write!(f, "asymptotic observer inclination {value} must lie in (0, pi)")
+                write!(
+                    f,
+                    "asymptotic observer inclination {value} must lie in (0, pi)"
+                )
             }
             Self::InvalidPolarAngle(value) => {
                 write!(f, "Boyer-Lindquist polar angle {value} must lie in (0, pi)")
             }
-            Self::RadiusAtOrInsideHorizon { radius_over_m, horizon_over_m } => write!(
+            Self::RadiusAtOrInsideHorizon {
+                radius_over_m,
+                horizon_over_m,
+            } => write!(
                 f,
                 "Boyer-Lindquist exterior radius {radius_over_m} must exceed horizon {horizon_over_m}"
             ),
-            Self::ForbiddenRadialRegion { radius_over_m, radial_potential } => write!(
+            Self::ForbiddenRadialRegion {
+                radius_over_m,
+                radial_potential,
+            } => write!(
                 f,
                 "radial potential {radial_potential} is negative at r/M={radius_over_m}"
             ),
-            Self::ForbiddenPolarRegion { theta_rad, polar_potential } => write!(
+            Self::ForbiddenPolarRegion {
+                theta_rad,
+                polar_potential,
+            } => write!(
                 f,
                 "polar potential {polar_potential} is negative at theta={theta_rad}"
             ),
             Self::BoyerLindquistTurningSingularity { delta } => {
-                write!(f, "Boyer-Lindquist Mino equations are singular at Delta={delta}")
+                write!(
+                    f,
+                    "Boyer-Lindquist Mino equations are singular at Delta={delta}"
+                )
             }
             Self::NoRealAsymptoticScreen { beta_squared } => {
-                write!(f, "constants do not map to a real asymptotic screen: beta^2={beta_squared}")
+                write!(
+                    f,
+                    "constants do not map to a real asymptotic screen: beta^2={beta_squared}"
+                )
             }
-            Self::ScreenMapInconsistent { actual_theta_potential, expected_beta_squared } => write!(
+            Self::ScreenMapInconsistent {
+                actual_theta_potential,
+                expected_beta_squared,
+            } => write!(
                 f,
                 "screen map gives Theta={actual_theta_potential}, expected beta^2={expected_beta_squared}"
             ),
-            Self::InvalidSkyDirection { radial, polar, azimuthal, norm_squared } => write!(
+            Self::InvalidSkyDirection {
+                radial,
+                polar,
+                azimuthal,
+                norm_squared,
+            } => write!(
                 f,
                 "local sky direction must be a finite unit 3-vector: ({radial},{polar},{azimuthal}), norm^2={norm_squared}"
             ),
@@ -659,12 +681,22 @@ impl fmt::Display for KerrGeodesicError {
                 f,
                 "Kerr ingoing chart requires a positive regularized radial denominator, got {radial_denominator}"
             ),
-            Self::InvalidProjectionTolerance(value) => write!(f, "screen projection tolerance must be finite and positive, got {value}"),
-            Self::ObserverEventMismatch { radius_difference, polar_difference, tolerance } => write!(
+            Self::InvalidProjectionTolerance(value) => write!(
+                f,
+                "screen projection tolerance must be finite and positive, got {value}"
+            ),
+            Self::ObserverEventMismatch {
+                radius_difference,
+                polar_difference,
+                tolerance,
+            } => write!(
                 f,
                 "source observer does not match ray event: radius difference {radius_difference}, polar difference {polar_difference}, tolerance {tolerance}"
             ),
-            Self::LocalNullResidual { residual, tolerance } => write!(
+            Self::LocalNullResidual {
+                residual,
+                tolerance,
+            } => write!(
                 f,
                 "local source momentum is not sufficiently null: unit-direction residual {residual} exceeds {tolerance}"
             ),
@@ -700,19 +732,18 @@ impl KerrSeparatedNullGeodesic {
     }
 
     pub fn radial_potential(self, radius_over_m: f64) -> Result<f64, KerrGeodesicError> {
-        self.constants.radial_potential(self.hole.spin().get(), radius_over_m)
+        self.constants
+            .radial_potential(self.hole.spin().get(), radius_over_m)
     }
 
-    pub fn radial_potential_derivative(
-        self,
-        radius_over_m: f64,
-    ) -> Result<f64, KerrGeodesicError> {
+    pub fn radial_potential_derivative(self, radius_over_m: f64) -> Result<f64, KerrGeodesicError> {
         self.constants
             .radial_potential_derivative(self.hole.spin().get(), radius_over_m)
     }
 
     pub fn polar_potential(self, theta_rad: f64) -> Result<f64, KerrGeodesicError> {
-        self.constants.polar_potential(self.hole.spin().get(), theta_rad)
+        self.constants
+            .polar_potential(self.hole.spin().get(), theta_rad)
     }
 
     /// Evaluate the dimensionless Mino-time derivative in the exterior chart.
@@ -778,8 +809,8 @@ impl KerrSeparatedNullGeodesic {
         let sin_theta = theta.sin();
         let sin_squared = sin_theta * sin_theta;
         let p = energy * (r * r + a * a) - a * angular_momentum;
-        let d_time = a * (angular_momentum - a * energy * sin_squared)
-            + (r * r + a * a) * p / delta;
+        let d_time =
+            a * (angular_momentum - a * energy * sin_squared) + (r * r + a * a) * p / delta;
         let d_azimuth = angular_momentum / sin_squared - a * energy + a * p / delta;
         let derivative = KerrMinoDerivative {
             d_time_over_m: d_time,
@@ -797,7 +828,6 @@ impl KerrSeparatedNullGeodesic {
         }
         Ok(derivative)
     }
-
 
     /// Evaluate the smooth second-order separated Mino equations.
     ///
@@ -842,15 +872,14 @@ impl KerrSeparatedNullGeodesic {
         }
 
         let radial_acceleration = 0.5 * self.radial_potential_derivative(r)?;
-        let polar_acceleration =
-            0.5 * self.constants.polar_potential_derivative(a, theta)?;
+        let polar_acceleration = 0.5 * self.constants.polar_potential_derivative(a, theta)?;
         let energy = self.constants.energy;
         let angular_momentum = self.constants.angular_momentum_z_over_m;
         let sin_theta = theta.sin();
         let sin_squared = sin_theta * sin_theta;
         let p = energy * (r * r + a * a) - a * angular_momentum;
-        let d_time = a * (angular_momentum - a * energy * sin_squared)
-            + (r * r + a * a) * p / delta;
+        let d_time =
+            a * (angular_momentum - a * energy * sin_squared) + (r * r + a * a) * p / delta;
         let d_azimuth = angular_momentum / sin_squared - a * energy + a * p / delta;
         let derivative = KerrMinoDynamicDerivative {
             d_time_over_m: d_time,
@@ -875,7 +904,6 @@ impl KerrSeparatedNullGeodesic {
         }
         Ok(derivative)
     }
-
 
     /// Evaluate the second-order Mino system in horizon-regular ingoing Kerr
     /// coordinates (v/M,r/M,theta,phi_tilde).
@@ -924,7 +952,9 @@ impl KerrSeparatedNullGeodesic {
         let ratio = if radial_velocity <= 0.0 {
             let denominator = p - radial_velocity;
             if !denominator.is_finite() || denominator <= 0.0 {
-                return Err(KerrGeodesicError::NoRegularIngoingBranch { radial_denominator: denominator });
+                return Err(KerrGeodesicError::NoRegularIngoingBranch {
+                    radial_denominator: denominator,
+                });
             }
             angular_term / denominator
         } else {
@@ -935,8 +965,7 @@ impl KerrSeparatedNullGeodesic {
             }
             (p + radial_velocity) / delta
         };
-        let d_time = a * (angular_momentum - a * energy * sin_squared)
-            + (r * r + a * a) * ratio;
+        let d_time = a * (angular_momentum - a * energy * sin_squared) + (r * r + a * a) * ratio;
         let d_azimuth = angular_momentum / sin_squared - a * energy + a * ratio;
         let derivative = KerrMinoDynamicDerivative {
             d_time_over_m: d_time,
@@ -957,7 +986,9 @@ impl KerrSeparatedNullGeodesic {
         .iter()
         .any(|value| !value.is_finite())
         {
-            return Err(KerrGeodesicError::NonFinite("ingoing_mino_dynamic_derivative"));
+            return Err(KerrGeodesicError::NonFinite(
+                "ingoing_mino_dynamic_derivative",
+            ));
         }
         Ok(derivative)
     }
@@ -978,15 +1009,13 @@ impl KerrSeparatedNullGeodesic {
         let r = state.coordinates.radius_over_m;
         let theta = state.coordinates.theta_rad;
         let radial = state.radial_velocity_over_m.powi(2) - self.radial_potential(r)?;
-        let polar =
-            state.polar_velocity_rad.powi(2) - self.polar_potential(theta)?;
+        let polar = state.polar_velocity_rad.powi(2) - self.polar_potential(theta)?;
         if !radial.is_finite() || !polar.is_finite() {
             return Err(KerrGeodesicError::NonFinite("mino_constraint_residual"));
         }
         Ok(KerrMinoConstraintResiduals { radial, polar })
     }
- }
-
+}
 
 impl KerrCanonicalHamiltonian {
     pub const fn new(hole: KerrBlackHole) -> Self {
@@ -1016,8 +1045,7 @@ impl KerrCanonicalHamiltonian {
         if !r.is_finite() || r <= 0.0 {
             return Err(KerrGeodesicError::InvalidRadius(r));
         }
-        let horizon = self.hole.outer_horizon_radius_m()
-            / self.hole.gravitational_radius_m();
+        let horizon = self.hole.outer_horizon_radius_m() / self.hole.gravitational_radius_m();
         if r <= horizon {
             return Err(KerrGeodesicError::RadiusAtOrInsideHorizon {
                 radius_over_m: r,
@@ -1113,7 +1141,9 @@ impl KerrCanonicalHamiltonian {
             angular_momentum,
         ];
         if momenta.iter().any(|value| !value.is_finite()) {
-            return Err(KerrGeodesicError::NonFinite("ingoing_canonical_initial_momenta"));
+            return Err(KerrGeodesicError::NonFinite(
+                "ingoing_canonical_initial_momenta",
+            ));
         }
         Ok(KerrCanonicalState {
             coordinates,
@@ -1224,12 +1254,16 @@ impl KerrCanonicalHamiltonian {
                             for b in 0..4 {
                                 for c in 0..4 {
                                     for d in 0..4 {
-                                        inverse_second[i][j][mu][nu] +=
-                                            inverse[mu][a] * first[j][a][b] * inverse[b][c]
-                                                * first[i][c][d] * inverse[d][nu];
-                                        inverse_second[i][j][mu][nu] +=
-                                            inverse[mu][a] * first[i][a][b] * inverse[b][c]
-                                                * first[j][c][d] * inverse[d][nu];
+                                        inverse_second[i][j][mu][nu] += inverse[mu][a]
+                                            * first[j][a][b]
+                                            * inverse[b][c]
+                                            * first[i][c][d]
+                                            * inverse[d][nu];
+                                        inverse_second[i][j][mu][nu] += inverse[mu][a]
+                                            * first[i][a][b]
+                                            * inverse[b][c]
+                                            * first[j][c][d]
+                                            * inverse[d][nu];
                                     }
                                 }
                             }
@@ -1266,8 +1300,8 @@ impl KerrCanonicalHamiltonian {
             for coordinate in 1..=2 {
                 for a in 0..4 {
                     for b in 0..4 {
-                        jacobian[4 + momentum_index][coordinate] -= 0.5 * p[a]
-                            * inverse_second[momentum_index][coordinate][a][b] * p[b];
+                        jacobian[4 + momentum_index][coordinate] -=
+                            0.5 * p[a] * inverse_second[momentum_index][coordinate][a][b] * p[b];
                     }
                 }
             }
@@ -1284,7 +1318,9 @@ impl KerrCanonicalHamiltonian {
         }
         let symplectic_lie_residual = canonical_symplectic_lie_residual(&jacobian);
         if !symplectic_lie_residual.is_finite() {
-            return Err(KerrGeodesicError::NonFinite("canonical_symplectic_lie_residual"));
+            return Err(KerrGeodesicError::NonFinite(
+                "canonical_symplectic_lie_residual",
+            ));
         }
         Ok(KerrCanonicalLinearization {
             evaluation,
@@ -1334,8 +1370,7 @@ impl KerrCanonicalHamiltonian {
             for nu in 0..4 {
                 let scale = factors[mu] * factors[nu];
                 covariant[mu][nu] = source_metric[mu][nu] * scale;
-                radial_derivative[mu][nu] =
-                    source_first[1][mu][nu] * mass_length * scale;
+                radial_derivative[mu][nu] = source_first[1][mu][nu] * mass_length * scale;
                 polar_derivative[mu][nu] = source_first[2][mu][nu] * scale;
             }
         }
@@ -1351,10 +1386,8 @@ impl KerrCanonicalHamiltonian {
 
         let mut momentum_derivative = [0.0; 4];
         // Stationarity and axisymmetry make dp_t/dlambda = dp_phi/dlambda = 0.
-        for (coordinate, derivative) in [
-            (1usize, &radial_derivative),
-            (2usize, &polar_derivative),
-        ] {
+        for (coordinate, derivative) in [(1usize, &radial_derivative), (2usize, &polar_derivative)]
+        {
             let mut value = 0.0;
             for mu in 0..4 {
                 for nu in 0..4 {
@@ -1394,7 +1427,9 @@ impl KerrCanonicalHamiltonian {
             momentum_derivative[3],
         ];
         if values.iter().any(|value| !value.is_finite()) {
-            return Err(KerrGeodesicError::NonFinite("canonical_hamiltonian_evaluation"));
+            return Err(KerrGeodesicError::NonFinite(
+                "canonical_hamiltonian_evaluation",
+            ));
         }
 
         Ok(KerrCanonicalEvaluation {
@@ -1409,7 +1444,6 @@ impl KerrCanonicalHamiltonian {
         })
     }
 }
-
 
 fn canonical_symplectic_omega(row: usize, column: usize) -> f64 {
     if row < 4 && column == row + 4 {
@@ -1469,28 +1503,47 @@ impl KerrMinoIntegrationConfig {
         maximum_attempts: usize,
     ) -> Result<Self, KerrMinoIntegrationError> {
         if !relative_tolerance.is_finite() || relative_tolerance <= 0.0 {
-            return Err(KerrMinoIntegrationError::InvalidConfiguration("relative_tolerance"));
+            return Err(KerrMinoIntegrationError::InvalidConfiguration(
+                "relative_tolerance",
+            ));
         }
-        if absolute_tolerance.iter().any(|value| !value.is_finite() || *value <= 0.0) {
-            return Err(KerrMinoIntegrationError::InvalidConfiguration("absolute_tolerance"));
+        if absolute_tolerance
+            .iter()
+            .any(|value| !value.is_finite() || *value <= 0.0)
+        {
+            return Err(KerrMinoIntegrationError::InvalidConfiguration(
+                "absolute_tolerance",
+            ));
         }
         if !constraint_tolerance.is_finite() || constraint_tolerance <= 0.0 {
-            return Err(KerrMinoIntegrationError::InvalidConfiguration("constraint_tolerance"));
+            return Err(KerrMinoIntegrationError::InvalidConfiguration(
+                "constraint_tolerance",
+            ));
         }
         if !initial_step.is_finite() || initial_step <= 0.0 {
-            return Err(KerrMinoIntegrationError::InvalidConfiguration("initial_step"));
+            return Err(KerrMinoIntegrationError::InvalidConfiguration(
+                "initial_step",
+            ));
         }
         if !minimum_step.is_finite() || minimum_step <= 0.0 {
-            return Err(KerrMinoIntegrationError::InvalidConfiguration("minimum_step"));
+            return Err(KerrMinoIntegrationError::InvalidConfiguration(
+                "minimum_step",
+            ));
         }
         if !maximum_step.is_finite() || maximum_step < minimum_step {
-            return Err(KerrMinoIntegrationError::InvalidConfiguration("maximum_step"));
+            return Err(KerrMinoIntegrationError::InvalidConfiguration(
+                "maximum_step",
+            ));
         }
         if initial_step < minimum_step || initial_step > maximum_step {
-            return Err(KerrMinoIntegrationError::InvalidConfiguration("initial_step_bounds"));
+            return Err(KerrMinoIntegrationError::InvalidConfiguration(
+                "initial_step_bounds",
+            ));
         }
         if maximum_attempts == 0 {
-            return Err(KerrMinoIntegrationError::InvalidConfiguration("maximum_attempts"));
+            return Err(KerrMinoIntegrationError::InvalidConfiguration(
+                "maximum_attempts",
+            ));
         }
         Ok(Self {
             relative_tolerance,
@@ -1539,7 +1592,6 @@ pub struct KerrMinoTrajectory {
     pub maximum_normalized_polar_constraint_residual: f64,
     pub requested_final_parameter: f64,
 }
-
 
 /// Conservative horizon-capture classification derived from an integrated trajectory.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -1598,7 +1650,6 @@ impl KerrMinoTrajectory {
     }
 }
 
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KerrMinoIntegrationError {
     Geodesic(KerrGeodesicError),
@@ -1640,26 +1691,47 @@ impl fmt::Display for KerrMinoIntegrationError {
                 write!(f, "invalid Kerr Mino integration configuration: {name}")
             }
             Self::InvalidFinalParameter(value) => {
-                write!(f, "final Mino parameter must be finite and >= 0, got {value}")
+                write!(
+                    f,
+                    "final Mino parameter must be finite and >= 0, got {value}"
+                )
             }
-            Self::InitialConstraintViolation { radial_relative, polar_relative } => write!(
+            Self::InitialConstraintViolation {
+                radial_relative,
+                polar_relative,
+            } => write!(
                 f,
                 "initial Kerr null first-integral residual exceeds tolerance: radial={radial_relative:e}, polar={polar_relative:e}"
             ),
-            Self::ConstraintDriftExceeded { mino_parameter, radial_relative, polar_relative, tolerance } => write!(
+            Self::ConstraintDriftExceeded {
+                mino_parameter,
+                radial_relative,
+                polar_relative,
+                tolerance,
+            } => write!(
                 f,
                 "Kerr Mino first-integral drift exceeded tolerance at gamma={mino_parameter:e}: radial={radial_relative:e}, polar={polar_relative:e}, tolerance={tolerance:e}"
             ),
-            Self::StepSizeUnderflow { mino_parameter, attempted_step, normalized_error } => write!(
+            Self::StepSizeUnderflow {
+                mino_parameter,
+                attempted_step,
+                normalized_error,
+            } => write!(
                 f,
                 "Kerr Mino step underflow at gamma={mino_parameter:e}, step={attempted_step:e}, error={normalized_error:e}"
             ),
-            Self::MaximumAttemptsExceeded { mino_parameter, attempts } => write!(
+            Self::MaximumAttemptsExceeded {
+                mino_parameter,
+                attempts,
+            } => write!(
                 f,
                 "Kerr Mino integrator exceeded {attempts} attempts at gamma={mino_parameter:e}"
             ),
             Self::NonFiniteErrorEstimate => {
-                write!(f, "Kerr Mino integrator produced a non-finite error estimate")
+                write!(
+                    f,
+                    "Kerr Mino integrator produced a non-finite error estimate"
+                )
             }
         }
     }
@@ -1716,8 +1788,12 @@ impl KerrSeparatedNullGeodesic {
     ) -> Result<MinoVector, KerrGeodesicError> {
         let dynamic_state = state.into_state();
         let derivative = match chart {
-            KerrMinoCoordinateChart::BoyerLindquist => self.mino_dynamic_derivative(dynamic_state)?,
-            KerrMinoCoordinateChart::IngoingKerr => self.mino_dynamic_derivative_ingoing(dynamic_state)?,
+            KerrMinoCoordinateChart::BoyerLindquist => {
+                self.mino_dynamic_derivative(dynamic_state)?
+            }
+            KerrMinoCoordinateChart::IngoingKerr => {
+                self.mino_dynamic_derivative_ingoing(dynamic_state)?
+            }
         };
         Ok(MinoVector([
             derivative.d_time_over_m,
@@ -1741,9 +1817,8 @@ impl KerrSeparatedNullGeodesic {
         let k4 = self.mino_vector_field(state.add_scaled(k3, step), chart)?;
         let mut result = state;
         for index in 0..6 {
-            result.0[index] += step
-                * (k1.0[index] + 2.0 * k2.0[index] + 2.0 * k3.0[index] + k4.0[index])
-                / 6.0;
+            result.0[index] +=
+                step * (k1.0[index] + 2.0 * k2.0[index] + 2.0 * k3.0[index] + k4.0[index]) / 6.0;
         }
         if result.0.iter().any(|value| !value.is_finite()) {
             return Err(KerrGeodesicError::NonFinite("rk4_mino_state"));
@@ -1798,7 +1873,9 @@ impl KerrSeparatedNullGeodesic {
         chart: KerrMinoCoordinateChart,
     ) -> Result<KerrMinoTrajectory, KerrMinoIntegrationError> {
         if !final_parameter.is_finite() || final_parameter < 0.0 {
-            return Err(KerrMinoIntegrationError::InvalidFinalParameter(final_parameter));
+            return Err(KerrMinoIntegrationError::InvalidFinalParameter(
+                final_parameter,
+            ));
         }
         let initial_residuals = self.mino_constraint_residuals(initial)?;
         let initial_radial_relative = normalized_constraint_residual(
@@ -1871,9 +1948,9 @@ impl KerrSeparatedNullGeodesic {
             let mut error_norm: f64 = 0.0;
             for index in 0..6 {
                 let scale = config.absolute_tolerance[index]
-                    + config.relative_tolerance * vector.0[index].abs().max(two_half.0[index].abs());
-                let component_error =
-                    (two_half.0[index] - full.0[index]).abs() / (15.0 * scale);
+                    + config.relative_tolerance
+                        * vector.0[index].abs().max(two_half.0[index].abs());
+                let component_error = (two_half.0[index] - full.0[index]).abs() / (15.0 * scale);
                 error_norm = error_norm.max(component_error);
             }
 
@@ -1951,7 +2028,6 @@ impl KerrSeparatedNullGeodesic {
     }
 }
 
-
 impl KerrFiniteRadiusObserver {
     /// Construct a ZAMO tetrad at a finite Boyer-Lindquist event outside r_+.
     pub fn new(
@@ -1978,8 +2054,7 @@ impl KerrFiniteRadiusObserver {
         let sin_squared = sin_theta * sin_theta;
         let sigma = r * r + spin * spin * cos_theta * cos_theta;
         let delta = r * r - 2.0 * r + spin * spin;
-        let a_function = (r * r + spin * spin).powi(2)
-            - spin * spin * delta * sin_squared;
+        let a_function = (r * r + spin * spin).powi(2) - spin * spin * delta * sin_squared;
         let g_t_phi = -2.0 * spin * r * sin_squared / sigma;
         let g_phi_phi = a_function * sin_squared / sigma;
         let omega = -g_t_phi / g_phi_phi;
@@ -2094,7 +2169,10 @@ impl KerrFiniteRadiusObserver {
         };
         let momenta = transform_covector(momenta_bl);
         let coordinates = KerrMinoState::new(0.0, r, theta, 0.0);
-        let state = KerrCanonicalState { coordinates, momenta };
+        let state = KerrCanonicalState {
+            coordinates,
+            momenta,
+        };
 
         let mut variations = [[0.0; 8]; 2];
         for screen_index in 0..2 {
@@ -2125,12 +2203,23 @@ impl KerrFiniteRadiusObserver {
 
         let values = [
             ray.infinity_energy_per_unit_local_energy,
-            state.momenta[0], state.momenta[1], state.momenta[2], state.momenta[3],
-            variations[0][4], variations[0][5], variations[0][6], variations[0][7],
-            variations[1][4], variations[1][5], variations[1][6], variations[1][7],
+            state.momenta[0],
+            state.momenta[1],
+            state.momenta[2],
+            state.momenta[3],
+            variations[0][4],
+            variations[0][5],
+            variations[0][6],
+            variations[0][7],
+            variations[1][4],
+            variations[1][5],
+            variations[1][6],
+            variations[1][7],
         ];
         if values.iter().any(|value| !value.is_finite()) {
-            return Err(KerrGeodesicError::NonFinite("finite_observer_canonical_seed"));
+            return Err(KerrGeodesicError::NonFinite(
+                "finite_observer_canonical_seed",
+            ));
         }
         Ok(KerrObserverCanonicalSeed {
             state,
@@ -2199,11 +2288,13 @@ impl KerrFiniteRadiusObserver {
             dq[3] -= a / delta * dq[1];
         }
         if p.iter().any(|value| !value.is_finite()) || dq.iter().any(|value| !value.is_finite()) {
-            return Err(KerrGeodesicError::NonFinite("source_screen_chart_transform"));
+            return Err(KerrGeodesicError::NonFinite(
+                "source_screen_chart_transform",
+            ));
         }
 
-        let energy_local = -(p[0] + self.tetrad.frame_dragging_angular_velocity * p[3])
-            / self.tetrad.lapse;
+        let energy_local =
+            -(p[0] + self.tetrad.frame_dragging_angular_velocity * p[3]) / self.tetrad.lapse;
         if !energy_local.is_finite() || energy_local <= 0.0 {
             return Err(KerrGeodesicError::NegativeKillingEnergy(energy_local));
         }
@@ -2212,11 +2303,11 @@ impl KerrFiniteRadiusObserver {
             p[2] / sigma.sqrt() / energy_local,
             p[3] / self.tetrad.sqrt_g_phi_phi / energy_local,
         ];
-        let direction_norm = (direction_raw[0].powi(2)
-            + direction_raw[1].powi(2)
-            + direction_raw[2].powi(2)).sqrt();
+        let direction_norm =
+            (direction_raw[0].powi(2) + direction_raw[1].powi(2) + direction_raw[2].powi(2)).sqrt();
         let direction_norm_residual = (direction_norm - 1.0).abs();
-        if !direction_norm.is_finite() || direction_norm <= 0.0
+        if !direction_norm.is_finite()
+            || direction_norm <= 0.0
             || direction_norm_residual > tolerance
         {
             return Err(KerrGeodesicError::LocalNullResidual {
@@ -2293,8 +2384,7 @@ impl KerrFiniteRadiusObserver {
         }
         let angular_momentum = p_phi / energy_at_infinity;
         let carter = (p_theta / energy_at_infinity).powi(2)
-            + cos_theta.powi(2)
-                * (angular_momentum.powi(2) / sin_squared - a * a);
+            + cos_theta.powi(2) * (angular_momentum.powi(2) / sin_squared - a * a);
         let constants = KerrNullConstants::new(1.0, angular_momentum, carter)?;
         let geodesic = KerrSeparatedNullGeodesic::new(self.hole, constants);
         let radial_potential = geodesic.radial_potential(r)?;
@@ -2331,7 +2421,9 @@ impl KerrFiniteRadiusObserver {
             residuals.polar,
         );
         if radial_relative > 1.0e-10 || polar_relative > 1.0e-10 {
-            return Err(KerrGeodesicError::NonFinite("finite_observer_screen_normalization"));
+            return Err(KerrGeodesicError::NonFinite(
+                "finite_observer_screen_normalization",
+            ));
         }
         Ok(KerrObserverRaySeed {
             constants,
@@ -2393,10 +2485,7 @@ fn validate_spin(spin: f64) -> Result<(), KerrGeodesicError> {
 }
 
 fn validate_inclination(inclination: f64) -> Result<(), KerrGeodesicError> {
-    if !inclination.is_finite()
-        || inclination <= 0.0
-        || inclination >= core::f64::consts::PI
-    {
+    if !inclination.is_finite() || inclination <= 0.0 || inclination >= core::f64::consts::PI {
         return Err(KerrGeodesicError::InvalidInclination(inclination));
     }
     Ok(())
@@ -2412,8 +2501,8 @@ fn validate_polar_angle(theta: f64) -> Result<(), KerrGeodesicError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{DimensionlessSpin, MassKg};
     use crate::light_ring::{KerrEquatorialPhotonOrbit, OrbitSense};
+    use crate::{DimensionlessSpin, MassKg};
 
     const SOLAR_MASS_KG: f64 = 1.988_47e30;
 
@@ -2461,7 +2550,10 @@ mod tests {
         }
         KerrCanonicalState {
             coordinates: KerrMinoState::new(
-                q.time_over_m, q.radius_over_m, q.theta_rad, q.azimuth_rad,
+                q.time_over_m,
+                q.radius_over_m,
+                q.theta_rad,
+                q.azimuth_rad,
             ),
             momenta: p,
         }
@@ -2473,25 +2565,28 @@ mod tests {
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
         let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
         let coordinates = KerrMinoState::new(0.0, 10.0, 1.0, 0.0);
-        let state = canonical.state_from_separated(
-            coordinates,
-            constants,
-            KerrMinoDirection::Decreasing,
-            KerrMinoDirection::Increasing,
-        ).unwrap();
+        let state = canonical
+            .state_from_separated(
+                coordinates,
+                constants,
+                KerrMinoDirection::Decreasing,
+                KerrMinoDirection::Increasing,
+            )
+            .unwrap();
         let linearization = canonical.linearize(state).unwrap();
         assert!(linearization.symplectic_lie_residual < 2e-10);
 
         // This finite-difference bundle is only an independent test oracle;
         // production linearization uses the second-order AD metric derivatives.
         for column in 0..8 {
-            let step = 2e-5 * match column {
-                0 | 3 => 1.0,
-                1 => state.coordinates.radius_over_m.abs().max(1.0),
-                2 => 1.0,
-                4..=7 => state.momenta[column - 4].abs().max(1.0),
-                _ => unreachable!(),
-            };
+            let step = 2e-5
+                * match column {
+                    0 | 3 => 1.0,
+                    1 => state.coordinates.radius_over_m.abs().max(1.0),
+                    2 => 1.0,
+                    4..=7 => state.momenta[column - 4].abs().max(1.0),
+                    _ => unreachable!(),
+                };
             let plus = perturb_canonical_state(state, column, step);
             let minus = perturb_canonical_state(state, column, -step);
             let plus_field = canonical_field(canonical.evaluate(plus).unwrap());
@@ -2509,9 +2604,9 @@ mod tests {
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
         let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
         let coordinates = KerrMinoState::new(0.0, 3.0, 1.0, 0.2);
-        let state = canonical.ingoing_state_from_separated(
-            coordinates, constants, KerrMinoDirection::Increasing,
-        ).unwrap();
+        let state = canonical
+            .ingoing_state_from_separated(coordinates, constants, KerrMinoDirection::Increasing)
+            .unwrap();
         let linearization = canonical.linearize_ingoing(state).unwrap();
         assert!(linearization.symplectic_lie_residual < 2e-9);
         close(linearization.evaluation.hamiltonian, 0.0, 2e-9);
@@ -2519,14 +2614,11 @@ mod tests {
 
     #[test]
     fn asymptotic_screen_map_round_trips_in_equatorial_and_inclined_views() {
-        for inclination in [
-            core::f64::consts::FRAC_PI_2,
-            core::f64::consts::FRAC_PI_3,
-        ] {
+        for inclination in [core::f64::consts::FRAC_PI_2, core::f64::consts::FRAC_PI_3] {
             for (alpha, beta) in [(-8.0, 1.5), (0.0, 2.0), (5.0, -0.75)] {
                 let screen = KerrObserverScreen::new(alpha, beta, inclination).unwrap();
-                let constants = KerrNullConstants::from_asymptotic_screen(hole(0.7), screen)
-                    .unwrap();
+                let constants =
+                    KerrNullConstants::from_asymptotic_screen(hole(0.7), screen).unwrap();
                 let beta_direction = if beta.is_sign_negative() {
                     KerrMinoDirection::Decreasing
                 } else {
@@ -2563,14 +2655,11 @@ mod tests {
                     continue;
                 };
                 let rg = hole(spin).gravitational_radius_m();
-                let constants = KerrNullConstants::new(
-                    1.0,
-                    impact_parameter_m / rg,
-                    0.0,
-                )
-                .unwrap();
+                let constants = KerrNullConstants::new(1.0, impact_parameter_m / rg, 0.0).unwrap();
                 close(
-                    constants.radial_potential(spin, orbit.radius_m / rg).unwrap(),
+                    constants
+                        .radial_potential(spin, orbit.radius_m / rg)
+                        .unwrap(),
                     0.0,
                     5e-10,
                 );
@@ -2623,7 +2712,6 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn forbidden_polar_region_is_not_clamped_to_zero() {
         let constants = KerrNullConstants::new(1.0, 4.0, 0.0).unwrap();
@@ -2650,12 +2738,8 @@ mod tests {
         let geodesic = KerrSeparatedNullGeodesic::new(black_hole, constants);
         let horizon_over_m =
             black_hole.outer_horizon_radius_m() / black_hole.gravitational_radius_m();
-        let horizon_state = KerrMinoState::new(
-            0.0,
-            horizon_over_m,
-            core::f64::consts::FRAC_PI_2,
-            0.0,
-        );
+        let horizon_state =
+            KerrMinoState::new(0.0, horizon_over_m, core::f64::consts::FRAC_PI_2, 0.0);
         assert!(matches!(
             geodesic.mino_derivative(
                 horizon_state,
@@ -2669,7 +2753,6 @@ mod tests {
             Err(KerrGeodesicError::InvalidPolarAngle(_))
         ));
     }
-
 
     #[test]
     fn second_order_mino_system_is_regular_at_radial_turning_point() {
@@ -2695,18 +2778,15 @@ mod tests {
         let theta_turn = core::f64::consts::FRAC_PI_4;
         let spin = 0.5;
         let angular_momentum = 4.0;
-        let carter = angular_momentum * angular_momentum
-            * theta_turn.cos().powi(2) / theta_turn.sin().powi(2)
+        let carter = angular_momentum * angular_momentum * theta_turn.cos().powi(2)
+            / theta_turn.sin().powi(2)
             - spin * spin * theta_turn.cos().powi(2);
         let geodesic = KerrSeparatedNullGeodesic::new(
             hole(spin),
             KerrNullConstants::new(1.0, angular_momentum, carter).unwrap(),
         );
-        let state = KerrMinoDynamicState::new(
-            KerrMinoState::new(0.0, 10.0, theta_turn, 0.0),
-            0.0,
-            0.0,
-        );
+        let state =
+            KerrMinoDynamicState::new(KerrMinoState::new(0.0, 10.0, theta_turn, 0.0), 0.0, 0.0);
         let residuals = geodesic.mino_constraint_residuals(state).unwrap();
         close(residuals.polar, 0.0, 2e-14);
         let derivative = geodesic.mino_dynamic_derivative(state).unwrap();
@@ -2716,8 +2796,7 @@ mod tests {
 
     #[test]
     fn second_order_mino_system_recovers_schwarzschild_circular_photon_orbit() {
-        let constants =
-            KerrNullConstants::new(1.0, 3.0 * 3.0_f64.sqrt(), 0.0).unwrap();
+        let constants = KerrNullConstants::new(1.0, 3.0 * 3.0_f64.sqrt(), 0.0).unwrap();
         let geodesic = KerrSeparatedNullGeodesic::new(hole(0.0), constants);
         let state = KerrMinoDynamicState::new(
             KerrMinoState::new(0.0, 3.0, core::f64::consts::FRAC_PI_2, 0.0),
@@ -2732,14 +2811,12 @@ mod tests {
         close(derivative.d_polar_velocity_rad, 0.0, 2e-14);
     }
 
-
     #[test]
     fn separated_and_independent_canonical_hamiltonian_paths_agree() {
         for spin in [0.0, 0.5, 0.9] {
             let black_hole = hole(spin);
             let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
-            let coordinates =
-                KerrMinoState::new(0.0, 10.0, 1.0, 0.0);
+            let coordinates = KerrMinoState::new(0.0, 10.0, 1.0, 0.0);
             let separated = KerrSeparatedNullGeodesic::new(black_hole, constants);
             let canonical = KerrCanonicalHamiltonian::new(black_hole);
             let state = canonical
@@ -2765,10 +2842,26 @@ mod tests {
             close(hamiltonian.energy, 1.0, 2e-14);
             close(hamiltonian.angular_momentum_z_over_m, 2.0, 2e-14);
             close(hamiltonian.carter_constant_over_m2, 3.0, 2e-12);
-            close(hamiltonian.derivative.coordinates[0] * sigma, mino.d_time_over_m, 2e-11);
-            close(hamiltonian.derivative.coordinates[1] * sigma, mino.d_radius_over_m, 2e-11);
-            close(hamiltonian.derivative.coordinates[2] * sigma, mino.d_theta_rad, 2e-11);
-            close(hamiltonian.derivative.coordinates[3] * sigma, mino.d_azimuth_rad, 2e-11);
+            close(
+                hamiltonian.derivative.coordinates[0] * sigma,
+                mino.d_time_over_m,
+                2e-11,
+            );
+            close(
+                hamiltonian.derivative.coordinates[1] * sigma,
+                mino.d_radius_over_m,
+                2e-11,
+            );
+            close(
+                hamiltonian.derivative.coordinates[2] * sigma,
+                mino.d_theta_rad,
+                2e-11,
+            );
+            close(
+                hamiltonian.derivative.coordinates[3] * sigma,
+                mino.d_azimuth_rad,
+                2e-11,
+            );
             close(hamiltonian.derivative.momenta[0], 0.0, 2e-14);
             close(hamiltonian.derivative.momenta[3], 0.0, 2e-14);
         }
@@ -2790,11 +2883,7 @@ mod tests {
                 )
                 .unwrap();
             let ingoing_state = canonical
-                .ingoing_state_from_separated(
-                    coordinates,
-                    constants,
-                    KerrMinoDirection::Increasing,
-                )
+                .ingoing_state_from_separated(coordinates, constants, KerrMinoDirection::Increasing)
                 .unwrap();
             let bl = canonical.evaluate(bl_state).unwrap();
             let ingoing = canonical.evaluate_ingoing(ingoing_state).unwrap();
@@ -2803,8 +2892,8 @@ mod tests {
             let delta = r * r - 2.0 * r + spin * spin;
             let expected_v = bl.derivative.coordinates[0]
                 + (r * r + spin * spin) / delta * bl.derivative.coordinates[1];
-            let expected_phi = bl.derivative.coordinates[3]
-                + spin / delta * bl.derivative.coordinates[1];
+            let expected_phi =
+                bl.derivative.coordinates[3] + spin / delta * bl.derivative.coordinates[1];
             close(ingoing.derivative.coordinates[0], expected_v, 2e-11);
             close(ingoing.derivative.coordinates[3], expected_phi, 2e-11);
             let _ = theta;
@@ -2844,15 +2933,17 @@ mod tests {
         for radius in [horizon + 0.1, horizon, 0.9 * horizon, 0.5 * horizon] {
             let coordinates = KerrMinoState::new(0.0, radius, 1.0, 0.0);
             let state = canonical
-                .ingoing_state_from_separated(
-                    coordinates,
-                    constants,
-                    KerrMinoDirection::Increasing,
-                )
+                .ingoing_state_from_separated(coordinates, constants, KerrMinoDirection::Increasing)
                 .unwrap();
             let evaluation = canonical.evaluate_ingoing(state).unwrap();
             assert!(evaluation.hamiltonian.is_finite());
-            assert!(evaluation.derivative.coordinates.iter().all(|v| v.is_finite()));
+            assert!(
+                evaluation
+                    .derivative
+                    .coordinates
+                    .iter()
+                    .all(|v| v.is_finite())
+            );
             assert!(evaluation.derivative.momenta.iter().all(|v| v.is_finite()));
             close(evaluation.hamiltonian, 0.0, 2e-10);
             close(evaluation.energy, 1.0, 2e-14);
@@ -2878,8 +2969,7 @@ mod tests {
     fn canonical_initialization_rejects_forbidden_turning_regions() {
         let black_hole = hole(0.0);
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
-        let coordinates =
-            KerrMinoState::new(0.0, 2.5, core::f64::consts::FRAC_PI_2, 0.0);
+        let coordinates = KerrMinoState::new(0.0, 2.5, core::f64::consts::FRAC_PI_2, 0.0);
         let constants = KerrNullConstants::new(1.0, 3.0 * 3.0_f64.sqrt(), 0.0).unwrap();
         assert!(matches!(
             canonical.state_from_separated(
@@ -2891,7 +2981,6 @@ mod tests {
             Err(KerrGeodesicError::ForbiddenRadialRegion { .. })
         ));
     }
-
 
     #[test]
     fn adaptive_mino_integrator_crosses_schwarzschild_scattering_turning_point() {
@@ -2920,7 +3009,13 @@ mod tests {
             .iter()
             .map(|point| point.state.coordinates.radius_over_m)
             .fold(f64::INFINITY, f64::min);
-        let final_radius = trajectory.points.last().unwrap().state.coordinates.radius_over_m;
+        let final_radius = trajectory
+            .points
+            .last()
+            .unwrap()
+            .state
+            .coordinates
+            .radius_over_m;
         close(minimum_radius, 4.453_363_193_811_354, 2.0e-4);
         assert!(final_radius > radius);
         assert!(trajectory.accepted_steps > 0);
@@ -2949,7 +3044,6 @@ mod tests {
         ));
     }
 
-
     #[test]
     fn finite_radius_zamo_tetrad_is_orthonormal_for_subextremal_kerr() {
         for spin in [0.0, 0.5, 0.9, -0.9] {
@@ -2962,12 +3056,27 @@ mod tests {
             let delta = r * r - 2.0 * r + a * a;
             let sin2 = theta.sin().powi(2);
             let g = [
-                [-(1.0 - 2.0 * r / sigma), 0.0, 0.0, -2.0 * a * r * sin2 / sigma],
+                [
+                    -(1.0 - 2.0 * r / sigma),
+                    0.0,
+                    0.0,
+                    -2.0 * a * r * sin2 / sigma,
+                ],
                 [0.0, sigma / delta, 0.0, 0.0],
                 [0.0, 0.0, sigma, 0.0],
-                [-2.0 * a * r * sin2 / sigma, 0.0, 0.0, tetrad.sqrt_g_phi_phi.powi(2)],
+                [
+                    -2.0 * a * r * sin2 / sigma,
+                    0.0,
+                    0.0,
+                    tetrad.sqrt_g_phi_phi.powi(2),
+                ],
             ];
-            let vectors = [tetrad.timelike, tetrad.radial, tetrad.polar, tetrad.azimuthal];
+            let vectors = [
+                tetrad.timelike,
+                tetrad.radial,
+                tetrad.polar,
+                tetrad.azimuthal,
+            ];
             for i in 0..4 {
                 for j in 0..4 {
                     let mut product = 0.0;
@@ -2976,7 +3085,11 @@ mod tests {
                             product += g[mu][nu] * vectors[i][mu] * vectors[j][nu];
                         }
                     }
-                    let expected = if i == j { if i == 0 { -1.0 } else { 1.0 } } else { 0.0 };
+                    let expected = if i == j {
+                        if i == 0 { -1.0 } else { 1.0 }
+                    } else {
+                        0.0
+                    };
                     close(product, expected, 5.0e-13);
                 }
             }
@@ -2990,7 +3103,9 @@ mod tests {
             let direction = KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap();
             let seed = observer.ray_seed(direction).unwrap();
             let geodesic = KerrSeparatedNullGeodesic::new(hole(spin), seed.constants);
-            let residual = geodesic.mino_constraint_residuals(seed.initial_state).unwrap();
+            let residual = geodesic
+                .mino_constraint_residuals(seed.initial_state)
+                .unwrap();
             close(residual.radial, 0.0, 2.0e-11);
             close(residual.polar, 0.0, 2.0e-11);
             let canonical = KerrCanonicalHamiltonian::new(hole(spin));
@@ -3011,15 +3126,20 @@ mod tests {
     #[test]
     fn finite_radius_screen_mapping_approaches_bardeen_asymptotic_coordinates() {
         let spin = 0.7;
-        let observer = KerrFiniteRadiusObserver::new(hole(spin), 100_000.0, core::f64::consts::FRAC_PI_2).unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(hole(spin), 100_000.0, core::f64::consts::FRAC_PI_2)
+                .unwrap();
         let radial = -(1.0_f64 - 0.006_f64.powi(2) - 0.008_f64.powi(2)).sqrt();
         let direction = KerrLocalSkyDirection::new(radial, 0.006, -0.008).unwrap();
         let seed = observer.ray_seed(direction).unwrap();
-        let screen = seed.constants.to_asymptotic_screen(
-            hole(spin),
-            core::f64::consts::FRAC_PI_2,
-            KerrMinoDirection::Increasing,
-        ).unwrap();
+        let screen = seed
+            .constants
+            .to_asymptotic_screen(
+                hole(spin),
+                core::f64::consts::FRAC_PI_2,
+                KerrMinoDirection::Increasing,
+            )
+            .unwrap();
         // The finite-radius impact coordinates tend to (-r*n_phi, r*n_theta)
         // in the asymptotic limit; errors vanish as 1/r.
         close(screen.alpha_over_m / 100_000.0, 0.008, 2.0e-4);
@@ -3034,33 +3154,52 @@ mod tests {
     #[test]
     fn finite_observer_canonical_screen_seed_is_null_and_tangent_to_null_shell() {
         for (spin, direction) in [
-            (0.7, KerrLocalSkyDirection::new(
-                -(1.0_f64 - 0.006_f64.powi(2) - 0.008_f64.powi(2)).sqrt(),
-                0.006, -0.008,
-            ).unwrap()),
+            (
+                0.7,
+                KerrLocalSkyDirection::new(
+                    -(1.0_f64 - 0.006_f64.powi(2) - 0.008_f64.powi(2)).sqrt(),
+                    0.006,
+                    -0.008,
+                )
+                .unwrap(),
+            ),
             (0.9, KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap()),
         ] {
             let observer = KerrFiniteRadiusObserver::new(hole(spin), 10.0, 1.0).unwrap();
             let seed = observer.canonical_seed(direction).unwrap();
             assert_eq!(seed.coordinate_chart, KerrMinoCoordinateChart::IngoingKerr);
             let evaluation = KerrCanonicalHamiltonian::new(hole(spin))
-                .evaluate_ingoing(seed.state).unwrap();
+                .evaluate_ingoing(seed.state)
+                .unwrap();
             close(evaluation.hamiltonian, 0.0, 2e-11);
 
             let n = [direction.radial, direction.polar, direction.azimuthal];
             let basis = seed.local_screen_basis;
             for i in 0..2 {
-                close(basis[i].iter().zip(n).map(|(a,b)|a*b).sum(), 0.0, 2e-14);
-                close(basis[i].iter().map(|x|x*x).sum(), 1.0, 2e-14);
+                close(basis[i].iter().zip(n).map(|(a, b)| a * b).sum(), 0.0, 2e-14);
+                close(basis[i].iter().map(|x| x * x).sum(), 1.0, 2e-14);
             }
-            close(basis[0].iter().zip(basis[1]).map(|(a,b)|a*b).sum(), 0.0, 2e-14);
+            close(
+                basis[0].iter().zip(basis[1]).map(|(a, b)| a * b).sum(),
+                0.0,
+                2e-14,
+            );
 
-            for variation in [seed.first_phase_space_variation, seed.second_phase_space_variation] {
-                let shell_tangent = evaluation.derivative.coordinates
-                    .iter().zip(&variation[4..])
+            for variation in [
+                seed.first_phase_space_variation,
+                seed.second_phase_space_variation,
+            ] {
+                let shell_tangent = evaluation
+                    .derivative
+                    .coordinates
+                    .iter()
+                    .zip(&variation[4..])
                     .map(|(qdot, dp)| qdot * dp)
                     .sum::<f64>();
-                assert!(shell_tangent.abs() < 2e-11, "null-shell tangent residual={shell_tangent:.4e}");
+                assert!(
+                    shell_tangent.abs() < 2e-11,
+                    "null-shell tangent residual={shell_tangent:.4e}"
+                );
             }
 
             // Central finite difference of the exact local-tetrad seed map.
@@ -3077,12 +3216,14 @@ mod tests {
                     n[1] - epsilon * tangent[1],
                     n[2] - epsilon * tangent[2],
                 ]);
-                let plus_seed = observer.canonical_seed(
-                    KerrLocalSkyDirection::new(plus[0], plus[1], plus[2]).unwrap()
-                ).unwrap();
-                let minus_seed = observer.canonical_seed(
-                    KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap()
-                ).unwrap();
+                let plus_seed = observer
+                    .canonical_seed(KerrLocalSkyDirection::new(plus[0], plus[1], plus[2]).unwrap())
+                    .unwrap();
+                let minus_seed = observer
+                    .canonical_seed(
+                        KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap(),
+                    )
+                    .unwrap();
                 let analytic = if index == 0 {
                     seed.first_phase_space_variation
                 } else {
@@ -3090,7 +3231,8 @@ mod tests {
                 };
                 for slot in 4..8 {
                     let numerical = (plus_seed.state.momenta[slot - 4]
-                        - minus_seed.state.momenta[slot - 4]) / (2.0 * epsilon);
+                        - minus_seed.state.momenta[slot - 4])
+                        / (2.0 * epsilon);
                     close(analytic[slot], numerical, 2e-7);
                 }
             }
@@ -3108,7 +3250,6 @@ mod tests {
             Err(KerrGeodesicError::InvalidPolarAngle(_))
         ));
     }
-
 
     #[test]
     fn ingoing_mino_derivative_matches_boyer_lindquist_chart_transform() {
@@ -3128,8 +3269,8 @@ mod tests {
             let delta = radius * radius - 2.0 * radius + spin * spin;
             close(
                 ingoing.d_time_over_m,
-                bl.d_time_over_m + (radius * radius + spin * spin) / delta
-                    * state.radial_velocity_over_m,
+                bl.d_time_over_m
+                    + (radius * radius + spin * spin) / delta * state.radial_velocity_over_m,
                 3e-12,
             );
             close(
@@ -3155,14 +3296,18 @@ mod tests {
                 0.0,
             );
             let derivative = geodesic.mino_dynamic_derivative_ingoing(state).unwrap();
-            assert!([
-                derivative.d_time_over_m,
-                derivative.d_radius_over_m,
-                derivative.d_radial_velocity_over_m,
-                derivative.d_theta_rad,
-                derivative.d_polar_velocity_rad,
-                derivative.d_azimuth_rad,
-            ].iter().all(|value| value.is_finite()));
+            assert!(
+                [
+                    derivative.d_time_over_m,
+                    derivative.d_radius_over_m,
+                    derivative.d_radial_velocity_over_m,
+                    derivative.d_theta_rad,
+                    derivative.d_polar_velocity_rad,
+                    derivative.d_azimuth_rad,
+                ]
+                .iter()
+                .all(|value| value.is_finite())
+            );
         }
     }
 
@@ -3198,7 +3343,6 @@ mod tests {
         assert!(trajectory.maximum_normalized_radial_constraint_residual < 1.0e-5);
         assert!(trajectory.maximum_normalized_polar_constraint_residual < 1.0e-5);
     }
-
 
     #[test]
     fn capture_classifier_requires_ingoing_chart_and_actual_horizon_crossing() {
@@ -3241,9 +3385,7 @@ mod tests {
             incomplete_interval.capture_status(black_hole, 1.0e-5),
             KerrMinoCaptureStatus::NoCrossingWithinIntegratedInterval
         );
-        let boyer_lindquist = geodesic
-            .integrate_adaptive(initial, 0.1, config)
-            .unwrap();
+        let boyer_lindquist = geodesic.integrate_adaptive(initial, 0.1, config).unwrap();
         assert_eq!(
             boyer_lindquist.capture_status(black_hole, 1.0e-5),
             KerrMinoCaptureStatus::NotQualifiableInBoyerLindquist

@@ -20,9 +20,9 @@ use super::{
     KerrBlackHole,
     kerr_geodesic::{
         KerrCanonicalEvaluation, KerrCanonicalHamiltonian, KerrCanonicalLinearization,
-        KerrCanonicalState, KerrFiniteRadiusObserver, KerrGeodesicError,
-        KerrLocalSkyDirection, KerrMinoCoordinateChart, KerrNullConstants,
-        KerrObserverCanonicalSeed, KerrObserverScreenProjection,
+        KerrCanonicalState, KerrFiniteRadiusObserver, KerrGeodesicError, KerrLocalSkyDirection,
+        KerrMinoCoordinateChart, KerrNullConstants, KerrObserverCanonicalSeed,
+        KerrObserverScreenProjection,
     },
 };
 
@@ -163,15 +163,33 @@ pub struct KerrOpticalScreenMap {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum KerrIntegratorError {
     Geodesic(KerrGeodesicError),
-    InvalidOption { name: &'static str, value: f64 },
+    InvalidOption {
+        name: &'static str,
+        value: f64,
+    },
     InconsistentOptions,
     InvalidAffineInterval(f64),
     NonFiniteState,
-    StepUnderflow { affine_parameter: f64, step: f64 },
-    StepLimitExceeded { affine_parameter: f64, accepted_steps: usize },
-    CoordinateChartMismatch { seed: KerrMinoCoordinateChart, integrator: KerrIntegrationChart },
-    SampleIndexOutOfRange { index: usize, length: usize },
-    InvalidScreenFrameTransition { orthogonality_residual: f64, orientation_determinant: f64 },
+    StepUnderflow {
+        affine_parameter: f64,
+        step: f64,
+    },
+    StepLimitExceeded {
+        affine_parameter: f64,
+        accepted_steps: usize,
+    },
+    CoordinateChartMismatch {
+        seed: KerrMinoCoordinateChart,
+        integrator: KerrIntegrationChart,
+    },
+    SampleIndexOutOfRange {
+        index: usize,
+        length: usize,
+    },
+    InvalidScreenFrameTransition {
+        orthogonality_residual: f64,
+        orientation_determinant: f64,
+    },
 }
 
 impl From<KerrGeodesicError> for KerrIntegratorError {
@@ -185,31 +203,52 @@ impl fmt::Display for KerrIntegratorError {
         match self {
             Self::Geodesic(error) => write!(f, "{error}"),
             Self::InvalidOption { name, value } => {
-                write!(f, "Kerr integrator option {name} must be finite and positive, got {value}")
+                write!(
+                    f,
+                    "Kerr integrator option {name} must be finite and positive, got {value}"
+                )
             }
             Self::InconsistentOptions => {
-                write!(f, "Kerr integrator step bounds or maximum_steps are inconsistent")
+                write!(
+                    f,
+                    "Kerr integrator step bounds or maximum_steps are inconsistent"
+                )
             }
             Self::InvalidAffineInterval(value) => {
-                write!(f, "Kerr affine interval must be finite and positive, got {value}")
+                write!(
+                    f,
+                    "Kerr affine interval must be finite and positive, got {value}"
+                )
             }
             Self::NonFiniteState => write!(f, "Kerr integration generated a non-finite state"),
-            Self::StepUnderflow { affine_parameter, step } => write!(
+            Self::StepUnderflow {
+                affine_parameter,
+                step,
+            } => write!(
                 f,
                 "Kerr integration step underflow at affine parameter {affine_parameter} with step {step}"
             ),
-            Self::StepLimitExceeded { affine_parameter, accepted_steps } => write!(
+            Self::StepLimitExceeded {
+                affine_parameter,
+                accepted_steps,
+            } => write!(
                 f,
                 "Kerr integration exceeded its step budget at affine parameter {affine_parameter} after {accepted_steps} accepted steps"
             ),
             Self::CoordinateChartMismatch { seed, integrator } => write!(
-                f, "observer seed chart {seed:?} does not match integrator chart {integrator:?}"
+                f,
+                "observer seed chart {seed:?} does not match integrator chart {integrator:?}"
             ),
             Self::SampleIndexOutOfRange { index, length } => write!(
-                f, "Kerr tangent bundle sample index {index} is outside {length} retained samples"
+                f,
+                "Kerr tangent bundle sample index {index} is outside {length} retained samples"
             ),
-            Self::InvalidScreenFrameTransition { orthogonality_residual, orientation_determinant } => write!(
-                f, "Kerr screen-frame transition is not an orientation-preserving orthogonal map: residual={orthogonality_residual}, determinant={orientation_determinant}"
+            Self::InvalidScreenFrameTransition {
+                orthogonality_residual,
+                orientation_determinant,
+            } => write!(
+                f,
+                "Kerr screen-frame transition is not an orientation-preserving orthogonal map: residual={orthogonality_residual}, determinant={orientation_determinant}"
             ),
         }
     }
@@ -269,13 +308,11 @@ impl KerrOpticalScreenMap {
                 let product = transition[row][0] * transition[column][0]
                     + transition[row][1] * transition[column][1];
                 let expected = if row == column { 1.0 } else { 0.0 };
-                orthogonality_residual =
-                    orthogonality_residual.max((product - expected).abs());
+                orthogonality_residual = orthogonality_residual.max((product - expected).abs());
             }
         }
         let orientation_determinant =
-            transition[0][0] * transition[1][1]
-                - transition[0][1] * transition[1][0];
+            transition[0][0] * transition[1][1] - transition[0][1] * transition[1][0];
         if !orthogonality_residual.is_finite()
             || !orientation_determinant.is_finite()
             || orthogonality_residual > tolerance
@@ -290,8 +327,7 @@ impl KerrOpticalScreenMap {
         let mut transformed = self;
         for row in 0..2 {
             for column in 0..2 {
-                transformed.jacobian[row][column] =
-                    transition[row][0] * self.jacobian[0][column]
+                transformed.jacobian[row][column] = transition[row][0] * self.jacobian[0][column]
                     + transition[row][1] * self.jacobian[1][column];
             }
         }
@@ -328,8 +364,7 @@ fn optical_matrix_invariants(
             [jacobian[0][0] / matrix_scale, jacobian[0][1] / matrix_scale],
             [jacobian[1][0] / matrix_scale, jacobian[1][1] / matrix_scale],
         ];
-        let determinant_scaled =
-            scaled[0][0] * scaled[1][1] - scaled[0][1] * scaled[1][0];
+        let determinant_scaled = scaled[0][0] * scaled[1][1] - scaled[0][1] * scaled[1][0];
         let frobenius_squared = scaled
             .iter()
             .flatten()
@@ -339,9 +374,7 @@ fn optical_matrix_invariants(
             - 4.0 * determinant_scaled * determinant_scaled)
             .max(0.0)
             .sqrt();
-        let large_scaled = (0.5 * (frobenius_squared + discriminant))
-            .max(0.0)
-            .sqrt();
+        let large_scaled = (0.5 * (frobenius_squared + discriminant)).max(0.0).sqrt();
         let small_scaled = if large_scaled > 0.0 {
             determinant_scaled.abs() / large_scaled
         } else {
@@ -369,32 +402,31 @@ impl KerrObserverTangentBundleResult {
         sample_index: usize,
         null_tolerance: f64,
     ) -> Result<KerrOpticalScreenMap, KerrIntegratorError> {
-        let sample = self.samples.get(sample_index).ok_or(
-            KerrIntegratorError::SampleIndexOutOfRange {
-                index: sample_index,
-                length: self.samples.len(),
-            },
-        )?;
+        let sample =
+            self.samples
+                .get(sample_index)
+                .ok_or(KerrIntegratorError::SampleIndexOutOfRange {
+                    index: sample_index,
+                    length: self.samples.len(),
+                })?;
         let state = sample.trajectory.state;
         let observer = KerrFiniteRadiusObserver::new(
             self.black_hole,
             state.coordinates.radius_over_m,
             state.coordinates.theta_rad,
         )?;
-        let first: KerrObserverScreenProjection =
-            observer.project_canonical_variation_to_screen(
-                state,
-                sample.first_phase_space_variation,
-                self.coordinate_chart,
-                null_tolerance,
-            )?;
-        let second: KerrObserverScreenProjection =
-            observer.project_canonical_variation_to_screen(
-                state,
-                sample.second_phase_space_variation,
-                self.coordinate_chart,
-                null_tolerance,
-            )?;
+        let first: KerrObserverScreenProjection = observer.project_canonical_variation_to_screen(
+            state,
+            sample.first_phase_space_variation,
+            self.coordinate_chart,
+            null_tolerance,
+        )?;
+        let second: KerrObserverScreenProjection = observer.project_canonical_variation_to_screen(
+            state,
+            sample.second_phase_space_variation,
+            self.coordinate_chart,
+            null_tolerance,
+        )?;
         let jacobian = [
             [first.components[0], second.components[0]],
             [first.components[1], second.components[1]],
@@ -412,7 +444,8 @@ impl KerrObserverTangentBundleResult {
             singular_values: [small, large],
             condition_number,
             source_screen_basis: first.local_screen_basis,
-            source_direction_norm_residual: first.direction_norm_residual
+            source_direction_norm_residual: first
+                .direction_norm_residual
                 .max(second.direction_norm_residual),
         })
     }
@@ -437,12 +470,22 @@ impl KerrNullTrajectoryIntegrator {
         chart: KerrIntegrationChart,
         options: KerrIntegratorOptions,
     ) -> Result<Self, KerrIntegratorError> {
-        Ok(Self { hole, chart, options: options.validate()? })
+        Ok(Self {
+            hole,
+            chart,
+            options: options.validate()?,
+        })
     }
 
-    pub const fn black_hole(self) -> KerrBlackHole { self.hole }
-    pub const fn chart(self) -> KerrIntegrationChart { self.chart }
-    pub const fn options(self) -> KerrIntegratorOptions { self.options }
+    pub const fn black_hole(self) -> KerrBlackHole {
+        self.hole
+    }
+    pub const fn chart(self) -> KerrIntegrationChart {
+        self.chart
+    }
+    pub const fn options(self) -> KerrIntegratorOptions {
+        self.options
+    }
 
     /// Integrate from affine parameter zero to a positive interval endpoint.
     ///
@@ -517,23 +560,26 @@ impl KerrNullTrajectoryIntegrator {
 
             if error <= 1.0 {
                 state = two_half;
-                affine = if remaining <= step { affine_interval } else { affine + step };
+                affine = if remaining <= step {
+                    affine_interval
+                } else {
+                    affine + step
+                };
                 accepted_steps += 1;
                 let evaluation = self.evaluate(hamiltonian, state)?;
                 let diagnostics = self.constraint_diagnostics(state, evaluation)?;
-                maximum_abs_hamiltonian =
-                    maximum_abs_hamiltonian.max(evaluation.hamiltonian.abs());
-                maximum_relative_energy_drift = maximum_relative_energy_drift.max(
-                    relative_drift(initial_energy, evaluation.energy),
-                );
-                maximum_relative_angular_momentum_drift =
-                    maximum_relative_angular_momentum_drift.max(relative_drift(
+                maximum_abs_hamiltonian = maximum_abs_hamiltonian.max(evaluation.hamiltonian.abs());
+                maximum_relative_energy_drift = maximum_relative_energy_drift
+                    .max(relative_drift(initial_energy, evaluation.energy));
+                maximum_relative_angular_momentum_drift = maximum_relative_angular_momentum_drift
+                    .max(relative_drift(
                         initial_angular_momentum,
                         evaluation.angular_momentum_z_over_m,
                     ));
-                maximum_relative_carter_drift = maximum_relative_carter_drift.max(
-                    relative_drift(initial_carter, evaluation.carter_constant_over_m2),
-                );
+                maximum_relative_carter_drift = maximum_relative_carter_drift.max(relative_drift(
+                    initial_carter,
+                    evaluation.carter_constant_over_m2,
+                ));
                 maximum_normalized_radial_first_integral_residual =
                     maximum_normalized_radial_first_integral_residual.max(diagnostics.0);
                 maximum_normalized_polar_first_integral_residual =
@@ -550,7 +596,9 @@ impl KerrNullTrajectoryIntegrator {
                     normalized_polar_first_integral_residual: diagnostics.1,
                     scaled_local_error: error,
                 });
-                let factor = if error == 0.0 { 2.0 } else {
+                let factor = if error == 0.0 {
+                    2.0
+                } else {
                     (0.9 * error.powf(-0.2)).clamp(0.2, 2.0)
                 };
                 step = (step * factor)
@@ -608,10 +656,12 @@ impl KerrNullTrajectoryIntegrator {
         let mut samples = Vec::with_capacity(transported.samples.len());
         for sample in transported.samples {
             let first = matrix_vector_product(
-                &sample.fundamental_matrix, &seed.first_phase_space_variation,
+                &sample.fundamental_matrix,
+                &seed.first_phase_space_variation,
             );
             let second = matrix_vector_product(
-                &sample.fundamental_matrix, &seed.second_phase_space_variation,
+                &sample.fundamental_matrix,
+                &seed.second_phase_space_variation,
             );
             samples.push(KerrObserverTangentSample {
                 trajectory: sample.trajectory,
@@ -628,8 +678,8 @@ impl KerrNullTrajectoryIntegrator {
             accepted_steps: transported.accepted_steps,
             rejected_steps: transported.rejected_steps,
             maximum_scaled_local_error: transported.maximum_scaled_local_error,
-            maximum_fundamental_symplectic_residual:
-                transported.maximum_fundamental_symplectic_residual,
+            maximum_fundamental_symplectic_residual: transported
+                .maximum_fundamental_symplectic_residual,
             final_step: transported.final_step,
         })
     }
@@ -655,7 +705,9 @@ impl KerrNullTrajectoryIntegrator {
         let initial_evaluation = initial_linearization.evaluation;
         let initial_diagnostics = self.constraint_diagnostics(initial_state, initial_evaluation)?;
         let mut identity = [[0.0; 8]; 8];
-        for index in 0..8 { identity[index][index] = 1.0; }
+        for index in 0..8 {
+            identity[index][index] = 1.0;
+        }
 
         let initial_trajectory = KerrTrajectorySample {
             affine_parameter: 0.0,
@@ -702,11 +754,14 @@ impl KerrNullTrajectoryIntegrator {
 
             let full = self.variational_rk4_step(hamiltonian, state, fundamental, step)?;
             let half = self.variational_rk4_step(hamiltonian, state, fundamental, 0.5 * step)?;
-            let two_half = self.variational_rk4_step(
-                hamiltonian, half.0, half.1, 0.5 * step,
-            )?;
+            let two_half = self.variational_rk4_step(hamiltonian, half.0, half.1, 0.5 * step)?;
             let error = self.scaled_variational_step_error(
-                state, fundamental, full.0, full.1, two_half.0, two_half.1,
+                state,
+                fundamental,
+                full.0,
+                full.1,
+                two_half.0,
+                two_half.1,
             )?;
             if !error.is_finite() {
                 return Err(KerrIntegratorError::NonFiniteState);
@@ -715,7 +770,11 @@ impl KerrNullTrajectoryIntegrator {
             if error <= 1.0 {
                 state = two_half.0;
                 fundamental = two_half.1;
-                affine = if remaining <= step { affine_interval } else { affine + step };
+                affine = if remaining <= step {
+                    affine_interval
+                } else {
+                    affine + step
+                };
                 accepted_steps += 1;
 
                 let linearization = self.linearize(hamiltonian, state)?;
@@ -745,7 +804,9 @@ impl KerrNullTrajectoryIntegrator {
                     fundamental_symplectic_residual: tangent_residual,
                 });
 
-                let factor = if error == 0.0 { 2.0 } else {
+                let factor = if error == 0.0 {
+                    2.0
+                } else {
                     (0.9 * error.powf(-0.2)).clamp(0.2, 2.0)
                 };
                 step = (step * factor)
@@ -832,9 +893,7 @@ impl KerrNullTrajectoryIntegrator {
 
         let mut next = y;
         for index in 0..72 {
-            next[index] += step
-                * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index])
-                / 6.0;
+            next[index] += step * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index]) / 6.0;
         }
         if next.iter().any(|value| !value.is_finite()) {
             return Err(KerrIntegratorError::NonFiniteState);
@@ -863,11 +922,13 @@ impl KerrNullTrajectoryIntegrator {
             if !normalized.is_finite() {
                 return Err(KerrIntegratorError::NonFiniteState);
             }
-            if index < 8 { state_sum += normalized * normalized; }
-            else { tangent_sum += normalized * normalized; }
+            if index < 8 {
+                state_sum += normalized * normalized;
+            } else {
+                tangent_sum += normalized * normalized;
+            }
         }
-        Ok((state_sum.sqrt() / 8.0_f64.sqrt())
-            .max(tangent_sum.sqrt() / 64.0_f64.sqrt()))
+        Ok((state_sum.sqrt() / 8.0_f64.sqrt()).max(tangent_sum.sqrt() / 64.0_f64.sqrt()))
     }
 
     fn constraint_diagnostics(
@@ -884,8 +945,8 @@ impl KerrNullTrajectoryIntegrator {
         let theta = state.coordinates.theta_rad;
         let spin = self.hole.spin().get();
         let delta = r * r - 2.0 * r + spin * spin;
-        let p = evaluation.energy * (r * r + spin * spin)
-            - spin * evaluation.angular_momentum_z_over_m;
+        let p =
+            evaluation.energy * (r * r + spin * spin) - spin * evaluation.angular_momentum_z_over_m;
         let radial_velocity_mino = match self.chart {
             KerrIntegrationChart::BoyerLindquist => delta * state.momenta[1],
             KerrIntegrationChart::Ingoing => delta * state.momenta[1] - p,
@@ -928,9 +989,7 @@ impl KerrNullTrajectoryIntegrator {
         let k4 = self.rhs(hamiltonian, unflatten(add_scaled(y, k3, step)))?;
         let mut next = y;
         for index in 0..8 {
-            next[index] += step
-                * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index])
-                / 6.0;
+            next[index] += step * (k1[index] + 2.0 * k2[index] + 2.0 * k3[index] + k4[index]) / 6.0;
         }
         if next.iter().any(|value| !value.is_finite()) {
             return Err(KerrIntegratorError::NonFiniteState);
@@ -999,10 +1058,7 @@ fn flatten_derivative(derivative: super::kerr_geodesic::KerrCanonicalDerivative)
     ]
 }
 
-fn flatten_variational(
-    state: KerrCanonicalState,
-    fundamental: [[f64; 8]; 8],
-) -> [f64; 72] {
+fn flatten_variational(state: KerrCanonicalState, fundamental: [[f64; 8]; 8]) -> [f64; 72] {
     let mut values = [0.0; 72];
     values[..8].copy_from_slice(&flatten(state));
     for row in 0..8 {
@@ -1025,20 +1081,22 @@ fn unflatten_variational(values: [f64; 72]) -> (KerrCanonicalState, [[f64; 8]; 8
     (unflatten(state_values), fundamental)
 }
 
-fn add_scaled_variational(
-    state: [f64; 72],
-    derivative: [f64; 72],
-    scale: f64,
-) -> [f64; 72] {
+fn add_scaled_variational(state: [f64; 72], derivative: [f64; 72], scale: f64) -> [f64; 72] {
     let mut result = state;
-    for index in 0..72 { result[index] += scale * derivative[index]; }
+    for index in 0..72 {
+        result[index] += scale * derivative[index];
+    }
     result
 }
 
 fn canonical_omega_entry(row: usize, column: usize) -> f64 {
-    if row < 4 && column == row + 4 { 1.0 }
-    else if row >= 4 && column + 4 == row { -1.0 }
-    else { 0.0 }
+    if row < 4 && column == row + 4 {
+        1.0
+    } else if row >= 4 && column + 4 == row {
+        -1.0
+    } else {
+        0.0
+    }
 }
 
 /// max absolute component of Phi^T Omega Phi - Omega.
@@ -1049,9 +1107,8 @@ fn fundamental_symplectic_residual(fundamental: &[[f64; 8]; 8]) -> f64 {
             let mut value = -canonical_omega_entry(row, column);
             for i in 0..8 {
                 for j in 0..8 {
-                    value += fundamental[i][row]
-                        * canonical_omega_entry(i, j)
-                        * fundamental[j][column];
+                    value +=
+                        fundamental[i][row] * canonical_omega_entry(i, j) * fundamental[j][column];
                 }
             }
             maximum = maximum.max(value.abs());
@@ -1088,7 +1145,9 @@ fn unflatten(values: [f64; 8]) -> KerrCanonicalState {
 
 fn add_scaled(state: [f64; 8], derivative: [f64; 8], scale: f64) -> [f64; 8] {
     let mut result = state;
-    for index in 0..8 { result[index] += scale * derivative[index]; }
+    for index in 0..8 {
+        result[index] += scale * derivative[index];
+    }
     result
 }
 
@@ -1123,22 +1182,26 @@ mod tests {
         let black_hole = hole(0.0);
         let constants = KerrNullConstants::new(1.0, 0.0, 0.0).unwrap();
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
-        let initial = canonical.state_from_separated(
-            KerrMinoState::new(0.0, 10.0, core::f64::consts::FRAC_PI_2, 0.0),
-            constants,
-            KerrMinoDirection::Decreasing,
-            KerrMinoDirection::Increasing,
-        ).unwrap();
+        let initial = canonical
+            .state_from_separated(
+                KerrMinoState::new(0.0, 10.0, core::f64::consts::FRAC_PI_2, 0.0),
+                constants,
+                KerrMinoDirection::Decreasing,
+                KerrMinoDirection::Increasing,
+            )
+            .unwrap();
         let integrator = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::BoyerLindquist, options(),
-        ).unwrap();
+            black_hole,
+            KerrIntegrationChart::BoyerLindquist,
+            options(),
+        )
+        .unwrap();
         let result = integrator.integrate(initial, 0.5).unwrap();
         let final_state = result.samples.last().unwrap().state;
         let r0 = 10.0;
         let r1 = final_state.coordinates.radius_over_m;
         assert!(r1 < r0);
-        let expected_delta_t =
-            (r0 - r1) + 2.0 * ((r0 / 2.0 - 1.0).ln() - (r1 / 2.0 - 1.0).ln());
+        let expected_delta_t = (r0 - r1) + 2.0 * ((r0 / 2.0 - 1.0).ln() - (r1 / 2.0 - 1.0).ln());
         assert!((final_state.coordinates.time_over_m - expected_delta_t).abs() < 2e-8);
         assert!(result.maximum_abs_hamiltonian < 1e-10);
         assert!(result.maximum_normalized_radial_first_integral_residual < 2e-9);
@@ -1154,16 +1217,24 @@ mod tests {
         let constants = KerrNullConstants::new(1.0, 0.0, 0.0).unwrap();
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
         let horizon = 1.0 + (1.0 - 0.9_f64.powi(2)).sqrt();
-        let initial = canonical.ingoing_state_from_separated(
-            KerrMinoState::new(0.0, horizon + 0.2, core::f64::consts::FRAC_PI_2, 0.0),
-            constants,
-            KerrMinoDirection::Increasing,
-        ).unwrap();
-        let integrator = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::Ingoing, options(),
-        ).unwrap();
+        let initial = canonical
+            .ingoing_state_from_separated(
+                KerrMinoState::new(0.0, horizon + 0.2, core::f64::consts::FRAC_PI_2, 0.0),
+                constants,
+                KerrMinoDirection::Increasing,
+            )
+            .unwrap();
+        let integrator =
+            KerrNullTrajectoryIntegrator::new(black_hole, KerrIntegrationChart::Ingoing, options())
+                .unwrap();
         let result = integrator.integrate(initial, 1.0).unwrap();
-        let final_radius = result.samples.last().unwrap().state.coordinates.radius_over_m;
+        let final_radius = result
+            .samples
+            .last()
+            .unwrap()
+            .state
+            .coordinates
+            .radius_over_m;
         assert!(final_radius < horizon);
         assert!(final_radius > 0.0);
         assert!(result.maximum_abs_hamiltonian < 1e-8);
@@ -1179,12 +1250,14 @@ mod tests {
         let black_hole = hole(0.5);
         let constants = KerrNullConstants::new(1.0, 0.0, 0.0).unwrap();
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
-        let initial = canonical.state_from_separated(
-            KerrMinoState::new(0.0, 12.0, core::f64::consts::FRAC_PI_2, 0.0),
-            constants,
-            KerrMinoDirection::Decreasing,
-            KerrMinoDirection::Increasing,
-        ).unwrap();
+        let initial = canonical
+            .state_from_separated(
+                KerrMinoState::new(0.0, 12.0, core::f64::consts::FRAC_PI_2, 0.0),
+                constants,
+                KerrMinoDirection::Decreasing,
+                KerrMinoDirection::Increasing,
+            )
+            .unwrap();
         let coarse_options = KerrIntegratorOptions {
             relative_tolerance: 1e-7,
             absolute_tolerance: 1e-9,
@@ -1204,25 +1277,54 @@ mod tests {
             ..coarse_options
         };
         let coarse = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::BoyerLindquist, coarse_options,
-        ).unwrap().integrate(initial, 1.0).unwrap();
+            black_hole,
+            KerrIntegrationChart::BoyerLindquist,
+            coarse_options,
+        )
+        .unwrap()
+        .integrate(initial, 1.0)
+        .unwrap();
         let fine = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::BoyerLindquist, fine_options,
-        ).unwrap().integrate(initial, 1.0).unwrap();
+            black_hole,
+            KerrIntegrationChart::BoyerLindquist,
+            fine_options,
+        )
+        .unwrap()
+        .integrate(initial, 1.0)
+        .unwrap();
         let reference = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::BoyerLindquist, reference_options,
-        ).unwrap().integrate(initial, 1.0).unwrap();
+            black_hole,
+            KerrIntegrationChart::BoyerLindquist,
+            reference_options,
+        )
+        .unwrap()
+        .integrate(initial, 1.0)
+        .unwrap();
         let distance = |left: KerrCanonicalState, right: KerrCanonicalState| {
             let a = flatten(left);
             let b = flatten(right);
-            a.iter().zip(b.iter()).map(|(x,y)|(x-y).powi(2)).sum::<f64>().sqrt()
+            a.iter()
+                .zip(b.iter())
+                .map(|(x, y)| (x - y).powi(2))
+                .sum::<f64>()
+                .sqrt()
         };
-        assert!(distance(fine.samples.last().unwrap().state, reference.samples.last().unwrap().state)
-            <= distance(coarse.samples.last().unwrap().state, reference.samples.last().unwrap().state));
+        assert!(
+            distance(
+                fine.samples.last().unwrap().state,
+                reference.samples.last().unwrap().state
+            ) <= distance(
+                coarse.samples.last().unwrap().state,
+                reference.samples.last().unwrap().state
+            )
+        );
     }
 
-
-    fn perturb_state(state: KerrCanonicalState, component: usize, delta: f64) -> KerrCanonicalState {
+    fn perturb_state(
+        state: KerrCanonicalState,
+        component: usize,
+        delta: f64,
+    ) -> KerrCanonicalState {
         let mut values = flatten(state);
         values[component] += delta;
         unflatten(values)
@@ -1233,36 +1335,54 @@ mod tests {
         let black_hole = hole(0.7);
         let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
-        let initial = canonical.state_from_separated(
-            KerrMinoState::new(0.0, 10.0, 1.0, 0.0),
-            constants,
-            KerrMinoDirection::Decreasing,
-            KerrMinoDirection::Increasing,
-        ).unwrap();
+        let initial = canonical
+            .state_from_separated(
+                KerrMinoState::new(0.0, 10.0, 1.0, 0.0),
+                constants,
+                KerrMinoDirection::Decreasing,
+                KerrMinoDirection::Increasing,
+            )
+            .unwrap();
         let integrator = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::BoyerLindquist, options(),
-        ).unwrap();
+            black_hole,
+            KerrIntegrationChart::BoyerLindquist,
+            options(),
+        )
+        .unwrap();
 
-        let variational = integrator.integrate_fundamental_matrix(initial, 0.05).unwrap();
+        let variational = integrator
+            .integrate_fundamental_matrix(initial, 0.05)
+            .unwrap();
         assert!(variational.accepted_steps > 0);
         assert!(variational.samples.len() > 1);
         for index in 0..8 {
             for column in 0..8 {
                 let expected = if index == column { 1.0 } else { 0.0 };
-                assert!((variational.samples[0].fundamental_matrix[index][column] - expected).abs() < 1e-14);
+                assert!(
+                    (variational.samples[0].fundamental_matrix[index][column] - expected).abs()
+                        < 1e-14
+                );
             }
         }
         assert!(variational.maximum_fundamental_symplectic_residual < 1e-5);
-        assert!(variational.samples.iter().all(|sample|
-            sample.local_symplectic_lie_residual < 2e-10
-                && sample.fundamental_symplectic_residual.is_finite()));
+        assert!(
+            variational
+                .samples
+                .iter()
+                .all(|sample| sample.local_symplectic_lie_residual < 2e-10
+                    && sample.fundamental_symplectic_residual.is_finite())
+        );
 
         // Compare the p_theta column of Phi with independently integrated
         // nearby canonical initial states. These perturbations test the full
         // phase-space flow; they are not claimed to remain on the null shell.
         let epsilon = 2e-5;
-        let plus = integrator.integrate(perturb_state(initial, 6, epsilon), 0.05).unwrap();
-        let minus = integrator.integrate(perturb_state(initial, 6, -epsilon), 0.05).unwrap();
+        let plus = integrator
+            .integrate(perturb_state(initial, 6, epsilon), 0.05)
+            .unwrap();
+        let minus = integrator
+            .integrate(perturb_state(initial, 6, -epsilon), 0.05)
+            .unwrap();
         let plus_final = flatten(plus.samples.last().unwrap().state);
         let minus_final = flatten(minus.samples.last().unwrap().state);
         let tangent = &variational.samples.last().unwrap().fundamental_matrix;
@@ -1287,19 +1407,27 @@ mod tests {
         let observer = KerrFiniteRadiusObserver::new(black_hole, 10.0, 1.0).unwrap();
         let direction = KerrLocalSkyDirection::new(
             -(1.0_f64 - 0.006_f64.powi(2) - 0.008_f64.powi(2)).sqrt(),
-            0.006, -0.008,
-        ).unwrap();
+            0.006,
+            -0.008,
+        )
+        .unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
-        let integrator = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::Ingoing, options(),
-        ).unwrap();
+        let integrator =
+            KerrNullTrajectoryIntegrator::new(black_hole, KerrIntegrationChart::Ingoing, options())
+                .unwrap();
         let interval = 0.05;
-        let bundle = integrator.integrate_observer_tangent_bundle(seed, interval).unwrap();
+        let bundle = integrator
+            .integrate_observer_tangent_bundle(seed, interval)
+            .unwrap();
         let final_sample = bundle.samples.last().unwrap();
         assert!(bundle.samples.len() > 1);
         assert!(bundle.maximum_fundamental_symplectic_residual < 1e-5);
-        assert!(bundle.samples.iter().all(|sample|
-            sample.fundamental_symplectic_residual.is_finite()));
+        assert!(
+            bundle
+                .samples
+                .iter()
+                .all(|sample| sample.fundamental_symplectic_residual.is_finite())
+        );
 
         // Perturb each local unit-sky direction and independently integrate
         // the resulting null ray. Compare the full phase-space derivatives.
@@ -1317,17 +1445,29 @@ mod tests {
                 n[1] - epsilon * basis[1],
                 n[2] - epsilon * basis[2],
             ]);
-            let plus_seed = observer.canonical_seed(
-                KerrLocalSkyDirection::new(plus[0], plus[1], plus[2]).unwrap(),
-            ).unwrap();
-            let minus_seed = observer.canonical_seed(
-                KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap(),
-            ).unwrap();
+            let plus_seed = observer
+                .canonical_seed(KerrLocalSkyDirection::new(plus[0], plus[1], plus[2]).unwrap())
+                .unwrap();
+            let minus_seed = observer
+                .canonical_seed(KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap())
+                .unwrap();
             let plus_final = flatten(
-                integrator.integrate(plus_seed.state, interval).unwrap().samples.last().unwrap().state,
+                integrator
+                    .integrate(plus_seed.state, interval)
+                    .unwrap()
+                    .samples
+                    .last()
+                    .unwrap()
+                    .state,
             );
             let minus_final = flatten(
-                integrator.integrate(minus_seed.state, interval).unwrap().samples.last().unwrap().state,
+                integrator
+                    .integrate(minus_seed.state, interval)
+                    .unwrap()
+                    .samples
+                    .last()
+                    .unwrap()
+                    .state,
             );
             let transported = if index == 0 {
                 final_sample.first_phase_space_variation
@@ -1335,8 +1475,8 @@ mod tests {
                 final_sample.second_phase_space_variation
             };
             for component in 0..8 {
-                let finite_difference = (plus_final[component] - minus_final[component])
-                    / (2.0 * epsilon);
+                let finite_difference =
+                    (plus_final[component] - minus_final[component]) / (2.0 * epsilon);
                 assert!(
                     (finite_difference - transported[component]).abs()
                         <= 5e-4 * (1.0 + finite_difference.abs()),
@@ -1353,14 +1493,18 @@ mod tests {
         let observer = KerrFiniteRadiusObserver::new(black_hole, 10.0, 1.0).unwrap();
         let direction = KerrLocalSkyDirection::new(
             -(1.0_f64 - 0.006_f64.powi(2) - 0.008_f64.powi(2)).sqrt(),
-            0.006, -0.008,
-        ).unwrap();
+            0.006,
+            -0.008,
+        )
+        .unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
-        let integrator = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::Ingoing, options(),
-        ).unwrap();
+        let integrator =
+            KerrNullTrajectoryIntegrator::new(black_hole, KerrIntegrationChart::Ingoing, options())
+                .unwrap();
         let interval = 0.05;
-        let bundle = integrator.integrate_observer_tangent_bundle(seed, interval).unwrap();
+        let bundle = integrator
+            .integrate_observer_tangent_bundle(seed, interval)
+            .unwrap();
         let maps = bundle.sampled_optical_screen_maps(2e-8).unwrap();
         assert_eq!(maps.len(), bundle.samples.len());
         assert!(maps[0].determinant.abs() < 1e-20);
@@ -1375,7 +1519,8 @@ mod tests {
             black_hole,
             central_state.coordinates.radius_over_m,
             central_state.coordinates.theta_rad,
-        ).unwrap();
+        )
+        .unwrap();
         let n = [direction.radial, direction.polar, direction.azimuthal];
         let epsilon = 2e-5;
         for column in 0..2 {
@@ -1390,29 +1535,40 @@ mod tests {
                 n[1] - epsilon * e[1],
                 n[2] - epsilon * e[2],
             ]);
-            let plus_seed = observer.canonical_seed(
-                KerrLocalSkyDirection::new(plus[0], plus[1], plus[2]).unwrap(),
-            ).unwrap();
-            let minus_seed = observer.canonical_seed(
-                KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap(),
-            ).unwrap();
-            let plus_state = integrator.integrate(plus_seed.state, interval).unwrap()
-                .samples.last().unwrap().state;
-            let minus_state = integrator.integrate(minus_seed.state, interval).unwrap()
-                .samples.last().unwrap().state;
+            let plus_seed = observer
+                .canonical_seed(KerrLocalSkyDirection::new(plus[0], plus[1], plus[2]).unwrap())
+                .unwrap();
+            let minus_seed = observer
+                .canonical_seed(KerrLocalSkyDirection::new(minus[0], minus[1], minus[2]).unwrap())
+                .unwrap();
+            let plus_state = integrator
+                .integrate(plus_seed.state, interval)
+                .unwrap()
+                .samples
+                .last()
+                .unwrap()
+                .state;
+            let minus_state = integrator
+                .integrate(minus_seed.state, interval)
+                .unwrap()
+                .samples
+                .last()
+                .unwrap()
+                .state;
             let plus_flat = flatten(plus_state);
             let minus_flat = flatten(minus_state);
             let mut finite_difference = [0.0; 8];
             for index in 0..8 {
-                finite_difference[index] =
-                    (plus_flat[index] - minus_flat[index]) / (2.0 * epsilon);
+                finite_difference[index] = (plus_flat[index] - minus_flat[index]) / (2.0 * epsilon);
             }
-            let projected = source_observer.project_canonical_variation_to_screen(
-                central_state,
-                finite_difference,
-                KerrMinoCoordinateChart::IngoingKerr,
-                2e-8,
-            ).unwrap();
+            let projected = source_observer
+                .project_canonical_variation_to_screen(
+                    central_state,
+                    finite_difference,
+                    KerrMinoCoordinateChart::IngoingKerr,
+                    2e-8,
+                )
+                .unwrap();
             for row in 0..2 {
                 assert!(
                     (projected.components[row] - final_map.jacobian[row][column]).abs()
@@ -1432,17 +1588,18 @@ mod tests {
         // normalization. The two screen singular values are therefore both
         // lambda and det(J)=lambda^2 exactly.
         let black_hole = hole(0.0);
-        let observer = KerrFiniteRadiusObserver::new(
-            black_hole, 10.0, core::f64::consts::FRAC_PI_2,
-        ).unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
         assert_eq!(seed.coordinate_chart, KerrMinoCoordinateChart::IngoingKerr);
-        let integrator = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::Ingoing, options(),
-        ).unwrap();
+        let integrator =
+            KerrNullTrajectoryIntegrator::new(black_hole, KerrIntegrationChart::Ingoing, options())
+                .unwrap();
         let affine_interval = 0.1;
-        let bundle = integrator.integrate_observer_tangent_bundle(seed, affine_interval).unwrap();
+        let bundle = integrator
+            .integrate_observer_tangent_bundle(seed, affine_interval)
+            .unwrap();
         let final_index = bundle.samples.len() - 1;
         let map = bundle.optical_screen_map_at(final_index, 2e-9).unwrap();
         close(map.jacobian[0][0], affine_interval, 2e-7);
@@ -1460,13 +1617,9 @@ mod tests {
         let angle: f64 = 0.37;
         let (sine, cosine) = angle.sin_cos();
         let source_basis = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0]];
-        let target_basis = [
-            [cosine, sine, 0.0],
-            [-sine, cosine, 0.0],
-        ];
+        let target_basis = [[cosine, sine, 0.0], [-sine, cosine, 0.0]];
         let jacobian = [[1.5, -0.25], [0.75, 2.0]];
-        let (determinant, small, large) =
-            optical_matrix_invariants(jacobian).unwrap();
+        let (determinant, small, large) = optical_matrix_invariants(jacobian).unwrap();
         let map = KerrOpticalScreenMap {
             affine_parameter: 0.75,
             jacobian,
@@ -1476,15 +1629,15 @@ mod tests {
             source_screen_basis: source_basis,
             source_direction_norm_residual: 0.0,
         };
-        let transformed = map
-            .reexpress_source_screen(target_basis, 1e-12)
-            .unwrap();
+        let transformed = map.reexpress_source_screen(target_basis, 1e-12).unwrap();
         assert!((transformed.determinant - map.determinant).abs() < 1e-12);
         assert!((transformed.singular_values[0] - map.singular_values[0]).abs() < 1e-12);
         assert!((transformed.singular_values[1] - map.singular_values[1]).abs() < 1e-12);
         assert!((transformed.condition_number - map.condition_number).abs() < 1e-12);
-        assert!((transformed.jacobian[0][0]
-            - (cosine * jacobian[0][0] + sine * jacobian[1][0])).abs() < 1e-12);
+        assert!(
+            (transformed.jacobian[0][0] - (cosine * jacobian[0][0] + sine * jacobian[1][0])).abs()
+                < 1e-12
+        );
     }
 
     #[test]
@@ -1517,17 +1670,24 @@ mod tests {
     #[test]
     fn source_screen_map_rejects_samples_after_horizon_crossing() {
         let black_hole = hole(0.9);
-        let observer = KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
+        let observer =
+            KerrFiniteRadiusObserver::new(black_hole, 10.0, core::f64::consts::FRAC_PI_2).unwrap();
         let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
-        let integrator = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::Ingoing, options(),
-        ).unwrap();
-        let bundle = integrator.integrate_observer_tangent_bundle(seed, 2.0).unwrap();
-        let interior_index = bundle.samples.iter().position(|sample|
-            sample.trajectory.state.coordinates.radius_over_m
-                <= 1.0 + (1.0 - 0.9_f64.powi(2)).sqrt()
-        ).unwrap();
+        let integrator =
+            KerrNullTrajectoryIntegrator::new(black_hole, KerrIntegrationChart::Ingoing, options())
+                .unwrap();
+        let bundle = integrator
+            .integrate_observer_tangent_bundle(seed, 2.0)
+            .unwrap();
+        let interior_index = bundle
+            .samples
+            .iter()
+            .position(|sample| {
+                sample.trajectory.state.coordinates.radius_over_m
+                    <= 1.0 + (1.0 - 0.9_f64.powi(2)).sqrt()
+            })
+            .unwrap();
         assert!(matches!(
             bundle.optical_screen_map_at(interior_index, 1e-7),
             Err(KerrIntegratorError::Geodesic(
@@ -1543,8 +1703,11 @@ mod tests {
         let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
         let seed = observer.canonical_seed(direction).unwrap();
         let wrong_chart = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::BoyerLindquist, options(),
-        ).unwrap();
+            black_hole,
+            KerrIntegrationChart::BoyerLindquist,
+            options(),
+        )
+        .unwrap();
         assert!(matches!(
             wrong_chart.integrate_observer_tangent_bundle(seed, 0.01),
             Err(KerrIntegratorError::CoordinateChartMismatch { .. })
@@ -1555,15 +1718,20 @@ mod tests {
     fn variational_integrator_rejects_nonpositive_affine_interval() {
         let black_hole = hole(0.5);
         let constants = KerrNullConstants::new(1.0, 0.0, 0.0).unwrap();
-        let initial = KerrCanonicalHamiltonian::new(black_hole).state_from_separated(
-            KerrMinoState::new(0.0, 10.0, core::f64::consts::FRAC_PI_2, 0.0),
-            constants,
-            KerrMinoDirection::Decreasing,
-            KerrMinoDirection::Increasing,
-        ).unwrap();
+        let initial = KerrCanonicalHamiltonian::new(black_hole)
+            .state_from_separated(
+                KerrMinoState::new(0.0, 10.0, core::f64::consts::FRAC_PI_2, 0.0),
+                constants,
+                KerrMinoDirection::Decreasing,
+                KerrMinoDirection::Increasing,
+            )
+            .unwrap();
         let integrator = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::BoyerLindquist, options(),
-        ).unwrap();
+            black_hole,
+            KerrIntegrationChart::BoyerLindquist,
+            options(),
+        )
+        .unwrap();
         assert!(matches!(
             integrator.integrate_fundamental_matrix(initial, 0.0),
             Err(KerrIntegratorError::InvalidAffineInterval(_))
@@ -1575,15 +1743,22 @@ mod tests {
         let black_hole = hole(0.7);
         let constants = KerrNullConstants::new(1.0, 2.0, 3.0).unwrap();
         let canonical = KerrCanonicalHamiltonian::new(black_hole);
-        let initial = canonical.state_from_separated(
-            KerrMinoState::new(0.0, 10.0, 1.0, 0.0),
-            constants,
-            KerrMinoDirection::Decreasing,
-            KerrMinoDirection::Increasing,
-        ).unwrap();
+        let initial = canonical
+            .state_from_separated(
+                KerrMinoState::new(0.0, 10.0, 1.0, 0.0),
+                constants,
+                KerrMinoDirection::Decreasing,
+                KerrMinoDirection::Increasing,
+            )
+            .unwrap();
         let result = KerrNullTrajectoryIntegrator::new(
-            black_hole, KerrIntegrationChart::BoyerLindquist, options(),
-        ).unwrap().integrate(initial, 0.2).unwrap();
+            black_hole,
+            KerrIntegrationChart::BoyerLindquist,
+            options(),
+        )
+        .unwrap()
+        .integrate(initial, 0.2)
+        .unwrap();
         assert!(result.samples.len() > 1);
         for sample in &result.samples {
             assert!(sample.hamiltonian.abs() < 1e-9);
@@ -1597,10 +1772,15 @@ mod tests {
 
     #[test]
     fn integrator_rejects_invalid_step_configuration() {
-        let invalid = KerrIntegratorOptions { relative_tolerance: -1.0, ..options() };
+        let invalid = KerrIntegratorOptions {
+            relative_tolerance: -1.0,
+            ..options()
+        };
         assert!(matches!(
             KerrNullTrajectoryIntegrator::new(
-                hole(0.0), KerrIntegrationChart::BoyerLindquist, invalid
+                hole(0.0),
+                KerrIntegrationChart::BoyerLindquist,
+                invalid
             ),
             Err(KerrIntegratorError::InvalidOption { .. })
         ));
