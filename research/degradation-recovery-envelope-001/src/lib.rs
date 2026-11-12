@@ -1811,3 +1811,42 @@ mod tests {
         assert!(standard_fault_schedule(u64::MAX - 1, 5, 3, 1, 1, 2).is_err());
     }
 }
+
+
+    #[test]
+    fn rejects_unknown_fault_event_reference() {
+        let mut input = campaign();
+        input.faulted_run.ticks[2]
+            .fault_detection_event_ids
+            .push("unknown-fault-event".to_string());
+        let report = audit_campaign(&input);
+        assert!(has(&report, "unknown_event_reference"));
+    }
+
+    #[test]
+    fn rejects_duplicate_fault_event_references() {
+        let mut input = campaign();
+        input.faulted_run.ticks[2]
+            .fault_detection_event_ids
+            .push("camera-drop-1".to_string());
+        let report = audit_campaign(&input);
+        assert!(has(&report, "duplicate_event_reference"));
+    }
+
+    #[test]
+    fn rejects_containment_reference_without_degraded_or_fallback_state() {
+        let mut input = campaign();
+        input.faulted_run.ticks[2].degraded_mode = false;
+        input.faulted_run.ticks[2].fallback_active = false;
+        input.faulted_run.ticks[2].safe_stop_complete = false;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "containment_reference_without_state"));
+    }
+
+    #[test]
+    fn rejects_normal_mode_while_containment_state_is_active() {
+        let mut input = campaign();
+        input.faulted_run.ticks[2].normal_mode = true;
+        let report = audit_campaign(&input);
+        assert!(has(&report, "normal_mode_with_containment_active"));
+    }
