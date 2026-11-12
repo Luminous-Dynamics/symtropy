@@ -28,7 +28,7 @@ fn string_set(v:&Value,key:&str,path:&str,errors:&mut Vec<Value>)->BTreeSet<Stri
     }
     out
 }
-fn nullable_text(v:&Value,key:&str)->Option<&str>{
+fn nullable_text<'a>(v:&'a Value,key:&str)->Option<&'a str>{
     match v.get(key){Some(Value::String(s)) if !s.trim().is_empty()=>Some(s),_=>None}
 }
 fn check_sha(v:&Value,key:&str,path:&str,nullable:bool,errors:&mut Vec<Value>){
