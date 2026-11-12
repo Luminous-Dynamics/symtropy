@@ -2224,6 +2224,9 @@ pub enum KerrMinoIntegrationError {
     MaximumAttemptsExceeded {
         mino_parameter: f64,
         attempts: usize,
+        next_step: f64,
+        normalized_local_error: f64,
+        normalized_constraint_error: f64,
     },
     NonFiniteErrorEstimate,
 }
@@ -2274,9 +2277,12 @@ impl fmt::Display for KerrMinoIntegrationError {
             Self::MaximumAttemptsExceeded {
                 mino_parameter,
                 attempts,
+                next_step,
+                normalized_local_error,
+                normalized_constraint_error,
             } => write!(
                 f,
-                "Kerr Mino integrator exceeded {attempts} attempts at gamma={mino_parameter:e}"
+                "Kerr Mino integrator exceeded {attempts} attempts at gamma={mino_parameter:e}; next_step={next_step:e}, local_error={normalized_local_error:e}, constraint_error={normalized_constraint_error:e}"
             ),
             Self::NonFiniteErrorEstimate => {
                 write!(
@@ -2474,12 +2480,17 @@ impl KerrSeparatedNullGeodesic {
         let mut rejected_steps = 0usize;
         let mut max_radial_residual = initial_radial_relative;
         let mut max_polar_residual = initial_polar_relative;
+        let mut last_local_error = 0.0_f64;
+        let mut last_constraint_error = 0.0_f64;
 
         while gamma < final_parameter {
             if attempts >= config.maximum_attempts {
                 return Err(KerrMinoIntegrationError::MaximumAttemptsExceeded {
                     mino_parameter: gamma,
                     attempts,
+                    next_step: step,
+                    normalized_local_error: last_local_error,
+                    normalized_constraint_error: last_constraint_error,
                 });
             }
             attempts += 1;
@@ -2525,6 +2536,8 @@ impl KerrSeparatedNullGeodesic {
 
             let constraint_error = (radial_relative / config.constraint_tolerance)
                 .max(polar_relative / config.constraint_tolerance);
+            last_local_error = error_norm;
+            last_constraint_error = constraint_error;
             if error_norm <= 1.0 && constraint_error <= 1.0 {
                 gamma += trial_step;
                 vector = two_half;
