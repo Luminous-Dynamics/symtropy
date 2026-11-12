@@ -206,7 +206,7 @@ pub struct AuditReport {
     pub findings: Vec<String>,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 enum Finding {
     SchemaVersionMismatch,
     EmptyIdentity,
@@ -1156,7 +1156,7 @@ pub fn audit_campaign(campaign: &Campaign) -> AuditReport {
         clean_control_inference_energy: clean_energy,
         faulted_inference_energy: faulted_energy,
         events,
-        findings: findings.into_iter().map(Finding::as_str).collect(),
+        findings: findings.into_iter().map(|finding| finding.as_str().to_string()).collect(),
     }
 }
 
@@ -1810,8 +1810,6 @@ mod tests {
     fn standard_schedule_rejects_overflow() {
         assert!(standard_fault_schedule(u64::MAX - 1, 5, 3, 1, 1, 2).is_err());
     }
-}
-
 
     #[test]
     fn rejects_unknown_fault_event_reference() {
@@ -1850,3 +1848,5 @@ mod tests {
         let report = audit_campaign(&input);
         assert!(has(&report, "normal_mode_with_containment_active"));
     }
+}
+}
