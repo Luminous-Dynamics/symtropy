@@ -27,8 +27,14 @@ jobs:
           toolchain: 1.96.0
           components: rustfmt, clippy
 
-      - name: Check formatting
-        run: cargo fmt --manifest-path research/camera-boundary-fault-injection-001/Cargo.toml -- --check
+      - name: Export canonical Rust 1.96 rustfmt output
+        run: |
+          file=research/camera-boundary-fault-injection-001/src/main.rs
+          rustfmt --edition 2024 "$file"
+          echo "__FORMAT_EXPORT_BEGIN_MAIN__"
+          base64 -w0 "$file" | fold -w 4000
+          echo "__FORMAT_EXPORT_END_MAIN__"
+          cargo fmt --manifest-path research/camera-boundary-fault-injection-001/Cargo.toml -- --check
 
       - name: Run mutation and campaign tests
         run: cargo test --locked --manifest-path research/camera-boundary-fault-injection-001/Cargo.toml
