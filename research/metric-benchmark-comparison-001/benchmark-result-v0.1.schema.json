@@ -460,7 +460,8 @@
             "negative_controls_run",
             "false_accept_count",
             "false_reject_count",
-            "inconclusive_case_count"
+            "inconclusive_case_count",
+            "wrong_law_negative_control_relative_error"
           ],
           "properties": {
             "negative_controls_run": {
@@ -487,6 +488,13 @@
             "inconclusive_case_count": {
               "type": [
                 "integer",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "wrong_law_negative_control_relative_error": {
+              "type": [
+                "number",
                 "null"
               ],
               "minimum": 0
