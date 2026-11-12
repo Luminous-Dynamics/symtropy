@@ -2771,6 +2771,36 @@ mod tests {
     }
 
     #[test]
+    fn run_manifest_requires_joint_scenario_ledger_digest_for_joint_qualification() {
+        let schema: serde_json::Value =
+            serde_json::from_str(include_str!("../benchmark-run-manifest.schema.json")).unwrap();
+        let active = &schema["properties"]["protocol"]["properties"]["active_evidence_selection"];
+        assert!(active["required"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|field| field == "sequential_update_status"));
+        let conditions = active["allOf"].as_array().unwrap();
+        assert_eq!(conditions.len(), 2);
+        assert_eq!(
+            conditions[0]["if"]["properties"]["sequential_update_status"]["const"],
+            "joint_hypothesis_scenario_ledger_qualified"
+        );
+        assert_eq!(
+            conditions[0]["then"]["properties"]["joint_scenario_posterior_ledger_sha256"]["type"],
+            "string"
+        );
+        assert_eq!(
+            conditions[1]["if"]["properties"]["sequential_update_status"]["const"],
+            "multi_scenario_blocked_joint_posterior_missing"
+        );
+        assert_eq!(
+            conditions[1]["then"]["properties"]["joint_scenario_posterior_ledger_sha256"]["type"],
+            "null"
+        );
+    }
+
+    #[test]
     fn duplicate_hypotheses_are_rejected_before_evidence_selection() {
         let mut hypotheses = hypotheses();
         hypotheses.push(hypotheses[0].clone());
