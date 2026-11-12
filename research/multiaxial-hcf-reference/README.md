@@ -24,7 +24,13 @@ The critical plane reports its local shear-path shape index; search diagnostics 
 - One stabilized closed cycle only. Arbitrary variable-amplitude tensor-path cycle counting is not implemented.
 - The phase samples must cover a full cycle with a bounded maximum circular phase gap.
 - The plane search is discretized. The report carries the polar/azimuth resolution and number of evaluated planes. Refinement studies are required before using it for a benchmark result.
-- The normal-stress sensitivity k is a material-calibration parameter and must be supplied from permitted calibration data. No universal or calibrated 42CrMo4+QT value is embedded.
+- The normal-stress sensitivity k is a material-calibration parameter. The reference includes a bounded two-point calibration function that derives k and the Findley parameter limit from fully reversed axial and torsional fatigue-strength values at the same material grade and target cycle count:
+  
+    r = sigma_w / tau_w
+    k = (2 - r) / (2 * sqrt(r - 1))
+    f = sigma_w / 2 * (k + sqrt(1 + k*k))
+
+The function accepts only the positive-k domain 1 < r <= 2, rejects mismatched grade/cycle count and refuses predicted calibration evidence. It does not fit S-N curves or create fatigue-strength values. The material values must come from permitted calibration data; no universal or calibrated 42CrMo4+QT value is embedded.
 - This crate calculates a critical-plane parameter, not FS_N, Nf, fatigue damage, crack growth, remaining life or a structural safety factor.
 - Notch gradients, critical-distance corrections, residual stresses, stabilized cyclic plasticity and manufacturing effects are not yet implemented.
 - Evidence digest syntax is checked; source bytes and FEA/measurement correctness are not authenticated.
