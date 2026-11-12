@@ -74,13 +74,13 @@ impl ScmCommunicationTopology {
     }
 
     fn validate(self) -> Result<(), ScmError> {
-        if let Self::MetricRadius { radius } = self {
-            if !radius.is_finite() || radius < 0.0 {
-                return Err(ScmError::InvalidParameter {
-                    name: "communication_radius",
-                    value: radius,
-                });
-            }
+        if let Self::MetricRadius { radius } = self
+            && (!radius.is_finite() || radius < 0.0)
+        {
+            return Err(ScmError::InvalidParameter {
+                name: "communication_radius",
+                value: radius,
+            });
         }
         Ok(())
     }
@@ -150,7 +150,7 @@ impl ScmConfig {
             || self.barrier_angle_degrees >= 90.0
             || self.numerical_epsilon <= 0.0
             || self.tau_steps < 2
-            || self.tau_steps % 2 != 0
+            || !self.tau_steps.is_multiple_of(2)
         {
             return Err(ScmError::InvalidConfiguration);
         }
@@ -411,7 +411,7 @@ impl ScmModel {
             .sum::<f64>();
         let mut gradient_gain_by_agent = vec![0.0; previous_positions.len()];
         let mut gradient_degenerate_agents = 0usize;
-        for agent_index in 0..previous_positions.len() {
+        for (agent_index, gradient_gain) in gradient_gain_by_agent.iter_mut().enumerate() {
             let local_indices = local_neighborhood_indices(agent_index, &communication_neighbors);
             let local_mean_gradient_norm = local_indices
                 .iter()
@@ -421,9 +421,9 @@ impl ScmModel {
                 || local_mean_gradient_norm <= self.config.numerical_epsilon
             {
                 gradient_degenerate_agents += 1;
-                gradient_gain_by_agent[agent_index] = 0.0;
+                *gradient_gain = 0.0;
             } else {
-                gradient_gain_by_agent[agent_index] = 1.0 / local_mean_gradient_norm;
+                *gradient_gain = 1.0 / local_mean_gradient_norm;
             }
         }
         let gradient_degenerate = gradient_degenerate_agents == previous_positions.len();
@@ -631,11 +631,7 @@ impl ScmModel {
         landscape: &L,
     ) -> Result<Vec<ScmObservation>, ScmObservationFailure> {
         let mut observations = Vec::with_capacity(agents.len());
-        let mut attempted_agent_evaluations = 0usize;
         for (agent_index, agent) in agents.iter().enumerate() {
-            // Count one agent observation request, including the failing request. This
-            // matches the source protocol's per-agent function-evaluation accounting.
-            attempted_agent_evaluations += 1;
             if agent
                 .position
                 .iter()
@@ -656,7 +652,7 @@ impl ScmModel {
                             agent: agent_index,
                             reason,
                         },
-                        attempted_agent_evaluations,
+                        attempted_agent_evaluations: agent_index + 1,
                     });
                 }
             };
@@ -667,7 +663,7 @@ impl ScmModel {
             {
                 return Err(ScmObservationFailure {
                     error: ScmError::InvalidLandscapeObservation { agent: agent_index },
-                    attempted_agent_evaluations,
+                    attempted_agent_evaluations: agent_index + 1,
                 });
             }
             observations.push(ScmObservation {
