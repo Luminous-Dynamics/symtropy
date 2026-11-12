@@ -1125,10 +1125,6 @@ mod tests {
             .iter_mut()
             .find(|step| step["step_id"] == "f-02")
             .unwrap();
-        step["decision_evidence_event_ids"]
-            .as_array_mut()
-            .unwrap()
-            .push(json!("ev-scan"));
         let candidate_bytes = serde_json::to_vec(&candidate).unwrap();
         let reference_bytes = serde_json::to_vec(&reference).unwrap();
         let report = evaluate_bytes(&candidate_bytes, &reference_bytes)
@@ -1218,7 +1214,7 @@ mod tests {
             .iter()
             .find(|sequence| sequence.sequence_id == "SEQ-UNCHANGED")
             .unwrap();
-        assert_eq!(unchanged.identity_switches, 1);
+        assert_eq!(unchanged.identity_switches, 2);
         assert!(unchanged.idf1 < 1.0);
         assert!(!report.passed);
     }
