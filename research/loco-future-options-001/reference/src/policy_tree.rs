@@ -442,7 +442,10 @@ fn solve_node(
             let mut invalid_reasons = Vec::new();
 
             for action_id in candidate_actions {
-                let mut children: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
+                let mut children: BTreeMap<
+                    String,
+                    BTreeMap<String, (String, String, String)>,
+                > = BTreeMap::new();
                 let mut action_unknown = false;
                 let mut action_invalid = false;
 
@@ -466,6 +469,12 @@ fn solve_node(
                     for edge in state_edges {
                         if edge.to_state_id.trim().is_empty()
                             || edge.next_belief_node_id.trim().is_empty()
+                            || edge.from_state_digest.trim().is_empty()
+                            || edge.to_state_digest.trim().is_empty()
+                            || edge.predecessor_reserve_state_digest.trim().is_empty()
+                            || edge.resulting_reserve_state_digest.trim().is_empty()
+                            || edge.predecessor_thermal_state_digest.trim().is_empty()
+                            || edge.resulting_thermal_state_digest.trim().is_empty()
                             || !edge.evidence_complete
                             || edge.receipt_digest.trim().is_empty()
                         {
@@ -475,10 +484,37 @@ fn solve_node(
                             ));
                             continue;
                         }
-                        children
+                        let parent_state = state_receipts[state_id];
+                        if edge.from_state_digest != parent_state.physical_state_digest
+                            || edge.predecessor_reserve_state_digest
+                                != parent_state.reserve_state_digest
+                            || edge.predecessor_thermal_state_digest
+                                != parent_state.thermal_state_digest
+                        {
+                            action_invalid = true;
+                            invalid_reasons.push(format!(
+                                "{node_id}:{action_id}:{state_id}:transition-predecessor-binding-mismatch"
+                            ));
+                            continue;
+                        }
+                        let child_states = children
                             .entry(edge.next_belief_node_id.clone())
-                            .or_default()
-                            .insert(edge.to_state_id.clone());
+                            .or_default();
+                        let resulting_identity = (
+                            edge.to_state_digest.clone(),
+                            edge.resulting_reserve_state_digest.clone(),
+                            edge.resulting_thermal_state_digest.clone(),
+                        );
+                        if let Some(previous) =
+                            child_states.insert(edge.to_state_id.clone(), resulting_identity.clone())
+                            && previous != resulting_identity
+                        {
+                            action_invalid = true;
+                            invalid_reasons.push(format!(
+                                "{node_id}:{action_id}:conflicting-successor-state-receipts:{}",
+                                edge.to_state_id
+                            ));
+                        }
                     }
                 }
 
@@ -488,7 +524,7 @@ fn solve_node(
                 }
 
                 let mut merged_witness = BTreeMap::new();
-                for (child_id, reached_states) in &children {
+                for (child_id, reached_state_receipts) in &children {
                     let Some(child) = nodes.get(child_id) else {
                         action_unknown = true;
                         unknown_reasons.push(format!(
@@ -496,13 +532,41 @@ fn solve_node(
                         ));
                         break;
                     };
+                    let reached_states: BTreeSet<String> =
+                        reached_state_receipts.keys().cloned().collect();
                     let child_states: BTreeSet<String> =
                         child.state_ids.iter().cloned().collect();
-                    if child_states != *reached_states {
+                    if child_states != reached_states {
                         action_unknown = true;
                         unknown_reasons.push(format!(
                             "{node_id}:{action_id}:observation-partition-mismatch:{child_id}"
                         ));
+                        break;
+                    }
+                    let child_state_receipts = index_state_receipts(child)?;
+                    if !state_receipts_complete(child, &child_state_receipts) {
+                        action_unknown = true;
+                        unknown_reasons.push(format!(
+                            "{node_id}:{action_id}:child-state-evidence-incomplete:{child_id}"
+                        ));
+                        break;
+                    }
+                    for (state_id, (physical_digest, reserve_digest, thermal_digest)) in
+                        reached_state_receipts
+                    {
+                        let child_receipt = child_state_receipts[state_id];
+                        if *physical_digest != child_receipt.physical_state_digest
+                            || *reserve_digest != child_receipt.reserve_state_digest
+                            || *thermal_digest != child_receipt.thermal_state_digest
+                        {
+                            action_invalid = true;
+                            invalid_reasons.push(format!(
+                                "{node_id}:{action_id}:successor-state-binding-mismatch:{child_id}:{state_id}"
+                            ));
+                            break;
+                        }
+                    }
+                    if action_invalid {
                         break;
                     }
                     let child_solution = solve_node(
