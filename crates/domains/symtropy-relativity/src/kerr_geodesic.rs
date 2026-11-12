@@ -3015,6 +3015,69 @@ mod tests {
     }
 
     #[test]
+    fn sachs_parallel_transport_rhs_preserves_screen_constraints_in_boyer_lindquist_chart() {
+        let black_hole = hole(0.0);
+        let observer = KerrFiniteRadiusObserver::new(
+            black_hole,
+            10.0,
+            core::f64::consts::FRAC_PI_2,
+        )
+        .unwrap();
+        let direction = KerrLocalSkyDirection::new(-0.8, 0.6, 0.0).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        let screen_basis = observer.screen_basis_to_chart_coordinates(
+            seed.local_screen_basis,
+            KerrMinoCoordinateChart::BoyerLindquist,
+        );
+        let result = KerrCanonicalHamiltonian::new(black_hole)
+            .sachs_frame_transport_derivative(
+                seed.state,
+                KerrMinoCoordinateChart::BoyerLindquist,
+                screen_basis,
+                1e-8,
+            )
+            .unwrap();
+        assert!(result.null_constraint_residual < 1e-10);
+        assert!(result.screen_orthonormality_residual < 1e-10);
+        assert!(result.screen_transversality_residual < 1e-10);
+        assert!(result.orthonormality_rate_residual < 1e-9);
+        assert!(result.transversality_rate_residual < 1e-9);
+        assert!(result.metric_compatibility_residual < 1e-10);
+    }
+
+    #[test]
+    fn sachs_parallel_transport_rhs_preserves_screen_constraints_in_ingoing_chart() {
+        let black_hole = hole(0.7);
+        let observer = KerrFiniteRadiusObserver::new(
+            black_hole,
+            10.0,
+            core::f64::consts::FRAC_PI_2,
+        )
+        .unwrap();
+        let direction = KerrLocalSkyDirection::new(-1.0, 0.0, 0.0).unwrap();
+        let seed = observer.canonical_seed(direction).unwrap();
+        assert_eq!(seed.coordinate_chart, KerrMinoCoordinateChart::IngoingKerr);
+        let screen_basis = observer.screen_basis_to_chart_coordinates(
+            seed.local_screen_basis,
+            seed.coordinate_chart,
+        );
+        let result = KerrCanonicalHamiltonian::new(black_hole)
+            .sachs_frame_transport_derivative(
+                seed.state,
+                seed.coordinate_chart,
+                screen_basis,
+                1e-8,
+            )
+            .unwrap();
+        assert!(result.null_constraint_residual < 1e-9);
+        assert!(result.screen_orthonormality_residual < 1e-9);
+        assert!(result.screen_transversality_residual < 1e-9);
+        assert!(result.orthonormality_rate_residual < 1e-8);
+        assert!(result.transversality_rate_residual < 1e-8);
+        assert!(result.metric_compatibility_residual < 1e-9);
+    }
+
+    #[test]
     fn radial_schwarzschild_sachs_optical_tidal_matrix_is_zero() {
         let black_hole = hole(0.0);
         let observer =
