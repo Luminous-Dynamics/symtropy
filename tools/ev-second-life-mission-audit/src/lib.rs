@@ -746,14 +746,14 @@ mod tests {
     fn fixture() -> Manifest {
         let mut ev = vec![];
         for i in 0..10 {
-            ev.push(evidence(&format!("E-GATE-{i}"), char::from(b'a' + i as u8)));
+            ev.push(evidence(&format!("E-GATE-{i}"), char::from(b'0' + i as u8)));
         }
         for id in ["SECOND-LIFE", "THIRD-LIFE", "UNKNOWN-HISTORY"] {
-            ev.push(evidence(&format!("E-CAP-{id}"), 'k'));
-            ev.push(evidence(&format!("BMS-VERIFY-{id}"), 'l'));
-            ev.push(evidence(&format!("AUTH-THERMAL-{id}"), 'm'));
+            ev.push(evidence(&format!("E-CAP-{id}"), 'a'));
+            ev.push(evidence(&format!("BMS-VERIFY-{id}"), 'b'));
+            ev.push(evidence(&format!("AUTH-THERMAL-{id}"), 'c'));
         }
-        ev.push(evidence("E-UQ-PROFILE", 'n'));
+        ev.push(evidence("E-UQ-PROFILE", 'd'));
         let mut second = case("SECOND-LIFE", RequestedUse::SecondLifeStationary);
         let mut third = case("THIRD-LIFE", RequestedUse::ThirdLifeBackup);
         let mut unknown = case("UNKNOWN-HISTORY", RequestedUse::SecondLifeStationary);
