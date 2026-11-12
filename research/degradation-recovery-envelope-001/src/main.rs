@@ -13,8 +13,6 @@ use std::path::Path;
 use degradation_recovery_envelope::{
     AuditReport, Campaign, audit_campaign, severity_sweep_schedule, standard_fault_schedule,
 };
-use serde_json::json;
-
 const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
 
 fn audit_value(input: &str) -> Result<AuditReport, String> {
@@ -163,6 +161,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     #[test]
     fn paired_camera_drop_fixture_is_valid() {
