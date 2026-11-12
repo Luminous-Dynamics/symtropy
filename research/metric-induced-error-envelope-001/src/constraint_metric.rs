@@ -15,7 +15,7 @@ use core::marker::PhantomData;
 
 use crate::{
     CoordinateFrame, Cotangent, Metric, MetricAdmissionReceiptV1, MetricErrorV1, MetricProfileV1,
-    Rebasis, Tangent, pairing,
+    Rebasis, Tangent,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq)]
