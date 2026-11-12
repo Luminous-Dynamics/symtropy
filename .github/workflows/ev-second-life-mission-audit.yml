@@ -1,0 +1,58 @@
+name: EV second-life mission qualification audit v0.1
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "docs/transport/EV_SECOND_LIFE_MISSION_QUALIFICATION_V0_1.md"
+      - "schemas/transport/ev_second_life_mission_qualification_v0_1.schema.json"
+      - "fixtures/ev_battery/ev_second_life_mission_qualification_v0_1.json"
+      - "tools/ev-second-life-mission-audit/**"
+      - ".github/workflows/ev-second-life-mission-audit.yml"
+  push:
+    branches: [research/ev-second-life-mission-qual-v0.1]
+    paths:
+      - "docs/transport/EV_SECOND_LIFE_MISSION_QUALIFICATION_V0_1.md"
+      - "schemas/transport/ev_second_life_mission_qualification_v0_1.schema.json"
+      - "fixtures/ev_battery/ev_second_life_mission_qualification_v0_1.json"
+      - "tools/ev-second-life-mission-audit/**"
+      - ".github/workflows/ev-second-life-mission-audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+      - name: Install pinned Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.0
+          components: rustfmt, clippy
+      - name: Validate Draft 2020-12 schema and fixture
+        run: |
+          python3 -m pip install --disable-pip-version-check jsonschema==4.26.0
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from jsonschema import Draft202012Validator
+          schema = json.loads(Path("schemas/transport/ev_second_life_mission_qualification_v0_1.schema.json").read_text(encoding="utf-8"))
+          fixture = json.loads(Path("fixtures/ev_battery/ev_second_life_mission_qualification_v0_1.json").read_text(encoding="utf-8"))
+          Draft202012Validator.check_schema(schema)
+          Draft202012Validator(schema).validate(fixture)
+          assert len(fixture["cases"]) == 3
+          assert all(len(case["gates"]) == 10 for case in fixture["cases"])
+          print("schema=VALID fixture=VALID cases=3 gates_per_case=10")
+          PY
+      - name: Check locked package metadata
+        run: cargo metadata --manifest-path tools/ev-second-life-mission-audit/Cargo.toml --locked --no-deps
+      - name: Check formatting
+        run: cargo fmt --manifest-path tools/ev-second-life-mission-audit/Cargo.toml -- --check
+      - name: Run mission qualification known-answer tests
+        run: cargo test --manifest-path tools/ev-second-life-mission-audit/Cargo.toml --locked
+      - name: Run strict Clippy
+        run: cargo clippy --manifest-path tools/ev-second-life-mission-audit/Cargo.toml --all-targets --locked -- -D warnings
