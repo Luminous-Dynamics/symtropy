@@ -254,30 +254,6 @@
       ]
     },
     {
-      "id": "B8_CABLE_DUCT_ROBOT",
-      "name": "Utility cable-duct robot traversal and maintenance tooling",
-      "purpose": "Qualify inspection, route localization, draw-rope placement, inert dummy-cable pull-through and safe recovery on exact non-energized duct profiles; do not transfer sewer-crawler metrics.",
-      "metrics": [
-        "profile-specific route reachability and complete observation disposition",
-        "chainage P50 P95 and maximum error against rig truth",
-        "per-class obstruction detection and critical-blockage false-negative rate",
-        "dummy cable peak and integrated pulling force and bend-radius compliance",
-        "duct and dummy-cable pre/post damage findings",
-        "safe retrieval and recovery success within declared laboratory envelope",
-        "energy per accepted metre and human operator interventions"
-      ],
-      "adversarial_cases": [
-        "compound bend or coupling step outside tool envelope",
-        "occluded or fouled sensor surface",
-        "tether snag or excess pull tension",
-        "robot immobilization in a non-retrievable location",
-        "flooded or debris-filled segment",
-        "communications loss or controller restart",
-        "stale calibration or wrong duct-profile revision",
-        "dummy cable has unknown mechanical limits"
-      ]
-    },
-    {
       "id": "B7_WAYLEAVE_COORDINATION",
       "name": "Wayleave and utility-owner coordination",
       "purpose": "Measure the evidence and elapsed-time performance of the real authority process without granting the software permission to approve work.",
@@ -299,6 +275,30 @@
         "cross-cut result not tied to surveyed location and coordinate frame",
         "approved design revision differs from constructed revision",
         "work performed outside permitted time or location"
+      ]
+    },
+    {
+      "id": "B8_CABLE_DUCT_ROBOT",
+      "name": "Utility cable-duct robot traversal and maintenance tooling",
+      "purpose": "Qualify inspection, route localization, draw-rope placement, inert dummy-cable pull-through and safe recovery on exact non-energized duct profiles; do not transfer sewer-crawler metrics.",
+      "metrics": [
+        "profile-specific route reachability and complete observation disposition",
+        "chainage P50 P95 and maximum error against rig truth",
+        "per-class obstruction detection and critical-blockage false-negative rate",
+        "dummy cable peak and integrated pulling force and bend-radius compliance",
+        "duct and dummy-cable pre/post damage findings",
+        "safe retrieval and recovery success within declared laboratory envelope",
+        "energy per accepted metre and human operator interventions"
+      ],
+      "adversarial_cases": [
+        "compound bend or coupling step outside tool envelope",
+        "occluded or fouled sensor surface",
+        "tether snag or excess pull tension",
+        "robot immobilization in a non-retrievable location",
+        "flooded or debris-filled segment",
+        "communications loss or controller restart",
+        "stale calibration or wrong duct-profile revision",
+        "dummy cable has unknown mechanical limits"
       ]
     }
   ],
